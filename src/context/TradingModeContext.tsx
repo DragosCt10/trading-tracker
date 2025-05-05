@@ -86,9 +86,10 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
           .eq('id', accounts[0].id);
       }
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       // Clear all queries from cache
       queryClient.clear();
+      
       // Invalidate all relevant queries when mode changes
       queryClient.invalidateQueries({ queryKey: ['activeAccount'] });
       queryClient.invalidateQueries({ queryKey: ['allTrades'] });
@@ -106,9 +107,9 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
     await queryClient.invalidateQueries({ queryKey: ['activeAccount'] });
   };
 
-  // Initialize mode based on active account
+  // Initialize mode based on active account only on first load
   useEffect(() => {
-    if (activeAccount) {
+    if (activeAccount && mode === null) {
       setModeState(activeAccount.mode);
     } else if (mode === null) {
       setModeState('live'); // Default to 'live' only if no active account and mode not set
