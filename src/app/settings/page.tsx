@@ -265,6 +265,17 @@ export default function Settings() {
 
       if (!userDetails?.user) throw new Error('No user found');
 
+      // Check if this is the first account for this mode
+      const { data: existingAccounts, error: fetchError } = await supabase
+        .from('account_settings')
+        .select('*')
+        .eq('user_id', userDetails?.user.id)
+        .eq('mode', mode);
+
+      if (fetchError) throw fetchError;
+
+      const isFirstAccount = !existingAccounts || existingAccounts.length === 0;
+
       const { error } = await supabase
         .from('account_settings')
         .insert({
@@ -273,7 +284,7 @@ export default function Settings() {
           account_balance: parseFloat(newAccount.account_balance),
           currency: newAccount.currency,
           mode: mode,
-          is_active: false
+          is_active: isFirstAccount // Set as active if it's the first account for this mode
         });
 
       if (error) throw error;
@@ -288,6 +299,7 @@ export default function Settings() {
       });
       
       await fetchAccounts();
+      await refreshActiveAccount();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add account');
     }
@@ -335,23 +347,22 @@ export default function Settings() {
       setSuccess(null);
       if (!userDetails?.user) throw new Error('No user found');
 
-      // Optimistically update UI
-      setAccounts(prev => prev.map(acc => ({ ...acc, is_active: acc.id === accountId })));
-
       // First, deactivate all accounts for this mode in backend
-      await supabase
+      const { error: deactivateError } = await supabase
         .from('account_settings')
         .update({ is_active: false })
         .eq('user_id', userDetails?.user.id)
         .eq('mode', mode);
 
+      if (deactivateError) throw deactivateError;
+
       // Then activate the selected account in backend
-      const { error } = await supabase
+      const { error: activateError } = await supabase
         .from('account_settings')
         .update({ is_active: true })
         .eq('id', accountId);
 
-      if (error) throw error;
+      if (activateError) throw activateError;
 
       setSuccess('Active account updated successfully');
 
@@ -376,22 +387,24 @@ export default function Settings() {
       // If this is an active account, handle the active state first
       if (accountToDelete.is_active) {
         // Find another account to make active
-        const { data: otherAccounts } = await supabase
+        const { data: otherAccounts, error: fetchError } = await supabase
           .from('account_settings')
           .select('*')
           .eq('user_id', userDetails?.user.id)
+          .eq('mode', accountToDelete.mode)
           .neq('id', accountToDelete.id)
           .order('created_at', { ascending: false });
 
+        if (fetchError) throw fetchError;
+
         if (otherAccounts && otherAccounts.length > 0) {
           // Activate another account
-          await supabase
+          const { error: activateError } = await supabase
             .from('account_settings')
             .update({ is_active: true })
             .eq('id', otherAccounts[0].id);
 
-          // Update the mode to match the newly activated account
-          setMode(otherAccounts[0].mode);
+          if (activateError) throw activateError;
         }
       }
 
@@ -401,11 +414,7 @@ export default function Settings() {
         .delete()
         .match({ id: accountToDelete.id, user_id: userDetails?.user.id });
 
-      if (deleteError) {
-        console.error('Error deleting account:', deleteError);
-        setError('Failed to delete account');
-        return;
-      }
+      if (deleteError) throw deleteError;
 
       setSuccess('Account deleted successfully');
       
