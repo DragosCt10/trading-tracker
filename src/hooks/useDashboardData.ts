@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useUserDetails } from './useUserDetails';
 import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/utils/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
 
 interface IntervalStats {
   wins: number;
@@ -225,40 +224,6 @@ export function useDashboardData({
   const [marketStats, setMarketStats] = useState<MarketStats[]>([]);
   const [slSizeStats, setSlSizeStats] = useState<SlSizeStats[]>([]);
 
-  const queryClient = useQueryClient();
-
-  // Reset all state data
-  const resetState = () => {
-    setStats({
-      totalTrades: 0,
-      totalWins: 0,
-      totalLosses: 0,
-      winRate: 0,
-      totalProfit: 0,
-      averageProfit: 0,
-      intervalStats: {} as Record<string, IntervalStats>,
-    });
-    setMonthlyStats({
-      bestMonth: null,
-      worstMonth: null
-    });
-    setMonthlyStatsAllTrades({});
-    setLocalHLStats({
-      lichidat: { wins: 0, losses: 0, winRate: 0 },
-      nelichidat: { wins: 0, losses: 0, winRate: 0 }
-    });
-    setSetupStats([]);
-    setLiquidityStats([]);
-    setDirectionStats([]);
-    setReentryStats([]);
-    setBreakEvenStats([]);
-    setMssStats([]);
-    setNewsStats([]);
-    setDayStats([]);
-    setMarketStats([]);
-    setSlSizeStats([]);
-  };
-
   // Query for all trades in the current year
   const { data: allTrades = [], isLoading: allTradesLoading } = useQuery<Trade[]>({
     queryKey: ['allTrades', mode, activeAccount?.id, session?.user?.id],
@@ -385,22 +350,12 @@ export function useDashboardData({
     }
   }, [filteredTrades]);
 
-  // Calculate monthly stats when all trades change
+  // // Calculate monthly stats when all trades change
   useEffect(() => {
     if (allTrades.length > 0) {
       calculateMonthlyStats(allTrades);
     }
   }, [allTrades]);
-
-  // Add effect to handle mode changes
-  useEffect(() => {
-    // Reset all state data
-    resetState();
-    // Force refetch all queries when mode changes
-    queryClient.invalidateQueries({ queryKey: ['allTrades'] });
-    queryClient.invalidateQueries({ queryKey: ['filteredTrades'] });
-    queryClient.invalidateQueries({ queryKey: ['calendarTrades'] });
-  }, [mode, queryClient]);
 
   const calculateStats = (trades: Trade[]) => {
     if (trades.length === 0) {
