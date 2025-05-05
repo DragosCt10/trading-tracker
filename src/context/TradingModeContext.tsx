@@ -20,6 +20,9 @@ interface TradingModeContextType {
   activeAccount: AccountSetting | null;
   refreshActiveAccount: () => Promise<void>;
   isLoading: boolean;
+  setModeMutation: {
+    isPending: boolean;
+  };
 }
 
 const TradingModeContext = createContext<TradingModeContextType | undefined>(undefined);
@@ -84,8 +87,13 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: () => {
-      // Invalidate and refetch active account
+      // Clear all queries from cache
+      queryClient.clear();
+      // Invalidate all relevant queries when mode changes
       queryClient.invalidateQueries({ queryKey: ['activeAccount'] });
+      queryClient.invalidateQueries({ queryKey: ['allTrades'] });
+      queryClient.invalidateQueries({ queryKey: ['filteredTrades'] });
+      queryClient.invalidateQueries({ queryKey: ['calendarTrades'] });
     }
   });
 
@@ -113,7 +121,8 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
       setMode, 
       activeAccount: activeAccount || null,
       refreshActiveAccount,
-      isLoading: isLoading || isFetching || setModeMutation.isPending
+      isLoading: isLoading || isFetching || setModeMutation.isPending,
+      setModeMutation
     }}>
       {children}
     </TradingModeContext.Provider>
