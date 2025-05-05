@@ -57,14 +57,7 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
     mutationFn: async (newMode: string) => {
       if (!userDetails?.user) return;
 
-      // PATCH logic: Use Supabase client directly
-      // 1. Deactivate all accounts for the user
-      await supabase
-        .from('account_settings')
-        .update({ is_active: false })
-        .eq('user_id', userDetails.user.id);
-
-      // 2. Find the most recent account for the new mode
+      // 1. Find the most recent account for the new mode
       const { data: accounts, error } = await supabase
         .from('account_settings')
         .select('*')
@@ -78,6 +71,12 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // 2. Deactivate all accounts for the user
+      await supabase
+        .from('account_settings')
+        .update({ is_active: false })
+        .eq('user_id', userDetails.user.id);
+
       // 3. Activate the most recent account for the new mode
       if (accounts && accounts.length > 0) {
         await supabase
@@ -86,15 +85,30 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
           .eq('id', accounts[0].id);
       }
     },
-    onSuccess: async () => {
-      // Clear all queries from cache
-      queryClient.clear();
+    onMutate: async (newMode) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['activeAccount'] });
       
-      // Invalidate all relevant queries when mode changes
-      queryClient.invalidateQueries({ queryKey: ['activeAccount'] });
-      queryClient.invalidateQueries({ queryKey: ['allTrades'] });
-      queryClient.invalidateQueries({ queryKey: ['filteredTrades'] });
-      queryClient.invalidateQueries({ queryKey: ['calendarTrades'] });
+      // Snapshot the previous value
+      const previousMode = mode;
+      
+      // Optimistically update the mode
+      setModeState(newMode);
+      
+      return { previousMode };
+    },
+    onError: (err, newMode, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousMode) {
+        setModeState(context.previousMode);
+      }
+    },
+    onSettled: async () => {
+      // Invalidate and refetch only the necessary queries
+      await queryClient.invalidateQueries({ queryKey: ['activeAccount'] });
+      await queryClient.invalidateQueries({ queryKey: ['allTrades'] });
+      await queryClient.invalidateQueries({ queryKey: ['filteredTrades'] });
+      await queryClient.invalidateQueries({ queryKey: ['calendarTrades'] });
     }
   });
 
