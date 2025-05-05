@@ -98,7 +98,7 @@ const MONTHS = [
 export default function Dashboard() {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const { mode, activeAccount, isLoading: contextLoading, setModeMutation } = useTradingMode();
+  const { mode, activeAccount, isLoading: contextLoading } = useTradingMode();
   const { data: userData, isLoading: userLoading } = useUserDetails();
   
   // Initialize today and default dates
@@ -149,7 +149,7 @@ export default function Dashboard() {
   };
 
   const { 
-    calendarMonthTrades, stats, monthlyStats, monthlyStatsAllTrades, localHLStats, setupStats, liquidityStats, directionStats, reentryStats, breakEvenStats, mssStats, newsStats, dayStats, marketStats, slSizeStats, allTrades, filteredTrades, isLoading: dashboardLoading
+    calendarMonthTrades, stats, monthlyStats, monthlyStatsAllTrades, localHLStats, setupStats, liquidityStats, directionStats, reentryStats, breakEvenStats, mssStats, newsStats, dayStats, marketStats, slSizeStats, allTrades, filteredTrades
   } = useDashboardData({
     session: userData?.session,
     dateRange,
@@ -158,7 +158,7 @@ export default function Dashboard() {
     contextLoading,
     isSessionLoading: userLoading,
     currentDate,
-    calendarDateRange
+    calendarDateRange // Add calendar specific date range
   });
 
   const { accountSettings, loading: accountSettingsLoading, error: accountSettingsError } = useAccountSettings({
@@ -261,7 +261,7 @@ export default function Dashboard() {
   }
 
   // Show loading state while checking session or context
-  if (userLoading || contextLoading || isInitialLoading || setModeMutation.isPending || dashboardLoading) {
+  if (userLoading || contextLoading || isInitialLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div role="status">
@@ -281,7 +281,7 @@ export default function Dashboard() {
   }
 
   // Show no active account message if there's no active account for the current mode
-  if (!activeAccount && !contextLoading && !setModeMutation.isPending) {
+  if (!activeAccount && !contextLoading) {
     return (
       <div className="p-8">
         <div className="max-w-2xl mx-auto bg-white border border-stone-200 rounded-lg shadow-sm p-6 text-center">
@@ -314,49 +314,6 @@ export default function Dashboard() {
         </div>
       </div>
     );
-  }
-
-  // Show no trades message if there are no trades for the current mode
-  if (activeAccount && !contextLoading && !setModeMutation.isPending && !dashboardLoading &&
-      (!allTrades || allTrades.length === 0) && 
-      (!filteredTrades || filteredTrades.length === 0)) {
-    return (
-      <div className="p-8">
-        <div className="max-w-2xl mx-auto bg-white border border-stone-200 rounded-lg shadow-sm p-6 text-center">
-          <div className="mb-6">
-            <svg
-              className="mx-auto h-12 w-12 text-stone-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-stone-900 mb-2">No Trades Found</h2>
-          <p className="text-stone-600 mb-6">
-            Start tracking your {mode} trades by adding your first trade.
-          </p>
-          <a
-            href="/trades/new"
-            className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
-          >
-            Add Your First Trade
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  // Only show the dashboard if we have trades and all data is loaded
-  if (!allTrades || allTrades.length === 0 || !filteredTrades || filteredTrades.length === 0) {
-    return null;
   }
 
   return (
