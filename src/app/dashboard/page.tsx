@@ -281,7 +281,7 @@ export default function Dashboard() {
   }
 
   // Show no active account message if there's no active account for the current mode
-  if (!activeAccount && !contextLoading) {
+  if (!activeAccount && !contextLoading && !setModeMutation.isPending) {
     return (
       <div className="p-8">
         <div className="max-w-2xl mx-auto bg-white border border-stone-200 rounded-lg shadow-sm p-6 text-center">
