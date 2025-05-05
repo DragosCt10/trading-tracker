@@ -437,8 +437,6 @@ export function useDashboardData({
       };
     });
 
-    console.log(intervalStats);
-
     setStats({
       totalTrades,
       totalWins,
