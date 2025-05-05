@@ -830,7 +830,7 @@ export default function Dashboard() {
                 },
               }}
               data={{
-                labels: liquidityStats.map(stat => stat.liquidity),
+                labels: liquidityStats.map(stat => `${stat.liquidity} (${stat.wins + stat.losses})`),
                 datasets: [
                   {
                     label: 'Wins',
@@ -919,7 +919,7 @@ export default function Dashboard() {
                 },
               }}
               data={{
-                labels: setupStats.map(stat => stat.setup),
+                labels: setupStats.map(stat => `${stat.setup} (${stat.wins + stat.losses})`),
                 datasets: [
                   {
                     label: 'Wins',
@@ -1005,7 +1005,7 @@ export default function Dashboard() {
                 },
               }}
               data={{
-                labels: directionStats.map(stat => stat.direction),
+                labels: directionStats.map(stat => `${stat.direction} (${stat.wins + stat.losses})`),
                 datasets: [
                   {
                     label: 'Wins',
@@ -1093,7 +1093,10 @@ export default function Dashboard() {
                 },
               }}
               data={{
-                labels: ['Lichidat', 'Nelichidat'],
+                labels: [
+                  `Lichidat (${localHLStats.lichidat.wins + localHLStats.lichidat.losses})`,
+                  `Nelichidat (${localHLStats.nelichidat.wins + localHLStats.nelichidat.losses})`
+                ],
                 datasets: [
                   {
                     label: 'Wins',
@@ -1194,7 +1197,7 @@ export default function Dashboard() {
                 },
               }}
               data={{
-                labels: TIME_INTERVALS.map(interval => interval.label),
+                labels: TIME_INTERVALS.map(interval => `${interval.label} (${(stats.intervalStats[interval.label]?.wins || 0) + (stats.intervalStats[interval.label]?.losses || 0)})`),
                 datasets: [
                   {
                     label: 'Wins',
@@ -1352,7 +1355,10 @@ export default function Dashboard() {
                 },
               }}
               data={{
-                labels: [...reentryStats.map(stat => 'ReEntry'), ...breakEvenStats.map(stat => 'BE')],
+                labels: [
+                  ...reentryStats.map(stat => `ReEntry (${stat.wins + stat.losses})`),
+                  ...breakEvenStats.map(stat => `BE (${stat.wins + stat.losses})`)
+                ],
                 datasets: [
                   {
                     label: 'Wins',
@@ -1536,7 +1542,7 @@ export default function Dashboard() {
                 },
               }}
               data={{
-                labels: newsStats.map(stat => stat.type),
+                labels: newsStats.map(stat => `${stat.type} (${stat.wins + stat.losses})`),
                 datasets: [
                   {
                     label: 'Wins',
@@ -1628,7 +1634,7 @@ export default function Dashboard() {
                 },
               }}
               data={{
-                labels: dayStats.map(stat => stat.day),
+                labels: dayStats.map(stat => `${stat.day} (${stat.wins + stat.losses})`),
                 datasets: [
                   {
                     label: 'Wins',
@@ -1717,7 +1723,7 @@ export default function Dashboard() {
                 },
               }}
               data={{
-                labels: marketStats.map(stat => stat.market),
+                labels: marketStats.map(stat => `${stat.market} (${stat.wins + stat.losses})`),
                 datasets: [
                   {
                     label: 'Wins',
