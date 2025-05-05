@@ -316,42 +316,6 @@ export default function Dashboard() {
     );
   }
 
-  // Show no trades message if there are no trades
-  if (activeAccount && !isInitialLoading && filteredTrades.length === 0) {
-    return (
-      <div className="p-8">
-        <div className="max-w-2xl mx-auto bg-white border border-stone-200 rounded-lg shadow-sm p-6 text-center">
-          <div className="mb-6">
-            <svg
-              className="mx-auto h-12 w-12 text-stone-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-stone-900 mb-2">No Trades Yet</h2>
-          <p className="text-stone-600 mb-6">
-            Start tracking your trades by adding your first trade. This will help you analyze your trading performance.
-          </p>
-          <a
-            href="/trades/new"
-            className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
-          >
-            Add Your First Trade
-          </a>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div>
       {/* Filter Buttons */}
