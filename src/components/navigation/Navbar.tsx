@@ -16,10 +16,12 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   
-  // Reset isSigningOut state when component mounts
+  // Reset isSigningOut state when user data changes or component mounts
   useEffect(() => {
-    setIsSigningOut(false);
-  }, []);
+    if (userData?.user) {
+      setIsSigningOut(false);
+    }
+  }, [userData?.user]);
 
   const handleSignOut = async () => {
     try {
