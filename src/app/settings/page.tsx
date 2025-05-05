@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { useTradingMode } from '@/context/TradingModeContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
 
 const CURRENCY_OPTIONS = [
@@ -198,81 +199,94 @@ function EditModal({ account, isOpen, onClose, onSave, onDelete }: EditModalProp
 }
 
 export default function Settings() {
-  const [mode, setMode] = useState<string>('live');
+  const { mode, setMode, activeAccount, refreshActiveAccount } = useTradingMode();
+  const { data: userDetails, isLoading } = useUserDetails();
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [newAccount, setNewAccount] = useState({
     name: '',
     account_balance: '',
     currency: 'EUR'
   });
-  const { data: userDetails } = useUserDetails();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const supabase = createClient();
 
-  // Fetch accounts whenever mode changes locally
   useEffect(() => {
-    if (userDetails?.user) {
+    if (!isLoading && userDetails?.user) {
       fetchAccounts();
     }
-  }, [mode, userDetails?.user]);
+  }, [mode, userDetails, isLoading]);
 
   async function fetchAccounts() {
     try {
+      setLoading(true);
       setError(null);
-      setSuccess(null);
-      if (!userDetails?.user) return;
+      
+      // Wait for user details to be loaded
+      if (isLoading) return;
+      
+      if (!userDetails?.user) {
+        setError('Please sign in to view your accounts');
+        return;
+      }
 
+      // Use Supabase to fetch accounts
       const { data, error } = await supabase
         .from('account_settings')
         .select('*')
-        .eq('user_id', userDetails.user.id)
+        .eq('user_id', userDetails?.user.id)
         .eq('mode', mode)
         .order('created_at', { ascending: false });
-
       if (error) throw error;
-      setAccounts(data || []);
+      setAccounts(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch accounts');
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }
-
-  // Handle mode change locally
-  const handleModeChange = (newMode: string) => {
-    setMode(newMode);
-  };
 
   async function handleAddAccount() {
     try {
       setError(null);
       setSuccess(null);
-      if (!userDetails?.user) return;
+      
+      if (!newAccount.name.trim()) {
+        setError('Account name is required');
+        return;
+      }
+
+      if (!newAccount.account_balance || isNaN(parseFloat(newAccount.account_balance))) {
+        setError('Please enter a valid account balance');
+        return;
+      }
+
+      if (!userDetails?.user) throw new Error('No user found');
 
       const { error } = await supabase
         .from('account_settings')
         .insert({
-          user_id: userDetails.user.id,
-          name: newAccount.name,
+          user_id: userDetails?.user?.id,
+          name: newAccount.name.trim(),
           account_balance: parseFloat(newAccount.account_balance),
           currency: newAccount.currency,
           mode: mode,
-          is_active: accounts.length === 0 // Set as active if it's the first account
+          is_active: false
         });
 
       if (error) throw error;
 
       setSuccess('Account added successfully');
+      
+      // Reset form
       setNewAccount({
         name: '',
         account_balance: '',
         currency: 'EUR'
       });
-      setIsAddModalOpen(false);
+      
       await fetchAccounts();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add account');
@@ -284,10 +298,20 @@ export default function Settings() {
       setError(null);
       setSuccess(null);
 
+      if (!updatedAccount.name?.trim()) {
+        setError('Account name is required');
+        return;
+      }
+
+      if (!updatedAccount.account_balance || isNaN(updatedAccount.account_balance)) {
+        setError('Please enter a valid account balance');
+        return;
+      }
+
       const { error } = await supabase
         .from('account_settings')
         .update({
-          name: updatedAccount.name,
+          name: updatedAccount.name.trim(),
           account_balance: updatedAccount.account_balance,
           currency: updatedAccount.currency
         })
@@ -297,6 +321,9 @@ export default function Settings() {
 
       setSuccess('Account updated successfully');
       await fetchAccounts();
+      if (updatedAccount.is_active) {
+        await refreshActiveAccount();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update account');
     }
@@ -306,27 +333,31 @@ export default function Settings() {
     try {
       setError(null);
       setSuccess(null);
-      if (!userDetails?.user) return;
+      if (!userDetails?.user) throw new Error('No user found');
 
-      // First, deactivate all accounts for this mode
-      const { error: deactivateError } = await supabase
+      // Optimistically update UI
+      setAccounts(prev => prev.map(acc => ({ ...acc, is_active: acc.id === accountId })));
+
+      // First, deactivate all accounts for this mode in backend
+      await supabase
         .from('account_settings')
         .update({ is_active: false })
-        .eq('user_id', userDetails.user.id)
+        .eq('user_id', userDetails?.user.id)
         .eq('mode', mode);
 
-      if (deactivateError) throw deactivateError;
-
-      // Then activate the selected account
-      const { error: activateError } = await supabase
+      // Then activate the selected account in backend
+      const { error } = await supabase
         .from('account_settings')
         .update({ is_active: true })
         .eq('id', accountId);
 
-      if (activateError) throw activateError;
+      if (error) throw error;
 
       setSuccess('Active account updated successfully');
+
+      // Refresh accounts and active account
       await fetchAccounts();
+      await refreshActiveAccount();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to set active account');
     }
@@ -336,29 +367,31 @@ export default function Settings() {
     try {
       setError(null);
       setSuccess(null);
-      if (!userDetails?.user) return;
+
+      if (!userDetails?.user) {
+        setError('No user found');
+        return;
+      }
 
       // If this is an active account, handle the active state first
       if (accountToDelete.is_active) {
         // Find another account to make active
-        const { data: otherAccounts, error: fetchError } = await supabase
+        const { data: otherAccounts } = await supabase
           .from('account_settings')
           .select('*')
-          .eq('user_id', userDetails.user.id)
-          .eq('mode', accountToDelete.mode)
+          .eq('user_id', userDetails?.user.id)
           .neq('id', accountToDelete.id)
           .order('created_at', { ascending: false });
 
-        if (fetchError) throw fetchError;
-
         if (otherAccounts && otherAccounts.length > 0) {
           // Activate another account
-          const { error: activateError } = await supabase
+          await supabase
             .from('account_settings')
             .update({ is_active: true })
             .eq('id', otherAccounts[0].id);
 
-          if (activateError) throw activateError;
+          // Update the mode to match the newly activated account
+          setMode(otherAccounts[0].mode);
         }
       }
 
@@ -366,18 +399,26 @@ export default function Settings() {
       const { error: deleteError } = await supabase
         .from('account_settings')
         .delete()
-        .match({ id: accountToDelete.id, user_id: userDetails.user.id });
+        .match({ id: accountToDelete.id, user_id: userDetails?.user.id });
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error('Error deleting account:', deleteError);
+        setError('Failed to delete account');
+        return;
+      }
 
       setSuccess('Account deleted successfully');
+      
+      // Refresh the accounts list and active account
       await fetchAccounts();
+      await refreshActiveAccount();
     } catch (err) {
+      console.error('Error in handleDeleteAccount:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete account');
     }
   }
 
-  if (isLoading) return (
+  if (loading) return (
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold text-stone-900 mb-8">Settings</h1>
       
@@ -390,7 +431,7 @@ export default function Settings() {
           {MODES.map((m) => (
             <button
               key={m.value}
-              onClick={() => handleModeChange(m.value)}
+              onClick={() => setMode(m.value)}
               className={`inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md ${mode === m.value ? 'bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none relative' : 'bg-white text-stone-800 border-stone-200'} rounded-lg hover:bg-stone-800/5 hover:border-stone-800/5`}
             >
               {m.label}
@@ -435,7 +476,7 @@ export default function Settings() {
           {MODES.map((m) => (
             <button
               key={m.value}
-              onClick={() => handleModeChange(m.value)}
+              onClick={() => setMode(m.value)}
               className={`inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md ${mode === m.value ? 'bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none relative' : 'bg-white text-stone-800 border-stone-200'} rounded-lg hover:bg-stone-800/5 hover:border-stone-800/5`}
             >
               {m.label}
