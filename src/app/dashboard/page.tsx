@@ -98,7 +98,7 @@ const MONTHS = [
 export default function Dashboard() {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const { mode, activeAccount, isLoading: contextLoading } = useTradingMode();
+  const { mode, activeAccount, isLoading: contextLoading, setModeMutation } = useTradingMode();
   const { data: userData, isLoading: userLoading } = useUserDetails();
   
   // Initialize today and default dates
@@ -261,7 +261,7 @@ export default function Dashboard() {
   }
 
   // Show loading state while checking session or context
-  if (userLoading || contextLoading || isInitialLoading) {
+  if (userLoading || contextLoading || isInitialLoading || setModeMutation.isPending) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div role="status">
