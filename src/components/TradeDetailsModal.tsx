@@ -23,6 +23,24 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
+const MARKET_OPTIONS = ['DAX', 'US30', 'UK100', 'US100', 'EURUSD', 'GBPUSD'];
+const SETUP_OPTIONS = [
+  'OG',
+  'TG',
+  'TCG',
+  '3G',
+  '3CG',
+  'MultipleGaps',
+  'SLG+OG',
+  'SLG+TG',
+  'SLG+TCG',
+  'SLG+3G',
+  'SLG+3CG'
+];
+const LIQUIDITY_OPTIONS = ['Liq. Majora', 'Liq. Minora', 'Liq. Locala', 'HOD', 'LOD'];
+const MSS_OPTIONS = ['Normal', 'Agresiv'];
+const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
+
   if (!isOpen || !trade) return null;
 
   // Update editedTrade when trade changes
@@ -195,7 +213,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             <select
               value={value as string}
               onChange={(e) => handleInputChange(field, e.target.value)}
-              className="mt-1 w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+              className="mt-1 w-full cursor-pointer bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {options?.map((option) => (
                 <option key={option} value={option}>
@@ -212,7 +230,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             <select
               value={value ? 'true' : 'false'}
               onChange={(e) => handleInputChange(field, e.target.value === 'true')}
-              className="mt-1 w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+              className="mt-1 w-full cursor-pointer bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="true">Yes</option>
               <option value="false">No</option>
@@ -228,7 +246,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               step="0.01"
               value={value as number}
               onChange={(e) => handleInputChange(field, parseFloat(e.target.value))}
-              className="mt-1 w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+              className="mt-1 w-full bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
         );
@@ -240,7 +258,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               type="text"
               value={value as string}
               onChange={(e) => handleInputChange(field, e.target.value)}
-              className="mt-1 w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+              className="mt-1 w-full bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
         );
@@ -276,11 +294,11 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               <dl>
                 {renderField('Date', 'trade_date')}
                 {renderField('Time', 'trade_time')}
-                {renderField('Day', 'day_of_week')}
-                {renderField('Market', 'market')}
+                {renderField('Day', 'day_of_week', 'select', DAY_OF_WEEK_OPTIONS)}
+                {renderField('Market', 'market', 'select', MARKET_OPTIONS)}
                 {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
-                {renderField('Setup Type', 'setup_type')}
-                {renderField('Outcome', 'trade_outcome', 'outcome')}
+                {renderField('Setup Type', 'setup_type', 'select', SETUP_OPTIONS)}
+                {renderField('Outcome', 'trade_outcome', 'select', ['Win', 'Lose'])}
               </dl>
             </div>
 
@@ -292,7 +310,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 {renderField('Risk/Reward Ratio', 'risk_reward_ratio', 'number')}
                 {renderField('Risk/Reward Ratio (Long)', 'risk_reward_ratio_long', 'number')}
                 {renderField('SL Size', 'sl_size', 'number')}
-                {renderField('Liquidity', 'liquidity')}
+                {renderField('Liquidity', 'liquidity', 'select', LIQUIDITY_OPTIONS)}
               </dl>
             </div>
 
@@ -300,7 +318,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             <div className="space-y-2">
               <h3 className="text-lg font-medium text-stone-900 mb-2">Trade Analysis</h3>
               <dl>
-                {renderField('MSS', 'mss')}
+                {renderField('MSS', 'mss', 'select', MSS_OPTIONS)}
                 {renderField('Break Even', 'break_even', 'boolean')}
                 {renderField('Re-entry', 'reentry', 'boolean')}
                 {renderField('News Related', 'news_related', 'boolean')}
