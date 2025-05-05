@@ -20,9 +20,6 @@ interface TradingModeContextType {
   activeAccount: AccountSetting | null;
   refreshActiveAccount: () => Promise<void>;
   isLoading: boolean;
-  setModeMutation: {
-    isPending: boolean;
-  };
 }
 
 const TradingModeContext = createContext<TradingModeContextType | undefined>(undefined);
@@ -57,7 +54,14 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
     mutationFn: async (newMode: string) => {
       if (!userDetails?.user) return;
 
-      // 1. Find the most recent account for the new mode
+      // PATCH logic: Use Supabase client directly
+      // 1. Deactivate all accounts for the user
+      await supabase
+        .from('account_settings')
+        .update({ is_active: false })
+        .eq('user_id', userDetails.user.id);
+
+      // 2. Find the most recent account for the new mode
       const { data: accounts, error } = await supabase
         .from('account_settings')
         .select('*')
@@ -71,12 +75,6 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // 2. Deactivate all accounts for the user
-      await supabase
-        .from('account_settings')
-        .update({ is_active: false })
-        .eq('user_id', userDetails.user.id);
-
       // 3. Activate the most recent account for the new mode
       if (accounts && accounts.length > 0) {
         await supabase
@@ -85,30 +83,9 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
           .eq('id', accounts[0].id);
       }
     },
-    onMutate: async (newMode) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['activeAccount'] });
-      
-      // Snapshot the previous value
-      const previousMode = mode;
-      
-      // Optimistically update the mode
-      setModeState(newMode);
-      
-      return { previousMode };
-    },
-    onError: (err, newMode, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
-      if (context?.previousMode) {
-        setModeState(context.previousMode);
-      }
-    },
-    onSettled: async () => {
-      // Invalidate and refetch only the necessary queries
-      await queryClient.invalidateQueries({ queryKey: ['activeAccount'] });
-      await queryClient.invalidateQueries({ queryKey: ['allTrades'] });
-      await queryClient.invalidateQueries({ queryKey: ['filteredTrades'] });
-      await queryClient.invalidateQueries({ queryKey: ['calendarTrades'] });
+    onSuccess: () => {
+      // Invalidate and refetch active account
+      queryClient.invalidateQueries({ queryKey: ['activeAccount'] });
     }
   });
 
@@ -121,9 +98,9 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
     await queryClient.invalidateQueries({ queryKey: ['activeAccount'] });
   };
 
-  // Initialize mode based on active account only on first load
+  // Initialize mode based on active account
   useEffect(() => {
-    if (activeAccount && mode === null) {
+    if (activeAccount) {
       setModeState(activeAccount.mode);
     } else if (mode === null) {
       setModeState('live'); // Default to 'live' only if no active account and mode not set
@@ -136,8 +113,7 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
       setMode, 
       activeAccount: activeAccount || null,
       refreshActiveAccount,
-      isLoading: isLoading || isFetching || setModeMutation.isPending,
-      setModeMutation
+      isLoading: isLoading || isFetching || setModeMutation.isPending
     }}>
       {children}
     </TradingModeContext.Provider>
