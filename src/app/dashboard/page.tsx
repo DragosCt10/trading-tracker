@@ -101,6 +101,9 @@ export default function Dashboard() {
   const { mode, activeAccount, isLoading: contextLoading } = useTradingMode();
   const { data: userData, isLoading: userLoading } = useUserDetails();
   
+  // Add selected year state for monthly stats only
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  
   // Initialize today and default dates
   const today = new Date();
   const initialStartDate = format(subDays(today, 29), 'yyyy-MM-dd');
@@ -158,8 +161,11 @@ export default function Dashboard() {
     contextLoading,
     isSessionLoading: userLoading,
     currentDate,
-    calendarDateRange // Add calendar specific date range
+    calendarDateRange,
+    selectedYear // Add selected year to the hook
   });
+
+  console.log('monthlyStatsAllTrades', monthlyStatsAllTrades);
 
   const { accountSettings, loading: accountSettingsLoading, error: accountSettingsError } = useAccountSettings({
     userId: userData?.user?.id,
@@ -326,8 +332,30 @@ export default function Dashboard() {
         </div>
       )}
 
-      <h2 className="text-2xl font-bold text-stone-900">Overviews Stats</h2>
-      <p className="text-stone-500 mb-10">View your comprehensive trading performance metrics and analytics.</p>
+      <div className="flex justify-between items-center mb-10">
+        <div>
+          <h2 className="text-2xl font-bold text-stone-900">Overview Stats</h2>
+          <p className="text-stone-500">View your comprehensive trading performance metrics and analytics.</p>
+        </div>
+        <div className="relative">
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="aria-disabled:cursor-not-allowed w-20 appearance-none outline-none cursor-pointer focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+          >
+            {[selectedYear - 1, selectedYear, selectedYear + 1].map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+          <span className="pointer-events-none absolute top-1/2 -translate-y-1/2 right-2.5 text-stone-600/70 peer-focus:text-stone-800 peer-focus:text-stone-800 dark:peer-hover:text-white dark:peer-focus:text-white transition-all duration-300 ease-in overflow-hidden w-5 h-5">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4 mt-0.5 text-stone-800">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            </svg>
+          </span>
+        </div>
+      </div>
 
       {/* Account Overview Card */}
       <div className="mb-8 bg-white rounded-lg shadow-sm border border-stone-200 p-6">
