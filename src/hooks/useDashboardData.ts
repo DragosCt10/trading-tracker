@@ -509,23 +509,32 @@ export function useDashboardData({
         acc[month] = { wins: 0, losses: 0, winRate: 0, profit: 0 };
       }
       
-      // Skip break even trades for profit calculation
+      // Count all trades (including BE) for total trades
+      if (trade.trade_outcome === 'Win') {
+        acc[month].wins++;
+      } else if (trade.trade_outcome === 'Lose') {
+        acc[month].losses++;
+      }
+      
+      // Calculate profit only from non-BE trades
       if (!trade.break_even) {
         const riskPerTrade = trade.risk_per_trade || 0.5;
         const riskAmount = (activeAccount?.account_balance || 0) * (riskPerTrade / 100);
         const riskRewardRatio = trade.risk_reward_ratio || 2;
         
         if (trade.trade_outcome === 'Win') {
-          acc[month].wins++;
           acc[month].profit += (riskAmount * riskRewardRatio);
         } else if (trade.trade_outcome === 'Lose') {
-          acc[month].losses++;
           acc[month].profit -= riskAmount;
         }
       }
       
-      const total = acc[month].wins + acc[month].losses;
-      acc[month].winRate = total > 0 ? (acc[month].wins / total) * 100 : 0;
+      // Calculate win rate only from non-BE trades
+      const nonBETrades = trades.filter(t => !t.break_even && new Date(t.trade_date).toLocaleString('default', { month: 'long' }) === month);
+      const nonBEWins = nonBETrades.filter(t => t.trade_outcome === 'Win').length;
+      const nonBELosses = nonBETrades.filter(t => t.trade_outcome === 'Lose').length;
+      const totalNonBE = nonBEWins + nonBELosses;
+      acc[month].winRate = totalNonBE > 0 ? (nonBEWins / totalNonBE) * 100 : 0;
       
       return acc;
     }, {});
