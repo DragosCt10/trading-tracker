@@ -6,6 +6,7 @@ import { useTradingMode } from '@/context/TradingModeContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import Link from 'next/link';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
+import NotesModal from '@/components/NotesModal';
 import { useQuery } from '@tanstack/react-query';
 
 const ITEMS_PER_PAGE = 10;
@@ -15,6 +16,8 @@ export default function TradesPage() {
   const [endDate, setEndDate] = useState<string>('');
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
+  const [selectedNotes, setSelectedNotes] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
 
   const { mode, activeAccount, isLoading: modeLoading } = useTradingMode();
@@ -96,6 +99,16 @@ export default function TradesPage() {
   const closeModal = () => {
     setSelectedTrade(null);
     setIsModalOpen(false);
+  };
+
+  const openNotesModal = (notes: string) => {
+    setSelectedNotes(notes);
+    setIsNotesModalOpen(true);
+  };
+
+  const closeNotesModal = () => {
+    setIsNotesModalOpen(false);
+    setSelectedNotes('');
   };
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
@@ -261,82 +274,95 @@ export default function TradesPage() {
       </div>
 
       {/* Trades Table Card */}
-      <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-stone-200">
             <thead className="bg-stone-50">
               <tr>
-                {[
-                  'Date', 'Time', 'Day', 'Market', 'Direction', 'Setup', 'Outcome', 'Risk %',
-                  'Trade Link', 'Liquidity Taken', 'Actions'
-                ].map((header) => (
-                  <th
-                    key={header}
-                    className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider"
-                  >
-                    {header}
-                  </th>
-                ))}
+                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Time</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Market</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Direction</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Setup</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Outcome</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Risk</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Trade</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Liquidity</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Notes</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-stone-200">
               {filteredTrades.map((trade: Trade) => (
                 <tr key={trade.id} className="hover:bg-stone-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{trade.trade_date}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{trade.trade_time}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{trade.market}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{trade.direction}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{trade.setup_type}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                    {new Date(trade.trade_date).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                    {trade.trade_time}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                    {trade.day_of_week}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                    {trade.market}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                    {trade.direction}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                    {trade.setup_type}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                       trade.trade_outcome === 'Win' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
                       {trade.trade_outcome}
                     </span>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{trade.risk_per_trade}%</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                    {trade.risk_per_trade}%
+                    {trade.trade_link ? (
+                      <a
+                        href={trade.trade_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-stone-700 hover:text-stone-900 underline"
+                      >
+                        View Trade
+                      </a>
+                    ) : (
+                      <span className="text-stone-400">No link</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
+                    {trade.liquidity_taken ? (
+                      <a
+                        href={trade.liquidity_taken}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-stone-700 hover:text-stone-900 underline"
+                      >
+                        View Liquidity
+                      </a>
+                    ) : (
+                      <span className="text-stone-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
+                    {trade.notes ? (
+                      <a
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          openNotesModal(trade.notes || '');
+                        }}
+                        className="text-stone-700 hover:text-stone-900 underline"
+                      >
+                        View Notes
+                      </a>
+                    ) : (
+                      <span className="text-stone-400">No notes</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
                     <a
-                      href={trade.trade_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      View Trade
-                    </a>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                    <a
-                      href={trade.liquidity_taken}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      View Liquidity
-                    </a>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
-                    <button
-                      onClick={() => openModal(trade)}
-                      className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm rounded-md py-2 px-4 bg-transparent border-transparent text-stone-800 hover:bg-stone-800/5 hover:border-stone-800/5 shadow-none hover:shadow-none"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openModal(trade);
+                      }}
+                      className="text-stone-700 hover:text-stone-900 underline"
                     >
                       View Details
-                    </button>
+                    </a>
                   </td>
                 </tr>
               ))}
@@ -358,26 +384,34 @@ export default function TradesPage() {
           <button
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-transparent border-transparent text-stone-800 hover:bg-stone-800/5 hover:border-stone-800/5 shadow-none hover:shadow-none rounded-md"
+            className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center transition-all ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm bg-transparent relative text-stone-700 hover:text-stone-700 border-stone-500 hover:bg-transparent duration-150 hover:border-stone-600 rounded-lg hover:opacity-60 hover:shadow-none"
           >
             Previous
           </button>
           <button
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
-            className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-transparent border-transparent text-stone-800 hover:bg-stone-800/5 hover:border-stone-800/5 shadow-none hover:shadow-none rounded-md"
+            className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
           >
             Next
           </button>
         </div>
       </div>
 
-      {/* Trade Details Modal */}
-      <TradeDetailsModal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        trade={selectedTrade}
-        onTradeUpdated={() => refreshTrades()}
+      {/* Modals */}
+      {selectedTrade && (
+        <TradeDetailsModal
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          trade={selectedTrade}
+          onTradeUpdated={() => refreshTrades()}
+        />
+      )}
+
+      <NotesModal
+        isOpen={isNotesModalOpen}
+        onClose={closeNotesModal}
+        notes={selectedNotes}
       />
     </div>
   );
