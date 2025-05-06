@@ -152,7 +152,7 @@ export default function Dashboard() {
   };
 
   const { 
-    calendarMonthTrades, stats, monthlyStats, monthlyStatsAllTrades, localHLStats, setupStats, liquidityStats, directionStats, reentryStats, breakEvenStats, mssStats, newsStats, dayStats, marketStats, slSizeStats, allTrades, filteredTrades
+    calendarMonthTrades, calendarTradesLoading, allTradesLoading, stats, monthlyStats, monthlyStatsAllTrades, localHLStats, setupStats, liquidityStats, directionStats, reentryStats, breakEvenStats, mssStats, newsStats, dayStats, marketStats, slSizeStats, allTrades, filteredTrades, filteredTradesLoading
   } = useDashboardData({
     session: userData?.session,
     dateRange,
@@ -323,7 +323,14 @@ export default function Dashboard() {
   }
 
   // Show no trades message if there are no trades
-  if (!isInitialLoading && filteredTrades.length === 0) {
+  if (
+    activeAccount &&
+    !isInitialLoading &&
+    !filteredTradesLoading &&
+    !calendarTradesLoading &&
+    !allTradesLoading &&
+    filteredTrades.length === 0
+  ) {
     return (
       <div className="p-8">
         <div className="max-w-2xl mx-auto bg-white border border-stone-200 rounded-lg shadow-sm p-6 text-center">
