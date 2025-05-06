@@ -23,4 +23,5 @@ export interface Trade {
   local_high_low: boolean;
   risk_per_trade: number;
   calculated_profit?: number;
+  notes?: string;  // New field for trade notes
 }
