@@ -179,7 +179,8 @@ export function useDashboardData({
   contextLoading,
   isSessionLoading,
   currentDate,
-  calendarDateRange
+  calendarDateRange,
+  selectedYear
 }: {
   session: any;
   dateRange: { startDate: string; endDate: string };
@@ -189,6 +190,7 @@ export function useDashboardData({
   isSessionLoading: boolean;
   currentDate: Date;
   calendarDateRange: { startDate: string; endDate: string };
+  selectedYear: number;
 }) {
   const router = useRouter();
   const { data: user, isLoading: userLoading, error } = useUserDetails();
@@ -224,18 +226,17 @@ export function useDashboardData({
   const [marketStats, setMarketStats] = useState<MarketStats[]>([]);
   const [slSizeStats, setSlSizeStats] = useState<SlSizeStats[]>([]);
 
-  // Query for all trades in the current year
+  // Query for all trades in the selected year (only used for monthly stats)
   const { data: allTrades = [], isLoading: allTradesLoading } = useQuery<Trade[]>({
-    queryKey: ['allTrades', mode, activeAccount?.id, session?.user?.id],
+    queryKey: ['allTrades', mode, activeAccount?.id, session?.user?.id, selectedYear],
     queryFn: async () => {
       if (!session?.user?.id || !activeAccount?.id) {
         return [];
       }
       
       const supabase = createClient();
-      const currentYear = new Date().getFullYear();
-      const startDate = `${currentYear}-01-01`;
-      const endDate = `${currentYear}-12-31`;
+      const startDate = `${selectedYear}-01-01`;
+      const endDate = `${selectedYear}-12-31`;
     
       try {
         const { data: trades, error } = await supabase
@@ -256,7 +257,6 @@ export function useDashboardData({
           console.log('No trades found');
           return [];
         }
-
         // Transform Supabase data to match Trade type
         return trades.map(trade => mapSupabaseTradeToTrade(trade, mode));
       } catch (error) {
@@ -269,7 +269,7 @@ export function useDashboardData({
     gcTime: 10 * 60 * 1000,
   });
 
-  // Query for filtered trades based on date range
+  // Query for filtered trades based on date range (independent of year selection)
   const { data: filteredTrades = [], isLoading: filteredTradesLoading } = useQuery<Trade[]>({
     queryKey: ['filteredTrades', mode, activeAccount?.id, session?.user?.id, dateRange.startDate, dateRange.endDate],
     queryFn: async () => {
@@ -350,12 +350,12 @@ export function useDashboardData({
     }
   }, [filteredTrades]);
 
-  // // Calculate monthly stats when all trades change
+  // Calculate monthly stats when all trades change or selected year changes
   useEffect(() => {
     if (allTrades.length > 0) {
       calculateMonthlyStats(allTrades);
     }
-  }, [allTrades]);
+  }, [allTrades, selectedYear]);
 
   const calculateStats = (trades: Trade[]) => {
     if (trades.length === 0) {
@@ -501,7 +501,13 @@ export function useDashboardData({
   };
 
   const calculateMonthlyStats = (trades: Trade[]) => {    
-    const monthlyData = trades.reduce((acc: Record<string, MonthlyStats>, trade) => {
+    // Filter trades for the selected year
+    const yearTrades = trades.filter(trade => {
+      const tradeDate = new Date(trade.trade_date);
+      return tradeDate.getFullYear() === selectedYear;
+    });
+
+    const monthlyData = yearTrades.reduce((acc: Record<string, MonthlyStats>, trade) => {
       const tradeDate = new Date(trade.trade_date);
       const month = tradeDate.toLocaleString('default', { month: 'long' });
       
@@ -530,7 +536,7 @@ export function useDashboardData({
       }
       
       // Calculate win rate only from non-BE trades
-      const nonBETrades = trades.filter(t => !t.break_even && new Date(t.trade_date).toLocaleString('default', { month: 'long' }) === month);
+      const nonBETrades = yearTrades.filter(t => !t.break_even && new Date(t.trade_date).toLocaleString('default', { month: 'long' }) === month);
       const nonBEWins = nonBETrades.filter(t => t.trade_outcome === 'Win').length;
       const nonBELosses = nonBETrades.filter(t => t.trade_outcome === 'Lose').length;
       const totalNonBE = nonBEWins + nonBELosses;
