@@ -479,7 +479,7 @@ export default function Dashboard() {
           <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center flex-1">
             <h3 className="text-sm font-semibold text-stone-500 mb-1">Best Month</h3>
             <p className="text-2xl font-bold text-stone-900">
-              {monthlyStats.bestMonth.month} {new Date().getFullYear()}
+              {monthlyStats.bestMonth.month} {selectedYear}
               <span className="text-base font-bold text-green-600">
                 &nbsp;({monthlyStats.bestMonth.stats.winRate.toFixed(2)}% WR)
               </span>
@@ -493,7 +493,7 @@ export default function Dashboard() {
           <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center flex-1">
             <h3 className="text-sm font-semibold text-stone-500 mb-1">Worst Month</h3>
             <p className="text-2xl font-bold text-stone-900">
-              {monthlyStats.worstMonth.month} {new Date().getFullYear()}
+              {monthlyStats.worstMonth.month} {selectedYear}
               <span className="text-base font-bold text-red-600">
                 &nbsp;({monthlyStats.worstMonth.stats.winRate.toFixed(2)}% WR)
               </span>
@@ -547,7 +547,15 @@ export default function Dashboard() {
                       display: false,
                     },
                     ticks: {
-                      color: 'rgb(41, 37, 36)' // stone-800
+                      color: 'rgb(41, 37, 36)', // stone-800
+                      callback: function(value, index) {
+                        // value is the index of the label
+                        const labels = this.getLabels();
+                        const month = labels && typeof value === 'number' ? labels[value] : value;
+                        const stats = monthlyStatsAllTrades[month];
+                        const totalTrades = stats ? stats.wins + stats.losses : 0;
+                        return `${month} (${totalTrades})`;
+                      }
                     }
                   },
                 },
@@ -1737,7 +1745,7 @@ export default function Dashboard() {
                     },
                     ticks: {
                       display: false
-                    }
+                    } 
                   },
                   y: {
                     stacked: false,
