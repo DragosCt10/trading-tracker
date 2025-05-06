@@ -89,7 +89,8 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
           reentry: editedTrade.reentry,
           news_related: editedTrade.news_related,
           local_high_low: editedTrade.local_high_low,
-          mode: tradingMode
+          mode: tradingMode,
+          notes: editedTrade.notes
         })
         .eq('id', editedTrade.id);
 
@@ -267,16 +268,17 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-sm w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-stone-900">Trade Details</h2>
             <button
               onClick={onClose}
-              className="text-stone-400 hover:text-stone-500"
+              className="inline-grid place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-sm min-w-[38px] min-h-[38px] rounded-md bg-transparent border-transparent text-stone-800 hover:bg-stone-800/5 hover:border-stone-800/5 shadow-none hover:shadow-none"
             >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
             </button>
           </div>
@@ -287,7 +289,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Basic Information */}
             <div className="space-y-2">
               <h3 className="text-lg font-medium text-stone-900 mb-2">Basic Information</h3>
@@ -306,7 +308,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
             <div className="space-y-2">
               <h3 className="text-lg font-medium text-stone-900 mb-2">Risk Management</h3>
               <dl>
-                {renderField('Risk Percentage', 'risk_per_trade', 'number')}
+                {renderField('Risk', 'risk_per_trade', 'number')}
                 {renderField('Risk/Reward Ratio', 'risk_reward_ratio', 'number')}
                 {renderField('Risk/Reward Ratio (Long)', 'risk_reward_ratio_long', 'number')}
                 {renderField('SL Size', 'sl_size', 'number')}
@@ -331,9 +333,19 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
           <div className="mt-4">
             <h3 className="text-lg font-medium text-stone-900 mb-2">Trade Link</h3>
             <dl>
-              {renderField('Trade Link', 'trade_link')}
+              {renderField('Trade', 'trade_link')}
               {renderField('Liquidity Taken', 'liquidity_taken')}
             </dl>
+          </div>
+
+          {/* Notes */}
+          <div className="mt-4">
+            <h3 className="text-lg font-medium text-stone-900 mb-2">Notes</h3>
+            <textarea
+              value={editedTrade?.notes ?? ''}
+              onChange={(e) => handleInputChange('notes', e.target.value)}
+              className="mt-1 w-full bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            />
           </div>
 
           {showDeleteConfirm && (
@@ -359,7 +371,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
           )}
 
           {/* Action Buttons */}
-          <div className="mt-4 flex justify-end gap-4">
+          <div className="mt-6 flex justify-end gap-2">
             {!isEditing ? (
               <>
                 <button
