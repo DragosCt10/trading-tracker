@@ -56,6 +56,7 @@ export default function NewTradeForm() {
     risk_per_trade: 0,
     calculated_profit: 0,
     mode: mode,
+    notes: '',
   };
 
   const [trade, setTrade] = useState<Trade>(initialTradeState);
@@ -425,6 +426,17 @@ export default function NewTradeForm() {
               ))}
             </select>
           </div>
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium text-stone-700 mb-2">Notes</label>
+          <textarea
+            value={trade.notes}
+            onChange={(e) => setTrade({ ...trade, notes: e.target.value })}
+            className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+            rows={4}
+            placeholder="Add any notes about this trade..."
+          />
         </div>
       </div>
 
