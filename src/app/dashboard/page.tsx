@@ -165,8 +165,6 @@ export default function Dashboard() {
     selectedYear // Add selected year to the hook
   });
 
-  console.log('monthlyStatsAllTrades', monthlyStatsAllTrades);
-
   const { accountSettings, loading: accountSettingsLoading, error: accountSettingsError } = useAccountSettings({
     userId: userData?.user?.id,
     accessToken: userData?.session?.access_token
@@ -762,8 +760,36 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
-          <h3 className="text-sm font-semibold text-stone-500 mb-1">Max Drawdown</h3>
-          <p className="text-2xl font-bold text-red-600">{stats.maxDrawdown.toFixed(2)}%</p>
+          <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
+            Max Drawdown
+            <span className="ml-1 cursor-help group relative">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-72 sm:w-80 md:w-96 bg-white border border-stone-200 rounded-lg shadow-lg p-3 sm:p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="text-xs sm:text-sm text-stone-700 space-y-1 sm:space-y-2">
+                  <div className="font-semibold text-stone-900 mb-1 sm:mb-2">Drawdown Interpretation</div>
+                  <div className={`${stats.maxDrawdown <= 2 ? 'bg-blue-50 border-blue-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">🔹 0% – 2%</span> — Excellent. Very low risk. Usually seen in algo/automated or conservative systems.
+                  </div>
+                  <div className={`${stats.maxDrawdown > 2 && stats.maxDrawdown <= 5 ? 'bg-green-50 border-green-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">✅ 2% – 5%</span> — Healthy/Moderate. Most professional strategies fall in this zone.
+                  </div>
+                  <div className={`${stats.maxDrawdown > 5 && stats.maxDrawdown <= 10 ? 'bg-yellow-50 border-yellow-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">⚠️ 5% – 10%</span> — Aggressive but Acceptable. Common for swing traders and trend followers.
+                  </div>
+                  <div className={`${stats.maxDrawdown > 10 && stats.maxDrawdown <= 20 ? 'bg-orange-50 border-orange-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">❗ 10% – 20%</span> — High Risk. Suitable only for high-volatility strategies.
+                  </div>
+                  <div className={`${stats.maxDrawdown > 20 ? 'bg-red-50 border-red-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">🚫 20%+</span> — Danger Zone. Signals poor risk control or heavy leverage.
+                  </div>
+                </div>
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-stone-200 transform rotate-45"></div>
+              </div>
+            </span>
+          </h3>
+          <p className="text-2xl font-bold">{stats.maxDrawdown.toFixed(2)}%</p>
         </div>
       </div>
 
