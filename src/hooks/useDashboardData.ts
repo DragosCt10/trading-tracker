@@ -83,6 +83,17 @@ interface MonthlyStatsWithMonth {
   stats: MonthlyStats;
 }
 
+interface Stats {
+  totalTrades: number;
+  totalWins: number;
+  totalLosses: number;
+  winRate: number;
+  totalProfit: number;
+  averageProfit: number;
+  intervalStats: Record<string, IntervalStats>;
+  maxDrawdown: number;
+}
+
 const TIME_INTERVALS = [
   { label: '< 10 a.m', start: '00:00', end: '09:59' },
   { label: '10 a.m - 12 p.m', start: '10:00', end: '11:59' },
@@ -194,7 +205,7 @@ export function useDashboardData({
 }) {
   const router = useRouter();
   const { data: user, isLoading: userLoading, error } = useUserDetails();
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<Stats>({
     totalTrades: 0,
     totalWins: 0,
     totalLosses: 0,
@@ -202,6 +213,7 @@ export function useDashboardData({
     totalProfit: 0,
     averageProfit: 0,
     intervalStats: {} as Record<string, IntervalStats>,
+    maxDrawdown: 0,
   });
   const [monthlyStats, setMonthlyStats] = useState<{
     bestMonth: MonthlyStatsWithMonth | null;
@@ -366,10 +378,42 @@ export function useDashboardData({
         winRate: 0,
         totalProfit: 0,
         averageProfit: 0,
-        intervalStats: {} as Record<string, IntervalStats>
+        intervalStats: {} as Record<string, IntervalStats>,
+        maxDrawdown: 0,
       });
       return;
     }
+
+    // Calculate max drawdown
+    let maxDrawdown = 0;
+    let peak = 0;
+    let runningBalance = activeAccount?.account_balance || 0;
+    
+    // Sort trades by date and filter out BE trades
+    const sortedNonBETrades = [...trades]
+      .filter(trade => !trade.break_even)
+      .sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime());
+    
+    sortedNonBETrades.forEach(trade => {
+      const riskPerTrade = trade.risk_per_trade || 0.5;
+      const riskAmount = runningBalance * (riskPerTrade / 100);
+      const riskRewardRatio = trade.risk_reward_ratio || 2;
+      
+      if (trade.trade_outcome === 'Win') {
+        runningBalance += riskAmount * riskRewardRatio;
+      } else if (trade.trade_outcome === 'Lose') {
+        runningBalance -= riskAmount;
+      }
+      
+      if (runningBalance > peak) {
+        peak = runningBalance;
+      }
+      
+      const drawdown = ((peak - runningBalance) / peak) * 100;
+      if (drawdown > maxDrawdown) {
+        maxDrawdown = drawdown;
+      }
+    });
 
     const totalTrades = trades.length;
     const totalWins = trades.filter((t: Trade) => t.trade_outcome === 'Win').length;
@@ -444,7 +488,8 @@ export function useDashboardData({
       winRate,
       totalProfit,
       averageProfit,
-      intervalStats
+      intervalStats,
+      maxDrawdown,
     });
 
     // Calculate other stats
