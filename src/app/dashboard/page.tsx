@@ -761,6 +761,10 @@ export default function Dashboard() {
             )}
           </p>
         </div>
+        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
+          <h3 className="text-sm font-semibold text-stone-500 mb-1">Max Drawdown</h3>
+          <p className="text-2xl font-bold text-red-600">{stats.maxDrawdown.toFixed(2)}%</p>
+        </div>
       </div>
 
       {/* Calendar View */}
