@@ -71,7 +71,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
       
       // Calculate P&L percentage based on the risk amount and RR
       const pnlPercentage = newTrade.trade_outcome === 'Win' 
-        ? newTrade.risk_per_trade * riskRewardRatio 
+        ? (newTrade.risk_per_trade * riskRewardRatio)
         : -newTrade.risk_per_trade;
 
       setEditedTrade({
