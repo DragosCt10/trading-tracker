@@ -145,7 +145,8 @@ export default function TradesPage() {
         trade.risk_reward_ratio_long,
         trade.sl_size,
         trade.calculated_profit || '',
-        trade.notes || ''
+        trade.notes || '',
+        trade.pnl_percentage || ''
       ].join(','))
     ].join('\n');
 
