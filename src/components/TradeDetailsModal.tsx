@@ -40,6 +40,7 @@ const SETUP_OPTIONS = [
 const LIQUIDITY_OPTIONS = ['Liq. Majora', 'Liq. Minora', 'Liq. Locala', 'HOD', 'LOD'];
 const MSS_OPTIONS = ['Normal', 'Agresiv'];
 const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
+const QUARTER_OPTIONS = ['Q1', 'Q2', 'Q3', 'Q4'];
 
   if (!isOpen || !trade) return null;
 
@@ -105,6 +106,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
           trade_date: editedTrade.trade_date,
           trade_time: editedTrade.trade_time,
           day_of_week: editedTrade.day_of_week || '',
+          quarter: editedTrade.quarter || '',
           market: editedTrade.market,
           direction: editedTrade.direction,
           setup_type: editedTrade.setup_type,
@@ -419,6 +421,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
                 {renderField('Date', 'trade_date')}
                 {renderField('Time', 'trade_time')}
                 {renderField('Day', 'day_of_week', 'select', DAY_OF_WEEK_OPTIONS)}
+                {renderField('Quarter', 'quarter', 'select', QUARTER_OPTIONS)}
                 {renderField('Market', 'market', 'select', MARKET_OPTIONS)}
                 {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
                 {renderField('Setup Type', 'setup_type', 'select', SETUP_OPTIONS)}
