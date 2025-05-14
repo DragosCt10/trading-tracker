@@ -12,3 +12,20 @@ body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-end-rgb));
 } 
+
+/* Prevent the date range picker from overflowing the viewport */
+.date-range-popup {
+  right: 1rem !important;
+  left: 1rem !important;
+  max-width: 100vw;
+  min-width: 330px;
+  /* Optional: add a max-width for the picker itself */
+  overflow-x: auto;
+  position: absolute !important;
+  /* If you want to ensure it never goes off the bottom: */
+  max-height: 90vh;
+  overflow-y: auto;
+  /* Optional: add a box-shadow or border-radius for aesthetics */
+  box-shadow: 0 2px 24px rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+}
