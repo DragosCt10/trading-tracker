@@ -362,6 +362,38 @@ export function useDashboardData({
   useEffect(() => {
     if (filteredTrades.length > 0) {
       calculateStats(filteredTrades);
+    } else {
+      const emptyStats = {
+        totalTrades: 0,
+        totalWins: 0,
+        totalLosses: 0,
+        winRate: 0,
+        totalProfit: 0,
+        averageProfit: 0,
+        intervalStats: {},
+        maxDrawdown: 0,
+        averagePnLPercentage: 0
+      };
+      setStats(prev => {
+        return JSON.stringify(prev) === JSON.stringify(emptyStats) ? prev : emptyStats;
+      });
+      const emptyHL = {
+        lichidat: { wins: 0, losses: 0, winRate: 0 },
+        nelichidat: { wins: 0, losses: 0, winRate: 0 }
+      };
+      setLocalHLStats(prev => {
+        return JSON.stringify(prev) === JSON.stringify(emptyHL) ? prev : emptyHL;
+      });
+      setSetupStats(prev => (prev.length === 0 ? prev : []));
+      setLiquidityStats(prev => (prev.length === 0 ? prev : []));
+      setDirectionStats(prev => (prev.length === 0 ? prev : []));
+      setReentryStats(prev => (prev.length === 0 ? prev : []));
+      setBreakEvenStats(prev => (prev.length === 0 ? prev : []));
+      setMssStats(prev => (prev.length === 0 ? prev : []));
+      setNewsStats(prev => (prev.length === 0 ? prev : []));
+      setDayStats(prev => (prev.length === 0 ? prev : []));
+      setMarketStats(prev => (prev.length === 0 ? prev : []));
+      setSlSizeStats(prev => (prev.length === 0 ? prev : []));
     }
   }, [filteredTrades]);
 
