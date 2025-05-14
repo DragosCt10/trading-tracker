@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, subDays, startOfYear, endOfYear } from 'date-fns';
 import { Trade } from '@/types/trade';
 import { useTradingMode } from '@/context/TradingModeContext';
@@ -22,6 +22,9 @@ import { RiskRewardStats } from '@/components/dashboard/RiskRewardStats';
 import { useAccountSettings } from '@/hooks/useAccountSettings';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { DateRange } from 'react-date-range';
+import 'react-date-range/dist/styles.css';
+import 'react-date-range/dist/theme/default.css';
 
 ChartJS.register(
   CategoryScale,
@@ -123,6 +126,31 @@ export default function Dashboard() {
 
   const [activeFilter, setActiveFilter] = useState<'year' | '15days' | '30days' | 'month'>('30days');
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Close picker on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowDatePicker(false);
+      }
+    }
+    if (showDatePicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDatePicker]);
 
   // Filter button handlers
   const handleFilter = (type: 'year' | '15days' | '30days' | 'month') => {
@@ -362,6 +390,9 @@ export default function Dashboard() {
       </div>
     );
   }
+
+  // Date range input formatting
+  const formattedRange = `${dateRange.startDate} ~ ${dateRange.endDate}`;
 
   return (
     <div>
@@ -647,25 +678,50 @@ export default function Dashboard() {
       <div className="mb-8 bg-white border border-stone-200 rounded-lg shadow-sm p-6">  
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label htmlFor="startDate" className="font-semibold text-stone-700">From:</label>
-              <input
-                type="date"
-                id="startDate"
-                value={dateRange.startDate}
-                onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
-                className="border border-stone-200 rounded-lg px-3 py-2 text-stone-700 hover:border-stone-300 focus:border-stone-400 focus:ring-none"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label htmlFor="endDate" className="font-semibold text-stone-700">To:</label>
-              <input
-                type="date"
-                id="endDate"
-                value={dateRange.endDate}
-                onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
-                className="border border-stone-200 rounded-lg px-3 py-2 text-stone-700 hover:border-stone-300 focus:border-stone-400 focus:ring-none"
-              />
+            <div className="w-72">
+              <div className="relative w-full">
+                <input
+                  ref={inputRef}
+                  placeholder="Select date range"
+                  type="text"
+                  className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer pr-10"
+                  value={`${dateRange.startDate} ~ ${dateRange.endDate}`}
+                  readOnly
+                  onFocus={() => setShowDatePicker(true)}
+                  onClick={() => setShowDatePicker(true)}
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer" onClick={() => setShowDatePicker(v => !v)}>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
+                  </svg>
+                </span>
+                {showDatePicker && (
+                  <div ref={pickerRef} className="absolute shadow-lg rounded-lg z-50 mt-2 left-0 date-range-popup">
+                    <DateRange
+                      ranges={[
+                        {
+                          startDate: new Date(dateRange.startDate),
+                          endDate: new Date(dateRange.endDate),
+                          key: 'selection',
+                        },
+                      ]}
+                      onChange={(ranges) => {
+                        const { startDate, endDate } = ranges.selection;
+                        setDateRange({
+                          startDate: format(startDate as Date, 'yyyy-MM-dd'),
+                          endDate: format(endDate as Date, 'yyyy-MM-dd'),
+                        });
+                      }}
+                      moveRangeOnFirstSelection={false}
+                      editableDateInputs={true}
+                      maxDate={new Date()}
+                      showMonthAndYearPickers={true}
+                      rangeColors={['#333']}
+                      direction="vertical"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
