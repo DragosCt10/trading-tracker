@@ -25,4 +25,5 @@ export interface Trade {
   calculated_profit?: number;
   notes?: string;  // New field for trade notes
   pnl_percentage?: number;
+  quarter: string;
 }
