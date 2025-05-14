@@ -164,7 +164,8 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
     local_high_low: trade.local_high_low,
     risk_per_trade: trade.risk_per_trade,
     calculated_profit: trade.calculated_profit,
-    pnl_percentage: trade.pnl_percentage
+    pnl_percentage: trade.pnl_percentage,
+    quarter: trade.quarter
   };
 }
 
@@ -311,7 +312,6 @@ export function useDashboardData({
           console.log('No trades found');
           return [];
         }
-
         // Transform Supabase data to match Trade type
         return trades.map(trade => mapSupabaseTradeToTrade(trade, mode));
       } catch (error) {
@@ -319,7 +319,7 @@ export function useDashboardData({
         return [];
       }
     },
-    enabled: !contextLoading && !isSessionLoading && !userLoading && !!session?.user?.id && !!activeAccount?.id,
+    enabled: !!session?.user?.id && !!activeAccount?.id && !!dateRange.startDate && !!dateRange.endDate,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
