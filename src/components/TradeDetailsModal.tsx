@@ -216,10 +216,21 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
         );
       }
       if (type === 'outcome') {
+        const outcome = value as string;
+        const badgeColor =
+          outcome === 'Win'
+            ? 'bg-green-100 text-green-800'
+            : outcome === 'Lose'
+            ? 'bg-red-100 text-red-800'
+            : 'bg-stone-100 text-stone-800';
         return (
           <div className="mb-4">
             <dt className="text-sm font-medium text-stone-500">{label}</dt>
-            <dd className="mt-1 text-sm text-stone-900">{renderOutcomeBadge(value as string)}</dd>
+            <dd className="mt-1">
+              <span className={`px-3 py-1 rounded-full font-semibold text-sm ${badgeColor}`}>
+                {outcome}
+              </span>
+            </dd>
           </div>
         );
       }
@@ -411,7 +422,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
                 {renderField('Market', 'market', 'select', MARKET_OPTIONS)}
                 {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
                 {renderField('Setup Type', 'setup_type', 'select', SETUP_OPTIONS)}
-                {renderField('Outcome', 'trade_outcome', 'select', ['Win', 'Lose'])}
+                {renderField('Outcome', 'trade_outcome', 'outcome', ['Win', 'Lose'])}
               </dl>
             </div>
 
