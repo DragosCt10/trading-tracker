@@ -14,7 +14,7 @@ interface TradeDetailsModalProps {
 }
 
 export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdated }: TradeDetailsModalProps) {
-  const { mode } = useTradingMode();
+  const { mode, activeAccount } = useTradingMode();
   const [isEditing, setIsEditing] = useState(false);
   const [editedTrade, setEditedTrade] = useState<Trade | null>(trade);
   const [isSaving, setIsSaving] = useState(false);
@@ -59,7 +59,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
       };
       
       // Calculate P&L based on risk percentage and outcome
-      const riskAmount = (newTrade.risk_per_trade / 100) * (newTrade.account_balance || 0);
+      const riskAmount = (newTrade.risk_per_trade / 100) * (activeAccount?.account_balance || 0);
       const riskRewardRatio = newTrade.risk_reward_ratio || 2;
       
       let calculatedProfit = 0;
