@@ -225,15 +225,23 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
       }
       if (type === 'number') {
         const displayValue = typeof value === 'number' ? value.toFixed(2) : value;
-        const isNegative = field === 'pnl_percentage' && editedTrade.trade_outcome === 'Lose';
-        return (
-          <div className="mb-4">
-            <dt className="text-sm font-medium text-stone-500">{label}</dt>
-            <dd className={`mt-1 text-sm ${isNegative ? 'text-red-600' : 'text-stone-900'}`}>
-              {isNegative ? `${displayValue}%` : `${displayValue}%`}
-            </dd>
-          </div>
-        );
+        if (field === 'pnl_percentage' || field === 'risk_per_trade') {
+          return (
+            <div className="mb-4">
+              <dt className="text-sm font-medium text-stone-500">{label}</dt>
+              <dd className={`mt-1 text-sm ${field === 'pnl_percentage' && editedTrade.trade_outcome === 'Lose' ? 'text-red-600' : 'text-stone-900'}`}>
+                {`${displayValue}%`}
+              </dd>
+            </div>
+          );
+        } else {
+          return (
+            <div className="mb-4">
+              <dt className="text-sm font-medium text-stone-500">{label}</dt>
+              <dd className="mt-1 text-sm text-stone-900">{displayValue}</dd>
+            </div>
+          );
+        }
       }
       return (
         <div className="mb-4">
@@ -247,18 +255,50 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
     if (field === 'pnl_percentage') {
       const numValue = typeof value === 'number' && !isNaN(value) ? value : 0;
       const displayValue = numValue.toFixed(2);
-      const isNegative = editedTrade.trade_outcome === 'Lose' && numValue !== 0;
       return (
         <div className="mb-4">
           <label className="block text-sm font-medium text-stone-700">{label}</label>
           <input
             type="text"
-            value={isNegative ? `${displayValue}%` : `${displayValue}%`}
+            value={`${displayValue}%`}
             readOnly
             className="mt-1 w-full bg-stone-50 border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
           />
         </div>
       );
+    }
+    // For Risk, make it read-only with %
+    if (field === 'risk_per_trade') {
+      const numValue = typeof value === 'number' && !isNaN(value) ? value : 0;
+      const displayValue = numValue.toFixed(2);
+      if (isEditing) {
+        return (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-stone-700">{label}</label>
+            <input
+              type="number"
+              value={isNaN(value as number) ? '' : value as number}
+              onChange={e => {
+                const val = e.target.value;
+                handleInputChange(field, val === '' ? '' : parseFloat(val));
+              }}
+              className="mt-1 w-full bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+        );
+      } else {
+        return (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-stone-700">{label}</label>
+            <input
+              type="text"
+              value={`${displayValue}%`}
+              readOnly
+              className="mt-1 w-full bg-stone-50 border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
+            />
+          </div>
+        );
+      }
     }
 
     switch (type) {
@@ -268,8 +308,11 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
             <label className="block text-sm font-medium text-stone-700">{label}</label>
             <input
               type="number"
-              value={value as number}
-              onChange={(e) => handleInputChange(field, parseFloat(e.target.value))}
+              value={isNaN(value as number) ? '' : value as number}
+              onChange={e => {
+                const val = e.target.value;
+                handleInputChange(field, val === '' ? '' : parseFloat(val));
+              }}
               className="mt-1 w-full bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200"
             />
           </div>
