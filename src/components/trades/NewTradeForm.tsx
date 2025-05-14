@@ -25,6 +25,7 @@ const SETUP_OPTIONS = [
 const LIQUIDITY_OPTIONS = ['Liq. Majora', 'Liq. Minora', 'Liq. Locala', 'HOD', 'LOD'];
 const MSS_OPTIONS = ['Normal', 'Agresiv'];
 const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
+const QUARTER_OPTIONS = ['Q1', 'Q2', 'Q3', 'Q4'];
 
 export default function NewTradeForm() {
   const router = useRouter();
@@ -58,6 +59,7 @@ export default function NewTradeForm() {
     mode: mode,
     notes: '',
     pnl_percentage: 0,
+    quarter: '',
   };
 
   const [trade, setTrade] = useState<Trade>(initialTradeState);
@@ -264,6 +266,25 @@ export default function NewTradeForm() {
               {DAY_OF_WEEK_OPTIONS.map((day) => (
                 <option key={day} value={day}>
                   {day}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-2">Quarter</label>
+          <div className="relative w-full">
+            <select
+              value={trade.quarter}
+              onChange={(e) => setTrade({ ...trade, quarter: e.target.value })}
+              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+              required
+            >
+              <option value="">Select Quarter</option>
+              {QUARTER_OPTIONS.map((quarter) => (
+                <option key={quarter} value={quarter}>
+                  {quarter}
                 </option>
               ))}
             </select>
