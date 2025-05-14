@@ -847,6 +847,21 @@ export default function Dashboard() {
           </h3>
           <p className="text-2xl font-bold">{stats.maxDrawdown.toFixed(2)}%</p>
         </div>
+        {/* P&L % Stat Card */}
+        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
+          <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
+            P&L %
+            <span className="ml-1 cursor-help group relative">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-60 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="text-xs sm:text-sm text-stone-700">Average P&L % over starting balance.</div>
+              </div>
+            </span>
+          </h3>
+           <p className={`text-2xl font-bold ${stats.averagePnLPercentage > 0 ? 'text-green-600' : stats.averagePnLPercentage < 0 ? 'text-red-600' : 'text-stone-600'}`}>{stats.averagePnLPercentage.toFixed(2)}%</p>
+        </div>
       </div>
 
       {/* Calendar View */}
