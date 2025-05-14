@@ -24,4 +24,5 @@ export interface Trade {
   risk_per_trade: number;
   calculated_profit?: number;
   notes?: string;  // New field for trade notes
+  pnl_percentage?: number;
 }
