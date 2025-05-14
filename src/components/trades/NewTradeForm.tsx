@@ -57,6 +57,7 @@ export default function NewTradeForm() {
     calculated_profit: 0,
     mode: mode,
     notes: '',
+    pnl_percentage: 0,
   };
 
   const [trade, setTrade] = useState<Trade>(initialTradeState);
@@ -109,12 +110,18 @@ export default function NewTradeForm() {
       const supabase = createClient();
       const tableName = `${mode}_trades`;
 
+      // Calculate P&L percentage
+      const pnlPercentage = activeAccount.account_balance 
+        ? (calculatedProfit / activeAccount.account_balance) * 100 
+        : 0;
+
       const { error } = await supabase
         .from(tableName)
         .insert([{ 
           ...trade,
           user_id: userDetails?.user?.id,
           calculated_profit: calculatedProfit,
+          pnl_percentage: pnlPercentage,
           account_id: activeAccount.id
         }])
         .select();
@@ -517,10 +524,17 @@ export default function NewTradeForm() {
         </div>
 
         <div className="flex justify-between items-center mt-4">
-          <div className="text-sm text-gray-600">
-            Calculated Profit: <span className={`font-medium ${calculatedProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              ${calculatedProfit.toFixed(2)}
-            </span>
+          <div className="text-sm text-gray-600 space-y-1">
+            <div>
+              P&L ({activeAccount.currency}): <span className={`font-medium ${calculatedProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {activeAccount.currency === 'EUR' ? '€' : '$'}{calculatedProfit.toFixed(2)}
+              </span>
+            </div>
+            <div>
+              P&L %: <span className={`font-medium ${calculatedProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {activeAccount.account_balance ? ((calculatedProfit / activeAccount.account_balance) * 100).toFixed(2) : '0.00'}%
+              </span>
+            </div>
           </div>
 
           <div className="flex gap-4">
