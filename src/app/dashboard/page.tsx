@@ -190,7 +190,7 @@ export default function Dashboard() {
     isSessionLoading: userLoading,
     currentDate,
     calendarDateRange,
-    selectedYear // Add selected year to the hook
+    selectedYear, // Add selected year to the hook    
   });
 
   const { accountSettings, loading: accountSettingsLoading, error: accountSettingsError } = useAccountSettings({
@@ -355,7 +355,8 @@ export default function Dashboard() {
     !filteredTradesLoading &&
     !calendarTradesLoading &&
     !allTradesLoading &&
-    filteredTrades.length === 0
+    filteredTrades.length === 0 &&
+    !showDatePicker
   ) {
     return (
       <div className="p-8">
