@@ -319,7 +319,7 @@ export function useDashboardData({
         return [];
       }
     },
-    enabled: !!session?.user?.id && !!activeAccount?.id && !!dateRange.startDate && !!dateRange.endDate,
+    enabled: !contextLoading && !isSessionLoading && !userLoading && !!session?.user?.id && !!activeAccount?.id,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
