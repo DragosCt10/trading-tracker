@@ -355,6 +355,7 @@ export default function Dashboard() {
     !filteredTradesLoading &&
     !calendarTradesLoading &&
     !allTradesLoading &&
+    allTrades.length === 0 &&
     filteredTrades.length === 0 &&
     !showDatePicker
   ) {
@@ -391,9 +392,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  // Date range input formatting
-  const formattedRange = `${dateRange.startDate} ~ ${dateRange.endDate}`;
 
   return (
     <div>
@@ -708,10 +706,14 @@ export default function Dashboard() {
                       ]}
                       onChange={(ranges) => {
                         const { startDate, endDate } = ranges.selection;
-                        setDateRange({
-                          startDate: format(startDate as Date, 'yyyy-MM-dd'),
-                          endDate: format(endDate as Date, 'yyyy-MM-dd'),
-                        });
+                        const newStart = format(startDate as Date, 'yyyy-MM-dd');
+                        const newEnd = format(endDate as Date, 'yyyy-MM-dd');
+                        if (dateRange.startDate !== newStart || dateRange.endDate !== newEnd) {
+                          setDateRange({
+                            startDate: newStart,
+                            endDate: newEnd,
+                          });
+                        }
                       }}
                       moveRangeOnFirstSelection={false}
                       editableDateInputs={true}
