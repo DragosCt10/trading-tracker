@@ -92,6 +92,7 @@ interface Stats {
   averageProfit: number;
   intervalStats: Record<string, IntervalStats>;
   maxDrawdown: number;
+  averagePnLPercentage: number;
 }
 
 const TIME_INTERVALS = [
@@ -162,7 +163,8 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
     risk_reward_ratio_long: trade.risk_reward_ratio_long,
     local_high_low: trade.local_high_low,
     risk_per_trade: trade.risk_per_trade,
-    calculated_profit: trade.calculated_profit
+    calculated_profit: trade.calculated_profit,
+    pnl_percentage: trade.pnl_percentage
   };
 }
 
@@ -214,6 +216,7 @@ export function useDashboardData({
     averageProfit: 0,
     intervalStats: {} as Record<string, IntervalStats>,
     maxDrawdown: 0,
+    averagePnLPercentage: 0
   });
   const [monthlyStats, setMonthlyStats] = useState<{
     bestMonth: MonthlyStatsWithMonth | null;
@@ -380,6 +383,7 @@ export function useDashboardData({
         averageProfit: 0,
         intervalStats: {} as Record<string, IntervalStats>,
         maxDrawdown: 0,
+        averagePnLPercentage: 0
       });
       return;
     }
@@ -394,15 +398,21 @@ export function useDashboardData({
       .filter(trade => !trade.break_even)
       .sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime());
     
+    // Calculate PNL percentage for sorted non-BE trades
+    let totalPnLPercentage = 0;
+    
     sortedNonBETrades.forEach(trade => {
       const riskPerTrade = trade.risk_per_trade || 0.5;
       const riskAmount = runningBalance * (riskPerTrade / 100);
       const riskRewardRatio = trade.risk_reward_ratio || 2;
       
       if (trade.trade_outcome === 'Win') {
-        runningBalance += riskAmount * riskRewardRatio;
+        const profit = riskAmount * riskRewardRatio;
+        runningBalance += profit;
+        totalPnLPercentage += (profit / (runningBalance - profit)) * 100;
       } else if (trade.trade_outcome === 'Lose') {
         runningBalance -= riskAmount;
+        totalPnLPercentage -= (riskAmount / (runningBalance + riskAmount)) * 100;
       }
       
       if (runningBalance > peak) {
@@ -414,7 +424,7 @@ export function useDashboardData({
         maxDrawdown = drawdown;
       }
     });
-
+    
     const totalTrades = trades.length;
     const totalWins = trades.filter((t: Trade) => t.trade_outcome === 'Win').length;
     const totalLosses = trades.filter((t: Trade) => t.trade_outcome === 'Lose').length;
@@ -464,6 +474,10 @@ export function useDashboardData({
     }, 0) || 0;
     const averageProfit = nonBETrades.length > 0 ? totalProfit / nonBETrades.length : 0;
 
+    // Calculate average PNL percentage as total profit over starting balance
+    const startingBalance = activeAccount?.account_balance;
+    const averagePnLPercentage = startingBalance ? (totalProfit / startingBalance) * 100 : 0;
+
     const intervalStats: Record<string, IntervalStats> = {};
     TIME_INTERVALS.forEach(interval => {
       const intervalTrades = trades.filter((trade: Trade) => 
@@ -490,6 +504,7 @@ export function useDashboardData({
       averageProfit,
       intervalStats,
       maxDrawdown,
+      averagePnLPercentage,
     });
 
     // Calculate other stats
@@ -650,4 +665,4 @@ export function useDashboardData({
     marketStats,
     slSizeStats,
   };
-} 
+}
