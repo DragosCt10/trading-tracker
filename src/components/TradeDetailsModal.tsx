@@ -49,10 +49,42 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
   }
 
   const handleInputChange = (field: keyof Trade, value: any) => {
-    setEditedTrade(prev => prev ? {
-      ...prev,
-      [field]: value
-    } : null);
+    if (!editedTrade) return;
+
+    // Calculate new P&L percentage when risk or risk/reward ratio changes
+    if (field === 'risk_per_trade' || field === 'risk_reward_ratio' || field === 'trade_outcome') {
+      const newTrade = {
+        ...editedTrade,
+        [field]: value
+      };
+      
+      // Calculate P&L based on risk percentage and outcome
+      const riskAmount = (newTrade.risk_per_trade / 100) * (newTrade.account_balance || 0);
+      const riskRewardRatio = newTrade.risk_reward_ratio || 2;
+      
+      let calculatedProfit = 0;
+      if (newTrade.trade_outcome === 'Win') {
+        calculatedProfit = riskAmount * riskRewardRatio;
+      } else if (newTrade.trade_outcome === 'Lose') {
+        calculatedProfit = -riskAmount;
+      }
+      
+      // Calculate P&L percentage based on the risk amount and RR
+      const pnlPercentage = newTrade.trade_outcome === 'Win' 
+        ? newTrade.risk_per_trade * riskRewardRatio 
+        : -newTrade.risk_per_trade;
+
+      setEditedTrade({
+        ...newTrade,
+        calculated_profit: calculatedProfit,
+        pnl_percentage: pnlPercentage
+      });
+    } else {
+      setEditedTrade({
+        ...editedTrade,
+        [field]: value
+      });
+    }
   };
 
   const handleSave = async () => {
@@ -90,7 +122,8 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
           news_related: editedTrade.news_related,
           local_high_low: editedTrade.local_high_low,
           mode: tradingMode,
-          notes: editedTrade.notes
+          notes: editedTrade.notes,
+          pnl_percentage: editedTrade.pnl_percentage
         })
         .eq('id', editedTrade.id);
 
@@ -191,10 +224,14 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
         );
       }
       if (type === 'number') {
+        const displayValue = typeof value === 'number' ? value.toFixed(2) : value;
+        const isNegative = field === 'pnl_percentage' && editedTrade.trade_outcome === 'Lose';
         return (
           <div className="mb-4">
             <dt className="text-sm font-medium text-stone-500">{label}</dt>
-            <dd className="mt-1 text-sm text-stone-900">{typeof value === 'number' ? value.toFixed(2) : value}</dd>
+            <dd className={`mt-1 text-sm ${isNegative ? 'text-red-600' : 'text-stone-900'}`}>
+              {isNegative ? `${displayValue}%` : `${displayValue}%`}
+            </dd>
           </div>
         );
       }
@@ -206,7 +243,37 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
       );
     }
 
+    // For P&L percentage, make it read-only
+    if (field === 'pnl_percentage') {
+      const numValue = typeof value === 'number' && !isNaN(value) ? value : 0;
+      const displayValue = numValue.toFixed(2);
+      const isNegative = editedTrade.trade_outcome === 'Lose' && numValue !== 0;
+      return (
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-stone-700">{label}</label>
+          <input
+            type="text"
+            value={isNegative ? `${displayValue}%` : `${displayValue}%`}
+            readOnly
+            className="mt-1 w-full bg-stone-50 border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
+          />
+        </div>
+      );
+    }
+
     switch (type) {
+      case 'number':
+        return (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-stone-700">{label}</label>
+            <input
+              type="number"
+              value={value as number}
+              onChange={(e) => handleInputChange(field, parseFloat(e.target.value))}
+              className="mt-1 w-full bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200"
+            />
+          </div>
+        );
       case 'select':
         return (
           <div className="mb-4">
@@ -214,7 +281,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
             <select
               value={value as string}
               onChange={(e) => handleInputChange(field, e.target.value)}
-              className="mt-1 w-full cursor-pointer bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-1 w-full bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200"
             >
               {options?.map((option) => (
                 <option key={option} value={option}>
@@ -231,24 +298,25 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
             <select
               value={value ? 'true' : 'false'}
               onChange={(e) => handleInputChange(field, e.target.value === 'true')}
-              className="mt-1 w-full cursor-pointer bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-1 w-full bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200"
             >
               <option value="true">Yes</option>
               <option value="false">No</option>
             </select>
           </div>
         );
-      case 'number':
+      case 'outcome':
         return (
           <div className="mb-4">
             <label className="block text-sm font-medium text-stone-700">{label}</label>
-            <input
-              type="number"
-              step="0.01"
-              value={value as number}
-              onChange={(e) => handleInputChange(field, parseFloat(e.target.value))}
-              className="mt-1 w-full bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            />
+            <select
+              value={value as string}
+              onChange={(e) => handleInputChange(field, e.target.value)}
+              className="mt-1 w-full bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200"
+            >
+              <option value="Win">Win</option>
+              <option value="Lose">Lose</option>
+            </select>
           </div>
         );
       default:
@@ -259,7 +327,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
               type="text"
               value={value as string}
               onChange={(e) => handleInputChange(field, e.target.value)}
-              className="mt-1 w-full bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-1 w-full bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200"
             />
           </div>
         );
@@ -313,6 +381,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
                 {renderField('Risk/Reward Ratio (Long)', 'risk_reward_ratio_long', 'number')}
                 {renderField('SL Size', 'sl_size', 'number')}
                 {renderField('Liquidity', 'liquidity', 'select', LIQUIDITY_OPTIONS)}
+                {renderField('P&L Percentage', 'pnl_percentage', 'number')}
               </dl>
             </div>
 
