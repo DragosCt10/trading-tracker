@@ -194,7 +194,7 @@ export function useDashboardData({
   isSessionLoading,
   currentDate,
   calendarDateRange,
-  selectedYear
+  selectedYear,
 }: {
   session: any;
   dateRange: { startDate: string; endDate: string };
