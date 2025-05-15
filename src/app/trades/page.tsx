@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { Trade } from '@/types/trade';
 import { useTradingMode } from '@/context/TradingModeContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -8,12 +8,14 @@ import Link from 'next/link';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import NotesModal from '@/components/NotesModal';
 import { useQuery } from '@tanstack/react-query';
+import { format, endOfMonth } from 'date-fns';
+import { DateRange } from 'react-date-range';
+import 'react-date-range/dist/styles.css';
+import 'react-date-range/dist/theme/default.css';
 
 const ITEMS_PER_PAGE = 10;
 
 export default function TradesPage() {
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
@@ -23,6 +25,40 @@ export default function TradesPage() {
   const { mode, activeAccount, isLoading: modeLoading } = useTradingMode();
   const { data: userDetails, isLoading: userLoading } = useUserDetails();
 
+  // Replace startDate/endDate with dateRange
+  const today = new Date();
+  const initialStartDate = format(today, 'yyyy-MM-01');
+  const initialEndDate = format(endOfMonth(today), 'yyyy-MM-dd');
+  const [dateRange, setDateRange] = useState({
+    startDate: initialStartDate,
+    endDate: initialEndDate,
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Close picker on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowDatePicker(false);
+      }
+    }
+    if (showDatePicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDatePicker]);
+
   // Fetch trades from backend API using React Query
   const {
     data: tradesData,
@@ -30,7 +66,7 @@ export default function TradesPage() {
     error: queryError,
     refetch: refreshTrades
   } = useQuery({
-    queryKey: ['trades', mode, activeAccount?.id, currentPage, startDate, endDate, userDetails?.user?.id],
+    queryKey: ['trades', mode, activeAccount?.id, currentPage, dateRange.startDate, dateRange.endDate, userDetails?.user?.id],
     queryFn: async () => {
       if (!userDetails?.user || !activeAccount?.id) {
         throw new Error('User not authenticated or no active account');
@@ -41,8 +77,8 @@ export default function TradesPage() {
         .select('*', { count: 'exact' })
         .eq('user_id', userDetails.user.id)
         .eq('account_id', activeAccount.id);
-      if (startDate) query = query.gte('trade_date', startDate);
-      if (endDate) query = query.lte('trade_date', endDate);
+      if (dateRange.startDate) query = query.gte('trade_date', dateRange.startDate);
+      if (dateRange.endDate) query = query.lte('trade_date', dateRange.endDate);
       query = query.order('trade_date', { ascending: false })
         .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
       const { data, error, count } = await query;
@@ -59,35 +95,13 @@ export default function TradesPage() {
   const totalCount = tradesData?.totalCount || 0;
   const error = queryError instanceof Error ? queryError.message : null;
 
-  const filteredTrades = useMemo(() => {
-    if (!startDate && !endDate) return trades;
-    
-    return trades.filter((trade: Trade) => {
-      const tradeDate = new Date(trade.trade_date);
-      
-      if (startDate && endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        return tradeDate >= start && tradeDate <= end;
-      }
-      
-      if (startDate) {
-        const start = new Date(startDate);
-        return tradeDate >= start;
-      }
-      
-      if (endDate) {
-        const end = new Date(endDate);
-        return tradeDate <= end;
-      }
-      
-      return true;
-    });
-  }, [startDate, endDate, trades]);
+  const filteredTrades = trades; // No need to filter in-memory, already filtered by query
 
   const clearFilters = () => {
-    setStartDate('');
-    setEndDate('');
+    setDateRange({
+      startDate: initialStartDate,
+      endDate: initialEndDate,
+    });
     setCurrentPage(1);
   };
 
@@ -155,7 +169,7 @@ export default function TradesPage() {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `trades_${startDate || 'all'}_to_${endDate || 'all'}.csv`);
+    link.setAttribute('download', `trades_${dateRange.startDate || 'all'}_to_${dateRange.endDate || 'all'}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -242,22 +256,54 @@ export default function TradesPage() {
       {/* Filters Card */}
       <div className="mb-6 bg-white rounded-lg shadow-sm p-6 flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
-          <label className="block text-sm font-medium text-stone-700 mb-1">Start Date</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full py-2 px-3 border border-stone-200 rounded-lg hover:border-stone-300 focus:border-stone-400 focus:ring-none text-sm"
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-stone-700 mb-1">End Date</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full py-2 px-3 border border-stone-200 rounded-lg hover:border-stone-300 focus:border-stone-400 focus:ring-none text-sm"
-          />
+          <label className="block text-sm font-medium text-stone-700 mb-1">Date Range</label>
+          <div className="relative w-72">
+            <input
+              ref={inputRef}
+              placeholder="Select date range"
+              type="text"
+              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer pr-10"
+              value={`${dateRange.startDate} ~ ${dateRange.endDate}`}
+              readOnly
+              onFocus={() => setShowDatePicker(true)}
+              onClick={() => setShowDatePicker(true)}
+            />
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer" onClick={() => setShowDatePicker(v => !v)}>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
+              </svg>
+            </span>
+            {showDatePicker && (
+              <div ref={pickerRef} className="absolute shadow-lg rounded-lg z-50 mt-2 left-0 date-range-popup">
+                <DateRange
+                  ranges={[
+                    {
+                      startDate: new Date(dateRange.startDate),
+                      endDate: new Date(dateRange.endDate),
+                      key: 'selection',
+                    },
+                  ]}
+                  onChange={(ranges) => {
+                    const { startDate, endDate } = ranges.selection;
+                    const newStart = format(startDate as Date, 'yyyy-MM-dd');
+                    const newEnd = format(endDate as Date, 'yyyy-MM-dd');
+                    if (dateRange.startDate !== newStart || dateRange.endDate !== newEnd) {
+                      setDateRange({
+                        startDate: newStart,
+                        endDate: newEnd,
+                      });
+                    }
+                  }}
+                  moveRangeOnFirstSelection={false}
+                  editableDateInputs={true}
+                  maxDate={new Date()}
+                  showMonthAndYearPickers={true}
+                  rangeColors={['#333']}
+                  direction="vertical"
+                />
+              </div>
+            )}
+          </div>
         </div>
         <div className="flex items-end gap-2">
           <button
@@ -270,7 +316,7 @@ export default function TradesPage() {
             onClick={clearFilters}
             className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-white to-white border-stone-200 text-stone-700 rounded-lg hover:bg-gradient-to-b hover:from-stone-50 hover:to-stone-50 hover:border-stone-200 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-1px_0px_rgba(0,0,0,0.20)] after:pointer-events-none transition antialiased"
           >
-            Clear Filters
+            Current Month
           </button>
         </div>
       </div>
