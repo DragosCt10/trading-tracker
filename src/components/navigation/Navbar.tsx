@@ -6,6 +6,7 @@ import { useTradingMode } from '@/context/TradingModeContext';
 import { Bars3Icon, ChartBarIcon, CogIcon, DocumentTextIcon, PlusCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -15,6 +16,7 @@ export default function Navbar() {
   const supabase = createClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const queryClient = useQueryClient();
   
   // Reset isSigningOut state when user data changes or component mounts
   useEffect(() => {
@@ -42,6 +44,12 @@ export default function Navbar() {
     return pathname === path ? 'bg-stone-100 rounded' : '';
   };
 
+  const handleStatsClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    queryClient.clear();
+    router.push('/dashboard');
+  };
+
   // Don't render the navbar if there's no session and user
   if (!userData?.session || !userData?.user) {
     return null;
@@ -58,10 +66,14 @@ export default function Navbar() {
         <div className="hidden lg:block">
           <ul className="mt-4 flex flex-col gap-x-3 gap-y-1.5 lg:mt-0 lg:flex-row lg:items-center">
             <li>
-              <Link href="/dashboard" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/dashboard')}`}>
+              <button
+                type="button"
+                onClick={handleStatsClick}
+                className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary bg-transparent border-none outline-none cursor-pointer ${isActive('/dashboard')}`}
+              >
                 <ChartBarIcon className="h-4 w-4" />
                 Stats
-              </Link>
+              </button>
             </li>
             <li>
               <Link href="/trades/new" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/trades/new')}`}>
