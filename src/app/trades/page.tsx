@@ -12,6 +12,7 @@ import { format, endOfMonth } from 'date-fns';
 import { DateRange } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
+import DashboardLayout from '@/components/shared/layout/DashboardLayout';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -190,18 +191,9 @@ export default function TradesPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="max-w-7xl mx-auto py-8">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
-      </div>
-    );
-  }
-
   if (!activeAccount) {
     return (
+      <DashboardLayout>
       <div className="p-8">
         <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-sm p-8 text-center">
           <div className="mb-6">
@@ -232,10 +224,12 @@ export default function TradesPage() {
           </a>
         </div>
       </div>
+      </DashboardLayout>
     );
   }
 
   return (
+    <DashboardLayout>
     <div className="max-w-7xl mx-auto py-8">
       {/* Header Section */}
       <div className="flex justify-between items-center mb-6">
@@ -462,5 +456,6 @@ export default function TradesPage() {
         notes={selectedNotes}
       />
     </div>
+    </DashboardLayout>
   );
 }
