@@ -26,6 +26,7 @@ import { DateRange } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import DashboardLayout from '@/components/shared/layout/DashboardLayout';
+import { BarChart, Bar as ReBar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, CartesianGrid, LabelList } from 'recharts';
 
 ChartJS.register(
   CategoryScale,
@@ -453,99 +454,30 @@ export default function Dashboard() {
         
         {/* Monthly Profit Chart */}
         <div className="h-64 mb-2 relative">
-          <Line
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  callbacks: {
-                    label: (context: any) => {
-                      const value = Number(context.parsed.y);
-                      if (context.dataset.label === 'Monthly Profit %') {
-                        return `Percentage: ${(value * 100).toFixed(2)}%`;
-                      } else if (context.dataset.label === 'Monthly Profit') {
-                        return `Profit: ${getCurrencySymbol()}${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                      }
-                      return value.toString();
-                    }
-                  }
-                }
-              },
-              scales: {
-                x: { grid: { display: false }, border: { display: false } },
-                y: {
-                  beginAtZero: false,
-                  min: -0.05,
-                  max: 0.1,
-                  position: 'left',
-                  ticks: {
-                    stepSize: 0.01,
-                    callback: (tickValue: number | string) => {
-                      const value = Number(tickValue) * 100;
-                      return value > 0 ? `+${value.toFixed(1)}%` : `${value.toFixed(1)}%`;
-                    }
-                  },
-                  grid: { display: false },
-                  border: { display: false }
-                },
-                y1: {
-                  beginAtZero: true,
-                  position: 'right',
-                  grid: { display: false },
-                  border: { display: false },
-                  ticks: {
-                    display: false
-                  }
-                }
-              }
-            }}
-            data={{
-              labels: MONTHS,
-              datasets: [
-                {
-                  label: 'Monthly Profit %',
-                  data: MONTHS.map(month => {
-                    const stats = monthlyStatsAllTrades[month];
-                    return stats ? Number(((stats.profit / (activeAccount?.account_balance || 1)) || 0).toFixed(4)) : 0;
-                  }),
-                  borderColor: 'rgb(253, 230, 138)',
-                  backgroundColor: 'rgba(253, 230, 138, 0.2)',
-                  tension: 0.4,
-                  fill: false,
-                  borderWidth: 2,
-                  pointRadius: 4,
-                  pointBackgroundColor: 'rgb(253, 230, 138)',
-                  pointBorderColor: 'white',
-                  pointBorderWidth: 2,
-                  pointHoverRadius: 6,
-                  pointHoverBackgroundColor: 'rgb(253, 230, 138)',
-                  pointHoverBorderColor: 'white',
-                  pointHoverBorderWidth: 2,
-                  yAxisID: 'y'
-                },
-                {
-                  label: 'Monthly Profit',
-                  data: MONTHS.map(month => monthlyStatsAllTrades[month]?.profit ?? 0),
-                  borderColor: 'rgb(87, 83, 78)',
-                  backgroundColor: 'rgba(87, 83, 78, 0.1)',
-                  tension: 0.4,
-                  fill: false,
-                  borderWidth: 2,
-                  pointRadius: 4,
-                  pointBackgroundColor: 'rgb(87, 83, 78)',
-                  pointBorderColor: 'white',
-                  pointBorderWidth: 2,
-                  pointHoverRadius: 6,
-                  pointHoverBackgroundColor: 'rgb(87, 83, 78)',
-                  pointHoverBorderColor: 'white',
-                  pointHoverBorderWidth: 2,
-                  yAxisID: 'y1'
-                }
-              ]
-            }}
-          />
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={MONTHS.map(month => ({
+                month,
+                profit: monthlyStatsAllTrades[month]?.profit ?? 0,
+                profitPercent: monthlyStatsAllTrades[month] ? Number(((monthlyStatsAllTrades[month].profit / (activeAccount?.account_balance || 1)) * 100).toFixed(2)) : 0
+              }))}
+              margin={{ top: 30, right: 10, left: 0, bottom: 20 }}
+            >
+              <XAxis dataKey="month" tick={{ fill: '#444', fontSize: 14 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#444', fontSize: 14 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `${getCurrencySymbol()}${v.toLocaleString('en-US', { maximumFractionDigits: 0 })}`} />
+              <ReTooltip formatter={(value: number, name: string) => `${getCurrencySymbol()}${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} cursor={false} />
+              <ReBar dataKey="profit" fill="#1c1917" radius={[4, 4, 4, 4]} barSize={35}>
+                <LabelList 
+                  dataKey="profitPercent" 
+                  position="top" 
+                  className="text-xs" 
+                  formatter={(value: number) => `${value}%`} 
+                  fill="#1c1917"
+                  offset={10} 
+                />
+              </ReBar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
@@ -652,7 +584,7 @@ export default function Dashboard() {
                   {
                     label: 'Losses',
                     data: Object.values(monthlyStatsAllTrades).map(stats => stats.losses),
-                    backgroundColor: 'rgba(231, 229, 228, 0.8)', // stone-200
+                    backgroundColor: '#e7e5e4', // stone-200
                     borderColor: 'rgb(231, 229, 228)', // stone-200
                     borderWidth: 0,
                     borderRadius: 4,
