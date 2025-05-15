@@ -41,7 +41,7 @@ export default function Navbar() {
   };
 
   const isActive = (path: string) => {
-    return pathname === path ? 'bg-stone-100 rounded' : '';
+    return pathname === path ? '!bg-stone-100 rounded' : '';
   };
 
   const handleStatsClick = (e: React.MouseEvent) => {
