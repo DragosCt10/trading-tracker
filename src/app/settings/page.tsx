@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useTradingMode } from '@/context/TradingModeContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import DashboardLayout from '@/components/shared/layout/DashboardLayout';
 
 const CURRENCY_OPTIONS = [
   { value: 'USD', label: 'USD', flag: '🇺🇸' },
@@ -419,6 +420,7 @@ export default function Settings() {
   }
 
   return (
+    <DashboardLayout>
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold text-stone-900 mb-8">Settings</h1>
       
@@ -583,5 +585,6 @@ export default function Settings() {
         onDelete={handleDeleteAccount}
       />
     </div>
+    </DashboardLayout> 
   );
 } 
