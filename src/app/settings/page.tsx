@@ -199,8 +199,8 @@ function EditModal({ account, isOpen, onClose, onSave, onDelete }: EditModalProp
 }
 
 export default function Settings() {
-  const { mode, setMode, activeAccount, refreshActiveAccount } = useTradingMode();
-  const { data: userDetails, isLoading } = useUserDetails();
+  const { mode, setMode, activeAccount, refreshActiveAccount, isLoading: isModeLoading } = useTradingMode();
+  const { data: userDetails, isLoading: isUserLoading } = useUserDetails();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [newAccount, setNewAccount] = useState({
     name: '',
@@ -214,10 +214,10 @@ export default function Settings() {
   const supabase = createClient();
 
   useEffect(() => {
-    if (!isLoading && userDetails?.user) {
+    if (!isUserLoading && userDetails?.user) {
       fetchAccounts();
     }
-  }, [mode, userDetails, isLoading]);
+  }, [mode, userDetails, isUserLoading]);
 
   async function fetchAccounts() {
     try {
@@ -225,7 +225,7 @@ export default function Settings() {
       setError(null);
       
       // Wait for user details to be loaded
-      if (isLoading) return;
+      if (isUserLoading) return;
       
       if (!userDetails?.user) {
         setError('Please sign in to view your accounts');
@@ -418,39 +418,6 @@ export default function Settings() {
     }
   }
 
-  if (loading) return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-stone-900 mb-8">Settings</h1>
-      
-      {/* Mode Selection */}
-      <div className="mb-8">
-        <label className="text-lg font-medium text-stone-700 block mb-2">
-          Trading Mode
-        </label>
-        <div className="flex gap-4">
-          {MODES.map((m) => (
-            <button
-              key={m.value}
-              onClick={() => setMode(m.value)}
-              className={`inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md ${mode === m.value ? 'bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none relative' : 'bg-white text-stone-800 border-stone-200'} rounded-lg hover:bg-stone-800/5 hover:border-stone-800/5`}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-        <div className="mt-10 flex items-center justify-center">
-          <div role="status">
-            <svg aria-hidden="true" className="w-8 h-8 text-stone-200 animate-spin fill-stone-800" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
-              <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
-            </svg>
-          </div>
-          <p className="ml-4 text-stone-600">Loading...</p>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold text-stone-900 mb-8">Settings</h1>
@@ -466,6 +433,7 @@ export default function Settings() {
           {success}
         </div>
       )}
+
 
       {/* Mode Selection */}
       <div className="mb-8">
@@ -550,11 +518,21 @@ export default function Settings() {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-xl font-semibold text-stone-900 mb-4">Your Accounts</h2>
         <div className="space-y-4">
-          {accounts.map((account) => (
+          {loading || isUserLoading || isModeLoading ? (
+            <div className="flex items-center justify-center">
+              <div role="status">
+                <svg aria-hidden="true" className="w-5 h-5 text-stone-200 animate-spin fill-stone-800" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                  <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+                </svg>
+              </div>
+              <p className="ml-4 text-sm text-stone-600">Loading...</p>
+            </div>
+          ) : accounts.map((account) => (
             <div
               key={account.id}
               className={`p-4 border rounded-lg ${
-                account.is_active ? 'border-green-500' : 'border-stone-200'
+                activeAccount?.id === account.id ? 'border-green-500' : 'border-stone-200'
               }`}
             >
               <div className="flex items-center justify-between">
@@ -574,7 +552,7 @@ export default function Settings() {
                   >
                     Edit
                   </button>
-                  {account.is_active ? (
+                  {activeAccount?.id === account.id ? (
                     ''
                   ) : (
                     <button
@@ -588,7 +566,7 @@ export default function Settings() {
               </div>
             </div>
           ))}
-          {accounts.length === 0 && (
+          {!loading && !isUserLoading && !isModeLoading && accounts.length === 0 && (
             <p className="text-stone-500 text-center py-4">
               No accounts found for {mode} mode. Add your first account above.
             </p>
