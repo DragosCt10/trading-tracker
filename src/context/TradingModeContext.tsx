@@ -25,7 +25,7 @@ interface TradingModeContextType {
 const TradingModeContext = createContext<TradingModeContextType | undefined>(undefined);
 
 export function TradingModeProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<string | null>(null);
+  const [mode, setModeState] = useState<string>('live');
   const queryClient = useQueryClient();
   const { data: userDetails } = useUserDetails();
   const supabase = createClient();
@@ -97,15 +97,6 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
   const refreshActiveAccount = async () => {
     await queryClient.invalidateQueries({ queryKey: ['activeAccount'] });
   };
-
-  // Initialize mode based on active account
-  useEffect(() => {
-    if (activeAccount) {
-      setModeState(activeAccount.mode);
-    } else if (mode === null) {
-      setModeState('live'); // Default to 'live' only if no active account and mode not set
-    }
-  }, [activeAccount, mode]);
 
   return (
     <TradingModeContext.Provider value={{ 
