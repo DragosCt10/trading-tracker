@@ -51,9 +51,9 @@ export default function Navbar() {
   };
 
   // Don't render the navbar if there's no session and user
-  if (!userData?.session || !userData?.user) {
-    return null;
-  }
+  // if (!userData?.session || !userData?.user) {
+  //   return null;
+  // }
 
   return (
     <nav className="fixed top-2 left-0 right-0 z-50 rounded-lg border overflow-hidden p-2 bg-white border-stone-200 shadow-stone-950/5 mx-auto w-full max-w-screen-xl">
