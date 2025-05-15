@@ -547,7 +547,12 @@ export default function NewTradeForm() {
         <div className="flex justify-between items-center mt-4">
           <div className="text-sm text-gray-600 space-y-1">
             <div>
-              P&L ({activeAccount.currency}): <span className={`font-medium ${calculatedProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              Account Balance ({activeAccount.currency}): <span className="font-medium text-stone-800">
+                {activeAccount.currency === 'EUR' ? '€' : '$'}{activeAccount.account_balance.toFixed(2)}
+              </span>
+            </div>
+            <div>
+              P&L: <span className={`font-medium ${calculatedProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {activeAccount.currency === 'EUR' ? '€' : '$'}{calculatedProfit.toFixed(2)}
               </span>
             </div>
