@@ -2,7 +2,7 @@
 
 import { useTradingMode } from '@/context/TradingModeContext';
 import NewTradeForm from '@/components/trades/NewTradeForm';
-
+import DashboardLayout from '@/components/shared/layout/DashboardLayout';
 export default function NewTradePage() {
   const { mode, isLoading } = useTradingMode();
 
@@ -21,6 +21,7 @@ export default function NewTradePage() {
   }
 
   return (
+    <DashboardLayout>
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white shadow sm:rounded-lg">
@@ -36,5 +37,6 @@ export default function NewTradePage() {
         </div>
       </div>
     </div>
+    </DashboardLayout>
   );
 } 
