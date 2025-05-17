@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Trade } from '@/types/trade';
 import { useTradingMode } from '@/context/TradingModeContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -161,7 +161,8 @@ export default function TradesPage() {
         trade.sl_size,
         trade.calculated_profit || '',
         trade.notes || '',
-        trade.pnl_percentage || ''
+        trade.pnl_percentage || '',
+        trade.evaluation || ''
       ].join(','))
     ].join('\n');
 
