@@ -165,19 +165,10 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
     risk_per_trade: trade.risk_per_trade,
     calculated_profit: trade.calculated_profit,
     pnl_percentage: trade.pnl_percentage,
-    quarter: trade.quarter
+    quarter: trade.quarter,
+    evaluation: trade.evaluation
   };
 }
-
-const fetchTrades = async (url: string, token: string): Promise<Trade[]> => {
-   const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  const trades: Trade[] = await res.json();
-  return Array.isArray(trades) ? trades : [];
-};
 
 function normalizeTimeToHHMM(time: string): string {
   if (!time) return '';
