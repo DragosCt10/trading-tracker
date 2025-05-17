@@ -93,6 +93,15 @@ interface Stats {
   intervalStats: Record<string, IntervalStats>;
   maxDrawdown: number;
   averagePnLPercentage: number;
+  evaluationStats: EvaluationStats[];
+}
+
+interface EvaluationStats {
+  grade: string;
+  total: number;
+  wins: number;
+  losses: number;
+  winRate: number;
 }
 
 const TIME_INTERVALS = [
@@ -208,7 +217,8 @@ export function useDashboardData({
     averageProfit: 0,
     intervalStats: {} as Record<string, IntervalStats>,
     maxDrawdown: 0,
-    averagePnLPercentage: 0
+    averagePnLPercentage: 0,
+    evaluationStats: [],
   });
   const [monthlyStats, setMonthlyStats] = useState<{
     bestMonth: MonthlyStatsWithMonth | null;
@@ -363,7 +373,8 @@ export function useDashboardData({
         averageProfit: 0,
         intervalStats: {},
         maxDrawdown: 0,
-        averagePnLPercentage: 0
+        averagePnLPercentage: 0,
+        evaluationStats: [],
       };
       setStats(prev => {
         return JSON.stringify(prev) === JSON.stringify(emptyStats) ? prev : emptyStats;
@@ -404,9 +415,10 @@ export function useDashboardData({
         winRate: 0,
         totalProfit: 0,
         averageProfit: 0,
-        intervalStats: {} as Record<string, IntervalStats>,
+        intervalStats: {},
         maxDrawdown: 0,
-        averagePnLPercentage: 0
+        averagePnLPercentage: 0,
+        evaluationStats: [],
       });
       return;
     }
@@ -518,6 +530,28 @@ export function useDashboardData({
       };
     });
 
+    // Calculate evaluation stats
+    const GRADE_ORDER = ['A+', 'A', 'B', 'C'];
+    const evaluationGroups = groupTradesByProperty(trades as Trade[], 'evaluation', 'Not Evaluated');
+    const evaluationStats = Object.entries(evaluationGroups)
+      .filter(([grade]) => GRADE_ORDER.includes(grade))
+      .map(([grade, trades]) => {
+        const wins = trades.filter(t => t.trade_outcome === 'Win').length;
+        const losses = trades.filter(t => t.trade_outcome === 'Lose').length;
+        const total = trades.length;
+        const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
+        return {
+          grade,
+          total,
+          wins,
+          losses,
+          winRate
+        };
+      })
+      .sort((a, b) => GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade));
+
+    console.log('evaluationStats', evaluationStats);
+
     setStats({
       totalTrades,
       totalWins,
@@ -528,6 +562,7 @@ export function useDashboardData({
       intervalStats,
       maxDrawdown,
       averagePnLPercentage,
+      evaluationStats,
     });
 
     // Calculate other stats
