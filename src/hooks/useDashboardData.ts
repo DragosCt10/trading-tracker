@@ -94,6 +94,7 @@ interface Stats {
   maxDrawdown: number;
   averagePnLPercentage: number;
   evaluationStats: EvaluationStats[];
+  winRateWithBE: number;
 }
 
 interface EvaluationStats {
@@ -219,6 +220,7 @@ export function useDashboardData({
     maxDrawdown: 0,
     averagePnLPercentage: 0,
     evaluationStats: [],
+    winRateWithBE: 0,
   });
   const [monthlyStats, setMonthlyStats] = useState<{
     bestMonth: MonthlyStatsWithMonth | null;
@@ -375,6 +377,7 @@ export function useDashboardData({
         maxDrawdown: 0,
         averagePnLPercentage: 0,
         evaluationStats: [],
+        winRateWithBE: 0,
       };
       setStats(prev => {
         return JSON.stringify(prev) === JSON.stringify(emptyStats) ? prev : emptyStats;
@@ -419,6 +422,7 @@ export function useDashboardData({
         maxDrawdown: 0,
         averagePnLPercentage: 0,
         evaluationStats: [],
+        winRateWithBE: 0,
       });
       return;
     }
@@ -496,6 +500,8 @@ export function useDashboardData({
     // For profit and winRate, exclude BE trades
     const nonBETrades = trades.filter(t => !t.break_even);
     const winRate = nonBETrades.length > 0 ? (nonBETrades.filter((t: Trade) => t.trade_outcome === 'Win').length / nonBETrades.length) * 100 : 0;
+    const wins = nonBETrades.filter(t => t.trade_outcome === 'Win').length;
+    const winRateWithBE = trades.length > 0 ? (wins / trades.length) * 100 : 0;
     const totalProfit = nonBETrades.reduce((sum: number, trade: Trade) => {
       const riskPerTrade = trade.risk_per_trade || 0.5;
       const riskAmount = (activeAccount?.account_balance || 0) * (riskPerTrade / 100);
@@ -561,6 +567,7 @@ export function useDashboardData({
       maxDrawdown,
       averagePnLPercentage,
       evaluationStats,
+      winRateWithBE,
     });
 
     // Calculate other stats
