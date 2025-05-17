@@ -19,14 +19,13 @@ import {
 import { Bar, Line } from 'react-chartjs-2';
 import { useRouter } from 'next/navigation';
 import { RiskRewardStats } from '@/components/dashboard/RiskRewardStats';
-import { useAccountSettings } from '@/hooks/useAccountSettings';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { DateRange } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import DashboardLayout from '@/components/shared/layout/DashboardLayout';
-import { BarChart, Bar as ReBar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, CartesianGrid, LabelList, Cell } from 'recharts';
+import { BarChart, Bar as ReBar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, LabelList, Cell } from 'recharts';
 import { EvaluationStats } from '@/components/dashboard/EvaluationStats';
 
 ChartJS.register(
@@ -196,11 +195,6 @@ export default function Dashboard() {
     selectedYear, // Add selected year to the hook    
   });
 
-  const { accountSettings, loading: accountSettingsLoading, error: accountSettingsError } = useAccountSettings({
-    userId: userData?.user?.id,
-    accessToken: userData?.session?.access_token
-  });
-
   // Check session status
   useEffect(() => {
     if (!userLoading && !userData?.session) {
@@ -250,8 +244,8 @@ export default function Dashboard() {
   }
 
   const getCurrencySymbol = () => {
-    if (!accountSettings[0]?.currency) return '$';
-    return CURRENCY_SYMBOLS[accountSettings[0].currency as keyof typeof CURRENCY_SYMBOLS] || accountSettings[0].currency;
+    if (!activeAccount?.currency) return '$';
+    return CURRENCY_SYMBOLS[activeAccount.currency as keyof typeof CURRENCY_SYMBOLS] || activeAccount.currency;
   };
 
   const handleMonthNavigation = (direction: 'prev' | 'next') => {
