@@ -474,6 +474,7 @@ const QUARTER_OPTIONS = ['Q1', 'Q2', 'Q3', 'Q4'];
               value={editedTrade?.notes ?? ''}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               className="mt-1 w-full bg-white border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm hover:border-stone-300 focus:border-stone-400 focus:ring-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              rows={16}
             />
           </div>
 
