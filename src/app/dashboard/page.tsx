@@ -26,7 +26,7 @@ import { DateRange } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import DashboardLayout from '@/components/shared/layout/DashboardLayout';
-import { BarChart, Bar as ReBar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, CartesianGrid, LabelList } from 'recharts';
+import { BarChart, Bar as ReBar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, CartesianGrid, LabelList, Cell } from 'recharts';
 import { EvaluationStats } from '@/components/dashboard/EvaluationStats';
 
 ChartJS.register(
@@ -467,14 +467,20 @@ export default function Dashboard() {
               <XAxis dataKey="month" tick={{ fill: '#444', fontSize: 14 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#444', fontSize: 14 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `${getCurrencySymbol()}${v.toLocaleString('en-US', { maximumFractionDigits: 0 })}`} />
               <ReTooltip formatter={(value: number, name: string) => `${getCurrencySymbol()}${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} cursor={false} />
-              <ReBar dataKey="profit" fill="#1c1917" radius={[4, 4, 4, 4]} barSize={35}>
-                <LabelList 
-                  dataKey="profitPercent" 
-                  position="top" 
-                  className="text-xs" 
-                  formatter={(value: number) => `${value}%`} 
-                  fill="#1c1917"
-                  offset={10} 
+              <ReBar dataKey="profit" radius={[4, 4, 4, 4]} barSize={35}>
+                {MONTHS.map((month, idx) => (
+                  <Cell
+                    key={month}
+                    fill={(monthlyStatsAllTrades[month]?.profit ?? 0) >= 0 ? '#4ade80' : '#ef4444'}
+                  />
+                ))}
+                <LabelList
+                  dataKey="profitPercent"
+                  position="top"
+                  className="text-xs"
+                  formatter={(value: number) => `${value}%`}
+                  fill="#000"
+                  offset={10}
                 />
               </ReBar>
             </BarChart>
