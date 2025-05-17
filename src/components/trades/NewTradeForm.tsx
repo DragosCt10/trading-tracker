@@ -505,11 +505,24 @@ export default function NewTradeForm() {
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-stone-700 mb-2">Notes</label>
           <textarea
-            value={trade.notes}
+            value={`📈 Setup:
+(Descrie setup-ul tehnic sau fundamental – de ce ai intrat în trade? Ce pattern, indicator sau logică ai urmat?)
+
+✅ Plusuri:
+(Ce ai făcut bine? Ce a mers conform planului? A existat disciplină, răbdare, timing bun?)
+
+❌ Minusuri:
+(Ce nu a mers? Ai intrat prea devreme/târziu? Ai ignorat ceva? Overtrading? FOMO?)
+
+🧠 Emoții:
+(Ce ai simțit în timpul trade-ului? Încredere? Frică? Nerăbdare? Calm? Ai fost influențat emoțional?)
+
+🎯 Lecții învățate:
+(Ce poți îmbunătăți? Ce vei face diferit data viitoare?)`}
             onChange={(e) => setTrade({ ...trade, notes: e.target.value })}
             className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-            rows={4}
-            placeholder="Add any notes about this trade..."
+            rows={16}
+            placeholder={`Add any notes about this trade...`}
           />
         </div>
       </div>
