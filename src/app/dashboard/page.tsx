@@ -722,7 +722,7 @@ export default function Dashboard() {
         </div>
         <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
           <h3 className="text-sm font-semibold text-stone-500 mb-1">Win Rate</h3>
-          <p className="text-2xl font-bold text-stone-900">{stats.winRate.toFixed(2)}%</p>
+          <p className="text-2xl font-bold text-stone-900">{stats.winRate.toFixed(2)}% <span className="text-stone-500 text-sm">({stats.winRateWithBE.toFixed(2)}% with BE)</span></p>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
           <h3 className="text-sm font-semibold text-stone-500 mb-1">Total Profit</h3>
