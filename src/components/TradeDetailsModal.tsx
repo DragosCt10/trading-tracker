@@ -39,7 +39,7 @@ const SETUP_OPTIONS = [
 ];
 const LIQUIDITY_OPTIONS = ['Liq. Majora', 'Liq. Minora', 'Liq. Locala', 'HOD', 'LOD'];
 const MSS_OPTIONS = ['Normal', 'Agresiv'];
-const EVALUATION_OPTIONS = ['A+ (Excelent)', 'A (Foarte bun)', 'B (Decent)', 'C (Slab)'];
+const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
 const QUARTER_OPTIONS = ['Q1', 'Q2', 'Q3', 'Q4'];
 
@@ -453,7 +453,7 @@ const QUARTER_OPTIONS = ['Q1', 'Q2', 'Q3', 'Q4'];
                 {renderField('Re-entry', 'reentry', 'boolean')}
                 {renderField('News Related', 'news_related', 'boolean')}
                 {renderField('Local High/Low', 'local_high_low', 'boolean')}
-                {renderField('Evaluation', 'evaluation', 'select', EVALUATION_OPTIONS)}
+                {renderField('Evaluation Grade', 'evaluation', 'select', EVALUATION_OPTIONS)}
               </dl>
             </div>
           </div>
