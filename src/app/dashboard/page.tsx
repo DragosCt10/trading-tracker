@@ -27,6 +27,7 @@ import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import DashboardLayout from '@/components/shared/layout/DashboardLayout';
 import { BarChart, Bar as ReBar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, CartesianGrid, LabelList } from 'recharts';
+import { EvaluationStats } from '@/components/dashboard/EvaluationStats';
 
 ChartJS.register(
   CategoryScale,
@@ -1968,6 +1969,8 @@ export default function Dashboard() {
             })()}
           </div>
         </div>
+        {/* Evaluation Statistics */}
+        <EvaluationStats stats={stats.evaluationStats} />
       </div>
     </DashboardLayout>
   );
