@@ -26,4 +26,5 @@ export interface Trade {
   notes?: string;  // New field for trade notes
   pnl_percentage?: number;
   quarter: string;
+  evaluation: string;
 }
