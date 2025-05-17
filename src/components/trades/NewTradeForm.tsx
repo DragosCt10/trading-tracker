@@ -24,6 +24,7 @@ const SETUP_OPTIONS = [
 ];
 const LIQUIDITY_OPTIONS = ['Liq. Majora', 'Liq. Minora', 'Liq. Locala', 'HOD', 'LOD'];
 const MSS_OPTIONS = ['Normal', 'Agresiv'];
+const EVALUATION_OPTIONS = ['A+ (Excelent)', 'A (Foarte bun)', 'B (Decent)', 'C (Slab)'];
 const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
 const QUARTER_OPTIONS = ['Q1', 'Q2', 'Q3', 'Q4'];
 
@@ -60,6 +61,7 @@ export default function NewTradeForm() {
     notes: '',
     pnl_percentage: 0,
     quarter: '',
+    evaluation: '',
   };
 
   const [trade, setTrade] = useState<Trade>(initialTradeState);
@@ -450,6 +452,25 @@ export default function NewTradeForm() {
               {MSS_OPTIONS.map((mss) => (
                 <option key={mss} value={mss}>
                   {mss}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-2">Evaluation</label>
+          <div className="relative w-full">
+            <select
+              value={trade.evaluation}
+              onChange={(e) => setTrade({ ...trade, evaluation: e.target.value })}
+              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+              required
+            >
+              <option value="">Select Evaluation</option>
+              {EVALUATION_OPTIONS.map((evaluation) => (
+                <option key={evaluation} value={evaluation}>
+                  {evaluation}
                 </option>
               ))}
             </select>
