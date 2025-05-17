@@ -550,8 +550,6 @@ export function useDashboardData({
       })
       .sort((a, b) => GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade));
 
-    console.log('evaluationStats', evaluationStats);
-
     setStats({
       totalTrades,
       totalWins,
