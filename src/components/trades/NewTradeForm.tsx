@@ -37,19 +37,19 @@ export default function NewTradeForm() {
   const { data: userDetails, isLoading } = useUserDetails();
 
   const NOTES_TEMPLATE = `📈 Setup:
-  (Descrie setup-ul tehnic sau fundamental – de ce ai intrat în trade? Ce pattern, indicator sau logică ai urmat?)
+(Descrie setup-ul tehnic sau fundamental – de ce ai intrat în trade? Ce pattern, indicator sau logică ai urmat?)
 
-  ✅ Plusuri:
-  (Ce ai făcut bine? Ce a mers conform planului? A existat disciplină, răbdare, timing bun?)
+✅ Plusuri:
+(Ce ai făcut bine? Ce a mers conform planului? A existat disciplină, răbdare, timing bun?)
 
-  ❌ Minusuri:
-  (Ce nu a mers? Ai intrat prea devreme/târziu? Ai ignorat ceva? Overtrading? FOMO?)
+❌ Minusuri:
+(Ce nu a mers? Ai intrat prea devreme/târziu? Ai ignorat ceva? Overtrading? FOMO?)
 
-  🧠 Emoții:
-  (Ce ai simțit în timpul trade-ului? Încredere? Frică? Nerăbdare? Calm? Ai fost influențat emoțional?)
+🧠 Emoții:
+(Ce ai simțit în timpul trade-ului? Încredere? Frică? Nerăbdare? Calm? Ai fost influențat emoțional?)
 
-  🎯 Lecții învățate:
-  (Ce poți îmbunătăți? Ce vei face diferit data viitoare?)`;
+🎯 Lecții învățate:
+(Ce poți îmbunătăți? Ce vei face diferit data viitoare?)`;
 
   const initialTradeState: Trade = {
     trade_link: '',
