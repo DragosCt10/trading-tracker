@@ -1992,7 +1992,7 @@ export default function Dashboard() {
                     },
                   }}
                   data={{
-                    labels: [`Local High/Low + BE (${wins + losses})`],
+                    labels: [`Local High/Low + BE`],
                     datasets: [
                       {
                         label: 'Wins',
