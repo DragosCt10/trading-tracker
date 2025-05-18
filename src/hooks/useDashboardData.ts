@@ -683,11 +683,8 @@ export function useDashboardData({
       });
       // Add BE and winRateWithBE fields
       const wins = dayTrades.filter((t: Trade) => t.trade_outcome === 'Win').length;
-      const losses = dayTrades.filter((t: Trade) => t.trade_outcome === 'Lose').length;
       const beWins = dayTrades.filter((t: Trade) => t.trade_outcome === 'Win' && t.break_even).length;
       const beLosses = dayTrades.filter((t: Trade) => t.trade_outcome === 'Lose' && t.break_even).length;
-      const nonBETrades = dayTrades.filter((t: Trade) => !t.break_even);
-      const winRate = nonBETrades.length > 0 ? (nonBETrades.filter((t: Trade) => t.trade_outcome === 'Win').length / nonBETrades.length) * 100 : 0;
       const winRateWithBE = dayTrades.length > 0 ? (wins / dayTrades.length) * 100 : 0;
       return {
         ...processTradeGroup(day, dayTrades),
