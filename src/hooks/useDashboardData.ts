@@ -23,6 +23,11 @@ interface SetupStats {
   wins: number;
   losses: number;
   winRate: number;
+  winRateWithBE: number;
+  beWins: number;
+  beLosses: number;
+  winsWithoutBE: number;
+  lossesWithoutBE: number;
 }
 interface LiquidityStats {
   liquidity: string;
@@ -30,6 +35,11 @@ interface LiquidityStats {
   wins: number;
   losses: number;
   winRate: number;
+  winRateWithBE: number;
+  beWins: number;
+  beLosses: number;
+  winsWithoutBE: number;
+  lossesWithoutBE: number;
 }
 interface DirectionStats {
   direction: string;
@@ -37,6 +47,11 @@ interface DirectionStats {
   wins: number;
   losses: number;
   winRate: number;
+  winRateWithBE: number;
+  beWins: number;
+  beLosses: number;
+  winsWithoutBE: number;
+  lossesWithoutBE: number;
 }
 interface TradeTypeStats {
   type: string;
@@ -124,10 +139,32 @@ function groupTradesByProperty(trades: Trade[], property: keyof Trade, defaultVa
 }
 
 function processTradeGroup(label: string, trades: Trade[]) {
+  // Calculate wins and losses including BE trades
   const wins = trades.filter((trade: Trade) => trade.trade_outcome === 'Win').length;
   const losses = trades.filter((trade: Trade) => trade.trade_outcome === 'Lose').length;
+  
+  // Calculate BE trades
+  const beWins = trades.filter((trade: Trade) => trade.trade_outcome === 'Win' && trade.break_even).length;
+  const beLosses = trades.filter((trade: Trade) => trade.trade_outcome === 'Lose' && trade.break_even).length;
+  
+  // Calculate wins and losses without BE trades
+  const winsWithoutBE = trades.filter((trade: Trade) => trade.trade_outcome === 'Win' && !trade.break_even).length;
+  const lossesWithoutBE = trades.filter((trade: Trade) => trade.trade_outcome === 'Lose' && !trade.break_even).length;
+  
+  // Calculate win rates
   const total = trades.length;
-  const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
+  const nonBETrades = trades.filter((t: Trade) => !t.break_even);
+  
+  // Win rate excluding BE trades
+  const winRate = nonBETrades.length > 0
+    ? (nonBETrades.filter((t: Trade) => t.trade_outcome === 'Win').length / nonBETrades.length) * 100
+    : 0;
+    
+  // Win rate including BE trades
+  const winRateWithBE = total > 0
+    ? (wins / total) * 100
+    : 0;
+
   return {
     type: label,
     setup: label,
@@ -138,7 +175,12 @@ function processTradeGroup(label: string, trades: Trade[]) {
     total,
     wins,
     losses,
-    winRate
+    winRate,
+    winRateWithBE,
+    beWins,
+    beLosses,
+    winsWithoutBE,
+    lossesWithoutBE,
   };
 }
 
@@ -231,8 +273,8 @@ export function useDashboardData({
   });
   const [monthlyStatsAllTrades, setMonthlyStatsAllTrades] = useState<Record<string, MonthlyStats>>({});
   const [localHLStats, setLocalHLStats] = useState({
-    lichidat: { wins: 0, losses: 0, winRate: 0 },
-    nelichidat: { wins: 0, losses: 0, winRate: 0 }
+    lichidat: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0 },
+    nelichidat: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0 }
   });
   const [setupStats, setSetupStats] = useState<SetupStats[]>([]);
   const [liquidityStats, setLiquidityStats] = useState<LiquidityStats[]>([]);
@@ -383,8 +425,8 @@ export function useDashboardData({
         return JSON.stringify(prev) === JSON.stringify(emptyStats) ? prev : emptyStats;
       });
       const emptyHL = {
-        lichidat: { wins: 0, losses: 0, winRate: 0 },
-        nelichidat: { wins: 0, losses: 0, winRate: 0 }
+        lichidat: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0 },
+        nelichidat: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0 }
       };
       setLocalHLStats(prev => {
         return JSON.stringify(prev) === JSON.stringify(emptyHL) ? prev : emptyHL;
@@ -476,24 +518,47 @@ export function useDashboardData({
       String(trade.local_high_low) === 'Nelichidat' || String(trade.local_high_low) === 'false' || String(trade.local_high_low) === '0'
     );
 
+    // Exclude BE trades for win rate calculation
+    const lichidatNonBETrades = lichidatTrades.filter(t => !t.break_even);
+    const lichidatNonBEWins = lichidatNonBETrades.filter(t => t.trade_outcome === 'Win').length;
+    const lichidatWinRate = lichidatNonBETrades.length > 0 ? (lichidatNonBEWins / lichidatNonBETrades.length) * 100 : 0;
+
+    const nelichidatNonBETrades = nelichidatTrades.filter(t => !t.break_even);
+    const nelichidatNonBEWins = nelichidatNonBETrades.filter(t => t.trade_outcome === 'Win').length;
+    const nelichidatWinRate = nelichidatNonBETrades.length > 0 ? (nelichidatNonBEWins / nelichidatNonBETrades.length) * 100 : 0;
+
     const lichidatWins = lichidatTrades.filter((t: Trade) => t.trade_outcome === 'Win').length;
     const lichidatLosses = lichidatTrades.filter((t: Trade) => t.trade_outcome === 'Lose').length;
-    const lichidatWinRate = lichidatTrades.length > 0 ? (lichidatWins / lichidatTrades.length) * 100 : 0;
 
     const nelichidatWins = nelichidatTrades.filter((t: Trade) => t.trade_outcome === 'Win').length;
     const nelichidatLosses = nelichidatTrades.filter((t: Trade) => t.trade_outcome === 'Lose').length;
-    const nelichidatWinRate = nelichidatTrades.length > 0 ? (nelichidatWins / nelichidatTrades.length) * 100 : 0;
+
+    // Calculate BE stats for lichidat trades
+    const lichidatWinsWithBE = lichidatTrades.filter((t: Trade) => t.trade_outcome === 'Win' && t.break_even).length;
+    const lichidatLossesWithBE = lichidatTrades.filter((t: Trade) => t.trade_outcome === 'Lose' && t.break_even).length;
+    const lichidatWinRateWithBE = lichidatTrades.length > 0 ? ((lichidatWins + lichidatWinsWithBE) / lichidatTrades.length) * 100 : 0;
+
+    // Calculate BE stats for nelichidat trades
+    const nelichidatWinsWithBE = nelichidatTrades.filter((t: Trade) => t.trade_outcome === 'Win' && t.break_even).length;
+    const nelichidatLossesWithBE = nelichidatTrades.filter((t: Trade) => t.trade_outcome === 'Lose' && t.break_even).length;
+    const nelichidatWinRateWithBE = nelichidatTrades.length > 0 ? ((nelichidatWins + nelichidatWinsWithBE) / nelichidatTrades.length) * 100 : 0;
 
     setLocalHLStats({
       lichidat: {
         wins: lichidatWins,
         losses: lichidatLosses,
-        winRate: lichidatWinRate
+        winRate: lichidatWinRate,
+        winsWithBE: lichidatWinsWithBE,
+        lossesWithBE: lichidatLossesWithBE,
+        winRateWithBE: lichidatWinRateWithBE
       },
       nelichidat: {
         wins: nelichidatWins,
         losses: nelichidatLosses,
-        winRate: nelichidatWinRate
+        winRate: nelichidatWinRate,
+        winsWithBE: nelichidatWinsWithBE,
+        lossesWithBE: nelichidatLossesWithBE,
+        winRateWithBE: nelichidatWinRateWithBE
       }
     });
 
