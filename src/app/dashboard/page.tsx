@@ -1865,15 +1865,21 @@ export default function Dashboard() {
                   legend: {
                     display: false,
                   },
-                  tooltip: {
+                   tooltip: {
                     callbacks: {
                       label: (context) => {
+                        const stat = marketStats[context.dataIndex] || {};
                         const dataset = context.dataset;
-                        const value = context.parsed.x;
-                        if (dataset.label === 'Win Rate') {
-                          return `${dataset.label}: ${value.toFixed(2)}%`;
+                        if (dataset.label === 'Wins') {
+                          return `Wins: ${stat.wins} (${stat.beWins} BE)`;
                         }
-                        return `${dataset.label}: ${value}`;
+                        if (dataset.label === 'Losses') {
+                          return `Losses: ${stat.losses} (${stat.beLosses} BE)`;
+                        }
+                        if (dataset.label === 'Win Rate') {
+                          return `Win Rate: ${stat.winRate?.toFixed(2)}% (${stat.winRateWithBE?.toFixed(2)}% with BE)`;
+                        }
+                        return `${dataset.label}: ${context.parsed.x}`;
                       }
                     }
                   }
