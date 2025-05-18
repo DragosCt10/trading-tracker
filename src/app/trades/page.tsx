@@ -22,6 +22,9 @@ export default function TradesPage() {
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [selectedNotes, setSelectedNotes] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+
 
   const { mode, activeAccount, isLoading: modeLoading } = useTradingMode();
   const { data: userDetails, isLoading: userLoading } = useUserDetails();
@@ -128,59 +131,116 @@ export default function TradesPage() {
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
-  const exportToCSV = () => {
-    const headers = [
-      'Date', 'Time', 'Day of Week', 'Market', 'Direction', 'Setup', 'Outcome',
-      'Risk %', 'Trade Link', 'Liquidity Taken', 'Local High/Low',
-      'News Related', 'ReEntry', 'Break Even', 'MSS', 'Risk:Reward Ratio',
-      'Risk:Reward Ratio Long', 'SL Size', 'Calculated Profit', 'P/L %',
-      'Evaluation', 'Notes'
-    ];
+  const exportToCSV = async () => {
+    if (!userDetails?.user || !activeAccount?.id) return;
 
-    const escapeCSV = (value: any) => {
-      if (value == null) return '';
-      const str = value.toString().replace(/"/g, '""'); // Escape double quotes
-      return `"${str}"`; // Wrap in double quotes
-    };
+    setExporting(true);
+    setExportProgress(0);
 
-    const csvContent = [
-      headers.map(escapeCSV).join(','),
-      ...filteredTrades.map((trade: Trade) => [
-        trade.trade_date,
-        trade.trade_time,
-        trade.day_of_week,
-        trade.market,
-        trade.direction,
-        trade.setup_type,
-        trade.trade_outcome,
-        trade.risk_per_trade,
-        trade.trade_link,
-        trade.liquidity_taken,
-        trade.local_high_low ? 'Yes' : 'No',
-        trade.news_related ? 'Yes' : 'No',
-        trade.reentry ? 'Yes' : 'No',
-        trade.break_even ? 'Yes' : 'No',
-        trade.mss,
-        trade.risk_reward_ratio,
-        trade.risk_reward_ratio_long,
-        trade.sl_size,
-        trade.calculated_profit || '',
-        trade.pnl_percentage || '',
-        trade.evaluation || '',
-        trade.notes || ''
-      ].map(escapeCSV).join(','))
-    ].join('\n');
+    const supabase = (await import('@/utils/supabase/client')).createClient();
+    const limit = 500; // Number of items per request
+    let offset = 0;
+    let allTrades: Trade[] = [];
+    let totalFetched = 0;
+    let totalCount = 0;
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `trades_${dateRange.startDate || 'all'}_to_${dateRange.endDate || 'all'}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-};
+    try {
+      // First request to get total count
+      const initialQuery = supabase
+        .from(`${mode}_trades`)
+        .select('*', { count: 'exact' })
+        .eq('user_id', userDetails.user.id)
+        .eq('account_id', activeAccount.id)
+        .gte('trade_date', dateRange.startDate)
+        .lte('trade_date', dateRange.endDate)
+        .order('trade_date', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      const { data: initialData, error: initialError, count } = await initialQuery;
+
+      if (initialError) throw new Error(initialError.message);
+
+      totalCount = count || 0;
+      allTrades = initialData || [];
+      totalFetched = allTrades.length;
+      setExportProgress((totalFetched / totalCount) * 100);
+
+      while (totalFetched < totalCount) {
+        offset += limit;
+        const { data: moreData, error: fetchError } = await supabase
+          .from(`${mode}_trades`)
+          .select('*')
+          .eq('user_id', userDetails.user.id)
+          .eq('account_id', activeAccount.id)
+          .gte('trade_date', dateRange.startDate)
+          .lte('trade_date', dateRange.endDate)
+          .order('trade_date', { ascending: false })
+          .range(offset, offset + limit - 1);
+
+        if (fetchError) throw new Error(fetchError.message);
+
+        allTrades = allTrades.concat(moreData || []);
+        totalFetched = allTrades.length;
+        setExportProgress((totalFetched / totalCount) * 100);
+      }
+
+      const headers = [
+        'Date', 'Time', 'Day of Week', 'Market', 'Direction', 'Setup', 'Outcome',
+        'Risk %', 'Trade Link', 'Liquidity Taken', 'Local High/Low',
+        'News Related', 'ReEntry', 'Break Even', 'MSS', 'Risk:Reward Ratio',
+        'Risk:Reward Ratio Long', 'SL Size', 'Calculated Profit', 'P/L %',
+        'Evaluation', 'Notes'
+      ];
+
+      const escapeCSV = (value: any) => {
+        if (value == null) return '';
+        const str = value.toString().replace(/"/g, '""');
+        return `"${str}"`;
+      };
+
+      const csvContent = [
+        headers.map(escapeCSV).join(','),
+        ...allTrades.map((trade: Trade) => [
+          trade.trade_date,
+          trade.trade_time,
+          trade.day_of_week,
+          trade.market,
+          trade.direction,
+          trade.setup_type,
+          trade.trade_outcome,
+          trade.risk_per_trade,
+          trade.trade_link,
+          trade.liquidity_taken,
+          trade.local_high_low ? 'Yes' : 'No',
+          trade.news_related ? 'Yes' : 'No',
+          trade.reentry ? 'Yes' : 'No',
+          trade.break_even ? 'Yes' : 'No',
+          trade.mss,
+          trade.risk_reward_ratio,
+          trade.risk_reward_ratio_long,
+          trade.sl_size,
+          trade.calculated_profit || '',
+          trade.pnl_percentage || '',
+          trade.evaluation || '',
+          trade.notes || ''
+        ].map(escapeCSV).join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute('download', `trades_${dateRange.startDate}_to_${dateRange.endDate}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error exporting trades:', error);
+    } finally {
+      setExporting(false);
+      setExportProgress(0);
+    }
+  };
+
 
 
   if (modeLoading || loading || userLoading) {
@@ -254,71 +314,86 @@ export default function TradesPage() {
       </div>
 
       {/* Filters Card */}
-      <div className="mb-6 bg-white rounded-lg shadow-sm p-6 flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-stone-700 mb-1">Date Range</label>
-          <div className="relative w-72">
-            <input
-              ref={inputRef}
-              placeholder="Select date range"
-              type="text"
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer pr-10"
-              value={`${dateRange.startDate} ~ ${dateRange.endDate}`}
-              readOnly
-              onFocus={() => setShowDatePicker(true)}
-              onClick={() => setShowDatePicker(true)}
-            />
-            <span className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer" onClick={() => setShowDatePicker(v => !v)}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
-              </svg>
-            </span>
-            {showDatePicker && (
-              <div ref={pickerRef} className="absolute shadow-lg rounded-lg z-50 mt-2 left-0 date-range-popup">
-                <DateRange
-                  ranges={[
-                    {
-                      startDate: new Date(dateRange.startDate),
-                      endDate: new Date(dateRange.endDate),
-                      key: 'selection',
-                    },
-                  ]}
-                  onChange={(ranges) => {
-                    const { startDate, endDate } = ranges.selection;
-                    const newStart = format(startDate as Date, 'yyyy-MM-dd');
-                    const newEnd = format(endDate as Date, 'yyyy-MM-dd');
-                    if (dateRange.startDate !== newStart || dateRange.endDate !== newEnd) {
-                      setDateRange({
-                        startDate: newStart,
-                        endDate: newEnd,
-                      });
-                    }
-                  }}
-                  moveRangeOnFirstSelection={false}
-                  editableDateInputs={true}
-                  maxDate={new Date()}
-                  showMonthAndYearPickers={true}
-                  rangeColors={['#333']}
-                  direction="vertical"
-                />
-              </div>
-            )}
+      <div className="mb-6 bg-white rounded-lg shadow-sm p-6 flex flex-col gap-4">
+         <div className="flex flex-row gap-4 w-full">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-stone-700 mb-1">Date Range</label>
+            <div className="relative w-72">
+              <input
+                ref={inputRef}
+                placeholder="Select date range"
+                type="text"
+                className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer pr-10"
+                value={`${dateRange.startDate} ~ ${dateRange.endDate}`}
+                readOnly
+                onFocus={() => setShowDatePicker(true)}
+                onClick={() => setShowDatePicker(true)}
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer" onClick={() => setShowDatePicker(v => !v)}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
+                </svg>
+              </span>
+              {showDatePicker && (
+                <div ref={pickerRef} className="absolute shadow-lg rounded-lg z-50 mt-2 left-0 date-range-popup">
+                  <DateRange
+                    ranges={[
+                      {
+                        startDate: new Date(dateRange.startDate),
+                        endDate: new Date(dateRange.endDate),
+                        key: 'selection',
+                      },
+                    ]}
+                    onChange={(ranges) => {
+                      const { startDate, endDate } = ranges.selection;
+                      const newStart = format(startDate as Date, 'yyyy-MM-dd');
+                      const newEnd = format(endDate as Date, 'yyyy-MM-dd');
+                      if (dateRange.startDate !== newStart || dateRange.endDate !== newEnd) {
+                        setDateRange({
+                          startDate: newStart,
+                          endDate: newEnd,
+                        });
+                      }
+                    }}
+                    moveRangeOnFirstSelection={false}
+                    editableDateInputs={true}
+                    maxDate={new Date()}
+                    showMonthAndYearPickers={true}
+                    rangeColors={['#333']}
+                    direction="vertical"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-end gap-2">
+            <button
+              onClick={exportToCSV}
+              className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
+            >
+              Export Trades
+            </button>
+            <button
+              onClick={clearFilters}
+              className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-white to-white border-stone-200 text-stone-700 rounded-lg hover:bg-gradient-to-b hover:from-stone-50 hover:to-stone-50 hover:border-stone-200 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-1px_0px_rgba(0,0,0,0.20)] after:pointer-events-none transition antialiased"
+            >
+              Current Month
+            </button>
           </div>
         </div>
-        <div className="flex items-end gap-2">
-          <button
-            onClick={exportToCSV}
-            className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
-          >
-            Export Trades
-          </button>
-          <button
-            onClick={clearFilters}
-            className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-white to-white border-stone-200 text-stone-700 rounded-lg hover:bg-gradient-to-b hover:from-stone-50 hover:to-stone-50 hover:border-stone-200 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-1px_0px_rgba(0,0,0,0.20)] after:pointer-events-none transition antialiased"
-          >
-            Current Month
-          </button>
-        </div>
+
+
+        {exporting && (
+          <div className="w-5/12 mx-auto mt-4">
+            <div className="text-sm text-stone-600 mb-1">Exporting {totalCount} trades ...({Math.round(exportProgress)}%)</div>
+            <div className="w-full h-2 bg-stone-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-stone-800 transition-all duration-300"
+                style={{ width: `${exportProgress}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Trades Table Card */}
