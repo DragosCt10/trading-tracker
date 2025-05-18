@@ -1681,9 +1681,18 @@ export default function Dashboard() {
                   tooltip: {
                     callbacks: {
                       label: (context) => {
+                        const stat = newsStats[context.dataIndex] || {};
                         const dataset = context.dataset;
-                        const value = context.parsed.x;
-                        return `${dataset.label}: ${value}`;
+                        if (dataset.label === 'Wins') {
+                          return `Wins: ${stat.wins} (${stat.beWins} BE)`;
+                        }
+                        if (dataset.label === 'Losses') {
+                          return `Losses: ${stat.losses} (${stat.beLosses} BE)`;
+                        }
+                        if (dataset.label === 'Win Rate') {
+                          return `Win Rate: ${stat.winRate?.toFixed(2)}% (${stat.winRateWithBE?.toFixed(2)}% with BE)`;
+                        }
+                        return `${dataset.label}: ${context.parsed.x}`;
                       }
                     }
                   }
@@ -1734,10 +1743,7 @@ export default function Dashboard() {
                   },
                   {
                     label: 'Win Rate',
-                    data: newsStats.map(stat => {
-                      const total = stat.wins + stat.losses;
-                      return total > 0 ? (stat.wins / total) * 100 : 0;
-                    }),
+                    data: newsStats.map(stat => stat.winRate),
                     backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
                     borderColor: 'rgb(253, 230, 138)', // amber-200
                     borderWidth: 0,
@@ -1770,12 +1776,18 @@ export default function Dashboard() {
                   tooltip: {
                     callbacks: {
                       label: (context) => {
+                        const stat = dayStats[context.dataIndex] || {};
                         const dataset = context.dataset;
-                        const value = context.parsed.x;
-                        if (dataset.label === 'Win Rate') {
-                          return `${dataset.label}: ${value.toFixed(2)}%`;
+                        if (dataset.label === 'Wins') {
+                          return `Wins: ${stat.wins} (${stat.beWins} BE)`;
                         }
-                        return `${dataset.label}: ${value}`;
+                        if (dataset.label === 'Losses') {
+                          return `Losses: ${stat.losses} (${stat.beLosses} BE)`;
+                        }
+                        if (dataset.label === 'Win Rate') {
+                          return `Win Rate: ${stat.winRate?.toFixed(2)}% (${stat.winRateWithBE?.toFixed(2)}% with BE)`;
+                        }
+                        return `${dataset.label}: ${context.parsed.x}`;
                       }
                     }
                   }
@@ -1826,10 +1838,7 @@ export default function Dashboard() {
                   },
                   {
                     label: 'Win Rate',
-                    data: dayStats.map(stat => {
-                      const total = stat.wins + stat.losses;
-                      return total > 0 ? (stat.wins / total) * 100 : 0;
-                    }),
+                    data: dayStats.map(stat => stat.winRate),
                     backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
                     borderColor: 'rgb(253, 230, 138)', // amber-200
                     borderWidth: 0,
