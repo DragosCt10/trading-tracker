@@ -41,6 +41,12 @@ export default function TradesPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
+  const [tempRange, setTempRange] = useState({
+    startDate: initialStartDate,
+    endDate: initialEndDate,
+  });
+
+
   // Close picker on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -326,8 +332,14 @@ export default function TradesPage() {
                 className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer pr-10"
                 value={`${dateRange.startDate} ~ ${dateRange.endDate}`}
                 readOnly
-                onFocus={() => setShowDatePicker(true)}
-                onClick={() => setShowDatePicker(true)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowDatePicker(true);
+                }}
+                onFocus={(e) => {
+                  e.preventDefault();
+                  setShowDatePicker(true);
+                }}
               />
               <span className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer" onClick={() => setShowDatePicker(v => !v)}>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
@@ -336,32 +348,53 @@ export default function TradesPage() {
               </span>
               {showDatePicker && (
                 <div ref={pickerRef} className="absolute shadow-lg rounded-lg z-50 mt-2 left-0 date-range-popup">
+                  {/* ← UPDATED to use tempRange + Apply/Cancel */}
                   <DateRange
-                    ranges={[
-                      {
-                        startDate: new Date(dateRange.startDate),
-                        endDate: new Date(dateRange.endDate),
-                        key: 'selection',
-                      },
-                    ]}
+                    ranges={[{
+                      startDate: new Date(tempRange.startDate),
+                      endDate:   new Date(tempRange.endDate),
+                      key: 'selection',
+                    }]}
                     onChange={(ranges) => {
                       const { startDate, endDate } = ranges.selection;
-                      const newStart = format(startDate as Date, 'yyyy-MM-dd');
-                      const newEnd = format(endDate as Date, 'yyyy-MM-dd');
-                      if (dateRange.startDate !== newStart || dateRange.endDate !== newEnd) {
-                        setDateRange({
-                          startDate: newStart,
-                          endDate: newEnd,
-                        });
-                      }
+                      setTempRange({
+                        startDate: format(startDate as Date, 'yyyy-MM-dd'),
+                        endDate:   format(endDate   as Date, 'yyyy-MM-dd'),
+                      });
                     }}
                     moveRangeOnFirstSelection={false}
-                    editableDateInputs={true}
+                    editableDateInputs
                     maxDate={new Date()}
-                    showMonthAndYearPickers={true}
+                    showMonthAndYearPickers
                     rangeColors={['#333']}
                     direction="vertical"
                   />
+
+                  <div className="flex justify-end gap-2 p-2 bg-white">
+                    <button
+                      className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-white to-white border-stone-200 text-stone-700 rounded-lg hover:bg-gradient-to-b hover:from-stone-50 hover:to-stone-50 hover:border-stone-200 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-1px_0px_rgba(0,0,0,0.20)] after:pointer-events-none transition antialiased"
+                      onClick={() => {
+                        // discard changes
+                        setTempRange({ ...dateRange });
+                        setShowDatePicker(false);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
+                      onClick={() => {
+                        // commit changes, reset to page 1, and close picker
+                        setDateRange({ ...tempRange });
+                        setCurrentPage(1);
+                        setShowDatePicker(false);
+                      }}
+                    >
+                      Apply
+                    </button>
+                  </div>
+
+
                 </div>
               )}
             </div>
