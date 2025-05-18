@@ -1308,12 +1308,19 @@ export default function Dashboard() {
                   tooltip: {
                     callbacks: {
                       label: (context) => {
+                        const interval = TIME_INTERVALS[context.dataIndex];
+                        const stat = stats.intervalStats[interval.label] || {};
                         const dataset = context.dataset;
-                        const value = context.parsed.x;
-                        if (dataset.label === 'Win Rate') {
-                          return `${dataset.label}: ${value.toFixed(2)}%`;
+                        if (dataset.label === 'Wins') {
+                          return `Wins: ${stat.wins} (${stat.beWins} BE)`;
                         }
-                        return `${dataset.label}: ${value}`;
+                        if (dataset.label === 'Losses') {
+                          return `Losses: ${stat.losses} (${stat.beLosses} BE)`;
+                        }
+                        if (dataset.label === 'Win Rate') {
+                          return `Win Rate: ${stat.winRate?.toFixed(2)}% (${stat.winRateWithBE?.toFixed(2)}% with BE)`;
+                        }
+                        return `${dataset.label}: ${context.parsed.x}`;
                       }
                     }
                   }
@@ -1368,12 +1375,7 @@ export default function Dashboard() {
                   },
                   {
                     label: 'Win Rate',
-                    data: TIME_INTERVALS.map(interval => {
-                      const wins = stats.intervalStats[interval.label]?.wins || 0;
-                      const losses = stats.intervalStats[interval.label]?.losses || 0;
-                      const total = wins + losses;
-                      return total > 0 ? (wins / total) * 100 : 0;
-                    }),
+                    data: TIME_INTERVALS.map(interval => stats.intervalStats[interval.label]?.winRate || 0),
                     backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
                     borderColor: 'rgb(253, 230, 138)', // amber-200
                     borderWidth: 0,
