@@ -41,7 +41,6 @@ const LIQUIDITY_OPTIONS = ['Liq. Majora', 'Liq. Minora', 'Liq. Locala', 'HOD', '
 const MSS_OPTIONS = ['Normal', 'Agresiv'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
-const QUARTER_OPTIONS = ['Q1', 'Q2', 'Q3', 'Q4'];
 
   if (!isOpen || !trade) return null;
 
@@ -423,7 +422,6 @@ const QUARTER_OPTIONS = ['Q1', 'Q2', 'Q3', 'Q4'];
                 {renderField('Date', 'trade_date')}
                 {renderField('Time', 'trade_time')}
                 {renderField('Day', 'day_of_week', 'select', DAY_OF_WEEK_OPTIONS)}
-                {renderField('Quarter', 'quarter', 'select', QUARTER_OPTIONS)}
                 {renderField('Market', 'market', 'select', MARKET_OPTIONS)}
                 {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
                 {renderField('Setup Type', 'setup_type', 'select', SETUP_OPTIONS)}
