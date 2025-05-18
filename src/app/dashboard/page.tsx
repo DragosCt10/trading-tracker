@@ -120,11 +120,19 @@ export default function Dashboard() {
     endDate: initialEndDate,
   });
 
+  // ← NEW: holds the draft range while the picker is open
+  const [tempRange, setTempRange] = useState({
+    startDate: dateRange.startDate,
+    endDate:   dateRange.endDate,
+  });
+
+
   // Calendar specific date range
   const [calendarDateRange, setCalendarDateRange] = useState({
     startDate: format(startOfMonth(today), 'yyyy-MM-dd'),
     endDate: format(endOfMonth(today), 'yyyy-MM-dd'),
   });
+  
 
   const [activeFilter, setActiveFilter] = useState<'year' | '15days' | '30days' | 'month'>('30days');
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -635,31 +643,48 @@ export default function Dashboard() {
                 {showDatePicker && (
                   <div ref={pickerRef} className="absolute shadow-lg rounded-lg z-50 mt-2 left-0 date-range-popup">
                     <DateRange
-                      ranges={[
-                        {
-                          startDate: new Date(dateRange.startDate),
-                          endDate: new Date(dateRange.endDate),
-                          key: 'selection',
-                        },
-                      ]}
+                      ranges={[{
+                        startDate: new Date(tempRange.startDate),
+                        endDate:   new Date(tempRange.endDate),
+                        key: 'selection',
+                      }]}
                       onChange={(ranges) => {
                         const { startDate, endDate } = ranges.selection;
-                        const newStart = format(startDate as Date, 'yyyy-MM-dd');
-                        const newEnd = format(endDate as Date, 'yyyy-MM-dd');
-                        if (dateRange.startDate !== newStart || dateRange.endDate !== newEnd) {
-                          setDateRange({
-                            startDate: newStart,
-                            endDate: newEnd,
-                          });
-                        }
+                        setTempRange({
+                          startDate: format(startDate as Date, 'yyyy-MM-dd'),
+                          endDate:   format(endDate   as Date, 'yyyy-MM-dd'),
+                        });
                       }}
                       moveRangeOnFirstSelection={false}
-                      editableDateInputs={true}
+                      editableDateInputs
                       maxDate={new Date()}
-                      showMonthAndYearPickers={true}
+                      showMonthAndYearPickers
                       rangeColors={['#333']}
                       direction="vertical"
                     />
+
+                    <div className="flex justify-end gap-2 p-2 bg-white">
+                      <button
+                        className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-white to-white border-stone-200 text-stone-700 rounded-lg hover:bg-gradient-to-b hover:from-stone-50 hover:to-stone-50 hover:border-stone-200 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-1px_0px_rgba(0,0,0,0.20)] after:pointer-events-none transition antialiased"
+                        onClick={() => {
+                          // discard changes
+                          setTempRange({ ...dateRange });
+                          setShowDatePicker(false);
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
+                        onClick={() => {
+                          // commit changes, reset to page 1, and close picker
+                          setDateRange({ ...tempRange });
+                          setShowDatePicker(false);
+                        }}
+                      >
+                        Apply
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
