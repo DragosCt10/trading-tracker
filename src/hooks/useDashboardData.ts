@@ -130,6 +130,9 @@ interface EvaluationStats {
   wins: number;
   losses: number;
   winRate: number;
+  winRateWithBE: number;
+  beWins: number;
+  beLosses: number;
 }
 
 const TIME_INTERVALS = [
@@ -635,12 +638,20 @@ export function useDashboardData({
         const losses = trades.filter(t => t.trade_outcome === 'Lose').length;
         const total = trades.length;
         const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
+
+        const beWins = trades.filter(t => t.trade_outcome === 'Win' && t.break_even).length;
+        const beLosses = trades.filter(t => t.trade_outcome === 'Lose' && t.break_even).length;
+        const winRateWithBE = total > 0 ? Math.round((wins + beWins) / total * 100) : 0;
+
         return {
           grade,
           total,
           wins,
           losses,
-          winRate
+          winRate,
+          winRateWithBE,
+          beWins,
+          beLosses,
         };
       })
       .sort((a, b) => GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade));
