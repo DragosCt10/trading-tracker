@@ -66,6 +66,9 @@ interface MssStats {
   wins: number;
   losses: number;
   winRate: number;
+  winRateWithBE: number;
+  beWins: number;
+  beLosses: number;
 }
 interface NewsStats {
   type: string;
@@ -73,6 +76,9 @@ interface NewsStats {
   wins: number;
   losses: number;
   winRate: number;
+  winRateWithBE: number;
+  beWins: number;
+  beLosses: number;
 }
 interface DayStats {
   day: string;
