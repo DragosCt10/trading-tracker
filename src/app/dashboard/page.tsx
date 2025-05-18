@@ -922,9 +922,18 @@ export default function Dashboard() {
                   tooltip: {
                     callbacks: {
                       label: (context) => {
+                        const stat = liquidityStats[context.dataIndex];
                         const dataset = context.dataset;
-                        const value = context.parsed.x;
-                        return `${dataset.label}: ${value}`;
+                        if (dataset.label === 'Wins') {
+                          return `Wins: ${stat.wins} (${stat.beWins} BE)`;
+                        }
+                        if (dataset.label === 'Losses') {
+                          return `Losses: ${stat.losses} (${stat.beLosses} BE)`;
+                        }
+                        if (dataset.label === 'Win Rate') {
+                          return `Win Rate: ${stat.winRate.toFixed(2)}% (${stat.winRateWithBE.toFixed(2)}% with BE)`;
+                        }
+                        return `${dataset.label}: ${context.parsed.x}`;
                       }
                     }
                   }
@@ -975,10 +984,7 @@ export default function Dashboard() {
                   },
                   {
                     label: 'Win Rate',
-                    data: liquidityStats.map(stat => {
-                      const total = stat.wins + stat.losses;
-                      return total > 0 ? (stat.wins / total) * 100 : 0;
-                    }),
+                    data: liquidityStats.map(stat => stat.winRate),
                     backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
                     borderColor: 'rgb(253, 230, 138)', // amber-200
                     borderWidth: 0,
@@ -1008,12 +1014,18 @@ export default function Dashboard() {
                   tooltip: {
                     callbacks: {
                       label: (context) => {
+                        const stat = setupStats[context.dataIndex];
                         const dataset = context.dataset;
-                        const value = context.parsed.x;
-                        if (dataset.label === 'Win Rate') {
-                          return `${dataset.label}: ${value.toFixed(1)}%`;
+                        if (dataset.label === 'Wins') {
+                          return `Wins: ${stat.wins} (${stat.beWins} BE)`;
                         }
-                        return `${dataset.label}: ${value}`;
+                        if (dataset.label === 'Losses') {
+                          return `Losses: ${stat.losses} (${stat.beLosses} BE)`;
+                        }
+                        if (dataset.label === 'Win Rate') {
+                          return `Win Rate: ${stat.winRate.toFixed(2)}% (${stat.winRateWithBE.toFixed(2)}% with BE)`;
+                        }
+                        return `${dataset.label}: ${context.parsed.x}`;
                       }
                     }
                   }
@@ -1049,8 +1061,8 @@ export default function Dashboard() {
                     borderColor: 'rgb(134, 239, 172)', // green-300
                     borderWidth: 0,
                     borderRadius: 4,
-                    barPercentage: 0.4,
-                    categoryPercentage: 0.4,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.6,
                   },
                   {
                     label: 'Losses',
@@ -1059,21 +1071,18 @@ export default function Dashboard() {
                     borderColor: 'rgb(231, 229, 228)', // stone-200
                     borderWidth: 0,
                     borderRadius: 4,
-                    barPercentage: 0.4,
-                    categoryPercentage: 0.4,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.6,
                   },
                   {
                     label: 'Win Rate',
-                    data: setupStats.map(stat => {
-                      const total = stat.wins + stat.losses;
-                      return total > 0 ? (stat.wins / total) * 100 : 0;
-                    }),
+                    data: setupStats.map(stat => stat.winRate),
                     backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
                     borderColor: 'rgb(253, 230, 138)', // amber-200
                     borderWidth: 0,
                     borderRadius: 4,
-                    barPercentage: 0.4,
-                    categoryPercentage: 0.4,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.6,
                   },
                 ],
               }}
@@ -1097,9 +1106,18 @@ export default function Dashboard() {
                   tooltip: {
                     callbacks: {
                       label: (context) => {
+                        const stat = directionStats[context.dataIndex];
                         const dataset = context.dataset;
-                        const value = context.parsed.x;
-                        return `${dataset.label}: ${value}`;
+                        if (dataset.label === 'Wins') {
+                          return `Wins: ${stat.wins} (${stat.beWins} BE)`;
+                        }
+                        if (dataset.label === 'Losses') {
+                          return `Losses: ${stat.losses} (${stat.beLosses} BE)`;
+                        }
+                        if (dataset.label === 'Win Rate') {
+                          return `Win Rate: ${stat.winRate.toFixed(2)}% (${stat.winRateWithBE.toFixed(2)}% with BE)`;
+                        }
+                        return `${dataset.label}: ${context.parsed.x}`;
                       }
                     }
                   }
@@ -1117,7 +1135,7 @@ export default function Dashboard() {
                   y: {
                     stacked: false,
                     grid: {
-                      display: false, 
+                      display: false,
                     },
                     ticks: {
                       color: 'rgb(41, 37, 36)' // stone-800
@@ -1150,10 +1168,7 @@ export default function Dashboard() {
                   },
                   {
                     label: 'Win Rate',
-                    data: directionStats.map(stat => {
-                      const total = stat.wins + stat.losses;
-                      return total > 0 ? (stat.wins / total) * 100 : 0;
-                    }),
+                    data: directionStats.map(stat => stat.winRate),
                     backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
                     borderColor: 'rgb(253, 230, 138)', // amber-200
                     borderWidth: 0,
@@ -1185,9 +1200,20 @@ export default function Dashboard() {
                   tooltip: {
                     callbacks: {
                       label: (context) => {
+                        const idx = context.dataIndex;
+                        const isLichidat = idx === 0;
+                        const stat = isLichidat ? localHLStats.lichidat : localHLStats.nelichidat;
                         const dataset = context.dataset;
-                        const value = context.parsed.x;
-                        return `${dataset.label}: ${value}`;
+                        if (dataset.label === 'Wins') {
+                          return `Wins: ${stat.wins} (${stat.winsWithBE} BE)`;
+                        }
+                        if (dataset.label === 'Losses') {
+                          return `Losses: ${stat.losses} (${stat.lossesWithBE} BE)`;
+                        }
+                        if (dataset.label === 'Win Rate') {
+                          return `Win Rate: ${stat.winRate.toFixed(2)}% (${stat.winRateWithBE.toFixed(2)}% with BE)`;
+                        }
+                        return `${dataset.label}: ${context.parsed.x}`;
                       }
                     }
                   }
@@ -1248,12 +1274,8 @@ export default function Dashboard() {
                   {
                     label: 'Win Rate',
                     data: [
-                      (localHLStats.lichidat.wins + localHLStats.lichidat.losses > 0) 
-                        ? (localHLStats.lichidat.wins / (localHLStats.lichidat.wins + localHLStats.lichidat.losses)) * 100 
-                        : 0,
-                      (localHLStats.nelichidat.wins + localHLStats.nelichidat.losses > 0) 
-                        ? (localHLStats.nelichidat.wins / (localHLStats.nelichidat.wins + localHLStats.nelichidat.losses)) * 100 
-                        : 0,
+                      localHLStats.lichidat.winRate,
+                      localHLStats.nelichidat.winRate,
                     ],
                     backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
                     borderColor: 'rgb(253, 230, 138)', // amber-200
