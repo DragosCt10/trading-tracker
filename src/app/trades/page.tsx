@@ -129,17 +129,22 @@ export default function TradesPage() {
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   const exportToCSV = () => {
-    // Create CSV header
     const headers = [
-      'Date', 'Time', 'Day of Week', 'Market', 'Direction', 'Setup', 'Outcome', 
+      'Date', 'Time', 'Day of Week', 'Market', 'Direction', 'Setup', 'Outcome',
       'Risk %', 'Trade Link', 'Liquidity Taken', 'Local High/Low',
       'News Related', 'ReEntry', 'Break Even', 'MSS', 'Risk:Reward Ratio',
-      'Risk:Reward Ratio Long', 'SL Size', 'Calculated Profit'
+      'Risk:Reward Ratio Long', 'SL Size', 'Calculated Profit', 'P/L %',
+      'Evaluation', 'Notes'
     ];
-    
-    // Create CSV content
+
+    const escapeCSV = (value: any) => {
+      if (value == null) return '';
+      const str = value.toString().replace(/"/g, '""'); // Escape double quotes
+      return `"${str}"`; // Wrap in double quotes
+    };
+
     const csvContent = [
-      headers.join(','),
+      headers.map(escapeCSV).join(','),
       ...filteredTrades.map((trade: Trade) => [
         trade.trade_date,
         trade.trade_time,
@@ -160,13 +165,12 @@ export default function TradesPage() {
         trade.risk_reward_ratio_long,
         trade.sl_size,
         trade.calculated_profit || '',
-        trade.notes || '',
         trade.pnl_percentage || '',
-        trade.evaluation || ''
-      ].join(','))
+        trade.evaluation || '',
+        trade.notes || ''
+      ].map(escapeCSV).join(','))
     ].join('\n');
 
-    // Create and trigger download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -176,7 +180,8 @@ export default function TradesPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+};
+
 
   if (modeLoading || loading || userLoading) {
     return (
