@@ -15,6 +15,9 @@ interface EvaluationStats {
   wins: number;
   losses: number;
   winRate: number;
+  winRateWithBE: number;
+  beWins: number;
+  beLosses: number;
 }
 
 interface EvaluationStatsProps {
@@ -61,13 +64,24 @@ export function EvaluationStats({ stats }: EvaluationStatsProps) {
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: {
+       tooltip: {
         callbacks: {
           label: (context: any) => {
-            return `${context.dataset.label}: ${context.parsed.x}`;
-          },
-        },
-      },
+            const stat = stats[context.dataIndex] || {};
+            const dataset = context.dataset;
+            if (dataset.label === 'Wins') {
+              return `Wins: ${stat.wins} (${stat.beWins} BE)`;
+            }
+            if (dataset.label === 'Losses') {
+              return `Losses: ${stat.losses} (${stat.beLosses} BE)`;
+            }
+            if (dataset.label === 'Win Rate') {
+              return `Win Rate: ${stat.winRate?.toFixed(2)}% (${stat.winRateWithBE?.toFixed(2)}% with BE)`;
+            }
+            return `${dataset.label}: ${context.parsed.x}`;
+          }
+        }
+      }
     },
     scales: {
       x: {
