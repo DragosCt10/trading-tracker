@@ -96,6 +96,9 @@ interface MarketStats {
   wins: number;
   losses: number;
   winRate: number;
+  winRateWithBE: number;
+  beWins: number;
+  beLosses: number;
 }
 interface SlSizeStats {
   market: string;
@@ -602,7 +605,7 @@ export function useDashboardData({
       // Calculate win rates for interval trades
       const intervalWins = intervalTrades.filter((t: Trade) => t.trade_outcome === 'Win').length;
       const intervalLosses = intervalTrades.filter((t: Trade) => t.trade_outcome === 'Lose').length;
-      const intervalWinRate = intervalTrades.length > 0 
+      const intervalWinRate = intervalTrades.length > 0
         ? (intervalWins / intervalTrades.length) * 100 
         : 0;
 
