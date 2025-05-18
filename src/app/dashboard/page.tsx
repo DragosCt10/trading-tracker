@@ -1468,12 +1468,29 @@ export default function Dashboard() {
                   tooltip: {
                     callbacks: {
                       label: (context) => {
+                        // There are two stats arrays: reentryStats and breakEvenStats
+                        // The first N bars are reentryStats, the next M bars are breakEvenStats
+                        const totalStats = [...reentryStats, ...breakEvenStats];
+                        const stat = totalStats[context.dataIndex] || {};
                         const dataset = context.dataset;
-                        const value = context.parsed.x;
-                        if (dataset.label === 'Win Rate') {
-                          return `${dataset.label}: ${value.toFixed(2)}%`;
+                        const isReentry = context.dataIndex < reentryStats.length;
+
+                        if (dataset.label === 'Wins') {
+                          return isReentry 
+                            ? `Wins: ${stat.wins} (${stat.beWins} BE)`
+                            : `Wins: ${stat.wins}`;
                         }
-                        return `${dataset.label}: ${value}`;
+                        if (dataset.label === 'Losses') {
+                          return isReentry
+                            ? `Losses: ${stat.losses} (${stat.beLosses} BE)`
+                            : `Losses: ${stat.losses}`;
+                        }
+                        if (dataset.label === 'Win Rate') {
+                          return isReentry
+                            ? `Win Rate: ${stat.winRate?.toFixed(2)}% (${stat.winRateWithBE?.toFixed(2)}% with BE)`
+                            : `Win Rate: ${stat.winRate?.toFixed(2)}%`;
+                        }
+                        return `${dataset.label}: ${context.parsed.x}`;
                       }
                     }
                   }
@@ -1569,12 +1586,18 @@ export default function Dashboard() {
                   tooltip: {
                     callbacks: {
                       label: (context) => {
+                        const stat = mssStats[context.dataIndex] || {};
                         const dataset = context.dataset;
-                        const value = context.parsed.x;
-                        if (dataset.label === 'Win Rate') {
-                          return `${dataset.label}: ${value.toFixed(2)}%`;
+                        if (dataset.label === 'Wins') {
+                          return `Wins: ${stat.wins} (${stat.beWins} BE)`;
                         }
-                        return `${dataset.label}: ${value}`;
+                        if (dataset.label === 'Losses') {
+                          return `Losses: ${stat.losses} (${stat.beLosses} BE)`;
+                        }
+                        if (dataset.label === 'Win Rate') {
+                          return `Win Rate: ${stat.winRate?.toFixed(2)}% (${stat.winRateWithBE?.toFixed(2)}% with BE)`;
+                        }
+                        return `${dataset.label}: ${context.parsed.x}`;
                       }
                     }
                   }
