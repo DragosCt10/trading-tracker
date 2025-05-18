@@ -10,6 +10,9 @@ interface IntervalStats {
   wins: number;
   losses: number;
   winRate: number;
+  winRateWithBE: number;
+  beWins: number;
+  beLosses: number;
 }
 interface MonthlyStats {
   wins: number;
@@ -26,8 +29,6 @@ interface SetupStats {
   winRateWithBE: number;
   beWins: number;
   beLosses: number;
-  winsWithoutBE: number;
-  lossesWithoutBE: number;
 }
 interface LiquidityStats {
   liquidity: string;
@@ -38,8 +39,6 @@ interface LiquidityStats {
   winRateWithBE: number;
   beWins: number;
   beLosses: number;
-  winsWithoutBE: number;
-  lossesWithoutBE: number;
 }
 interface DirectionStats {
   direction: string;
@@ -50,8 +49,6 @@ interface DirectionStats {
   winRateWithBE: number;
   beWins: number;
   beLosses: number;
-  winsWithoutBE: number;
-  lossesWithoutBE: number;
 }
 interface TradeTypeStats {
   type: string;
@@ -59,6 +56,9 @@ interface TradeTypeStats {
   wins: number;
   losses: number;
   winRate: number;
+  winRateWithBE: number;
+  beWins: number;
+  beLosses: number;
 }
 interface MssStats {
   type: string;
@@ -589,15 +589,27 @@ export function useDashboardData({
       const intervalTrades = trades.filter((trade: Trade) => 
         isTimeInInterval(normalizeTimeToHHMM(trade.trade_time), interval.start, interval.end)
       ) || [];
+
+      // Calculate win rates for interval trades
       const intervalWins = intervalTrades.filter((t: Trade) => t.trade_outcome === 'Win').length;
       const intervalLosses = intervalTrades.filter((t: Trade) => t.trade_outcome === 'Lose').length;
       const intervalWinRate = intervalTrades.length > 0 
         ? (intervalWins / intervalTrades.length) * 100 
         : 0;
+
+      // Calculate BE stats for interval trades
+      const intervalWinsWithBE = intervalTrades.filter((t: Trade) => t.trade_outcome === 'Win' && t.break_even).length;
+      const intervalLossesWithBE = intervalTrades.filter((t: Trade) => t.trade_outcome === 'Lose' && t.break_even).length;
+      const intervalWinRateWithBE = intervalTrades.length > 0 
+        ? ((intervalWins + intervalWinsWithBE) / intervalTrades.length) * 100 
+        : 0;
       intervalStats[interval.label] = {
         wins: intervalWins,
         losses: intervalLosses,
-        winRate: intervalWinRate
+        winRate: intervalWinRate,
+        winRateWithBE: intervalWinRateWithBE,
+        beWins: intervalWinsWithBE,
+        beLosses: intervalLossesWithBE,
       };
     });
 
