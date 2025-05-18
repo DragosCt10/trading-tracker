@@ -26,7 +26,6 @@ const LIQUIDITY_OPTIONS = ['Liq. Majora', 'Liq. Minora', 'Liq. Locala', 'HOD', '
 const MSS_OPTIONS = ['Normal', 'Agresiv'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
-const QUARTER_OPTIONS = ['Q1', 'Q2', 'Q3', 'Q4'];
 
 export default function NewTradeForm() {
   const router = useRouter();
@@ -35,6 +34,14 @@ export default function NewTradeForm() {
   const [calculatedProfit, setCalculatedProfit] = useState<number>(0);
   const { mode, activeAccount, isLoading: modeLoading } = useTradingMode();
   const { data: userDetails, isLoading } = useUserDetails();
+
+  const getQuarter = (dateStr: string): string => {
+    const month = new Date(dateStr).getMonth() + 1;
+    if (month >= 1 && month <= 3) return 'Q1';
+    if (month >= 4 && month <= 6) return 'Q2';
+    if (month >= 7 && month <= 9) return 'Q3';
+    return 'Q4';
+  };
 
   const NOTES_TEMPLATE = `📈 Setup:
 (Descrie setup-ul tehnic sau fundamental – de ce ai intrat în trade? Ce pattern, indicator sau logică ai urmat?)
@@ -106,6 +113,19 @@ export default function NewTradeForm() {
     setCalculatedProfit(profit);
     setTrade(prev => ({ ...prev, calculated_profit: profit }));
   }, [trade.risk_per_trade, trade.trade_outcome, trade.risk_reward_ratio, activeAccount?.account_balance]);
+
+  useEffect(() => {
+    const dateStr = trade.trade_date;
+    const quarter = getQuarter(dateStr);
+    const dayOfWeek = new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' });
+
+    setTrade(prev => ({
+      ...prev,
+      day_of_week: dayOfWeek,
+      quarter,
+    }));
+  }, []);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -257,11 +277,13 @@ export default function NewTradeForm() {
               type="date"
               value={trade.trade_date}
               onChange={(e) => {
-                const date = new Date(e.target.value);
+                const dateStr = e.target.value;
+                const date = new Date(dateStr);
                 setTrade({
                   ...trade,
-                  trade_date: e.target.value,
-                  day_of_week: date.toLocaleDateString('en-US', { weekday: 'long' })
+                  trade_date: dateStr,
+                  day_of_week: date.toLocaleDateString('en-US', { weekday: 'long' }),
+                  quarter: getQuarter(dateStr),
                 });
               }}
               className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
@@ -283,25 +305,6 @@ export default function NewTradeForm() {
               {DAY_OF_WEEK_OPTIONS.map((day) => (
                 <option key={day} value={day}>
                   {day}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Quarter</label>
-          <div className="relative w-full">
-            <select
-              value={trade.quarter}
-              onChange={(e) => setTrade({ ...trade, quarter: e.target.value })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            >
-              <option value="">Select Quarter</option>
-              {QUARTER_OPTIONS.map((quarter) => (
-                <option key={quarter} value={quarter}>
-                  {quarter}
                 </option>
               ))}
             </select>
