@@ -613,7 +613,7 @@ export function useDashboardData({
     const nonBETrades = trades.filter(t => !t.break_even);
     const winRate = nonBETrades.length > 0 ? (nonBETrades.filter((t: Trade) => t.trade_outcome === 'Win').length / nonBETrades.length) * 100 : 0;
     const wins = nonBETrades.filter(t => t.trade_outcome === 'Win').length;
-    const winRateWithBE = trades.length > 0 ? (wins / trades.length) * 100 : 0;
+    const winRateWithBE = trades.length > 0 ? (trades.filter(t => t.trade_outcome === 'Win').length / trades.length) * 100 : 0;
     const totalProfit = nonBETrades.reduce((sum: number, trade: Trade) => {
       const riskPerTrade = trade.risk_per_trade || 0.5;
       const riskAmount = (activeAccount?.account_balance || 0) * (riskPerTrade / 100);
@@ -673,7 +673,8 @@ export function useDashboardData({
 
         const beWins = trades.filter(t => t.trade_outcome === 'Win' && t.break_even).length;
         const beLosses = trades.filter(t => t.trade_outcome === 'Lose' && t.break_even).length;
-        const winRateWithBE = total > 0 ? Math.round((wins + beWins) / total * 100) : 0;
+        const nonBETrades = trades.filter(t => !t.break_even);
+        const winRateWithBE = total > 0 ? Math.round((wins / total) * 100) : 0;
 
         return {
           grade,
@@ -805,11 +806,14 @@ export function useDashboardData({
         const tradeDayIndex = (tradeDate.getDay() + 6) % 7;
         return tradeDayIndex === daysOfWeek.indexOf(day);
       });
-      // Add BE and winRateWithBE fields
+      
       const wins = dayTrades.filter((t: Trade) => t.trade_outcome === 'Win').length;
       const beWins = dayTrades.filter((t: Trade) => t.trade_outcome === 'Win' && t.break_even).length;
       const beLosses = dayTrades.filter((t: Trade) => t.trade_outcome === 'Lose' && t.break_even).length;
+      const nonBETrades = dayTrades.filter(t => !t.break_even);
+      const winRate = nonBETrades.length > 0 ? (nonBETrades.filter(t => t.trade_outcome === 'Win').length / nonBETrades.length) * 100 : 0;
       const winRateWithBE = dayTrades.length > 0 ? (wins / dayTrades.length) * 100 : 0;
+
       return {
         ...processTradeGroup(day, dayTrades),
         beWins,
