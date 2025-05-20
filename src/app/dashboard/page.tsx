@@ -829,11 +829,11 @@ export default function Dashboard() {
 
               try {
                 setOpenAnalyzeModal(true);
-                setAnalysisResults(''); // Reset analysis results
-                const analysis = await analyzeTradingData(analysisData);
-                setAnalysisResults(analysis);
+                setAnalysisResults(''); // Reset
+                await analyzeTradingData(analysisData, (partial) => {
+                  setAnalysisResults(partial);
+                });
               } catch (error) {
-                console.error('Error getting analysis:', error);
                 setAnalysisResults('Error generating analysis. Please try again.');
               }
             }}
