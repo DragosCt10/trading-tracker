@@ -564,30 +564,31 @@ export function useDashboardData({
       String(trade.local_high_low) === 'Nelichidat' || String(trade.local_high_low) === 'false' || String(trade.local_high_low) === '0'
     );
 
-    // Exclude BE trades for win rate calculation
-    const lichidatNonBETrades = lichidatTrades.filter(t => !t.break_even);
-    const lichidatNonBEWins = lichidatNonBETrades.filter(t => t.trade_outcome === 'Win').length;
-    const lichidatWinRate = lichidatNonBETrades.length > 0 ? (lichidatNonBEWins / lichidatNonBETrades.length) * 100 : 0;
-
-    const nelichidatNonBETrades = nelichidatTrades.filter(t => !t.break_even);
-    const nelichidatNonBEWins = nelichidatNonBETrades.filter(t => t.trade_outcome === 'Win').length;
-    const nelichidatWinRate = nelichidatNonBETrades.length > 0 ? (nelichidatNonBEWins / nelichidatNonBETrades.length) * 100 : 0;
-
+    // Calculate BE stats for lichidat trades
     const lichidatWins = lichidatTrades.filter((t: Trade) => t.trade_outcome === 'Win').length;
     const lichidatLosses = lichidatTrades.filter((t: Trade) => t.trade_outcome === 'Lose').length;
-
-    const nelichidatWins = nelichidatTrades.filter((t: Trade) => t.trade_outcome === 'Win').length;
-    const nelichidatLosses = nelichidatTrades.filter((t: Trade) => t.trade_outcome === 'Lose').length;
-
-    // Calculate BE stats for lichidat trades
     const lichidatWinsWithBE = lichidatTrades.filter((t: Trade) => t.trade_outcome === 'Win' && t.break_even).length;
     const lichidatLossesWithBE = lichidatTrades.filter((t: Trade) => t.trade_outcome === 'Lose' && t.break_even).length;
-    const lichidatWinRateWithBE = lichidatTrades.length > 0 ? ((lichidatWins + lichidatWinsWithBE) / lichidatTrades.length) * 100 : 0;
+
+    // Calculate win rates for lichidat trades
+    const lichidatNonBETrades = lichidatTrades.filter(t => !t.break_even);
+    const lichidatNonBEWins = lichidatNonBETrades.filter(t => t.trade_outcome === 'Win').length;
+    const lichidatNonBELosses = lichidatNonBETrades.filter(t => t.trade_outcome === 'Lose').length;
+    const lichidatWinRate = lichidatNonBETrades.length > 0 ? (lichidatNonBEWins / lichidatNonBETrades.length) * 100 : 0;
+    const lichidatWinRateWithBE = lichidatTrades.length > 0 ? (lichidatWins / lichidatTrades.length) * 100 : 0;
 
     // Calculate BE stats for nelichidat trades
+    const nelichidatWins = nelichidatTrades.filter((t: Trade) => t.trade_outcome === 'Win').length;
+    const nelichidatLosses = nelichidatTrades.filter((t: Trade) => t.trade_outcome === 'Lose').length;
     const nelichidatWinsWithBE = nelichidatTrades.filter((t: Trade) => t.trade_outcome === 'Win' && t.break_even).length;
     const nelichidatLossesWithBE = nelichidatTrades.filter((t: Trade) => t.trade_outcome === 'Lose' && t.break_even).length;
-    const nelichidatWinRateWithBE = nelichidatTrades.length > 0 ? ((nelichidatWins + nelichidatWinsWithBE) / nelichidatTrades.length) * 100 : 0;
+
+    // Calculate win rates for nelichidat trades
+    const nelichidatNonBETrades = nelichidatTrades.filter(t => !t.break_even);
+    const nelichidatNonBEWins = nelichidatNonBETrades.filter(t => t.trade_outcome === 'Win').length;
+    const nelichidatNonBELosses = nelichidatNonBETrades.filter(t => t.trade_outcome === 'Lose').length;
+    const nelichidatWinRate = nelichidatNonBETrades.length > 0 ? (nelichidatNonBEWins / nelichidatNonBETrades.length) * 100 : 0;
+    const nelichidatWinRateWithBE = nelichidatTrades.length > 0 ? (nelichidatWins / nelichidatTrades.length) * 100 : 0;
 
     setLocalHLStats({
       lichidat: {
