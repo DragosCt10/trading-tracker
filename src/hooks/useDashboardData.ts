@@ -123,6 +123,8 @@ interface Stats {
   evaluationStats: EvaluationStats[];
   winRateWithBE: number;
   profitFactor: number;
+  consistencyScore: number;
+  consistencyScoreWithBE: number;
 }
 
 interface EvaluationStats {
@@ -280,6 +282,8 @@ export function useDashboardData({
     evaluationStats: [],
     winRateWithBE: 0,
     profitFactor: 0,
+    consistencyScore: 0,
+    consistencyScoreWithBE: 0,
   });
   const [monthlyStats, setMonthlyStats] = useState<{
     bestMonth: MonthlyStatsWithMonth | null;
@@ -438,6 +442,8 @@ export function useDashboardData({
         evaluationStats: [],
         winRateWithBE: 0,
         profitFactor: 0,
+        consistencyScore: 0,
+        consistencyScoreWithBE: 0,
       };
       setStats(prev => {
         return JSON.stringify(prev) === JSON.stringify(emptyStats) ? prev : emptyStats;
@@ -484,6 +490,8 @@ export function useDashboardData({
         evaluationStats: [],
         winRateWithBE: 0,
         profitFactor: 0,
+        consistencyScore: 0,
+        consistencyScoreWithBE: 0,
       });
       return;
     }
@@ -680,6 +688,44 @@ export function useDashboardData({
 
     const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0;
 
+        // ─── non-BE consistency ───
+    const dailyProfitMap: Record<string, number> = {};
+    nonBETrades.forEach(trade => {
+      const date = trade.trade_date.slice(0, 10);
+      const riskAmt = (activeAccount?.account_balance || 0) * ((trade.risk_per_trade || 0.5) / 100);
+      const pnl = trade.trade_outcome === 'Win'
+        ? riskAmt * (trade.risk_reward_ratio || 2)
+        : -riskAmt;
+      dailyProfitMap[date] = (dailyProfitMap[date] || 0) + pnl;
+    });
+    const totalDays = Object.keys(dailyProfitMap).length;
+    const positiveDays = Object.values(dailyProfitMap).filter(p => p > 0).length;
+    const consistencyScore = totalDays > 0
+      ? (positiveDays / totalDays) * 100
+      : 0;
+
+    // ─── with-BE consistency ───
+    const dailyProfitMapWithBE: Record<string, number> = {};
+    trades.forEach(trade => {
+      const date = trade.trade_date.slice(0, 10);
+      let pnl: number;
+      if (trade.break_even) {
+        pnl = 0;
+      } else {
+        const riskAmt = (activeAccount?.account_balance || 0) * ((trade.risk_per_trade || 0.5) / 100);
+        pnl = trade.trade_outcome === 'Win'
+          ? riskAmt * (trade.risk_reward_ratio || 2)
+          : -riskAmt;
+      }
+      dailyProfitMapWithBE[date] = (dailyProfitMapWithBE[date] || 0) + pnl;
+    });
+    const totalDaysBE = Object.keys(dailyProfitMapWithBE).length;
+    const positiveDaysBE = Object.values(dailyProfitMapWithBE).filter(p => p > 0).length;
+    const consistencyScoreWithBE = totalDaysBE > 0
+      ? (positiveDaysBE / totalDaysBE) * 100
+      : 0;
+
+
     setStats({
       totalTrades,
       totalWins,
@@ -693,6 +739,8 @@ export function useDashboardData({
       evaluationStats,
       winRateWithBE,
       profitFactor,
+      consistencyScore,
+      consistencyScoreWithBE,
     });
 
 
