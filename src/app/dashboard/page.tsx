@@ -828,6 +828,40 @@ export default function Dashboard() {
           </h3>
            <p className={`text-2xl font-bold ${stats.averagePnLPercentage > 0 ? 'text-green-600' : stats.averagePnLPercentage < 0 ? 'text-red-600' : 'text-stone-600'}`}>{stats.averagePnLPercentage.toFixed(2)}%</p>
         </div>
+
+        {/* Profit Factor Stat Card */}
+        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
+          <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
+            Profit Factor
+            <span className="ml-1 cursor-help group relative">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-72 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="text-xs sm:text-sm text-stone-700 space-y-1 sm:space-y-2">
+                <div className="font-semibold text-stone-900 mt-4 mb-1 sm:mb-2">Profit Factor Interpretation</div>
+
+                <div className={`${stats.profitFactor < 1 ? 'bg-red-50 border-red-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                  <span className="font-medium">🚫 &lt; 1.0</span> — Losing strategy. Losses exceed profits.
+                </div>
+                <div className={`${stats.profitFactor >= 1 && stats.profitFactor < 1.5 ? 'bg-yellow-50 border-yellow-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                  <span className="font-medium">⚠️ 1.0 – 1.49</span> — Weak or marginal profitability. Use caution.
+                </div>
+                <div className={`${stats.profitFactor >= 1.5 && stats.profitFactor < 2 ? 'bg-green-50 border-green-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                  <span className="font-medium">✅ 1.5 – 1.99</span> — Good performance. Solid, sustainable strategy.
+                </div>
+                <div className={`${stats.profitFactor >= 2 && stats.profitFactor < 3 ? 'bg-blue-50 border-blue-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                  <span className="font-medium">🔷 2.0 – 2.99</span> — Very good. High reward vs. risk.
+                </div>
+                <div className={`${stats.profitFactor >= 3 ? 'bg-purple-50 border-purple-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                  <span className="font-medium">💎 3.0+</span> — Excellent. Possibly overfitted — verify robustness.
+                </div>
+              </div>
+              </div>
+            </span>
+          </h3>
+           <p className={`text-2xl font-bold ${stats.profitFactor > 0 ? 'text-green-600' : stats.profitFactor < 0 ? 'text-red-600' : 'text-stone-600'}`}>{stats.profitFactor.toFixed(2)}</p>
+        </div>
       </div>
 
       {/* Calendar View */}
