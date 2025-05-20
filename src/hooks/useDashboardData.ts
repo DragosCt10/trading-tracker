@@ -122,6 +122,7 @@ interface Stats {
   averagePnLPercentage: number;
   evaluationStats: EvaluationStats[];
   winRateWithBE: number;
+  profitFactor: number;
 }
 
 interface EvaluationStats {
@@ -278,6 +279,7 @@ export function useDashboardData({
     averagePnLPercentage: 0,
     evaluationStats: [],
     winRateWithBE: 0,
+    profitFactor: 0,
   });
   const [monthlyStats, setMonthlyStats] = useState<{
     bestMonth: MonthlyStatsWithMonth | null;
@@ -435,6 +437,7 @@ export function useDashboardData({
         averagePnLPercentage: 0,
         evaluationStats: [],
         winRateWithBE: 0,
+        profitFactor: 0,
       };
       setStats(prev => {
         return JSON.stringify(prev) === JSON.stringify(emptyStats) ? prev : emptyStats;
@@ -480,6 +483,7 @@ export function useDashboardData({
         averagePnLPercentage: 0,
         evaluationStats: [],
         winRateWithBE: 0,
+        profitFactor: 0,
       });
       return;
     }
@@ -656,6 +660,26 @@ export function useDashboardData({
       })
       .sort((a, b) => GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade));
 
+
+    const grossProfit = nonBETrades.reduce((sum, trade) => {
+      const riskPerTrade = trade.risk_per_trade || 0.5;
+      const riskAmount = (activeAccount?.account_balance || 0) * (riskPerTrade / 100);
+      const rr = trade.risk_reward_ratio || 2;
+      return trade.trade_outcome === 'Win'
+        ? sum + (riskAmount * rr)
+        : sum;
+    }, 0);
+
+    const grossLoss = nonBETrades.reduce((sum, trade) => {
+      const riskPerTrade = trade.risk_per_trade || 0.5;
+      const riskAmount = (activeAccount?.account_balance || 0) * (riskPerTrade / 100);
+      return trade.trade_outcome === 'Lose'
+        ? sum + riskAmount
+        : sum;
+    }, 0);
+
+    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0;
+
     setStats({
       totalTrades,
       totalWins,
@@ -668,7 +692,9 @@ export function useDashboardData({
       averagePnLPercentage,
       evaluationStats,
       winRateWithBE,
+      profitFactor,
     });
+
 
     // Calculate other stats
     const setupGroups = groupTradesByProperty(trades as Trade[], 'setup_type');
