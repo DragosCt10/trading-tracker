@@ -19,6 +19,9 @@ interface MonthlyStats {
   losses: number;
   winRate: number;
   profit: number;
+  beWins: number;
+  beLosses: number;
+  winRateWithBE: number;
 }
 interface SetupStats {
   setup: string;
@@ -851,14 +854,28 @@ export function useDashboardData({
       const month = tradeDate.toLocaleString('default', { month: 'long' });
       
       if (!acc[month]) {
-        acc[month] = { wins: 0, losses: 0, winRate: 0, profit: 0 };
+        acc[month] = { 
+          wins: 0, 
+          losses: 0, 
+          winRate: 0, 
+          profit: 0,
+          beWins: 0,
+          beLosses: 0,
+          winRateWithBE: 0
+        };
       }
       
       // Count all trades (including BE) for total trades
       if (trade.trade_outcome === 'Win') {
         acc[month].wins++;
+        if (trade.break_even) {
+          acc[month].beWins++;
+        }
       } else if (trade.trade_outcome === 'Lose') {
         acc[month].losses++;
+        if (trade.break_even) {
+          acc[month].beLosses++;
+        }
       }
       
       // Calculate profit only from non-BE trades
@@ -874,12 +891,22 @@ export function useDashboardData({
         }
       }
       
-      // Calculate win rate only from non-BE trades
-      const nonBETrades = yearTrades.filter(t => !t.break_even && new Date(t.trade_date).toLocaleString('default', { month: 'long' }) === month);
+      // Calculate win rates
+      const monthTrades = yearTrades.filter(t => 
+        new Date(t.trade_date).toLocaleString('default', { month: 'long' }) === month
+      );
+      
+      // Regular win rate (excluding BE trades)
+      const nonBETrades = monthTrades.filter(t => !t.break_even);
       const nonBEWins = nonBETrades.filter(t => t.trade_outcome === 'Win').length;
       const nonBELosses = nonBETrades.filter(t => t.trade_outcome === 'Lose').length;
       const totalNonBE = nonBEWins + nonBELosses;
       acc[month].winRate = totalNonBE > 0 ? (nonBEWins / totalNonBE) * 100 : 0;
+      
+      // Win rate with BE trades
+      const totalTrades = monthTrades.length;
+      const totalWins = monthTrades.filter(t => t.trade_outcome === 'Win').length;
+      acc[month].winRateWithBE = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
       
       return acc;
     }, {});
