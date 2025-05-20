@@ -862,6 +862,40 @@ export default function Dashboard() {
           </h3>
            <p className={`text-2xl font-bold ${stats.profitFactor > 0 ? 'text-green-600' : stats.profitFactor < 0 ? 'text-red-600' : 'text-stone-600'}`}>{stats.profitFactor.toFixed(2)}</p>
         </div>
+
+        {/* Consistency Score Stat Card */}
+        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
+          <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
+            Consistency Score
+            <span className="ml-1 cursor-help group relative">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-72 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="text-xs sm:text-sm text-stone-700 space-y-1 sm:space-y-2">
+                  <div className="font-semibold text-stone-900 mb-1 sm:mb-2">Consistency Score Interpretation</div>
+                  
+                  <div className={`${stats.consistencyScore < 40 ? 'bg-red-50 border-red-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">🚫 0% – 39%</span> — Very inconsistent. Strategy is unstable or random.
+                  </div>
+                  <div className={`${stats.consistencyScore >= 40 && stats.consistencyScore < 60 ? 'bg-orange-50 border-orange-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">❗ 40% – 59%</span> — Inconsistent. Profits are unreliable across time.
+                  </div>
+                  <div className={`${stats.consistencyScore >= 60 && stats.consistencyScore < 75 ? 'bg-yellow-50 border-yellow-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">⚠️ 60% – 74%</span> — Moderately consistent. Needs improvement.
+                  </div>
+                  <div className={`${stats.consistencyScore >= 75 && stats.consistencyScore < 90 ? 'bg-green-50 border-green-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">✅ 75% – 89%</span> — Very consistent. Reliable performance.
+                  </div>
+                  <div className={`${stats.consistencyScore >= 90 ? 'bg-blue-50 border-blue-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">💎 90% – 100%</span> — Extremely consistent. Top-tier strategy.
+                  </div>
+                </div>
+              </div>
+            </span>
+          </h3>
+          <p className={`text-2xl font-bold ${stats.consistencyScore > 0 ? 'text-green-600' : stats.consistencyScore < 0 ? 'text-red-600' : 'text-stone-600'}`}>{stats.consistencyScore.toFixed(2) } <span className="text-stone-500 text-sm">({stats.consistencyScoreWithBE.toFixed(2)} with BE)</span></p>
+        </div>
       </div>
 
       {/* Calendar View */}
