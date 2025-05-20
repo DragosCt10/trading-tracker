@@ -538,12 +538,19 @@ export default function Dashboard() {
                   tooltip: {
                     callbacks: {
                       label: (context) => {
-                        const dataset = context.dataset;
-                        const value = context.parsed.x;
                         const month = context.label;
                         const monthData = monthlyStatsAllTrades[month];
-                        const winRate = monthData.winRate.toFixed(1);
-                        return `${dataset.label}: ${value}`;
+                        
+                        if (context.dataset.label === 'Wins') {
+                          return `Wins: ${context.parsed.x} (${monthData.beWins} BE)`;
+                        }
+                        if (context.dataset.label === 'Losses') {
+                          return `Losses: ${context.parsed.x} (${monthData.beLosses} BE)`;
+                        }
+                        if (context.dataset.label === 'Win Rate') {
+                          return `Win Rate: ${context.parsed.x.toFixed(2)}% (${monthData.winRateWithBE.toFixed(2)}% with BE)`;
+                        }
+                        return `${context.dataset.label}: ${context.parsed.x}`;
                       }
                     }
                   }
