@@ -125,6 +125,7 @@ interface Stats {
   profitFactor: number;
   consistencyScore: number;
   consistencyScoreWithBE: number;
+  sharpeWithBE: number;
 }
 
 interface EvaluationStats {
@@ -155,6 +156,18 @@ function groupTradesByProperty(trades: Trade[], property: keyof Trade, defaultVa
     return acc;
   }, {});
 }
+
+function calcSharpe(returns: number[]): number {
+  const n = returns.length;
+  if (n < 2) return 0;
+  const mean = returns.reduce((sum, r) => sum + r, 0) / n;
+  const variance = returns
+    .map(r => (r - mean) ** 2)
+    .reduce((sum, sq) => sum + sq, 0)
+    / (n - 1);
+  return variance > 0 ? mean / Math.sqrt(variance) : 0;
+}
+
 
 function processTradeGroup(label: string, trades: Trade[]) {
   // Calculate wins and losses including BE trades
@@ -284,6 +297,7 @@ export function useDashboardData({
     profitFactor: 0,
     consistencyScore: 0,
     consistencyScoreWithBE: 0,
+     sharpeWithBE: 0,
   });
   const [monthlyStats, setMonthlyStats] = useState<{
     bestMonth: MonthlyStatsWithMonth | null;
@@ -444,6 +458,7 @@ export function useDashboardData({
         profitFactor: 0,
         consistencyScore: 0,
         consistencyScoreWithBE: 0,
+        sharpeWithBE: 0,
       };
       setStats(prev => {
         return JSON.stringify(prev) === JSON.stringify(emptyStats) ? prev : emptyStats;
@@ -492,6 +507,7 @@ export function useDashboardData({
         profitFactor: 0,
         consistencyScore: 0,
         consistencyScoreWithBE: 0,
+        sharpeWithBE: 0,
       });
       return;
     }
@@ -726,6 +742,21 @@ export function useDashboardData({
       : 0;
 
 
+    // ─── Sharpe (with BE trades) ───
+    // 1) Map each trade to its PnL (wins positive, losses negative, BE zero):
+    const returnsWithBE = trades.map(trade => {
+      const riskAmt = (activeAccount?.account_balance ?? 0)
+        * ((trade.risk_per_trade ?? 0.5) / 100);
+      if (trade.trade_outcome === 'Win')
+        return riskAmt * (trade.risk_reward_ratio ?? 2);
+      if (trade.trade_outcome === 'Lose')
+        return -riskAmt;
+      return 0; // break-even
+    });
+
+    const sharpeWithBE = calcSharpe(returnsWithBE);
+
+
     setStats({
       totalTrades,
       totalWins,
@@ -741,6 +772,7 @@ export function useDashboardData({
       profitFactor,
       consistencyScore,
       consistencyScoreWithBE,
+      sharpeWithBE,
     });
 
 
