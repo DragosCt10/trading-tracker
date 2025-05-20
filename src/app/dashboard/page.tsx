@@ -896,6 +896,40 @@ export default function Dashboard() {
           </h3>
           <p className={`text-2xl font-bold ${stats.consistencyScore > 0 ? 'text-green-600' : stats.consistencyScore < 0 ? 'text-red-600' : 'text-stone-600'}`}>{stats.consistencyScore.toFixed(2) } <span className="text-stone-500 text-sm">({stats.consistencyScoreWithBE.toFixed(2)} with BE)</span></p>
         </div>
+
+        {/* Sharpe Ratio Stat Card */}
+        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
+          <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
+            Sharpe Ratio
+            <span className="ml-1 cursor-help group relative">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-72 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="text-xs sm:text-sm text-stone-700 space-y-1 sm:space-y-2">
+                  <div className="font-semibold text-stone-900 mb-1 sm:mb-2">Sharpe Ratio Interpretation</div>
+
+                  <div className={`${stats.sharpeWithBE < 0.2 ? 'bg-red-50 border-red-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">🚫 &lt; 0.2</span> — Very weak. High volatility relative to returns. Consider reviewing trade consistency or overtrading.
+                  </div>
+                  <div className={`${stats.sharpeWithBE >= 0.2 && stats.sharpeWithBE < 0.5 ? 'bg-orange-50 border-orange-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">❗ 0.2 – 0.49</span> — Acceptable for asymmetric strategies (like RR=2). Profit exists, but results are uneven.
+                  </div>
+                  <div className={`${stats.sharpeWithBE >= 0.5 && stats.sharpeWithBE < 1 ? 'bg-yellow-50 border-yellow-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">⚠️ 0.5 – 0.99</span> — Solid performance. Profits outweigh risk, even if trades are not consecutive winners.
+                  </div>
+                  <div className={`${stats.sharpeWithBE >= 1 && stats.sharpeWithBE < 2 ? 'bg-green-50 border-green-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">✅ 1.0 – 1.99</span> — Very strong risk-adjusted return. Consistent growth and low volatility.
+                  </div>
+                  <div className={`${stats.sharpeWithBE >= 2 ? 'bg-blue-50 border-blue-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">💎 2.0+</span> — Exceptional. Usually seen in highly optimized or low-volatility systems.
+                  </div>
+                </div>
+              </div>
+            </span>
+          </h3>
+          <p className={`text-2xl font-bold ${stats.sharpeWithBE > 0 ? 'text-green-600' : stats.sharpeWithBE < 0 ? 'text-red-600' : 'text-stone-600'}`}>{stats.sharpeWithBE.toFixed(2) } <span className="text-stone-500 text-xs">incl. BE</span></p>
+        </div>
       </div>
 
       {/* Calendar View */}
