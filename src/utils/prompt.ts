@@ -54,7 +54,7 @@ Answer with bullet points and concise, actionable advice.`;
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer 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`
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
         model: "o4-mini-2025-04-16",
