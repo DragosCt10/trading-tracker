@@ -17,7 +17,10 @@ export interface TradingAnalysisRequest {
   sharpeWithBE: number;
 }
 
-export async function analyzeTradingData(data: TradingAnalysisRequest) {
+export async function analyzeTradingData(
+  data: TradingAnalysisRequest,
+  onStream?: (partial: string) => void
+) {
   const prompt = `Please analyze my day trading performance over the period **${data.startDate}** to **${data.endDate}**, on an account balance of **${data.accountBalance}**.  \
 Here are my aggregate statistics:  
 • Total trades: ${data.totalTrades}  
@@ -50,11 +53,10 @@ Here are my aggregate statistics:
 Answer with bullet points and concise, actionable advice.`;
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('/api/analyze-trading', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
         model: "o4-mini-2025-04-16",
@@ -103,11 +105,7 @@ Answer with bullet points and concise, actionable advice.`;
             const content = parsed.choices[0]?.delta?.content;
             if (content) {
               fullContent += content;
-              // Emit the current content for streaming
-              if (typeof window !== 'undefined') {
-                const event = new CustomEvent('analysisUpdate', { detail: fullContent });
-                window.dispatchEvent(event);
-              }
+              if (onStream) onStream(fullContent);
             }
           } catch (e) {
             console.error('Error parsing streaming response:', e);
