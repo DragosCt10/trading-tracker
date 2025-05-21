@@ -25,7 +25,6 @@ const SETUP_OPTIONS = [
 const LIQUIDITY_OPTIONS = ['Liq. Majora', 'Liq. Minora', 'Liq. Locala', 'HOD', 'LOD'];
 const MSS_OPTIONS = ['Normal', 'Agresiv'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
-// const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
 const WEEKDAY_MAP: Record<string,string> = {
   Monday:    'Luni',
   Tuesday:   'Marti',
@@ -35,7 +34,6 @@ const WEEKDAY_MAP: Record<string,string> = {
   Saturday:  'Sambata',
   Sunday:    'Duminica',
 };
-
 
 export default function NewTradeForm() {
   const router = useRouter();
@@ -73,7 +71,7 @@ export default function NewTradeForm() {
     liquidity_taken: '',
     trade_time: '',
     trade_date: new Date().toISOString().split('T')[0],
-    day_of_week: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+    day_of_week: WEEKDAY_MAP[new Date().toLocaleDateString('en-US', { weekday: 'long' })],
     market: '',
     setup_type: '',
     liquidity: '',
@@ -96,19 +94,38 @@ export default function NewTradeForm() {
     evaluation: '',
   };
 
-  const [trade, setTrade] = useState<Trade>(initialTradeState);
+  const [trade, setTrade] = useState<Trade>(() => {
+    // Initialize state from localStorage if available
+    if (typeof window !== 'undefined') {
+      const savedTrade = localStorage.getItem(`new-trade-draft-${mode}`);
+      if (savedTrade) {
+        try {
+          const parsedTrade = JSON.parse(savedTrade);
+          // Ensure all required fields are present
+          return {
+            ...initialTradeState,
+            ...parsedTrade,
+            // Ensure these fields are always present with default values if missing
+            trade_date: parsedTrade.trade_date || new Date().toISOString().split('T')[0],
+            day_of_week: parsedTrade.day_of_week || WEEKDAY_MAP[new Date().toLocaleDateString('en-US', { weekday: 'long' })],
+            quarter: parsedTrade.quarter || getQuarter(parsedTrade.trade_date || new Date().toISOString().split('T')[0]),
+          };
+        } catch (e) {
+          console.error('Error parsing saved trade:', e);
+          return initialTradeState;
+        }
+      }
+    }
+    return initialTradeState;
+  });
 
   // Calculate profit based on risk percentage and account balance
   const calculateProfit = (riskPerTrade: number, outcome: 'Win' | 'Lose'): number => {
     if (!activeAccount?.account_balance) return 0;
     
-    // Calculate risk amount based on account balance and risk percentage
     const riskAmount = (riskPerTrade / 100) * activeAccount.account_balance;
-    
-    // Get risk:reward ratio from trade or default to 2
     const riskRewardRatio = trade.risk_reward_ratio || 2;
     
-    // Calculate profit based on outcome
     if (outcome === 'Win') {
       return riskAmount * riskRewardRatio;
     } else if (outcome === 'Lose') {
@@ -127,27 +144,32 @@ export default function NewTradeForm() {
   useEffect(() => {
     const dateStr = trade.trade_date;
     const dt = new Date(dateStr);
-
-    // English weekday, e.g. "Monday"
     const engDay = dt.toLocaleDateString('en-US', { weekday: 'long' });
-    // Map to Romanian (fallback to English if missing)
-    const roDay  = WEEKDAY_MAP[engDay] ?? engDay;
+    const roDay = WEEKDAY_MAP[engDay] ?? engDay;
 
     setTrade(prev => ({
       ...prev,
       day_of_week: roDay,
-      quarter:     getQuarter(dateStr),
+      quarter: getQuarter(dateStr),
     }));
   }, [trade.trade_date]);
 
-
+  // Save trade data to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(`new-trade-draft-${mode}`, JSON.stringify(trade));
+      } catch (e) {
+        console.error('Error saving trade to localStorage:', e);
+      }
+    }
+  }, [trade, mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
 
-    // Validate required selects
     if (!trade.market || !trade.setup_type || !trade.liquidity || !trade.mss) {
       setError('Please fill in all required fields');
       setIsSubmitting(false);
@@ -164,7 +186,6 @@ export default function NewTradeForm() {
       const supabase = createClient();
       const tableName = `${mode}_trades`;
 
-      // Calculate P&L percentage
       const pnlPercentage = activeAccount.account_balance 
         ? (calculatedProfit / activeAccount.account_balance) * 100 
         : 0;
@@ -182,13 +203,44 @@ export default function NewTradeForm() {
 
       if (error) throw error;
 
+      // Only clear localStorage after successful submission
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(`new-trade-draft-${mode}`);
+      }
+      
       router.push('/trades');
     } catch (err: any) {
       setError(err.message);
-    } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Remove the cleanup effect that was clearing localStorage on unmount
+  useEffect(() => {
+    return () => {
+      // Don't clear localStorage on unmount anymore
+    };
+  }, []);
+
+  // Keep the visibility change handler
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(`new-trade-draft-${mode}`, JSON.stringify(trade));
+          } catch (e) {
+            console.error('Error saving trade to localStorage on visibility change:', e);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [trade, mode]);
 
   if (modeLoading) {
     return (
