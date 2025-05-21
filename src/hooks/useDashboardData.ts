@@ -125,10 +125,6 @@ interface Stats {
   averagePnLPercentage: number;
   evaluationStats: EvaluationStats[];
   winRateWithBE: number;
-  profitFactor: number;
-  consistencyScore: number;
-  consistencyScoreWithBE: number;
-  sharpeWithBE: number;
 }
 
 interface EvaluationStats {
@@ -262,6 +258,82 @@ function normalizeTimeToHHMM(time: string): string {
   return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
 }
 
+// Utility to calculate macro stats for all trades
+function getMacroStats(trades: Trade[], accountBalance: number) {
+  // For profit and winRate, exclude BE trades
+  const nonBETrades = trades.filter(t => !t.break_even);
+
+  // Profit Factor
+  const grossProfit = nonBETrades.reduce((sum, trade) => {
+    const riskPerTrade = trade.risk_per_trade || 0.5;
+    const riskAmount = accountBalance * (riskPerTrade / 100);
+    const rr = trade.risk_reward_ratio || 2;
+    return trade.trade_outcome === 'Win'
+      ? sum + (riskAmount * rr)
+      : sum;
+  }, 0);
+  const grossLoss = nonBETrades.reduce((sum, trade) => {
+    const riskPerTrade = trade.risk_per_trade || 0.5;
+    const riskAmount = accountBalance * (riskPerTrade / 100);
+    return trade.trade_outcome === 'Lose'
+      ? sum + riskAmount
+      : sum;
+  }, 0);
+  const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0;
+
+  // Consistency Score (non-BE)
+  const dailyProfitMap: Record<string, number> = {};
+  nonBETrades.forEach(trade => {
+    const date = trade.trade_date.slice(0, 10);
+    const riskAmt = accountBalance * ((trade.risk_per_trade || 0.5) / 100);
+    const pnl = trade.trade_outcome === 'Win'
+      ? riskAmt * (trade.risk_reward_ratio || 2)
+      : -riskAmt;
+    dailyProfitMap[date] = (dailyProfitMap[date] || 0) + pnl;
+  });
+  const totalDays = Object.keys(dailyProfitMap).length;
+  const positiveDays = Object.values(dailyProfitMap).filter(p => p > 0).length;
+  const consistencyScore = totalDays > 0
+    ? (positiveDays / totalDays) * 100
+    : 0;
+
+  // Consistency Score (with BE)
+  const dailyProfitMapWithBE: Record<string, number> = {};
+  trades.forEach(trade => {
+    const date = trade.trade_date.slice(0, 10);
+    const riskAmt = accountBalance * ((trade.risk_per_trade || 0.5) / 100);
+    const pnl = trade.trade_outcome === 'Win'
+      ? riskAmt * (trade.risk_reward_ratio || 2)
+      : trade.trade_outcome === 'Lose'
+        ? -riskAmt
+        : trade.break_even ? 0 : -riskAmt; // Use break_even flag to determine PNL
+    dailyProfitMapWithBE[date] = (dailyProfitMapWithBE[date] || 0) + pnl;
+  });
+  const totalDaysWithBE = Object.keys(dailyProfitMapWithBE).length;
+  const positiveDaysWithBE = Object.values(dailyProfitMapWithBE).filter(p => p > 0).length;
+  const consistencyScoreWithBE = totalDaysWithBE > 0
+    ? (positiveDaysWithBE / totalDaysWithBE) * 100
+    : 0;
+
+  // Sharpe Ratio (with BE)
+  const returnsWithBE = trades.map(trade => {
+    const riskAmt = accountBalance * ((trade.risk_per_trade ?? 0.5) / 100);
+    if (trade.trade_outcome === 'Win')
+      return riskAmt * (trade.risk_reward_ratio ?? 2);
+    if (trade.trade_outcome === 'Lose')
+      return -riskAmt;
+    return 0; // break-even
+  });
+  const sharpeWithBE = calcSharpe(returnsWithBE);
+
+  return {
+    profitFactor,
+    consistencyScore,
+    consistencyScoreWithBE,
+    sharpeWithBE,
+  };
+}
+
 export function useDashboardData({
   session,
   dateRange,
@@ -296,11 +368,7 @@ export function useDashboardData({
     maxDrawdown: 0,
     averagePnLPercentage: 0,
     evaluationStats: [],
-    winRateWithBE: 0,
-    profitFactor: 0,
-    consistencyScore: 0,
-    consistencyScoreWithBE: 0,
-     sharpeWithBE: 0,
+    winRateWithBE: 0
   });
   const [monthlyStats, setMonthlyStats] = useState<{
     bestMonth: MonthlyStatsWithMonth | null;
@@ -324,6 +392,12 @@ export function useDashboardData({
   const [dayStats, setDayStats] = useState<DayStats[]>([]);
   const [marketStats, setMarketStats] = useState<MarketStats[]>([]);
   const [slSizeStats, setSlSizeStats] = useState<SlSizeStats[]>([]);
+  const [macroStats, setMacroStats] = useState({
+    profitFactor: 0,
+    consistencyScore: 0,
+    consistencyScoreWithBE: 0,
+    sharpeWithBE: 0,
+  });
 
   // Query for all trades in the selected year (only used for monthly stats)
   const { data: allTrades = [], isLoading: allTradesLoading } = useQuery<Trade[]>({
@@ -457,11 +531,7 @@ export function useDashboardData({
         maxDrawdown: 0,
         averagePnLPercentage: 0,
         evaluationStats: [],
-        winRateWithBE: 0,
-        profitFactor: 0,
-        consistencyScore: 0,
-        consistencyScoreWithBE: 0,
-        sharpeWithBE: 0,
+        winRateWithBE: 0
       };
       setStats(prev => {
         return JSON.stringify(prev) === JSON.stringify(emptyStats) ? prev : emptyStats;
@@ -486,12 +556,28 @@ export function useDashboardData({
     }
   }, [filteredTrades]);
 
+
   // Calculate monthly stats when all trades change or selected year changes
   useEffect(() => {
     if (allTrades.length > 0) {
       calculateMonthlyStats(allTrades);
     }
   }, [allTrades, selectedYear]);
+
+  // Calculate macro stats when allTrades change
+  useEffect(() => {
+    if (allTrades.length > 0 && activeAccount?.account_balance) {
+      const newMacroStats = getMacroStats(allTrades, activeAccount.account_balance);
+      if (JSON.stringify(macroStats) !== JSON.stringify(newMacroStats)) {
+        setMacroStats(newMacroStats);
+      }
+    } else {
+      const emptyMacroStats = { profitFactor: 0, consistencyScore: 0, consistencyScoreWithBE: 0, sharpeWithBE: 0 };
+      if (JSON.stringify(macroStats) !== JSON.stringify(emptyMacroStats)) {
+        setMacroStats(emptyMacroStats);
+      }
+    }
+  }, [allTrades, activeAccount?.account_balance]);
 
   const calculateStats = (trades: Trade[]) => {
     if (trades.length === 0) {
@@ -506,11 +592,7 @@ export function useDashboardData({
         maxDrawdown: 0,
         averagePnLPercentage: 0,
         evaluationStats: [],
-        winRateWithBE: 0,
-        profitFactor: 0,
-        consistencyScore: 0,
-        consistencyScoreWithBE: 0,
-        sharpeWithBE: 0,
+        winRateWithBE: 0
       });
       return;
     }
@@ -689,79 +771,6 @@ export function useDashboardData({
       })
       .sort((a, b) => GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade));
 
-
-    const grossProfit = nonBETrades.reduce((sum, trade) => {
-      const riskPerTrade = trade.risk_per_trade || 0.5;
-      const riskAmount = (activeAccount?.account_balance || 0) * (riskPerTrade / 100);
-      const rr = trade.risk_reward_ratio || 2;
-      return trade.trade_outcome === 'Win'
-        ? sum + (riskAmount * rr)
-        : sum;
-    }, 0);
-
-    const grossLoss = nonBETrades.reduce((sum, trade) => {
-      const riskPerTrade = trade.risk_per_trade || 0.5;
-      const riskAmount = (activeAccount?.account_balance || 0) * (riskPerTrade / 100);
-      return trade.trade_outcome === 'Lose'
-        ? sum + riskAmount
-        : sum;
-    }, 0);
-
-    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0;
-
-        // ─── non-BE consistency ───
-    const dailyProfitMap: Record<string, number> = {};
-    nonBETrades.forEach(trade => {
-      const date = trade.trade_date.slice(0, 10);
-      const riskAmt = (activeAccount?.account_balance || 0) * ((trade.risk_per_trade || 0.5) / 100);
-      const pnl = trade.trade_outcome === 'Win'
-        ? riskAmt * (trade.risk_reward_ratio || 2)
-        : -riskAmt;
-      dailyProfitMap[date] = (dailyProfitMap[date] || 0) + pnl;
-    });
-    const totalDays = Object.keys(dailyProfitMap).length;
-    const positiveDays = Object.values(dailyProfitMap).filter(p => p > 0).length;
-    const consistencyScore = totalDays > 0
-      ? (positiveDays / totalDays) * 100
-      : 0;
-
-    // ─── with-BE consistency ───
-    const dailyProfitMapWithBE: Record<string, number> = {};
-    trades.forEach(trade => {
-      const date = trade.trade_date.slice(0, 10);
-      let pnl: number;
-      if (trade.break_even) {
-        pnl = 0;
-      } else {
-        const riskAmt = (activeAccount?.account_balance || 0) * ((trade.risk_per_trade || 0.5) / 100);
-        pnl = trade.trade_outcome === 'Win'
-          ? riskAmt * (trade.risk_reward_ratio || 2)
-          : -riskAmt;
-      }
-      dailyProfitMapWithBE[date] = (dailyProfitMapWithBE[date] || 0) + pnl;
-    });
-    const totalDaysBE = Object.keys(dailyProfitMapWithBE).length;
-    const positiveDaysBE = Object.values(dailyProfitMapWithBE).filter(p => p > 0).length;
-    const consistencyScoreWithBE = totalDaysBE > 0
-      ? (positiveDaysBE / totalDaysBE) * 100
-      : 0;
-
-
-    // ─── Sharpe (with BE trades) ───
-    // 1) Map each trade to its PnL (wins positive, losses negative, BE zero):
-    const returnsWithBE = trades.map(trade => {
-      const riskAmt = (activeAccount?.account_balance ?? 0)
-        * ((trade.risk_per_trade ?? 0.5) / 100);
-      if (trade.trade_outcome === 'Win')
-        return riskAmt * (trade.risk_reward_ratio ?? 2);
-      if (trade.trade_outcome === 'Lose')
-        return -riskAmt;
-      return 0; // break-even
-    });
-
-    const sharpeWithBE = calcSharpe(returnsWithBE);
-
-
     setStats({
       totalTrades,
       totalWins,
@@ -773,11 +782,7 @@ export function useDashboardData({
       maxDrawdown,
       averagePnLPercentage,
       evaluationStats,
-      winRateWithBE,
-      profitFactor,
-      consistencyScore,
-      consistencyScoreWithBE,
-      sharpeWithBE,
+      winRateWithBE
     });
 
 
@@ -975,5 +980,6 @@ export function useDashboardData({
     dayStats,
     marketStats,
     slSizeStats,
+    macroStats,
   };
 }
