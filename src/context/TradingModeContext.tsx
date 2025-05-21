@@ -86,6 +86,7 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
     onSuccess: () => {
       // Invalidate and refetch active account
       queryClient.invalidateQueries({ queryKey: ['activeAccount'] });
+      localStorage.removeItem(`new-trade-draft-${mode}`);
     }
   });
 
@@ -96,6 +97,7 @@ export function TradingModeProvider({ children }: { children: ReactNode }) {
 
   const refreshActiveAccount = async () => {
     await queryClient.invalidateQueries({ queryKey: ['activeAccount'] });
+    localStorage.removeItem(`new-trade-draft-${mode}`);
   };
 
   return (
