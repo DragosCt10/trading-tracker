@@ -193,7 +193,7 @@ export default function Dashboard() {
   };
 
   const { 
-    calendarMonthTrades, calendarTradesLoading, allTradesLoading, stats, macroStats, monthlyStats, monthlyStatsAllTrades, localHLStats, setupStats, liquidityStats, directionStats, reentryStats, breakEvenStats, mssStats, newsStats, dayStats, marketStats, slSizeStats, allTrades, filteredTrades, filteredTradesLoading
+    calendarMonthTrades, calendarTradesLoading, allTradesLoading, stats, macroStats, monthlyStats, monthlyStatsAllTrades, localHLStats, setupStats, liquidityStats, directionStats, reentryStats, breakEvenStats, mssStats, newsStats, dayStats, marketStats, slSizeStats, intervalStats, allTrades, filteredTrades, filteredTradesLoading, evaluationStats
   } = useDashboardData({
     session: userData?.session,
     dateRange,
@@ -970,25 +970,13 @@ export default function Dashboard() {
         <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
           <h3 className="text-sm font-semibold text-stone-500 mb-1">Total Wins</h3>
           <p className="text-2xl font-bold text-green-600">
-            {stats.totalWins}
-            {typeof filteredTrades !== 'undefined' && (
-              (() => {
-                const beWins = filteredTrades.filter(t => t.trade_outcome === 'Win' && t.break_even).length;
-                return beWins > 0 ? ` (${beWins} BE)` : '';
-              })()
-            )}
+            {stats.totalWins} {stats.beWins > 0 ? `(${stats.beWins} BE)` : ''}
           </p>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
           <h3 className="text-sm font-semibold text-stone-500 mb-1">Total Losses</h3>
           <p className="text-2xl font-bold text-red-600">
-            {stats.totalLosses}
-            {typeof filteredTrades !== 'undefined' && (
-              (() => {
-                const beLosses = filteredTrades.filter(t => t.trade_outcome === 'Lose' && t.break_even).length;
-                return beLosses > 0 ? ` (${beLosses} BE)` : '';
-              })()
-            )}
+            {stats.totalLosses} {stats.beLosses > 0 ? `(${stats.beLosses} BE)` : ''}
           </p>
         </div>
         <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
@@ -1544,7 +1532,11 @@ export default function Dashboard() {
                     callbacks: {
                       label: (context) => {
                         const interval = TIME_INTERVALS[context.dataIndex];
-                        const stat = stats.intervalStats[interval.label] || {};
+                        const stat = intervalStats.find(s => s.label === interval.label) ?? {
+                          wins: 0, losses: 0, beWins: 0, beLosses: 0, winRate: 0, winRateWithBE: 0
+                        };
+
+
                         const dataset = context.dataset;
                         if (dataset.label === 'Wins') {
                           return `Wins: ${stat.wins} (${stat.beWins} BE)`;
@@ -1582,12 +1574,12 @@ export default function Dashboard() {
                 },
               }}
               data={{
-                labels: TIME_INTERVALS.map(interval => `${interval.label} (${(stats.intervalStats[interval.label]?.wins || 0) + (stats.intervalStats[interval.label]?.losses || 0)})`),
+                labels: TIME_INTERVALS.map(interval => `${interval.label} (${(intervalStats.find(s => s.label === interval.label)?.wins || 0) + (intervalStats.find(s => s.label === interval.label)?.losses || 0)})`),
                 datasets: [
                   {
                     label: 'Wins',
                     data: TIME_INTERVALS.map(interval => 
-                      stats.intervalStats[interval.label]?.wins || 0
+                      intervalStats.find(s => s.label === interval.label)?.wins || 0
                     ),
                     backgroundColor: 'rgba(134, 239, 172, 0.8)', // green-300
                     borderColor: 'rgb(134, 239, 172)', // green-300
@@ -1599,7 +1591,7 @@ export default function Dashboard() {
                   {
                     label: 'Losses',
                     data: TIME_INTERVALS.map(interval => 
-                      stats.intervalStats[interval.label]?.losses || 0
+                      intervalStats.find(s => s.label === interval.label)?.losses || 0
                     ),
                     backgroundColor: 'rgba(231, 229, 228, 0.8)', // stone-200
                     borderColor: 'rgb(231, 229, 228)', // stone-200
@@ -1610,7 +1602,7 @@ export default function Dashboard() {
                   },
                   {
                     label: 'Win Rate',
-                    data: TIME_INTERVALS.map(interval => stats.intervalStats[interval.label]?.winRate || 0),
+                    data: TIME_INTERVALS.map(interval => intervalStats.find(s => s.label === interval.label)?.winRate || 0),
                     backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
                     borderColor: 'rgb(253, 230, 138)', // amber-200
                     borderWidth: 0,
@@ -1643,7 +1635,7 @@ export default function Dashboard() {
                   tooltip: {
                     callbacks: {
                       label: (context) => {
-                        return `SL Size: ${context.parsed.x}`;
+                        return `SL Size: ${context.parsed.x.toFixed(2)}`;
                       }
                     }
                   }
@@ -1753,8 +1745,8 @@ export default function Dashboard() {
               }}
               data={{
                 labels: [
-                  ...reentryStats.map(stat => `ReEntry (${stat.wins + stat.losses})`),
-                  ...breakEvenStats.map(stat => `BE (${stat.wins + stat.losses})`)
+                  ...reentryStats.map(stat => `Re-entry (${stat.wins + stat.losses})`),
+                  ...breakEvenStats.map(stat => `Break-even (${stat.wins + stat.losses})`)
                 ],
                 datasets: [
                   {
@@ -1859,7 +1851,7 @@ export default function Dashboard() {
                 },
               }}
               data={{
-                labels: mssStats.map(stat => stat.type),
+                labels: mssStats.map(stat => stat.mss),
                 datasets: [
                   {
                     label: 'Wins',
@@ -1954,7 +1946,7 @@ export default function Dashboard() {
                 },
               }}
               data={{
-                labels: newsStats.map(stat => `${stat.type} (${stat.wins + stat.losses})`),
+                labels: newsStats.map(stat => `${stat.news} (${stat.wins + stat.losses})`),
                 datasets: [
                   {
                     label: 'Wins',
@@ -2267,7 +2259,7 @@ export default function Dashboard() {
           </div>
         </div>
         {/* Evaluation Statistics */}
-        <EvaluationStats stats={stats.evaluationStats} />
+        <EvaluationStats stats={evaluationStats} />
       </div>
     </DashboardLayout>
   );
