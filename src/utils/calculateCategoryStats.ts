@@ -159,6 +159,7 @@ export function calculateIntervalStats(
  */
 
 export function calculateSLSizeStats(trades: Trade[]): SLSizeStats[] {
+  if (trades.length === 0) return [];
   const acc: Record<string, number[]> = {};
   trades.forEach(t => {
     const market = t.market || 'Unknown';
@@ -180,6 +181,7 @@ export function calculateSLSizeStats(trades: Trade[]): SLSizeStats[] {
  * Convenience wrappers for all your category stats:
  */
 export function calculateLiquidityStats(trades: Trade[]): LiquidityStats[] {
+  if (trades.length === 0) return [];
   return calculateGroupedStats(trades, t => t.liquidity || 'Unknown')
     .map(g => ({
       liquidity:   g.type,
@@ -194,6 +196,7 @@ export function calculateLiquidityStats(trades: Trade[]): LiquidityStats[] {
 }
 
 export function calculateSetupStats(trades: Trade[]) {
+  if (trades.length === 0) return [];
   return calculateGroupedStats(trades, t => t.setup_type || 'Unknown')
     .map(g => ({
       setup:       g.type,
@@ -207,6 +210,7 @@ export function calculateSetupStats(trades: Trade[]) {
     }));
 }
 export function calculateDirectionStats(trades: Trade[]): DirectionStats[] {
+  if (trades.length === 0) return [];
   return calculateGroupedStats(trades, t => t.direction || 'Unknown')
     .map(g => ({
       direction:   g.type,
@@ -220,14 +224,20 @@ export function calculateDirectionStats(trades: Trade[]): DirectionStats[] {
     }));
 }
 export function calculateLocalHLStats(trades: Trade[]): LocalHLStats {
-  // first get an array of generic GroupStats
+  const ZERO: LocalHLStats = {
+    lichidat:   { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0 },
+    nelichidat: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0 },
+  };
+
+  // ← if no trades at all, immediately return the zero‐stats
+  if (trades.length === 0) return ZERO;
+
   const groups = calculateGroupedStats(
     trades,
     t => (t.local_high_low ? 'lichidat' : 'nelichidat')
   );
 
-  // then reduce it into the object shape your hook wants
-  return groups.reduce((acc, g) => {
+  return groups.reduce<LocalHLStats>((acc, g) => {
     acc[g.type] = {
       wins:           g.wins,
       losses:         g.losses,
@@ -237,9 +247,10 @@ export function calculateLocalHLStats(trades: Trade[]): LocalHLStats {
       winRateWithBE:  g.winRateWithBE,
     };
     return acc;
-  }, {} as LocalHLStats);
+  }, { ...ZERO });
 }
 export function calculateMssStats(trades: Trade[]): MssStats[] {
+  if (trades.length === 0) return [];
   return calculateGroupedStats(trades, t => t.mss || 'Normal')
     .map(g => ({
       mss: g.type,
@@ -253,6 +264,7 @@ export function calculateMssStats(trades: Trade[]): MssStats[] {
     }));
 }
 export function calculateNewsStats(trades: Trade[]): NewsStats[] {
+  if (trades.length === 0) return [];
   return calculateGroupedStats(
     trades,
     t => (t.news_related ? 'News' : 'No News')
@@ -270,6 +282,7 @@ export function calculateNewsStats(trades: Trade[]): NewsStats[] {
 }
 
 export function calculateDayStats(trades: Trade[]): DayStats[] {
+  if (trades.length === 0) return [];
   return calculateGroupedStats(trades, t => t.day_of_week || 'Unknown')
     .map(g => ({
       day: g.type,
@@ -283,6 +296,7 @@ export function calculateDayStats(trades: Trade[]): DayStats[] {
     }));
 }
 export function calculateMarketStats(trades: Trade[]): MarketStats[] {  
+  if (trades.length === 0) return [];
   return calculateGroupedStats(trades, t => t.market || 'Unknown')
     .map(g => ({
       market: g.type,
@@ -300,10 +314,12 @@ export function calculateMarketStats(trades: Trade[]): MarketStats[] {
  * Trade type stats: re-entry and break-even separate.
  */
 export function calculateReentryStats(trades: Trade[]): TradeTypeStats[] {
+  if (trades.length === 0) return [];
   const re = trades.filter(t => t.reentry);
   return re.length ? [processGroup('ReEntry', re)] : []; 
 }
 export function calculateBreakEvenStats(trades: Trade[]): TradeTypeStats[] {
+  if (trades.length === 0) return [];
   const be = trades.filter(t => t.break_even);
   return be.length ? [processGroup('Break Even', be)] : [];
 }
