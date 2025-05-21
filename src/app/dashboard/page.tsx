@@ -193,7 +193,7 @@ export default function Dashboard() {
   };
 
   const { 
-    calendarMonthTrades, calendarTradesLoading, allTradesLoading, stats, monthlyStats, monthlyStatsAllTrades, localHLStats, setupStats, liquidityStats, directionStats, reentryStats, breakEvenStats, mssStats, newsStats, dayStats, marketStats, slSizeStats, allTrades, filteredTrades, filteredTradesLoading
+    calendarMonthTrades, calendarTradesLoading, allTradesLoading, stats, macroStats, monthlyStats, monthlyStatsAllTrades, localHLStats, setupStats, liquidityStats, directionStats, reentryStats, breakEvenStats, mssStats, newsStats, dayStats, marketStats, slSizeStats, allTrades, filteredTrades, filteredTradesLoading
   } = useDashboardData({
     session: userData?.session,
     dateRange,
@@ -536,6 +536,110 @@ export default function Dashboard() {
         )}
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-8">
+        {/* Profit Factor Stat Card */}
+        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
+          <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
+            Profit Factor
+            <span className="ml-1 cursor-help group relative">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-72 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="text-xs sm:text-sm text-stone-700 space-y-1 sm:space-y-2">
+                <div className="font-semibold text-stone-900 mt-4 mb-1 sm:mb-2">Profit Factor Interpretation</div>
+
+                <div className={`${macroStats.profitFactor < 1 ? 'bg-red-50 border-red-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                  <span className="font-medium">🚫 &lt; 1.0</span> — Losing strategy. Losses exceed profits.
+                </div>
+                <div className={`${macroStats.profitFactor >= 1 && macroStats.profitFactor < 1.5 ? 'bg-yellow-50 border-yellow-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                  <span className="font-medium">⚠️ 1.0 – 1.49</span> — Weak or marginal profitability. Use caution.
+                </div>
+                <div className={`${macroStats.profitFactor >= 1.5 && macroStats.profitFactor < 2 ? 'bg-green-50 border-green-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                  <span className="font-medium">✅ 1.5 – 1.99</span> — Good performance. Solid, sustainable strategy.
+                </div>
+                <div className={`${macroStats.profitFactor >= 2 && macroStats.profitFactor < 3 ? 'bg-blue-50 border-blue-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                  <span className="font-medium">🔷 2.0 – 2.99</span> — Very good. High reward vs. risk.
+                </div>
+                <div className={`${macroStats.profitFactor >= 3 ? 'bg-purple-50 border-purple-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                  <span className="font-medium">💎 3.0+</span> — Excellent. Possibly overfitted — verify robustness.
+                </div>
+              </div>
+              </div>
+            </span>
+          </h3>
+           <p className={`text-2xl font-bold ${macroStats.profitFactor > 0 ? 'text-green-600' : macroStats.profitFactor < 0 ? 'text-red-600' : 'text-stone-800'}`}>{macroStats.profitFactor.toFixed(2)}</p>
+        </div>
+
+        {/* Consistency Score Stat Card */}
+        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
+          <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
+            Consistency Score
+            <span className="ml-1 cursor-help group relative">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-72 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="text-xs sm:text-sm text-stone-700 space-y-1 sm:space-y-2">
+                  <div className="font-semibold text-stone-900 mb-1 sm:mb-2">Consistency Score Interpretation</div>
+                  
+                  <div className={`${macroStats.consistencyScore < 40 ? 'bg-red-50 border-red-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">🚫 0% – 39%</span> — Very inconsistent. Strategy is unstable or random.
+                  </div>
+                  <div className={`${macroStats.consistencyScore >= 40 && macroStats.consistencyScore < 60 ? 'bg-orange-50 border-orange-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">❗ 40% – 59%</span> — Inconsistent. Profits are unreliable across time.
+                  </div>
+                  <div className={`${macroStats.consistencyScore >= 60 && macroStats.consistencyScore < 75 ? 'bg-yellow-50 border-yellow-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">⚠️ 60% – 74%</span> — Moderately consistent. Needs improvement.
+                  </div>
+                  <div className={`${macroStats.consistencyScore >= 75 && macroStats.consistencyScore < 90 ? 'bg-green-50 border-green-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">✅ 75% – 89%</span> — Very consistent. Reliable performance.
+                  </div>
+                  <div className={`${macroStats.consistencyScore >= 90 ? 'bg-blue-50 border-blue-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">💎 90% – 100%</span> — Extremely consistent. Top-tier strategy.
+                  </div>
+                </div>
+              </div>
+            </span>
+          </h3>
+          <p className={`text-2xl font-bold ${macroStats.consistencyScore > 0 ? 'text-green-600' : macroStats.consistencyScore < 0 ? 'text-red-600' : 'text-stone-800'}`}>{macroStats.consistencyScore.toFixed(2) } <span className="text-stone-500 text-sm">({macroStats.consistencyScoreWithBE.toFixed(2)} with BE)</span></p>
+        </div>
+
+        {/* Sharpe Ratio Stat Card */}
+        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
+          <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
+            Sharpe Ratio
+            <span className="ml-1 cursor-help group relative">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-72 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="text-xs sm:text-sm text-stone-700 space-y-1 sm:space-y-2">
+                  <div className="font-semibold text-stone-900 mb-1 sm:mb-2">Sharpe Ratio Interpretation</div>
+
+                  <div className={`${macroStats.sharpeWithBE < 0.2 ? 'bg-red-50 border-red-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">🚫 &lt; 0.2</span> — Very weak. High volatility relative to returns. Consider reviewing trade consistency or overtrading.
+                  </div>
+                  <div className={`${macroStats.sharpeWithBE >= 0.2 && macroStats.sharpeWithBE < 0.5 ? 'bg-orange-50 border-orange-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">❗ 0.2 – 0.49</span> — Acceptable for asymmetric strategies (like RR=2). Profit exists, but results are uneven.
+                  </div>
+                  <div className={`${macroStats.sharpeWithBE >= 0.5 && macroStats.sharpeWithBE < 1 ? 'bg-yellow-50 border-yellow-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">⚠️ 0.5 – 0.99</span> — Solid performance. Profits outweigh risk, even if trades are not consecutive winners.
+                  </div>
+                  <div className={`${macroStats.sharpeWithBE >= 1 && macroStats.sharpeWithBE < 2 ? 'bg-green-50 border-green-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">✅ 1.0 – 1.99</span> — Very strong risk-adjusted return. Consistent growth and low volatility.
+                  </div>
+                  <div className={`${macroStats.sharpeWithBE >= 2 ? 'bg-blue-50 border-blue-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
+                    <span className="font-medium">💎 2.0+</span> — Exceptional. Usually seen in highly optimized or low-volatility systems.
+                  </div>
+                </div>
+              </div>
+            </span>
+          </h3>
+          <p className={`text-2xl font-bold ${macroStats.sharpeWithBE > 0 ? 'text-green-600' : macroStats.sharpeWithBE < 0 ? 'text-red-600' : 'text-stone-800'}`}>{macroStats.sharpeWithBE.toFixed(2) } <span className="text-stone-500 text-xs">incl. BE</span></p>
+        </div>
+      </div>
+
       {openAnalyzeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-lg p-6 max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -821,10 +925,10 @@ export default function Dashboard() {
                 averageProfit: stats.averageProfit,
                 maxDrawdown: stats.maxDrawdown,
                 averagePnLPercentage: stats.averagePnLPercentage,
-                profitFactor: stats.profitFactor,
-                consistencyScore: stats.consistencyScore,
-                consistencyScoreWithBE: stats.consistencyScoreWithBE,
-                sharpeWithBE: stats.sharpeWithBE
+                profitFactor: macroStats.profitFactor,
+                consistencyScore: macroStats.consistencyScore,
+                consistencyScoreWithBE: macroStats.consistencyScoreWithBE,
+                sharpeWithBE: macroStats.sharpeWithBE
               };
 
               try {
@@ -933,108 +1037,6 @@ export default function Dashboard() {
             </span>
           </h3>
            <p className={`text-2xl font-bold ${stats.averagePnLPercentage > 0 ? 'text-green-600' : stats.averagePnLPercentage < 0 ? 'text-red-600' : 'text-stone-600'}`}>{stats.averagePnLPercentage.toFixed(2)}%</p>
-        </div>
-
-        {/* Profit Factor Stat Card */}
-        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
-          <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
-            Profit Factor
-            <span className="ml-1 cursor-help group relative">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-72 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="text-xs sm:text-sm text-stone-700 space-y-1 sm:space-y-2">
-                <div className="font-semibold text-stone-900 mt-4 mb-1 sm:mb-2">Profit Factor Interpretation</div>
-
-                <div className={`${stats.profitFactor < 1 ? 'bg-red-50 border-red-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                  <span className="font-medium">🚫 &lt; 1.0</span> — Losing strategy. Losses exceed profits.
-                </div>
-                <div className={`${stats.profitFactor >= 1 && stats.profitFactor < 1.5 ? 'bg-yellow-50 border-yellow-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                  <span className="font-medium">⚠️ 1.0 – 1.49</span> — Weak or marginal profitability. Use caution.
-                </div>
-                <div className={`${stats.profitFactor >= 1.5 && stats.profitFactor < 2 ? 'bg-green-50 border-green-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                  <span className="font-medium">✅ 1.5 – 1.99</span> — Good performance. Solid, sustainable strategy.
-                </div>
-                <div className={`${stats.profitFactor >= 2 && stats.profitFactor < 3 ? 'bg-blue-50 border-blue-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                  <span className="font-medium">🔷 2.0 – 2.99</span> — Very good. High reward vs. risk.
-                </div>
-                <div className={`${stats.profitFactor >= 3 ? 'bg-purple-50 border-purple-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                  <span className="font-medium">💎 3.0+</span> — Excellent. Possibly overfitted — verify robustness.
-                </div>
-              </div>
-              </div>
-            </span>
-          </h3>
-           <p className={`text-2xl font-bold ${stats.profitFactor > 0 ? 'text-green-600' : stats.profitFactor < 0 ? 'text-red-600' : 'text-stone-600'}`}>{stats.profitFactor.toFixed(2)}</p>
-        </div>
-
-        {/* Consistency Score Stat Card */}
-        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
-          <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
-            Consistency Score
-            <span className="ml-1 cursor-help group relative">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-72 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="text-xs sm:text-sm text-stone-700 space-y-1 sm:space-y-2">
-                  <div className="font-semibold text-stone-900 mb-1 sm:mb-2">Consistency Score Interpretation</div>
-                  
-                  <div className={`${stats.consistencyScore < 40 ? 'bg-red-50 border-red-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                    <span className="font-medium">🚫 0% – 39%</span> — Very inconsistent. Strategy is unstable or random.
-                  </div>
-                  <div className={`${stats.consistencyScore >= 40 && stats.consistencyScore < 60 ? 'bg-orange-50 border-orange-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                    <span className="font-medium">❗ 40% – 59%</span> — Inconsistent. Profits are unreliable across time.
-                  </div>
-                  <div className={`${stats.consistencyScore >= 60 && stats.consistencyScore < 75 ? 'bg-yellow-50 border-yellow-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                    <span className="font-medium">⚠️ 60% – 74%</span> — Moderately consistent. Needs improvement.
-                  </div>
-                  <div className={`${stats.consistencyScore >= 75 && stats.consistencyScore < 90 ? 'bg-green-50 border-green-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                    <span className="font-medium">✅ 75% – 89%</span> — Very consistent. Reliable performance.
-                  </div>
-                  <div className={`${stats.consistencyScore >= 90 ? 'bg-blue-50 border-blue-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                    <span className="font-medium">💎 90% – 100%</span> — Extremely consistent. Top-tier strategy.
-                  </div>
-                </div>
-              </div>
-            </span>
-          </h3>
-          <p className={`text-2xl font-bold ${stats.consistencyScore > 0 ? 'text-green-600' : stats.consistencyScore < 0 ? 'text-red-600' : 'text-stone-600'}`}>{stats.consistencyScore.toFixed(2) } <span className="text-stone-500 text-sm">({stats.consistencyScoreWithBE.toFixed(2)} with BE)</span></p>
-        </div>
-
-        {/* Sharpe Ratio Stat Card */}
-        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
-          <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
-            Sharpe Ratio
-            <span className="ml-1 cursor-help group relative">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-72 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="text-xs sm:text-sm text-stone-700 space-y-1 sm:space-y-2">
-                  <div className="font-semibold text-stone-900 mb-1 sm:mb-2">Sharpe Ratio Interpretation</div>
-
-                  <div className={`${stats.sharpeWithBE < 0.2 ? 'bg-red-50 border-red-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                    <span className="font-medium">🚫 &lt; 0.2</span> — Very weak. High volatility relative to returns. Consider reviewing trade consistency or overtrading.
-                  </div>
-                  <div className={`${stats.sharpeWithBE >= 0.2 && stats.sharpeWithBE < 0.5 ? 'bg-orange-50 border-orange-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                    <span className="font-medium">❗ 0.2 – 0.49</span> — Acceptable for asymmetric strategies (like RR=2). Profit exists, but results are uneven.
-                  </div>
-                  <div className={`${stats.sharpeWithBE >= 0.5 && stats.sharpeWithBE < 1 ? 'bg-yellow-50 border-yellow-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                    <span className="font-medium">⚠️ 0.5 – 0.99</span> — Solid performance. Profits outweigh risk, even if trades are not consecutive winners.
-                  </div>
-                  <div className={`${stats.sharpeWithBE >= 1 && stats.sharpeWithBE < 2 ? 'bg-green-50 border-green-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                    <span className="font-medium">✅ 1.0 – 1.99</span> — Very strong risk-adjusted return. Consistent growth and low volatility.
-                  </div>
-                  <div className={`${stats.sharpeWithBE >= 2 ? 'bg-blue-50 border-blue-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                    <span className="font-medium">💎 2.0+</span> — Exceptional. Usually seen in highly optimized or low-volatility systems.
-                  </div>
-                </div>
-              </div>
-            </span>
-          </h3>
-          <p className={`text-2xl font-bold ${stats.sharpeWithBE > 0 ? 'text-green-600' : stats.sharpeWithBE < 0 ? 'text-red-600' : 'text-stone-600'}`}>{stats.sharpeWithBE.toFixed(2) } <span className="text-stone-500 text-xs">incl. BE</span></p>
         </div>
       </div>
 
