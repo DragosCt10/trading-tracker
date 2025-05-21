@@ -5,38 +5,40 @@ import { Trade } from '@/types/trade';
 export interface WinRates {
   /** Win rate excluding break-even trades (percentage). */
   winRate: number;
-  /** Win rate including break-even trades (percentage). */
+  /** Win rate including break-even trades in the denominator (percentage). */
   winRateWithBE: number;
 }
 
 /**
  * Calculate two measures of win-rate:
- *  - `winRate`: only counts non-break-even trades
- *  - `winRateWithBE`: counts all trades
+ *  - `winRate`       = non-BE wins / (non-BE wins + non-BE losses)
+ *  - `winRateWithBE` = non-BE wins / (non-BE wins + non-BE losses + break-even trades)
  */
 export function calculateWinRates(trades: Trade[]): WinRates {
-  const acc = trades.reduce(
-    (s, t) => {
-      // total wins (for with-BE)
-      if (t.trade_outcome === 'Win') s.totalWins++;
-      // non-BE counts
-      if (!t.break_even) {
-        if (t.trade_outcome === 'Win')  s.nonBEWins++;
-        else if (t.trade_outcome === 'Lose') s.nonBELosses++;
-      }
-      return s;
-    },
-    { totalWins: 0, nonBEWins: 0, nonBELosses: 0 }
-  );
+  let nonBEWins   = 0;
+  let nonBELosses = 0;
+  let beCount     = 0;
 
-  const totalNonBE = acc.nonBEWins + acc.nonBELosses;
-  const winRate = totalNonBE > 0
-    ? (acc.nonBEWins / totalNonBE) * 100
+  for (const t of trades) {
+    if (t.break_even) {
+      beCount++;
+    } else if (t.trade_outcome === 'Win') {
+      nonBEWins++;
+    } else if (t.trade_outcome === 'Lose') {
+      nonBELosses++;
+    }
+  }
+
+  // Win rate excluding break-even trades
+  const denomExBE = nonBEWins + nonBELosses;
+  const winRate = denomExBE > 0
+    ? (nonBEWins / denomExBE) * 100
     : 0;
 
-  const totalTrades = trades.length;
-  const winRateWithBE = totalTrades > 0
-    ? (acc.totalWins / totalTrades) * 100
+  // Win rate including break-even in the denominator
+  const denomWithBE = denomExBE + beCount;
+  const winRateWithBE = denomWithBE > 0
+    ? (nonBEWins / denomWithBE) * 100
     : 0;
 
   return { winRate, winRateWithBE };
