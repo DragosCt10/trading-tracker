@@ -25,7 +25,17 @@ const SETUP_OPTIONS = [
 const LIQUIDITY_OPTIONS = ['Liq. Majora', 'Liq. Minora', 'Liq. Locala', 'HOD', 'LOD'];
 const MSS_OPTIONS = ['Normal', 'Agresiv'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
-const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
+// const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
+const WEEKDAY_MAP: Record<string,string> = {
+  Monday:    'Luni',
+  Tuesday:   'Marti',
+  Wednesday: 'Miercuri',
+  Thursday:  'Joi',
+  Friday:    'Vineri',
+  Saturday:  'Sambata',
+  Sunday:    'Duminica',
+};
+
 
 export default function NewTradeForm() {
   const router = useRouter();
@@ -116,15 +126,20 @@ export default function NewTradeForm() {
 
   useEffect(() => {
     const dateStr = trade.trade_date;
-    const quarter = getQuarter(dateStr);
-    const dayOfWeek = new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' });
+    const dt = new Date(dateStr);
+
+    // English weekday, e.g. "Monday"
+    const engDay = dt.toLocaleDateString('en-US', { weekday: 'long' });
+    // Map to Romanian (fallback to English if missing)
+    const roDay  = WEEKDAY_MAP[engDay] ?? engDay;
 
     setTrade(prev => ({
       ...prev,
-      day_of_week: dayOfWeek,
-      quarter,
+      day_of_week: roDay,
+      quarter:     getQuarter(dateStr),
     }));
-  }, []);
+  }, [trade.trade_date]);
+
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -232,19 +247,6 @@ export default function NewTradeForm() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Trade Link</label>
-          <div className="relative w-full">
-            <input
-              type="text"
-              value={trade.trade_link}
-              onChange={(e) => setTrade({ ...trade, trade_link: e.target.value })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            />
-          </div>
-        </div>
-
-        <div>
           <label className="block text-sm font-medium text-stone-700 mb-2">Liquidity Taken</label>
           <div className="relative w-full">
             <input
@@ -258,56 +260,15 @@ export default function NewTradeForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Time</label>
+          <label className="block text-sm font-medium text-stone-700 mb-2">Trade Link</label>
           <div className="relative w-full">
             <input
-              type="time"
-              value={trade.trade_time}
-              onChange={(e) => setTrade({ ...trade, trade_time: e.target.value })}
+              type="text"
+              value={trade.trade_link}
+              onChange={(e) => setTrade({ ...trade, trade_link: e.target.value })}
               className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
               required
             />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Date</label>
-          <div className="relative w-full">
-            <input
-              type="date"
-              value={trade.trade_date}
-              onChange={(e) => {
-                const dateStr = e.target.value;
-                const date = new Date(dateStr);
-                setTrade({
-                  ...trade,
-                  trade_date: dateStr,
-                  day_of_week: date.toLocaleDateString('en-US', { weekday: 'long' }),
-                  quarter: getQuarter(dateStr),
-                });
-              }}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Day of Week</label>
-          <div className="relative w-full">
-            <select
-              value={trade.day_of_week}
-              onChange={(e) => setTrade({ ...trade, day_of_week: e.target.value })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            >
-              <option value="">Select Day of Week</option>
-              {DAY_OF_WEEK_OPTIONS.map((day) => (
-                <option key={day} value={day}>
-                  {day}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
 
@@ -331,21 +292,63 @@ export default function NewTradeForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Setup Type</label>
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-2">Date</label>
+            <input
+              type="date"
+              value={trade.trade_date}
+              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+              required
+              onChange={(e) => {
+                const dateStr = e.target.value;
+                const dt = new Date(dateStr);
+
+                // English weekday, e.g. "Monday"
+                const engDay = dt.toLocaleDateString('en-US', { weekday: 'long' });
+
+                // Map to Romanian (or fall back to English if not found)
+                const localDay = WEEKDAY_MAP[engDay] ?? engDay;
+
+                setTrade({
+                  ...trade,
+                  trade_date:  dateStr,
+                  day_of_week: localDay,
+                  quarter:     getQuarter(dateStr),
+                });
+              }}
+            />
+          </div>
+        </div>
+
+        {/* <div>
+          <label className="block text-sm font-medium text-stone-700 mb-2">Day of Week</label>
           <div className="relative w-full">
             <select
-              value={trade.setup_type}
-              onChange={(e) => setTrade({ ...trade, setup_type: e.target.value })}
+              value={trade.day_of_week}
+              onChange={(e) => setTrade({ ...trade, day_of_week: e.target.value })}
               className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
               required
             >
-              <option value="">Select Setup Type</option>
-              {SETUP_OPTIONS.map((setup) => (
-                <option key={setup} value={setup}>
-                  {setup}
+              <option value="">Select Day of Week</option>
+              {DAY_OF_WEEK_OPTIONS.map((day) => (
+                <option key={day} value={day}>
+                  {day}
                 </option>
               ))}
             </select>
+          </div>
+        </div> */}
+
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-2">Time</label>
+          <div className="relative w-full">
+            <input
+              type="time"
+              value={trade.trade_time}
+              onChange={(e) => setTrade({ ...trade, trade_time: e.target.value })}
+              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+              required
+            />
           </div>
         </div>
 
@@ -359,9 +362,28 @@ export default function NewTradeForm() {
               required
             >
               <option value="">Select Liquidity</option>
-              {LIQUIDITY_OPTIONS.map((liquidity) => (
+              {LIQUIDITY_OPTIONS.map((liquidity, index) => (
                 <option key={liquidity} value={liquidity}>
                   {liquidity}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-2">Setup Type</label>
+          <div className="relative w-full">
+            <select
+              value={trade.setup_type}
+              onChange={(e) => setTrade({ ...trade, setup_type: e.target.value })}
+              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+              required
+            >
+              <option value="">Select Setup Type</option>
+              {SETUP_OPTIONS.map((setup) => (
+                <option key={setup} value={setup}>
+                  {setup}
                 </option>
               ))}
             </select>
