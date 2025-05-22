@@ -1066,7 +1066,6 @@ export default function Dashboard() {
           {(() => {
             const daysInMonth = getDaysInMonth();
             const firstDay = daysInMonth[0];
-            const lastDay = daysInMonth[daysInMonth.length - 1];
             
             // Get the day of week for the first day (0 = Sunday, 1 = Monday, etc.)
             const firstDayOfWeek = firstDay.getDay();
@@ -1091,7 +1090,8 @@ export default function Dashboard() {
                 return format(tradeDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
               });
               const dayStats = getDayStats(dayTrades);
-              const hasBE = dayTrades.some(trade => trade.break_even);
+              const beTrades = dayTrades.filter(trade => trade.break_even);
+              const hasBE = beTrades.length > 0;
 
               return (
                 <div
@@ -1106,7 +1106,9 @@ export default function Dashboard() {
                 >
                   <div className="text-sm font-medium text-stone-800 mb-1">{format(date, 'd')}</div>
                   {hasBE && (
-                    <div className="absolute top-1 right-1 text-xs font-bold text-stone-900 px-1">BE</div>
+                    <div className="absolute top-1 right-1 text-xs font-bold text-stone-900 px-1">
+                      {beTrades.length} BE 
+                    </div>
                   )}
                   {dayStats.totalTrades > 0 && (
                     <div className="text-xs space-y-1">
