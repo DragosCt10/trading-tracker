@@ -1067,12 +1067,9 @@ export default function Dashboard() {
             const daysInMonth = getDaysInMonth();
             const firstDay = daysInMonth[0];
             
-            // Get the day of week for the first day (0 = Sunday, 1 = Monday, etc.)
             const firstDayOfWeek = firstDay.getDay();
-            // Convert to Monday-based (0 = Monday, 6 = Sunday)
             const mondayBasedFirstDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
             
-            // Create array of empty cells for days before the first day of the month
             const emptyCells = Array(mondayBasedFirstDay).fill(null);
             
             return [...emptyCells, ...daysInMonth].map((date, index) => {
@@ -1096,7 +1093,7 @@ export default function Dashboard() {
               return (
                 <div
                   key={date.toString()}
-                  className={`relative p-2 min-h-[80px] border rounded-lg transition-all duration-200 ${
+                  className={`relative p-2 min-h-[80px] border rounded-lg transition-all duration-200 group ${
                     dayStats.totalProfit > 0 
                       ? 'bg-green-100/50 border-green-200 hover:bg-green-100' 
                       : dayStats.totalProfit < 0 
@@ -1119,6 +1116,24 @@ export default function Dashboard() {
                         dayStats.totalProfit >= 0 ? 'text-green-700' : 'text-red-700'
                       }`}>
                         {getCurrencySymbol()}{Math.abs(dayStats.totalProfit).toFixed(2)}
+                      </div>
+                    </div>
+                  )}
+                  {dayTrades.length > 0 && (
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                      <div className="text-xs space-y-1">
+                        {dayTrades.map((trade, i) => (
+                          <div key={i} className="flex justify-between items-center">
+                            <span className="font-medium">{trade.market}</span>
+                            <span className={`font-semibold ${
+                              trade.calculated_profit && trade.calculated_profit >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {trade.calculated_profit && trade.calculated_profit >= 0 ? 'W' : 'L'}
+                              {trade.break_even && ' (BE)'}
+                              {trade.pnl_percentage && ` (${trade.pnl_percentage.toFixed(2)}%)`}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
