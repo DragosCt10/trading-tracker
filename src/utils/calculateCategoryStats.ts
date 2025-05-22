@@ -321,7 +321,11 @@ export function calculateReentryStats(trades: Trade[]): TradeTypeStats[] {
 export function calculateBreakEvenStats(trades: Trade[]): TradeTypeStats[] {
   if (trades.length === 0) return [];
   const be = trades.filter(t => t.break_even);
-  return be.length ? [processGroup('Break Even', be)] : [];
+  if (!be.length) return [];
+  const group = processGroup('Break Even', be);
+  // Override winRate: simple win rate for BE group
+  group.winRate = group.total > 0 ? (group.wins / group.total) * 100 : 0;
+  return [group];
 }
 
 
