@@ -660,7 +660,7 @@ export default function NewTradeForm() {
                 </svg>
               </span>
             </label>
-            <label className="cursor-pointer ml-2 text-stone-800 text-sm" htmlFor="news-checkbox">News Related</label>
+            <label className="cursor-pointer ml-2 text-stone-800 text-sm" htmlFor="news-checkbox">News</label>
           </div>
           {/* Local High/Low Checkbox */}
           <div className="inline-flex items-center">
