@@ -22,7 +22,8 @@ const CURRENCY_OPTIONS = [
 const MODES = [
   { value: 'live', label: 'Live Trading' },
   { value: 'demo', label: 'Demo Trading' },
-  { value: 'backtesting', label: 'Backtesting' }
+  { value: 'backtesting', label: 'Backtesting' },
+  { value: 'backtesting_all', label: 'Backtesting All' }
 ];
 
 interface Account {
