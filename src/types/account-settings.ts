@@ -29,7 +29,6 @@ export const TRADING_MODES = [
   'live',
   'demo',
   'backtesting',
-  'backtesting_all'
 ] as const;
 
 export type TradingMode = typeof TRADING_MODES[number];
