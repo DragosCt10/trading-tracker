@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Trade } from '@/types/trade';
 import { AccountSettings } from '@/types/account-settings';
 import { useUserDetails } from './useUserDetails';
@@ -242,39 +242,13 @@ export function useDashboardData({
     gcTime: 10 * 60 * 1000,
   });
 
-  // Query for calendar month trades
-  const { data: calendarMonthTrades = [], isLoading: calendarTradesLoading } = useQuery<Trade[]>({
-    queryKey: ['calendarTrades', mode, activeAccount?.id, session?.user?.id, calendarDateRange],
-    queryFn: async () => {
-      if (!session?.user?.id || !activeAccount?.id) {
-        return [];
-      }
-      
-      const supabase = createClient();
-    
-      try {
-        const { data: trades, error } = await supabase
-          .from(`${mode}_trades`)
-          .select('*')
-          .eq('user_id', session.user.id)
-          .eq('account_id', activeAccount.id)
-          .gte('trade_date', calendarDateRange.startDate)
-          .lte('trade_date', calendarDateRange.endDate)
-          .order('trade_date', { ascending: false });
-
-        if (error) {
-          console.error('Supabase error:', error);
-          throw error;
-        }
-
-        return trades.map(trade => mapSupabaseTradeToTrade(trade, mode));
-      } catch (error) {
-        console.error('Error fetching trades:', error);
-        return [];
-      }
-    },
-    enabled: !!session?.user?.id && !!activeAccount?.id && !contextLoading && !isSessionLoading
-  });
+  const calendarMonthTrades = useMemo(() => {
+    if (!allTrades.length) return [];
+    const { startDate, endDate } = calendarDateRange;
+    return allTrades.filter(t =>
+      t.trade_date >= startDate && t.trade_date <= endDate
+    );
+  }, [allTrades, calendarDateRange]);
 
   // Calculate monthly stats when all trades change or selected year changes
   useEffect(() => {
@@ -348,9 +322,8 @@ export function useDashboardData({
     allTrades,
     filteredTrades,
     filteredTradesLoading,
-    calendarTradesLoading,
     allTradesLoading,
-    isLoadingTrades: allTradesLoading || filteredTradesLoading || calendarTradesLoading,
+    isLoadingTrades: allTradesLoading || filteredTradesLoading,
     stats,
     monthlyStats,
     monthlyStatsAllTrades,
