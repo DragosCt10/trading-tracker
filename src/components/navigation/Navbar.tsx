@@ -37,7 +37,7 @@ export default function Navbar() {
   };
 
   const handleModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setMode(e.target.value as 'live' | 'demo' | 'backtesting');
+    setMode(e.target.value as 'live' | 'demo' | 'backtesting' | 'backtesting_all');
   };
 
   const isActive = (path: string) => {
@@ -109,6 +109,7 @@ export default function Navbar() {
               <option value="live">Live</option>
               <option value="demo">Demo</option>
               <option value="backtesting">Backtesting</option>
+              <option value="backtesting_all">Backtesting All</option>
             </select>
             <svg 
               className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-500 pointer-events-none" 
@@ -198,6 +199,7 @@ export default function Navbar() {
                 <option value="live">Live</option>
                 <option value="demo">Demo</option>
                 <option value="backtesting">Backtesting</option>
+                <option value="backtesting_all">Backtesting All</option>
               </select>
             </div>
           </li>
