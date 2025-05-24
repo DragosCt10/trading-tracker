@@ -193,7 +193,7 @@ export default function Dashboard() {
   };
 
   const { 
-    calendarMonthTrades, calendarTradesLoading, allTradesLoading, stats, macroStats, monthlyStats, monthlyStatsAllTrades, localHLStats, setupStats, liquidityStats, directionStats, reentryStats, breakEvenStats, mssStats, newsStats, dayStats, marketStats, slSizeStats, intervalStats, allTrades, filteredTrades, filteredTradesLoading, evaluationStats
+    calendarMonthTrades, allTradesLoading, stats, macroStats, monthlyStats, monthlyStatsAllTrades, localHLStats, setupStats, liquidityStats, directionStats, reentryStats, breakEvenStats, mssStats, newsStats, dayStats, marketStats, slSizeStats, intervalStats, allTrades, filteredTrades, filteredTradesLoading, evaluationStats
   } = useDashboardData({
     session: userData?.session,
     dateRange,
@@ -374,7 +374,6 @@ export default function Dashboard() {
     activeAccount &&
     !isInitialLoading &&
     !filteredTradesLoading &&
-    !calendarTradesLoading &&
     !allTradesLoading &&
     allTrades.length === 0 &&
     filteredTrades.length === 0 &&
