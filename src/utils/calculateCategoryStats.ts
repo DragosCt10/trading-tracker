@@ -295,19 +295,31 @@ export function calculateDayStats(trades: Trade[]): DayStats[] {
       beLosses: g.beLosses
     }));
 }
-export function calculateMarketStats(trades: Trade[]): MarketStats[] {  
+export function calculateMarketStats(trades: Trade[], accountBalance: number): MarketStats[] {  
   if (trades.length === 0) return [];
   return calculateGroupedStats(trades, t => t.market || 'Unknown')
-    .map(g => ({
-      market: g.type,
-      total: g.total,
-      wins: g.wins,
-      losses: g.losses,
-      winRate: g.winRate,
-      winRateWithBE: g.winRateWithBE,
-      beWins: g.beWins,
-      beLosses: g.beLosses
-    }));
+    .map(g => {
+      const marketTrades = trades.filter(t => (t.market || 'Unknown') === g.type);
+      const profit = marketTrades.reduce((sum, trade) => {
+        if (trade.calculated_profit) {
+          return sum + trade.calculated_profit;
+        }
+        return sum;
+      }, 0);
+      const pnlPercentage = accountBalance > 0 ? (profit / accountBalance) * 100 : 0;
+      return {
+        market: g.type,
+        total: g.total,
+        wins: g.wins,
+        losses: g.losses,
+        winRate: g.winRate,
+        winRateWithBE: g.winRateWithBE,
+        beWins: g.beWins,
+        beLosses: g.beLosses,
+        profit,
+        pnlPercentage
+      };
+    });
 }
 
 /**
