@@ -9,6 +9,8 @@ export interface MarketStat {
   pnlPercentage: number;
   wins: number;
   losses: number;
+  nonBeWins: number;
+  nonBeLosses: number;
 }
 
 // Props for the component
@@ -65,7 +67,7 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
             const label = context.label as string;
             const marketName = label.split(' (')[0];
             const market = marketStats.find((s) => s.market === marketName);
-            const totalTrades = (market?.wins || 0) + (market?.losses || 0);
+            const totalTrades = (market?.nonBeWins || 0) + (market?.nonBeLosses || 0);
             const profit = market?.profit || 0;
             const currencySymbol = getCurrencySymbol();
             return [
