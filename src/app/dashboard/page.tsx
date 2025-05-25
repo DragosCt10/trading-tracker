@@ -28,6 +28,7 @@ import DashboardLayout from '@/components/shared/layout/DashboardLayout';
 import { BarChart, Bar as ReBar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, LabelList, Cell } from 'recharts';
 import { EvaluationStats } from '@/components/dashboard/EvaluationStats';
 import { analyzeTradingData, TradingAnalysisRequest } from '@/utils/prompt';
+import MarketProfitStatisticsCard from '@/components/dashboard/MarketProfitStats';
 
 ChartJS.register(
   CategoryScale,
@@ -193,7 +194,7 @@ export default function Dashboard() {
   };
 
   const { 
-    calendarMonthTrades, allTradesLoading, stats, macroStats, monthlyStats, monthlyStatsAllTrades, localHLStats, setupStats, liquidityStats, directionStats, reentryStats, breakEvenStats, mssStats, newsStats, dayStats, marketStats, slSizeStats, intervalStats, allTrades, filteredTrades, filteredTradesLoading, evaluationStats
+    calendarMonthTrades, allTradesLoading, stats, macroStats, monthlyStats, monthlyStatsAllTrades, localHLStats, setupStats, liquidityStats, directionStats, reentryStats, breakEvenStats, mssStats, newsStats, dayStats, marketStats, marketAllTradesStats, slSizeStats, intervalStats, allTrades, filteredTrades, filteredTradesLoading, evaluationStats
   } = useDashboardData({
     session: userData?.session,
     dateRange,
@@ -690,6 +691,7 @@ export default function Dashboard() {
       )}
 
       {/* Monthly Performance Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-bold text-stone-900 mb-1">Monthly Performance</h2>
           <p className="text-sm text-stone-500 mb-4">Monthly performance of trades</p>
@@ -789,6 +791,13 @@ export default function Dashboard() {
             />
           </div>
         </div>
+        {/* Market Profit Statistics Card */}
+        <MarketProfitStatisticsCard
+          marketStats={marketAllTradesStats}
+          chartOptions={chartOptions}
+          getCurrencySymbol={getCurrencySymbol}
+        />
+      </div>
 
       <h2 className="text-2xl font-bold text-stone-900 mt-20">Date Range Stats</h2>
       <p className="text-stone-500 mb-10">Trading performance metrics for your selected date range.</p>
@@ -1143,8 +1152,109 @@ export default function Dashboard() {
         </div>
       </div>
 
+       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
+        {/* Market Profit Statistics Card */}
+        <MarketProfitStatisticsCard
+          marketStats={marketStats}
+          chartOptions={chartOptions}
+          getCurrencySymbol={getCurrencySymbol}
+        />
+
+              {/* Setup Statistics Card */}
+        <div className="rounded-lg border shadow-sm overflow-hidden bg-white border-stone-200 shadow-stone-950/5 p-6">
+          <h2 className="text-lg font-bold text-stone-900 mb-1">Setup Statistics</h2>
+          <p className="text-sm text-stone-500 mb-4">Distribution of trades based on trading setup</p>
+          <div className="h-96">
+            <Bar
+              options={{
+                ...chartOptions,
+                indexAxis: 'y',
+                plugins: {
+                  legend: {
+                    display: false,
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => {
+                        const stat = setupStats[context.dataIndex];
+                        const dataset = context.dataset;
+                        if (dataset.label === 'Wins') {
+                          return `Wins: ${stat.wins} (${stat.beWins} BE)`;
+                        }
+                        if (dataset.label === 'Losses') {
+                          return `Losses: ${stat.losses} (${stat.beLosses} BE)`;
+                        }
+                        if (dataset.label === 'Win Rate') {
+                          return `Win Rate: ${stat.winRate.toFixed(2)}% (${stat.winRateWithBE.toFixed(2)}% with BE)`;
+                        }
+                        return `${dataset.label}: ${context.parsed.x}`;
+                      }
+                    }
+                  }
+                },
+                scales: {
+                  x: {
+                    stacked: false,
+                    grid: {
+                      display: false,
+                    },
+                    ticks: {
+                      display: false
+                    }
+                  },
+                  y: {
+                    stacked: false,
+                    grid: {
+                      display: false,
+                    },
+                    ticks: {
+                      color: 'rgb(41, 37, 36)' // stone-800
+                    }
+                  },
+                },
+              }}
+              data={{
+                labels: setupStats.map(stat => `${stat.setup} (${stat.wins + stat.losses})`),
+                datasets: [
+                  {
+                    label: 'Wins',
+                    data: setupStats.map(stat => stat.wins),
+                    backgroundColor: 'rgba(134, 239, 172, 0.8)', // green-300
+                    borderColor: 'rgb(134, 239, 172)', // green-300
+                    borderWidth: 0,
+                    borderRadius: 4,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.8,
+                  },
+                  {
+                    label: 'Losses',
+                    data: setupStats.map(stat => stat.losses),
+                    backgroundColor: 'rgba(231, 229, 228, 0.8)', // stone-200
+                    borderColor: 'rgb(231, 229, 228)', // stone-200
+                    borderWidth: 0,
+                    borderRadius: 4,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.8,
+                  },
+                  {
+                    label: 'Win Rate',
+                    data: setupStats.map(stat => stat.winRate),
+                    backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
+                    borderColor: 'rgb(253, 230, 138)', // amber-200
+                    borderWidth: 0,
+                    borderRadius: 4,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.8,
+                  },
+                ],
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Statistics Cards Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 my-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
         {/* Liquidity Statistics Card */}
         <div className="rounded-lg border shadow-sm overflow-hidden bg-white border-stone-200 shadow-stone-950/5 p-6">
           <h2 className="text-lg font-bold text-stone-900 mb-1">Liquidity Statistics</h2>
@@ -1224,98 +1334,6 @@ export default function Dashboard() {
                   {
                     label: 'Win Rate',
                     data: liquidityStats.map(stat => stat.winRate),
-                    backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
-                    borderColor: 'rgb(253, 230, 138)', // amber-200
-                    borderWidth: 0,
-                    borderRadius: 4,
-                    barPercentage: 0.8,
-                    categoryPercentage: 0.8,
-                  },
-                ],
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Setup Statistics Card */}
-        <div className="rounded-lg border shadow-sm overflow-hidden bg-white border-stone-200 shadow-stone-950/5 p-6">
-          <h2 className="text-lg font-bold text-stone-900 mb-1">Setup Statistics</h2>
-          <p className="text-sm text-stone-500 mb-4">Distribution of trades based on trading setup</p>
-          <div className="h-80">
-            <Bar
-              options={{
-                ...chartOptions,
-                indexAxis: 'y',
-                plugins: {
-                  legend: {
-                    display: false,
-                  },
-                  tooltip: {
-                    callbacks: {
-                      label: (context) => {
-                        const stat = setupStats[context.dataIndex];
-                        const dataset = context.dataset;
-                        if (dataset.label === 'Wins') {
-                          return `Wins: ${stat.wins} (${stat.beWins} BE)`;
-                        }
-                        if (dataset.label === 'Losses') {
-                          return `Losses: ${stat.losses} (${stat.beLosses} BE)`;
-                        }
-                        if (dataset.label === 'Win Rate') {
-                          return `Win Rate: ${stat.winRate.toFixed(2)}% (${stat.winRateWithBE.toFixed(2)}% with BE)`;
-                        }
-                        return `${dataset.label}: ${context.parsed.x}`;
-                      }
-                    }
-                  }
-                },
-                scales: {
-                  x: {
-                    stacked: false,
-                    grid: {
-                      display: false,
-                    },
-                    ticks: {
-                      display: false
-                    }
-                  },
-                  y: {
-                    stacked: false,
-                    grid: {
-                      display: false,
-                    },
-                    ticks: {
-                      color: 'rgb(41, 37, 36)' // stone-800
-                    }
-                  },
-                },
-              }}
-              data={{
-                labels: setupStats.map(stat => `${stat.setup} (${stat.wins + stat.losses})`),
-                datasets: [
-                  {
-                    label: 'Wins',
-                    data: setupStats.map(stat => stat.wins),
-                    backgroundColor: 'rgba(134, 239, 172, 0.8)', // green-300
-                    borderColor: 'rgb(134, 239, 172)', // green-300
-                    borderWidth: 0,
-                    borderRadius: 4,
-                    barPercentage: 0.8,
-                    categoryPercentage: 0.8,
-                  },
-                  {
-                    label: 'Losses',
-                    data: setupStats.map(stat => stat.losses),
-                    backgroundColor: 'rgba(231, 229, 228, 0.8)', // stone-200
-                    borderColor: 'rgb(231, 229, 228)', // stone-200
-                    borderWidth: 0,
-                    borderRadius: 4,
-                    barPercentage: 0.8,
-                    categoryPercentage: 0.8,
-                  },
-                  {
-                    label: 'Win Rate',
-                    data: setupStats.map(stat => stat.winRate),
                     backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
                     borderColor: 'rgb(253, 230, 138)', // amber-200
                     borderWidth: 0,
