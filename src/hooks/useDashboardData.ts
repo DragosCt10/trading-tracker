@@ -151,6 +151,7 @@ export function useDashboardData({
   const [newsStats, setNewsStats] = useState<NewsStats[]>([]);
   const [dayStats, setDayStats] = useState<DayStats[]>([]);
   const [marketStats, setMarketStats] = useState<MarketStats[]>([]);
+  const [marketAllTradesStats, setMarketAllTradesStats] = useState<MarketStats[]>([]);
   const [slSizeStats, setSlSizeStats] = useState<SLSizeStats[]>([]);
   const [macroStats, setMacroStats] = useState({
     profitFactor: 0,
@@ -259,12 +260,16 @@ export function useDashboardData({
         activeAccount.account_balance
       );
 
+      const marketStats = calculateMarketStats(allTrades, activeAccount.account_balance);
+      
       setMonthlyStatsAllTrades(monthlyData);
       setMonthlyStats({ bestMonth, worstMonth, monthlyData });
+      setMarketAllTradesStats(marketStats);
     } else {
       // handle empty state
       setMonthlyStatsAllTrades({});
       setMonthlyStats({ bestMonth: null, worstMonth: null, monthlyData: {} });
+      setMarketAllTradesStats([]);
     }
   }, [allTrades.length, selectedYear, activeAccount?.account_balance]);
 
@@ -300,7 +305,7 @@ export function useDashboardData({
 
   // Example in your hook:
   useEffect(() => {
-    if (filteredTrades.length > 0) {
+    if (filteredTrades.length > 0 && activeAccount?.account_balance != null) {
       setLiquidityStats(calculateLiquidityStats(filteredTrades));
       setSetupStats(calculateSetupStats(filteredTrades));
       setDirectionStats(calculateDirectionStats(filteredTrades));
@@ -312,9 +317,9 @@ export function useDashboardData({
       setMssStats(calculateMssStats(filteredTrades));
       setNewsStats(calculateNewsStats(filteredTrades));
       setDayStats(calculateDayStats(filteredTrades));
-      setMarketStats(calculateMarketStats(filteredTrades));
+      setMarketStats(calculateMarketStats(filteredTrades, activeAccount.account_balance));
     }
-  }, [filteredTrades]);
+  }, [filteredTrades, activeAccount?.account_balance]);
 
 
   return {
@@ -338,6 +343,7 @@ export function useDashboardData({
     newsStats,
     dayStats,
     marketStats,
+    marketAllTradesStats,
     slSizeStats,
     macroStats,
     evaluationStats,
