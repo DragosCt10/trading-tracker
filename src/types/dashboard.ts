@@ -54,6 +54,8 @@ export interface DayStats extends BaseStats {
 
 export interface MarketStats extends BaseStats {
   market: string;
+  profit: number;
+  pnlPercentage: number;
 }
 
 export interface EvaluationStats extends BaseStats {
