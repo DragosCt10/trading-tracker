@@ -301,7 +301,8 @@ export function calculateMarketStats(trades: Trade[], accountBalance: number): M
     .map(g => {
       const marketTrades = trades.filter(t => (t.market || 'Unknown') === g.type);
       const profit = marketTrades.reduce((sum, trade) => {
-        if (trade.calculated_profit) {
+        // Only include profit from wins and losses, excluding break-even trades
+        if (trade.calculated_profit && !trade.break_even) {
           return sum + trade.calculated_profit;
         }
         return sum;
@@ -316,6 +317,8 @@ export function calculateMarketStats(trades: Trade[], accountBalance: number): M
         winRateWithBE: g.winRateWithBE,
         beWins: g.beWins,
         beLosses: g.beLosses,
+        nonBeWins: g.wins - g.beWins,
+        nonBeLosses: g.losses - g.beLosses,
         profit,
         pnlPercentage
       };
