@@ -1094,9 +1094,15 @@ export default function Dashboard() {
                 const tradeDate = new Date(trade.trade_date);
                 return format(tradeDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
               });
-              const dayStats = getDayStats(dayTrades);
+              
+              // Filter out BE trades for profit calculation
+              const nonBETrades = dayTrades.filter(trade => !trade.break_even);
+              const dayStats = getDayStats(nonBETrades);
               const beTrades = dayTrades.filter(trade => trade.break_even);
               const hasBE = beTrades.length > 0;
+
+              // Get BE trade outcome for coloring
+              const beOutcome = beTrades.length > 0 ? beTrades[0].trade_outcome : null;
 
               return (
                 <div
@@ -1106,7 +1112,11 @@ export default function Dashboard() {
                       ? 'bg-green-100/50 border-green-200 hover:bg-green-100' 
                       : dayStats.totalProfit < 0 
                       ? 'bg-red-100/50 border-red-200 hover:bg-red-100'
-                      : 'bg-stone-50 border-stone-200 hover:bg-stone-100'
+                      : hasBE && beOutcome === 'Win'
+                        ? 'bg-green-100/50 border-green-200 hover:bg-green-100'
+                        : hasBE && beOutcome === 'Lose'
+                          ? 'bg-red-100/50 border-red-200 hover:bg-red-100'
+                          : 'bg-stone-50 border-stone-200 hover:bg-stone-100'
                   }`}
                 >
                   <div className="text-sm font-medium text-stone-800 mb-1">{format(date, 'd')}</div>
@@ -1115,10 +1125,10 @@ export default function Dashboard() {
                       {beTrades.length} BE 
                     </div>
                   )}
-                  {dayStats.totalTrades > 0 && (
+                  {(dayStats.totalTrades > 0 || hasBE) && (
                     <div className="text-xs space-y-1">
                       <div className="font-medium text-stone-700">
-                        {dayStats.totalTrades} trade{dayStats.totalTrades !== 1 ? 's' : ''}
+                        {dayStats.totalTrades + beTrades.length} trade{(dayStats.totalTrades + beTrades.length) !== 1 ? 's' : ''}
                       </div>
                       <div className={`font-semibold ${
                         dayStats.totalProfit >= 0 ? 'text-green-700' : 'text-red-700'
