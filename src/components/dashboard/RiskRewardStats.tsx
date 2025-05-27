@@ -8,6 +8,9 @@ interface RiskRewardStatsProps {
 }
 
 export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
+  // Get unique markets from trades
+  const uniqueMarkets = Array.from(new Set(trades.map(trade => trade.market)));
+
   // Extract unique risk:reward ratios from trades and sort them
   const getUniqueRiskRewardRatios = () => {
     const uniqueRatios = Array.from(new Set(trades.map(trade => trade.risk_reward_ratio_long)))
@@ -20,26 +23,27 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
 
   const uniqueRiskRewardRatios = getUniqueRiskRewardRatios();
 
-  // Calculate the distribution of trades by risk:reward ratio
+  // Calculate the distribution of trades by risk:reward ratio for each market
   const calculateDistribution = () => {
-    return uniqueRiskRewardRatios.map(ratio => {
-      const tradesWithRatio = trades.filter(trade => trade.risk_reward_ratio_long === ratio);
-      const percentage = trades.length > 0 ? (tradesWithRatio.length / trades.length) * 100 : 0;
-      return Number(percentage.toFixed(1)); // Round to 1 decimal place
+    return uniqueMarkets.map(market => {
+      const marketTrades = trades.filter(trade => trade.market === market);
+      return uniqueRiskRewardRatios.map(ratio => {
+        const tradesWithRatio = marketTrades.filter(trade => trade.risk_reward_ratio_long === ratio);
+        const percentage = marketTrades.length > 0 ? (tradesWithRatio.length / marketTrades.length) * 100 : 0;
+        return Number(percentage.toFixed(1)); // Round to 1 decimal place
+      });
     });
   };
 
   const riskRewardData = {
     labels: uniqueRiskRewardRatios.map(ratio => ratio.toString()),
-    datasets: [
-      {
-        label: 'Risk/Reward Ratio',
-        data: calculateDistribution(),
-        backgroundColor: 'rgba(231, 229, 228, 0.8)', // stone-200
-        borderRadius: 6,
-        barThickness: 15, // Make bars thinner
-      },
-    ],
+    datasets: uniqueMarkets.map((market, index) => ({
+      label: market,
+      data: calculateDistribution()[index],
+      backgroundColor: `rgba(${index * 50}, ${200 - index * 30}, ${150 + index * 20}, 0.8)`,
+      borderRadius: 6,
+      barThickness: 15, // Make bars thinner
+    })),
   };
 
   const options = {
@@ -48,13 +52,14 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false,
+        display: true,
+        position: 'top' as const,
       },
       tooltip: {
         callbacks: {
           label: function(context: any) {
             const trades = context.dataset.data[context.dataIndex];
-            return `${trades}% of trades`;
+            return `${context.dataset.label}: ${trades}% of trades`;
           }
         }
       }
@@ -85,7 +90,7 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
   return (
     <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
       <h2 className="text-lg font-bold text-stone-900 mb-1">Potential Risk/Reward Ratio Statistics</h2>
-      <p className="text-sm text-stone-500 mb-4">Distribution of trades based on potential risk/reward ratio</p>
+      <p className="text-sm text-stone-500 mb-4">Distribution of trades based on potential risk/reward ratio for each market</p>
       <div className="h-80">
         <Bar data={riskRewardData} options={options} />
       </div>
