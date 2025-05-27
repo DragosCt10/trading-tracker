@@ -1135,15 +1135,21 @@ export default function Dashboard() {
                 );
               }
 
+              // First filter trades by date
               const dayTrades = calendarMonthTrades.filter(trade => {
                 const tradeDate = new Date(trade.trade_date);
                 return format(tradeDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
               });
+
+              // Then filter by selected market
+              const filteredDayTrades = selectedMarket === 'all' 
+                ? dayTrades 
+                : dayTrades.filter(trade => trade.market === selectedMarket);
               
               // Filter out BE trades for profit calculation
-              const nonBETrades = dayTrades.filter(trade => !trade.break_even);
+              const nonBETrades = filteredDayTrades.filter(trade => !trade.break_even);
               const dayStats = getDayStats(nonBETrades);
-              const beTrades = dayTrades.filter(trade => trade.break_even);
+              const beTrades = filteredDayTrades.filter(trade => trade.break_even);
               const hasBE = beTrades.length > 0;
 
               // Get BE trade outcome for coloring
@@ -1182,10 +1188,10 @@ export default function Dashboard() {
                       </div>
                     </div>
                   )}
-                  {dayTrades.length > 0 && (
+                  {filteredDayTrades.length > 0 && (
                     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                       <div className="text-xs space-y-1">
-                        {dayTrades.map((trade, i) => (
+                        {filteredDayTrades.map((trade, i) => (
                           <div key={i} className="flex justify-between items-center">
                             <span className="font-medium">{trade.market}</span>
                             <span className={`font-semibold ${
