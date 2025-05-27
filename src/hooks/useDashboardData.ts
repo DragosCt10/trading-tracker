@@ -174,30 +174,66 @@ export function useDashboardData({
       const supabase = createClient();
       const startDate = `${selectedYear}-01-01`;
       const endDate = `${selectedYear}-12-31`;
+      const limit = 500; // Initial batch size
+      let offset = 0;
+      let allTrades: Trade[] = [];
+      let totalCount = 0;
     
       try {
-        const { data: trades, error } = await supabase
+        // First query to get total count and initial batch
+        const initialQuery = supabase
           .from(`${mode}_trades`)
-          .select('*')
+          .select('*', { count: 'exact' })
           .eq('user_id', session.user.id)
           .eq('account_id', activeAccount.id)
           .gte('trade_date', startDate)
           .lte('trade_date', endDate)
-          .order('trade_date', { ascending: false });
+          .order('trade_date', { ascending: false })
+          .range(offset, offset + limit - 1);
 
-        if (error) {
-          console.error('Supabase error:', error);
-          throw error;
+        const { data: initialData, error: initialError, count } = await initialQuery;
+
+        if (initialError) {
+          console.error('Supabase error:', initialError);
+          throw initialError;
         }
 
-        if (!trades) {
-          console.log('No trades found');
-          return [];
+        totalCount = count || 0;
+        allTrades = initialData || [];
+
+        // Start background fetch of remaining data
+        if (totalCount > limit) {
+          offset += limit;
+          const fetchRemainingData = async () => {
+            while (offset < totalCount) {
+              const { data: moreData, error: fetchError } = await supabase
+                .from(`${mode}_trades`)
+                .select('*')
+                .eq('user_id', session.user.id)
+                .eq('account_id', activeAccount.id)
+                .gte('trade_date', startDate)
+                .lte('trade_date', endDate)
+                .order('trade_date', { ascending: false })
+                .range(offset, offset + limit - 1);
+
+              if (fetchError) {
+                console.error('Error fetching more data:', fetchError);
+                break;
+              }
+
+              allTrades = allTrades.concat(moreData || []);
+              offset += limit;
+            }
+          };
+
+          // Start background fetch without awaiting
+          fetchRemainingData();
         }
+
         // Transform Supabase data to match Trade type
-        return trades.map(trade => mapSupabaseTradeToTrade(trade, mode));
+        return allTrades.map(trade => mapSupabaseTradeToTrade(trade, mode));
       } catch (error) {
-        console.error('Error in fetchTradessssss:', error);
+        console.error('Error in fetchTrades:', error);
         return [];
       }
     },
@@ -213,28 +249,64 @@ export function useDashboardData({
       if (!session?.user?.id || !activeAccount?.id) return [];
       
       const supabase = createClient();
+      const limit = 500; // Initial batch size
+      let offset = 0;
+      let allTrades: Trade[] = [];
+      let totalCount = 0;
       
       try {
-        const { data: trades, error } = await supabase
+        // First query to get total count and initial batch
+        const initialQuery = supabase
           .from(`${mode}_trades`)
-          .select('*')
+          .select('*', { count: 'exact' })
           .eq('user_id', session.user.id)
           .eq('account_id', activeAccount.id)
           .gte('trade_date', dateRange.startDate)
           .lte('trade_date', dateRange.endDate)
-          .order('trade_date', { ascending: false });
+          .order('trade_date', { ascending: false })
+          .range(offset, offset + limit - 1);
 
-        if (error) {
-          console.error('Supabase error:', error);
-          throw error;
+        const { data: initialData, error: initialError, count } = await initialQuery;
+
+        if (initialError) {
+          console.error('Supabase error:', initialError);
+          throw initialError;
         }
 
-        if (!trades) {
-          console.log('No trades found');
-          return [];
+        totalCount = count || 0;
+        allTrades = initialData || [];
+
+        // Start background fetch of remaining data
+        if (totalCount > limit) {
+          offset += limit;
+          const fetchRemainingData = async () => {
+            while (offset < totalCount) {
+              const { data: moreData, error: fetchError } = await supabase
+                .from(`${mode}_trades`)
+                .select('*')
+                .eq('user_id', session.user.id)
+                .eq('account_id', activeAccount.id)
+                .gte('trade_date', dateRange.startDate)
+                .lte('trade_date', dateRange.endDate)
+                .order('trade_date', { ascending: false })
+                .range(offset, offset + limit - 1);
+
+              if (fetchError) {
+                console.error('Error fetching more data:', fetchError);
+                break;
+              }
+
+              allTrades = allTrades.concat(moreData || []);
+              offset += limit;
+            }
+          };
+
+          // Start background fetch without awaiting
+          fetchRemainingData();
         }
+
         // Transform Supabase data to match Trade type
-        return trades.map(trade => mapSupabaseTradeToTrade(trade, mode));
+        return allTrades.map(trade => mapSupabaseTradeToTrade(trade, mode));
       } catch (error) {
         console.error('Error in fetchTrades:', error);
         return [];
