@@ -143,6 +143,7 @@ export default function Dashboard() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
+  const [selectedMarket, setSelectedMarket] = useState<string>('all');
 
   // Close picker on outside click
   useEffect(() => {
@@ -193,8 +194,31 @@ export default function Dashboard() {
     }
   };
 
-  const { 
-    calendarMonthTrades, allTradesLoading, stats, macroStats, monthlyStats, monthlyStatsAllTrades, localHLStats, setupStats, liquidityStats, directionStats, reentryStats, breakEvenStats, mssStats, newsStats, dayStats, marketStats, marketAllTradesStats, slSizeStats, intervalStats, allTrades, filteredTrades, filteredTradesLoading, evaluationStats
+  const {
+    calendarMonthTrades,
+    allTrades,
+    filteredTrades,
+    filteredTradesLoading,
+    allTradesLoading,
+    isLoadingTrades,
+    stats,
+    monthlyStats,
+    monthlyStatsAllTrades,
+    localHLStats,
+    setupStats,
+    liquidityStats,
+    directionStats,
+    reentryStats,
+    breakEvenStats,
+    intervalStats,
+    mssStats,
+    newsStats,
+    dayStats,
+    marketStats,
+    marketAllTradesStats,
+    slSizeStats,
+    macroStats,
+    evaluationStats,
   } = useDashboardData({
     session: userData?.session,
     dateRange,
@@ -204,7 +228,8 @@ export default function Dashboard() {
     isSessionLoading: userLoading,
     currentDate,
     calendarDateRange,
-    selectedYear, // Add selected year to the hook    
+    selectedYear,
+    selectedMarket,
   });
 
   // Check session status
@@ -874,7 +899,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="font-semibold text-stone-700">Filters:</span>
+            <span className="font-semibold text-stone-700 text-sm">Filter by period:</span>
             <div className="flex flex-wrap gap-2">
               <button
                 className={`inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md ${
@@ -918,41 +943,61 @@ export default function Dashboard() {
               </button>
             </div>
           </div>
-          <button
-            onClick={async () => {
-              const analysisData: TradingAnalysisRequest = { 
-                startDate: dateRange.startDate,
-                endDate: dateRange.endDate,
-                accountBalance: activeAccount?.account_balance || 0,
-                totalTrades: stats.totalTrades,
-                totalWins: stats.totalWins,
-                totalLosses: stats.totalLosses,
-                winRate: stats.winRate,
-                winRateWithBE: stats.winRateWithBE,
-                totalProfit: stats.totalProfit,
-                averageProfit: stats.averageProfit,
-                maxDrawdown: stats.maxDrawdown,
-                averagePnLPercentage: stats.averagePnLPercentage,
-                profitFactor: macroStats.profitFactor,
-                consistencyScore: macroStats.consistencyScore,
-                consistencyScoreWithBE: macroStats.consistencyScoreWithBE,
-                sharpeWithBE: macroStats.sharpeWithBE
-              };
+          <div className="flex items-center gap-4 ml-auto">
+            <span className="font-semibold text-stone-700 text-sm">Filter by Market:</span>
+            <div className="relative">
+              <select
+                value={selectedMarket}
+                onChange={(e) => setSelectedMarket(e.target.value)}
+                className="aria-disabled:cursor-not-allowed w-40 appearance-none outline-none cursor-pointer focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+              >
+                <option value="all">All Markets</option>
+                {Array.from(new Set(filteredTrades.map(trade => trade.market))).map(market => (
+                  <option key={market} value={market}>{market}</option>
+                ))}
+              </select>
+              <span className="pointer-events-none absolute top-1/2 -translate-y-1/2 right-2.5 text-stone-600/70 peer-focus:text-stone-800 peer-focus:text-stone-800 dark:peer-hover:text-white dark:peer-focus:text-white transition-all duration-300 ease-in overflow-hidden w-5 h-5">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4 mt-0.5 text-stone-800">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </span>
+            </div>
+            <button
+              onClick={async () => {
+                const analysisData: TradingAnalysisRequest = { 
+                  startDate: dateRange.startDate,
+                  endDate: dateRange.endDate,
+                  accountBalance: activeAccount?.account_balance || 0,
+                  totalTrades: stats.totalTrades,
+                  totalWins: stats.totalWins,
+                  totalLosses: stats.totalLosses,
+                  winRate: stats.winRate,
+                  winRateWithBE: stats.winRateWithBE,
+                  totalProfit: stats.totalProfit,
+                  averageProfit: stats.averageProfit,
+                  maxDrawdown: stats.maxDrawdown,
+                  averagePnLPercentage: stats.averagePnLPercentage,
+                  profitFactor: macroStats.profitFactor,
+                  consistencyScore: macroStats.consistencyScore,
+                  consistencyScoreWithBE: macroStats.consistencyScoreWithBE,
+                  sharpeWithBE: macroStats.sharpeWithBE
+                };
 
-              try {
-                setOpenAnalyzeModal(true);
-                setAnalysisResults(''); // Reset
-                await analyzeTradingData(analysisData, (partial) => {
-                  setAnalysisResults(partial);
-                });
-              } catch (error) {
-                setAnalysisResults('Error generating analysis. Please try again.');
-              }
-            }}
-            className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
-          >
-            Analyze Trading Performance
-          </button>
+                try {
+                  setOpenAnalyzeModal(true);
+                  setAnalysisResults(''); // Reset
+                  await analyzeTradingData(analysisData, (partial) => {
+                    setAnalysisResults(partial);
+                  });
+                } catch (error) {
+                  setAnalysisResults('Error generating analysis. Please try again.');
+                }
+              }}
+              className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
+            >
+              Analyze Trading Performance
+            </button>
+          </div>
         </div>
       </div>
 
