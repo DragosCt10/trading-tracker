@@ -91,6 +91,7 @@ export function useDashboardData({
   currentDate,
   calendarDateRange,
   selectedYear,
+  selectedMarket,
 }: {
   session: any;
   dateRange: { startDate: string; endDate: string };
@@ -101,6 +102,7 @@ export function useDashboardData({
   currentDate: Date;
   calendarDateRange: { startDate: string; endDate: string };
   selectedYear: number;
+  selectedMarket: string;
 }) {
   const { data: user, isLoading: userLoading, error } = useUserDetails();
   const [stats, setStats] = useState<Stats>({
@@ -287,45 +289,50 @@ export function useDashboardData({
   }, [allTrades.length, activeAccount?.account_balance]);
 
   
+  // Filter trades based on selected market
+  const filteredTradesByMarket = useMemo(() => {
+    if (selectedMarket === 'all') return filteredTrades;
+    return filteredTrades.filter(trade => trade.market === selectedMarket);
+  }, [filteredTrades, selectedMarket]);
+
+  // Use filteredTradesByMarket instead of filteredTrades in all the calculations
   useEffect(() => {
-    if (filteredTrades && filteredTrades.length > 0 && activeAccount?.account_balance != null) {
-      const { winRate, winRateWithBE } = calculateWinRates(filteredTrades);
+    if (filteredTradesByMarket && filteredTradesByMarket.length > 0 && activeAccount?.account_balance != null) {
+      const { winRate, winRateWithBE } = calculateWinRates(filteredTradesByMarket);
       const { totalProfit, averageProfit, averagePnLPercentage, maxDrawdown } = calculateProfit(
-        filteredTrades,
+        filteredTradesByMarket,
         activeAccount.account_balance
       );
-      const { totalTrades, totalWins, totalLosses, beWins, beLosses } = calculateTradeCounts(filteredTrades); 
-      const evaluationStats = calculateEvaluationStats(filteredTrades);
+      const { totalTrades, totalWins, totalLosses, beWins, beLosses } = calculateTradeCounts(filteredTradesByMarket); 
+      const evaluationStats = calculateEvaluationStats(filteredTradesByMarket);
       setEvaluationStats(evaluationStats);
 
-      // e.g. put them in state:
       setStats(prev => ({ ...prev, winRate, winRateWithBE, totalProfit, averageProfit, averagePnLPercentage, maxDrawdown, totalTrades, totalWins, totalLosses, beWins, beLosses }));
     }
-  }, [filteredTrades]);
+  }, [filteredTradesByMarket]);
 
-  // Example in your hook:
   useEffect(() => {
-    if (filteredTrades.length > 0 && activeAccount?.account_balance != null) {
-      setLiquidityStats(calculateLiquidityStats(filteredTrades));
-      setSetupStats(calculateSetupStats(filteredTrades));
-      setDirectionStats(calculateDirectionStats(filteredTrades));
-      setLocalHLStats(calculateLocalHLStats(filteredTrades));
-      setIntervalStats(calculateIntervalStats(filteredTrades, TIME_INTERVALS));
-      setSlSizeStats(calculateSLSizeStats(filteredTrades)); 
-      setReentryStats(calculateReentryStats(filteredTrades));
-      setBreakEvenStats(calculateBreakEvenStats(filteredTrades));
-      setMssStats(calculateMssStats(filteredTrades));
-      setNewsStats(calculateNewsStats(filteredTrades));
-      setDayStats(calculateDayStats(filteredTrades));
-      setMarketStats(calculateMarketStats(filteredTrades, activeAccount.account_balance));
+    if (filteredTradesByMarket.length > 0 && activeAccount?.account_balance != null) {
+      setLiquidityStats(calculateLiquidityStats(filteredTradesByMarket));
+      setSetupStats(calculateSetupStats(filteredTradesByMarket));
+      setDirectionStats(calculateDirectionStats(filteredTradesByMarket));
+      setLocalHLStats(calculateLocalHLStats(filteredTradesByMarket));
+      setIntervalStats(calculateIntervalStats(filteredTradesByMarket, TIME_INTERVALS));
+      setSlSizeStats(calculateSLSizeStats(filteredTradesByMarket)); 
+      setReentryStats(calculateReentryStats(filteredTradesByMarket));
+      setBreakEvenStats(calculateBreakEvenStats(filteredTradesByMarket));
+      setMssStats(calculateMssStats(filteredTradesByMarket));
+      setNewsStats(calculateNewsStats(filteredTradesByMarket));
+      setDayStats(calculateDayStats(filteredTradesByMarket));
+      setMarketStats(calculateMarketStats(filteredTradesByMarket, activeAccount.account_balance));
     }
-  }, [filteredTrades, activeAccount?.account_balance]);
+  }, [filteredTradesByMarket, activeAccount?.account_balance]);
 
 
   return {
     calendarMonthTrades,
     allTrades,
-    filteredTrades,
+    filteredTrades: filteredTradesByMarket,
     filteredTradesLoading,
     allTradesLoading,
     isLoadingTrades: allTradesLoading || filteredTradesLoading,
