@@ -52,31 +52,32 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
   const handleInputChange = (field: keyof Trade, value: any) => {
     if (!editedTrade) return;
 
-    // Calculate new P&L percentage when risk or risk/reward ratio changes
+    // Calculate new P&L percentage and calculated_profit when risk, RR, or outcome changes
     if (field === 'risk_per_trade' || field === 'risk_reward_ratio' || field === 'trade_outcome') {
-      const newTrade = {
-        ...editedTrade,
-        [field]: value
-      };
-      
+      // Use the new value for the changed field, and current values for others
+      const newRisk = field === 'risk_per_trade' ? value : editedTrade.risk_per_trade;
+      const newRR = field === 'risk_reward_ratio' ? value : editedTrade.risk_reward_ratio;
+      const newOutcome = field === 'trade_outcome' ? value : editedTrade.trade_outcome;
+
       // Calculate P&L based on risk percentage and outcome
-      const riskAmount = (newTrade.risk_per_trade / 100) * (activeAccount?.account_balance || 0);
-      const riskRewardRatio = newTrade.risk_reward_ratio || 2;
-      
+      const riskAmount = (Number(newRisk) / 100) * (activeAccount?.account_balance || 0);
+      const riskRewardRatio = Number(newRR) || 2;
+
       let calculatedProfit = 0;
-      if (newTrade.trade_outcome === 'Win') {
+      if (newOutcome === 'Win') {
         calculatedProfit = riskAmount * riskRewardRatio;
-      } else if (newTrade.trade_outcome === 'Lose') {
+      } else if (newOutcome === 'Lose') {
         calculatedProfit = -riskAmount;
       }
-      
+
       // Calculate P&L percentage based on the risk amount and RR
-      const pnlPercentage = newTrade.trade_outcome === 'Win' 
-        ? (newTrade.risk_per_trade * riskRewardRatio)
-        : -newTrade.risk_per_trade;
+      const pnlPercentage = newOutcome === 'Win'
+        ? (Number(newRisk) * riskRewardRatio)
+        : -Number(newRisk);
 
       setEditedTrade({
-        ...newTrade,
+        ...editedTrade,
+        [field]: value,
         calculated_profit: calculatedProfit,
         pnl_percentage: pnlPercentage
       });
@@ -126,6 +127,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
           mode: tradingMode,
           notes: editedTrade.notes,
           pnl_percentage: editedTrade.pnl_percentage,
+          calculated_profit: editedTrade.calculated_profit,
           evaluation: editedTrade.evaluation
         })
         .eq('id', editedTrade.id);
@@ -439,6 +441,23 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
                 {renderField('SL Size', 'sl_size', 'number')}
                 {renderField('Liquidity', 'liquidity', 'select', LIQUIDITY_OPTIONS)}
                 {renderField('P&L Percentage', 'pnl_percentage', 'number')}
+                {/* Calculated Profit (read-only) */}
+                {(() => {
+                  if (!editedTrade) return null;
+                  const value = editedTrade.calculated_profit;
+                  const displayValue = typeof value === 'number' ? value.toFixed(2) : value;
+                  return (
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-stone-700">Calculated Profit</label>
+                      <input
+                        type="text"
+                        value={displayValue}
+                        readOnly
+                        className="mt-1 w-full bg-stone-50 border border-stone-200 text-stone-700 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
+                      />
+                    </div>
+                  );
+                })()}
               </dl>
             </div>
 
