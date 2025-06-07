@@ -470,8 +470,12 @@ export default function Dashboard() {
           format(new Date(trade.trade_date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd')
         )
       );
-      const nonBETrades = trades.filter(trade => !trade.break_even);
-      const beTrades = trades.filter(trade => trade.break_even);
+      // Filter by selectedMarket
+      const filteredTrades = selectedMarket === 'all'
+        ? trades
+        : trades.filter(trade => trade.market === selectedMarket);
+      const nonBETrades = filteredTrades.filter(trade => !trade.break_even);
+      const beTrades = filteredTrades.filter(trade => trade.break_even);
       const totalProfit = nonBETrades.reduce((sum, trade) => sum + (trade.calculated_profit || 0), 0);
       const wins = nonBETrades.filter(trade => trade.trade_outcome === 'Win').length;
       const losses = nonBETrades.filter(trade => trade.trade_outcome === 'Lose').length;
