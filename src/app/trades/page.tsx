@@ -462,6 +462,9 @@ export default function TradesPage() {
                     }`}>
                       {trade.trade_outcome}
                     </span>
+                    {trade.break_even && (
+                        <span className="ml-1 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-stone-200 text-stone-800">BE</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{trade.risk_per_trade}%</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
