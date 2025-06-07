@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, subDays, startOfYear, endOfYear } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, subDays, startOfYear, endOfYear, startOfWeek, endOfWeek, isSameMonth, addDays } from 'date-fns';
 import { Trade } from '@/types/trade';
 import { useTradingMode } from '@/context/TradingModeContext';
 import {
@@ -439,6 +439,51 @@ export default function Dashboard() {
       </div>
       </DashboardLayout>
     );
+  }
+
+  // Helper: Get 4 fixed week-like ranges for the current month
+  function getFourWeekRanges(date: Date) {
+    const start = startOfMonth(date);
+    const end = endOfMonth(date);
+    const daysInMonth = eachDayOfInterval({ start, end });
+    const totalDays = daysInMonth.length;
+    const ranges = [];
+    // Calculate the size of each "week"
+    const baseSize = Math.floor(totalDays / 4);
+    let remainder = totalDays % 4;
+    let currentIndex = 0;
+    for (let i = 0; i < 4; i++) {
+      let size = baseSize + (remainder > 0 ? 1 : 0);
+      remainder = Math.max(0, remainder - 1);
+      const rangeDays = daysInMonth.slice(currentIndex, currentIndex + size);
+      ranges.push(rangeDays);
+      currentIndex += size;
+    }
+    return ranges;
+  }
+
+  function getFixedWeeklyStats() {
+    const weekRanges = getFourWeekRanges(currentDate);
+    return weekRanges.map((days, idx) => {
+      const trades = days.flatMap(day =>
+        calendarMonthTrades.filter(trade =>
+          format(new Date(trade.trade_date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd')
+        )
+      );
+      const nonBETrades = trades.filter(trade => !trade.break_even);
+      const beTrades = trades.filter(trade => trade.break_even);
+      const totalProfit = nonBETrades.reduce((sum, trade) => sum + (trade.calculated_profit || 0), 0);
+      const wins = nonBETrades.filter(trade => trade.trade_outcome === 'Win').length;
+      const losses = nonBETrades.filter(trade => trade.trade_outcome === 'Lose').length;
+      const beCount = beTrades.length;
+      return {
+        totalProfit,
+        wins,
+        losses,
+        beCount,
+        weekLabel: `${format(days[0], 'd MMM')} - ${format(days[days.length - 1], 'd MMM')}`,
+      };
+    });
   }
 
   return (
@@ -1107,6 +1152,25 @@ export default function Dashboard() {
               </svg>
             </button>
           </div>
+        </div>
+
+        {/* Weekly Summary Cards */}
+        <div className="grid grid-cols-4 gap-4 mb-4">
+          {getFixedWeeklyStats().map((week, idx) => (
+            <div
+              key={idx}
+              className="bg-white border border-stone-200 rounded-lg shadow-sm p-3 flex flex-col items-center"
+            >
+              <div className="text-xs font-semibold text-stone-500 mb-1">{`Week ${idx + 1}`}</div>
+              <div className={`text-lg font-bold ${week.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{getCurrencySymbol()}{week.totalProfit.toFixed(2)}</div>
+              <div className="flex gap-2 text-xs mt-1">
+                <span className="text-green-700 font-semibold">W: {week.wins}</span>
+                <span className="text-red-700 font-semibold">L: {week.losses}</span>
+                <span className="text-stone-700 font-semibold">BE: {week.beCount}</span>
+              </div>
+              <div className="text-[10px] text-stone-400 mt-1">{week.weekLabel}</div>
+            </div>
+          ))}
         </div>
 
         <div className="grid grid-cols-7 gap-1">
