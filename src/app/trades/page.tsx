@@ -46,29 +46,6 @@ export default function TradesPage() {
     endDate: initialEndDate,
   });
 
-
-  // Close picker on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        pickerRef.current &&
-        !pickerRef.current.contains(event.target as Node) &&
-        inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
-      ) {
-        setShowDatePicker(false);
-      }
-    }
-    if (showDatePicker) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showDatePicker]);
-
   // Fetch trades from backend API using React Query
   const {
     data: tradesData,
@@ -104,8 +81,50 @@ export default function TradesPage() {
   const trades = tradesData?.trades || [];
   const totalCount = tradesData?.totalCount || 0;
   const error = queryError instanceof Error ? queryError.message : null;
+  // Market filter state (must be after trades is defined)
+  const [selectedMarket, setSelectedMarket] = useState<string>('all');
+  // Get unique markets from loaded trades
+  const uniqueMarkets = Array.from(new Set(trades.map(trade => trade.market))).filter(Boolean);
+  // Filtered trades by market
+  const filteredTrades = selectedMarket === 'all' ? trades : trades.filter(trade => trade.market === selectedMarket);
 
-  const filteredTrades = trades; // No need to filter in-memory, already filtered by query
+  // Pagination logic
+  let paginatedTrades = filteredTrades;
+  let paginatedTotalCount = totalCount;
+  let paginatedCurrentPage = currentPage;
+  let paginatedTotalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
+  if (selectedMarket !== 'all') {
+    paginatedTotalCount = filteredTrades.length;
+    paginatedTotalPages = Math.ceil(paginatedTotalCount / ITEMS_PER_PAGE);
+    // Clamp current page if needed
+    paginatedCurrentPage = Math.min(currentPage, paginatedTotalPages === 0 ? 1 : paginatedTotalPages);
+    const startIdx = (paginatedCurrentPage - 1) * ITEMS_PER_PAGE;
+    const endIdx = startIdx + ITEMS_PER_PAGE;
+    paginatedTrades = filteredTrades.slice(startIdx, endIdx);
+  }
+
+  // Close picker on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowDatePicker(false);
+      }
+    }
+    if (showDatePicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDatePicker]);
 
   const clearFilters = () => {
     setDateRange({
@@ -113,7 +132,13 @@ export default function TradesPage() {
       endDate: initialEndDate,
     });
     setCurrentPage(1);
+    setSelectedMarket('all');
   };
+
+  // Reset to page 1 when market filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedMarket]);
 
   const openModal = (trade: Trade) => {
     setSelectedTrade(trade);
@@ -138,58 +163,13 @@ export default function TradesPage() {
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   const exportToCSV = async () => {
-    if (!userDetails?.user || !activeAccount?.id) return;
+    // Export only the trades currently visible in the table (paginatedTrades)
+    if (!paginatedTrades || paginatedTrades.length === 0) return;
 
     setExporting(true);
     setExportProgress(0);
 
-    const supabase = (await import('@/utils/supabase/client')).createClient();
-    const limit = 500; // Number of items per request
-    let offset = 0;
-    let allTrades: Trade[] = [];
-    let totalFetched = 0;
-    let totalCount = 0;
-
     try {
-      // First request to get total count
-      const initialQuery = supabase
-        .from(`${mode}_trades`)
-        .select('*', { count: 'exact' })
-        .eq('user_id', userDetails.user.id)
-        .eq('account_id', activeAccount.id)
-        .gte('trade_date', dateRange.startDate)
-        .lte('trade_date', dateRange.endDate)
-        .order('trade_date', { ascending: false })
-        .range(offset, offset + limit - 1);
-
-      const { data: initialData, error: initialError, count } = await initialQuery;
-
-      if (initialError) throw new Error(initialError.message);
-
-      totalCount = count || 0;
-      allTrades = initialData || [];
-      totalFetched = allTrades.length;
-      setExportProgress((totalFetched / totalCount) * 100);
-
-      while (totalFetched < totalCount) {
-        offset += limit;
-        const { data: moreData, error: fetchError } = await supabase
-          .from(`${mode}_trades`)
-          .select('*')
-          .eq('user_id', userDetails.user.id)
-          .eq('account_id', activeAccount.id)
-          .gte('trade_date', dateRange.startDate)
-          .lte('trade_date', dateRange.endDate)
-          .order('trade_date', { ascending: false })
-          .range(offset, offset + limit - 1);
-
-        if (fetchError) throw new Error(fetchError.message);
-
-        allTrades = allTrades.concat(moreData || []);
-        totalFetched = allTrades.length;
-        setExportProgress((totalFetched / totalCount) * 100);
-      }
-
       const headers = [
         'Date', 'Time', 'Day of Week', 'Market', 'Direction', 'Setup', 'Outcome',
         'Risk %', 'Trade Link', 'Liquidity Taken', 'Local High/Low',
@@ -206,7 +186,7 @@ export default function TradesPage() {
 
       const csvContent = [
         headers.map(escapeCSV).join(','),
-        ...allTrades.map((trade: Trade) => [
+        ...paginatedTrades.map((trade: Trade) => [
           trade.trade_date,
           trade.trade_time,
           trade.day_of_week,
@@ -235,7 +215,7 @@ export default function TradesPage() {
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.setAttribute('download', `trades_${dateRange.startDate}_to_${dateRange.endDate}.csv`);
+      link.setAttribute('download', `trades_${dateRange.startDate}_to_${dateRange.endDate}_page${paginatedCurrentPage}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -317,6 +297,22 @@ export default function TradesPage() {
         >
           Add New Trade
         </Link>
+      </div>
+
+      {/* Market Filter Dropdown */}
+      <div className="mb-4 flex items-center gap-2">
+        <label htmlFor="market-filter" className="text-sm font-medium text-stone-700">Filter by Market:</label>
+        <select
+          id="market-filter"
+          value={selectedMarket}
+          onChange={e => setSelectedMarket(e.target.value)}
+          className="w-48 bg-white border border-stone-200 text-stone-800 rounded-lg px-3 py-2 text-sm"
+        >
+          <option value="all">All Markets</option>
+          {uniqueMarkets.map(market => (
+            <option key={market} value={market}>{market}</option>
+          ))}
+        </select>
       </div>
 
       {/* Filters Card */}
@@ -449,7 +445,7 @@ export default function TradesPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-stone-200">
-              {filteredTrades.map((trade: Trade) => (
+              {paginatedTrades.map((trade: Trade) => (
                 <tr key={trade.id} className="hover:bg-stone-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{trade.trade_date}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{trade.trade_time}</td>
@@ -533,23 +529,23 @@ export default function TradesPage() {
       {/* Pagination Controls */}
       <div className="mt-4 flex items-center justify-between">
         <div className="text-sm text-stone-700">
-          Showing <span className="font-medium">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to{' '}
+          Showing <span className="font-medium">{(paginatedCurrentPage - 1) * ITEMS_PER_PAGE + 1}</span> to{' '}
           <span className="font-medium">
-            {Math.min(currentPage * ITEMS_PER_PAGE, totalCount)}
+            {Math.min(paginatedCurrentPage * ITEMS_PER_PAGE, paginatedTotalCount)}
           </span>{' '}
-          of <span className="font-medium">{totalCount}</span> trades
+          of <span className="font-medium">{paginatedTotalCount}</span> trades
         </div>
         <div className="flex space-x-2">
           <button
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
+            disabled={paginatedCurrentPage === 1}
             className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center transition-all ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm bg-transparent relative text-stone-700 hover:text-stone-700 border-stone-500 hover:bg-transparent duration-150 hover:border-stone-600 rounded-lg hover:opacity-60 hover:shadow-none"
           >
             Previous
           </button>
           <button
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, paginatedTotalPages))}
+            disabled={paginatedCurrentPage === paginatedTotalPages}
             className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
           >
             Next
