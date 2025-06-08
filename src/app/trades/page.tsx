@@ -48,46 +48,14 @@ export default function TradesPage() {
     endDate: initialEndDate,
   });
 
-  // Backend paginated query (for all markets)
-  const {
-    data: tradesData,
-    isLoading: loading,
-    error: queryError,
-    refetch: refreshTrades
-  } = useQuery({
-    queryKey: ['trades', mode, activeAccount?.id, currentPage, dateRange.startDate, dateRange.endDate, userDetails?.user?.id],
-    queryFn: async () => {
-      if (!userDetails?.user || !activeAccount?.id) {
-        throw new Error('User not authenticated or no active account');
-      }
-      const supabase = (await import('@/utils/supabase/client')).createClient();
-      let query = supabase
-        .from(`${mode}_trades`)
-        .select('*', { count: 'exact' })
-        .eq('user_id', userDetails.user.id)
-        .eq('account_id', activeAccount.id);
-      if (dateRange.startDate) query = query.gte('trade_date', dateRange.startDate);
-      if (dateRange.endDate) query = query.lte('trade_date', dateRange.endDate);
-      query = query.order('trade_date', { ascending: false })
-        .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
-      const { data, error, count } = await query;
-      if (error) throw new Error(error.message);
-      return {
-        trades: data || [],
-        totalCount: count || 0
-      };
-    },
-    enabled: !modeLoading && !userLoading && !!activeAccount?.id && !!userDetails?.user && selectedMarket === 'all'
-  });
-
-  // Fetch all trades for the date range (for client-side filtering)
+  // Single query: always fetch all trades for the date range (no backend pagination)
   const {
     data: allTradesData,
     isLoading: allTradesLoading,
     error: allTradesError,
     refetch: refetchAllTrades
   } = useQuery({
-    queryKey: ['allTradesForMarket', mode, activeAccount?.id, dateRange.startDate, dateRange.endDate, userDetails?.user?.id],
+    queryKey: ['allTrades', mode, activeAccount?.id, dateRange.startDate, dateRange.endDate, userDetails?.user?.id],
     queryFn: async () => {
       if (!userDetails?.user || !activeAccount?.id) {
         throw new Error('User not authenticated or no active account');
@@ -105,38 +73,22 @@ export default function TradesPage() {
       if (error) throw new Error(error.message);
       return data || [];
     },
-    enabled: !modeLoading && !userLoading && !!activeAccount?.id && !!userDetails?.user && selectedMarket !== 'all'
+    enabled: !modeLoading && !userLoading && !!activeAccount?.id && !!userDetails?.user
   });
 
-  const trades = tradesData?.trades || [];
-  const totalCount = tradesData?.totalCount || 0;
-  const error = queryError instanceof Error ? queryError.message : null;
   // Market options (from all trades loaded for dropdown)
-  const tradesForMarketDropdown = selectedMarket === 'all' ? (tradesData?.trades || []) : (allTradesData || []);
+  const tradesForMarketDropdown = allTradesData || [];
   const uniqueMarkets = Array.from(new Set(tradesForMarketDropdown.map(trade => trade.market))).filter(Boolean);
-  // Filtered trades by market
-  const filteredTrades = selectedMarket === 'all' ? trades : trades.filter(trade => trade.market === selectedMarket);
 
-  // Table data and pagination logic
-  let paginatedTrades: Trade[] = [];
-  let paginatedTotalCount = 0;
-  let paginatedCurrentPage = currentPage;
-  let paginatedTotalPages = 1;
-
-  if (selectedMarket === 'all') {
-    paginatedTrades = trades;
-    paginatedTotalCount = tradesData?.totalCount || 0;
-    paginatedTotalPages = Math.ceil(paginatedTotalCount / ITEMS_PER_PAGE);
-  } else {
-    const allTrades = allTradesData || [];
-    const filteredTrades = allTrades.filter(trade => trade.market === selectedMarket);
-    paginatedTotalCount = filteredTrades.length;
-    paginatedTotalPages = Math.ceil(paginatedTotalCount / ITEMS_PER_PAGE);
-    paginatedCurrentPage = Math.min(currentPage, paginatedTotalPages === 0 ? 1 : paginatedTotalPages);
-    const startIdx = (paginatedCurrentPage - 1) * ITEMS_PER_PAGE;
-    const endIdx = startIdx + ITEMS_PER_PAGE;
-    paginatedTrades = filteredTrades.slice(startIdx, endIdx);
-  }
+  // Table data and pagination logic (always client-side)
+  const allTrades = allTradesData || [];
+  const filteredTrades = selectedMarket === 'all' ? allTrades : allTrades.filter(trade => trade.market === selectedMarket);
+  const paginatedTotalCount = filteredTrades.length;
+  const paginatedTotalPages = Math.ceil(paginatedTotalCount / ITEMS_PER_PAGE);
+  const paginatedCurrentPage = Math.min(currentPage, paginatedTotalPages === 0 ? 1 : paginatedTotalPages);
+  const startIdx = (paginatedCurrentPage - 1) * ITEMS_PER_PAGE;
+  const endIdx = startIdx + ITEMS_PER_PAGE;
+  const paginatedTrades = filteredTrades.slice(startIdx, endIdx);
 
   // Close picker on outside click
   useEffect(() => {
@@ -172,9 +124,6 @@ export default function TradesPage() {
   // Reset to page 1 when market filter changes
   useEffect(() => {
     setCurrentPage(1);
-    if (selectedMarket !== 'all') {
-      refetchAllTrades();
-    }
   }, [selectedMarket]);
 
   const openModal = (trade: Trade) => {
@@ -197,7 +146,7 @@ export default function TradesPage() {
     setSelectedNotes('');
   };
 
-  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(paginatedTotalCount / ITEMS_PER_PAGE);
 
   const exportToCSV = async () => {
     // Export only the trades currently visible in the table (paginatedTrades)
@@ -264,9 +213,7 @@ export default function TradesPage() {
     }
   };
 
-
-
-  if (modeLoading || loading || userLoading) {
+  if (modeLoading || allTradesLoading || userLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div role="status">
@@ -451,7 +398,7 @@ export default function TradesPage() {
 
         {exporting && (
           <div className="w-5/12 mx-auto mt-4">
-            <div className="text-sm text-stone-600 mb-1">Exporting {totalCount} trades ...({Math.round(exportProgress)}%)</div>
+            <div className="text-sm text-stone-600 mb-1">Exporting {paginatedTotalCount} trades ...({Math.round(exportProgress)}%)</div>
             <div className="w-full h-2 bg-stone-200 rounded-full overflow-hidden">
               <div
                 className="h-full bg-stone-800 transition-all duration-300"
@@ -596,7 +543,7 @@ export default function TradesPage() {
           isOpen={isModalOpen}
           onClose={closeModal}
           trade={selectedTrade}
-          onTradeUpdated={() => refreshTrades()}
+          onTradeUpdated={() => refetchAllTrades()}
         />
       )}
 
