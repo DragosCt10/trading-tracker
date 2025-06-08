@@ -1172,6 +1172,7 @@ export default function Dashboard() {
                 <span className="text-red-700 font-semibold">L: {week.losses}</span>
                 <span className="text-stone-700 font-semibold">BE: {week.beCount}</span>
               </div>
+              <span className="text-stone-700 font-semibold text-xs mt-1.5">P&L: {((week.totalProfit / (activeAccount?.account_balance || 1)) * 100).toFixed(2)}%</span>
               <div className="text-[10px] text-stone-400 mt-1">{week.weekLabel}</div>
             </div>
           ))}
@@ -1223,6 +1224,11 @@ export default function Dashboard() {
               // Get BE trade outcome for coloring
               const beOutcome = beTrades.length > 0 ? beTrades[0].trade_outcome : null;
 
+              // Calculate total P&L percentage for the day (excluding BE trades)
+              const totalPnLPercentage = nonBETrades.reduce((sum, trade) => {
+                return sum + (trade.pnl_percentage || 0);
+              }, 0);
+
               return (
                 <div
                   key={date.toString()}
@@ -1257,22 +1263,29 @@ export default function Dashboard() {
                     </div>
                   )}
                   {filteredDayTrades.length > 0 && (
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                      <div className="text-xs space-y-1">
-                        {filteredDayTrades.map((trade, i) => (
-                          <div key={i} className="flex justify-between items-center">
-                            <span className="font-medium">{trade.market}</span>
-                            <span className={`font-semibold ${
-                              trade.calculated_profit && trade.calculated_profit >= 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {trade.calculated_profit && trade.calculated_profit >= 0 ? 'W' : 'L'}
-                              {trade.break_even && ' (BE)'}
-                              {trade.pnl_percentage && ` (${trade.pnl_percentage.toFixed(2)}%)`}
-                            </span>
-                          </div>
-                        ))}
+                    <>
+                      <div className="absolute bottom-2.5 right-1 text-xs font-semibold">
+                        <span className={totalPnLPercentage >= 0 ? 'text-green-700' : 'text-red-700'}>
+                          {totalPnLPercentage >= 0 ? '+' : ''}{totalPnLPercentage.toFixed(2)}%
+                        </span>
                       </div>
-                    </div>
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                        <div className="text-xs space-y-1">
+                          {filteredDayTrades.map((trade, i) => (
+                            <div key={i} className="flex justify-between items-center">
+                              <span className="font-medium">{trade.market}</span>
+                              <span className={`font-semibold ${
+                                trade.calculated_profit && trade.calculated_profit >= 0 ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                {trade.calculated_profit && trade.calculated_profit >= 0 ? 'W' : 'L'}
+                                {trade.break_even && ' (BE)'}
+                                {!trade.break_even && trade.pnl_percentage && ` (${trade.pnl_percentage.toFixed(2)}%)`}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
               );
