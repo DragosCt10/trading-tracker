@@ -301,8 +301,12 @@ export function calculateMarketStats(trades: Trade[], accountBalance: number): M
     .map(g => {
       const marketTrades = trades.filter(t => (t.market || 'Unknown') === g.type);
       const profit = marketTrades.reduce((sum, trade) => {
-        // Only include profit from wins and losses, excluding break-even trades
-        if (trade.calculated_profit && !trade.break_even) {
+        // For non-BE trades, always include calculated_profit
+        if (!trade.break_even && trade.calculated_profit) {
+          return sum + trade.calculated_profit;
+        }
+        // For BE trades, include calculated_profit only if profit_taken is true
+        if (trade.break_even && trade.partials_taken && trade.calculated_profit) {
           return sum + trade.calculated_profit;
         }
         return sum;
@@ -320,7 +324,8 @@ export function calculateMarketStats(trades: Trade[], accountBalance: number): M
         nonBeWins: g.wins - g.beWins,
         nonBeLosses: g.losses - g.beLosses,
         profit,
-        pnlPercentage
+        pnlPercentage,
+        profitTaken: true
       };
     });
 }
