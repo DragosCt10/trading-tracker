@@ -27,6 +27,7 @@ import 'react-date-range/dist/theme/default.css';
 import DashboardLayout from '@/components/shared/layout/DashboardLayout';
 import { BarChart, Bar as ReBar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, LabelList, Cell } from 'recharts';
 import { EvaluationStats } from '@/components/dashboard/EvaluationStats';
+import { RRHitStats } from '@/components/dashboard/RRHitStats';
 import { analyzeTradingData, TradingAnalysisRequest } from '@/utils/prompt';
 import MarketProfitStatisticsCard from '@/components/dashboard/MarketProfitStats';
 
@@ -2350,7 +2351,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-bold text-stone-900 mb-1">Local H/L + BE Statistics</h2>
           <p className="text-sm text-stone-500 mb-4">Analysis of trades marked as both Local High/Low and Break Even</p>
@@ -2436,6 +2437,8 @@ export default function Dashboard() {
         </div>
         {/* Evaluation Statistics */}
         <EvaluationStats stats={evaluationStats} />
+        {/* 1.4RR Hit Statistics */}
+        <RRHitStats trades={filteredTrades} />
       </div>
     </DashboardLayout>
   );
