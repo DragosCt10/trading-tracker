@@ -68,7 +68,7 @@ export default function TradesPage() {
         .eq('account_id', activeAccount.id);
       if (dateRange.startDate) query = query.gte('trade_date', dateRange.startDate);
       if (dateRange.endDate) query = query.lte('trade_date', dateRange.endDate);
-      query = query.order('market', { ascending: false });
+      query = query.order('market', { ascending: false }).order('trade_date', { ascending: false })
       const { data, error } = await query;
       if (error) throw new Error(error.message);
       return data || [];
@@ -392,6 +392,18 @@ export default function TradesPage() {
               className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-white to-white border-stone-200 text-stone-700 rounded-lg hover:bg-gradient-to-b hover:from-stone-50 hover:to-stone-50 hover:border-stone-200 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-1px_0px_rgba(0,0,0,0.20)] after:pointer-events-none transition antialiased"
             >
               Current Month
+            </button>
+            <button
+              onClick={() => {
+                const now = new Date();
+                const startOfYear = `${now.getFullYear()}-01-01`;
+                const endOfYear = `${now.getFullYear()}-12-31`;
+                setDateRange({ startDate: startOfYear, endDate: endOfYear });
+                setCurrentPage(1);
+              }}
+              className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-white to-white border-stone-200 text-stone-700 rounded-lg hover:bg-gradient-to-b hover:from-stone-50 hover:to-stone-50 hover:border-stone-200 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-1px_0px_rgba(0,0,0,0.20)] after:pointer-events-none transition antialiased"
+            >
+              Current Year
             </button>
           </div>
         </div>
