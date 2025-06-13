@@ -93,6 +93,7 @@ export default function NewTradeForm() {
     quarter: '',
     evaluation: '',
     rr_hit_1_4: false,
+    partials_taken: false,
   };
 
   const [trade, setTrade] = useState<Trade>(() => {
@@ -127,10 +128,16 @@ export default function NewTradeForm() {
     const riskAmount = (riskPerTrade / 100) * activeAccount.account_balance;
     const riskRewardRatio = trade.risk_reward_ratio || 2;
     
-    if (outcome === 'Win') {
-      return riskAmount * riskRewardRatio;
-    } else if (outcome === 'Lose') {
-      return -riskAmount;
+    if (trade.partials_taken) {
+      // For partials, always calculate 40% of the profit at 1.4RR
+      return riskAmount * 1.4 * 0.4; // Using 1.4RR for partial TP
+    } else {
+      // For full trades
+      if (outcome === 'Win') {
+        return riskAmount * riskRewardRatio;
+      } else if (outcome === 'Lose') {
+        return -riskAmount;
+      }
     }
     return 0;
   };
@@ -139,8 +146,24 @@ export default function NewTradeForm() {
   useEffect(() => {
     const profit = calculateProfit(trade.risk_per_trade, trade.trade_outcome);
     setCalculatedProfit(profit);
-    setTrade(prev => ({ ...prev, calculated_profit: profit }));
-  }, [trade.risk_per_trade, trade.trade_outcome, trade.risk_reward_ratio, activeAccount?.account_balance]);
+    
+    // Calculate PNL percentage
+    const pnlPercentage = activeAccount?.account_balance 
+      ? (profit / activeAccount.account_balance) * 100 
+      : 0;
+    
+    setTrade(prev => ({ 
+      ...prev, 
+      calculated_profit: profit,
+      pnl_percentage: pnlPercentage 
+    }));
+  }, [
+    trade.risk_per_trade, 
+    trade.trade_outcome, 
+    trade.risk_reward_ratio, 
+    trade.partials_taken, // Add partials_taken to dependencies
+    activeAccount?.account_balance
+  ]);
 
   useEffect(() => {
     const dateStr = trade.trade_date;
@@ -187,17 +210,13 @@ export default function NewTradeForm() {
       const supabase = createClient();
       const tableName = `${mode}_trades`;
 
-      const pnlPercentage = activeAccount.account_balance 
-        ? (calculatedProfit / activeAccount.account_balance) * 100 
-        : 0;
-
       const { error } = await supabase
         .from(tableName)
         .insert([{ 
           ...trade,
           user_id: userDetails?.user?.id,
           calculated_profit: calculatedProfit,
-          pnl_percentage: pnlPercentage,
+          pnl_percentage: trade.pnl_percentage,
           account_id: activeAccount.id,
         }])
         .select();
@@ -698,6 +717,40 @@ export default function NewTradeForm() {
               </span>
             </label>
             <label className="cursor-pointer ml-2 text-stone-800 text-sm" htmlFor="rr-hit-checkbox">1.4RR Hit</label>
+          </div>
+          {/* Partials Taken Checkbox */}
+          <div className="inline-flex items-center">
+            <label className="flex items-center cursor-pointer relative" htmlFor="partials-checkbox">
+              <input
+                type="checkbox"
+                id="partials-checkbox"
+                checked={trade.partials_taken}
+                onChange={(e) => setTrade({ ...trade, partials_taken: e.target.checked })}
+                className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
+              />
+              <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <svg strokeWidth="1.5" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#ffffff">
+                  <path d="M5 13L9 17L19 7" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                </svg>
+              </span>
+            </label>
+            <label className="cursor-pointer ml-2 text-stone-800 text-sm flex items-center group relative" htmlFor="partials-checkbox">
+              Partial TP
+              <span className="ml-1 cursor-help">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="text-xs text-stone-700">
+                    <div className="font-semibold text-stone-900 mb-1">Partial Take Profit</div>
+                    <div className="bg-blue-50 border-blue-200 border rounded p-2">
+                      TP1: 40% of position at 1.4RR
+                    </div>
+                  </div>
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-stone-200 transform rotate-45"></div>
+                </div>
+              </span>
+            </label>
           </div>
         </div>
 
