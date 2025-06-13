@@ -18,7 +18,7 @@ export interface ProfitStats {
  * @param accountBalance   Starting account balance.
  *
  * - **totalProfit**, **averageProfit**, **averagePnLPercentage** use a *static* risk amount (pct of starting balance).
- * - **maxDrawdown** uses the original code’s *dynamic* risk amount (pct of running balance) + initial peak=0 logic.
+ * - **maxDrawdown** uses the original code's *dynamic* risk amount (pct of running balance) + initial peak=0 logic.
  */
 export function calculateProfit(
   trades: Trade[],
@@ -32,24 +32,22 @@ export function calculateProfit(
   let peak = 0;
   let maxDrawdown = 0;
 
-  // Take only non-BE trades, sorted by date
-  const sorted = trades
+  // Take only non-BE trades for drawdown calculation
+  const sortedForDrawdown = trades
     .filter(t => !t.break_even)
     .slice()
     .sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime());
 
-  for (const t of sorted) {
+  // For profit calculation, include BE trades if they have partials
+  const sortedForProfit = trades
+    .filter(t => !t.break_even || (t.break_even && t.partials_taken))
+    .slice()
+    .sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime());
+
+  // Calculate drawdown using only non-BE trades
+  for (const t of sortedForDrawdown) {
     const pct = t.risk_per_trade ?? 0.5;
     const rr  = t.risk_reward_ratio ?? 2;
-
-    // --- STATIC‐BALANCE profit sum & count
-    const staticAmt = accountBalance * (pct / 100);
-    if (t.trade_outcome === 'Win') {
-      totalProfit += staticAmt * rr;
-    } else {
-      totalProfit -= staticAmt;
-    }
-    nonBECount++;
 
     // --- DYNAMIC‐BALANCE drawdown
     const dynamicAmt = runningBalance * (pct / 100);
@@ -66,6 +64,15 @@ export function calculateProfit(
       : 0;
     if (drawdown > maxDrawdown) {
       maxDrawdown = drawdown;
+    }
+  }
+
+  // Calculate profit including BE trades with partials
+  for (const t of sortedForProfit) {
+    const profit = t.calculated_profit ?? 0;
+    totalProfit += profit;
+    if (!t.break_even) {
+      nonBECount++;
     }
   }
 
