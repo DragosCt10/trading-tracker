@@ -68,7 +68,7 @@ export default function TradesPage() {
         .eq('account_id', activeAccount.id);
       if (dateRange.startDate) query = query.gte('trade_date', dateRange.startDate);
       if (dateRange.endDate) query = query.lte('trade_date', dateRange.endDate);
-      query = query.order('trade_date', { ascending: false });
+      query = query.order('market', { ascending: false });
       const { data, error } = await query;
       if (error) throw new Error(error.message);
       return data || [];
