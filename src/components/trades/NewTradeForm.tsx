@@ -92,6 +92,7 @@ export default function NewTradeForm() {
     pnl_percentage: 0,
     quarter: '',
     evaluation: '',
+    rr_hit_1_4: false,
   };
 
   const [trade, setTrade] = useState<Trade>(() => {
@@ -197,7 +198,7 @@ export default function NewTradeForm() {
           user_id: userDetails?.user?.id,
           calculated_profit: calculatedProfit,
           pnl_percentage: pnlPercentage,
-          account_id: activeAccount.id
+          account_id: activeAccount.id,
         }])
         .select();
 
@@ -679,6 +680,24 @@ export default function NewTradeForm() {
               </span>
             </label>
             <label className="cursor-pointer ml-2 text-stone-800 text-sm" htmlFor="localhl-checkbox">Local High/Low</label>
+          </div>
+          {/* 1.4RR Hit Checkbox */}
+          <div className="inline-flex items-center">
+            <label className="flex items-center cursor-pointer relative" htmlFor="rr-hit-checkbox">
+              <input
+                type="checkbox"
+                id="rr-hit-checkbox"
+                checked={trade.rr_hit_1_4}
+                onChange={(e) => setTrade({ ...trade, rr_hit_1_4: e.target.checked })}
+                className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
+              />
+              <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <svg strokeWidth="1.5" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#ffffff">
+                  <path d="M5 13L9 17L19 7" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                </svg>
+              </span>
+            </label>
+            <label className="cursor-pointer ml-2 text-stone-800 text-sm" htmlFor="rr-hit-checkbox">1.4RR Hit</label>
           </div>
         </div>
 
