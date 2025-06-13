@@ -2371,6 +2371,7 @@ export default function Dashboard() {
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Local H/L + BE Statistics */}
         <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-bold text-stone-900 mb-1">Local H/L + BE Statistics</h2>
           <p className="text-sm text-stone-500 mb-4">Analysis of trades marked as both Local High/Low and Break Even</p>
@@ -2454,10 +2455,104 @@ export default function Dashboard() {
             })()}
           </div>
         </div>
-        {/* Evaluation Statistics */}
+                {/* Evaluation Statistics */}
         <EvaluationStats stats={evaluationStats} />
         {/* 1.4RR Hit Statistics */}
         <RRHitStats trades={filteredTrades} />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+         {/* Partials + BE Statistics */}
+        <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
+          <h2 className="text-lg font-bold text-stone-900 mb-1">Partials + BE Statistics</h2>
+          <p className="text-sm text-stone-500 mb-4">Analysis of trades marked as both Break Even and Partials Taken</p>
+          <div className="h-80">
+            {(() => {
+              // Count trades with both partials and BE
+              const partialsBETrades = filteredTrades.filter(
+                t => t.break_even && t.partials_taken
+              );
+              const totalPartialsBE = partialsBETrades.length;
+              
+              // Count wins and losses
+              const wins = partialsBETrades.filter(t => t.trade_outcome === 'Win').length;
+              const losses = partialsBETrades.filter(t => t.trade_outcome === 'Lose').length;
+              
+              // Calculate win rate
+              const winRate = totalPartialsBE > 0 ? (wins / totalPartialsBE) * 100 : 0;
+
+              return (
+                <Bar
+                  options={{
+                    ...chartOptions,
+                    indexAxis: 'y',
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        callbacks: {
+                          label: (context) => {
+                            const dataset = context.dataset;
+                            const value = context.parsed.x;
+                            if (dataset.label === 'Win Rate') {
+                              return `${dataset.label}: ${value.toFixed(2)}%`;
+                            }
+                            return `${dataset.label}: ${value}`;
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        stacked: false,
+                        grid: { display: false },
+                        ticks: { display: false }
+                      },
+                      y: {
+                        stacked: false,
+                        grid: { display: false },
+                        ticks: { color: 'rgb(41, 37, 36)' }
+                      },
+                    },
+                  }}
+                  data={{
+                    labels: [`Partials + BE (${totalPartialsBE})`],
+                    datasets: [
+                      {
+                        label: 'Wins',
+                        data: [wins],
+                        backgroundColor: 'rgba(134, 239, 172, 0.8)',
+                        borderColor: 'rgb(134, 239, 172)',
+                        borderWidth: 0,
+                        borderRadius: 4,
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.6,
+                      },
+                      {
+                        label: 'Losses',
+                        data: [losses],
+                        backgroundColor: 'rgba(231, 229, 228, 0.8)',
+                        borderColor: 'rgb(231, 229, 228)',
+                        borderWidth: 0,
+                        borderRadius: 4,
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.6,
+                      },
+                      {
+                        label: 'Win Rate',
+                        data: [winRate],
+                        backgroundColor: 'rgba(253, 230, 138, 0.8)',
+                        borderColor: 'rgb(253, 230, 138)',
+                        borderWidth: 0,
+                        borderRadius: 4,
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.6,
+                      },
+                    ],
+                  }}
+                />
+              );
+            })()}
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
