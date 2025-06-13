@@ -28,4 +28,5 @@ export interface Trade {
   quarter: string;
   evaluation: string;
   rr_hit_1_4: boolean;  // New field to track if trade hit 1.4RR
+  partials_taken: boolean;  // New field to track if partials were taken at 1.4RR
 }
