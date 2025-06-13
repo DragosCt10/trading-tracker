@@ -58,6 +58,7 @@ export interface MarketStats extends BaseStats {
   pnlPercentage: number;
   nonBeWins: number;
   nonBeLosses: number;
+  profitTaken: boolean;
 }
 
 export interface EvaluationStats extends BaseStats {
