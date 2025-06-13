@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bar } from 'react-chartjs-2';
 import type { ChartOptions, ChartData, TooltipItem } from 'chart.js';
+import { Trade } from '@/types/trade';
 
 // Define the shape of each market statistic
 export interface MarketStat {
@@ -11,6 +12,9 @@ export interface MarketStat {
   losses: number;
   nonBeWins: number;
   nonBeLosses: number;
+  beWins: number;
+  beLosses: number;
+  profitTaken: boolean;
 }
 
 // Props for the component
@@ -18,17 +22,20 @@ interface MarketProfitStatisticsCardProps {
   marketStats: MarketStat[];
   chartOptions: ChartOptions<'bar'>;
   getCurrencySymbol: () => string;
+  trades: Trade[];
 }
 
 /**
  * MarketProfitStatisticsCard
  * 
  * Displays profit and PnL percentage by market in a horizontal bar chart.
+ * Profit includes calculated_profit for non-BE trades and BE trades when profit_taken is true.
  */
 const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
   marketStats,
   chartOptions,
   getCurrencySymbol,
+  trades,
 }) => {
   // Prepare chart data
   const data: ChartData<'bar', number[], string> = {
@@ -38,7 +45,18 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
     datasets: [
       {
         label: 'Profit',
-        data: marketStats.map((stat) => stat.profit),
+        data: marketStats.map((stat) => {
+          // Base profit from non-BE trades
+          let totalProfit = stat.profit;
+          
+          // Add BE trades profit if profit_taken is true
+          if (stat.profitTaken) {
+            const beProfit = (stat.beWins + stat.beLosses) * stat.profit;
+            totalProfit += beProfit;
+          }
+          
+          return totalProfit;
+        }),
         backgroundColor: marketStats.map((stat) =>
           stat.profit >= 0 ? 'rgba(74, 222, 128, 0.8)' : 'rgba(239, 68, 68, 0.8)'
         ),
@@ -66,12 +84,13 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
           label: (context: TooltipItem<'bar'>) => {
             const label = context.label as string;
             const marketName = label.split(' (')[0];
+            // Count all trades for this market
+            const tradeCount = trades.filter(t => t.market === marketName).length;
             const market = marketStats.find((s) => s.market === marketName);
-            const totalTrades = (market?.nonBeWins || 0) + (market?.nonBeLosses || 0);
             const profit = market?.profit || 0;
             const currencySymbol = getCurrencySymbol();
             return [
-              ` ${totalTrades} trades`,
+              ` ${tradeCount} trades`,
               ` Profit: ${currencySymbol}${profit.toFixed(2)}`
             ];
           },
