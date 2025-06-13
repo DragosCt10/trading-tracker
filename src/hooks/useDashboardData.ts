@@ -78,7 +78,8 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
     pnl_percentage: trade.pnl_percentage,
     quarter: trade.quarter,
     evaluation: trade.evaluation,
-    rr_hit_1_4: trade.rr_hit_1_4
+    rr_hit_1_4: trade.rr_hit_1_4,
+    partials_taken: trade.partials_taken
   };
 }
 
