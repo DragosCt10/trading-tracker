@@ -82,6 +82,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
         pnl_percentage: pnlPercentage
       });
     } else {
+      // For all other fields, just update the field directly
       setEditedTrade({
         ...editedTrade,
         [field]: value
