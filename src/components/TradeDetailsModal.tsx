@@ -128,7 +128,8 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
           notes: editedTrade.notes,
           pnl_percentage: editedTrade.pnl_percentage,
           calculated_profit: editedTrade.calculated_profit,
-          evaluation: editedTrade.evaluation
+          evaluation: editedTrade.evaluation,
+          rr_hit_1_4: editedTrade.rr_hit_1_4
         })
         .eq('id', editedTrade.id);
 
@@ -471,6 +472,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
                 {renderField('News Related', 'news_related', 'boolean')}
                 {renderField('Local High/Low', 'local_high_low', 'boolean')}
                 {renderField('Evaluation Grade', 'evaluation', 'select', EVALUATION_OPTIONS)}
+                {renderField('1.4RR Hit', 'rr_hit_1_4', 'boolean')}
               </dl>
             </div>
           </div>
