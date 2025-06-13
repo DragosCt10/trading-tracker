@@ -35,37 +35,44 @@ export function calculateMacroStats(
     const riskAmt = accountBalance * (pct / 100);
     const rr = t.risk_reward_ratio ?? 2;
 
-    // — profitFactor (only non‐BE)
-    if (!t.break_even) {
-      if (t.trade_outcome === 'Win') grossProfit += riskAmt * rr;
-      else                          grossLoss   += riskAmt;
+    // — profitFactor (only non‐BE or BE with partials)
+    const isRealTrade = !t.break_even || (t.break_even && t.partials_taken);
+    if (isRealTrade) {
+      if (!t.break_even) {
+        if (t.trade_outcome === 'Win') grossProfit += riskAmt * rr;
+        else                          grossLoss   += riskAmt;
+      } else if (t.break_even && t.partials_taken) {
+        // Always treat BE with partials as a win
+        grossProfit += riskAmt * rr;
+      }
     }
 
-    // — daily PnL excl-BE
-    if (!t.break_even) {
+    // — daily PnL excl-BE (non-BE or BE with partials)
+    if (!t.break_even || (t.break_even && t.partials_taken)) {
       const pnl = t.trade_outcome === 'Win' ? riskAmt * rr : -riskAmt;
       dailyNonBEPnl[day] = (dailyNonBEPnl[day] || 0) + pnl;
     }
 
-    // — daily PnL incl-BE (BE contributes 0)
+    // — daily PnL incl-BE (BE without partials = 0)
     const pnlWithBE =
-      t.break_even
-        ? 0
-        : t.trade_outcome === 'Win'
-          ? riskAmt * rr
-          : -riskAmt;
+      isRealTrade
+        ? (t.trade_outcome === 'Win' ? riskAmt * rr : -riskAmt)
+        : 0;
     dailyAllPnl[day] = (dailyAllPnl[day] || 0) + pnlWithBE;
 
-    // — build returns array for Sharpe (BE=0)
+    // — build returns array for Sharpe (BE without partials = 0)
     returnsWithBE.push(pnlWithBE);
   }
 
   const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : 0;
 
-  // consistency excl-BE
-  const daysNE   = Object.keys(dailyNonBEPnl).length;
-  const posNE    = Object.values(dailyNonBEPnl).filter(x => x > 0).length;
-  const consistencyScore = daysNE > 0 ? (posNE / daysNE) * 100 : 0;
+  // consistency excl-BE (per trade, BE with partials always win)
+  const realTrades = trades.filter(t => !t.break_even || (t.break_even && t.partials_taken));
+  const profitableTrades = realTrades.filter(t =>
+    (!t.break_even && t.trade_outcome === 'Win') ||
+    (t.break_even && t.partials_taken)
+  );
+  const consistencyScore = realTrades.length > 0 ? (profitableTrades.length / realTrades.length) * 100 : 0;
 
   // consistency incl-BE
   const daysAll  = Object.keys(dailyAllPnl).length;
