@@ -194,6 +194,7 @@ export default function TradesPage() {
           trade.calculated_profit || '',
           trade.pnl_percentage || '',
           trade.evaluation || '',
+          trade.rr_hit_1_4 ? 'Yes' : 'No',
           trade.notes || ''
         ].map(escapeCSV).join(','))
       ].join('\n');
