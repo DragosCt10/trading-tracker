@@ -697,7 +697,7 @@ export default function NewTradeForm() {
                 </svg>
               </span>
             </label>
-            <label className="cursor-pointer ml-2 text-stone-800 text-sm" htmlFor="rr-hit-checkbox">1.4RR Hit</label>
+            <label className="cursor-pointer ml-2 text-stone-800 text-sm" htmlFor="rr-hit-checkbox">1.4RR Hit (Potential 💰)</label>
           </div>
         </div>
 
