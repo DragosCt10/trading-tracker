@@ -27,6 +27,10 @@ export default function TradesPage() {
 
   // Market filter state (must be before any code that uses it)
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
+  const [sortConfig, setSortConfig] = useState<{ field: 'trade_date' | 'market' | 'outcome'; direction: 'asc' | 'desc' }>({
+    field: 'trade_date',
+    direction: 'asc'
+  });
 
   const { mode, activeAccount, isLoading: modeLoading } = useTradingMode();
   const { data: userDetails, isLoading: userLoading } = useUserDetails();
@@ -68,7 +72,8 @@ export default function TradesPage() {
         .eq('account_id', activeAccount.id);
       if (dateRange.startDate) query = query.gte('trade_date', dateRange.startDate);
       if (dateRange.endDate) query = query.lte('trade_date', dateRange.endDate);
-      query = query.order('market', { ascending: false }).order('trade_date', { ascending: false })
+      query = query.order('trade_date', { ascending: false })
+
       const { data, error } = await query;
       if (error) throw new Error(error.message);
       return data || [];
@@ -83,12 +88,50 @@ export default function TradesPage() {
   // Table data and pagination logic (always client-side)
   const allTrades = allTradesData || [];
   const filteredTrades = selectedMarket === 'all' ? allTrades : allTrades.filter(trade => trade.market === selectedMarket);
-  const paginatedTotalCount = filteredTrades.length;
+  
+  // Apply sorting
+  const sortedTrades = [...filteredTrades].sort((a, b) => {
+    if (sortConfig.field === 'outcome') {
+      // Special handling for outcome sorting
+      const getOutcomeValue = (trade: Trade) => {
+        if (trade.break_even) return 'BE';
+        return trade.trade_outcome;
+      };
+      
+      const aValue = getOutcomeValue(a);
+      const bValue = getOutcomeValue(b);
+      
+      if (sortConfig.direction === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    }
+    
+    const aValue = a[sortConfig.field];
+    const bValue = b[sortConfig.field];
+    
+    // For date sorting, we want descending order by default
+    if (sortConfig.field === 'trade_date') {
+      return sortConfig.direction === 'asc' 
+        ? new Date(bValue).getTime() - new Date(aValue).getTime()
+        : new Date(aValue).getTime() - new Date(bValue).getTime();
+    }
+    
+    // For other fields (like market)
+    if (sortConfig.direction === 'asc') {
+      return aValue > bValue ? 1 : -1;
+    } else {
+      return aValue < bValue ? 1 : -1;
+    }
+  });
+
+  const paginatedTotalCount = sortedTrades.length;
   const paginatedTotalPages = Math.ceil(paginatedTotalCount / ITEMS_PER_PAGE);
   const paginatedCurrentPage = Math.min(currentPage, paginatedTotalPages === 0 ? 1 : paginatedTotalPages);
   const startIdx = (paginatedCurrentPage - 1) * ITEMS_PER_PAGE;
   const endIdx = startIdx + ITEMS_PER_PAGE;
-  const paginatedTrades = filteredTrades.slice(startIdx, endIdx);
+  const paginatedTrades = sortedTrades.slice(startIdx, endIdx);
 
   // Close picker on outside click
   useEffect(() => {
@@ -285,19 +328,41 @@ export default function TradesPage() {
       </div>
 
       {/* Market Filter Dropdown */}
-      <div className="mb-4 flex items-center gap-2">
-        <label htmlFor="market-filter" className="text-sm font-medium text-stone-700">Filter by Market:</label>
-        <select
-          id="market-filter"
-          value={selectedMarket}
-          onChange={e => setSelectedMarket(e.target.value)}
-          className="w-48 bg-white border border-stone-200 text-stone-800 rounded-lg px-3 py-2 text-sm"
-        >
-          <option value="all">All Markets</option>
-          {uniqueMarkets.map(market => (
-            <option key={market} value={market}>{market}</option>
-          ))}
-        </select>
+      <div className="mb-4 flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <label htmlFor="market-filter" className="text-sm font-medium text-stone-700">Filter by Market:</label>
+          <select
+            id="market-filter"
+            value={selectedMarket}
+            onChange={e => setSelectedMarket(e.target.value)}
+            className="w-48 bg-white border border-stone-200 text-stone-800 rounded-lg px-3 py-2 text-sm"
+          >
+            <option value="all">All Markets</option>
+            {uniqueMarkets.map(market => (
+              <option key={market} value={market}>{market}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label htmlFor="sort-by" className="text-sm font-medium text-stone-700">Sort by:</label>
+          <select
+            id="sort-by"
+            value={sortConfig.field}
+            onChange={e => {
+              const field = e.target.value as 'trade_date' | 'market' | 'outcome';
+              setSortConfig(prev => ({
+                field,
+                direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+              }));
+            }}
+            className="w-48 bg-white border border-stone-200 text-stone-800 rounded-lg px-3 py-2 text-sm"
+          >
+            <option value="trade_date">Date</option>
+            <option value="market">Market</option>
+            <option value="outcome">Outcome</option>
+          </select>
+        </div>
       </div>
 
       {/* Filters Card */}
