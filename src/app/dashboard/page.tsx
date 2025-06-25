@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, ReactNode } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, subDays, startOfYear, endOfYear, startOfWeek, endOfWeek, isSameMonth, addDays } from 'date-fns';
 import { Trade } from '@/types/trade';
 import { useTradingMode } from '@/context/TradingModeContext';
@@ -257,22 +257,7 @@ export default function Dashboard() {
 
   function getDayStats(trades: Trade[]) {
     const totalProfit = trades.reduce((sum, trade) => {
-      // Get risk percentage from trade or default to 0.5%
-      const riskPerTrade = trade.risk_per_trade || 0.5;
-      
-      // Calculate actual risk amount based on active account balance
-      const riskAmount = (activeAccount?.account_balance || 0) * (riskPerTrade / 100);
-      
-      // Get risk:reward ratio from trade or default to 2
-      const riskRewardRatio = trade.risk_reward_ratio || 2;
-      
-      // Calculate profit based on outcome
-      if (trade.trade_outcome === 'Win') {
-        return sum + (riskAmount * riskRewardRatio);
-      } else if (trade.trade_outcome === 'Lose') {
-        return sum - riskAmount;
-      }
-      return sum;
+      return sum + (trade.calculated_profit || 0);
     }, 0);
 
     return {
@@ -475,15 +460,15 @@ export default function Dashboard() {
       const filteredTrades = selectedMarket === 'all'
         ? trades
         : trades.filter(trade => trade.market === selectedMarket);
-      // Only count Win trades (non-BE) and BE trades with partials_taken checked
+      
+      // Include all non-BE trades and BE trades with partials
       const realTrades = filteredTrades.filter(trade =>
-        (trade.trade_outcome === 'Win' && !trade.break_even) ||
-        (trade.break_even && trade.partials_taken)
+        !trade.break_even || (trade.break_even && trade.partials_taken)
       );
       const beTrades = filteredTrades.filter(trade => trade.break_even);
       const totalProfit = realTrades.reduce((sum, trade) => sum + (trade.calculated_profit || 0), 0);
-      const wins = realTrades.length;
-      const losses = 0;
+      const wins = realTrades.filter(trade => trade.trade_outcome === 'Win' && !trade.break_even).length;
+      const losses = realTrades.filter(trade => trade.trade_outcome === 'Lose' && !trade.break_even).length;
       const beCount = beTrades.length;
       return {
         totalProfit,
@@ -1200,7 +1185,7 @@ export default function Dashboard() {
             
             const emptyCells = Array(mondayBasedFirstDay).fill(null);
             
-            return [...emptyCells, ...daysInMonth].map((date, index) => {
+            return [...emptyCells, ...daysInMonth].map((date, index): ReactNode => {
               if (!date) {
                 return (
                   <div
@@ -1221,31 +1206,36 @@ export default function Dashboard() {
                 ? dayTrades 
                 : dayTrades.filter(trade => trade.market === selectedMarket);
               
-              // Only count Win trades (non-BE) and BE trades with partials_taken checked
+              // Include all non-BE trades and BE trades with partials
               const realDayTrades = filteredDayTrades.filter(trade =>
-                (trade.trade_outcome === 'Win' && !trade.break_even) ||
-                (trade.break_even && trade.partials_taken)
+                !trade.break_even || (trade.break_even && trade.partials_taken)
               );
-              const dayStats = getDayStats(realDayTrades);
+              const dayStats = getDayStats(filteredDayTrades);
               const beTrades = filteredDayTrades.filter(trade => trade.break_even);
               const hasBE = beTrades.length > 0;
 
               // Get BE trade outcome for coloring
               const beOutcome = beTrades.length > 0 ? beTrades[0].trade_outcome : null;
 
-              // Calculate total P&L percentage for the day (including BE with partials)
+              // Calculate total P&L percentage for the day
               const totalPnLPercentage = realDayTrades.reduce((sum, trade) => {
-                // Do not multiply by 100 if pnl_percentage is already a percent
+                if (trade.break_even && !trade.partials_taken) return sum; // Skip BE trades without partials
                 return sum + (typeof trade.pnl_percentage === 'number' ? trade.pnl_percentage : 0);
+              }, 0);
+
+              // Calculate profit for display
+              const displayProfit = realDayTrades.reduce((sum, trade) => {
+                if (trade.break_even && !trade.partials_taken) return sum; // BE trades without partials should be 0
+                return sum + (trade.calculated_profit || 0);
               }, 0);
 
               return (
                 <div
                   key={date.toString()}
                   className={`relative p-2 min-h-[80px] border rounded-lg transition-all duration-200 group ${
-                    dayStats.totalProfit > 0 
+                    displayProfit > 0 
                       ? 'bg-green-100/50 border-green-200 hover:bg-green-100' 
-                      : dayStats.totalProfit < 0 
+                      : displayProfit < 0 
                       ? 'bg-red-100/50 border-red-200 hover:bg-red-100'
                       : hasBE && beOutcome === 'Win'
                         ? 'bg-green-100/50 border-green-200 hover:bg-green-100'
@@ -1261,27 +1251,15 @@ export default function Dashboard() {
                     </div>
                   )}
                   {filteredDayTrades.length > 0 && (
-                    <div className="text-xs space-y-1">
-                      <div className="font-medium text-stone-700">
-                        {filteredDayTrades.length} trade{filteredDayTrades.length !== 1 ? 's' : ''}
-                      </div>
-                      <div className={`font-semibold ${
-                        realDayTrades.some(trade => trade.break_even && trade.partials_taken) || dayStats.totalProfit >= 0 
-                          ? 'text-green-700' 
-                          : 'text-red-700'
-                      }`}>
-                        {getCurrencySymbol()}{realDayTrades.reduce((sum, trade) => {
-                          if (trade.break_even) {
-                            return sum + (trade.partials_taken ? (trade.calculated_profit || 0) : 0);
-                          } else {
-                            return sum + (trade.calculated_profit || 0);
-                          }
-                        }, 0).toFixed(2)}
-                      </div>
-                    </div>
-                  )}
-                  {filteredDayTrades.length > 0 && (
                     <>
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium text-stone-700">
+                          {filteredDayTrades.length} trade{filteredDayTrades.length !== 1 ? 's' : ''}
+                        </div>
+                        <div className={`font-semibold ${displayProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                          {getCurrencySymbol()}{displayProfit.toFixed(2)}
+                        </div>
+                      </div>
                       <div className="absolute bottom-2.5 right-1 text-xs font-semibold">
                         <span className={totalPnLPercentage >= 0 ? 'text-green-700' : 'text-red-700'}>
                           {totalPnLPercentage >= 0 ? '+' : ''}{totalPnLPercentage.toFixed(2)}%
@@ -1293,7 +1271,11 @@ export default function Dashboard() {
                             <div key={i} className="flex justify-between items-center">
                               <span className="font-medium">{trade.market}</span>
                               <span className={`font-semibold ${
-                                trade.calculated_profit && trade.calculated_profit >= 0 ? 'text-green-600' : 'text-red-600'
+                                trade.break_even 
+                                  ? 'text-stone-600'
+                                  : trade.calculated_profit && trade.calculated_profit >= 0 
+                                    ? 'text-green-600' 
+                                    : 'text-red-600'
                               }`}>
                                 {trade.break_even
                                   ? (trade.trade_outcome === 'Win' ? 'W (BE)' : 'L (BE)')
