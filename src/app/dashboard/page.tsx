@@ -542,7 +542,7 @@ export default function Dashboard() {
                 profit: monthlyStatsAllTrades[month]?.profit ?? 0,
                 profitPercent: monthlyStatsAllTrades[month] ? Number(((monthlyStatsAllTrades[month].profit / (activeAccount?.account_balance || 1)) * 100).toFixed(2)) : 0
               }))}
-              margin={{ top: 30, right: 10, left: 0, bottom: 20 }}
+              margin={{ top: 30, right: 10, left: 0, bottom: 0 }}
             >
               <XAxis dataKey="month" tick={{ fill: '#444', fontSize: 14 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#444', fontSize: 14 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `${getCurrencySymbol()}${v.toLocaleString('en-US', { maximumFractionDigits: 0 })}`} />
@@ -556,11 +556,30 @@ export default function Dashboard() {
                 ))}
                 <LabelList
                   dataKey="profitPercent"
-                  position="top"
-                  className="text-xs"
-                  formatter={(value: number) => `${value}%`}
-                  fill="#000"
-                  offset={10}
+                  content={(props: any) => {
+                    if (!props || typeof props.value === 'undefined') return null;
+                    const value = Number(props.value);
+                    const x = Number(props.x || 0);
+                    const y = Number(props.y || 0);
+                    const width = Number(props.width || 0);
+                    const height = Number(props.height || 0);
+                    
+                    // Position label just above the bar for positive values
+                    // and just below the bar for negative values
+                    const yPos = value >= 0 ? y - 5 : y + height + -5;
+                    return (
+                      <text
+                        x={x + width / 2}
+                        y={yPos}
+                        fill="#000"
+                        textAnchor="middle"
+                        dominantBaseline={value >= 0 ? "bottom" : "top"}
+                        className="text-xs"
+                      >
+                        {`${value}%`}
+                      </text>
+                    );
+                  }}
                 />
               </ReBar>
             </BarChart>
