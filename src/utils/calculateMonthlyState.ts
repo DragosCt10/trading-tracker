@@ -54,11 +54,17 @@ export function calculateMonthlyStats(
       if (trade.trade_outcome === 'Win') {
         bucket.nonBEWins++;
       }
-      // Use calculated_profit instead of calculating based on win/loss
-      bucket.profit += trade.calculated_profit ?? 0;
+      // Calculate profit based on risk_per_trade and risk_reward_ratio
+      const pct = trade.risk_per_trade ?? 0.5;
+      const rr = trade.risk_reward_ratio ?? 2;
+      const riskAmount = accountBalance * (pct / 100);
+      bucket.profit += trade.trade_outcome === 'Win' ? riskAmount * rr : -riskAmount;
     } else if (trade.partials_taken) {
-      // Include BE trades profit if partials_taken is checked
-      bucket.profit += trade.calculated_profit ?? 0;
+      // BE trades with partials are always treated as wins
+      const pct = trade.risk_per_trade ?? 0.5;
+      const rr = trade.risk_reward_ratio ?? 2;
+      const riskAmount = accountBalance * (pct / 100);
+      bucket.profit += riskAmount * rr;
     }
 
     return acc;
