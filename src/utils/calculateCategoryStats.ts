@@ -301,13 +301,17 @@ export function calculateMarketStats(trades: Trade[], accountBalance: number): M
     .map(g => {
       const marketTrades = trades.filter(t => (t.market || 'Unknown') === g.type);
       const profit = marketTrades.reduce((sum, trade) => {
-        // For non-BE trades, always include calculated_profit
-        if (!trade.break_even && trade.calculated_profit) {
-          return sum + trade.calculated_profit;
+        const pct = trade.risk_per_trade ?? 0.5;
+        const rr = trade.risk_reward_ratio ?? 2;
+        const riskAmount = accountBalance * (pct / 100);
+        
+        // For non-BE trades
+        if (!trade.break_even) {
+          return sum + (trade.trade_outcome === 'Win' ? riskAmount * rr : -riskAmount);
         }
-        // For BE trades, include calculated_profit only if profit_taken is true
-        if (trade.break_even && trade.partials_taken && trade.calculated_profit) {
-          return sum + trade.calculated_profit;
+        // For BE trades with partials
+        if (trade.break_even && trade.partials_taken) {
+          return sum + (riskAmount * rr); // BE with partials is always treated as a win
         }
         return sum;
       }, 0);
