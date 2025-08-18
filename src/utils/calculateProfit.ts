@@ -69,7 +69,15 @@ export function calculateProfit(
 
   // Calculate profit including BE trades with partials
   for (const t of sortedForProfit) {
-    const profit = t.calculated_profit ?? 0;
+    const pct = t.risk_per_trade ?? 0.5;
+    const rr = t.risk_reward_ratio ?? 2;
+    
+    // Calculate profit based on risk_per_trade and account balance
+    const riskAmount = accountBalance * (pct / 100);
+    const profit = t.trade_outcome === 'Win'
+      ? riskAmount * rr
+      : -riskAmount;
+      
     totalProfit += profit;
     if (!t.break_even) {
       nonBECount++;
