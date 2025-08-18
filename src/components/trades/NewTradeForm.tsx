@@ -147,16 +147,24 @@ export default function NewTradeForm() {
     const profit = calculateProfit(trade.risk_per_trade, trade.trade_outcome);
     setCalculatedProfit(profit);
     
-    // Calculate PNL percentage
-    const pnlPercentage = activeAccount?.account_balance 
-      ? (profit / activeAccount.account_balance) * 100 
-      : 0;
-    
-    setTrade(prev => ({ 
-      ...prev, 
-      calculated_profit: profit,
-      pnl_percentage: pnlPercentage 
-    }));
+      // Calculate PNL percentage
+  let pnlPercentage = 0;
+  if (activeAccount?.account_balance) {
+    if (trade.partials_taken) {
+      // For partials, calculate PNL% based on the risk percentage
+      // 40% of position at 1.4RR means: risk * 1.4 * 0.4
+      pnlPercentage = trade.risk_per_trade * 1.4 * 0.4;
+    } else {
+      // For full trades, calculate based on the actual profit
+      pnlPercentage = (profit / activeAccount.account_balance) * 100;
+    }
+  }
+  
+  setTrade(prev => ({ 
+    ...prev, 
+    calculated_profit: profit,
+    pnl_percentage: pnlPercentage 
+  }));
   }, [
     trade.risk_per_trade, 
     trade.trade_outcome, 
