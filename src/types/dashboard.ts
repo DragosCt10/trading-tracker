@@ -117,4 +117,7 @@ export interface Stats {
   winRateWithBE: number;
   beWins: number;
   beLosses: number;
+  currentStreak: number;
+  maxWinningStreak: number;
+  maxLosingStreak: number;
 }
