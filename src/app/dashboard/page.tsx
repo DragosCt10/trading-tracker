@@ -137,7 +137,20 @@ export default function Dashboard() {
     startDate: format(startOfMonth(today), 'yyyy-MM-dd'),
     endDate: format(endOfMonth(today), 'yyyy-MM-dd'),
   });
-  
+
+  // Update calendar when date range changes
+  useEffect(() => {
+    const endDate = new Date(dateRange.endDate);
+    setCurrentDate(endDate);
+    
+    // Update the selected year to match the end date
+    setSelectedYear(endDate.getFullYear());
+    
+    setCalendarDateRange({
+      startDate: format(startOfMonth(endDate), 'yyyy-MM-dd'),
+      endDate: format(endOfMonth(endDate), 'yyyy-MM-dd'),
+    });
+  }, [dateRange]);
 
   const [activeFilter, setActiveFilter] = useState<'year' | '15days' | '30days' | 'month'>('30days');
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -279,11 +292,25 @@ export default function Dashboard() {
       } else {
         newDate.setMonth(prev.getMonth() + 1);
       }
-      // Update calendar date range when navigating months
+      
+      // Update both calendar date range and main date range
+      const newStartDate = format(startOfMonth(newDate), 'yyyy-MM-dd');
+      const newEndDate = format(endOfMonth(newDate), 'yyyy-MM-dd');
+      
+      // Update the selected year to match the new date
+      const newYear = newDate.getFullYear();
+      setSelectedYear(newYear);
+      
       setCalendarDateRange({
-        startDate: format(startOfMonth(newDate), 'yyyy-MM-dd'),
-        endDate: format(endOfMonth(newDate), 'yyyy-MM-dd'),
+        startDate: newStartDate,
+        endDate: newEndDate,
       });
+      
+      setDateRange({
+        startDate: newStartDate,
+        endDate: newEndDate,
+      });
+      
       return newDate;
     });
   };
