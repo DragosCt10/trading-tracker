@@ -9,6 +9,7 @@ import { calculateMacroStats } from '@/utils/calculateMacroStats';
 import { calculateWinRates } from '@/utils/calculateWinRates';
 import { calculateProfit } from '@/utils/calculateProfit';
 import { calculateTradeCounts } from '@/utils/calculateTradeCounts';
+import { calculateStreaks } from '@/utils/calculateStreaks';
 import {
   calculateLiquidityStats,
   calculateSetupStats,
@@ -120,7 +121,10 @@ export function useDashboardData({
     evaluationStats: [],
     winRateWithBE: 0,
     beWins: 0,
-    beLosses: 0
+    beLosses: 0,
+    currentStreak: 0,
+    maxWinningStreak: 0,
+    maxLosingStreak: 0
   });
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStatsResult>({
     bestMonth: null,
@@ -379,9 +383,26 @@ export function useDashboardData({
       );
       const { totalTrades, totalWins, totalLosses, beWins, beLosses } = calculateTradeCounts(filteredTradesByMarket); 
       const evaluationStats = calculateEvaluationStats(filteredTradesByMarket);
+      const { currentStreak, maxWinningStreak, maxLosingStreak } = calculateStreaks(filteredTradesByMarket);
       setEvaluationStats(evaluationStats);
 
-      setStats(prev => ({ ...prev, winRate, winRateWithBE, totalProfit, averageProfit, averagePnLPercentage, maxDrawdown, totalTrades, totalWins, totalLosses, beWins, beLosses }));
+      setStats(prev => ({ 
+        ...prev, 
+        winRate, 
+        winRateWithBE, 
+        totalProfit, 
+        averageProfit, 
+        averagePnLPercentage, 
+        maxDrawdown, 
+        totalTrades, 
+        totalWins, 
+        totalLosses, 
+        beWins, 
+        beLosses,
+        currentStreak,
+        maxWinningStreak,
+        maxLosingStreak
+      }));
     }
   }, [filteredTradesByMarket]);
 
