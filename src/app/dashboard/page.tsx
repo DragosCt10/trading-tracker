@@ -948,8 +948,8 @@ export default function Dashboard() {
                     borderColor: 'rgb(134, 239, 172)', // green-300
                     borderWidth: 0,
                     borderRadius: 4,
-                    barPercentage:  0.5,
-                    categoryPercentage:  0.5,
+                    barPercentage:  0.8,
+                    categoryPercentage:  0.8,
                   },
                   {
                     label: 'Losses',
@@ -958,8 +958,8 @@ export default function Dashboard() {
                     borderColor: 'rgb(231, 229, 228)', // stone-200
                     borderWidth: 0,
                     borderRadius: 4,
-                    barPercentage: 0.5,
-                    categoryPercentage:  0.5,
+                    barPercentage: 0.8,
+                    categoryPercentage:  0.8,
                   },
                   {
                     label: 'Win Rate',
@@ -968,8 +968,8 @@ export default function Dashboard() {
                     borderColor: 'rgb(253, 230, 138)', // amber-200
                     borderWidth: 0,
                     borderRadius: 4,
-                    barPercentage:  0.5,
-                    categoryPercentage:  0.5,
+                    barPercentage:  0.8,
+                    categoryPercentage:  0.8,
                   },
                 ],
               }}
