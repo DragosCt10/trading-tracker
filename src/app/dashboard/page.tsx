@@ -185,25 +185,42 @@ export default function Dashboard() {
   const handleFilter = (type: 'year' | '15days' | '30days' | 'month') => {
     const today = new Date();
     setActiveFilter(type);
+    
     if (type === 'year') {
-      setDateRange({
-        startDate: format(startOfYear(today), 'yyyy-MM-dd'),
-        endDate: format(endOfYear(today), 'yyyy-MM-dd'),
-      });
-    } else if (type === '15days') {
-      setDateRange({
-        startDate: format(subDays(today, 14), 'yyyy-MM-dd'),
-        endDate: format(today, 'yyyy-MM-dd'),
-      });
-    } else if (type === '30days') {
-      setDateRange({
-        startDate: format(subDays(today, 29), 'yyyy-MM-dd'),
-        endDate: format(today, 'yyyy-MM-dd'),
-      });
-    } else if (type === 'month') {
-      setDateRange({
+      const startDate = format(startOfYear(today), 'yyyy-MM-dd');
+      const endDate = format(endOfYear(today), 'yyyy-MM-dd');
+      setDateRange({ startDate, endDate });
+      setCurrentDate(today); // Set to current month in year view
+      setCalendarDateRange({
         startDate: format(startOfMonth(today), 'yyyy-MM-dd'),
         endDate: format(endOfMonth(today), 'yyyy-MM-dd'),
+      });
+    } else if (type === '15days') {
+      const endDate = format(today, 'yyyy-MM-dd');
+      const startDate = format(subDays(today, 14), 'yyyy-MM-dd');
+      setDateRange({ startDate, endDate });
+      setCurrentDate(today);
+      setCalendarDateRange({
+        startDate: format(startOfMonth(today), 'yyyy-MM-dd'),
+        endDate: format(endOfMonth(today), 'yyyy-MM-dd'),
+      });
+    } else if (type === '30days') {
+      const endDate = format(today, 'yyyy-MM-dd');
+      const startDate = format(subDays(today, 29), 'yyyy-MM-dd');
+      setDateRange({ startDate, endDate });
+      setCurrentDate(today);
+      setCalendarDateRange({
+        startDate: format(startOfMonth(today), 'yyyy-MM-dd'),
+        endDate: format(endOfMonth(today), 'yyyy-MM-dd'),
+      });
+    } else if (type === 'month') {
+      const startDate = format(startOfMonth(today), 'yyyy-MM-dd');
+      const endDate = format(endOfMonth(today), 'yyyy-MM-dd');
+      setDateRange({ startDate, endDate });
+      setCurrentDate(today);
+      setCalendarDateRange({
+        startDate,
+        endDate,
       });
     }
   };
@@ -282,6 +299,44 @@ export default function Dashboard() {
   const getCurrencySymbol = () => {
     if (!activeAccount?.currency) return '$';
     return CURRENCY_SYMBOLS[activeAccount.currency as keyof typeof CURRENCY_SYMBOLS] || activeAccount.currency;
+  };
+
+  const handleMonthNavigation = (direction: 'prev' | 'next') => {
+    if (activeFilter !== 'year' || isCustomDateRange()) return;
+
+    const newDate = new Date(currentDate.getTime());
+    const currentYear = newDate.getFullYear();
+    let month = newDate.getMonth();
+    
+    if (direction === 'prev') {
+      if (month === 0) return; // Don't go before January
+      month -= 1;
+    } else {
+      if (month === 11) return; // Don't go past December
+      month += 1;
+    }
+    
+    // Set the new month while keeping the same year
+    newDate.setFullYear(currentYear);
+    newDate.setMonth(month);
+    
+    // Update calendar view to show the new month
+    const monthStart = startOfMonth(newDate);
+    const monthEnd = endOfMonth(newDate);
+    
+    setCurrentDate(newDate);
+    setCalendarDateRange({
+      startDate: format(monthStart, 'yyyy-MM-dd'),
+      endDate: format(monthEnd, 'yyyy-MM-dd'),
+    });
+    
+    // Keep the full year date range
+    const yearStart = format(startOfYear(newDate), 'yyyy-MM-dd');
+    const yearEnd = format(endOfYear(newDate), 'yyyy-MM-dd');
+    setDateRange({
+      startDate: yearStart,
+      endDate: yearEnd,
+    });
   };
 
   // Add this after the other hooks and before the return statement
@@ -1045,7 +1100,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-4 ml-auto">
-            <span className="font-semibold text-stone-700 text-sm">Filter by Market:</span>
+            <span className="font-semibold text-stone-700 text-sm">Filter by market:</span>
             <div className="relative">
               <select
                 value={selectedMarket}
@@ -1167,6 +1222,7 @@ export default function Dashboard() {
         </div>
         {/* P&L % Stat Card */}
         <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
+          
           <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
             P&L %
             <span className="ml-1 cursor-help group relative">
@@ -1226,10 +1282,32 @@ export default function Dashboard() {
 
       {/* Calendar View */}
       <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
-        <div className="flex justify-center items-center mb-4">
+        <div className={`flex ${activeFilter === 'year' && !isCustomDateRange() ? 'justify-between' : 'justify-center'} items-center mb-4`}>
+          {activeFilter === 'year' && !isCustomDateRange() && (
+            <button
+              onClick={() => handleMonthNavigation('prev')}
+              className="inline-grid place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-sm min-w-[38px] min-h-[38px] rounded-md bg-transparent border-transparent text-stone-800 hover:bg-stone-800/5 hover:border-stone-800/5 shadow-none hover:shadow-none"
+              aria-label="Previous month"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
           <h2 className="text-xl font-bold text-stone-900">
             {format(currentDate, 'MMMM yyyy')}
           </h2>
+          {activeFilter === 'year' && !isCustomDateRange() && (
+            <button
+              onClick={() => handleMonthNavigation('next')}
+              className="inline-grid place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-sm min-w-[38px] min-h-[38px] rounded-md bg-transparent border-transparent text-stone-800 hover:bg-stone-800/5 hover:border-stone-800/5 shadow-none hover:shadow-none"
+              aria-label="Next month"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Weekly Summary Cards */}
