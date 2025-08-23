@@ -120,4 +120,5 @@ export interface Stats {
   currentStreak: number;
   maxWinningStreak: number;
   maxLosingStreak: number;
+  averageDaysBetweenTrades: number;
 }
