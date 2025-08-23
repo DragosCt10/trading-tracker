@@ -1283,6 +1283,23 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        <div className="bg-white p-4 rounded-lg border border-stone-200 text-center flex flex-col items-center">
+          <h3 className="text-sm font-medium text-stone-600 mb-1 flex items-center justify-center">
+            Average Days Between Trades
+            <span className="ml-1 cursor-help group relative">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-60 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="text-xs sm:text-sm text-stone-700">Average number of days between your trades in the selected period.</div>
+              </div>
+            </span>
+          </h3>
+          <div className="mt-2">
+            <p className="text-xl font-bold text-stone-700">{stats.averageDaysBetweenTrades} days</p>
+          </div>
+        </div>
       </div>
 
       {/* Calendar View */}
