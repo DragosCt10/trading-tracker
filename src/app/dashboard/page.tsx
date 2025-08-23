@@ -284,37 +284,6 @@ export default function Dashboard() {
     return CURRENCY_SYMBOLS[activeAccount.currency as keyof typeof CURRENCY_SYMBOLS] || activeAccount.currency;
   };
 
-  const handleMonthNavigation = (direction: 'prev' | 'next') => {
-    setCurrentDate(prev => {
-      const newDate = new Date(prev);
-      if (direction === 'prev') {
-        newDate.setMonth(prev.getMonth() - 1);
-      } else {
-        newDate.setMonth(prev.getMonth() + 1);
-      }
-      
-      // Update both calendar date range and main date range
-      const newStartDate = format(startOfMonth(newDate), 'yyyy-MM-dd');
-      const newEndDate = format(endOfMonth(newDate), 'yyyy-MM-dd');
-      
-      // Update the selected year to match the new date
-      const newYear = newDate.getFullYear();
-      setSelectedYear(newYear);
-      
-      setCalendarDateRange({
-        startDate: newStartDate,
-        endDate: newEndDate,
-      });
-      
-      setDateRange({
-        startDate: newStartDate,
-        endDate: newEndDate,
-      });
-      
-      return newDate;
-    });
-  };
-
   // Add this after the other hooks and before the return statement
   const totalYearProfit = Object.values(monthlyStatsAllTrades).reduce((sum, stats) => sum + (stats.profit || 0), 0);
   const updatedBalance = (activeAccount?.account_balance || 0) + totalYearProfit;
@@ -1257,30 +1226,10 @@ export default function Dashboard() {
 
       {/* Calendar View */}
       <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-center items-center mb-4">
           <h2 className="text-xl font-bold text-stone-900">
             {format(currentDate, 'MMMM yyyy')}
           </h2>
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleMonthNavigation('prev')}
-              className="inline-grid place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-sm min-w-[38px] min-h-[38px] rounded-md bg-transparent border-transparent text-stone-800 hover:bg-stone-800/5 hover:border-stone-800/5 shadow-none hover:shadow-none"
-              aria-label="Previous month"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              onClick={() => handleMonthNavigation('next')}
-              className="inline-grid place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-sm min-w-[38px] min-h-[38px] rounded-md bg-transparent border-transparent text-stone-800 hover:bg-stone-800/5 hover:border-stone-800/5 shadow-none hover:shadow-none"
-              aria-label="Next month"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
         </div>
 
         {/* Weekly Summary Cards */}
