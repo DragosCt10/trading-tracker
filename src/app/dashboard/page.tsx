@@ -301,41 +301,46 @@ export default function Dashboard() {
     return CURRENCY_SYMBOLS[activeAccount.currency as keyof typeof CURRENCY_SYMBOLS] || activeAccount.currency;
   };
 
-  const handleMonthNavigation = (direction: 'prev' | 'next') => {
-    if (activeFilter !== 'year' || isCustomDateRange()) return;
+  const canNavigateMonth = (direction: 'prev' | 'next') => {
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    const selectedDateYear = new Date(dateRange.startDate).getFullYear();
 
-    const newDate = new Date(currentDate.getTime());
-    const currentYear = newDate.getFullYear();
+    // Only allow navigation within the selected year
+    if (currentYear !== selectedDateYear) return false;
+
+    if (direction === 'prev') {
+      return currentMonth > 0; // Can go back if not January
+    } else {
+      return currentMonth < 11; // Can go forward if not December
+    }
+  };
+
+  const handleMonthNavigation = (direction: 'prev' | 'next') => {
+    if (!canNavigateMonth(direction)) return;
+
+    const newDate = new Date(currentDate);
     let month = newDate.getMonth();
+    const year = newDate.getFullYear(); // Keep the same year
     
     if (direction === 'prev') {
-      if (month === 0) return; // Don't go before January
       month -= 1;
     } else {
-      if (month === 11) return; // Don't go past December
       month += 1;
     }
     
-    // Set the new month while keeping the same year
-    newDate.setFullYear(currentYear);
-    newDate.setMonth(month);
+    // Create new date for the target month
+    const targetDate = new Date(year, month, 1);
     
     // Update calendar view to show the new month
-    const monthStart = startOfMonth(newDate);
-    const monthEnd = endOfMonth(newDate);
+    const monthStart = startOfMonth(targetDate);
+    const monthEnd = endOfMonth(targetDate);
     
-    setCurrentDate(newDate);
+    // Update states
+    setCurrentDate(targetDate);
     setCalendarDateRange({
       startDate: format(monthStart, 'yyyy-MM-dd'),
       endDate: format(monthEnd, 'yyyy-MM-dd'),
-    });
-    
-    // Keep the full year date range
-    const yearStart = format(startOfYear(newDate), 'yyyy-MM-dd');
-    const yearEnd = format(endOfYear(newDate), 'yyyy-MM-dd');
-    setDateRange({
-      startDate: yearStart,
-      endDate: yearEnd,
     });
   };
 
@@ -1282,32 +1287,30 @@ export default function Dashboard() {
 
       {/* Calendar View */}
       <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
-        <div className={`flex ${activeFilter === 'year' && !isCustomDateRange() ? 'justify-between' : 'justify-center'} items-center mb-4`}>
-          {activeFilter === 'year' && !isCustomDateRange() && (
-            <button
-              onClick={() => handleMonthNavigation('prev')}
-              className="inline-grid place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-sm min-w-[38px] min-h-[38px] rounded-md bg-transparent border-transparent text-stone-800 hover:bg-stone-800/5 hover:border-stone-800/5 shadow-none hover:shadow-none"
-              aria-label="Previous month"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          )}
+        <div className="flex justify-between items-center mb-4">
+          <button
+            onClick={() => handleMonthNavigation('prev')}
+            disabled={!canNavigateMonth('prev')}
+            className={`inline-grid place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in text-sm min-w-[38px] min-h-[38px] rounded-md bg-transparent border-transparent ${canNavigateMonth('prev') ? 'text-stone-800 hover:bg-stone-800/5 hover:border-stone-800/5' : 'text-stone-400 cursor-not-allowed'} shadow-none hover:shadow-none`}
+            aria-label="Previous month"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
           <h2 className="text-xl font-bold text-stone-900">
             {format(currentDate, 'MMMM yyyy')}
           </h2>
-          {activeFilter === 'year' && !isCustomDateRange() && (
-            <button
-              onClick={() => handleMonthNavigation('next')}
-              className="inline-grid place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-sm min-w-[38px] min-h-[38px] rounded-md bg-transparent border-transparent text-stone-800 hover:bg-stone-800/5 hover:border-stone-800/5 shadow-none hover:shadow-none"
-              aria-label="Next month"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          )}
+          <button
+            onClick={() => handleMonthNavigation('next')}
+            disabled={!canNavigateMonth('next')}
+            className={`inline-grid place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in text-sm min-w-[38px] min-h-[38px] rounded-md bg-transparent border-transparent ${canNavigateMonth('next') ? 'text-stone-800 hover:bg-stone-800/5 hover:border-stone-800/5' : 'text-stone-400 cursor-not-allowed'} shadow-none hover:shadow-none`}
+            aria-label="Next month"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
 
         {/* Weekly Summary Cards */}
