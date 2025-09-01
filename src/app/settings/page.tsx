@@ -442,189 +442,190 @@ export default function Settings() {
 
   return (
     <DashboardLayout>
-    <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-stone-900 mb-8">Settings</h1>
-      
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-          {success}
-        </div>
-      )}
-
-
-      {/* Mode Selection */}
-      <div className="mb-8">
-        <label className="text-lg font-medium text-stone-700 block mb-2">
-          Trading Mode
-        </label>
-        <div className="flex gap-4">
-          {MODES.map((m) => (
-            <button
-              key={m.value}
-              onClick={() => setMode(m.value)}
-              className={`inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md ${mode === m.value ? 'bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none relative' : 'bg-white text-stone-800 border-stone-200'} rounded-lg hover:bg-stone-800/5 hover:border-stone-800/5`}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Add New Account Card */}
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-        <h2 className="text-xl font-semibold text-stone-900 mb-4">Add New Account</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="text-sm font-medium text-stone-700 block mb-1">
-              Account Name
-            </label>
-            <div className="relative w-full">
-              <input
-                type="text"
-                value={newAccount.name}
-                onChange={(e) => setNewAccount({ ...newAccount, name: e.target.value })}
-                className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-                placeholder="e.g., Main Account"
-              />
-            </div>
+      <div className="p-8 max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold text-stone-900 mb-8">Settings</h1>
+        
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
           </div>
-          <div>
-            <label className="text-sm font-medium text-stone-700 block mb-1">
-              Balance
-            </label>
-            <div className="relative w-full">
-              <input
-                type="text"
-                value={newAccount.account_balance}
-                onChange={(e) => setNewAccount({ ...newAccount, account_balance: e.target.value })}
-                className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-                placeholder="0.00"
-              />
-            </div>
+        )}
+
+        {success && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+            {success}
           </div>
-          <div>
-            <label className="text-sm font-medium text-stone-700 block mb-1">
-              Currency
-            </label>
-            <div className="relative w-full">
-              <select
-                value={newAccount.currency}
-                onChange={(e) => setNewAccount({ ...newAccount, currency: e.target.value })}
-                className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              >
-                {CURRENCY_OPTIONS.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.flag} {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-        <div className="mt-4">
-          <label className="text-sm font-medium text-stone-700 block mb-1">
-            Description
+        )}
+
+
+        {/* Mode Selection */}
+        <div className="mb-8">
+          <label className="text-lg font-medium text-stone-700 block mb-2">
+            Trading Mode
           </label>
-          <div className="relative w-full">
-            <textarea
-              value={newAccount.description}
-              onChange={(e) => setNewAccount({ ...newAccount, description: e.target.value })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              placeholder="Add a description for your account..."
-              rows={3}
-            />
+          <div className="flex gap-4">
+            {MODES.map((m) => (
+              <button
+                key={m.value}
+                onClick={() => setMode(m.value)}
+                className={`inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md ${mode === m.value ? 'bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none relative' : 'bg-white text-stone-800 border-stone-200'} rounded-lg hover:bg-stone-800/5 hover:border-stone-800/5`}
+              >
+                {m.label}
+              </button>
+            ))}
           </div>
         </div>
-        <div className="mt-4">
-          <button
-            onClick={handleAddAccount}
-            className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
-          >
-            Add Account
-          </button>
-        </div>
-      </div>
 
-      {/* Accounts List Card */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-stone-900 mb-4">Your Accounts</h2>
-        <div className="space-y-4">
-          {loading || isUserLoading || isModeLoading ? (
-            <div className="flex items-center justify-center">
-              <div role="status">
-                <svg aria-hidden="true" className="w-5 h-5 text-stone-200 animate-spin fill-stone-800" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
-                  <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
-                </svg>
+        {/* Add New Account Card */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+          <h2 className="text-xl font-semibold text-stone-900 mb-4">Add New Account</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm font-medium text-stone-700 block mb-1">
+                Account Name
+              </label>
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  value={newAccount.name}
+                  onChange={(e) => setNewAccount({ ...newAccount, name: e.target.value })}
+                  className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+                  placeholder="e.g., Main Account"
+                />
               </div>
-              <p className="ml-4 text-sm text-stone-600">Loading...</p>
             </div>
-          ) : accounts.map((account) => (
-            <div
-              key={account.id}
-              className={`p-4 border rounded-lg ${
-                activeAccount?.id === account.id ? 'border-green-500' : 'border-stone-200'
-              }`}
+            <div>
+              <label className="text-sm font-medium text-stone-700 block mb-1">
+                Balance
+              </label>
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  value={newAccount.account_balance}
+                  onChange={(e) => setNewAccount({ ...newAccount, account_balance: e.target.value })}
+                  className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-stone-700 block mb-1">
+                Currency
+              </label>
+              <div className="relative w-full">
+                <select
+                  value={newAccount.currency}
+                  onChange={(e) => setNewAccount({ ...newAccount, currency: e.target.value })}
+                  className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+                >
+                  {CURRENCY_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.flag} {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4">
+            <label className="text-sm font-medium text-stone-700 block mb-1">
+              Description
+            </label>
+            <div className="relative w-full">
+              <textarea
+                value={newAccount.description}
+                onChange={(e) => setNewAccount({ ...newAccount, description: e.target.value })}
+                className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+                placeholder="Add a description for your account..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <div className="mt-4">
+            <button
+              onClick={handleAddAccount}
+              className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium text-stone-900">{account.name}</h3>
-                  <p className="text-sm text-stone-500">
-                    Balance: {CURRENCY_OPTIONS.find(c => c.value === account.currency)?.flag || ''} {account.currency} {account.account_balance.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
-                  </p>
-                  {account.description && (
-                    <p className="text-sm text-stone-500 mt-1">
-                      {account.description}
-                    </p>
-                  )}
+              Add Account
+            </button>
+          </div>
+        </div>
+
+        {/* Accounts List Card */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-xl font-semibold text-stone-900 mb-4">Your Accounts</h2>
+          <div className="space-y-4">
+            {loading || isUserLoading || isModeLoading ? (
+              <div className="flex items-center justify-center">
+                <div role="status">
+                  <svg aria-hidden="true" className="w-5 h-5 text-stone-200 animate-spin fill-stone-800" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                    <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+                  </svg>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setEditingAccount(account)}
-                    className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-white text-stone-800 border-stone-200 rounded-lg hover:bg-stone-800/5 hover:border-stone-800/5"
-                  >
-                    Edit
-                  </button>
-                  {activeAccount?.id === account.id ? (
-                    ''
-                  ) : (
-                    <button
-                      onClick={() => handleSetActive(account.id)}
-                      className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-white text-stone-800 border-stone-200 rounded-lg hover:bg-stone-800/5 hover:border-stone-800/5"
-                    >
-                      Set Active
-                    </button>
-                  )}
+                <p className="ml-4 text-sm text-stone-600">Loading...</p>
+              </div>
+            ) : accounts.map((account) => (
+              <div
+                key={account.id}
+                className={`p-4 border rounded-lg ${
+                  activeAccount?.id === account.id ? 'border-green-500' : 'border-stone-200'
+                }`}
+              >
+                <div className="flex flex-col space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium text-stone-900">{account.name}</h3>
+                      <p className="text-sm text-stone-500 mb-4">
+                        Balance: {CURRENCY_OPTIONS.find(c => c.value === account.currency)?.flag || ''} {account.currency} {account.account_balance.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
+                      </p>
+                      <p className="text-sm text-stone-500">Description:</p>
+                      {account.description && (
+                        <p className="text-sm text-stone-600 mt-2 whitespace-pre-wrap">{account.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 ml-4">
+                      <button
+                        onClick={() => setEditingAccount(account)}
+                        className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-white text-stone-800 border-stone-200 rounded-lg hover:bg-stone-800/5 hover:border-stone-800/5"
+                      >
+                        Edit
+                      </button>
+                      {activeAccount?.id === account.id ? (
+                        ''
+                      ) : (
+                        <button
+                          onClick={() => handleSetActive(account.id)}
+                          className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-white text-stone-800 border-stone-200 rounded-lg hover:bg-stone-800/5 hover:border-stone-800/5"
+                        >
+                          Set Active
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-          {!loading && !isUserLoading && !isModeLoading && accounts.length === 0 && (
-            <p className="text-stone-500 text-center py-4">
-              No accounts found for {mode} mode. Add your first account above.
-            </p>
-          )}
+            ))}
+            {!loading && !isUserLoading && !isModeLoading && accounts.length === 0 && (
+              <p className="text-stone-500 text-center py-4">
+                No accounts found for {mode} mode. Add your first account above.
+              </p>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Edit Modal */}
-      <EditModal
-        account={editingAccount}
-        isOpen={!!editingAccount}
-        onClose={() => setEditingAccount(null)}
-        onSave={handleEditAccount}
-        onDelete={handleDeleteAccount}
-      />
-    </div>
-    </DashboardLayout> 
+        {/* Edit Modal */}
+        <EditModal
+          account={editingAccount}
+          isOpen={!!editingAccount}
+          onClose={() => setEditingAccount(null)}
+          onSave={handleEditAccount}
+          onDelete={handleDeleteAccount}
+        />
+      </div>
+    </DashboardLayout>
   );
 } 
