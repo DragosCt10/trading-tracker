@@ -32,6 +32,7 @@ interface Account {
   currency: string;
   is_active: boolean;
   mode: string;
+  description?: string;
 }
 
 interface EditModalProps {
@@ -46,7 +47,8 @@ function EditModal({ account, isOpen, onClose, onSave, onDelete }: EditModalProp
   const [editedAccount, setEditedAccount] = useState({
     name: '',
     account_balance: '',
-    currency: 'EUR'
+    currency: 'EUR',
+    description: ''
   });
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -55,7 +57,8 @@ function EditModal({ account, isOpen, onClose, onSave, onDelete }: EditModalProp
       setEditedAccount({
         name: account.name,
         account_balance: account.account_balance.toString(),
-        currency: account.currency
+        currency: account.currency,
+        description: account.description || ''
       });
     }
   }, [account]);
@@ -121,6 +124,19 @@ function EditModal({ account, isOpen, onClose, onSave, onDelete }: EditModalProp
                   ))}
                 </select>
               </div>
+
+              <div>
+                <label className="block mb-2 text-sm font-semibold antialiased text-stone-800">
+                  Description
+                </label>
+                <textarea
+                  value={editedAccount.description}
+                  onChange={(e) => setEditedAccount({ ...editedAccount, description: e.target.value })}
+                  className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none"
+                  rows={3}
+                  placeholder="Add a description for your account..."
+                />
+              </div>
             </div>
 
             <div className="mt-6 flex justify-between">
@@ -144,7 +160,8 @@ function EditModal({ account, isOpen, onClose, onSave, onDelete }: EditModalProp
                         ...account,
                         name: editedAccount.name,
                         account_balance: parseFloat(editedAccount.account_balance),
-                        currency: editedAccount.currency
+                        currency: editedAccount.currency,
+                        description: editedAccount.description
                       });
                       onClose();
                     }
@@ -206,7 +223,8 @@ export default function Settings() {
   const [newAccount, setNewAccount] = useState({
     name: '',
     account_balance: '',
-    currency: 'EUR'
+    currency: 'EUR',
+    description: ''
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -273,6 +291,7 @@ export default function Settings() {
           name: newAccount.name.trim(),
           account_balance: parseFloat(newAccount.account_balance),
           currency: newAccount.currency,
+          description: newAccount.description.trim(),
           mode: mode,
           is_active: false
         });
@@ -285,7 +304,8 @@ export default function Settings() {
       setNewAccount({
         name: '',
         account_balance: '',
-        currency: 'EUR'
+        currency: 'EUR',
+        description: ''
       });
       
       await fetchAccounts();
@@ -314,7 +334,8 @@ export default function Settings() {
         .update({
           name: updatedAccount.name.trim(),
           account_balance: updatedAccount.account_balance,
-          currency: updatedAccount.currency
+          currency: updatedAccount.currency,
+          description: updatedAccount.description?.trim()
         })
         .eq('id', updatedAccount.id);
 
@@ -507,6 +528,20 @@ export default function Settings() {
           </div>
         </div>
         <div className="mt-4">
+          <label className="text-sm font-medium text-stone-700 block mb-1">
+            Description
+          </label>
+          <div className="relative w-full">
+            <textarea
+              value={newAccount.description}
+              onChange={(e) => setNewAccount({ ...newAccount, description: e.target.value })}
+              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+              placeholder="Add a description for your account..."
+              rows={3}
+            />
+          </div>
+        </div>
+        <div className="mt-4">
           <button
             onClick={handleAddAccount}
             className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
@@ -546,6 +581,11 @@ export default function Settings() {
                       maximumFractionDigits: 2
                     })}
                   </p>
+                  {account.description && (
+                    <p className="text-sm text-stone-500 mt-1">
+                      {account.description}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
