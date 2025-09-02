@@ -140,7 +140,8 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
           calculated_profit: editedTrade.calculated_profit,
           evaluation: editedTrade.evaluation,
           rr_hit_1_4: editedTrade.rr_hit_1_4,
-          partials_taken: editedTrade.partials_taken
+          partials_taken: editedTrade.partials_taken,
+          executed: editedTrade.executed
         })
         .eq('id', editedTrade.id);
 
@@ -485,6 +486,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
                 {renderField('Evaluation Grade', 'evaluation', 'select', EVALUATION_OPTIONS)}
                 {renderField('1.4RR Hit', 'rr_hit_1_4', 'boolean')}
                 {renderField('Partial TP', 'partials_taken', 'boolean')}
+                {renderField('Executed', 'executed', 'boolean')}
               </dl>
             </div>
           </div>
