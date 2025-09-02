@@ -81,7 +81,8 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
     quarter: trade.quarter,
     evaluation: trade.evaluation,
     rr_hit_1_4: trade.rr_hit_1_4,
-    partials_taken: trade.partials_taken
+    partials_taken: trade.partials_taken,
+    executed: trade.executed
   };
 }
 
@@ -196,6 +197,7 @@ export function useDashboardData({
           .eq('account_id', activeAccount.id)
           .gte('trade_date', startDate)
           .lte('trade_date', endDate)
+          .not('executed', 'eq', false)
           .order('trade_date', { ascending: false })
           .range(offset, offset + limit - 1);
 
@@ -221,6 +223,7 @@ export function useDashboardData({
                 .eq('account_id', activeAccount.id)
                 .gte('trade_date', startDate)
                 .lte('trade_date', endDate)
+                .not('executed', 'eq', false)
                 .order('trade_date', { ascending: false })
                 .range(offset, offset + limit - 1);
 
@@ -271,6 +274,7 @@ export function useDashboardData({
           .eq('account_id', activeAccount.id)
           .gte('trade_date', dateRange.startDate)
           .lte('trade_date', dateRange.endDate)
+          .not('executed', 'eq', false)
           .order('trade_date', { ascending: false })
           .range(offset, offset + limit - 1);
 
@@ -292,11 +296,12 @@ export function useDashboardData({
               const { data: moreData, error: fetchError } = await supabase
                 .from(`${mode}_trades`)
                 .select('*')
-                .eq('user_id', session.user.id)
-                .eq('account_id', activeAccount.id)
-                .gte('trade_date', dateRange.startDate)
-                .lte('trade_date', dateRange.endDate)
-                .order('trade_date', { ascending: false })
+                          .eq('user_id', session.user.id)
+          .eq('account_id', activeAccount.id)
+          .gte('trade_date', dateRange.startDate)
+          .lte('trade_date', dateRange.endDate)
+          .not('executed', 'eq', false)
+          .order('trade_date', { ascending: false })
                 .range(offset, offset + limit - 1);
 
               if (fetchError) {
