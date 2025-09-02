@@ -296,12 +296,12 @@ export function useDashboardData({
               const { data: moreData, error: fetchError } = await supabase
                 .from(`${mode}_trades`)
                 .select('*')
-                          .eq('user_id', session.user.id)
-          .eq('account_id', activeAccount.id)
-          .gte('trade_date', dateRange.startDate)
-          .lte('trade_date', dateRange.endDate)
-          .not('executed', 'eq', false)
-          .order('trade_date', { ascending: false })
+                .eq('user_id', session.user.id)
+                .eq('account_id', activeAccount.id)
+                .gte('trade_date', dateRange.startDate)
+                .lte('trade_date', dateRange.endDate)
+                .not('executed', 'eq', false)
+                .order('trade_date', { ascending: false })
                 .range(offset, offset + limit - 1);
 
               if (fetchError) {
