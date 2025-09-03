@@ -27,6 +27,11 @@ export function calculateStreaks(trades: Trade[]): StreakStats {
   let currentLosingStreak = 0;
 
   sortedTrades.forEach((trade) => {
+    // Skip BE trades
+    if (trade.break_even) {
+      return;
+    }
+
     const isWin = trade.trade_outcome === 'Win';
     const isLoss = trade.trade_outcome === 'Lose';
 
