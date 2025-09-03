@@ -95,6 +95,7 @@ export default function NewTradeForm() {
     rr_hit_1_4: false,
     partials_taken: false,
     executed: true,
+    launch_hour: false,
   };
 
   const [trade, setTrade] = useState<Trade>(() => {
@@ -786,6 +787,38 @@ export default function NewTradeForm() {
                     <div className="font-semibold text-stone-900 mb-1">Not Counted in Stats</div>
                     <div className="bg-yellow-50 border-yellow-200 border rounded p-2">
                       This trade is marked as "not executed" due to reasons such as emotions, discipline errors, or other factors. It will <span className="font-semibold">not</span> be included in your statistics.
+                    </div>
+                  </div>
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-stone-200 transform rotate-45"></div>
+                </div>
+              </span>
+            </label>
+
+            <label className="flex items-center cursor-pointer relative ml-2" htmlFor="launch-hour-checkbox">
+              <input
+                type="checkbox"
+                id="launch-hour-checkbox"
+                checked={trade.launch_hour}
+                onChange={(e) => setTrade({ ...trade, launch_hour: e.target.checked })}
+                className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
+              />
+              <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <svg strokeWidth="1.5" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#ffffff">
+                  <path d="M5 13L9 17L19 7" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+                </svg>
+              </span>
+            </label>
+            <label className="cursor-pointer ml-2 text-stone-800 text-sm flex items-center group relative" htmlFor="launch-hour-checkbox">
+              LH
+              <span className="ml-1 cursor-help">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="text-xs text-stone-700">
+                    <div className="font-semibold text-stone-900 mb-1">Launch Hour</div>
+                    <div className="bg-blue-50 border-blue-200 border rounded p-2">
+                      Trade executed during the launch hour of the market session. This period often has higher volatility and requires special attention.
                     </div>
                   </div>
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-stone-200 transform rotate-45"></div>
