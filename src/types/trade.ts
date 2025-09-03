@@ -29,5 +29,6 @@ export interface Trade {
   evaluation: string;
   rr_hit_1_4: boolean;  // New field to track if trade hit 1.4RR
   partials_taken: boolean;  // New field to track if partials were taken at 1.4RR
-  executed: boolean; 
+  executed: boolean;
+  launch_hour: boolean;  // Indicates if the trade was executed during the launch hour
 }
