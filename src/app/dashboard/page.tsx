@@ -2756,6 +2756,44 @@ export default function Dashboard() {
             })()}
           </div>
         </div>
+        {/* Launch Hour Trades Statistics */}
+        <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
+          <h2 className="text-lg font-bold text-stone-900 mb-1">Launch Hour Trades</h2>
+          <p className="text-sm text-stone-500 mb-4">Trades that were executed during the launch hour</p>
+          <div className="h-80 flex flex-col items-center justify-center">
+            {(() => {
+              const totalLaunchHour = filteredTrades.filter(t => t.launch_hour).length;
+
+              // Calculate wins, losses, and winrate for non-executed trades
+              const wins = filteredTrades.filter(t => t.launch_hour && t.trade_outcome === 'Win').length;
+              const losses = filteredTrades.filter(t => t.launch_hour && t.trade_outcome === 'Lose').length;
+              const winRate = totalLaunchHour > 0 ? (wins / totalLaunchHour) * 100 : 0;
+
+              return (
+                <div className="w-full text-center">
+                  <div className="text-4xl font-bold text-stone-900 mb-2">{totalLaunchHour}</div>
+                  <div className="text-stone-700 text-sm mb-2">Total Launch Hour Trades</div>
+                  <div className="flex flex-col items-center justify-center gap-2 mt-4">
+                    <div className="flex items-center gap-4">
+                      <div className="text-green-700 font-semibold text-lg">
+                        Wins: <span className="font-bold">{wins}</span>
+                      </div>
+                      <div className="text-red-700 font-semibold text-lg">
+                        Losses: <span className="font-bold">{losses}</span>
+                      </div>
+                    </div>
+                    <div className="font-semibold text-lg">
+                      Winrate: <span className="font-bold">{totalLaunchHour > 0 ? winRate.toFixed(1) : '0.0'}%</span>
+                    </div>
+                  </div>
+                  {totalLaunchHour === 0 && (
+                    <div className="text-stone-400 text-sm mt-8">No launch hour trades in this period.</div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
