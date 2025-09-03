@@ -253,6 +253,79 @@ export function useDashboardData({
     gcTime: 10 * 60 * 1000,
   });
 
+  // Query for non-executed trades
+  const { data: nonExecutedTradesData = [], isLoading: nonExecutedTradesLoading } = useQuery<Trade[]>({
+    queryKey: ['nonExecutedTrades', mode, activeAccount?.id, session?.user?.id, dateRange.startDate, dateRange.endDate],
+    queryFn: async () => {
+      if (!session?.user?.id || !activeAccount?.id) return [];
+      
+      const supabase = createClient();
+      const limit = 500;
+      let offset = 0;
+      let allTrades: Trade[] = [];
+      let totalCount = 0;
+      
+      try {
+        const initialQuery = supabase
+          .from(`${mode}_trades`)
+          .select('*', { count: 'exact' })
+          .eq('user_id', session.user.id)
+          .eq('account_id', activeAccount.id)
+          .gte('trade_date', dateRange.startDate)
+          .lte('trade_date', dateRange.endDate)
+          .eq('executed', false)
+          .order('trade_date', { ascending: false })
+          .range(offset, offset + limit - 1);
+
+        const { data: initialData, error: initialError, count } = await initialQuery;
+
+        if (initialError) {
+          console.error('Supabase error:', initialError);
+          throw initialError;
+        }
+
+        totalCount = count || 0;
+        allTrades = initialData || [];
+
+        if (totalCount > limit) {
+          offset += limit;
+          const fetchRemainingData = async () => {
+            while (offset < totalCount) {
+              const { data: moreData, error: fetchError } = await supabase
+                .from(`${mode}_trades`)
+                .select('*')
+                .eq('user_id', session.user.id)
+                .eq('account_id', activeAccount.id)
+                .gte('trade_date', dateRange.startDate)
+                .lte('trade_date', dateRange.endDate)
+                .eq('executed', false)
+                .order('trade_date', { ascending: false })
+                .range(offset, offset + limit - 1);
+
+              if (fetchError) {
+                console.error('Error fetching more data:', fetchError);
+                break;
+              }
+
+              allTrades = allTrades.concat(moreData || []);
+              offset += limit;
+            }
+          };
+
+          fetchRemainingData();
+        }
+
+        return allTrades.map(trade => mapSupabaseTradeToTrade(trade, mode));
+      } catch (error) {
+        console.error('Error in fetchTrades:', error);
+        return [];
+      }
+    },
+    enabled: !contextLoading && !isSessionLoading && !userLoading && !!session?.user?.id && !!activeAccount?.id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
   // Query for filtered trades based on date range (independent of year selection)
   const { data: filteredTrades = [], isLoading: filteredTradesLoading } = useQuery<Trade[]>({
     queryKey: ['filteredTrades', mode, activeAccount?.id, session?.user?.id, dateRange.startDate, dateRange.endDate],
@@ -439,7 +512,7 @@ export function useDashboardData({
     filteredTrades: filteredTradesByMarket,
     filteredTradesLoading,
     allTradesLoading,
-    isLoadingTrades: allTradesLoading || filteredTradesLoading,
+    isLoadingTrades: allTradesLoading || filteredTradesLoading || nonExecutedTradesLoading,
     stats,
     monthlyStats,
     monthlyStatsAllTrades,
@@ -458,5 +531,7 @@ export function useDashboardData({
     slSizeStats,
     macroStats,
     evaluationStats,
+    nonExecutedTrades: nonExecutedTradesData,
+    nonExecutedTradesLoading,
   };
 }
