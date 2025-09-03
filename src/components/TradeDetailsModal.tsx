@@ -141,7 +141,8 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
           evaluation: editedTrade.evaluation,
           rr_hit_1_4: editedTrade.rr_hit_1_4,
           partials_taken: editedTrade.partials_taken,
-          executed: editedTrade.executed
+          executed: editedTrade.executed,
+          launch_hour: editedTrade.launch_hour
         })
         .eq('id', editedTrade.id);
 
@@ -487,6 +488,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
                 {renderField('1.4RR Hit', 'rr_hit_1_4', 'boolean')}
                 {renderField('Partial TP', 'partials_taken', 'boolean')}
                 {renderField('Executed', 'executed', 'boolean')}
+                {renderField('Launch Hour', 'launch_hour', 'boolean')}
               </dl>
             </div>
           </div>
