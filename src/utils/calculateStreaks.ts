@@ -16,9 +16,12 @@ export function calculateStreaks(trades: Trade[]): StreakStats {
   }
 
   // Sort trades by date in ascending order to calculate streaks chronologically
-  const sortedTrades = [...trades].sort((a, b) => 
-    new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime()
-  );
+  const sortedTrades = [...trades].sort((a, b) => {
+    // Combine date and time for full chronological sort
+    const aDateTime = new Date(`${a.trade_date}T${a.trade_time || '00:00:00'}`);
+    const bDateTime = new Date(`${b.trade_date}T${b.trade_time || '00:00:00'}`);
+    return aDateTime.getTime() - bDateTime.getTime();
+  });
 
   let currentStreak = 0;
   let maxWinningStreak = 0;
