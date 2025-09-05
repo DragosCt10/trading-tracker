@@ -165,6 +165,7 @@ export function useDashboardData({
   const [newsStats, setNewsStats] = useState<NewsStats[]>([]);
   const [dayStats, setDayStats] = useState<DayStats[]>([]);
   const [marketStats, setMarketStats] = useState<MarketStats[]>([]);
+  const [nonExecutedMarketStats, setNonExecutedMarketStats] = useState<MarketStats[]>([]);
   const [marketAllTradesStats, setMarketAllTradesStats] = useState<MarketStats[]>([]);
   const [slSizeStats, setSlSizeStats] = useState<SLSizeStats[]>([]);
   const [macroStats, setMacroStats] = useState({
@@ -533,6 +534,7 @@ export function useDashboardData({
     if (nonExecutedTradesData.length > 0) {
       setNonExecutedSetupStats(calculateSetupStats(nonExecutedTradesData));
       setNonExecutedLiquidityStats(calculateLiquidityStats(nonExecutedTradesData));
+      setNonExecutedMarketStats(calculateMarketStats(nonExecutedTradesData, activeAccount?.account_balance || 0));
     }
   }, [nonExecutedTradesData]);
 
@@ -577,6 +579,7 @@ export function useDashboardData({
     newsStats,
     dayStats,
     marketStats,
+    nonExecutedMarketStats,
     marketAllTradesStats,
     slSizeStats,
     macroStats,
