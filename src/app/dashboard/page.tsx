@@ -237,7 +237,9 @@ export default function Dashboard() {
     monthlyStatsAllTrades,
     localHLStats,
     setupStats,
+    nonExecutedSetupStats,
     liquidityStats,
+    nonExecutedLiquidityStats,
     directionStats,
     reentryStats,
     breakEvenStats,
@@ -251,6 +253,7 @@ export default function Dashboard() {
     macroStats,
     evaluationStats,
     nonExecutedTrades,
+    nonExecutedTotalTradesCount,
     nonExecutedTradesLoading,
   } = useDashboardData({
     session: userData?.session,
@@ -824,6 +827,28 @@ export default function Dashboard() {
             </span>
           </h3>
           <p className={`text-2xl font-bold ${macroStats.sharpeWithBE > 0 ? 'text-green-600' : macroStats.sharpeWithBE < 0 ? 'text-red-600' : 'text-stone-800'}`}>{macroStats.sharpeWithBE.toFixed(2) } <span className="text-stone-500 text-xs">incl. BE</span></p>
+        </div>
+
+        {/* Non-Executed Trades Card */}
+        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
+          <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
+            Non-Executed Trades
+            <span className="ml-1 cursor-help group relative">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-72 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="text-xs sm:text-sm text-stone-700 space-y-1 sm:space-y-2">
+                  <div className="font-semibold text-stone-900 mb-1 sm:mb-2">Non-Executed Trades</div>
+                  <p>Total number of trades that were planned but not executed, including break-even (BE) trades, in the selected year. This helps track missed or skipped opportunities.</p>
+                </div>
+              </div>
+            </span>
+          </h3>
+          <p className="text-2xl font-bold text-stone-900">
+            {typeof nonExecutedTotalTradesCount === 'number' ? nonExecutedTotalTradesCount : 0}
+            <span className="text-stone-500 text-sm ml-1">(incl. BE)</span>
+          </p>
         </div>
       </div>
 
@@ -2718,6 +2743,49 @@ export default function Dashboard() {
             })()}
           </div>
         </div>
+        {/* Launch Hour Trades Statistics */}
+        <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
+          <h2 className="text-lg font-bold text-stone-900 mb-1">Launch Hour Trades</h2>
+          <p className="text-sm text-stone-500 mb-4">Trades that were executed during the launch hour</p>
+          <div className="h-80 flex flex-col items-center justify-center">
+            {(() => {
+              const totalLaunchHour = filteredTrades.filter(t => t.launch_hour).length;
+
+              // Calculate wins, losses, and winrate for non-executed trades
+              const wins = filteredTrades.filter(t => t.launch_hour && t.trade_outcome === 'Win').length;
+              const losses = filteredTrades.filter(t => t.launch_hour && t.trade_outcome === 'Lose').length;
+              const winRate = totalLaunchHour > 0 ? (wins / totalLaunchHour) * 100 : 0;
+
+              return (
+                <div className="w-full text-center">
+                  <div className="text-4xl font-bold text-stone-900 mb-2">{totalLaunchHour}</div>
+                  <div className="text-stone-700 text-sm mb-2">Total Launch Hour Trades</div>
+                  <div className="flex flex-col items-center justify-center gap-2 mt-4">
+                    <div className="flex items-center gap-4">
+                      <div className="text-green-700 font-semibold text-lg">
+                        Wins: <span className="font-bold">{wins}</span>
+                      </div>
+                      <div className="text-red-700 font-semibold text-lg">
+                        Losses: <span className="font-bold">{losses}</span>
+                      </div>
+                    </div>
+                    <div className="font-semibold text-lg">
+                      Winrate: <span className="font-bold">{totalLaunchHour > 0 ? winRate.toFixed(1) : '0.0'}%</span>
+                    </div>
+                  </div>
+                  {totalLaunchHour === 0 && (
+                    <div className="text-stone-400 text-sm mt-8">No launch hour trades in this period.</div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      </div>
+
+      <h2 className="text-2xl font-bold text-stone-900 mt-20">Non-executed Trades by date range</h2>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 my-8">
         {/* Non Executed Trades Statistics */}
         <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-bold text-stone-900 mb-1">Non Executed Trades</h2>
@@ -2756,42 +2824,185 @@ export default function Dashboard() {
             })()}
           </div>
         </div>
-        {/* Launch Hour Trades Statistics */}
-        <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-bold text-stone-900 mb-1">Launch Hour Trades</h2>
-          <p className="text-sm text-stone-500 mb-4">Trades that were executed during the launch hour</p>
-          <div className="h-80 flex flex-col items-center justify-center">
-            {(() => {
-              const totalLaunchHour = filteredTrades.filter(t => t.launch_hour).length;
-
-              // Calculate wins, losses, and winrate for non-executed trades
-              const wins = filteredTrades.filter(t => t.launch_hour && t.trade_outcome === 'Win').length;
-              const losses = filteredTrades.filter(t => t.launch_hour && t.trade_outcome === 'Lose').length;
-              const winRate = totalLaunchHour > 0 ? (wins / totalLaunchHour) * 100 : 0;
-
-              return (
-                <div className="w-full text-center">
-                  <div className="text-4xl font-bold text-stone-900 mb-2">{totalLaunchHour}</div>
-                  <div className="text-stone-700 text-sm mb-2">Total Launch Hour Trades</div>
-                  <div className="flex flex-col items-center justify-center gap-2 mt-4">
-                    <div className="flex items-center gap-4">
-                      <div className="text-green-700 font-semibold text-lg">
-                        Wins: <span className="font-bold">{wins}</span>
-                      </div>
-                      <div className="text-red-700 font-semibold text-lg">
-                        Losses: <span className="font-bold">{losses}</span>
-                      </div>
-                    </div>
-                    <div className="font-semibold text-lg">
-                      Winrate: <span className="font-bold">{totalLaunchHour > 0 ? winRate.toFixed(1) : '0.0'}%</span>
-                    </div>
-                  </div>
-                  {totalLaunchHour === 0 && (
-                    <div className="text-stone-400 text-sm mt-8">No launch hour trades in this period.</div>
-                  )}
-                </div>
-              );
-            })()}
+        
+        <div className='bg-white border-stone-200 border rounded-lg shadow-sm p-6'>
+          <h2 className="text-lg font-bold text-stone-900 mb-1">Non-Executed Trades Setup Statistics</h2>
+          <p className="text-sm text-stone-500 mb-4">Distribution of non-executed trades based on trading setup</p>
+          <div className="h-96">
+            <Bar
+              options={{
+                ...chartOptions,
+                indexAxis: 'y',
+                plugins: {
+                  legend: {
+                    display: false,
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => {
+                        const stat = nonExecutedSetupStats[context.dataIndex];
+                        const dataset = context.dataset;
+                        if (dataset.label === 'Wins') {
+                          return `Wins: ${stat.wins} (${stat.beWins} BE)`;
+                        }
+                        if (dataset.label === 'Losses') {
+                          return `Losses: ${stat.losses} (${stat.beLosses} BE)`;
+                        }
+                        if (dataset.label === 'Win Rate') {
+                          return `Win Rate: ${stat.winRate.toFixed(2)}% (${stat.winRateWithBE.toFixed(2)}% with BE)`;
+                        }
+                        return `${dataset.label}: ${context.parsed.x}`;
+                      }
+                    }
+                  }
+                },
+                scales: {
+                  x: {
+                    stacked: false,
+                    grid: {
+                      display: false,
+                    },
+                    ticks: {
+                      display: false
+                    }
+                  },
+                  y: {
+                    stacked: false,
+                    grid: {
+                      display: false,
+                    },
+                    ticks: {
+                      color: 'rgb(41, 37, 36)' // stone-800
+                    }
+                  },
+                },
+              }}
+              data={{
+                labels: nonExecutedSetupStats.map(stat => `${stat.setup} (${stat.wins + stat.losses})`),
+                datasets: [
+                  {
+                    label: 'Wins',
+                    data: nonExecutedSetupStats.map(stat => stat.wins),
+                    backgroundColor: 'rgba(134, 239, 172, 0.8)', // green-300
+                    borderColor: 'rgb(134, 239, 172)', // green-300
+                    borderWidth: 0,
+                    borderRadius: 4,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.8,
+                  },
+                  {
+                    label: 'Losses',
+                    data: nonExecutedSetupStats.map(stat => stat.losses),
+                    backgroundColor: 'rgba(231, 229, 228, 0.8)', // stone-200
+                    borderColor: 'rgb(231, 229, 228)', // stone-200
+                    borderWidth: 0,
+                    borderRadius: 4,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.8,
+                  },
+                  {
+                    label: 'Win Rate',
+                    data: nonExecutedSetupStats.map(stat => stat.winRate),
+                    backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
+                    borderColor: 'rgb(253, 230, 138)', // amber-200
+                    borderWidth: 0,
+                    borderRadius: 4,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.8,
+                  },
+                ],
+              }}
+            />
+          </div>
+        </div>
+        <div className='bg-white border-stone-200 border rounded-lg shadow-sm p-6'>
+          <h2 className="text-lg font-bold text-stone-900 mb-1">Non-Executed Trades Liquidity Statistics</h2>
+          <p className="text-sm text-stone-500 mb-4">Distribution of non-executed trades based on trading liquidity</p>
+          <div className="h-96">
+            <Bar
+              options={{
+                ...chartOptions,
+                indexAxis: 'y',
+                plugins: {
+                  legend: {
+                    display: false,
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => {
+                        const stat = nonExecutedLiquidityStats[context.dataIndex];
+                        const dataset = context.dataset;
+                        if (dataset.label === 'Wins') {
+                          return `Wins: ${stat.wins} (${stat.beWins} BE)`;
+                        }
+                        if (dataset.label === 'Losses') {
+                          return `Losses: ${stat.losses} (${stat.beLosses} BE)`;
+                        }
+                        if (dataset.label === 'Win Rate') {
+                          return `Win Rate: ${stat.winRate.toFixed(2)}% (${stat.winRateWithBE.toFixed(2)}% with BE)`;
+                        }
+                        return `${dataset.label}: ${context.parsed.x}`;
+                      }
+                    }
+                  }
+                },
+                scales: {
+                  x: {
+                    stacked: false,
+                    grid: {
+                      display: false,
+                    },
+                    ticks: {
+                      display: false
+                    }
+                  },
+                  y: {
+                    stacked: false,
+                    grid: {
+                      display: false,
+                    },
+                    ticks: {
+                      color: 'rgb(41, 37, 36)' // stone-800
+                    }
+                  },
+                },
+              }}
+              data={{
+                labels: nonExecutedLiquidityStats.map(stat => `${stat.liquidity} (${stat.wins + stat.losses})`),
+                datasets: [
+                  {
+                    label: 'Wins',
+                    data: nonExecutedLiquidityStats.map(stat => stat.wins),
+                    backgroundColor: 'rgba(134, 239, 172, 0.8)', // green-300
+                    borderColor: 'rgb(134, 239, 172)', // green-300
+                    borderWidth: 0,
+                    borderRadius: 4,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.8,
+                  },
+                  {
+                    label: 'Losses',
+                    data: nonExecutedLiquidityStats.map(stat => stat.losses),
+                    backgroundColor: 'rgba(231, 229, 228, 0.8)', // stone-200
+                    borderColor: 'rgb(231, 229, 228)', // stone-200
+                    borderWidth: 0,
+                    borderRadius: 4,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.8,
+                  },
+                  {
+                    label: 'Win Rate',
+                    data: nonExecutedLiquidityStats.map(stat => stat.winRate),
+                    backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
+                    borderColor: 'rgb(253, 230, 138)', // amber-200
+                    borderWidth: 0,
+                    borderRadius: 4,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.8,
+                  },
+                ],
+              }}
+            />
           </div>
         </div>
       </div>
