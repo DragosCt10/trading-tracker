@@ -155,7 +155,9 @@ export function useDashboardData({
     }
   });
   const [setupStats, setSetupStats] = useState<SetupStats[]>([]);
+  const [nonExecutedSetupStats, setNonExecutedSetupStats] = useState<SetupStats[]>([]);
   const [liquidityStats, setLiquidityStats] = useState<LiquidityStats[]>([]);
+  const [nonExecutedLiquidityStats, setNonExecutedLiquidityStats] = useState<LiquidityStats[]>([]);
   const [directionStats, setDirectionStats] = useState<DirectionStats[]>([]);
   const [reentryStats, setReentryStats] = useState<TradeTypeStats[]>([]);
   const [breakEvenStats, setBreakEvenStats] = useState<TradeTypeStats[]>([]);
@@ -327,6 +329,44 @@ export function useDashboardData({
     gcTime: 10 * 60 * 1000,
   });
 
+  // Query to count all non-executed trades from the current year
+  const { data: nonExecutedTotalTradesCount, isLoading: nonExecutedTotalTradesLoading } = useQuery<number>({
+    queryKey: [
+      'nonExecutedTotalTradesCount',
+      mode,
+      activeAccount?.id,
+      session?.user?.id,
+      // Use current year as part of the key
+      selectedYear
+    ],
+    queryFn: async () => {
+      if (!session?.user?.id || !activeAccount?.id) return 0;
+
+      const supabase = createClient();
+      const currentYear = selectedYear;
+      const startOfYear = `${currentYear}-01-01`;
+      const endOfYear = `${currentYear}-12-31`;
+
+      const { count, error } = await supabase
+        .from(`${mode}_trades`)
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', session.user.id)
+        .eq('account_id', activeAccount.id)
+        .eq('executed', false)
+        .gte('trade_date', startOfYear)
+        .lte('trade_date', endOfYear);
+
+      if (error) {
+        console.error('Error counting non-executed trades:', error);
+        return 0;
+      }
+
+      return count || 0;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
   // Query for filtered trades based on date range (independent of year selection)
   const { data: filteredTrades = [], isLoading: filteredTradesLoading } = useQuery<Trade[]>({
     queryKey: ['filteredTrades', mode, activeAccount?.id, session?.user?.id, dateRange.startDate, dateRange.endDate],
@@ -422,7 +462,6 @@ export function useDashboardData({
       );
 
       const marketStats = calculateMarketStats(allTrades, activeAccount.account_balance);
-      
       setMonthlyStatsAllTrades(monthlyData);
       setMonthlyStats({ bestMonth, worstMonth, monthlyData });
       setMarketAllTradesStats(marketStats);
@@ -489,6 +528,14 @@ export function useDashboardData({
     }
   }, [filteredTradesByMarket]);
 
+  // Calculate non-executed setup stats when nonExecutedTradesData changes
+  useEffect(() => {
+    if (nonExecutedTradesData.length > 0) {
+      setNonExecutedSetupStats(calculateSetupStats(nonExecutedTradesData));
+      setNonExecutedLiquidityStats(calculateLiquidityStats(nonExecutedTradesData));
+    }
+  }, [nonExecutedTradesData]);
+
   useEffect(() => {
     if (filteredTradesByMarket.length > 0 && activeAccount?.account_balance != null) {
       setLiquidityStats(calculateLiquidityStats(filteredTradesByMarket));
@@ -519,7 +566,9 @@ export function useDashboardData({
     monthlyStatsAllTrades,
     localHLStats,
     setupStats,
+    nonExecutedSetupStats,
     liquidityStats,
+    nonExecutedLiquidityStats,
     directionStats,
     reentryStats,
     breakEvenStats,
@@ -533,6 +582,7 @@ export function useDashboardData({
     macroStats,
     evaluationStats,
     nonExecutedTrades: nonExecutedTradesData,
+    nonExecutedTotalTradesCount,
     nonExecutedTradesLoading,
   };
 }
