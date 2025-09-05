@@ -2750,12 +2750,24 @@ export default function Dashboard() {
           <p className="text-sm text-stone-500 mb-4">Trades that were executed during the launch hour</p>
           <div className="h-80 flex flex-col items-center justify-center">
             {(() => {
-              const totalLaunchHour = filteredTrades.filter(t => t.launch_hour).length;
+              const launchHourTrades = filteredTrades.filter(t => t.launch_hour);
+              const totalLaunchHour = launchHourTrades.length;
 
-              // Calculate wins, losses, and winrate for non-executed trades
-              const wins = filteredTrades.filter(t => t.launch_hour && t.trade_outcome === 'Win').length;
-              const losses = filteredTrades.filter(t => t.launch_hour && t.trade_outcome === 'Lose').length;
-              const winRate = totalLaunchHour > 0 ? (wins / totalLaunchHour) * 100 : 0;
+              // Calculate wins, losses, BE wins, BE losses for launch hour trades
+              const beWins = launchHourTrades.filter(t => t.break_even && t.trade_outcome === 'Win').length;
+              const beLosses = launchHourTrades.filter(t => t.break_even && t.trade_outcome === 'Lose').length;
+              // Only count as "win" if not break even
+              const wins = launchHourTrades.filter(t => t.trade_outcome === 'Win' && !t.break_even).length;
+              // Only count as "loss" if not break even
+              const losses = launchHourTrades.filter(t => t.trade_outcome === 'Lose' && !t.break_even).length;
+
+              // Winrate (excluding BE wins/losses)
+              const tradesWithoutBE = wins + losses;
+              const winRate = tradesWithoutBE > 0 ? (wins / tradesWithoutBE) * 100 : 0;
+
+              // Winrate including BE
+              const totalWithBE = wins + losses + beWins + beLosses;
+              const winRateWithBE = totalWithBE > 0 ? ((wins + beWins) / totalWithBE) * 100 : 0;
 
               return (
                 <div className="w-full text-center">
@@ -2764,14 +2776,15 @@ export default function Dashboard() {
                   <div className="flex flex-col items-center justify-center gap-2 mt-4">
                     <div className="flex items-center gap-4">
                       <div className="text-green-700 font-semibold text-lg">
-                        Wins: <span className="font-bold">{wins}</span>
+                        Wins: <span className="font-bold">{wins}</span> ({beWins} BE)
                       </div>
                       <div className="text-red-700 font-semibold text-lg">
-                        Losses: <span className="font-bold">{losses}</span>
+                        Losses: <span className="font-bold">{losses}</span> ({beLosses} BE)
                       </div>
                     </div>
-                    <div className="font-semibold text-lg">
-                      Winrate: <span className="font-bold">{totalLaunchHour > 0 ? winRate.toFixed(1) : '0.0'}%</span>
+                    <div className="font-semibold text-lg mt-2">
+                      <span className="font-bold">Winrate: {tradesWithoutBE > 0 ? winRate.toFixed(1) : '0.0'}%</span>
+                      <span className="text-stone-500 text-sm ml-2">({totalWithBE > 0 ? winRateWithBE.toFixed(1) : '0.0'}% incl. BE)</span>
                     </div>
                   </div>
                   {totalLaunchHour === 0 && (
@@ -2795,10 +2808,21 @@ export default function Dashboard() {
             {(() => {
               const totalNonExecuted = nonExecutedTrades.length;
 
-              // Calculate wins, losses, and winrate for non-executed trades
-              const wins = nonExecutedTrades.filter(t => t.trade_outcome === 'Win').length;
-              const losses = nonExecutedTrades.filter(t => t.trade_outcome === 'Lose').length;
-              const winRate = totalNonExecuted > 0 ? (wins / totalNonExecuted) * 100 : 0;
+              // Calculate wins, losses, BE wins, BE losses for non-executed trades
+              const beWins = nonExecutedTrades.filter(t => t.break_even && t.trade_outcome === 'Win').length;
+              const beLosses = nonExecutedTrades.filter(t => t.break_even && t.trade_outcome === 'Lose').length;
+              // Only count as "win" if not break even
+              const wins = nonExecutedTrades.filter(t => t.trade_outcome === 'Win' && !t.break_even).length;
+              // Only count as "loss" if not break even
+              const losses = nonExecutedTrades.filter(t => t.trade_outcome === 'Lose' && !t.break_even).length;
+
+              // Winrate (excluding BE wins/losses)
+              const tradesWithoutBE = wins + losses;
+              const winRate = tradesWithoutBE > 0 ? (wins / tradesWithoutBE) * 100 : 0;
+
+              // Winrate including BE
+              const totalWithBE = wins + losses + beWins + beLosses;
+              const winRateWithBE = totalWithBE > 0 ? ((wins + beWins) / totalWithBE) * 100 : 0;
 
               return (
                 <div className="w-full text-center">
@@ -2807,14 +2831,15 @@ export default function Dashboard() {
                   <div className="flex flex-col items-center justify-center gap-2 mt-4">
                     <div className="flex items-center gap-4">
                       <div className="text-green-700 font-semibold text-lg">
-                        Wins: <span className="font-bold">{wins}</span>
+                        Wins: <span className="font-bold">{wins}</span> ({beWins} BE)
                       </div>
                       <div className="text-red-700 font-semibold text-lg">
-                        Losses: <span className="font-bold">{losses}</span>
+                        Losses: <span className="font-bold">{losses}</span> ({beLosses} BE)
                       </div>
                     </div>
-                    <div className="font-semibold text-lg">
-                      Winrate: <span className="font-bold">{totalNonExecuted > 0 ? winRate.toFixed(1) : '0.0'}%</span>
+                    <div className="font-semibold text-lg mt-2">
+                      <span className="font-bold">Winrate: {tradesWithoutBE > 0 ? winRate.toFixed(1) : '0.0'}%</span>
+                      <span className="text-stone-500 text-sm ml-2">({totalWithBE > 0 ? winRateWithBE.toFixed(1) : '0.0'}% incl. BE)</span>
                     </div>
                   </div>
                   {totalNonExecuted === 0 && (
