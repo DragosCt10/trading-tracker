@@ -25,8 +25,9 @@ export default function TradesPage() {
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
-  // Market filter state (must be before any code that uses it)
+  // Filter states (must be before any code that uses it)
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
+  const [showNonExecuted, setShowNonExecuted] = useState<boolean>(false);
   const [sortConfig, setSortConfig] = useState<{ field: 'trade_date' | 'market' | 'outcome'; direction: 'asc' | 'desc' }>({
     field: 'trade_date',
     direction: 'asc'
@@ -87,7 +88,17 @@ export default function TradesPage() {
 
   // Table data and pagination logic (always client-side)
   const allTrades = allTradesData || [];
-  const filteredTrades = selectedMarket === 'all' ? allTrades : allTrades.filter(trade => trade.market === selectedMarket);
+  const filteredTrades = allTrades.filter(trade => {
+    // Apply market filter
+    if (selectedMarket !== 'all' && trade.market !== selectedMarket) {
+      return false;
+    }
+    // Apply non-executed filter
+    if (showNonExecuted && trade.executed !== false) {
+      return false;
+    }
+    return true;
+  });
   
   // Apply sorting
   const sortedTrades = [...filteredTrades].sort((a, b) => {
@@ -162,6 +173,7 @@ export default function TradesPage() {
     });
     setCurrentPage(1);
     setSelectedMarket('all');
+    setShowNonExecuted(false);
   };
 
   // Reset to page 1 when market filter changes
@@ -328,10 +340,10 @@ export default function TradesPage() {
         </Link>
       </div>
 
-      {/* Market Filter Dropdown */}
+      {/* Filters Section */}
       <div className="mb-4 flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <label htmlFor="market-filter" className="text-sm font-medium text-stone-700">Filter by Market:</label>
+          <label htmlFor="market-filter" className="text-sm font-medium text-stone-700">Market:</label>
           <select
             id="market-filter"
             value={selectedMarket}
@@ -344,6 +356,38 @@ export default function TradesPage() {
             ))}
           </select>
         </div>
+
+        <label className="flex items-center cursor-pointer relative ml-2" htmlFor="non-executed-checkbox">
+          <input
+            type="checkbox"
+            id="non-executed-checkbox"
+            checked={showNonExecuted}
+            onChange={(e) => setShowNonExecuted(e.target.checked)}
+            className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
+          />
+          <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <svg strokeWidth="1.5" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#ffffff">
+              <path d="M5 13L9 17L19 7" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+            </svg>
+          </span>
+        </label>
+        <label className="cursor-pointer text-stone-800 text-sm flex items-center group relative" htmlFor="non-executed-checkbox">
+          Show only non-executed trades
+          <span className="ml-1 cursor-help">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div className="text-xs text-stone-700">
+                <div className="font-semibold text-stone-900 mb-1">Not Counted in Stats</div>
+                <div className="bg-yellow-50 border-yellow-200 border rounded p-2">
+                  This filter shows trades marked as "not executed" due to reasons such as emotions, discipline errors, or other factors. These trades are <span className="font-semibold">not</span> included in your statistics.
+                </div>
+              </div>
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-stone-200 transform rotate-45"></div>
+            </div>
+          </span>
+        </label>
 
         <div className="flex items-center gap-2">
           <label htmlFor="sort-by" className="text-sm font-medium text-stone-700">Sort by:</label>
