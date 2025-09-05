@@ -248,6 +248,7 @@ export default function Dashboard() {
     newsStats,
     dayStats,
     marketStats,
+    nonExecutedMarketStats,
     marketAllTradesStats,
     slSizeStats,
     macroStats,
@@ -2993,6 +2994,96 @@ export default function Dashboard() {
                   {
                     label: 'Win Rate',
                     data: nonExecutedLiquidityStats.map(stat => stat.winRate),
+                    backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
+                    borderColor: 'rgb(253, 230, 138)', // amber-200
+                    borderWidth: 0,
+                    borderRadius: 4,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.8,
+                  },
+                ],
+              }}
+            />
+          </div>
+        </div>
+        <div className='bg-white border-stone-200 border rounded-lg shadow-sm p-6'>
+          <h2 className="text-lg font-bold text-stone-900 mb-1">Non-Executed Trades Market Statistics</h2>
+          <p className="text-sm text-stone-500 mb-4">Distribution of non-executed trades based on market</p>
+          <div className="h-96">
+            <Bar
+              options={{
+                ...chartOptions,
+                indexAxis: 'y',
+                plugins: {
+                  legend: {
+                    display: false,
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => {
+                        const stat = nonExecutedMarketStats[context.dataIndex];
+                        const dataset = context.dataset;
+                        if (dataset.label === 'Wins') {
+                          return `Wins: ${stat.wins} (${stat.beWins} BE)`;
+                        }
+                        if (dataset.label === 'Losses') {
+                          return `Losses: ${stat.losses} (${stat.beLosses} BE)`;
+                        }
+                        if (dataset.label === 'Win Rate') {
+                          return `Win Rate: ${stat.winRate.toFixed(2)}% (${stat.winRateWithBE.toFixed(2)}% with BE)`;
+                        }
+                        return `${dataset.label}: ${context.parsed.x}`;
+                      }
+                    }
+                  }
+                },
+                scales: {
+                  x: {
+                    stacked: false,
+                    grid: {
+                      display: false,
+                    },
+                    ticks: {
+                      display: false
+                    }
+                  },
+                  y: {
+                    stacked: false,
+                    grid: {
+                      display: false,
+                    },
+                    ticks: {
+                      color: 'rgb(41, 37, 36)' // stone-800
+                    }
+                  },
+                },
+              }}
+              data={{
+                labels: nonExecutedMarketStats.map(stat => `${stat.market} (${stat.wins + stat.losses})`),
+                datasets: [
+                  {
+                    label: 'Wins',
+                    data: nonExecutedMarketStats.map(stat => stat.wins),
+                    backgroundColor: 'rgba(134, 239, 172, 0.8)', // green-300
+                    borderColor: 'rgb(134, 239, 172)', // green-300
+                    borderWidth: 0,
+                    borderRadius: 4,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.8,
+                  },
+                  {
+                    label: 'Losses',
+                    data: nonExecutedMarketStats.map(stat => stat.losses),
+                    backgroundColor: 'rgba(231, 229, 228, 0.8)', // stone-200
+                    borderColor: 'rgb(231, 229, 228)', // stone-200
+                    borderWidth: 0,
+                    borderRadius: 4,
+                    barPercentage: 0.8,
+                    categoryPercentage: 0.8,
+                  },
+                  {
+                    label: 'Win Rate',
+                    data: nonExecutedMarketStats.map(stat => stat.winRate),
                     backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
                     borderColor: 'rgb(253, 230, 138)', // amber-200
                     borderWidth: 0,
