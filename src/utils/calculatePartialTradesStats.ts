@@ -52,9 +52,6 @@ export function calculatePartialTradesStats(trades: Trade[]): PartialTradesStats
   const totalPartialTradesCount = partialWinningTrades + partialLosingTrades + beWinPartialTrades + beLosingPartialTrades;
   const totalPartialsBECount = beWinPartialTrades + beLosingPartialTrades;
 
-  console.log('totalPartialTradesCount', totalPartialTradesCount);
-  console.log('totalPartialsBECount', totalPartialsBECount);
-
   return {
     partialWinningTrades,
     partialLosingTrades,
