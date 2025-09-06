@@ -127,4 +127,6 @@ export interface Stats {
   beLosingPartialTrades: number;
   partialWinRate: number;
   partialWinRateWithBE: number;
-}
+  totalPartialTradesCount: number;
+  totalPartialsBECount: number;
+  }
