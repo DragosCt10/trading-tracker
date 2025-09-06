@@ -28,6 +28,7 @@ export default function TradesPage() {
   // Filter states (must be before any code that uses it)
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
   const [showNonExecuted, setShowNonExecuted] = useState<boolean>(false);
+  const [showPartialTrades, setShowPartialTrades] = useState<boolean>(false);
   const [sortConfig, setSortConfig] = useState<{ field: 'trade_date' | 'market' | 'outcome'; direction: 'asc' | 'desc' }>({
     field: 'trade_date',
     direction: 'asc'
@@ -95,6 +96,10 @@ export default function TradesPage() {
     }
     // Apply non-executed filter
     if (showNonExecuted && trade.executed !== false) {
+      return false;
+    }
+    // Apply partial trades filter
+    if (showPartialTrades && !trade.partials_taken) {
       return false;
     }
     return true;
@@ -174,6 +179,7 @@ export default function TradesPage() {
     setCurrentPage(1);
     setSelectedMarket('all');
     setShowNonExecuted(false);
+    setShowPartialTrades(false);
   };
 
   // Reset to page 1 when market filter changes
@@ -389,6 +395,38 @@ export default function TradesPage() {
           </span>
         </label>
 
+        <label className="flex items-center cursor-pointer relative ml-4" htmlFor="partial-trades-checkbox">
+          <input
+            type="checkbox"
+            id="partial-trades-checkbox"
+            checked={showPartialTrades}
+            onChange={(e) => setShowPartialTrades(e.target.checked)}
+            className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
+          />
+          <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <svg strokeWidth="1.5" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#ffffff">
+              <path d="M5 13L9 17L19 7" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
+            </svg>
+          </span>
+        </label>
+        <label className="cursor-pointer text-stone-800 text-sm flex items-center group relative" htmlFor="partial-trades-checkbox">
+          Show only partial trades
+          <span className="ml-1 cursor-help">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div className="text-xs text-stone-700">
+                <div className="font-semibold text-stone-900 mb-1">Partial Trades</div>
+                <div className="bg-yellow-50 border-yellow-200 border rounded p-2">
+                  This filter shows trades where partial profits were taken during the trade execution.
+                </div>
+              </div>
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-stone-200 transform rotate-45"></div>
+            </div>
+          </span>
+        </label>
+
         <div className="flex items-center gap-2">
           <label htmlFor="sort-by" className="text-sm font-medium text-stone-700">Sort by:</label>
           <select
@@ -591,6 +629,18 @@ export default function TradesPage() {
                           </svg>
                           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-stone-800 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                             Launch Hour trade
+                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-stone-800"></div>
+                          </div>
+                        </span>
+                      )}
+                      {trade.partials_taken && (
+                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 relative group cursor-help">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0 0 12 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52 2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 0 1-2.031.352 5.988 5.988 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971Zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0 2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 0 1-2.031.352 5.989 5.989 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971Z" />
+                          </svg>
+
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-stone-800 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                            Partial profits taken
                             <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-stone-800"></div>
                           </div>
                         </span>
