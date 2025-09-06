@@ -522,7 +522,16 @@ export function useDashboardData({
       const evaluationStats = calculateEvaluationStats(filteredTradesByMarket);
       const { currentStreak, maxWinningStreak, maxLosingStreak } = calculateStreaks(filteredTradesByMarket);
       const averageDaysBetweenTrades = calculateAverageDaysBetweenTrades(filteredTradesByMarket);
-      const { partialWinningTrades, partialLosingTrades, beWinPartialTrades, beLosingPartialTrades, partialWinRate, partialWinRateWithBE, totalPartialTradesCount, totalPartialsBECount } = calculatePartialTradesStats(filteredTradesByMarket);
+      const { 
+        partialWinningTrades, 
+        partialLosingTrades, 
+        beWinPartialTrades,
+        beLosingPartialTrades,
+        partialWinRate, 
+        partialWinRateWithBE, 
+        totalPartialTradesCount, 
+        totalPartialsBECount 
+      } = calculatePartialTradesStats(filteredTradesByMarket);
       setEvaluationStats(evaluationStats);
 
       setStats(prev => ({ 
