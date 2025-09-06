@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, ReactNode } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, subDays, startOfYear, endOfYear, startOfWeek, endOfWeek, isSameMonth, addDays } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, subDays, startOfYear, endOfYear } from 'date-fns';
 import { Trade } from '@/types/trade';
 import { useTradingMode } from '@/context/TradingModeContext';
 import {
@@ -749,7 +749,7 @@ export default function Dashboard() {
               </div>
             </span>
           </h3>
-          <p className={`text-2xl font-bold ${macroStats.consistencyScore > 0 ? 'text-green-600' : macroStats.consistencyScore < 0 ? 'text-red-600' : 'text-stone-800'}`}>{macroStats.consistencyScore.toFixed(2) } <span className="text-stone-500 text-sm">({macroStats.consistencyScoreWithBE.toFixed(2)} with BE)</span></p>
+          <p className={`text-2xl font-bold ${macroStats.consistencyScore > 0 ? 'text-green-600' : macroStats.consistencyScore < 0 ? 'text-red-600' : 'text-stone-800'}`}>{macroStats.consistencyScore.toFixed(2) } <span className="text-stone-500 text-sm">({macroStats.consistencyScoreWithBE.toFixed(2)} w/ BE)</span></p>
         </div>
 
         {/* Average Monthly Trades Card */}
@@ -829,7 +829,7 @@ export default function Dashboard() {
               </div>
             </span>
           </h3>
-          <p className={`text-2xl font-bold ${macroStats.sharpeWithBE > 0 ? 'text-green-600' : macroStats.sharpeWithBE < 0 ? 'text-red-600' : 'text-stone-800'}`}>{macroStats.sharpeWithBE.toFixed(2) } <span className="text-stone-500 text-xs">incl. BE</span></p>
+          <p className={`text-2xl font-bold ${macroStats.sharpeWithBE > 0 ? 'text-green-600' : macroStats.sharpeWithBE < 0 ? 'text-red-600' : 'text-stone-800'}`}>{macroStats.sharpeWithBE.toFixed(2) } <span className="text-stone-500 text-sm">(incl. BE)</span></p>
         </div>
 
         {/* Non-Executed Trades Card */}
