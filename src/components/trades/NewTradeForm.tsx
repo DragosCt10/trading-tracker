@@ -130,17 +130,12 @@ export default function NewTradeForm() {
     const riskAmount = (riskPerTrade / 100) * activeAccount.account_balance;
     const riskRewardRatio = trade.risk_reward_ratio || 2;
     
-    if (trade.partials_taken) {
-      // For partials, always calculate 40% of the profit at 1.4RR
-      return riskAmount * 1.4 * 0.4; // Using 1.4RR for partial TP
-    } else {
-      // For full trades
-      if (outcome === 'Win') {
-        return riskAmount * riskRewardRatio;
-      } else if (outcome === 'Lose') {
-        return -riskAmount;
-      }
+    if (outcome === 'Win') {
+      return riskAmount * riskRewardRatio;
+    } else if (outcome === 'Lose') {
+      return -riskAmount;
     }
+
     return 0;
   };
 
@@ -149,29 +144,21 @@ export default function NewTradeForm() {
     const profit = calculateProfit(trade.risk_per_trade, trade.trade_outcome);
     setCalculatedProfit(profit);
     
-      // Calculate PNL percentage
-  let pnlPercentage = 0;
-  if (activeAccount?.account_balance) {
-    if (trade.partials_taken) {
-      // For partials, calculate PNL% based on the risk percentage
-      // 40% of position at 1.4RR means: risk * 1.4 * 0.4
-      pnlPercentage = trade.risk_per_trade * 1.4 * 0.4;
-    } else {
-      // For full trades, calculate based on the actual profit
+    // Calculate PNL percentage
+    let pnlPercentage = 0;
+    if (activeAccount?.account_balance) {
       pnlPercentage = (profit / activeAccount.account_balance) * 100;
     }
-  }
-  
-  setTrade(prev => ({ 
-    ...prev, 
-    calculated_profit: profit,
-    pnl_percentage: pnlPercentage 
-  }));
+    
+    setTrade(prev => ({ 
+      ...prev, 
+      calculated_profit: profit,
+      pnl_percentage: pnlPercentage 
+    }));
   }, [
     trade.risk_per_trade, 
     trade.trade_outcome, 
     trade.risk_reward_ratio, 
-    trade.partials_taken, // Add partials_taken to dependencies
     activeAccount?.account_balance
   ]);
 
@@ -745,16 +732,16 @@ export default function NewTradeForm() {
               </span>
             </label>
             <label className="cursor-pointer ml-2 text-stone-800 text-sm flex items-center group relative" htmlFor="partials-checkbox">
-              Partial TP
+              Partials
               <span className="ml-1 cursor-help">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                   <div className="text-xs text-stone-700">
-                    <div className="font-semibold text-stone-900 mb-1">Partial Take Profit</div>
+                    <div className="font-semibold text-stone-900 mb-1">Partials Taken</div>
                     <div className="bg-blue-50 border-blue-200 border rounded p-2">
-                      TP1: 40% of position at 1.4RR
+                      Check this box if you took partial profits on this trade.
                     </div>
                   </div>
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-stone-200 transform rotate-45"></div>
