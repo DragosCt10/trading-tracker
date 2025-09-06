@@ -556,12 +556,25 @@ export function useDashboardData({
 
   // Calculate non-executed setup stats when nonExecutedTradesData changes
   useEffect(() => {
-    if (nonExecutedTradesData.length > 0) {
+    // Reset stats if no account balance
+    if (!activeAccount?.account_balance) {
+      setNonExecutedSetupStats([]);
+      setNonExecutedLiquidityStats([]);
+      setNonExecutedMarketStats([]);
+      return;
+    }
+
+    // Calculate stats if we have trades
+    if (nonExecutedTradesData?.length > 0) {
       setNonExecutedSetupStats(calculateSetupStats(nonExecutedTradesData));
       setNonExecutedLiquidityStats(calculateLiquidityStats(nonExecutedTradesData));
-      setNonExecutedMarketStats(calculateMarketStats(nonExecutedTradesData, activeAccount?.account_balance || 0));
+      setNonExecutedMarketStats(calculateMarketStats(nonExecutedTradesData, activeAccount.account_balance));
+    } else {
+      setNonExecutedSetupStats([]);
+      setNonExecutedLiquidityStats([]);
+      setNonExecutedMarketStats([]);
     }
-  }, [nonExecutedTradesData]);
+  }, [nonExecutedTradesData?.length, activeAccount?.account_balance]);
 
   useEffect(() => {
     if (filteredTradesByMarket.length > 0 && activeAccount?.account_balance != null) {
