@@ -52,37 +52,28 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
   const handleInputChange = (field: keyof Trade, value: any) => {
     if (!editedTrade) return;
 
-    // Calculate new P&L percentage and calculated_profit when risk, RR, outcome, or partials_taken changes
-    if (field === 'risk_per_trade' || field === 'risk_reward_ratio' || field === 'trade_outcome' || field === 'partials_taken') {
+    // Calculate new P&L percentage and calculated_profit when risk, RR, or outcome changes
+    if (field === 'risk_per_trade' || field === 'risk_reward_ratio' || field === 'trade_outcome') {
       // Use the new value for the changed field, and current values for others
       const newRisk = field === 'risk_per_trade' ? value : editedTrade.risk_per_trade;
       const newRR = field === 'risk_reward_ratio' ? value : editedTrade.risk_reward_ratio;
       const newOutcome = field === 'trade_outcome' ? value : editedTrade.trade_outcome;
-      const newPartials = field === 'partials_taken' ? value : editedTrade.partials_taken;
 
       // Calculate P&L based on risk percentage and outcome
       const riskAmount = (Number(newRisk) / 100) * (activeAccount?.account_balance || 0);
       const riskRewardRatio = Number(newRR) || 2;
 
       let calculatedProfit = 0;
-      if (newPartials) {
-        // For partials, always calculate 40% of the profit at 1.4RR (always positive)
-        calculatedProfit = Math.abs(riskAmount * 1.4 * 0.4);
-      } else {
-        // For full trades
-        if (newOutcome === 'Win') {
-          calculatedProfit = riskAmount * riskRewardRatio;
-        } else if (newOutcome === 'Lose') {
-          calculatedProfit = -riskAmount;
-        }
+      if (newOutcome === 'Win') {
+        calculatedProfit = riskAmount * riskRewardRatio;
+      } else if (newOutcome === 'Lose') {
+        calculatedProfit = -riskAmount;
       }
 
       // Calculate P&L percentage based on the risk amount and RR
-      const pnlPercentage = newPartials
-        ? Math.abs(Number(newRisk) * 1.4 * 0.4) // always positive for partials
-        : (newOutcome === 'Win'
-          ? (Number(newRisk) * riskRewardRatio)
-          : -Number(newRisk));
+      const pnlPercentage = newOutcome === 'Win'
+        ? (Number(newRisk) * riskRewardRatio)
+        : -Number(newRisk);
 
       setEditedTrade({
         ...editedTrade,
@@ -486,7 +477,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
                 {renderField('Local High/Low', 'local_high_low', 'boolean')}
                 {renderField('Evaluation Grade', 'evaluation', 'select', EVALUATION_OPTIONS)}
                 {renderField('1.4RR Hit', 'rr_hit_1_4', 'boolean')}
-                {renderField('Partial TP', 'partials_taken', 'boolean')}
+                {renderField('Partials', 'partials_taken', 'boolean')}
                 {renderField('Executed', 'executed', 'boolean')}
                 {renderField('Launch Hour', 'launch_hour', 'boolean')}
               </dl>
