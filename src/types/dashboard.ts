@@ -121,4 +121,10 @@ export interface Stats {
   maxWinningStreak: number;
   maxLosingStreak: number;
   averageDaysBetweenTrades: number;
+  partialWinningTrades: number;
+  partialLosingTrades: number;
+  beWinPartialTrades: number;
+  beLosingPartialTrades: number;
+  partialWinRate: number;
+  partialWinRateWithBE: number;
 }
