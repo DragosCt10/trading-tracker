@@ -11,6 +11,7 @@ import { calculateProfit } from '@/utils/calculateProfit';
 import { calculateTradeCounts } from '@/utils/calculateTradeCounts';
 import { calculateStreaks } from '@/utils/calculateStreaks';
 import { calculateAverageDaysBetweenTrades } from '@/utils/calculateAverageDaysBetweenTrades';
+import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
 import {
   calculateLiquidityStats,
   calculateSetupStats,
@@ -128,7 +129,15 @@ export function useDashboardData({
     currentStreak: 0,
     maxWinningStreak: 0,
     maxLosingStreak: 0,
-    averageDaysBetweenTrades: 0
+    averageDaysBetweenTrades: 0,
+    partialWinningTrades: 0,
+    partialLosingTrades: 0,
+    beWinPartialTrades: 0,
+    beLosingPartialTrades: 0,
+    partialWinRate: 0,
+    partialWinRateWithBE: 0,
+    totalPartialTradesCount: 0,
+    totalPartialsBECount: 0
   });
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStatsResult>({
     bestMonth: null,
@@ -167,6 +176,8 @@ export function useDashboardData({
   const [marketStats, setMarketStats] = useState<MarketStats[]>([]);
   const [nonExecutedMarketStats, setNonExecutedMarketStats] = useState<MarketStats[]>([]);
   const [marketAllTradesStats, setMarketAllTradesStats] = useState<MarketStats[]>([]);
+  const [yearlyPartialTradesCount, setYearlyPartialTradesCount] = useState<number>(0);
+  const [yearlyPartialsBECount, setYearlyPartialsBECount] = useState<number>(0);
   const [slSizeStats, setSlSizeStats] = useState<SLSizeStats[]>([]);
   const [macroStats, setMacroStats] = useState({
     profitFactor: 0,
@@ -463,14 +474,19 @@ export function useDashboardData({
       );
 
       const marketStats = calculateMarketStats(allTrades, activeAccount.account_balance);
+      const { totalPartialTradesCount, totalPartialsBECount } = calculatePartialTradesStats(allTrades);
+      
       setMonthlyStatsAllTrades(monthlyData);
       setMonthlyStats({ bestMonth, worstMonth, monthlyData });
       setMarketAllTradesStats(marketStats);
+      setYearlyPartialTradesCount(totalPartialTradesCount);
+      setYearlyPartialsBECount(totalPartialsBECount);
     } else {
       // handle empty state
       setMonthlyStatsAllTrades({});
       setMonthlyStats({ bestMonth: null, worstMonth: null, monthlyData: {} });
       setMarketAllTradesStats([]);
+      setYearlyPartialTradesCount(0);
     }
   }, [allTrades.length, selectedYear, activeAccount?.account_balance]);
 
@@ -506,6 +522,7 @@ export function useDashboardData({
       const evaluationStats = calculateEvaluationStats(filteredTradesByMarket);
       const { currentStreak, maxWinningStreak, maxLosingStreak } = calculateStreaks(filteredTradesByMarket);
       const averageDaysBetweenTrades = calculateAverageDaysBetweenTrades(filteredTradesByMarket);
+      const { partialWinningTrades, partialLosingTrades, beWinPartialTrades, beLosingPartialTrades, partialWinRate, partialWinRateWithBE, totalPartialTradesCount, totalPartialsBECount } = calculatePartialTradesStats(filteredTradesByMarket);
       setEvaluationStats(evaluationStats);
 
       setStats(prev => ({ 
@@ -524,7 +541,15 @@ export function useDashboardData({
         currentStreak,
         maxWinningStreak,
         maxLosingStreak,
-        averageDaysBetweenTrades
+        averageDaysBetweenTrades,
+        partialWinningTrades,
+        partialLosingTrades,
+        beWinPartialTrades,
+        beLosingPartialTrades,
+        partialWinRate,
+        partialWinRateWithBE,
+        totalPartialTradesCount,
+        totalPartialsBECount
       }));
     }
   }, [filteredTradesByMarket]);
@@ -587,5 +612,7 @@ export function useDashboardData({
     nonExecutedTrades: nonExecutedTradesData,
     nonExecutedTotalTradesCount,
     nonExecutedTradesLoading,
+    yearlyPartialTradesCount,
+    yearlyPartialsBECount,
   };
 }
