@@ -7,6 +7,8 @@ interface PartialTradesStats {
   beLosingPartialTrades: number;
   partialWinRate: number; // without BE
   partialWinRateWithBE: number; // with BE
+  totalPartialTradesCount: number;
+  totalPartialsBECount: number;
 }
 
 export function calculatePartialTradesStats(trades: Trade[]): PartialTradesStats {
@@ -47,6 +49,11 @@ export function calculatePartialTradesStats(trades: Trade[]): PartialTradesStats
 
   const partialWinRate = totalWithoutBE > 0 ? (winsWithoutBE / totalWithoutBE) * 100 : 0;
   const partialWinRateWithBE = totalWithBE > 0 ? (winsWithBE / totalWithBE) * 100 : 0;
+  const totalPartialTradesCount = partialWinningTrades + partialLosingTrades + beWinPartialTrades + beLosingPartialTrades;
+  const totalPartialsBECount = beWinPartialTrades + beLosingPartialTrades;
+
+  console.log('totalPartialTradesCount', totalPartialTradesCount);
+  console.log('totalPartialsBECount', totalPartialsBECount);
 
   return {
     partialWinningTrades,
@@ -54,6 +61,8 @@ export function calculatePartialTradesStats(trades: Trade[]): PartialTradesStats
     beWinPartialTrades,
     beLosingPartialTrades,
     partialWinRate,
-    partialWinRateWithBE
+    partialWinRateWithBE,
+    totalPartialTradesCount,
+    totalPartialsBECount
   };
 }
