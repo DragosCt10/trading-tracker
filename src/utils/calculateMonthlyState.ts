@@ -25,6 +25,9 @@ export function calculateMonthlyStats(
   };
 
   const rawByMonth = trades.reduce<Record<number, Raw>>((acc, trade) => {
+    // Skip trades that are not executed
+    if (!trade.executed) return acc;
+    
     const date = new Date(trade.trade_date);
     if (date.getFullYear() !== selectedYear) return acc;
 
@@ -59,12 +62,6 @@ export function calculateMonthlyStats(
       const rr = trade.risk_reward_ratio ?? 2;
       const riskAmount = accountBalance * (pct / 100);
       bucket.profit += trade.trade_outcome === 'Win' ? riskAmount * rr : -riskAmount;
-    } else if (trade.partials_taken) {
-      // BE trades with partials are always treated as wins
-      const pct = trade.risk_per_trade ?? 0.5;
-      const rr = trade.risk_reward_ratio ?? 2;
-      const riskAmount = accountBalance * (pct / 100);
-      bucket.profit += riskAmount * rr;
     }
 
     return acc;
