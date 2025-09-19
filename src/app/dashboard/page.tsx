@@ -30,6 +30,7 @@ import { EvaluationStats } from '@/components/dashboard/EvaluationStats';
 import { RRHitStats } from '@/components/dashboard/RRHitStats';
 import { analyzeTradingData, TradingAnalysisRequest } from '@/utils/prompt';
 import MarketProfitStatisticsCard from '@/components/dashboard/MarketProfitStats';
+import RiskPerTrade from '@/components/dashboard/RiskPerTrade';
 
 ChartJS.register(
   CategoryScale,
@@ -110,7 +111,7 @@ export default function Dashboard() {
   const { data: userData, isLoading: userLoading } = useUserDetails();
   const [analysisResults, setAnalysisResults] = useState<string | null>(null);
   const [openAnalyzeModal, setOpenAnalyzeModal] = useState(false);
-  
+
   // Add selected year state for monthly stats only
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   
@@ -258,6 +259,8 @@ export default function Dashboard() {
     nonExecutedTradesLoading,
     yearlyPartialTradesCount,
     yearlyPartialsBECount,
+    allTradesRiskStats,
+    riskStats,
   } = useDashboardData({
     session: userData?.session,
     dateRange,
@@ -853,7 +856,7 @@ export default function Dashboard() {
             <span className="text-stone-500 text-sm ml-1">(incl. BE)</span>
           </p>
         </div>
-        
+
         {/* Partial Trades Card */}
         <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
           <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
@@ -879,6 +882,9 @@ export default function Dashboard() {
             </span>
           </p>
         </div>
+        
+        {/* Risk Per Trade Card */}
+        <RiskPerTrade allTradesRiskStats={allTradesRiskStats} userData={userData} />
       </div>
 
       {openAnalyzeModal && (
@@ -1381,6 +1387,10 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+
+      {/* Risk Per Trade Card */}
+      <RiskPerTrade className="mb-8" allTradesRiskStats={riskStats} userData={userData} />
 
       {/* Calendar View */}
       <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
