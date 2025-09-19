@@ -103,6 +103,23 @@ export interface IntervalStats {
   winRateWithBE: number;
 }
 
+export interface RiskStats {
+  total: number;
+  wins: number;
+  losses: number;
+  breakEven: number;
+  beWins: number;
+  beLosses: number;
+  winrate: number;
+  winrateWithBE: number;
+}
+
+export interface RiskAnalysis {
+  risk03: RiskStats;
+  risk05: RiskStats;
+  risk07: RiskStats;
+}
+
 export interface Stats {
   totalTrades: number;
   totalWins: number;
