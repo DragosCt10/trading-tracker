@@ -12,6 +12,7 @@ import { calculateTradeCounts } from '@/utils/calculateTradeCounts';
 import { calculateStreaks } from '@/utils/calculateStreaks';
 import { calculateAverageDaysBetweenTrades } from '@/utils/calculateAverageDaysBetweenTrades';
 import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
+import { calculateRiskPerTradeStats } from '@/utils/calculateRiskPerTrade';
 import {
   calculateLiquidityStats,
   calculateSetupStats,
@@ -38,6 +39,7 @@ import {
   MonthlyStatsResult, 
   MssStats, 
   NewsStats,
+  RiskAnalysis,
   SetupStats, 
   SLSizeStats, 
   Stats, 
@@ -185,6 +187,8 @@ export function useDashboardData({
     consistencyScoreWithBE: 0,
     sharpeWithBE: 0,
   });
+  const [riskStats, setRiskStats] = useState<RiskAnalysis | null>(null);
+  const [allTradesRiskStats, setAllTradesRiskStats] = useState<RiskAnalysis | null>(null);
   const [evaluationStats, setEvaluationStats] = useState<EvaluationStats[]>([]);
   const [intervalStats, setIntervalStats] = useState<IntervalStats[]>([]);
   // Query for all trades in the selected year (only used for monthly stats)
@@ -491,15 +495,21 @@ export function useDashboardData({
   }, [allTrades.length, selectedYear, activeAccount?.account_balance]);
 
 
-  // Calculate macro stats when allTrades change
+  // Calculate macro stats and risk stats when allTrades change
   useEffect(() => {
     if (allTrades?.length && activeAccount?.account_balance != null) {
       const macro = calculateMacroStats(allTrades, activeAccount.account_balance);
+      const riskAnalysis = calculateRiskPerTradeStats(allTrades);
+      
       setMacroStats(prev =>
         JSON.stringify(prev) !== JSON.stringify(macro) ? macro : prev
       );
+      setAllTradesRiskStats((prev: RiskAnalysis | null) =>
+        JSON.stringify(prev) !== JSON.stringify(riskAnalysis) ? riskAnalysis : prev
+      );
     } else {
       setMacroStats({ profitFactor: 0, consistencyScore: 0, consistencyScoreWithBE: 0, sharpeWithBE: 0 });
+      setAllTradesRiskStats(null);
     }
   }, [allTrades.length, activeAccount?.account_balance]);
 
@@ -599,6 +609,14 @@ export function useDashboardData({
       setNewsStats(calculateNewsStats(filteredTradesByMarket));
       setDayStats(calculateDayStats(filteredTradesByMarket));
       setMarketStats(calculateMarketStats(filteredTradesByMarket, activeAccount.account_balance));
+      
+      // Calculate risk stats for filtered trades
+      const riskAnalysis = calculateRiskPerTradeStats(filteredTradesByMarket);
+      setRiskStats((prev: RiskAnalysis | null) =>
+        JSON.stringify(prev) !== JSON.stringify(riskAnalysis) ? riskAnalysis : prev
+      );
+    } else {
+      setRiskStats(null);
     }
   }, [filteredTradesByMarket, activeAccount?.account_balance]);
 
@@ -636,5 +654,7 @@ export function useDashboardData({
     nonExecutedTradesLoading,
     yearlyPartialTradesCount,
     yearlyPartialsBECount,
+    riskStats,
+    allTradesRiskStats,
   };
 }
