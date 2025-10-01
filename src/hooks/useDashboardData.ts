@@ -456,8 +456,8 @@ export function useDashboardData({
       }
     },
     enabled: !contextLoading && !isSessionLoading && !userLoading && !!session?.user?.id && !!activeAccount?.id,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   const calendarMonthTrades = useMemo(() => {
