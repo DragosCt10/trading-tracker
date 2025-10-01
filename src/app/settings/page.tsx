@@ -5,6 +5,12 @@ import { createClient } from '@/utils/supabase/client';
 import { useTradingMode } from '@/context/TradingModeContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import DashboardLayout from '@/components/shared/layout/DashboardLayout';
+import { Currency } from '@/types/account-settings';
+
+import type { Database } from '@/types/supabase'
+
+type AccountSettingsType = Database['public']['Tables']['account_settings']['Row']
+
 
 const CURRENCY_OPTIONS = [
   { value: 'USD', label: 'USD', flag: '🇺🇸' },
@@ -25,22 +31,13 @@ const MODES = [
   { value: 'backtesting', label: 'Backtesting' },
 ];
 
-interface Account {
-  id: string;
-  name: string;
-  account_balance: number;
-  currency: string;
-  is_active: boolean;
-  mode: string;
-  description?: string;
-}
 
 interface EditModalProps {
-  account: Account | null;
+  account: AccountSettingsType | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (account: Partial<Account>) => Promise<void>;
-  onDelete: (account: Account) => Promise<void>;
+  onSave: (account: Partial<AccountSettingsType>) => Promise<void>;
+  onDelete: (account: AccountSettingsType) => Promise<void>;
 }
 
 function EditModal({ account, isOpen, onClose, onSave, onDelete }: EditModalProps) {
@@ -160,7 +157,7 @@ function EditModal({ account, isOpen, onClose, onSave, onDelete }: EditModalProp
                         ...account,
                         name: editedAccount.name,
                         account_balance: parseFloat(editedAccount.account_balance),
-                        currency: editedAccount.currency,
+                        currency: editedAccount.currency as Currency,
                         description: editedAccount.description
                       });
                       onClose();
@@ -219,7 +216,7 @@ function EditModal({ account, isOpen, onClose, onSave, onDelete }: EditModalProp
 export default function Settings() {
   const { mode, setMode, activeAccount, refreshActiveAccount, isLoading: isModeLoading } = useTradingMode();
   const { data: userDetails, isLoading: isUserLoading } = useUserDetails();
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accounts, setAccounts] = useState<AccountSettingsType[]>([]);
   const [newAccount, setNewAccount] = useState({
     name: '',
     account_balance: '',
@@ -229,7 +226,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [editingAccount, setEditingAccount] = useState<AccountSettingsType | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -259,7 +256,7 @@ export default function Settings() {
         .eq('mode', mode)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      setAccounts(Array.isArray(data) ? data : []);
+      setAccounts(Array.isArray(data) ? data as AccountSettingsType[] : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -314,7 +311,7 @@ export default function Settings() {
     }
   }
 
-  async function handleEditAccount(updatedAccount: Partial<Account>) {
+  async function handleEditAccount(updatedAccount: Partial<AccountSettingsType>) {
     try {
       setError(null);
       setSuccess(null);
@@ -337,7 +334,7 @@ export default function Settings() {
           currency: updatedAccount.currency,
           description: updatedAccount.description?.trim()
         })
-        .eq('id', updatedAccount.id);
+        .eq('id', updatedAccount.id as string);
 
       if (error) throw error;
 
@@ -385,7 +382,7 @@ export default function Settings() {
     }
   }
 
-  async function handleDeleteAccount(accountToDelete: Account) {
+  async function handleDeleteAccount(accountToDelete: AccountSettingsType) {
     try {
       setError(null);
       setSuccess(null);

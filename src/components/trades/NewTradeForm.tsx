@@ -6,6 +6,7 @@ import { Trade } from '@/types/trade';
 import { useRouter } from 'next/navigation';
 import { useTradingMode } from '@/context/TradingModeContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import type { Database } from '@/types/supabase';
 
 // Add these constants at the top of the file after imports
 const MARKET_OPTIONS = ['DAX', 'US30', 'UK100', 'US100', 'EURUSD', 'GBPUSD'];
@@ -75,27 +76,32 @@ export default function NewTradeForm() {
     market: '',
     setup_type: '',
     liquidity: '',
-    sl_size: 0,
+    sl_size: '',
     direction: 'Long',
     trade_outcome: 'Win',
     break_even: false,
     reentry: false,
     news_related: false,
     mss: '',
-    risk_reward_ratio: 0,
-    risk_reward_ratio_long: 0,
+    risk_reward_ratio: '',
+    risk_reward_ratio_long: '',
     local_high_low: false,
-    risk_per_trade: 0,
-    calculated_profit: 0,
+    risk_per_trade: '',
+    calculated_profit: '',
     mode: mode,
     notes: NOTES_TEMPLATE,
-    pnl_percentage: 0,
+    pnl_percentage: '',
     quarter: '',
     evaluation: '',
     rr_hit_1_4: false,
     partials_taken: false,
     executed: true,
     launch_hour: false,
+    id: '',
+    user_id: '',
+    created_at: null,
+    updated_at: null,
+    account_id: null
   };
 
   const [trade, setTrade] = useState<Trade>(() => {
@@ -129,9 +135,8 @@ export default function NewTradeForm() {
     
     const riskAmount = (riskPerTrade / 100) * activeAccount.account_balance;
     const riskRewardRatio = trade.risk_reward_ratio || 2;
-    
     if (outcome === 'Win') {
-      return riskAmount * riskRewardRatio;
+      return riskAmount * Number(riskRewardRatio);
     } else if (outcome === 'Lose') {
       return -riskAmount;
     }
@@ -141,19 +146,23 @@ export default function NewTradeForm() {
 
   // Update calculated profit when risk, outcome, or risk:reward ratio changes
   useEffect(() => {
-    const profit = calculateProfit(trade.risk_per_trade, trade.trade_outcome);
+    // Ensure risk_per_trade is a number and trade_outcome is valid
+    const riskPerTrade = trade.risk_per_trade ?? 0;
+    const tradeOutcome = trade.trade_outcome as 'Win' | 'Lose';
+
+    const profit = calculateProfit(Number(riskPerTrade), tradeOutcome);
     setCalculatedProfit(profit);
-    
+
     // Calculate PNL percentage
     let pnlPercentage = 0;
     if (activeAccount?.account_balance) {
       pnlPercentage = (profit / activeAccount.account_balance) * 100;
     }
-    
+
     setTrade(prev => ({ 
       ...prev, 
-      calculated_profit: profit,
-      pnl_percentage: pnlPercentage 
+      calculated_profit: String(profit),
+      pnl_percentage: String(pnlPercentage)
     }));
   }, [
     trade.risk_per_trade, 
@@ -186,6 +195,8 @@ export default function NewTradeForm() {
     }
   }, [trade, mode]);
 
+  type TradeInsert = Database['public']['Tables']['trades']['Insert'];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -205,32 +216,61 @@ export default function NewTradeForm() {
 
     try {
       const supabase = createClient();
-      const tableName = `${mode}_trades`;
+      const tableName = `${mode}_trades` as const;
 
+      // construct Insert type explicitly
+      const newTrade: TradeInsert = {
+        user_id: userDetails?.user?.id ?? '',
+        trade_date: trade.trade_date,
+        trade_time: trade.trade_time,
+        day_of_week: trade.day_of_week,
+        market: trade.market,
+        setup_type: trade.setup_type,
+        liquidity: trade.liquidity,
+        sl_size: String(trade.sl_size ?? ''),
+        direction: trade.direction,
+        trade_outcome: trade.trade_outcome,
+        break_even: trade.break_even,
+        reentry: trade.reentry,
+        news_related: trade.news_related,
+        mss: trade.mss,
+        risk_reward_ratio: String(trade.risk_reward_ratio ?? ''),
+        risk_reward_ratio_long: String(trade.risk_reward_ratio_long ?? ''),
+        local_high_low: trade.local_high_low,
+        risk_per_trade: String(trade.risk_per_trade ?? ''),
+        calculated_profit: String(calculatedProfit ?? 0),
+        pnl_percentage: String(trade.pnl_percentage ?? 0),
+        account_id: activeAccount.id,
+        mode: mode,
+        notes: trade.notes,
+        quarter: trade.quarter,
+        evaluation: trade.evaluation,
+        rr_hit_1_4: trade.rr_hit_1_4,
+        partials_taken: trade.partials_taken,
+        executed: trade.executed,
+        launch_hour: trade.launch_hour,
+        trade_link: trade.trade_link,
+        liquidity_taken: trade.liquidity_taken,
+      };
+      // Fix: Use explicit table name string literal to satisfy Supabase type requirements
       const { error } = await supabase
-        .from(tableName)
-        .insert([{ 
-          ...trade,
-          user_id: userDetails?.user?.id,
-          calculated_profit: calculatedProfit,
-          pnl_percentage: trade.pnl_percentage,
-          account_id: activeAccount.id,
-        }])
-        .select();
+        .from(mode === 'live' ? 'live_trades' : mode === 'demo' ? 'demo_trades' : mode === 'backtesting' ? 'backtesting_trades' : 'trades')
+        .insert([newTrade]);
 
       if (error) throw error;
 
-      // Only clear localStorage after successful submission
+      // clear localStorage only after success
       if (typeof window !== 'undefined') {
         localStorage.removeItem(`new-trade-draft-${mode}`);
       }
-      
+
       router.push('/trades');
     } catch (err: any) {
       setError(err.message);
       setIsSubmitting(false);
     }
   };
+
 
   // Remove the cleanup effect that was clearing localStorage on unmount
   useEffect(() => {
@@ -320,7 +360,7 @@ export default function NewTradeForm() {
           <div className="relative w-full">
             <input
               type="text"
-              value={trade.liquidity_taken}
+              value={trade.liquidity_taken?.toString()}
               onChange={(e) => setTrade({ ...trade, liquidity_taken: e.target.value })}
               className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
               required
@@ -333,7 +373,7 @@ export default function NewTradeForm() {
           <div className="relative w-full">
             <input
               type="text"
-              value={trade.trade_link}
+              value={trade.trade_link?.toString()}
               onChange={(e) => setTrade({ ...trade, trade_link: e.target.value })}
               className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
               required
@@ -466,7 +506,7 @@ export default function NewTradeForm() {
               type="number"
               step="0.01"
               value={trade.sl_size.toString()}
-              onChange={(e) => setTrade({ ...trade, sl_size: parseFloat(e.target.value) || 0 })}
+              onChange={(e) => setTrade({ ...trade, sl_size: e.target.value })}
               className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
               required
             />
@@ -479,10 +519,10 @@ export default function NewTradeForm() {
             <input
               type="number"
               step="0.01"
-              value={trade.risk_per_trade.toString()}
+              value={trade.risk_per_trade !== null && trade.risk_per_trade !== undefined ? trade.risk_per_trade.toString() : ""}
               onChange={(e) => {
-                const value = parseFloat(e.target.value);
-                setTrade({ ...trade, risk_per_trade: value || 0 });
+                const value = e.target.value;
+                setTrade({ ...trade, risk_per_trade: value === "" ? null : value });
               }}
               className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
               required
@@ -526,8 +566,8 @@ export default function NewTradeForm() {
             <input
               type="number"
               step="0.01"
-              value={trade.risk_reward_ratio.toString()}
-              onChange={(e) => setTrade({ ...trade, risk_reward_ratio: parseFloat(e.target.value) || 0 })}
+              value={trade.risk_reward_ratio?.toString()}
+              onChange={(e) => setTrade({ ...trade, risk_reward_ratio: e.target.value })}
               className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
               required
             />
@@ -540,8 +580,8 @@ export default function NewTradeForm() {
             <input
               type="number"
               step="0.01"
-              value={trade.risk_reward_ratio_long.toString()}
-              onChange={(e) => setTrade({ ...trade, risk_reward_ratio_long: parseFloat(e.target.value) || 0 })}
+              value={trade.risk_reward_ratio_long?.toString()}
+              onChange={(e) => setTrade({ ...trade, risk_reward_ratio_long: e.target.value })}
               className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
               required
             />
@@ -596,7 +636,7 @@ export default function NewTradeForm() {
           </label>
           <div className="relative w-full">
             <select
-              value={trade.evaluation}
+              value={trade.evaluation?.toString()}
               onChange={(e) => setTrade({ ...trade, evaluation: e.target.value })}
               className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
               required
@@ -614,7 +654,7 @@ export default function NewTradeForm() {
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-stone-700 mb-2">Notes</label>
           <textarea
-            value={trade.notes}
+            value={trade.notes?.toString()}
             onChange={(e) => setTrade({ ...trade, notes: e.target.value })}
             className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
             rows={16}
@@ -631,7 +671,7 @@ export default function NewTradeForm() {
               <input
                 type="checkbox"
                 id="break-even-checkbox"
-                checked={trade.break_even}
+                checked={trade.break_even ?? false}
                 onChange={(e) => setTrade({ ...trade, break_even: e.target.checked })}
                 className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
               />
@@ -649,7 +689,7 @@ export default function NewTradeForm() {
               <input
                 type="checkbox"
                 id="reentry-checkbox"
-                checked={trade.reentry}
+                checked={trade.reentry ?? false}
                 onChange={(e) => setTrade({ ...trade, reentry: e.target.checked })}
                 className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
               />
@@ -667,7 +707,7 @@ export default function NewTradeForm() {
               <input
                 type="checkbox"
                 id="news-checkbox"
-                checked={trade.news_related}
+                checked={trade.news_related ?? false}
                 onChange={(e) => setTrade({ ...trade, news_related: e.target.checked })}
                 className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
               />
@@ -685,7 +725,7 @@ export default function NewTradeForm() {
               <input
                 type="checkbox"
                 id="localhl-checkbox"
-                checked={trade.local_high_low}
+                checked={trade.local_high_low ?? false}
                 onChange={(e) => setTrade({ ...trade, local_high_low: e.target.checked })}
                 className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
               />
@@ -703,7 +743,7 @@ export default function NewTradeForm() {
               <input
                 type="checkbox"
                 id="rr-hit-checkbox"
-                checked={trade.rr_hit_1_4}
+                checked={trade.rr_hit_1_4 ?? false}
                 onChange={(e) => setTrade({ ...trade, rr_hit_1_4: e.target.checked })}
                 className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
               />
@@ -721,7 +761,7 @@ export default function NewTradeForm() {
               <input
                 type="checkbox"
                 id="partials-checkbox"
-                checked={trade.partials_taken}
+                checked={trade.partials_taken ?? false}
                 onChange={(e) => setTrade({ ...trade, partials_taken: e.target.checked })}
                 className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
               />
@@ -785,7 +825,7 @@ export default function NewTradeForm() {
               <input
                 type="checkbox"
                 id="launch-hour-checkbox"
-                checked={trade.launch_hour}
+                checked={trade.launch_hour ?? false}
                 onChange={(e) => setTrade({ ...trade, launch_hour: e.target.checked })}
                 className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
               />

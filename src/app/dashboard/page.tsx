@@ -298,7 +298,8 @@ export default function Dashboard() {
 
   function getDayStats(trades: Trade[]) {
     const totalProfit = trades.reduce((sum, trade) => {
-      return sum + (trade.calculated_profit || 0);
+      const profit = Number(trade.calculated_profit) || 0;
+      return sum + profit;
     }, 0);
 
     return {
@@ -533,7 +534,12 @@ export default function Dashboard() {
         !trade.break_even || (trade.break_even && trade.partials_taken)
       );
       const beTrades = filteredTrades.filter(trade => trade.break_even);
-      const totalProfit = realTrades.reduce((sum, trade) => sum + (trade.calculated_profit || 0), 0);
+      const totalProfit = realTrades.reduce((sum, trade) => {
+        const profit = typeof trade.calculated_profit === 'string'
+          ? parseFloat(trade.calculated_profit)
+          : trade.calculated_profit || 0;
+        return sum + (isNaN(profit) ? 0 : profit);
+      }, 0);
       const wins = realTrades.filter(trade => trade.trade_outcome === 'Win' && !trade.break_even).length;
       const losses = realTrades.filter(trade => trade.trade_outcome === 'Lose' && !trade.break_even).length;
       const beCount = beTrades.length;
@@ -640,7 +646,7 @@ export default function Dashboard() {
                         y={yPos}
                         fill="#000"
                         textAnchor="middle"
-                        dominantBaseline={value >= 0 ? "bottom" : "top"}
+                        dominantBaseline={value >= 0 ? "text-after-edge" : "text-before-edge"}
                         className="text-xs"
                       >
                         {`${value}%`}
@@ -1497,7 +1503,8 @@ export default function Dashboard() {
               // Calculate profit for display
               const displayProfit = realDayTrades.reduce((sum, trade) => {
                 if (trade.break_even && !trade.partials_taken) return sum; // BE trades without partials should be 0
-                return sum + (trade.calculated_profit || 0);
+                const profit = typeof trade.calculated_profit === 'number' ? trade.calculated_profit : Number(trade.calculated_profit) || 0;
+                return sum + profit;
               }, 0);
 
               return (
@@ -1542,16 +1549,16 @@ export default function Dashboard() {
                             <div key={i} className="flex justify-between items-center">
                               <span className="font-medium">{trade.market}</span>
                               <span className={`font-semibold ${
-                                trade.break_even 
+                                trade.break_even
                                   ? 'text-stone-600'
-                                  : trade.calculated_profit && trade.calculated_profit >= 0 
-                                    ? 'text-green-600' 
+                                  : typeof trade.calculated_profit === 'number' && trade.calculated_profit >= 0
+                                    ? 'text-green-600'
                                     : 'text-red-600'
                               }`}>
                                 {trade.break_even
                                   ? (trade.trade_outcome === 'Win' ? 'W (BE)' : 'L (BE)')
                                   : (trade.trade_outcome === 'Win' ? 'W' : 'L')}
-                                {!trade.break_even && trade.pnl_percentage && ` (${trade.pnl_percentage.toFixed(2)}%)`}
+                                {!trade.break_even && trade.pnl_percentage && ` (${Number(trade.pnl_percentage).toFixed(2)}%)`}
                               </span>
                             </div>
                           ))}

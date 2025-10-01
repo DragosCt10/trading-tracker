@@ -30,10 +30,10 @@ export function calculateMacroStats(
   const returnsWithBE: number[] = [];
 
   for (const t of trades) {
-    const day = t.trade_date.slice(0, 10);
-    const pct = t.risk_per_trade ?? 0.5;
-    const riskAmt = accountBalance * (pct / 100);
-    const rr = t.risk_reward_ratio ?? 2;
+    const day = typeof t.trade_date === 'string' ? t.trade_date.slice(0, 10) : '';
+    const pct = typeof t.risk_per_trade === 'number' ? t.risk_per_trade : 0.5;
+    const riskAmt = typeof accountBalance === 'number' ? accountBalance * (pct / 100) : 0;
+    const rr = typeof t.risk_reward_ratio === 'number' ? t.risk_reward_ratio : 2;
 
     // — profitFactor (only non‐BE or BE with partials)
     const isRealTrade = !t.break_even || (t.break_even && t.partials_taken);

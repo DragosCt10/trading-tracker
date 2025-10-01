@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Trade } from '@/types/trade';
 import { createClient } from '@/utils/supabase/client';
 import { useTradingMode } from '@/context/TradingModeContext';
@@ -13,10 +13,32 @@ interface TradeDetailsModalProps {
   onTradeUpdated?: () => void;
 }
 
+import type { Trade as DBTrade } from '@/types/trade';
+import { Mode, tableMap } from '@/types/supabase';
+
+// Extend DB type for UI use
+export type TradeUI = Omit<DBTrade, 'calculated_profit' | 'pnl_percentage'> & {
+  calculated_profit: number;
+  pnl_percentage: number;
+};
+
+function toTradeUI(trade: Trade | null): TradeUI | null {
+  if (!trade) return null;
+  return {
+    ...trade,
+    calculated_profit: Number(trade.calculated_profit) || 0,
+    pnl_percentage: Number(trade.pnl_percentage) || 0,
+  };
+}
+
+
+
 export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdated }: TradeDetailsModalProps) {
   const { mode, activeAccount } = useTradingMode();
   const [isEditing, setIsEditing] = useState(false);
-  const [editedTrade, setEditedTrade] = useState<Trade | null>(trade);
+  const [editedTrade, setEditedTrade] = useState<TradeUI | null>(toTradeUI(trade));
+
+
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -45,21 +67,21 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
   if (!isOpen || !trade) return null;
 
   // Update editedTrade when trade changes
-  if (trade !== editedTrade && !isEditing) {
-    setEditedTrade(trade);
-  }
+  useEffect(() => {
+    if (!isEditing) {
+      setEditedTrade(toTradeUI(trade));
+    }
+  }, [trade, isEditing]);
 
-  const handleInputChange = (field: keyof Trade, value: any) => {
+
+  const handleInputChange = (field: keyof TradeUI, value: any) => {
     if (!editedTrade) return;
 
-    // Calculate new P&L percentage and calculated_profit when risk, RR, or outcome changes
     if (field === 'risk_per_trade' || field === 'risk_reward_ratio' || field === 'trade_outcome') {
-      // Use the new value for the changed field, and current values for others
       const newRisk = field === 'risk_per_trade' ? value : editedTrade.risk_per_trade;
       const newRR = field === 'risk_reward_ratio' ? value : editedTrade.risk_reward_ratio;
       const newOutcome = field === 'trade_outcome' ? value : editedTrade.trade_outcome;
 
-      // Calculate P&L based on risk percentage and outcome
       const riskAmount = (Number(newRisk) / 100) * (activeAccount?.account_balance || 0);
       const riskRewardRatio = Number(newRR) || 2;
 
@@ -70,25 +92,23 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
         calculatedProfit = -riskAmount;
       }
 
-      // Calculate P&L percentage based on the risk amount and RR
-      const pnlPercentage = newOutcome === 'Win'
-        ? (Number(newRisk) * riskRewardRatio)
-        : -Number(newRisk);
+      const pnlPercentage =
+        newOutcome === 'Win' ? Number(newRisk) * riskRewardRatio : -Number(newRisk);
 
       setEditedTrade({
         ...editedTrade,
         [field]: value,
         calculated_profit: calculatedProfit,
-        pnl_percentage: pnlPercentage
+        pnl_percentage: pnlPercentage,
       });
     } else {
-      // For all other fields, just update the field directly
       setEditedTrade({
         ...editedTrade,
-        [field]: value
+        [field]: value,
       });
     }
   };
+
 
   const handleSave = async () => {
     if (!editedTrade) return;
@@ -99,11 +119,14 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
       const supabase = createClient();
 
       // Use the current trading mode from context
-      const tradingMode = mode;
+      const tableName = tableMap[mode as Mode];
+      if (!['live_trades', 'demo_trades', 'backtesting_trades', 'trades'].includes(tableName)) {
+        throw new Error('Invalid trade mode/table name');
+      }
 
       // Update the trade in the database
       const { error: updateError } = await supabase
-        .from(`${tradingMode}_trades`)
+        .from(tableName)
         .update({
           trade_date: editedTrade.trade_date,
           trade_time: editedTrade.trade_time,
@@ -125,17 +148,18 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
           reentry: editedTrade.reentry,
           news_related: editedTrade.news_related,
           local_high_low: editedTrade.local_high_low,
-          mode: tradingMode,
+          mode: mode,
           notes: editedTrade.notes,
-          pnl_percentage: editedTrade.pnl_percentage,
-          calculated_profit: editedTrade.calculated_profit,
+          pnl_percentage: editedTrade.pnl_percentage.toString(),   // convert here
+          calculated_profit: editedTrade.calculated_profit.toString(), // convert here
           evaluation: editedTrade.evaluation,
           rr_hit_1_4: editedTrade.rr_hit_1_4,
           partials_taken: editedTrade.partials_taken,
           executed: editedTrade.executed,
-          launch_hour: editedTrade.launch_hour
+          launch_hour: editedTrade.launch_hour,
         })
         .eq('id', editedTrade.id);
+
 
       if (updateError) {
         console.error('Error updating trade:', updateError);
@@ -165,8 +189,12 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
       const supabase = createClient();
 
       // Delete the trade from the database
+      const tableName = tableMap[trade.mode as Mode];
+      if (!['live_trades', 'demo_trades', 'backtesting_trades', 'trades'].includes(tableName)) {
+        throw new Error('Invalid trade mode/table name');
+      }
       const { error: deleteError } = await supabase
-        .from(`${trade.mode}_trades`)
+        .from(tableName)
         .delete()
         .eq('id', trade.id);
 
@@ -548,7 +576,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
                 <button
                   onClick={() => {
                     setIsEditing(false);
-                    setEditedTrade(trade);
+                    setEditedTrade(toTradeUI(trade));
                   }}
                   className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-gradient-to-b from-white to-white border-stone-200 text-stone-700 rounded-lg hover:bg-gradient-to-b hover:from-stone-50 hover:to-stone-50 hover:border-stone-200 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-1px_0px_rgba(0,0,0,0.20)] after:pointer-events-none transition antialiased"
                 >

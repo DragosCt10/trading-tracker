@@ -50,11 +50,15 @@ export function calculateProfit(
     const rr  = t.risk_reward_ratio ?? 2;
 
     // --- DYNAMIC‐BALANCE drawdown
-    const dynamicAmt = runningBalance * (pct / 100);
+    const dynamicAmt = typeof runningBalance === 'number' && typeof pct === 'number'
+      ? runningBalance * (pct / 100)
+      : 0;
     const pnl = t.trade_outcome === 'Win'
-      ? dynamicAmt * rr
+      ? (typeof dynamicAmt === 'number' && typeof rr === 'number' ? dynamicAmt * rr : 0)
       : -dynamicAmt;
-    runningBalance += pnl;
+    runningBalance = typeof runningBalance === 'number' && typeof pnl === 'number'
+      ? runningBalance + pnl
+      : runningBalance;
 
     if (runningBalance > peak) {
       peak = runningBalance;
@@ -71,13 +75,14 @@ export function calculateProfit(
   for (const t of sortedForProfit) {
     const pct = t.risk_per_trade ?? 0.5;
     const rr = t.risk_reward_ratio ?? 2;
-    
-    // Calculate profit based on risk_per_trade and account balance
-    const riskAmount = accountBalance * (pct / 100);
+
+    // Calculate profit based on risk_per_trade and account balance, with type checks
+    const riskAmount = typeof accountBalance === 'number' && typeof pct === 'number'
+      ? accountBalance * (pct / 100)
+      : 0;
     const profit = t.trade_outcome === 'Win'
-      ? riskAmount * rr
+      ? (typeof riskAmount === 'number' && typeof rr === 'number' ? riskAmount * rr : 0)
       : -riskAmount;
-      
     totalProfit += profit;
     if (!t.break_even) {
       nonBECount++;

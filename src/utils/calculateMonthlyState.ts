@@ -58,9 +58,9 @@ export function calculateMonthlyStats(
         bucket.nonBEWins++;
       }
       // Calculate profit based on risk_per_trade and risk_reward_ratio
-      const pct = trade.risk_per_trade ?? 0.5;
-      const rr = trade.risk_reward_ratio ?? 2;
-      const riskAmount = accountBalance * (pct / 100);
+      const pct = Number(trade.risk_per_trade ?? 0.5);
+      const rr = Number(trade.risk_reward_ratio ?? 2);
+      const riskAmount = Number(accountBalance) * (pct / 100);
       bucket.profit += trade.trade_outcome === 'Win' ? riskAmount * rr : -riskAmount;
     }
 

@@ -301,10 +301,10 @@ export function calculateMarketStats(trades: Trade[], accountBalance: number): M
     .map(g => {
       const marketTrades = trades.filter(t => (t.market || 'Unknown') === g.type);
       const profit = marketTrades.reduce((sum, trade) => {
-        const pct = trade.risk_per_trade ?? 0.5;
-        const rr = trade.risk_reward_ratio ?? 2;
-        const riskAmount = accountBalance * (pct / 100);
-        
+        const pct = Number(trade.risk_per_trade ?? 0.5);
+        const rr = Number(trade.risk_reward_ratio ?? 2);
+        const riskAmount = Number(accountBalance) * (pct / 100);
+
         // For non-BE trades
         if (!trade.break_even) {
           return sum + (trade.trade_outcome === 'Win' ? riskAmount * rr : -riskAmount);

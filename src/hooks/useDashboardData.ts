@@ -86,7 +86,10 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
     rr_hit_1_4: trade.rr_hit_1_4,
     partials_taken: trade.partials_taken,
     executed: trade.executed,
-    launch_hour: trade.launch_hour
+    launch_hour: trade.launch_hour,
+    created_at: trade.created_at ?? null,
+    updated_at: trade.updated_at ?? null,
+    notes: trade.notes ?? null,
   };
 }
 
@@ -191,6 +194,12 @@ export function useDashboardData({
   const [allTradesRiskStats, setAllTradesRiskStats] = useState<RiskAnalysis | null>(null);
   const [evaluationStats, setEvaluationStats] = useState<EvaluationStats[]>([]);
   const [intervalStats, setIntervalStats] = useState<IntervalStats[]>([]);
+  const tableName = (
+    mode === 'live' ? 'live_trades' :
+    mode === 'demo' ? 'demo_trades' :
+    mode === 'backtesting' ? 'backtesting_trades' :
+    'trades'
+  );
   // Query for all trades in the selected year (only used for monthly stats)
   const { data: allTrades = [], isLoading: allTradesLoading } = useQuery<Trade[]>({
     queryKey: ['allTrades', mode, activeAccount?.id, session?.user?.id, selectedYear],
@@ -210,7 +219,7 @@ export function useDashboardData({
       try {
         // First query to get total count and initial batch
         const initialQuery = supabase
-          .from(`${mode}_trades`)
+          .from(tableName)
           .select('*', { count: 'exact' })
           .eq('user_id', session.user.id)
           .eq('account_id', activeAccount.id)
@@ -236,7 +245,7 @@ export function useDashboardData({
           const fetchRemainingData = async () => {
             while (offset < totalCount) {
               const { data: moreData, error: fetchError } = await supabase
-                .from(`${mode}_trades`)
+                .from(tableName)
                 .select('*')
                 .eq('user_id', session.user.id)
                 .eq('account_id', activeAccount.id)
@@ -286,7 +295,7 @@ export function useDashboardData({
       
       try {
         const initialQuery = supabase
-          .from(`${mode}_trades`)
+          .from(tableName)
           .select('*', { count: 'exact' })
           .eq('user_id', session.user.id)
           .eq('account_id', activeAccount.id)
@@ -311,7 +320,7 @@ export function useDashboardData({
           const fetchRemainingData = async () => {
             while (offset < totalCount) {
               const { data: moreData, error: fetchError } = await supabase
-                .from(`${mode}_trades`)
+                .from(tableName)
                 .select('*')
                 .eq('user_id', session.user.id)
                 .eq('account_id', activeAccount.id)
@@ -364,7 +373,7 @@ export function useDashboardData({
       const endOfYear = `${currentYear}-12-31`;
 
       const { count, error } = await supabase
-        .from(`${mode}_trades`)
+        .from(tableName)
         .select('*', { count: 'exact', head: true })
         .eq('user_id', session.user.id)
         .eq('account_id', activeAccount.id)
@@ -398,7 +407,7 @@ export function useDashboardData({
       try {
         // First query to get total count and initial batch
         const initialQuery = supabase
-          .from(`${mode}_trades`)
+          .from(tableName)
           .select('*', { count: 'exact' })
           .eq('user_id', session.user.id)
           .eq('account_id', activeAccount.id)
@@ -424,7 +433,7 @@ export function useDashboardData({
           const fetchRemainingData = async () => {
             while (offset < totalCount) {
               const { data: moreData, error: fetchError } = await supabase
-                .from(`${mode}_trades`)
+                .from(tableName)
                 .select('*')
                 .eq('user_id', session.user.id)
                 .eq('account_id', activeAccount.id)

@@ -13,6 +13,7 @@ import { DateRange } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import DashboardLayout from '@/components/shared/layout/DashboardLayout';
+import { Mode, tableMap } from '@/types/supabase';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -68,7 +69,7 @@ export default function TradesPage() {
       }
       const supabase = (await import('@/utils/supabase/client')).createClient();
       let query = supabase
-        .from(`${mode}_trades`)
+        .from(tableMap[mode as Mode])
         .select('*')
         .eq('user_id', userDetails.user.id)
         .eq('account_id', activeAccount.id);
@@ -107,40 +108,55 @@ export default function TradesPage() {
   
   // Apply sorting
   const sortedTrades = [...filteredTrades].sort((a, b) => {
-    if (sortConfig.field === 'outcome') {
+    if (sortConfig.field === "outcome") {
       // Special handling for outcome sorting
-      const getOutcomeValue = (trade: Trade) => {
-        if (trade.break_even) return 'BE';
-        return trade.trade_outcome;
+      const getOutcomeValue = (trade: Trade): string => {
+        if (trade.break_even) return "BE";
+        return trade.trade_outcome ?? ""; // handle null
       };
-      
+
       const aValue = getOutcomeValue(a);
       const bValue = getOutcomeValue(b);
-      
-      if (sortConfig.direction === 'asc') {
-        return aValue > bValue ? 1 : -1;
+
+      if (sortConfig.direction === "asc") {
+        return aValue.localeCompare(bValue);
       } else {
-        return aValue < bValue ? 1 : -1;
+        return bValue.localeCompare(aValue);
       }
     }
-    
-    const aValue = a[sortConfig.field];
-    const bValue = b[sortConfig.field];
-    
-    // For date sorting, we want descending order by default
-    if (sortConfig.field === 'trade_date') {
-      return sortConfig.direction === 'asc' 
-        ? new Date(bValue).getTime() - new Date(aValue).getTime()
-        : new Date(aValue).getTime() - new Date(bValue).getTime();
+
+    const aValue = a[sortConfig.field as keyof Trade];
+    const bValue = b[sortConfig.field as keyof Trade];
+
+    // Handle nulls safely
+    if (aValue == null && bValue == null) return 0;
+    if (aValue == null) return 1; // push nulls to bottom
+    if (bValue == null) return -1;
+
+    // Date sorting
+    if (sortConfig.field === "trade_date") {
+      return sortConfig.direction === "asc"
+        ? new Date(aValue as string).getTime() - new Date(bValue as string).getTime()
+        : new Date(bValue as string).getTime() - new Date(aValue as string).getTime();
     }
-    
-    // For other fields (like market)
-    if (sortConfig.direction === 'asc') {
-      return aValue > bValue ? 1 : -1;
-    } else {
-      return aValue < bValue ? 1 : -1;
+
+    // String/number sorting
+    if (typeof aValue === "string" && typeof bValue === "string") {
+      return sortConfig.direction === "asc"
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
     }
+
+    if (typeof aValue === "number" && typeof bValue === "number") {
+      return sortConfig.direction === "asc"
+        ? aValue - bValue
+        : bValue - aValue;
+    }
+
+    // Fallback for mixed types
+    return 0;
   });
+
 
   const paginatedTotalCount = sortedTrades.length;
   const paginatedTotalPages = Math.ceil(paginatedTotalCount / ITEMS_PER_PAGE);
