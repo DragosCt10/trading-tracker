@@ -640,7 +640,7 @@ export default function Dashboard() {
                         y={yPos}
                         fill="#000"
                         textAnchor="middle"
-                        dominantBaseline={value >= 0 ? "bottom" : "top"}
+                        dominantBaseline={'auto'}
                         className="text-xs"
                       >
                         {`${value}%`}
