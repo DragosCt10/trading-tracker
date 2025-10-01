@@ -456,8 +456,8 @@ export function useDashboardData({
       }
     },
     enabled: !contextLoading && !isSessionLoading && !userLoading && !!session?.user?.id && !!activeAccount?.id,
-    staleTime: 0,
-    gcTime: 0,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const calendarMonthTrades = useMemo(() => {
@@ -515,23 +515,23 @@ export function useDashboardData({
 
   
   // Filter trades based on selected market
-  const filteredTradesByMarket = useMemo(() => {
-    if (selectedMarket === 'all') return filteredTrades;
-    return filteredTrades.filter(trade => trade.market === selectedMarket);
-  }, [filteredTrades, selectedMarket]);
+  const filteredTradesByMarket = selectedMarket === 'all'
+    ? filteredTrades
+    : filteredTrades.filter(trade => trade.market === selectedMarket);
 
   // Use filteredTradesByMarket instead of filteredTrades in all the calculations
   useEffect(() => {
-    if (filteredTradesByMarket && filteredTradesByMarket.length > 0 && activeAccount?.account_balance != null) {
+    const filtered = selectedMarket === 'all' ? filteredTrades : filteredTrades.filter(t => t.market === selectedMarket);
+    if (filtered && filtered.length > 0 && activeAccount?.account_balance != null) {
       const { winRate, winRateWithBE } = calculateWinRates(filteredTradesByMarket);
       const { totalProfit, averageProfit, averagePnLPercentage, maxDrawdown } = calculateProfit(
-        filteredTradesByMarket,
+        filtered,
         activeAccount.account_balance
       );
-      const { totalTrades, totalWins, totalLosses, beWins, beLosses } = calculateTradeCounts(filteredTradesByMarket); 
-      const evaluationStats = calculateEvaluationStats(filteredTradesByMarket);
-      const { currentStreak, maxWinningStreak, maxLosingStreak } = calculateStreaks(filteredTradesByMarket);
-      const averageDaysBetweenTrades = calculateAverageDaysBetweenTrades(filteredTradesByMarket);
+      const { totalTrades, totalWins, totalLosses, beWins, beLosses } = calculateTradeCounts(filtered); 
+      const evaluationStats = calculateEvaluationStats(filtered);
+      const { currentStreak, maxWinningStreak, maxLosingStreak } = calculateStreaks(filtered);
+      const averageDaysBetweenTrades = calculateAverageDaysBetweenTrades(filtered);
       const { 
         partialWinningTrades, 
         partialLosingTrades, 
@@ -541,7 +541,7 @@ export function useDashboardData({
         partialWinRateWithBE, 
         totalPartialTradesCount, 
         totalPartialsBECount 
-      } = calculatePartialTradesStats(filteredTradesByMarket);
+      } = calculatePartialTradesStats(filtered);
       setEvaluationStats(evaluationStats);
 
       setStats(prev => ({ 
@@ -570,8 +570,40 @@ export function useDashboardData({
         totalPartialTradesCount,
         totalPartialsBECount
       }));
+    } else {
+      // Reset stats when no filtered trades, but only if not already cleared
+      setStats(prev => {
+        const cleared = {
+          ...prev,
+          totalTrades: 0,
+          totalWins: 0,
+          totalLosses: 0,
+          winRate: 0,
+          totalProfit: 0,
+          averageProfit: 0,
+          maxDrawdown: 0,
+          averagePnLPercentage: 0,
+          winRateWithBE: 0,
+          beWins: 0,
+          beLosses: 0,
+          currentStreak: 0,
+          maxWinningStreak: 0,
+          maxLosingStreak: 0,
+          averageDaysBetweenTrades: 0,
+          partialWinningTrades: 0,
+          partialLosingTrades: 0,
+          beWinPartialTrades: 0,
+          beLosingPartialTrades: 0,
+          partialWinRate: 0,
+          partialWinRateWithBE: 0,
+          totalPartialTradesCount: 0,
+          totalPartialsBECount: 0,
+        };
+        return JSON.stringify(prev) === JSON.stringify(cleared) ? prev : cleared;
+      });
+      setEvaluationStats(prev => (prev.length === 0 ? prev : []));
     }
-  }, [filteredTradesByMarket]);
+  }, [filteredTrades, selectedMarket, activeAccount?.account_balance]);
 
   // Calculate non-executed setup stats when nonExecutedTradesData changes
   useEffect(() => {
@@ -596,29 +628,49 @@ export function useDashboardData({
   }, [nonExecutedTradesData?.length, activeAccount?.account_balance]);
 
   useEffect(() => {
-    if (filteredTradesByMarket.length > 0 && activeAccount?.account_balance != null) {
-      setLiquidityStats(calculateLiquidityStats(filteredTradesByMarket));
-      setSetupStats(calculateSetupStats(filteredTradesByMarket));
-      setDirectionStats(calculateDirectionStats(filteredTradesByMarket));
-      setLocalHLStats(calculateLocalHLStats(filteredTradesByMarket));
-      setIntervalStats(calculateIntervalStats(filteredTradesByMarket, TIME_INTERVALS));
-      setSlSizeStats(calculateSLSizeStats(filteredTradesByMarket)); 
-      setReentryStats(calculateReentryStats(filteredTradesByMarket));
-      setBreakEvenStats(calculateBreakEvenStats(filteredTradesByMarket));
-      setMssStats(calculateMssStats(filteredTradesByMarket));
-      setNewsStats(calculateNewsStats(filteredTradesByMarket));
-      setDayStats(calculateDayStats(filteredTradesByMarket));
-      setMarketStats(calculateMarketStats(filteredTradesByMarket, activeAccount.account_balance));
+    const filtered = selectedMarket === 'all' ? filteredTrades : filteredTrades.filter(t => t.market === selectedMarket);
+    if (filtered.length > 0 && activeAccount?.account_balance != null) {
+      setLiquidityStats(calculateLiquidityStats(filtered)); 
+      setSetupStats(calculateSetupStats(filtered));
+      setDirectionStats(calculateDirectionStats(filtered));
+      setLocalHLStats(calculateLocalHLStats(filtered));
+      setIntervalStats(calculateIntervalStats(filtered, TIME_INTERVALS));
+      setSlSizeStats(calculateSLSizeStats(filtered)); 
+      setReentryStats(calculateReentryStats(filtered));
+      setBreakEvenStats(calculateBreakEvenStats(filtered));
+      setMssStats(calculateMssStats(filtered));
+      setNewsStats(calculateNewsStats(filtered));
+      setDayStats(calculateDayStats(filtered));
+      setMarketStats(calculateMarketStats(filtered, activeAccount.account_balance));
       
       // Calculate risk stats for filtered trades
-      const riskAnalysis = calculateRiskPerTradeStats(filteredTradesByMarket);
+      const riskAnalysis = calculateRiskPerTradeStats(filtered);
       setRiskStats((prev: RiskAnalysis | null) =>
         JSON.stringify(prev) !== JSON.stringify(riskAnalysis) ? riskAnalysis : prev
       );
     } else {
-      setRiskStats(null);
+      // Clear all derived category datasets when empty, but avoid redundant updates
+      setLiquidityStats(prev => (prev.length === 0 ? prev : []));
+      setSetupStats(prev => (prev.length === 0 ? prev : []));
+      setDirectionStats(prev => (prev.length === 0 ? prev : []));
+      setLocalHLStats(prev => {
+        const cleared = {
+          lichidat: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0 },
+          nelichidat: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0 },
+        };
+        return JSON.stringify(prev) === JSON.stringify(cleared) ? prev : cleared;
+      });
+      setIntervalStats(prev => ((prev as any[]).length === 0 ? prev : ([] as any)));
+      setSlSizeStats(prev => (prev.length === 0 ? prev : []));
+      setReentryStats(prev => (prev.length === 0 ? prev : []));
+      setBreakEvenStats(prev => (prev.length === 0 ? prev : []));
+      setMssStats(prev => (prev.length === 0 ? prev : []));
+      setNewsStats(prev => (prev.length === 0 ? prev : []));
+      setDayStats(prev => (prev.length === 0 ? prev : []));
+      setMarketStats(prev => (prev.length === 0 ? prev : []));
+      setRiskStats(prev => (prev === null ? prev : null));
     }
-  }, [filteredTradesByMarket, activeAccount?.account_balance]);
+  }, [filteredTrades, selectedMarket, activeAccount?.account_balance]);
 
 
   return {
