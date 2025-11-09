@@ -27,7 +27,7 @@ export default function RootLayout({
           <LoadingProvider>
             <TradingModeProvider>
               <div className="min-h-screen bg-gray-50">
-                <main className="max-w-screen-xl p-4 md:px-0 mx-auto pt-32">
+                <main className="max-w-(--breakpoint-xl) p-4 md:px-0 mx-auto pt-32">
                   {children}
                 </main>
                 <Footer />

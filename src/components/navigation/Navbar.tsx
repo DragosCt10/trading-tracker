@@ -41,7 +41,7 @@ export default function Navbar() {
   };
 
   const isActive = (path: string) => {
-    return pathname === path ? '!bg-stone-100 rounded' : '';
+    return pathname === path ? 'bg-stone-100! rounded' : '';
   };
 
   const handleStatsClick = (e: React.MouseEvent) => {
@@ -56,7 +56,7 @@ export default function Navbar() {
   // }
 
   return (
-    <nav className="fixed top-2 left-0 right-0 z-50 rounded-lg border overflow-hidden p-2 bg-white border-stone-200 shadow-stone-950/5 mx-auto w-full max-w-screen-xl">
+    <nav className="fixed top-2 left-0 right-0 z-50 rounded-lg border overflow-hidden p-2 bg-white border-stone-200 shadow-stone-950/5 mx-auto w-full max-w-(--breakpoint-xl)">
       <div className="flex items-center">
         <Link href="/" className="font-sans antialiased text-sm text-current ml-2 mr-2 block py-1 font-semibold flex items-center">
           <img src="/trading-tracker-logo.png" alt="Trading Tracker Logo" className="h-10 w-10 mr-2" />
@@ -128,7 +128,7 @@ export default function Navbar() {
         <button
           onClick={handleSignOut}
           disabled={isSigningOut}
-          className="items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-red-500 hover:bg-error-light relative bg-gradient-to-b from-red-500 to-red-600 border-red-600 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-red-600 hover:to-red-600 hover:border-red-600 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-2px_0px_rgba(0,0,0,0.18)] after:pointer-events-none transition antialiased hidden lg:inline-block"
+          className="items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-red-500 hover:bg-error-light relative bg-linear-to-b from-red-500 to-red-600 border-red-600 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-red-600 hover:to-red-600 hover:border-red-600 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-2px_0px_rgba(0,0,0,0.18)] after:pointer-events-none transition antialiased hidden lg:inline-block"
         >
           {isSigningOut ? (
             <span className="flex items-center">
@@ -205,7 +205,7 @@ export default function Navbar() {
             <button
               onClick={handleSignOut}
               disabled={isSigningOut}
-              className="inline-flex w-full items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-red-500 hover:bg-error-light relative bg-gradient-to-b from-red-500 to-red-600 border-red-600 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-red-600 hover:to-red-600 hover:border-red-600 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-2px_0px_rgba(0,0,0,0.18)] after:pointer-events-none transition antialiased"
+              className="inline-flex w-full items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-red-500 hover:bg-error-light relative bg-linear-to-b from-red-500 to-red-600 border-red-600 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-red-600 hover:to-red-600 hover:border-red-600 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-2px_0px_rgba(0,0,0,0.18)] after:pointer-events-none transition antialiased"
             >
               {isSigningOut ? (
                 <span className="flex items-center justify-center">
