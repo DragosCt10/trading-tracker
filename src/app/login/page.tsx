@@ -63,7 +63,7 @@ export default function Login() {
           </div>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-          <div className="rounded-lg shadow-sm space-y-4">
+          <div className="rounded-lg space-y-4">
             <div>
               <label htmlFor="email-address" className="block text-sm font-medium text-stone-700 mb-1">
                 Email address
