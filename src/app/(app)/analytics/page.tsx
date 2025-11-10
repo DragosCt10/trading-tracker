@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, ReactNode } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, subDays, startOfYear, endOfYear } from 'date-fns';
 import { Trade } from '@/types/trade';
-import { useTradingMode } from '@/context/TradingModeContext';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -30,6 +29,7 @@ import { RRHitStats } from '@/components/dashboard/RRHitStats';
 import { analyzeTradingData, TradingAnalysisRequest } from '@/utils/prompt';
 import MarketProfitStatisticsCard from '@/components/dashboard/MarketProfitStats';
 import RiskPerTrade from '@/components/dashboard/RiskPerTrade';
+import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 
 ChartJS.register(
   CategoryScale,
@@ -106,7 +106,6 @@ const MONTHS = [
 export default function Dashboard() {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const { mode, activeAccount, isLoading: contextLoading } = useTradingMode();
   const { data: userData, isLoading: userLoading } = useUserDetails();
   const [analysisResults, setAnalysisResults] = useState<string | null>(null);
   const [openAnalyzeModal, setOpenAnalyzeModal] = useState(false);
@@ -182,7 +181,7 @@ export default function Dashboard() {
   }, [showDatePicker]);
 
   // Filter button handlers
-  const handleFilter = (type: 'year' | '15days' | '30days' | 'month') => {
+  const handleFilter = async (type: 'year' | '15days' | '30days' | 'month') => {
     const today = new Date();
     setActiveFilter(type);
     
@@ -225,6 +224,8 @@ export default function Dashboard() {
     }
   };
 
+  const { selection, actionBarloading } = useActionBarSelection();
+
   const {
     calendarMonthTrades,
     allTrades,
@@ -263,16 +264,16 @@ export default function Dashboard() {
   } = useDashboardData({
     session: userData?.session,
     dateRange,
-    mode,
-    activeAccount: activeAccount as import('@/types/account-settings').AccountSettings | null,
-    contextLoading,
+    mode: selection.mode,
+    activeAccount: selection.activeAccount,
+    contextLoading: actionBarloading,
     isSessionLoading: userLoading,
     currentDate,
     calendarDateRange,
     selectedYear,
     selectedMarket,
   });
-
+  
   // Check session status
   useEffect(() => {
     if (!userLoading && !userData?.session) {
@@ -286,7 +287,7 @@ export default function Dashboard() {
       setIsInitialLoading(false);
     }, 500);
     return () => clearTimeout(timer);
-  }, [activeAccount]);
+  }, [selection.activeAccount]);
 
   function getDaysInMonth() {
     return eachDayOfInterval({
@@ -307,8 +308,8 @@ export default function Dashboard() {
   }
 
   const getCurrencySymbol = () => {
-    if (!activeAccount?.currency) return '$';
-    return CURRENCY_SYMBOLS[activeAccount.currency as keyof typeof CURRENCY_SYMBOLS] || activeAccount.currency;
+    if (!selection.activeAccount?.currency) return '$';
+    return CURRENCY_SYMBOLS[selection.activeAccount.currency as keyof typeof CURRENCY_SYMBOLS] || selection.activeAccount.currency;
   };
 
   const canNavigateMonth = (direction: 'prev' | 'next') => {
@@ -356,7 +357,7 @@ export default function Dashboard() {
 
   // Add this after the other hooks and before the return statement
   const totalYearProfit = Object.values(monthlyStatsAllTrades).reduce((sum, stats) => sum + (stats.profit || 0), 0);
-  const updatedBalance = (activeAccount?.account_balance || 0) + totalYearProfit;
+  const updatedBalance = (selection.activeAccount?.account_balance || 0) + totalYearProfit;
 
   function isCustomDateRange() {
     const today = new Date();
@@ -390,7 +391,7 @@ export default function Dashboard() {
   }, []);
 
   // Show loading state while checking session or context
-  if (userLoading || contextLoading || isInitialLoading) {
+  if (userLoading || actionBarloading || isInitialLoading) {
     return (
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full h-full flex items-center justify-center bg-stone-100">
         <div role="status">
@@ -410,7 +411,7 @@ export default function Dashboard() {
   }
 
   // Show no active account message if there's no active account for the current mode
-  if (!activeAccount && !contextLoading) {
+  if (!selection.activeAccount && !actionBarloading) {
     return (
       <>
       <div className="p-8">
@@ -433,7 +434,7 @@ export default function Dashboard() {
           </div>
           <h2 className="text-xl font-semibold text-stone-900 mb-2">No Active Account</h2>
           <p className="text-stone-600 mb-6">
-            Please set up and activate an account for {mode} mode to view your trading dashboard.
+            Please set up and activate an account for {selection.mode} mode to view your trading dashboard.
           </p>
           <a
             href="/settings"
@@ -449,7 +450,7 @@ export default function Dashboard() {
 
   // Show no trades message if there are no trades
   if (
-    activeAccount &&
+    selection.activeAccount &&
     !isInitialLoading &&
     !filteredTradesLoading &&
     !allTradesLoading &&
@@ -550,7 +551,7 @@ export default function Dashboard() {
     <> 
       {/* Filter Buttons */}
       {/* Add warning if no active account */}
-      {!activeAccount && (
+      {!selection.activeAccount && (
         <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
           Please set up an active account in <a href="/settings" className="text-yellow-800 underline hover:text-yellow-900">Account Settings</a> to see accurate profit calculations.
         </div>
@@ -585,7 +586,7 @@ export default function Dashboard() {
       <div className="mb-8 bg-white rounded-lg shadow-sm border border-stone-200 p-6">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-xl font-bold text-stone-900">{activeAccount?.name || 'No Active Account'}</h2>
+            <h2 className="text-xl font-bold text-stone-900">{selection.activeAccount?.name || 'No Active Account'}</h2>
             <p className="text-sm text-stone-500">Current Balance</p>
           </div>
           <div className="text-right">
@@ -594,7 +595,7 @@ export default function Dashboard() {
               {getCurrencySymbol()}{updatedBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className={`text-sm font-semibold ${totalYearProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {totalYearProfit >= 0 ? '+' : ''}{((totalYearProfit / (activeAccount?.account_balance || 1)) * 100).toFixed(2)}% YTD
+              {totalYearProfit >= 0 ? '+' : ''}{((totalYearProfit / (selection.activeAccount?.account_balance || 1)) * 100).toFixed(2)}% YTD
             </div>
           </div>
         </div>
@@ -606,7 +607,7 @@ export default function Dashboard() {
               data={MONTHS.map(month => ({
                 month,
                 profit: monthlyStatsAllTrades[month]?.profit ?? 0,
-                profitPercent: monthlyStatsAllTrades[month] ? Number(((monthlyStatsAllTrades[month].profit / (activeAccount?.account_balance || 1)) * 100).toFixed(2)) : 0
+                profitPercent: monthlyStatsAllTrades[month] ? Number(((monthlyStatsAllTrades[month].profit / (selection.activeAccount?.account_balance || 1)) * 100).toFixed(2)) : 0
               }))}
               margin={{ top: 30, right: 10, left: 0, bottom: 0 }}
             >
@@ -1189,7 +1190,7 @@ export default function Dashboard() {
                 const analysisData: TradingAnalysisRequest = { 
                   startDate: dateRange.startDate,
                   endDate: dateRange.endDate,
-                  accountBalance: activeAccount?.account_balance || 0,
+                  accountBalance: selection.activeAccount?.account_balance || 0,
                   totalTrades: stats.totalTrades,
                   totalWins: stats.totalWins,
                   totalLosses: stats.totalLosses,
@@ -1433,7 +1434,7 @@ export default function Dashboard() {
                 <span className="text-red-700 font-semibold">L: {week.losses}</span>
                 <span className="text-stone-700 font-semibold">BE: {week.beCount}</span>
               </div>
-              <span className="text-stone-700 font-semibold text-xs mt-1.5">P&L: {((week.totalProfit / (activeAccount?.account_balance || 1)) * 100).toFixed(2)}%</span>
+              <span className="text-stone-700 font-semibold text-xs mt-1.5">P&L: {((week.totalProfit / (selection.activeAccount?.account_balance || 1)) * 100).toFixed(2)}%</span>
               <div className="text-[10px] text-stone-400 mt-1">{week.weekLabel}</div>
             </div>
           ))}
