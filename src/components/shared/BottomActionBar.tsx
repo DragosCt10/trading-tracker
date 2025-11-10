@@ -11,14 +11,6 @@ import { useUserDetails } from '@/hooks/useUserDetails';
 
 type Mode = 'live' | 'backtesting' | 'demo';
 
-function chipClasses(mode: Mode) {
-  switch (mode) {
-    case 'live': return 'bg-emerald-600 text-white border-emerald-700';
-    case 'backtesting': return 'bg-violet-600 text-white border-violet-700';
-    case 'demo': return 'bg-sky-600 text-white border-sky-700';
-  }
-}
-
 export default function BottomActionBar() {
   const queryClient = useQueryClient();
   const supabase = createClient();
@@ -49,14 +41,15 @@ export default function BottomActionBar() {
   const { setSelection } = useActionBarSelection();
 
   const onApply = useCallback(async () => {
-    if (!userId) return;
+    if (!userId?.user?.id) return;
     setApplying(true);
     try {
       // 1) update DB (deactivate all, activate chosen)
-      await supabase
+      // display data here
+      const updated = await supabase
         .from('account_settings')
         .update({ is_active: false } as never)
-        .eq('user_id', userId)
+        .eq('user_id', userId?.user?.id)
         .eq('mode', pendingMode);
 
       let activeAccountObj: any = null;
@@ -66,7 +59,7 @@ export default function BottomActionBar() {
           .from('account_settings')
           .update({ is_active: true } as never)
           .eq('id', pendingAccountId)
-          .eq('user_id', userId);
+          .eq('user_id', userId?.user?.id);
 
         // get the full account object from the already-loaded list
         activeAccountObj = accounts.find(a => a.id === pendingAccountId) ?? null;
