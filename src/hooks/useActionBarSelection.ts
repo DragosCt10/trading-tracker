@@ -2,13 +2,15 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AccountSettings } from '@/types/account-settings';
+import type { Database } from '@/types/supabase';
 
 type Mode = 'live' | 'backtesting' | 'demo';
 
+type AccountRow = Database['public']['Tables']['account_settings']['Row'];
+
 type Selection = {
   mode: Mode;
-  activeAccount: AccountSettings | null; // include anything you need (balance, currency, etc.)
+  activeAccount: AccountRow | null;
   description?: string;
   name?: string;
 };
@@ -19,7 +21,7 @@ export function useActionBarSelection() {
   const queryClient = useQueryClient();
 
   // cache-first, never auto-fetch
-  const { data } = useQuery<Selection>({
+  const { data, isLoading } = useQuery<Selection>({
     queryKey: KEY,
     queryFn: () => Promise.reject("cache only"),
     enabled: false,
@@ -34,5 +36,6 @@ export function useActionBarSelection() {
     selection: data!,      // { mode, activeAccount }
     setSelection,          // writer
     key: KEY,              // (optional) exported key
+    actionBarloading: isLoading,    // loading state
   };
 }
