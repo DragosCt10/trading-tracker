@@ -964,7 +964,7 @@ export default function Dashboard() {
                           return `Losses: ${context.parsed.x} (${monthData.beLosses} BE)`;
                         }
                         if (context.dataset.label === 'Win Rate') {
-                          return `Win Rate: ${context.parsed.x.toFixed(2)}% (${monthData.winRateWithBE.toFixed(2)}% with BE)`;
+                          return `Win Rate: ${context.parsed.x?.toFixed(2)}% (${monthData.winRateWithBE.toFixed(2)}% with BE)`;
                         }
                         return `${context.dataset.label}: ${context.parsed.x}`;
                       }
@@ -2084,7 +2084,7 @@ export default function Dashboard() {
                   tooltip: {
                     callbacks: {
                       label: (context) => {
-                        return `SL Size: ${context.parsed.x.toFixed(2)}`;
+                        return `SL Size: ${context.parsed.x?.toFixed(2)}`;
                       }
                     }
                   }
@@ -2648,7 +2648,7 @@ export default function Dashboard() {
                             const dataset = context.dataset;
                             const value = context.parsed.x;
                             if (dataset.label === 'Win Rate') {
-                              return `${dataset.label}: ${value.toFixed(2)}%`;
+                              return `${dataset.label}: ${value?.toFixed(2)}%`;
                             }
                             return `${dataset.label}: ${value}`;
                           }
@@ -2746,7 +2746,7 @@ export default function Dashboard() {
                             const dataset = context.dataset;
                             const value = context.parsed.x;
                             if (dataset.label === 'Win Rate') {
-                              return `${dataset.label}: ${value.toFixed(2)}%`;
+                              return `${dataset.label}: ${value?.toFixed(2)}%`;
                             }
                             return `${dataset.label}: ${value}`;
                           }
