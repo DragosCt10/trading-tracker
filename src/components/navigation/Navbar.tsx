@@ -72,7 +72,7 @@ export default function Navbar() {
                 className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary bg-transparent border-none outline-none cursor-pointer ${isActive('/dashboard')}`}
               >
                 <ChartBarIcon className="h-4 w-4" />
-                Stats
+                Analytics
               </button>
             </li>
             <li>
@@ -87,44 +87,21 @@ export default function Navbar() {
                 My Trades
               </Link>
             </li>
-            <li>
-              <Link href="/settings" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/settings')}`}>
-                <CogIcon className="h-4 w-4" />
-                Settings
-              </Link>
-            </li>
           </ul>
         </div>
-        <div className="flex items-center ml-auto mr-2">
-          <label htmlFor="trading-mode" className="mr-2 text-sm font-medium text-stone-700">
-            Mode:
-          </label>
-          <div className="relative">
-            <select
-              id="trading-mode"
-              value={mode}
-              onChange={handleModeChange}
-              className="aria-disabled:cursor-not-allowed w-32 appearance-none outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 pl-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none"
-            >
-              <option value="live">Live</option>
-              <option value="demo">Demo</option>
-              <option value="backtesting">Backtesting</option>
-            </select>
-            <svg 
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-500 pointer-events-none" 
-              xmlns="http://www.w3.org/2000/svg" 
-              viewBox="0 0 20 20" 
-              fill="currentColor"
-            >
-              <path 
-                fillRule="evenodd" 
-                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" 
-                clipRule="evenodd" 
-              />
-            </svg>
-          </div>
-        </div>
+
         
+        
+        <button
+          className="cursor-pointer inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center transition-all ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm bg-transparent relative text-stone-700 hover:text-stone-700 border-stone-500 hover:bg-transparent duration-150 hover:border-stone-600 rounded-lg hover:opacity-60 hover:shadow-none ml-auto mr-2 hidden lg:inline-flex"
+          // Add your handler for creating a new account here
+          onClick={() => {
+            // TODO: Implement create new account action (e.g., open modal or navigate)
+            alert('Create New Account clicked!');
+          }}
+        >
+          Create New Account
+        </button>
         <button
           onClick={handleSignOut}
           disabled={isSigningOut}

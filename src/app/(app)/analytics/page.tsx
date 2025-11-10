@@ -24,7 +24,6 @@ import { useUserDetails } from '@/hooks/useUserDetails';
 import { DateRange } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
-import DashboardLayout from '@/components/shared/layout/DashboardLayout';
 import { BarChart, Bar as ReBar, XAxis, YAxis, Tooltip as ReTooltip, ResponsiveContainer, LabelList, Cell } from 'recharts';
 import { EvaluationStats } from '@/components/dashboard/EvaluationStats';
 import { RRHitStats } from '@/components/dashboard/RRHitStats';
@@ -413,7 +412,7 @@ export default function Dashboard() {
   // Show no active account message if there's no active account for the current mode
   if (!activeAccount && !contextLoading) {
     return (
-      <DashboardLayout>
+      <>
       <div className="p-8">
         <div className="max-w-2xl mx-auto bg-white border border-stone-200 rounded-lg shadow-sm p-6 text-center">
           <div className="mb-6">
@@ -444,7 +443,7 @@ export default function Dashboard() {
             </a>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
@@ -459,7 +458,7 @@ export default function Dashboard() {
     !showDatePicker
   ) {
     return (
-      <DashboardLayout>
+      <>
       <div className="p-8">
         <div className="max-w-2xl mx-auto bg-white border border-stone-200 rounded-lg shadow-sm p-6 text-center">
           <div className="mb-6">
@@ -490,7 +489,7 @@ export default function Dashboard() {
           </a>
         </div>
       </div>
-      </DashboardLayout>
+      </>
     );
   }
 
@@ -548,7 +547,7 @@ export default function Dashboard() {
   }
 
   return (
-    <DashboardLayout> 
+    <> 
       {/* Filter Buttons */}
       {/* Add warning if no active account */}
       {!activeAccount && (
@@ -3184,6 +3183,6 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 } 
