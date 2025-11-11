@@ -2,17 +2,16 @@
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { useTradingMode } from '@/context/TradingModeContext';
-import { Bars3Icon, ChartBarIcon, CogIcon, DocumentTextIcon, PlusCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon, ChartBarIcon, DocumentTextIcon, PlusCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQueryClient } from '@tanstack/react-query';
+import ActionBar from '../shared/ActionBar';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: userData, isLoading: userLoading } = useUserDetails();
-  const { mode, activeAccount, setMode } = useTradingMode();
   const supabase = createClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -36,19 +35,10 @@ export default function Navbar() {
     }
   };
 
-  const handleModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setMode(e.target.value as 'live' | 'demo' | 'backtesting');
-  };
-
   const isActive = (path: string) => {
     return pathname === path ? 'bg-stone-100! rounded' : '';
   };
 
-  const handleStatsClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    queryClient.clear();
-    router.push('/dashboard');
-  };
 
   // Don't render the navbar if there's no session and user
   // if (!userData?.session || !userData?.user) {
@@ -66,14 +56,10 @@ export default function Navbar() {
         <div className="hidden lg:block">
           <ul className="mt-4 flex flex-col gap-x-3 gap-y-1.5 lg:mt-0 lg:flex-row lg:items-center">
             <li>
-              <button
-                type="button"
-                onClick={handleStatsClick}
-                className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary bg-transparent border-none outline-none cursor-pointer ${isActive('/dashboard')}`}
-              >
+              <Link href="/analytics" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/analytics')}`}>
                 <ChartBarIcon className="h-4 w-4" />
                 Analytics
-              </button>
+              </Link>
             </li>
             <li>
               <Link href="/trades/new" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/trades/new')}`}>
@@ -119,6 +105,8 @@ export default function Navbar() {
             'Sign Out'
           )}
         </button>
+
+        
         
         <div 
           data-dui-toggle="collapse" 
@@ -135,6 +123,10 @@ export default function Navbar() {
           )}
         </div>
       </div>
+
+      <div>
+        <ActionBar />
+      </div>
       
       <div 
         className={`overflow-hidden transition-[max-height] duration-300 ease-in-out ${mobileMenuOpen ? 'max-h-96' : 'max-h-0'} lg:hidden`} 
@@ -142,8 +134,8 @@ export default function Navbar() {
       >
         <ul className="flex flex-col gap-y-1.5 mt-4">
           <li>
-            <Link href="/dashboard" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/dashboard')}`}>
-              Dashboard
+            <Link href="/analytics" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/analytics')}`}>
+              Analytics
             </Link>
           </li>
           <li>
@@ -155,28 +147,6 @@ export default function Navbar() {
             <Link href="/trades" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/trades')}`}>
               My Trades
             </Link>
-          </li>
-          <li>
-            <Link href="/settings" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/settings')}`}>
-              Settings
-            </Link>
-          </li>
-          <li className="mt-2">
-            <div className="flex items-center mb-2">
-              <label htmlFor="mobile-trading-mode" className="mr-2 text-sm font-medium text-stone-700">
-                Mode:
-              </label>
-              <select
-                id="mobile-trading-mode"
-                value={mode}
-                onChange={handleModeChange}
-                className="text-sm py-2 px-4 border border-stone-500 rounded-lg text-stone-700 bg-white focus:outline-none focus:ring-2 focus:ring-stone-500"
-              >
-                <option value="live">Live</option>
-                <option value="demo">Demo</option>
-                <option value="backtesting">Backtesting</option>
-              </select>
-            </div>
           </li>
           <li className="mt-2">
             <button
