@@ -249,9 +249,6 @@ export function useDashboardData({
       }
     },
     enabled: !!session?.user?.id && !!activeAccount?.id && !!selectedYear && !!mode,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
     staleTime: 0,              // refetch when key changes (selectedYear/mode/account)
     gcTime: 5 * 60_000,        // keep cache 5 min (tweak as you like)
   });
@@ -296,9 +293,6 @@ export function useDashboardData({
       !!dateRange.startDate &&
       !!dateRange.endDate &&
       !!mode,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
     staleTime: 0,
     gcTime: 5 * 60_000,
   });
@@ -338,9 +332,6 @@ export function useDashboardData({
       return count ?? 0;
     },
     enabled: !!session?.user?.id && !!activeAccount?.id && !!selectedYear && !!mode,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
     staleTime: 0,
     gcTime: 5 * 60_000,
   });
@@ -422,9 +413,6 @@ export function useDashboardData({
     },
 
     enabled: !!session?.user?.id && !!activeAccount?.id && !!dateRange.startDate && !!dateRange.endDate,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
     staleTime: 0,      // allow refetch when inputs change
     gcTime: 5 * 60_000 // (optional) 5 minutes
   });
