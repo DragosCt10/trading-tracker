@@ -32,14 +32,12 @@ export default function ActionBar() {
     refetchAccounts
   } = useAccounts({ userId: userId?.user?.id, pendingMode });
 
-
   // keep in sync if another part of the app changes the selection
   React.useEffect(() => {
     setActiveMode(selection.mode);
     setPendingMode(selection.mode);
     setPendingAccountId(selection.activeAccount?.id ?? null);
   }, [selection.mode, selection.activeAccount?.id]);
-
 
   // ensure the account select stays valid & preselects cached active
   React.useEffect(() => {
@@ -138,6 +136,11 @@ export default function ActionBar() {
 
   const noAccounts = accounts.length === 0;
 
+  // Determine if apply button should be disabled due to already-active selection
+  const isAlreadyActive =
+    activeMode === pendingMode &&
+    (selection.activeAccount?.id ?? null) === (pendingAccountId ?? null);
+
   return (
     <div className="flex items-center gap-3 justify-end mt-2">
       <div className="flex items-center gap-2 md:gap-3">
@@ -156,8 +159,6 @@ export default function ActionBar() {
             {activeMode ? activeMode[0].toUpperCase() + activeMode.slice(1) : '—'}
           </span>
         </div>
-
-        
 
         {/* Mode select */}
         <div className="relative">
@@ -216,7 +217,7 @@ export default function ActionBar() {
           onClick={() => {
             // open your accounts/settings UI here if you want
           }}
-          className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm rounded-md py-2 px-4 bg-transparent border-transparent text-stone-800 hover:bg-stone-800/5 hover:border-stone-800/5 shadow-none hover:shadow-none"
+          className="cursor-pointer inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-stone-200 hover:bg-stone-100 relative bg-gradient-to-b from-white to-white border-stone-200 text-stone-700 rounded-lg hover:bg-gradient-to-b hover:from-stone-50 hover:to-stone-50 hover:border-stone-200 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-1px_0px_rgba(0,0,0,0.20)] after:pointer-events-none transition antialiased"
         >
           Edit
         </button>
@@ -225,8 +226,12 @@ export default function ActionBar() {
         <button
           type="button"
           onClick={onApply}
-          disabled={applying || (!pendingAccountId && !noAccounts)}
-          className={'inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-stone-800 hover:bg-stone-700 relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition-all antialiased'}
+          disabled={
+            applying ||
+            (!pendingAccountId && !noAccounts) ||
+            isAlreadyActive
+          }
+          className={'cursor-pointer inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-stone-800 hover:bg-stone-700 relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition-all antialiased'}
         >
           {applying && (
             <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
