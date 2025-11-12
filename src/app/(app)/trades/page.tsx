@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Trade } from '@/types/trade';
-import { useTradingMode } from '@/context/TradingModeContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import Link from 'next/link';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
@@ -13,6 +12,7 @@ import { DateRange } from 'react-date-range';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import AppLayout from '@/components/shared/layout/AppLayout';
+import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -34,7 +34,7 @@ export default function TradesPage() {
     direction: 'asc'
   });
 
-  const { mode, activeAccount, isLoading: modeLoading } = useTradingMode();
+  const { selection, actionBarloading } = useActionBarSelection();
   const { data: userDetails, isLoading: userLoading } = useUserDetails();
 
   // Replace startDate/endDate with dateRange
@@ -61,17 +61,17 @@ export default function TradesPage() {
     error: allTradesError,
     refetch: refetchAllTrades
   } = useQuery({
-    queryKey: ['allTrades', mode, activeAccount?.id, dateRange.startDate, dateRange.endDate, userDetails?.user?.id],
+    queryKey: ['allTrades', selection.mode, selection.activeAccount?.id, dateRange.startDate, dateRange.endDate, userDetails?.user?.id],
     queryFn: async () => {
-      if (!userDetails?.user || !activeAccount?.id) {
+      if (!userDetails?.user || !selection.activeAccount?.id) {
         throw new Error('User not authenticated or no active account');
       }
       const supabase = (await import('@/utils/supabase/client')).createClient();
       let query = supabase
-        .from(`${mode}_trades`)
+        .from(`${selection.mode}_trades`)
         .select('*')
         .eq('user_id', userDetails.user.id)
-        .eq('account_id', activeAccount.id);
+        .eq('account_id', selection.activeAccount.id);
       if (dateRange.startDate) query = query.gte('trade_date', dateRange.startDate);
       if (dateRange.endDate) query = query.lte('trade_date', dateRange.endDate);
       query = query.order('trade_date', { ascending: false })
@@ -80,7 +80,7 @@ export default function TradesPage() {
       if (error) throw new Error(error.message);
       return data || [];
     },
-    enabled: !modeLoading && !userLoading && !!activeAccount?.id && !!userDetails?.user
+    enabled: !actionBarloading && !userLoading && !!selection.activeAccount?.id && !!userDetails?.user
   });
 
   // Market options (from all trades loaded for dropdown)
@@ -276,7 +276,7 @@ export default function TradesPage() {
     }
   };
 
-  if (modeLoading || allTradesLoading || userLoading) {
+  if (actionBarloading || allTradesLoading || userLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div role="status">
@@ -290,7 +290,7 @@ export default function TradesPage() {
     );
   }
 
-  if (!activeAccount) {
+  if (!selection.activeAccount) {
     return (
       <AppLayout>
       <div className="p-8">
@@ -313,7 +313,7 @@ export default function TradesPage() {
           </div>
           <h2 className="text-xl font-semibold text-stone-900 mb-2">No Active Account</h2>
           <p className="text-stone-600 mb-6">
-            Please set up and activate an account for {mode} mode to view your trades.
+            Please set up and activate an account for {selection.mode} mode to view your trades.
           </p>
           <a
             href="/settings"
@@ -335,7 +335,7 @@ export default function TradesPage() {
         <div>
           <h1 className="text-2xl font-bold text-stone-900">Trades</h1>
           <p className="text-sm text-stone-500 mt-1">
-            Viewing trades for {mode} mode
+            Viewing trades for {selection.mode} mode
           </p>
         </div>
         <Link
