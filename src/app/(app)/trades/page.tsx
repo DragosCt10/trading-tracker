@@ -60,7 +60,7 @@ export default function TradesPage() {
     isLoading: allTradesLoading,
     error: allTradesError,
     refetch: refetchAllTrades
-  } = useQuery({
+  } = useQuery<Trade[]>({
     queryKey: ['allTrades', selection.mode, selection.activeAccount?.id, dateRange.startDate, dateRange.endDate, userDetails?.user?.id],
     queryFn: async () => {
       if (!userDetails?.user || !selection.activeAccount?.id) {
@@ -78,7 +78,7 @@ export default function TradesPage() {
 
       const { data, error } = await query;
       if (error) throw new Error(error.message);
-      return data || [];
+      return (data || []) as Trade[];
     },
     enabled: !actionBarloading && !userLoading && !!selection.activeAccount?.id && !!userDetails?.user
   });
