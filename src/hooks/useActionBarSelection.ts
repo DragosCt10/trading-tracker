@@ -3,6 +3,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Database } from '@/types/supabase';
+import { useCallback } from 'react';
 
 type Mode = 'live' | 'backtesting' | 'demo';
 
@@ -15,7 +16,7 @@ type Selection = {
   name?: string;
 };
 
-const KEY = ['ui', 'actionBarSelection'];
+const KEY = ['actionBar:selection'] as const;
 
 export function useActionBarSelection() {
   const queryClient = useQueryClient();
@@ -25,12 +26,14 @@ export function useActionBarSelection() {
     queryKey: KEY,
     queryFn: () => Promise.reject("cache only"),
     enabled: false,
-    initialData: { mode: 'live', activeAccount: null, description: '', name: ''},
+    initialData: () =>
+      (queryClient.getQueryData(KEY) as Selection) ??
+      { mode: 'live', activeAccount: null },
   });
 
-  const setSelection = (sel: Selection) => {
-    queryClient.setQueryData(KEY, sel);
-  };
+  const setSelection = useCallback((next: Selection) => {
+    queryClient.setQueryData(KEY, next);
+  }, [queryClient]);
 
   return {
     selection: data!,      // { mode, activeAccount }
