@@ -169,7 +169,7 @@ export default function ActionBar() {
             onChange={(e) => setPendingMode(e.target.value as Mode)}
             className={clsx(
               'appearance-none rounded-lg border border-stone-300',
-              'pl-4 pr-8 py-2 text-sm'
+              'pl-2 pr-8 py-2 text-sm'
             )}
           >
             <option value="live">Live</option>
@@ -196,7 +196,7 @@ export default function ActionBar() {
             disabled={accountsLoading || noAccounts}
             className={clsx(
               'appearance-none rounded-lg border border-stone-300',
-              'pl-4 pr-8 py-2 text-sm'
+              'pl-2 pr-8 py-2 text-sm'
             )}
           >
             <option value="">Choose subaccount…</option>
