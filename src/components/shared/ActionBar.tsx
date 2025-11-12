@@ -5,7 +5,7 @@ import clsx from 'clsx';
 import { useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/utils/supabase/client';
 import { useAccounts } from '@/hooks/useAccounts';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 
@@ -14,6 +14,7 @@ type Mode = 'live' | 'backtesting' | 'demo';
 export default function ActionBar() {
   const queryClient = useQueryClient();
   const supabase = createClient();
+  const { data: userId } = useUserDetails();
   const { selection, setSelection } = useActionBarSelection();
 
   // seed local UI from the cached value
@@ -23,7 +24,6 @@ export default function ActionBar() {
     selection.activeAccount?.id ?? null
   );
   const [applying, setApplying] = React.useState(false);
-  const { data: userId } = useUserDetails();
 
   // Use accounts for the pending mode and user (so you see what would hypothetically be available if you apply)
   const {
@@ -53,63 +53,88 @@ export default function ActionBar() {
     }
   }, [accounts, pendingAccountId]);
 
-  const onApply = useCallback(async () => {
-    if (!userId?.user?.id) return;
-    setApplying(true);
-    try {
-      // 1) update DB (deactivate all, activate chosen)
-      // display data here
-      await supabase
-        .from('account_settings')
-        .update({ is_active: false } as never)
-        .eq('user_id', userId?.user?.id)
-        .eq('mode', pendingMode);
-
-      let activeAccountObj: any = null;
-
-      if (pendingAccountId) {
+  // ---------- 1) param-based apply helper (used by button + auto init)
+  const applyWith = React.useCallback(
+    async (mode: Mode, accountId: string | null) => {
+      if (!userId?.user?.id) return;
+      setApplying(true);
+      try {
         await supabase
           .from('account_settings')
-          .update({ is_active: true } as never)
-          .eq('id', pendingAccountId)
-          .eq('user_id', userId?.user?.id);
+          .update({ is_active: false } as never)
+          .eq('user_id', userId.user.id)
+          .eq('mode', mode);
 
-        // get the full account object from the already-loaded list
-        activeAccountObj = accounts.find(a => a.id === pendingAccountId) ?? null;
+        let activeAccountObj: any = null;
+
+        if (accountId) {
+          await supabase
+            .from('account_settings')
+            .update({ is_active: true } as never)
+            .eq('id', accountId)
+            .eq('user_id', userId.user.id);
+
+          activeAccountObj = accounts.find(a => a.id === accountId) ?? null;
+        }
+
+        // publish committed selection into the cache
+        setSelection({ mode, activeAccount: activeAccountObj });
+        setActiveMode(mode);
+
+        // refresh queries
+        const keysToNukeStartsWith = [
+          'allTrades', 'filteredTrades',
+          'nonExecutedTrades', 'nonExecutedTotalTradesCount',
+        ];
+        queryClient.removeQueries({
+          predicate: q => keysToNukeStartsWith.includes((q.queryKey?.[0] as string) ?? ''),
+        });
+        queryClient.refetchQueries({
+          predicate: q => keysToNukeStartsWith.includes((q.queryKey?.[0] as string) ?? ''),
+          type: 'active',
+        });
+
+        refetchAccounts?.();
+      } finally {
+        setApplying(false);
       }
+    },
+    [userId, supabase, accounts, queryClient, refetchAccounts, setSelection]
+  );
 
-      // 2) publish the committed selection globally (cache-as-store)
-      setSelection({
-        mode: pendingMode,                 // the committed mode (pendingMode on apply)
-        activeAccount: activeAccountObj,   // full object or null
-      });
+  // existing button handler just delegates to helper
+  const onApply = useCallback(
+    () => applyWith(pendingMode, pendingAccountId),
+    [applyWith, pendingMode, pendingAccountId]
+  );
 
-      // Set committed mode to pendingMode after apply
-      setActiveMode(pendingMode);
+  // ---------- 2) AUTO-APPLY ON FIRST MOUNT (Live + active-or-first subaccount)
+  const autoAppliedRef = useRef(false);
+  useEffect(() => {
+    if (autoAppliedRef.current) return;
+    if (!userId?.user?.id) return;
 
-      // 3) clear + optionally refetch dashboard queries
-      const keysToNukeStartsWith = [
-        'allTrades',
-        'filteredTrades',
-        'nonExecutedTrades',
-        'nonExecutedTotalTradesCount',
-      ];
+    // only auto-apply if nothing chosen yet
+    if (selection.activeAccount) return;
 
-      queryClient.removeQueries({
-        predicate: q => keysToNukeStartsWith.includes((q.queryKey?.[0] as string) ?? ''),
-      });
+    // we only auto-apply Live on first mount
+    if (pendingMode !== 'live') return;
 
-      queryClient.refetchQueries({
-        predicate: q => keysToNukeStartsWith.includes((q.queryKey?.[0] as string) ?? ''),
-        type: 'active',
-      });
+    if (accountsLoading) return;
 
-      // (optional) refresh accounts list
-      refetchAccounts?.();
-    } finally {
-      setApplying(false);
-    }
-  }, [userId, supabase, pendingMode, pendingAccountId, accounts, setSelection, queryClient, refetchAccounts]);
+    // prefer an already-active one in DB; otherwise first (sorted by created_at in your hook)
+    const pick = accounts.find(a => a.is_active) ?? accounts[0];
+    if (!pick) return;
+
+    autoAppliedRef.current = true;
+
+    // ensure local pending state reflects what we’re applying
+    setPendingAccountId(pick.id);
+    applyWith('live', pick.id);
+  }, [
+    userId, accountsLoading, accounts,
+    applyWith, selection.activeAccount, pendingMode,
+  ]);
 
   const noAccounts = accounts.length === 0;
 
