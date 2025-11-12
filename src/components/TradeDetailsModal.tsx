@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { Trade } from '@/types/trade';
 import { createClient } from '@/utils/supabase/client';
-import { useTradingMode } from '@/context/TradingModeContext';
 import { useQueryClient } from '@tanstack/react-query';
+import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 
 interface TradeDetailsModalProps {
   trade: Trade | null;
@@ -14,7 +14,7 @@ interface TradeDetailsModalProps {
 }
 
 export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdated }: TradeDetailsModalProps) {
-  const { mode, activeAccount } = useTradingMode();
+  const { selection, actionBarloading } = useActionBarSelection();
   const [isEditing, setIsEditing] = useState(false);
   const [editedTrade, setEditedTrade] = useState<Trade | null>(trade);
   const [isSaving, setIsSaving] = useState(false);
@@ -60,7 +60,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
       const newOutcome = field === 'trade_outcome' ? value : editedTrade.trade_outcome;
 
       // Calculate P&L based on risk percentage and outcome
-      const riskAmount = (Number(newRisk) / 100) * (activeAccount?.account_balance || 0);
+      const riskAmount = (Number(newRisk) / 100) * (selection.activeAccount?.account_balance || 0);
       const riskRewardRatio = Number(newRR) || 2;
 
       let calculatedProfit = 0;
@@ -91,7 +91,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
   };
 
   const handleSave = async () => {
-    if (!editedTrade) return;
+    if (!editedTrade || !editedTrade.id) return;
     
     try {
       setIsSaving(true);
@@ -99,42 +99,44 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
       const supabase = createClient();
 
       // Use the current trading mode from context
-      const tradingMode = mode;
+      const tradingMode = selection.mode;
 
       // Update the trade in the database
-      const { error: updateError } = await supabase
-        .from(`${tradingMode}_trades`)
-        .update({
-          trade_date: editedTrade.trade_date,
-          trade_time: editedTrade.trade_time,
-          day_of_week: editedTrade.day_of_week || '',
-          quarter: editedTrade.quarter || '',
-          market: editedTrade.market,
-          direction: editedTrade.direction,
-          setup_type: editedTrade.setup_type,
-          liquidity: editedTrade.liquidity,
-          sl_size: editedTrade.sl_size,
-          risk_per_trade: editedTrade.risk_per_trade,
-          trade_outcome: editedTrade.trade_outcome,
-          risk_reward_ratio: editedTrade.risk_reward_ratio,
-          risk_reward_ratio_long: editedTrade.risk_reward_ratio_long,
-          trade_link: editedTrade.trade_link,
-          liquidity_taken: editedTrade.liquidity_taken,
-          mss: editedTrade.mss,
-          break_even: editedTrade.break_even,
-          reentry: editedTrade.reentry,
-          news_related: editedTrade.news_related,
-          local_high_low: editedTrade.local_high_low,
-          mode: tradingMode,
-          notes: editedTrade.notes,
-          pnl_percentage: editedTrade.pnl_percentage,
-          calculated_profit: editedTrade.calculated_profit,
-          evaluation: editedTrade.evaluation,
-          rr_hit_1_4: editedTrade.rr_hit_1_4,
-          partials_taken: editedTrade.partials_taken,
-          executed: editedTrade.executed,
-          launch_hour: editedTrade.launch_hour
-        })
+      const updateData = {
+        trade_date: editedTrade.trade_date,
+        trade_time: editedTrade.trade_time,
+        day_of_week: editedTrade.day_of_week || '',
+        quarter: editedTrade.quarter || '',
+        market: editedTrade.market,
+        direction: editedTrade.direction,
+        setup_type: editedTrade.setup_type,
+        liquidity: editedTrade.liquidity,
+        sl_size: editedTrade.sl_size,
+        risk_per_trade: editedTrade.risk_per_trade,
+        trade_outcome: editedTrade.trade_outcome,
+        risk_reward_ratio: editedTrade.risk_reward_ratio,
+        risk_reward_ratio_long: editedTrade.risk_reward_ratio_long,
+        trade_link: editedTrade.trade_link,
+        liquidity_taken: editedTrade.liquidity_taken,
+        mss: editedTrade.mss,
+        break_even: editedTrade.break_even,
+        reentry: editedTrade.reentry,
+        news_related: editedTrade.news_related,
+        local_high_low: editedTrade.local_high_low,
+        mode: tradingMode,
+        notes: editedTrade.notes,
+        pnl_percentage: editedTrade.pnl_percentage,
+        calculated_profit: editedTrade.calculated_profit,
+        evaluation: editedTrade.evaluation,
+        rr_hit_1_4: editedTrade.rr_hit_1_4,
+        partials_taken: editedTrade.partials_taken,
+        executed: editedTrade.executed,
+        launch_hour: editedTrade.launch_hour
+      };
+
+      const { error: updateError } = await (supabase
+        .from(`${tradingMode}_trades`) as any)
+        .update(updateData)
         .eq('id', editedTrade.id);
 
       if (updateError) {
@@ -157,7 +159,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
   };
 
   const handleDelete = async () => {
-    if (!trade) return;
+    if (!trade || !trade.id) return;
     
     try {
       setIsDeleting(true);
@@ -166,7 +168,7 @@ const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
 
       // Delete the trade from the database
       const { error: deleteError } = await supabase
-        .from(`${trade.mode}_trades`)
+        .from(`${trade.mode || selection.mode}_trades`)
         .delete()
         .eq('id', trade.id);
 
