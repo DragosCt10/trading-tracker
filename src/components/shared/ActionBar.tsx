@@ -14,12 +14,14 @@ type Mode = 'live' | 'backtesting' | 'demo';
 export default function ActionBar() {
   const queryClient = useQueryClient();
   const supabase = createClient();
+  const { selection, setSelection } = useActionBarSelection();
 
-  // Committed/active mode: this is what the mode chip shows!
-  const [activeMode, setActiveMode] = React.useState<Mode>('live');
-  // Pending mode: what's selected in the select, before applied
-  const [pendingMode, setPendingMode] = React.useState<Mode>('live');
-  const [pendingAccountId, setPendingAccountId] = React.useState<string | null>(null);
+  // seed local UI from the cached value
+  const [activeMode, setActiveMode] = React.useState<Mode>(selection.mode);
+  const [pendingMode, setPendingMode] = React.useState<Mode>(selection.mode);
+  const [pendingAccountId, setPendingAccountId] = React.useState<string | null>(
+    selection.activeAccount?.id ?? null
+  );
   const [applying, setApplying] = React.useState(false);
   const { data: userId } = useUserDetails();
 
@@ -30,15 +32,26 @@ export default function ActionBar() {
     refetchAccounts
   } = useAccounts({ userId: userId?.user?.id, pendingMode });
 
-  // If current pendingAccountId isn’t in the fresh list, reset it
+
+  // keep in sync if another part of the app changes the selection
   React.useEffect(() => {
-    if (pendingAccountId && !accounts.find(a => a.id === pendingAccountId)) {
+    setActiveMode(selection.mode);
+    setPendingMode(selection.mode);
+    setPendingAccountId(selection.activeAccount?.id ?? null);
+  }, [selection.mode, selection.activeAccount?.id]);
+
+
+  // ensure the account select stays valid & preselects cached active
+  React.useEffect(() => {
+    if (pendingAccountId && !accounts.some(a => a.id === pendingAccountId)) {
       setPendingAccountId(null);
+      return;
+    }
+    if (!pendingAccountId) {
+      const cachedActive = accounts.find(a => a.is_active);
+      if (cachedActive) setPendingAccountId(cachedActive.id);
     }
   }, [accounts, pendingAccountId]);
-
-  // Apply: updates mode/account settings in DB, refreshes queries
-  const { setSelection } = useActionBarSelection();
 
   const onApply = useCallback(async () => {
     if (!userId?.user?.id) return;
@@ -46,7 +59,7 @@ export default function ActionBar() {
     try {
       // 1) update DB (deactivate all, activate chosen)
       // display data here
-      const updated = await supabase
+      await supabase
         .from('account_settings')
         .update({ is_active: false } as never)
         .eq('user_id', userId?.user?.id)
