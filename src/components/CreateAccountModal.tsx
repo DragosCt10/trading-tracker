@@ -30,7 +30,25 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-// Optional: use a tailwind alert for success message
+type Mode = 'live' | 'backtesting' | 'demo';
+type Currency = 'EUR' | 'USD' | 'GBP';
+
+export type AccountSettings = {
+  id: string;
+  user_id: string;
+  name: string;
+  account_balance: number;
+  currency: string;
+  mode: string;
+  description: string | null;
+  is_active: boolean;
+};
+
+interface CreateAccountAlertDialogProps {
+  onCreated?: (created: AccountSettings) => void;
+}
+
+// toast
 function SuccessAlert({ message, onClose }: { message: string; onClose: () => void }) {
   React.useEffect(() => {
     const timer = setTimeout(onClose, 2500);
@@ -38,19 +56,16 @@ function SuccessAlert({ message, onClose }: { message: string; onClose: () => vo
   }, [onClose]);
 
   return (
-    <div className="fixed left-1/2 z-50 -translate-x-1/2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-none flex items-center gap-2">
+    <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-none flex items-center gap-2">
       <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
       <span className="text-green-800 font-normal">{message}</span>
     </div>
   );
 }
 
-type Mode = 'live' | 'backtesting' | 'demo';
-type Currency = 'EUR' | 'USD' | 'GBP';
-
-export function CreateAccountAlertDialog() {
+export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialogProps) {
   const supabase = createClient();
   const queryClient = useQueryClient();
   const { data: userId } = useUserDetails();
@@ -66,7 +81,6 @@ export function CreateAccountAlertDialog() {
   const [mode, setMode] = useState<Mode>('live');
   const [description, setDescription] = useState('');
 
-  // New: required fields validation state
   const isNameValid = name.trim().length > 0;
   const isBalanceValid =
     balance.trim().length > 0 && !Number.isNaN(Number(balance)) && Number(balance) > 0;
@@ -87,7 +101,6 @@ export function CreateAccountAlertDialog() {
     e?.preventDefault();
     setError(null);
 
-    // Prevent submit if required fields are not selected/valid
     if (!isNameValid || !isBalanceValid || !isCurrencyValid || !isModeValid) {
       setError('Please fill out all required fields with valid values.');
       return;
@@ -106,7 +119,7 @@ export function CreateAccountAlertDialog() {
 
     setSubmitting(true);
     try {
-      const { error: insertError } = await supabase
+      const { data, error: insertError } = await supabase
         .from('account_settings')
         .insert({
           user_id: userId.user.id,
@@ -115,16 +128,23 @@ export function CreateAccountAlertDialog() {
           currency,
           mode,
           description: description || null,
-          // you can tweak defaults here if you want:
           is_active: false,
-        } as never);
+        } as never)
+        .select('*')
+        .single(); // get created row
 
       if (insertError) {
         setError(insertError.message ?? 'Failed to create account.');
         return;
       }
 
-      queryClient.invalidateQueries();
+      const createdAccount = data as AccountSettings;
+
+      // let parent know
+      onCreated?.(createdAccount);
+
+      // fallback: mark anything related stale
+      await queryClient.invalidateQueries();
 
       resetForm();
       setOpen(false);
@@ -137,6 +157,7 @@ export function CreateAccountAlertDialog() {
   return (
     <>
       {success && <SuccessAlert message={success} onClose={() => setSuccess(null)} />}
+
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogTrigger asChild>
           <Button type="button" size="sm" className="cursor-pointer">
@@ -153,7 +174,6 @@ export function CreateAccountAlertDialog() {
           </AlertDialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-            {/* Account name */}
             <div className="space-y-1.5">
               <Label htmlFor="account-name">Account name</Label>
               <Input
@@ -166,7 +186,6 @@ export function CreateAccountAlertDialog() {
               />
             </div>
 
-            {/* Balance + Currency */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="account-balance">Balance</Label>
@@ -201,7 +220,6 @@ export function CreateAccountAlertDialog() {
               </div>
             </div>
 
-            {/* Mode */}
             <div className="space-y-1.5">
               <Label>Mode</Label>
               <Select
@@ -219,7 +237,6 @@ export function CreateAccountAlertDialog() {
               </Select>
             </div>
 
-            {/* Description */}
             <div className="space-y-1.5">
               <Label htmlFor="account-description">Description</Label>
               <Textarea
@@ -241,15 +258,12 @@ export function CreateAccountAlertDialog() {
             <AlertDialogFooter className="mt-4">
               <AlertDialogCancel
                 type="button"
-                onClick={() => {
-                  resetForm();
-                }}
+                onClick={resetForm}
                 className="cursor-pointer"
               >
                 Cancel
               </AlertDialogCancel>
 
-              {/* Use asChild so we can submit the form */}
               <AlertDialogAction asChild>
                 <Button
                   type="submit"
