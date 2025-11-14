@@ -5,7 +5,6 @@ import { LoadingProvider } from '@/context/LoadingContext';
 import Footer from '@/components/shared/Footer';
 import QueryProvider from '@/context/QueryContext';
 
-
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -20,15 +19,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.className} bg-custom`}>
         <QueryProvider>
           <LoadingProvider>
-              <div className="min-h-screen bg-gray-50">
-                <main className="max-w-(--breakpoint-xl) p-4 md:px-0 mx-auto pt-32">
-                  {children}
-                </main>
-                <Footer />
-              </div>
+            <main className="max-w-(--breakpoint-xl) p-4 md:px-0 mx-auto pt-32">
+              {children}
+            </main>
+            <Footer />
           </LoadingProvider>
         </QueryProvider>
       </body>

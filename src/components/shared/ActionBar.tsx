@@ -9,6 +9,19 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 
+// shadcn/ui
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
+import { EditAccountAlertDialog } from '../EditAccountAlertDialog';
+
 type Mode = 'live' | 'backtesting' | 'demo';
 
 export default function ActionBar() {
@@ -31,6 +44,8 @@ export default function ActionBar() {
     accountsLoading,
     refetchAccounts
   } = useAccounts({ userId: userId?.user?.id, pendingMode });
+
+  const pendingAccount = accounts.find(a => a.id === pendingAccountId) ?? null;
 
   // keep in sync if another part of the app changes the selection
   React.useEffect(() => {
@@ -141,106 +156,120 @@ export default function ActionBar() {
     activeMode === pendingMode &&
     (selection.activeAccount?.id ?? null) === (pendingAccountId ?? null);
 
-  return (
-    <div className="flex items-center gap-3 justify-end mt-2">
-      <div className="flex items-center gap-2 md:gap-3">
-        {/* Current mode chip - reflects only the current committed/active mode */}
-        <div
-          className={clsx(
-            'relative inline-flex w-max items-center border font-sans font-medium rounded-md text-xs p-0.5 shadow-sm',
-            activeMode === 'live' && 'bg-emerald-600 border-emerald-700 text-emerald-50',
-            activeMode === 'backtesting' && 'bg-violet-600 border-violet-700 text-violet-50',
-            activeMode === 'demo' && 'bg-sky-600 border-sky-700 text-sky-50',
-            !activeMode && 'bg-stone-600 text-white border-stone-800'
-          )}
-          title={`Current mode: ${activeMode ?? '—'}`}
-        >
-          <span className="font-sans text-current leading-none my-0.5 mx-1.5">
-            {activeMode ? activeMode[0].toUpperCase() + activeMode.slice(1) : '—'}
-          </span>
-        </div>
+  // badge color mapping (shadcn Badge + utility classes)
+  const badgeClass =
+    activeMode === 'live'
+      ? 'bg-emerald-100 hover:bg-emerald-100 text-emerald-500'
+      : activeMode === 'backtesting'
+      ? 'bg-violet-100 hover:bg-violet-100 text-violet-500'
+      : activeMode === 'demo'
+      ? 'bg-sky-100 hover:bg-sky-100 text-sky-500'
+      : '';
 
-        {/* Mode select */}
-        <div className="relative">
-          <label className="sr-only" htmlFor="mode-select">Select mode</label>
-          <select
-            id="mode-select"
-            value={pendingMode}
-            onChange={(e) => setPendingMode(e.target.value as Mode)}
+  return (
+    <div className="flex items-center justify-end w-full">
+      <div className="flex flex-col gap-2 w-full items-stretch sm:flex-row sm:items-center sm:justify-end sm:gap-2">
+        {/* Current mode badge */}
+        <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+          <Badge
+            title={`Current mode: ${activeMode ?? '—'}`}
             className={clsx(
-              'appearance-none rounded-lg border border-stone-300',
-              'pl-2 pr-8 py-2 text-sm'
+              'px-2.5 py-1 text-xs shadow-none',
+              badgeClass
             )}
           >
-            <option value="live">Live</option>
-            <option value="backtesting">Backtesting</option>
-            <option value="demo">Demo</option>
-          </select>
-          <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center" aria-hidden="true">
-            <svg viewBox="0 0 20 20" className="h-4 w-4 text-stone-500">
-              <path d="M5.5 7.5l4.5 4 4.5-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </span>
+            <span className="leading-none">
+              {activeMode ? activeMode[0].toUpperCase() + activeMode.slice(1) : '—'}
+            </span>
+          </Badge>
         </div>
 
-        {/* Divider */}
-        <div className="hidden md:block h-6 w-px bg-stone-300/80 dark:bg-stone-700/80" />
+        {/* Mode select (pending) */}
+        <div className="flex-1 sm:flex-initial">
+          <Select
+            value={pendingMode}
+            onValueChange={(val: Mode) => setPendingMode(val)}
+          >
+            <SelectTrigger className="text-sm h-8 shadow-none min-w-[130px] w-full sm:w-[130px] md:w-[160px]">
+              <SelectValue placeholder="Select mode" />
+            </SelectTrigger>
+            <SelectContent className="text-sm min-w-[140px] md:min-w-[160px]">
+              <SelectItem value="live" className="text-sm">Live</SelectItem>
+              <SelectItem value="backtesting" className="text-sm">Backtesting</SelectItem>
+              <SelectItem value="demo" className="text-sm">Demo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Divider (hidden on mobile) */}
+        <div className="hidden md:flex">
+          <Separator orientation="vertical" className="mx-1 h-5" />
+        </div>
 
         {/* Subaccount select */}
-        <div className={clsx('relative', (noAccounts || accountsLoading) && 'opacity-60')}>
-          <label className="sr-only" htmlFor="account-select">Select subaccount</label>
-          <select
-            id="account-select"
-            value={pendingAccountId ?? ''}
-            onChange={(e) => setPendingAccountId(e.target.value || null)}
+        <div className="flex-1 sm:flex-initial">
+          <Select
+            value={pendingAccountId ?? undefined}
+            onValueChange={(val) => setPendingAccountId(val ?? null)}
             disabled={accountsLoading || noAccounts}
-            className={clsx(
-              'appearance-none rounded-lg border border-stone-300',
-              'pl-2 pr-8 py-2 text-sm'
-            )}
           >
-            <option value="">Choose subaccount…</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>{a.name}</option>
-            ))}
-          </select>
-          <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center" aria-hidden="true">
-            <svg viewBox="0 0 20 20" className="h-4 w-4 text-stone-500">
-              <path d="M5.5 7.5l4.5 4 4.5-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </span>
+            <SelectTrigger className="text-sm h-8 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px]">
+              <SelectValue placeholder={noAccounts ? 'No subaccounts' : 'Choose subaccount…'} />
+            </SelectTrigger>
+            <SelectContent className="text-sm min-w-[170px] md:min-w-[200px]">
+              {!noAccounts ? (
+                accounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id} className="text-sm">
+                    {a.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <div className="px-2 py-1.5 text-sm text-muted-foreground">No subaccounts</div>
+              )}
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Edit */}
-        <button
-          type="button"
-          onClick={() => {
-            // open your accounts/settings UI here if you want
-          }}
-          className="cursor-pointer inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-stone-200 hover:bg-stone-100 relative bg-gradient-to-b from-white to-white border-stone-200 text-stone-700 rounded-lg hover:bg-gradient-to-b hover:from-stone-50 hover:to-stone-50 hover:border-stone-200 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-1px_0px_rgba(0,0,0,0.20)] after:pointer-events-none transition antialiased"
-        >
-          Edit
-        </button>
-
-        {/* Apply */}
-        <button
-          type="button"
-          onClick={onApply}
-          disabled={
-            applying ||
-            (!pendingAccountId && !noAccounts) ||
-            isAlreadyActive
-          }
-          className={'cursor-pointer inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-stone-800 hover:bg-stone-700 relative bg-gradient-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition-all antialiased'}
-        >
-          {applying && (
-            <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" className="opacity-25" />
-              <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z" />
-            </svg>
-          )}
-          Apply
-        </button>
+        {/* Edit and Apply buttons (stack on mobile, inline on sm+) */}
+        <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+          <EditAccountAlertDialog
+            account={
+              pendingAccount
+                ? {
+                    id: pendingAccount.id,
+                    name: pendingAccount.name,
+                    account_balance: pendingAccount.account_balance,
+                    currency: pendingAccount.currency,
+                    mode: pendingAccount.mode,
+                    description: pendingAccount.description,
+                  }
+                : null
+            }
+            onUpdated={async () => {
+              // force the accounts list to refresh so the Select shows the new name
+              await refetchAccounts?.();
+            }}
+          />
+          <Button
+            type="button"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={onApply}
+            disabled={
+              applying ||
+              (!pendingAccountId && !noAccounts) ||
+              isAlreadyActive
+            }
+          >
+            {applying && (
+              <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" className="opacity-25" />
+                <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z" />
+              </svg>
+            )}
+            Apply
+          </Button>
+        </div>
       </div>
     </div>
   );

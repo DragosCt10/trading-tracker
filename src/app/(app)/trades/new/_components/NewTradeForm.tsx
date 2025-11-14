@@ -1,56 +1,57 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Trade } from '@/types/trade';
 import { useRouter } from 'next/navigation';
 import { useUserDetails } from '@/hooks/useUserDetails';
-import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 
-// Add these constants at the top of the file after imports
+// shadcn/ui
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Loader2, Info } from 'lucide-react';
+
 const MARKET_OPTIONS = ['DAX', 'US30', 'UK100', 'US100', 'EURUSD', 'GBPUSD'];
 const SETUP_OPTIONS = [
-  'OG',
-  'TG',
-  'TCG',
-  '3G',
-  '3CG',
-  'MultipleGaps',
-  'SLG+OG',
-  'SLG+TG',
-  'SLG+TCG',
-  'SLG+3G',
-  'SLG+3CG'
+  'OG','TG','TCG','3G','3CG','MultipleGaps',
+  'SLG+OG','SLG+TG','SLG+TCG','SLG+3G','SLG+3CG'
 ];
 const LIQUIDITY_OPTIONS = ['Liq. Majora', 'Liq. Minora', 'Liq. Locala', 'HOD', 'LOD'];
 const MSS_OPTIONS = ['Normal', 'Agresiv'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 const WEEKDAY_MAP: Record<string,string> = {
-  Monday:    'Luni',
-  Tuesday:   'Marti',
-  Wednesday: 'Miercuri',
-  Thursday:  'Joi',
-  Friday:    'Vineri',
-  Saturday:  'Sambata',
-  Sunday:    'Duminica',
+  Monday:'Luni', Tuesday:'Marti', Wednesday:'Miercuri', Thursday:'Joi',
+  Friday:'Vineri', Saturday:'Sambata', Sunday:'Duminica',
 };
 
-export default function NewTradeForm({ selection, actionBarLoading }: { selection: any; actionBarLoading: boolean }) {
-  const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [calculatedProfit, setCalculatedProfit] = useState<number>(0);
-  const { data: userDetails, isLoading } = useUserDetails();
+function getQuarter(dateStr: string): string {
+  const m = new Date(dateStr).getMonth() + 1;
+  if (m <= 3) return 'Q1';
+  if (m <= 6) return 'Q2';
+  if (m <= 9) return 'Q3';
+  return 'Q4';
+}
 
-  const getQuarter = (dateStr: string): string => {
-    const month = new Date(dateStr).getMonth() + 1;
-    if (month >= 1 && month <= 3) return 'Q1';
-    if (month >= 4 && month <= 6) return 'Q2';
-    if (month >= 7 && month <= 9) return 'Q3';
-    return 'Q4';
-  };
-
-  const NOTES_TEMPLATE = `📈 Setup:
+const NOTES_TEMPLATE = `📈 Setup:
 (Descrie setup-ul tehnic sau fundamental – de ce ai intrat în trade? Ce pattern, indicator sau logică ai urmat?)
 
 ✅ Plusuri:
@@ -65,6 +66,19 @@ export default function NewTradeForm({ selection, actionBarLoading }: { selectio
 🎯 Lecții învățate:
 (Ce poți îmbunătăți? Ce vei face diferit data viitoare?)`;
 
+export default function NewTradeForm({
+  selection,
+  actionBarLoading,
+}: {
+  selection: any;
+  actionBarLoading: boolean;
+}) {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { data: userDetails } = useUserDetails();
+
+  // -------- Base state (only what's necessary) --------
   const initialTradeState: Trade = {
     trade_link: '',
     liquidity_taken: '',
@@ -81,14 +95,12 @@ export default function NewTradeForm({ selection, actionBarLoading }: { selectio
     reentry: false,
     news_related: false,
     mss: '',
+    risk_per_trade: 0,
     risk_reward_ratio: 0,
     risk_reward_ratio_long: 0,
     local_high_low: false,
-    risk_per_trade: 0,
-    calculated_profit: 0,
     mode: selection.mode,
     notes: NOTES_TEMPLATE,
-    pnl_percentage: 0,
     quarter: '',
     evaluation: '',
     rr_hit_1_4: false,
@@ -98,91 +110,81 @@ export default function NewTradeForm({ selection, actionBarLoading }: { selectio
   };
 
   const [trade, setTrade] = useState<Trade>(() => {
-    // Initialize state from localStorage if available
     if (typeof window !== 'undefined') {
-      const savedTrade = localStorage.getItem(`new-trade-draft-${selection.mode}`);
-      if (savedTrade) {
+      const saved = localStorage.getItem(`new-trade-draft-${selection.mode}`);
+      if (saved) {
         try {
-          const parsedTrade = JSON.parse(savedTrade);
-          // Ensure all required fields are present
+          const parsed = JSON.parse(saved);
+          const dateStr = parsed.trade_date || new Date().toISOString().split('T')[0];
           return {
             ...initialTradeState,
-            ...parsedTrade,
-            // Ensure these fields are always present with default values if missing
-            trade_date: parsedTrade.trade_date || new Date().toISOString().split('T')[0],
-            day_of_week: parsedTrade.day_of_week || WEEKDAY_MAP[new Date().toLocaleDateString('en-US', { weekday: 'long' })],
-            quarter: parsedTrade.quarter || getQuarter(parsedTrade.trade_date || new Date().toISOString().split('T')[0]),
+            ...parsed,
+            trade_date: dateStr,
+            day_of_week:
+              parsed.day_of_week ||
+              WEEKDAY_MAP[new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' })],
+            quarter: parsed.quarter || getQuarter(dateStr),
           };
-        } catch (e) {
-          console.error('Error parsing saved trade:', e);
-          return initialTradeState;
-        }
+        } catch {}
       }
     }
     return initialTradeState;
   });
 
-  // Calculate profit based on risk percentage and account balance
-  const calculateProfit = (riskPerTrade: number, outcome: 'Win' | 'Lose'): number => {
-    if (!selection.activeAccount?.account_balance) return 0;
-    
-    const riskAmount = (riskPerTrade / 100) * selection.activeAccount.account_balance;
-    const riskRewardRatio = trade.risk_reward_ratio || 2;
-    
-    if (outcome === 'Win') {
-      return riskAmount * riskRewardRatio;
-    } else if (outcome === 'Lose') {
-      return -riskAmount;
-    }
+  const notesRef = useRef<HTMLTextAreaElement | null>(null);
 
-    return 0;
+  const updateTrade = <K extends keyof Trade>(key: K, value: Trade[K]) => {
+    setTrade((prev) => (prev[key] === value ? prev : { ...prev, [key]: value }));
   };
 
-  // Update calculated profit when risk, outcome, or risk:reward ratio changes
-  useEffect(() => {
-    const profit = calculateProfit(trade.risk_per_trade, trade.trade_outcome);
-    setCalculatedProfit(profit);
-    
-    // Calculate PNL percentage
-    let pnlPercentage = 0;
-    if (selection.activeAccount?.account_balance) {
-      pnlPercentage = (profit / selection.activeAccount.account_balance) * 100;
-    }
-    
-    setTrade(prev => ({ 
-      ...prev, 
-      calculated_profit: profit,
-      pnl_percentage: pnlPercentage 
-    }));
-  }, [
-    trade.risk_per_trade, 
-    trade.trade_outcome, 
-    trade.risk_reward_ratio, 
-    selection.activeAccount?.account_balance
-  ]);
+  // commit patch to state + localStorage (used by uncontrolled fields)
+  const commitAndSave = React.useCallback((patch: Partial<Trade>) => {
+    setTrade((prev) => {
+      const next = { ...prev, ...patch };
+      try {
+        localStorage.setItem(`new-trade-draft-${selection.mode}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, [selection.mode]);
 
+  // keep weekday + quarter in sync when the committed date changes
   useEffect(() => {
     const dateStr = trade.trade_date;
     const dt = new Date(dateStr);
     const engDay = dt.toLocaleDateString('en-US', { weekday: 'long' });
     const roDay = WEEKDAY_MAP[engDay] ?? engDay;
-
-    setTrade(prev => ({
-      ...prev,
-      day_of_week: roDay,
-      quarter: getQuarter(dateStr),
-    }));
+    setTrade((prev) => {
+      const next = { ...prev, day_of_week: roDay, quarter: getQuarter(dateStr) };
+      return prev.day_of_week === next.day_of_week && prev.quarter === next.quarter ? prev : next;
+    });
   }, [trade.trade_date]);
 
-  // Save trade data to localStorage whenever it changes
+  // -------- Derived from ONLY the 3 controlled pieces (RPT, RR, Outcome) + balance --------
+  const accountBalance = selection.activeAccount?.account_balance ?? 0;
+  const currency = selection.activeAccount?.currency === 'EUR' ? '€' : '$';
+
+  const baseProfit = useMemo(() => {
+    if (!accountBalance) return 0;
+    const riskAmount = (trade.risk_per_trade / 100) * accountBalance;
+    const rr = trade.risk_reward_ratio || 0;
+    return riskAmount * rr; // positive base
+  }, [trade.risk_per_trade, trade.risk_reward_ratio, accountBalance]);
+
+  const signedProfit = trade.trade_outcome === 'Lose' ? -baseProfit : baseProfit;
+  const pnlPercentage = accountBalance ? (signedProfit / accountBalance) * 100 : 0;
+
+  // Save on tab hide
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(`new-trade-draft-${selection.mode}`, JSON.stringify(trade));
-      } catch (e) {
-        console.error('Error saving trade to localStorage:', e);
+    const handler = () => {
+      if (document.visibilityState === 'hidden') {
+        try {
+          localStorage.setItem(`new-trade-draft-${selection.mode}`, JSON.stringify(trade));
+        } catch {}
       }
-    }
+    };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
   }, [trade, selection.mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -203,27 +205,34 @@ export default function NewTradeForm({ selection, actionBarLoading }: { selectio
     }
 
     try {
+      // grab latest notes if user didn’t blur
+      if (notesRef.current) {
+        const latestNotes = notesRef.current.value;
+        if (latestNotes !== trade.notes) {
+          trade.notes = latestNotes; // update snapshot for submit
+        }
+      }
+
       const supabase = createClient();
       const tableName = `${selection.mode}_trades`;
 
       const { error } = await supabase
         .from(tableName)
-        .insert([{ 
+        .insert([{
           ...trade,
           user_id: userDetails?.user?.id,
-          calculated_profit: calculatedProfit,
-          pnl_percentage: trade.pnl_percentage,
+          calculated_profit: signedProfit,
+          pnl_percentage: pnlPercentage,
           account_id: selection.activeAccount.id,
         }] as any)
         .select();
 
       if (error) throw error;
 
-      // Only clear localStorage after successful submission
       if (typeof window !== 'undefined') {
         localStorage.removeItem(`new-trade-draft-${selection.mode}`);
       }
-      
+
       router.push('/trades');
     } catch (err: any) {
       setError(err.message);
@@ -231,621 +240,359 @@ export default function NewTradeForm({ selection, actionBarLoading }: { selectio
     }
   };
 
-  // Remove the cleanup effect that was clearing localStorage on unmount
-  useEffect(() => {
-    return () => {
-      // Don't clear localStorage on unmount anymore
-    };
-  }, []);
-
-  // Keep the visibility change handler
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem(`new-trade-draft-${selection.mode}`, JSON.stringify(trade));
-          } catch (e) {
-            console.error('Error saving trade to localStorage on visibility change:', e);
-          }
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [trade, selection.mode]);
-
   if (actionBarLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[200px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-stone-500"></div>
+      <div className="flex min-h-[200px] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
       </div>
     );
   }
 
   if (!selection.activeAccount) {
     return (
-      <div className="p-8">
-        <div className="max-w-2xl mx-auto bg-white rounded-lg p-8 text-center">
-          <div className="mb-6">
-            <svg
-              className="mx-auto h-12 w-12 text-stone-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-stone-900 mb-2">No Active Account</h2>
-          <p className="text-stone-600 mb-6">
-            Please set up and activate an account for {selection.mode} mode to view your trading dashboard.
-          </p>
-        </div>
+      <div className="mx-auto max-w-2xl rounded-lg border bg-background p-8 text-center">
+        <Info className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+        <h2 className="mb-2 text-xl font-semibold">No Active Account</h2>
+        <p className="text-muted-foreground">
+          Please set up and activate an account for {selection.mode} mode to view your trading dashboard.
+        </p>
       </div>
     );
   }
 
+  const money = (n: number) => `${currency}${n.toFixed(2)}`;
+
+  // tiny helper for uncontrolled inputs
+  const Uncontrolled = React.memo(function Uncontrolled({
+    id, label, type = 'text', defaultValue, onCommit, step, inputMode,
+  }: {
+    id: string;
+    label: string;
+    type?: string;
+    defaultValue?: string | number;
+    onCommit: (value: string) => void;
+    step?: string;
+    inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+  }) {
+    // Use vertical spacing between label and input
+    return (
+      <div>
+        <Label htmlFor={id} className="mb-1.5 block">{label}</Label>
+        <Input
+          id={id}
+          type={type}
+          defaultValue={defaultValue as any}
+          step={step}
+          inputMode={inputMode}
+          className="shadow-none"
+          onBlur={(e) => onCommit(e.currentTarget.value)}
+        />
+      </div>
+    );
+  });
+
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg max-w-4xl mx-auto">
+    <form onSubmit={handleSubmit} className="mx-auto max-w-4xl">
       {error && (
-        <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
+        <Alert variant="destructive" className="mb-6">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
-      <div className="mb-6 bg-stone-100 border border-stone-200 text-stone-700 px-4 py-3 rounded">
-        <p className="text-sm mt-1">You are adding a new trade for your <span className="font-medium underline">{selection.activeAccount.name}</span> account in <span className="font-medium underline">{selection.mode}</span> mode.</p>
+      <div className="mb-6 rounded-md border bg-muted/20 p-4 text-sm">
+        You are adding a new trade for your{' '}
+        <span className="font-medium">{selection.activeAccount.name}</span> account in{' '}
+        <Badge className="ml-1 align-middle">
+          {selection.mode ? selection.mode[0].toUpperCase() + selection.mode.slice(1) : '—'}
+        </Badge>{' '}
+        mode.
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {/* Uncontrolled text/number fields */}
+        <Uncontrolled
+          id="liquidity_taken"
+          label="Liquidity Taken"
+          defaultValue={trade.liquidity_taken}
+          onCommit={(v) => commitAndSave({ liquidity_taken: v })}
+        />
+
+        <Uncontrolled
+          id="trade_link"
+          label="Trade Link"
+          defaultValue={trade.trade_link}
+          onCommit={(v) => commitAndSave({ trade_link: v })}
+        />
+
+        {/* Uncontrolled selects using defaultValue (shadcn Select supports it) */}
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Liquidity Taken</label>
-          <div className="relative w-full">
-            <input
-              type="text"
-              value={trade.liquidity_taken}
-              onChange={(e) => setTrade({ ...trade, liquidity_taken: e.target.value })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            />
-          </div>
+          <Label className="mb-1.5 block">Market</Label>
+          <Select defaultValue={trade.market || undefined} onValueChange={(v) => commitAndSave({ market: v })}>
+            <SelectTrigger className="shadow-none"><SelectValue placeholder="Select Market" /></SelectTrigger>
+            <SelectContent>
+              {MARKET_OPTIONS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Uncontrolled
+          id="trade_date"
+          label="Date"
+          type="date"
+          defaultValue={trade.trade_date}
+          onCommit={(v) => commitAndSave({ trade_date: v })}
+        />
+
+        <Uncontrolled
+          id="trade_time"
+          label="Time"
+          type="time"
+          defaultValue={trade.trade_time}
+          onCommit={(v) => commitAndSave({ trade_time: v })}
+        />
+
+        <div>
+          <Label className="mb-1.5 block">Liquidity</Label>
+          <Select defaultValue={trade.liquidity || undefined} onValueChange={(v) => commitAndSave({ liquidity: v })}>
+            <SelectTrigger className="shadow-none"><SelectValue placeholder="Select Liquidity" /></SelectTrigger>
+            <SelectContent>
+              {LIQUIDITY_OPTIONS.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Trade Link</label>
-          <div className="relative w-full">
-            <input
-              type="text"
-              value={trade.trade_link}
-              onChange={(e) => setTrade({ ...trade, trade_link: e.target.value })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            />
-          </div>
+          <Label className="mb-1.5 block">Setup Type</Label>
+          <Select defaultValue={trade.setup_type || undefined} onValueChange={(v) => commitAndSave({ setup_type: v })}>
+            <SelectTrigger className="shadow-none"><SelectValue placeholder="Select Setup Type" /></SelectTrigger>
+            <SelectContent>
+              {SETUP_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Uncontrolled
+          id="sl_size"
+          label="Stop Loss Size"
+          type="number"
+          inputMode="decimal"
+          step="0.01"
+          defaultValue={trade.sl_size}
+          onCommit={(v) => commitAndSave({ sl_size: parseFloat(v) || 0 })}
+        />
+
+        {/* ✅ Controlled #1 */}
+        <div>
+          <Label htmlFor="risk_per_trade" className="mb-1.5 block">Risk Per Trade (%)</Label>
+          <Input
+            id="risk_per_trade"
+            type="number"
+            inputMode="decimal"
+            step="0.01"
+            value={String(trade.risk_per_trade ?? '')}
+            className="shadow-none"
+            onChange={(e) => updateTrade('risk_per_trade', parseFloat(e.target.value) || 0)}
+            onBlur={() => commitAndSave({ risk_per_trade: trade.risk_per_trade })}
+            required
+          />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Market</label>
-          <div className="relative w-full">
-            <select
-              value={trade.market}
-              onChange={(e) => setTrade({ ...trade, market: e.target.value })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            >
-              <option value="">Select Market</option>
-              {MARKET_OPTIONS.map((market) => (
-                <option key={market} value={market}>
-                  {market}
-                </option>
-              ))}
-            </select>
+          <Label className="mb-1.5 block">Direction</Label>
+          <Select defaultValue={trade.direction} onValueChange={(v) => commitAndSave({ direction: v as 'Long' | 'Short' })}>
+            <SelectTrigger className="shadow-none"><SelectValue placeholder="Select Direction" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Long">Long</SelectItem>
+              <SelectItem value="Short">Short</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* ✅ Controlled #3 */}
+        <div>
+          <Label className="mb-1.5 block">Trade Outcome</Label>
+          <Select value={trade.trade_outcome} onValueChange={(v) => commitAndSave({ trade_outcome: v as 'Win' | 'Lose' })}>
+            <SelectTrigger className="shadow-none"><SelectValue placeholder="Select Outcome" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Win">Win</SelectItem>
+              <SelectItem value="Lose">Lose</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* ✅ Controlled #2 */}
+        <div>
+          <Label htmlFor="risk_reward_ratio" className="mb-1.5 block">Risk/Reward Ratio</Label>
+          <Input
+            id="risk_reward_ratio"
+            type="number"
+            inputMode="decimal"
+            step="0.01"
+            value={String(trade.risk_reward_ratio ?? '')}
+            className="shadow-none"
+            onChange={(e) => updateTrade('risk_reward_ratio', parseFloat(e.target.value) || 0)}
+            onBlur={() => commitAndSave({ risk_reward_ratio: trade.risk_reward_ratio })}
+            required
+          />
+        </div>
+
+        <Uncontrolled
+          id="risk_reward_ratio_long"
+          label="Potential Risk/Reward Ratio"
+          type="number"
+          inputMode="decimal"
+          step="0.01"
+          defaultValue={trade.risk_reward_ratio_long}
+          onCommit={(v) => commitAndSave({ risk_reward_ratio_long: parseFloat(v) || 0 })}
+        />
+
+        <div>
+          <div className="mb-1.5 flex items-center gap-2">
+            <Label className="mb-0">MSS</Label>
           </div>
+          <Select defaultValue={trade.mss || undefined} onValueChange={(v) => commitAndSave({ mss: v })}>
+            <SelectTrigger className="shadow-none"><SelectValue placeholder="Select MSS Type" /></SelectTrigger>
+            <SelectContent>
+              {MSS_OPTIONS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">Date</label>
-            <input
-              type="date"
-              value={trade.trade_date}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-              onChange={(e) => {
-                const dateStr = e.target.value;
-                const dt = new Date(dateStr);
-
-                // English weekday, e.g. "Monday"
-                const engDay = dt.toLocaleDateString('en-US', { weekday: 'long' });
-
-                // Map to Romanian (or fall back to English if not found)
-                const localDay = WEEKDAY_MAP[engDay] ?? engDay;
-
-                setTrade({
-                  ...trade,
-                  trade_date:  dateStr,
-                  day_of_week: localDay,
-                  quarter:     getQuarter(dateStr),
-                });
-              }}
-            />
-          </div>
-        </div>
-
-        {/* <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Day of Week</label>
-          <div className="relative w-full">
-            <select
-              value={trade.day_of_week}
-              onChange={(e) => setTrade({ ...trade, day_of_week: e.target.value })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            >
-              <option value="">Select Day of Week</option>
-              {DAY_OF_WEEK_OPTIONS.map((day) => (
-                <option key={day} value={day}>
-                  {day}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div> */}
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Time</label>
-          <div className="relative w-full">
-            <input
-              type="time"
-              value={trade.trade_time}
-              onChange={(e) => setTrade({ ...trade, trade_time: e.target.value })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Liquidity</label>
-          <div className="relative w-full">
-            <select
-              value={trade.liquidity}
-              onChange={(e) => setTrade({ ...trade, liquidity: e.target.value })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            >
-              <option value="">Select Liquidity</option>
-              {LIQUIDITY_OPTIONS.map((liquidity, index) => (
-                <option key={liquidity} value={liquidity}>
-                  {liquidity}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Setup Type</label>
-          <div className="relative w-full">
-            <select
-              value={trade.setup_type}
-              onChange={(e) => setTrade({ ...trade, setup_type: e.target.value })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            >
-              <option value="">Select Setup Type</option>
-              {SETUP_OPTIONS.map((setup) => (
-                <option key={setup} value={setup}>
-                  {setup}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Stop Loss Size</label>
-          <div className="relative w-full">
-            <input
-              type="number"
-              step="0.01"
-              value={trade.sl_size.toString()}
-              onChange={(e) => setTrade({ ...trade, sl_size: parseFloat(e.target.value) || 0 })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Risk Per Trade (%)</label>
-          <div className="relative w-full">
-            <input
-              type="number"
-              step="0.01"
-              value={trade.risk_per_trade.toString()}
-              onChange={(e) => {
-                const value = parseFloat(e.target.value);
-                setTrade({ ...trade, risk_per_trade: value || 0 });
-              }}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Direction</label>
-          <div className="relative w-full">
-            <select
-              value={trade.direction}
-              onChange={(e) => setTrade({ ...trade, direction: e.target.value as 'Long' | 'Short' })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            >
-              <option value="Long">Long</option>
-              <option value="Short">Short</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Trade Outcome</label>
-          <div className="relative w-full">
-            <select
-              value={trade.trade_outcome}
-              onChange={(e) => setTrade({ ...trade, trade_outcome: e.target.value as 'Win' | 'Lose' })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            >
-              <option value="Win">Win</option>
-              <option value="Lose">Lose</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Risk/Reward Ratio</label>
-          <div className="relative w-full">
-            <input
-              type="number"
-              step="0.01"
-              value={trade.risk_reward_ratio.toString()}
-              onChange={(e) => setTrade({ ...trade, risk_reward_ratio: parseFloat(e.target.value) || 0 })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">Potential Risk/Reward Ratio</label>
-          <div className="relative w-full">
-            <input
-              type="number"
-              step="0.01"
-              value={trade.risk_reward_ratio_long.toString()}
-              onChange={(e) => setTrade({ ...trade, risk_reward_ratio_long: parseFloat(e.target.value) || 0 })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2">MSS</label>
-          <div className="relative w-full">
-            <select
-              value={trade.mss}
-              onChange={(e) => setTrade({ ...trade, mss: e.target.value })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            >
-              <option value="">Select MSS Type</option>
-              {MSS_OPTIONS.map((mss) => (
-                <option key={mss} value={mss}>
-                  {mss}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-2 flex items-center">
-            <span>Evaluation Grade</span>
-            <span className="ml-1 cursor-help group relative">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-72 sm:w-80 md:w-96 bg-white border border-stone-200 rounded-lg shadow-lg p-3 sm:p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="text-xs sm:text-sm text-stone-700 space-y-1 sm:space-y-2">
-                  <div className="font-semibold text-stone-900 mb-1 sm:mb-2">Evaluation Grade Guide</div>
-                  <div className="bg-blue-50 border-blue-200 border rounded p-1.5 sm:p-2">
-                    <span className="font-medium">A+</span> — Perfect execution. Followed all rules, optimal risk management.
+          <div className="mb-1.5 flex items-center gap-2">
+            <Label className="mb-0">Evaluation Grade</Label>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 cursor-help text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="w-80">
+                  <div className="space-y-2 text-xs">
+                    <div className="font-semibold">Evaluation Grade Guide</div>
+                    <div className="rounded border bg-blue-50 p-2"><span className="font-medium">A+</span> — Perfect execution.</div>
+                    <div className="rounded border bg-green-50 p-2"><span className="font-medium">A</span> — Excellent trade.</div>
+                    <div className="rounded border bg-yellow-50 p-2"><span className="font-medium">B</span> — Good trade.</div>
+                    <div className="rounded border bg-orange-50 p-2"><span className="font-medium">C</span> — Poor execution.</div>
                   </div>
-                  <div className="bg-green-50 border-green-200 border rounded p-1.5 sm:p-2">
-                    <span className="font-medium">A</span> — Excellent trade. Minor deviations from plan but overall strong execution.
-                  </div>
-                  <div className="bg-yellow-50 border-yellow-200 border rounded p-1.5 sm:p-2">
-                    <span className="font-medium">B</span> — Good trade. Some rule violations but managed well. Room for improvement.
-                  </div>
-                  <div className="bg-orange-50 border-orange-200 border rounded p-1.5 sm:p-2">
-                    <span className="font-medium">C</span> — Poor execution. Rules violations.
-                  </div>
-                </div>
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-stone-200 transform rotate-45"></div>
-              </div>
-            </span>
-          </label>
-          <div className="relative w-full">
-            <select
-              value={trade.evaluation}
-              onChange={(e) => setTrade({ ...trade, evaluation: e.target.value })}
-              className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800  placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              required
-            >
-              <option value="">Select Grade</option>
-              {EVALUATION_OPTIONS.map((evaluation) => (
-                <option key={evaluation} value={evaluation}>
-                  {evaluation}
-                </option>
-              ))}
-            </select>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
+          <Select defaultValue={trade.evaluation || undefined} onValueChange={(v) => commitAndSave({ evaluation: v })}>
+            <SelectTrigger className="shadow-none"><SelectValue placeholder="Select Grade" /></SelectTrigger>
+            <SelectContent>
+              {EVALUATION_OPTIONS.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
 
+        {/* Notes (uncontrolled) */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-stone-700 mb-2">Notes</label>
-          <textarea
-            value={trade.notes}
-            onChange={(e) => setTrade({ ...trade, notes: e.target.value })}
-            className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
+          <Label htmlFor="notes" className="mb-1.5 block">Notes</Label>
+          <Textarea
+            id="notes"
+            ref={notesRef}
+            defaultValue={trade.notes}
             rows={16}
-            placeholder={'Add any notes about this trade...'}
+            className="shadow-none"
+            placeholder="Add any notes about this trade..."
+            onBlur={(e) => commitAndSave({ notes: e.currentTarget.value })}
           />
         </div>
       </div>
 
-      <div className="mt-6 space-y-4">
+      <Separator className="my-6" />
+
+      {/* Flags (uncontrolled via defaultChecked) */}
+      <div className="space-y-4">
         <div className="flex flex-wrap gap-4">
-          {/* Break Even Checkbox */}
-          <div className="inline-flex items-center">
-            <label className="flex items-center cursor-pointer relative" htmlFor="break-even-checkbox">
-              <input
-                type="checkbox"
-                id="break-even-checkbox"
-                checked={trade.break_even}
-                onChange={(e) => setTrade({ ...trade, break_even: e.target.checked })}
-                className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
+          {[
+            { key: 'break_even', label: 'Break Even' },
+            { key: 'reentry', label: 'Re-entry' },
+            { key: 'news_related', label: 'News' },
+            { key: 'local_high_low', label: 'Local High/Low' },
+            { key: 'rr_hit_1_4', label: '1.4RR Hit' },
+            { key: 'launch_hour', label: 'LH' },
+          ].map(({ key, label }) => (
+            <div key={key} className="flex items-center gap-2">
+              <Checkbox
+                id={key}
+                defaultChecked={(trade as any)[key]}
+                className="p-2 rounded shadow-none cursor-pointer border-slate-300 data-[state=checked]:border-slate-800"
+                onCheckedChange={(checked) => commitAndSave({ [key]: Boolean(checked) } as any)}
               />
-              <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <svg strokeWidth="1.5" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#ffffff">
-                  <path d="M5 13L9 17L19 7" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                </svg>
-              </span>
-            </label>
-            <label className="cursor-pointer ml-2 text-stone-800 text-sm" htmlFor="break-even-checkbox">Break Even</label>
-          </div>
-          {/* Re-entry Checkbox */}
-          <div className="inline-flex items-center">
-            <label className="flex items-center cursor-pointer relative" htmlFor="reentry-checkbox">
-              <input
-                type="checkbox"
-                id="reentry-checkbox"
-                checked={trade.reentry}
-                onChange={(e) => setTrade({ ...trade, reentry: e.target.checked })}
-                className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
-              />
-              <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <svg strokeWidth="1.5" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#ffffff">
-                  <path d="M5 13L9 17L19 7" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                </svg>
-              </span>
-            </label>
-            <label className="cursor-pointer ml-2 text-stone-800 text-sm" htmlFor="reentry-checkbox">Re-entry</label>
-          </div>
-          {/* News Related Checkbox */}
-          <div className="inline-flex items-center">
-            <label className="flex items-center cursor-pointer relative" htmlFor="news-checkbox">
-              <input
-                type="checkbox"
-                id="news-checkbox"
-                checked={trade.news_related}
-                onChange={(e) => setTrade({ ...trade, news_related: e.target.checked })}
-                className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
-              />
-              <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <svg strokeWidth="1.5" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#ffffff">
-                  <path d="M5 13L9 17L19 7" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                </svg>
-              </span>
-            </label>
-            <label className="cursor-pointer ml-2 text-stone-800 text-sm" htmlFor="news-checkbox">News</label>
-          </div>
-          {/* Local High/Low Checkbox */}
-          <div className="inline-flex items-center">
-            <label className="flex items-center cursor-pointer relative" htmlFor="localhl-checkbox">
-              <input
-                type="checkbox"
-                id="localhl-checkbox"
-                checked={trade.local_high_low}
-                onChange={(e) => setTrade({ ...trade, local_high_low: e.target.checked })}
-                className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
-              />
-              <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <svg strokeWidth="1.5" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#ffffff">
-                  <path d="M5 13L9 17L19 7" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                </svg>
-              </span>
-            </label>
-            <label className="cursor-pointer ml-2 text-stone-800 text-sm" htmlFor="localhl-checkbox">Local High/Low</label>
-          </div>
-          {/* 1.4RR Hit Checkbox */}
-          <div className="inline-flex items-center">
-            <label className="flex items-center cursor-pointer relative" htmlFor="rr-hit-checkbox">
-              <input
-                type="checkbox"
-                id="rr-hit-checkbox"
-                checked={trade.rr_hit_1_4}
-                onChange={(e) => setTrade({ ...trade, rr_hit_1_4: e.target.checked })}
-                className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
-              />
-              <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <svg strokeWidth="1.5" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#ffffff">
-                  <path d="M5 13L9 17L19 7" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                </svg>
-              </span>
-            </label>
-            <label className="cursor-pointer ml-2 text-stone-800 text-sm" htmlFor="rr-hit-checkbox">1.4RR Hit</label>
-          </div>
-          {/* Partials Taken Checkbox */}
-          <div className="inline-flex items-center">
-            <label className="flex items-center cursor-pointer relative" htmlFor="partials-checkbox">
-              <input
-                type="checkbox"
-                id="partials-checkbox"
-                checked={trade.partials_taken}
-                onChange={(e) => setTrade({ ...trade, partials_taken: e.target.checked })}
-                className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
-              />
-              <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <svg strokeWidth="1.5" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#ffffff">
-                  <path d="M5 13L9 17L19 7" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                </svg>
-              </span>
-            </label>
-            <label className="cursor-pointer ml-2 text-stone-800 text-sm flex items-center group relative" htmlFor="partials-checkbox">
-              Partials
-              <span className="ml-1 cursor-help">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="text-xs text-stone-700">
-                    <div className="font-semibold text-stone-900 mb-1">Partials Taken</div>
-                    <div className="bg-blue-50 border-blue-200 border rounded p-2">
-                      Check this box if you took partial profits on this trade.
-                    </div>
-                  </div>
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-stone-200 transform rotate-45"></div>
-                </div>
-              </span>
-            </label>
+              <Label htmlFor={key} className="text-sm font-normal cursor-pointer">{label}</Label>
+            </div>
+          ))}
 
-            <label className="flex items-center cursor-pointer relative ml-2" htmlFor="executed-checkbox">
-              <input
-                type="checkbox"
-                id="executed-checkbox"
-                checked={trade.executed === false}
-                onChange={(e) => setTrade({ ...trade, executed: e.target.checked ? false : true })}
-                className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
-              />
-              <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <svg strokeWidth="1.5" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#ffffff">
-                  <path d="M5 13L9 17L19 7" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                </svg>
-              </span>
-            </label>
-            <label className="cursor-pointer ml-2 text-stone-800 text-sm flex items-center group relative" htmlFor="executed-checkbox">
-              Not Executed
-              <span className="ml-1 cursor-help">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="text-xs text-stone-700">
-                    <div className="font-semibold text-stone-900 mb-1">Not Counted in Stats</div>
-                    <div className="bg-yellow-50 border-yellow-200 border rounded p-2">
-                      This trade is marked as "not executed" due to reasons such as emotions, discipline errors, or other factors. It will <span className="font-semibold">not</span> be included in your statistics.
+          {/* Not Executed (uncontrolled) */}
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="not_executed"
+              defaultChecked={trade.executed === false}
+              className="p-2 rounded shadow-none cursor-pointer border-slate-300 data-[state=checked]:border-slate-800"
+              onCheckedChange={(checked) => commitAndSave({ executed: checked ? false : true })}
+            />
+            <div className="flex items-center gap-1">
+              <Label htmlFor="not_executed" className="text-sm font-normal cursor-pointer">Not Executed</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 cursor-help text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="w-72">
+                    <div className="text-xs">
+                      <div className="mb-1 font-semibold">Not Counted in Stats</div>
+                      <div className="rounded border bg-yellow-50 p-2">
+                        This trade is marked as &quot;not executed&quot; and will <span className="font-semibold">not</span> be included in your statistics.
+                      </div>
                     </div>
-                  </div>
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-stone-200 transform rotate-45"></div>
-                </div>
-              </span>
-            </label>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            <label className="flex items-center cursor-pointer relative ml-2" htmlFor="launch-hour-checkbox">
-              <input
-                type="checkbox"
-                id="launch-hour-checkbox"
-                checked={trade.launch_hour}
-                onChange={(e) => setTrade({ ...trade, launch_hour: e.target.checked })}
-                className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
-              />
-              <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <svg strokeWidth="1.5" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#ffffff">
-                  <path d="M5 13L9 17L19 7" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                </svg>
-              </span>
-            </label>
-            <label className="cursor-pointer ml-2 text-stone-800 text-sm flex items-center group relative" htmlFor="launch-hour-checkbox">
-              LH
-              <span className="ml-1 cursor-help">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="text-xs text-stone-700">
-                    <div className="font-semibold text-stone-900 mb-1">Launch Hour</div>
-                    <div className="bg-blue-50 border-blue-200 border rounded p-2">
-                      Trade executed during the launch hour of the market session. This period often has higher volatility and requires special attention.
-                    </div>
-                  </div>
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-stone-200 transform rotate-45"></div>
-                </div>
-              </span>
-            </label>
+      {/* Footer */}
+      <div className="mt-6 flex items-center justify-between">
+        <div className="space-y-1 text-sm text-muted-foreground">
+          <div>
+            Account Balance ({selection.activeAccount.currency}):{' '}
+            <span className="font-medium text-foreground">{money(accountBalance)}</span>
+          </div>
+          <div>
+            P&amp;L:{' '}
+            <span className={`font-medium ${signedProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {money(signedProfit)}
+            </span>
+          </div>
+          <div>
+            P&amp;L %:{' '}
+            <span className={`font-medium ${signedProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {pnlPercentage.toFixed(2)}%
+            </span>
           </div>
         </div>
 
-        <div className="flex justify-between items-center mt-4">
-          <div className="text-sm text-gray-600 space-y-1">
-            <div>
-              Account Balance ({selection.activeAccount.currency}): <span className="font-medium text-stone-800">
-                {selection.activeAccount.currency === 'EUR' ? '€' : '$'}{selection.activeAccount.account_balance.toFixed(2)}
-              </span>
-            </div>
-            <div>
-              P&L: <span className={`font-medium ${calculatedProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {selection.activeAccount.currency === 'EUR' ? '€' : '$'}{calculatedProfit.toFixed(2)}
-              </span>
-            </div>
-            <div>
-              P&L %: <span className={`font-medium ${calculatedProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {selection.activeAccount.account_balance ? ((calculatedProfit / selection.activeAccount.account_balance) * 100).toFixed(2) : '0.00'}%
-              </span>
-            </div>
-          </div>
-
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={() => router.push('/trades')}
-              className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-transparent relative text-stone-700 hover:text-stone-700 border-stone-500 hover:bg-transparent duration-150 hover:border-stone-600 rounded-lg hover:opacity-60 hover:shadow-none"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
-            >
-              {isSubmitting ? 'Saving...' : 'Save Trade'}
-            </button>
-          </div>
+        <div className="flex gap-2">
+          <Button type="button" variant="secondary" onClick={() => router.push('/trades')}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              'Save Trade'
+            )}
+          </Button>
         </div>
       </div>
     </form>
   );
-} 
+}

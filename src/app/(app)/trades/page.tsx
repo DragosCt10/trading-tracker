@@ -14,6 +14,14 @@ import 'react-date-range/dist/theme/default.css';
 import AppLayout from '@/components/shared/layout/AppLayout';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 
+// Import shadcn components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+
 const ITEMS_PER_PAGE = 10;
 
 export default function TradesPage() {
@@ -25,7 +33,7 @@ export default function TradesPage() {
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
-  // Filter states (must be before any code that uses it)
+  // Filter states
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
   const [showNonExecuted, setShowNonExecuted] = useState<boolean>(false);
   const [showPartialTrades, setShowPartialTrades] = useState<boolean>(false);
@@ -37,7 +45,6 @@ export default function TradesPage() {
   const { selection, actionBarloading } = useActionBarSelection();
   const { data: userDetails, isLoading: userLoading } = useUserDetails();
 
-  // Replace startDate/endDate with dateRange
   const today = new Date();
   const initialStartDate = format(today, 'yyyy-MM-01');
   const initialEndDate = format(endOfMonth(today), 'yyyy-MM-dd');
@@ -54,7 +61,6 @@ export default function TradesPage() {
     endDate: initialEndDate,
   });
 
-  // Single query: always fetch all trades for the date range (no backend pagination)
   const {
     data: allTradesData,
     isLoading: allTradesLoading,
@@ -83,11 +89,11 @@ export default function TradesPage() {
     enabled: !actionBarloading && !userLoading && !!selection.activeAccount?.id && !!userDetails?.user
   });
 
-  // Market options (from all trades loaded for dropdown)
+  // Market options
   const tradesForMarketDropdown = allTradesData || [];
   const uniqueMarkets = Array.from(new Set(tradesForMarketDropdown.map(trade => trade.market))).filter(Boolean);
 
-  // Table data and pagination logic (always client-side)
+  // Table data and pagination logic
   const allTrades = allTradesData || [];
   const filteredTrades = allTrades.filter(trade => {
     // Apply market filter
@@ -108,33 +114,25 @@ export default function TradesPage() {
   // Apply sorting
   const sortedTrades = [...filteredTrades].sort((a, b) => {
     if (sortConfig.field === 'outcome') {
-      // Special handling for outcome sorting
       const getOutcomeValue = (trade: Trade) => {
         if (trade.break_even) return 'BE';
         return trade.trade_outcome;
       };
-      
       const aValue = getOutcomeValue(a);
       const bValue = getOutcomeValue(b);
-      
       if (sortConfig.direction === 'asc') {
         return aValue > bValue ? 1 : -1;
       } else {
         return aValue < bValue ? 1 : -1;
       }
     }
-    
     const aValue = a[sortConfig.field];
     const bValue = b[sortConfig.field];
-    
-    // For date sorting, we want descending order by default
     if (sortConfig.field === 'trade_date') {
       return sortConfig.direction === 'asc' 
         ? new Date(bValue).getTime() - new Date(aValue).getTime()
         : new Date(aValue).getTime() - new Date(bValue).getTime();
     }
-    
-    // For other fields (like market)
     if (sortConfig.direction === 'asc') {
       return aValue > bValue ? 1 : -1;
     } else {
@@ -149,7 +147,6 @@ export default function TradesPage() {
   const endIdx = startIdx + ITEMS_PER_PAGE;
   const paginatedTrades = sortedTrades.slice(startIdx, endIdx);
 
-  // Close picker on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -182,7 +179,6 @@ export default function TradesPage() {
     setShowPartialTrades(false);
   };
 
-  // Reset to page 1 when market filter changes
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedMarket]);
@@ -210,7 +206,6 @@ export default function TradesPage() {
   const totalPages = Math.ceil(paginatedTotalCount / ITEMS_PER_PAGE);
 
   const exportToCSV = async () => {
-    // Export only the trades currently visible in the table (paginatedTrades)
     if (!paginatedTrades || paginatedTrades.length === 0) return;
 
     setExporting(true);
@@ -280,12 +275,12 @@ export default function TradesPage() {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div role="status">
-          <svg aria-hidden="true" className="w-8 h-8 text-stone-200 animate-spin fill-stone-800" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg aria-hidden="true" className="w-8 h-8 text-slate-200 animate-spin fill-slate-800" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
             <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
           </svg>
         </div>
-        <p className="ml-4 text-stone-600">Loading...</p>
+        <p className="ml-4 text-slate-600">Loading...</p>
       </div>
     );
   }
@@ -297,7 +292,7 @@ export default function TradesPage() {
         <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-sm p-8 text-center">
           <div className="mb-6">
             <svg
-              className="mx-auto h-12 w-12 text-stone-400"
+              className="mx-auto h-12 w-12 text-slate-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -311,16 +306,17 @@ export default function TradesPage() {
               />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-stone-900 mb-2">No Active Account</h2>
-          <p className="text-stone-600 mb-6">
+          <h2 className="text-xl font-semibold text-slate-900 mb-2">No Active Account</h2>
+          <p className="text-slate-600 mb-6">
             Please set up and activate an account for {selection.mode} mode to view your trades.
           </p>
-          <a
-            href="/settings"
-            className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
-          >
-            Go to Settings
-          </a>
+          <Button asChild>
+            <a
+              href="/settings"
+            >
+              Go to Settings
+            </a>
+          </Button>
         </div>
       </div>
       </AppLayout>
@@ -329,219 +325,230 @@ export default function TradesPage() {
 
   return (
     <AppLayout>
-    <div className="max-w-7xl mx-auto py-8">
+    <div className="max-w-(--breakpoint-xl) mx-auto py-8">
       {/* Header Section */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-stone-900">Trades</h1>
-          <p className="text-sm text-stone-500 mt-1">
+          <h1 className="text-2xl font-bold text-slate-900">Trades</h1>
+          <p className="text-sm text-slate-500 mt-1">
             Viewing trades for {selection.mode} mode
           </p>
         </div>
-        <Link
-          href="/trades/new"
-          className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
-        >
-          Add New Trade
-        </Link>
+        <Button asChild>
+          <Link href="/trades/new">
+            Add New Trade
+          </Link>
+        </Button>
       </div>
 
       {/* Filters Section */}
-      <div className="mb-4 flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <label htmlFor="market-filter" className="text-sm font-medium text-stone-700">Market:</label>
-          <select
-            id="market-filter"
-            value={selectedMarket}
-            onChange={e => setSelectedMarket(e.target.value)}
-            className="w-48 bg-white border border-stone-200 text-stone-800 rounded-lg px-3 py-2 text-sm"
-          >
-            <option value="all">All Markets</option>
-            {uniqueMarkets.map(market => (
-              <option key={market} value={market}>{market}</option>
-            ))}
-          </select>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <label htmlFor="market-filter" className="text-sm font-medium text-slate-700 whitespace-nowrap">Market:</label>
+          <Select value={selectedMarket} onValueChange={setSelectedMarket}>
+            <SelectTrigger
+              id="market-filter"
+              className="w-full shadow-none sm:w-48"
+            >
+              <SelectValue placeholder="Market" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Markets</SelectItem>
+              {uniqueMarkets.map(market => (
+                <SelectItem key={market} value={market}>{market}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <label className="flex items-center cursor-pointer relative ml-2" htmlFor="non-executed-checkbox">
-          <input
-            type="checkbox"
+        <div className="flex items-center group relative w-full sm:w-auto">
+          <Checkbox
             id="non-executed-checkbox"
             checked={showNonExecuted}
-            onChange={(e) => setShowNonExecuted(e.target.checked)}
-            className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
+            onCheckedChange={checked => setShowNonExecuted(!!checked)}
+            className="p-2 rounded shadow-none border-slate-300 data-[state=checked]:border-slate-800"
           />
-          <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-            <svg strokeWidth="1.5" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#ffffff">
-              <path d="M5 13L9 17L19 7" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-            </svg>
-          </span>
-        </label>
-        <label className="cursor-pointer text-stone-800 text-sm flex items-center group relative" htmlFor="non-executed-checkbox">
-          Show only non-executed trades
-          <span className="ml-1 cursor-help">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-              <div className="text-xs text-stone-700">
-                <div className="font-semibold text-stone-900 mb-1">Not Counted in Stats</div>
-                <div className="bg-yellow-50 border-yellow-200 border rounded p-2">
-                  This filter shows trades marked as "not executed" due to reasons such as emotions, discipline errors, or other factors. These trades are <span className="font-semibold">not</span> included in your statistics.
+          <Label
+            htmlFor="non-executed-checkbox"
+            className="cursor-pointer text-slate-800 text-sm flex items-center font-normal ml-2"
+          >
+            Show only non-executed trades
+            <span className="ml-1 cursor-help">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="text-xs text-slate-700">
+                  <div className="font-semibold text-slate-900 mb-1">Not Counted in Stats</div>
+                  <div className="bg-yellow-50 border-yellow-200 border rounded p-2">
+                    This filter shows trades marked as "not executed" due to reasons such as emotions, discipline errors, or other factors. These trades are <span className="font-semibold">not</span> included in your statistics.
+                  </div>
                 </div>
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-slate-200 transform rotate-45"></div>
               </div>
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-stone-200 transform rotate-45"></div>
-            </div>
-          </span>
-        </label>
+            </span>
+          </Label>
+        </div>
 
-        <label className="flex items-center cursor-pointer relative ml-4" htmlFor="partial-trades-checkbox">
-          <input
-            type="checkbox"
+        <div className="flex items-center group relative w-full sm:w-auto sm:ml-4">
+          <Checkbox
             id="partial-trades-checkbox"
             checked={showPartialTrades}
-            onChange={(e) => setShowPartialTrades(e.target.checked)}
-            className="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded shadow-sm hover:shadow border border-stone-200 checked:bg-stone-800 checked:border-stone-800"
+            onCheckedChange={checked => setShowPartialTrades(!!checked)}
+            className="p-2 rounded shadow-none border-slate-300 data-[state=checked]:border-slate-800"
           />
-          <span className="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-            <svg strokeWidth="1.5" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#ffffff">
-              <path d="M5 13L9 17L19 7" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-            </svg>
-          </span>
-        </label>
-        <label className="cursor-pointer text-stone-800 text-sm flex items-center group relative" htmlFor="partial-trades-checkbox">
-          Show only partial trades
-          <span className="ml-1 cursor-help">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-              <div className="text-xs text-stone-700">
-                <div className="font-semibold text-stone-900 mb-1">Partial Trades</div>
-                <div className="bg-yellow-50 border-yellow-200 border rounded p-2">
-                  This filter shows trades where partial profits were taken during the trade execution.
-                </div>
-              </div>
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-stone-200 transform rotate-45"></div>
-            </div>
-          </span>
-        </label>
-
-        <div className="flex items-center gap-2">
-          <label htmlFor="sort-by" className="text-sm font-medium text-stone-700">Sort by:</label>
-          <select
-            id="sort-by"
-            value={sortConfig.field}
-            onChange={e => {
-              const field = e.target.value as 'trade_date' | 'market' | 'outcome';
-              setSortConfig(prev => ({
-                field,
-                direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
-              }));
-            }}
-            className="w-48 bg-white border border-stone-200 text-stone-800 rounded-lg px-3 py-2 text-sm"
+          <Label
+            htmlFor="partial-trades-checkbox"
+            className="cursor-pointer text-slate-800 text-sm flex items-center font-normal ml-2"
           >
-            <option value="trade_date">Date</option>
-            <option value="market">Market</option>
-            <option value="outcome">Outcome</option>
-          </select>
+            Show only partial trades
+            <span className="ml-1 cursor-help">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="text-xs text-slate-700">
+                  <div className="font-semibold text-slate-900 mb-1">Partial Trades</div>
+                  <div className="bg-yellow-50 border-yellow-200 border rounded p-2">
+                    This filter shows trades where partial profits were taken during the trade execution.
+                  </div>
+                </div>
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-slate-200 transform rotate-45"></div>
+              </div>
+            </span>
+          </Label>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <label htmlFor="sort-by" className="text-sm font-medium text-slate-700 whitespace-nowrap">Sort by:</label>
+          <Select value={sortConfig.field} onValueChange={value => {
+            const field = value as 'trade_date' | 'market' | 'outcome';
+            setSortConfig(prev => ({
+              field,
+              direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+            }));
+          }}>
+            <SelectTrigger id="sort-by" className="w-full shadow-none sm:w-48">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="trade_date">Date</SelectItem>
+              <SelectItem value="market">Market</SelectItem>
+              <SelectItem value="outcome">Outcome</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
       {/* Filters Card */}
-      <div className="mb-6 bg-white rounded-lg shadow-sm p-6 flex flex-col gap-4">
-         <div className="flex flex-row gap-4 w-full">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-stone-700 mb-1">Date Range</label>
-            <div className="relative w-72">
-              <input
+      <div className="mb-6 bg-white rounded-lg border p-4 sm:p-6 flex flex-col gap-4">
+        <div className="flex flex-col gap-4 w-full md:flex-row md:items-end">
+          <div className="w-full md:flex-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Date Range
+            </label>
+            <div className="relative w-full max-w-xs sm:w-72">
+              <Input
                 ref={inputRef}
                 placeholder="Select date range"
                 type="text"
-                className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer pr-10"
+                className="pr-10 shadow-none w-full"
                 value={`${dateRange.startDate} ~ ${dateRange.endDate}`}
                 readOnly
-                onClick={(e) => {
+                onClick={e => {
                   e.preventDefault();
                   setShowDatePicker(true);
                 }}
-                onFocus={(e) => {
+                onFocus={e => {
                   e.preventDefault();
                   setShowDatePicker(true);
                 }}
               />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer" onClick={() => setShowDatePicker(v => !v)}>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
+              <span
+                className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer"
+                onClick={() => setShowDatePicker(v => !v)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="size-5"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z"
+                  />
                 </svg>
               </span>
               {showDatePicker && (
-                <div ref={pickerRef} className="absolute shadow-lg rounded-lg z-50 mt-2 left-0 date-range-popup">
-                  {/* ← UPDATED to use tempRange + Apply/Cancel */}
+                <div
+                  ref={pickerRef}
+                  className="absolute shadow-lg rounded-lg z-50 mt-2 left-0 date-range-popup bg-white"
+                >
                   <DateRange
-                    ranges={[{
-                      startDate: new Date(tempRange.startDate),
-                      endDate:   new Date(tempRange.endDate),
-                      key: 'selection',
-                    }]}
-                    onChange={(ranges) => {
+                    ranges={[
+                      {
+                        startDate: new Date(tempRange.startDate),
+                        endDate: new Date(tempRange.endDate),
+                        key: 'selection',
+                      },
+                    ]}
+                    onChange={ranges => {
                       const { startDate, endDate } = ranges.selection;
                       setTempRange({
                         startDate: format(startDate as Date, 'yyyy-MM-dd'),
-                        endDate:   format(endDate   as Date, 'yyyy-MM-dd'),
+                        endDate: format(endDate as Date, 'yyyy-MM-dd'),
                       });
                     }}
                     moveRangeOnFirstSelection={false}
                     editableDateInputs
                     maxDate={new Date()}
                     showMonthAndYearPickers
-                    rangeColors={['#333']}
+                    rangeColors={['#334155']}
                     direction="vertical"
                   />
 
                   <div className="flex justify-end gap-2 p-2 bg-white">
-                    <button
-                      className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-linear-to-b from-white to-white border-stone-200 text-stone-700 rounded-lg hover:bg-linear-to-b hover:from-stone-50 hover:to-stone-50 hover:border-stone-200 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-1px_0px_rgba(0,0,0,0.20)] after:pointer-events-none transition antialiased"
+                    <Button
+                      variant="secondary"
                       onClick={() => {
-                        // discard changes
                         setTempRange({ ...dateRange });
                         setShowDatePicker(false);
                       }}
                     >
                       Cancel
-                    </button>
-                    <button
-                      className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
+                    </Button>
+                    <Button
                       onClick={() => {
-                        // commit changes, reset to page 1, and close picker
                         setDateRange({ ...tempRange });
                         setCurrentPage(1);
                         setShowDatePicker(false);
                       }}
                     >
                       Apply
-                    </button>
+                    </Button>
                   </div>
-
-
                 </div>
               )}
             </div>
           </div>
-          <div className="flex items-end gap-2">
-            <button
-              onClick={exportToCSV}
-              className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
-            >
+          <div className="flex gap-2 mt-2 md:mt-0 md:items-end">
+            <Button onClick={exportToCSV} className="cursor-pointer w-full md:w-auto">
               Export Trades
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
               onClick={clearFilters}
-              className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-linear-to-b from-white to-white border-stone-200 text-stone-700 rounded-lg hover:bg-linear-to-b hover:from-stone-50 hover:to-stone-50 hover:border-stone-200 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-1px_0px_rgba(0,0,0,0.20)] after:pointer-events-none transition antialiased"
+              className="cursor-pointer w-full md:w-auto"
             >
               Current Month
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              className="cursor-pointer w-full md:w-auto"
               onClick={() => {
                 const now = new Date();
                 const startOfYear = `${now.getFullYear()}-01-01`;
@@ -549,20 +556,18 @@ export default function TradesPage() {
                 setDateRange({ startDate: startOfYear, endDate: endOfYear });
                 setCurrentPage(1);
               }}
-              className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-linear-to-b from-white to-white border-stone-200 text-stone-700 rounded-lg hover:bg-linear-to-b hover:from-stone-50 hover:to-stone-50 hover:border-stone-200 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-1px_0px_rgba(0,0,0,0.20)] after:pointer-events-none transition antialiased"
             >
               Current Year
-            </button>
+            </Button>
           </div>
         </div>
 
-
         {exporting && (
           <div className="w-5/12 mx-auto mt-4">
-            <div className="text-sm text-stone-600 mb-1">Exporting {paginatedTotalCount} trades ...({Math.round(exportProgress)}%)</div>
-            <div className="w-full h-2 bg-stone-200 rounded-full overflow-hidden">
+            <div className="text-sm text-slate-600 mb-1">Exporting {paginatedTotalCount} trades ...({Math.round(exportProgress)}%)</div>
+            <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-stone-800 transition-all duration-300"
+                className="h-full bg-slate-800 transition-all duration-300"
                 style={{ width: `${exportProgress}%` }}
               ></div>
             </div>
@@ -571,112 +576,117 @@ export default function TradesPage() {
       </div>
 
       {/* Trades Table Card */}
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg border overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-stone-200">
-            <thead className="bg-stone-50">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Time</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Market</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Direction</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Setup</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Outcome</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Risk</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Trade</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Liquidity</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Notes</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Time</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Market</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Direction</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Setup</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Outcome</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Risk</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Trade</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Liquidity</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Notes</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-stone-200">
+            <tbody className="bg-white divide-y divide-slate-200">
               {paginatedTrades.map((trade: Trade) => (
-                <tr key={trade.id} className="hover:bg-stone-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{trade.trade_date}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{trade.trade_time}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{trade.market}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{trade.direction}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{trade.setup_type}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
+                <tr key={trade.id} className="hover:bg-slate-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{trade.trade_date}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{trade.trade_time}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{trade.market}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{trade.direction}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{trade.setup_type}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                     <div className="flex items-center gap-1">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        trade.trade_outcome === 'Win' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
+                      <Badge
+                        className={`shadow-none ${
+                          trade.trade_outcome === 'Win'
+                            ? 'bg-emerald-100 hover:bg-emerald-100 text-green-600'
+                            : 'bg-red-100 hover:bg-red-100 text-red-600'
+                        }`}
+                      >
                         {trade.trade_outcome}
-                      </span>
+                      </Badge>
                       {trade.break_even && (
-                          <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-stone-200 text-stone-800">BE</span>
+                        <Badge className="bg-slate-200 hover:bg-slate-200 text-slate-600 shadow-none">
+                          BE
+                        </Badge>
                       )}
                       {!trade.executed && (
-                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800 relative group cursor-help">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                        <Badge className="bg-amber-100 hover hover:bg-amber-100 text-yellow-600 relative group shadow-none">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-4">
                             <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                             <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                           </svg>
-                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-stone-800 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                             Not executed trade
-                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-stone-800"></div>
+                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-slate-800"></div>
                           </div>
-                        </span>
+                        </Badge>
                       )}
                       {trade.launch_hour && (
-                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800 relative group cursor-help">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                        <Badge className="bg-yellow-100 hover:bg-yellow-100 text-yellow-800 relative group shadow-none">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
                             <circle cx="12" cy="12" r="7" stroke="currentColor" strokeWidth="1.5" fill="none"/>
                             <path strokeLinecap="round" strokeLinejoin="round" stroke="currentColor" strokeWidth="1.5" d="M12 8v4l2 2"/>
                             <rect x="11" y="2" width="2" height="3" rx="1" fill="currentColor"/>
                             <rect x="11" y="19" width="2" height="3" rx="1" fill="currentColor"/>
                           </svg>
-                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-stone-800 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                             Launch Hour trade
-                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-stone-800"></div>
+                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-slate-800"></div>
                           </div>
-                        </span>
+                        </Badge>
                       )}
                       {trade.partials_taken && (
-                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 relative group cursor-help">
+                        <Badge className="bg-blue-100 hover:bg-blue-100 text-blue-800 relative group shadow-none">
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0 0 12 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52 2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 0 1-2.031.352 5.988 5.988 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971Zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0 2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 0 1-2.031.352 5.989 5.989 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971Z" />
                           </svg>
-
-                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-stone-800 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                             Partial profits taken
-                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-stone-800"></div>
+                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-slate-800"></div>
                           </div>
-                        </span>
+                        </Badge>
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">{trade.risk_per_trade}%</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{trade.risk_per_trade}%</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                     {trade.trade_link ? (
                       <a
                         href={trade.trade_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-stone-700 hover:text-stone-900 underline"
+                        className="text-slate-700 hover:text-slate-900 underline"
                       >
                         View Trade
                       </a>
                     ) : (
-                      <span className="text-stone-400">No link</span>
+                      <span className="text-slate-400">No link</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                     {trade.liquidity_taken ? (
                       <a
                         href={trade.liquidity_taken}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-stone-700 hover:text-stone-900 underline"
+                        className="text-slate-700 hover:text-slate-900 underline"
                       >
                         View Liquidity
                       </a>
                     ) : (
-                      <span className="text-stone-400">-</span>
+                      <span className="text-slate-400">-</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                     {trade.notes ? (
                       <a
                         href="#"
@@ -684,22 +694,22 @@ export default function TradesPage() {
                           e.preventDefault();
                           openNotesModal(trade.notes || '');
                         }}
-                        className="text-stone-700 hover:text-stone-900 underline"
+                        className="text-slate-700 hover:text-slate-900 underline"
                       >
                         View Notes
                       </a>
                     ) : (
-                      <span className="text-stone-400">No notes</span>
+                      <span className="text-slate-400">No notes</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                     <a
                       href="#"
                       onClick={(e) => {
                         e.preventDefault();
                         openModal(trade);
                       }}
-                      className="text-stone-700 hover:text-stone-900 underline"
+                      className="text-slate-700 hover:text-slate-900 underline"
                     >
                       View Details
                     </a>
@@ -713,7 +723,7 @@ export default function TradesPage() {
 
       {/* Pagination Controls */}
       <div className="mt-4 flex items-center justify-between">
-        <div className="text-sm text-stone-700">
+        <div className="text-sm text-slate-700">
           Showing <span className="font-medium">{(paginatedCurrentPage - 1) * ITEMS_PER_PAGE + 1}</span> to{' '}
           <span className="font-medium">
             {Math.min(paginatedCurrentPage * ITEMS_PER_PAGE, paginatedTotalCount)}
@@ -721,20 +731,19 @@ export default function TradesPage() {
           of <span className="font-medium">{paginatedTotalCount}</span> trades
         </div>
         <div className="flex space-x-2">
-          <button
+          <Button
+            variant="secondary"
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={paginatedCurrentPage === 1}
-            className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center transition-all ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm bg-transparent relative text-stone-700 hover:text-stone-700 border-stone-500 hover:bg-transparent duration-150 hover:border-stone-600 rounded-lg hover:opacity-60 hover:shadow-none"
           >
             Previous
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, paginatedTotalPages))}
             disabled={paginatedCurrentPage === paginatedTotalPages}
-            className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
           >
             Next
-          </button>
+          </Button>
         </div>
       </div>
 

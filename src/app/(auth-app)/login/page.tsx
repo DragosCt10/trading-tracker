@@ -18,7 +18,7 @@ export default function Login() {
   useEffect(() => {
     // If user is already logged in, redirect to dashboard
     if (userData?.user && userData?.session) {
-      router.push('/dashboard');
+      router.push('/analytics');
     }
   }, [userData, router]);
 
