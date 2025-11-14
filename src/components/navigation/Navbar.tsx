@@ -14,7 +14,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQueryClient } from '@tanstack/react-query';
 import ActionBar from '../shared/ActionBar';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
   Sheet,
@@ -25,6 +25,8 @@ import {
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { CreateAccountAlertDialog } from '../CreateAccountModal';
+import { useActionBarSelection } from '@/hooks/useActionBarSelection';
+import { useAccounts } from '@/hooks/useAccounts';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -33,11 +35,22 @@ export default function Navbar() {
   const supabase = createClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (userData?.user) setIsSigningOut(false);
   }, [userData?.user]);
+
+   const { selection, setSelection } = useActionBarSelection();
+
+    // 👇 useAccounts here ONLY to get refetch; same key as ActionBar
+    const { refetch: refetchAccounts } = useAccounts({
+      userId: userData?.user?.id,
+      pendingMode: selection.mode,
+    });
+
+    useEffect(() => {
+      if (userData?.user) setIsSigningOut(false);
+    }, [userData?.user]);
 
   const handleSignOut = async () => {
     try {
@@ -119,7 +132,12 @@ export default function Navbar() {
 
           {/* Right actions */}
           <div className="ml-auto hidden items-center gap-2 lg:flex">
-            <CreateAccountAlertDialog />
+            <CreateAccountAlertDialog
+                onCreated={async (created) => {
+                  // refresh accounts list used by ActionBar
+                  await refetchAccounts();
+                }}
+              />
 
             <Button
               variant="destructive"
