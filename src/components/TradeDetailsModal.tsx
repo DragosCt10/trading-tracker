@@ -180,7 +180,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     const isActive = typeof value === 'boolean' ? value : value === 'Yes';
     return (
       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-        isActive ? 'bg-emerald-100 text-emerald-500' : 'bg-stone-100 text-slate-800'
+        isActive ? 'bg-emerald-100 text-emerald-500' : 'bg-slate-100 text-slate-800'
       }`}>
         {isActive ? 'Yes' : 'No'}
       </span>
@@ -195,7 +195,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     };
     return (
       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-        colors[outcome] || 'bg-stone-100 text-slate-800'
+        colors[outcome] || 'bg-slate-100 text-slate-800'
       }`}>
         {outcome}
       </span>
@@ -272,7 +272,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             type="text"
             value={`${displayValue}%`}
             readOnly
-            className="mt-1 w-full bg-stone-50 border border-stone-200 text-slate-700 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
+            className="mt-1 w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
           />
         </div>
       );
@@ -293,7 +293,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 const val = e.target.value;
                 handleInputChange(field, val === '' ? '' : parseFloat(val));
               }}
-              className="mt-1 w-full bg-white border border-stone-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+              className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
             />
           </div>
         );
@@ -305,7 +305,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               type="text"
               value={`${displayValue}%`}
               readOnly
-              className="mt-1 w-full bg-stone-50 border border-stone-200 text-slate-700 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
+              className="mt-1 w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
             />
           </div>
         );
@@ -324,7 +324,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 const val = e.target.value;
                 handleInputChange(field, val === '' ? '' : parseFloat(val));
               }}
-              className="mt-1 w-full bg-white border border-stone-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+              className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
             />
           </div>
         );
@@ -335,7 +335,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             <select
               value={value as string}
               onChange={(e) => handleInputChange(field, e.target.value)}
-              className="mt-1 w-full bg-white border border-stone-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+              className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
             >
               {options?.map((option) => (
                 <option key={option} value={option}>
@@ -352,7 +352,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             <select
               value={value ? 'true' : 'false'}
               onChange={(e) => handleInputChange(field, e.target.value === 'true')}
-              className="mt-1 w-full bg-white border border-stone-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+              className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
             >
               <option value="true">Yes</option>
               <option value="false">No</option>
@@ -366,7 +366,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             <select
               value={value as string}
               onChange={(e) => handleInputChange(field, e.target.value)}
-              className="mt-1 w-full bg-white border border-stone-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+              className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
             >
               <option value="Win">Win</option>
               <option value="Lose">Lose</option>
@@ -381,7 +381,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               type="text"
               value={value as string}
               onChange={(e) => handleInputChange(field, e.target.value)}
-              className="mt-1 w-full bg-white border border-stone-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+              className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
             />
           </div>
         );
@@ -450,7 +450,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                           : editedTrade.calculated_profit
                         }
                         readOnly
-                        className="mt-1 w-full bg-stone-50 border border-stone-200 text-slate-700 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
+                        className="mt-1 w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
                       />
                     </div>
                   )}
@@ -487,7 +487,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               <textarea
                 value={editedTrade?.notes ?? ''}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
-                className="mt-1 w-full bg-white border border-stone-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+                className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
                 rows={8}
                 disabled={!isEditing}
                 readOnly={!isEditing}
@@ -509,6 +509,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                       variant="destructive"
                       onClick={handleDelete}
                       disabled={isDeleting}
+                      className="text-white"
                     >
                       {isDeleting ? 'Deleting...' : 'Yes, Delete'}
                     </Button>
