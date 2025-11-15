@@ -3253,6 +3253,7 @@ import { cn } from '@/lib/utils';
 import { MonthPerformanceCard } from '@/components/dashboard/MonthPerformanceCard';
 import { AccountOverviewCard } from '@/components/dashboard/AccountOverviewCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MonthlyPerformanceChart } from '@/components/dashboard/MonthlyPerformanceChart';
 
 ChartJS.register(
   CategoryScale,
@@ -4364,114 +4365,20 @@ export default function Dashboard() {
       )}
 
       {/* Monthly Performance Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-bold text-stone-900 mb-1">Monthly Performance</h2>
-          <p className="text-sm text-stone-500 mb-4">Monthly performance of trades</p>
-          <div className="h-80">
-            <Bar
-              options={{
-                ...chartOptions,
-                indexAxis: 'y',
-                plugins: {
-                  legend: {
-                    display: false,
-                  },
-                  tooltip: {
-                    callbacks: {
-                      label: (context) => {
-                        const month = context.label;
-                        const monthData = monthlyStatsAllTrades[month];
-                        
-                        if (context.dataset.label === 'Wins') {
-                          return `Wins: ${context.parsed.x} (${monthData.beWins} BE)`;
-                        }
-                        if (context.dataset.label === 'Losses') {
-                          return `Losses: ${context.parsed.x} (${monthData.beLosses} BE)`;
-                        }
-                        if (context.dataset.label === 'Win Rate') {
-                          return `Win Rate: ${context.parsed.x?.toFixed(2)}% (${monthData.winRateWithBE.toFixed(2)}% with BE)`;
-                        }
-                        return `${context.dataset.label}: ${context.parsed.x}`;
-                      }
-                    }
-                  }
-                },
-                scales: {
-                  x: {
-                    stacked: false,
-                    grid: {
-                      display: false,
-                    },
-                    ticks: {
-                      display: false
-                    }
-                  },
-                  y: {
-                    stacked: false,
-                    grid: {
-                      display: false,
-                    },
-                    ticks: {
-                      color: 'rgb(41, 37, 36)', // stone-800
-                      callback: function(value, index) {
-                        // value is the index of the label
-                        const labels = this.getLabels();
-                        const month = labels && typeof value === 'number' ? labels[value] : value;
-                        const stats = monthlyStatsAllTrades[month];
-                        const totalTrades = stats ? stats.wins + stats.losses : 0;
-                        return `${month} (${totalTrades})`;
-                      }
-                    }
-                  },
-                },
-              }}
-              data={{
-                labels: Object.keys(monthlyStatsAllTrades),
-                datasets: [
-                  {
-                    label: 'Wins',
-                    data: Object.values(monthlyStatsAllTrades).map(stats => stats.wins),
-                    backgroundColor: 'rgba(134, 239, 172, 0.8)', // green-300
-                    borderColor: 'rgb(134, 239, 172)', // green-300
-                    borderWidth: 0,
-                    borderRadius: 4,
-                    barPercentage:  0.8,
-                    categoryPercentage:  0.8,
-                  },
-                  {
-                    label: 'Losses',
-                    data: Object.values(monthlyStatsAllTrades).map(stats => stats.losses),
-                    backgroundColor: '#e7e5e4', // stone-200
-                    borderColor: 'rgb(231, 229, 228)', // stone-200
-                    borderWidth: 0,
-                    borderRadius: 4,
-                    barPercentage: 0.8,
-                    categoryPercentage:  0.8,
-                  },
-                  {
-                    label: 'Win Rate',
-                    data: Object.values(monthlyStatsAllTrades).map(stats => stats.winRate),
-                    backgroundColor: 'rgba(253, 230, 138, 0.8)', // amber-200
-                    borderColor: 'rgb(253, 230, 138)', // amber-200
-                    borderWidth: 0,
-                    borderRadius: 4,
-                    barPercentage:  0.8,
-                    categoryPercentage:  0.8,
-                  },
-                ],
-              }}
-            />
-          </div>
-        </div>
-        {/* Market Profit Statistics Card */}
+      <div className="w-full mb-8">
+        <MonthlyPerformanceChart
+          monthlyStatsAllTrades={monthlyStatsAllTrades}
+          chartOptions={chartOptions}
+        />
+      </div>
+
+      {/* Market Profit Statistics Card */}
         <MarketProfitStatisticsCard
           trades={allTrades}
           marketStats={marketAllTradesStats}
           chartOptions={chartOptions}
           getCurrencySymbol={getCurrencySymbol}
         />
-      </div>
 
       <h2 className="text-2xl font-bold text-stone-900 mt-20">Date Range Stats</h2>
       <p className="text-stone-500 mb-10">Trading performance metrics for your selected date range.</p>
