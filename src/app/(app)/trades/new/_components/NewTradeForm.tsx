@@ -6,6 +6,8 @@ import { Trade } from '@/types/trade';
 import { useRouter } from 'next/navigation';
 import { useUserDetails } from '@/hooks/useUserDetails';
 
+import { useQueryClient } from '@tanstack/react-query';
+
 // shadcn/ui
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -74,6 +76,7 @@ export default function NewTradeForm({
   actionBarLoading: boolean;
 }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { data: userDetails } = useUserDetails();
@@ -164,15 +167,35 @@ export default function NewTradeForm({
   const accountBalance = selection.activeAccount?.account_balance ?? 0;
   const currency = selection.activeAccount?.currency === 'EUR' ? '€' : '$';
 
-  const baseProfit = useMemo(() => {
-    if (!accountBalance) return 0;
-    const riskAmount = (trade.risk_per_trade / 100) * accountBalance;
-    const rr = trade.risk_reward_ratio || 0;
-    return riskAmount * rr; // positive base
-  }, [trade.risk_per_trade, trade.risk_reward_ratio, accountBalance]);
+    // -------- P&L calculation --------
+  const { signedProfit, pnlPercentage } = useMemo(() => {
+    if (!accountBalance) {
+      return { signedProfit: 0, pnlPercentage: 0 };
+    }
 
-  const signedProfit = trade.trade_outcome === 'Lose' ? -baseProfit : baseProfit;
-  const pnlPercentage = accountBalance ? (signedProfit / accountBalance) * 100 : 0;
+    // Break-even trade => 0%
+    if (trade.break_even) {
+      return { signedProfit: 0, pnlPercentage: 0 };
+    }
+
+    let pnlPct = 0;
+
+    if (trade.trade_outcome === 'Lose') {
+      // ❌ loss = -risk_per_trade (e.g. risk 1% -> -1%)
+      pnlPct = -trade.risk_per_trade;
+    } else {
+      // ✅ win = risk_per_trade * RR (e.g. risk 1%, RR 2 -> +2%)
+      pnlPct = trade.risk_per_trade * (trade.risk_reward_ratio || 0);
+    }
+
+    const profit = (pnlPct / 100) * accountBalance;
+
+    return {
+      signedProfit: profit,
+      pnlPercentage: pnlPct,
+    };
+  }, [accountBalance, trade.break_even, trade.trade_outcome, trade.risk_per_trade, trade.risk_reward_ratio]);
+
 
   // Save on tab hide
   useEffect(() => {
@@ -216,7 +239,7 @@ export default function NewTradeForm({
       const supabase = createClient();
       const tableName = `${selection.mode}_trades`;
 
-      const { error } = await supabase
+            const { error } = await supabase
         .from(tableName)
         .insert([{
           ...trade,
@@ -232,6 +255,13 @@ export default function NewTradeForm({
       if (typeof window !== 'undefined') {
         localStorage.removeItem(`new-trade-draft-${selection.mode}`);
       }
+
+      // ✅ make sure every trades list is stale
+      await queryClient.invalidateQueries({
+        // this will invalidate all queries whose key starts with 'allTrades'
+        queryKey: ['allTrades'],
+        exact: false,
+      });
 
       router.push('/trades');
     } catch (err: any) {
