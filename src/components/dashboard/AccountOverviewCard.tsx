@@ -115,7 +115,7 @@ export function AccountOverviewCard({
                   fill={
                     (monthlyStatsAllTrades[month]?.profit ?? 0) >= 0
                       ? '#34d399' // emerald-400
-                      : '#ef4444' // red-500
+                      : '#f87171' // red-400
                   }
                 />
               ))}
