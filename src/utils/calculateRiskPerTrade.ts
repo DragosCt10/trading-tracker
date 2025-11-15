@@ -47,7 +47,7 @@ export function calculateRiskPerTradeStats(trades: Trade[]): RiskAnalysis {
     };
 
     // Categorize trades based on risk percentage
-    if (risk === 0.3) {
+    if (risk === 0.35) {
       updateRiskStats('risk03');
     } else if (risk === 0.5) {
       updateRiskStats('risk05');
