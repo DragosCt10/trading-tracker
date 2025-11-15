@@ -101,6 +101,7 @@ export default function TradesPage() {
       return (data || []) as Trade[];
     },
     enabled: queryEnabled,
+    refetchOnMount: 'always'
   });
 
 
