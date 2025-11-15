@@ -165,7 +165,7 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
           </Button>
         </AlertDialogTrigger>
 
-        <AlertDialogContent className="max-w-md">
+        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content">
           <AlertDialogHeader>
             <AlertDialogTitle>Create a new account</AlertDialogTitle>
             <AlertDialogDescription>
