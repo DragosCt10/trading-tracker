@@ -19,7 +19,7 @@ interface NotesModalProps {
 export default function NotesModal({ isOpen, onClose, notes }: NotesModalProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <AlertDialogContent className="max-w-md max-h-[80vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content">
+      <AlertDialogContent className="max-w-md max-h-[80vh] overflow-y-auto fade-content data-[state=open]:fade-content data-[state=closed]:fade-content">
         <AlertDialogHeader className="flex flex-row items-center justify-between pb-2">
           <AlertDialogTitle className="text-lg">Trade Notes</AlertDialogTitle>
           <Button
