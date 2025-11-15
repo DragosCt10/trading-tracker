@@ -217,7 +217,7 @@ export function EditAccountAlertDialog({
           </Button>
         </AlertDialogTrigger>
 
-        <AlertDialogContent className="max-w-md">
+        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content">
           <AlertDialogHeader>
             <AlertDialogTitle>Edit account</AlertDialogTitle>
             <AlertDialogDescription>
