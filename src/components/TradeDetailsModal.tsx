@@ -518,8 +518,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                       <span className="text-red-500 font-semibold text-base">Confirm Delete</span>
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      <p className="text-red-500 mb-1">Are you sure you want to delete this trade?</p>
-                      <p className="text-red-500 mb-4 text-sm">This action cannot be undone.</p>
+                      <span className="text-slate-500 mb-1">Are you sure you want to delete this trade? This action cannot be undone.</span>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter className="flex gap-3">
