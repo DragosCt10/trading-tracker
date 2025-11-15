@@ -9,6 +9,17 @@ import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 // shadcn UI components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 interface TradeDetailsModalProps {
   trade: Trade | null;
@@ -389,176 +400,195 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto space-y-4">
-        <Card>
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle>
-              <span className="text-2xl font-bold text-slate-900">Trade Details</span>
-            </CardTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="rounded-full"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-              <span className="sr-only">Close</span>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <Card className="mb-4 bg-red-50 border border-red-200">
-                <CardContent className="text-red-500 px-4 py-3">{error}</CardContent>
-              </Card>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Basic Information */}
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Basic Information</h3>
+    <AlertDialog open={isOpen}>
+      <AlertDialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto fade-content data-[state=open]:fade-content data-[state=closed]:fade-content">
+        <div className="absolute top-3 right-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="rounded-full"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+            <span className="sr-only">Close</span>
+          </Button>
+        </div>
+        
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-xl">Trade Details</AlertDialogTitle>
+          <AlertDialogDescription>
+            Detailed information about the selected trade.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="p-0 px-0 mt-4">
+          <Card className="shadow-none border-none">
+            <CardContent className="px-0">
+              {error && (
+                <Card className="mb-4 bg-red-50 border border-red-200">
+                  <CardContent className="text-red-500 px-4 py-3">{error}</CardContent>
+                </Card>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Basic Information */}
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900 mb-2">Basic Information</h3>
+                  <dl>
+                    {renderField('Date', 'trade_date')}
+                    {renderField('Time', 'trade_time')}
+                    {renderField('Day', 'day_of_week', 'select', DAY_OF_WEEK_OPTIONS)}
+                    {renderField('Market', 'market', 'select', MARKET_OPTIONS)}
+                    {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
+                    {renderField('Setup Type', 'setup_type', 'select', SETUP_OPTIONS)}
+                    {renderField('Outcome', 'trade_outcome', 'outcome', ['Win', 'Lose'])}
+                  </dl>
+                </div>
+                {/* Risk Management */}
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900 mb-2">Risk Management</h3>
+                  <dl>
+                    {renderField('Risk', 'risk_per_trade', 'number')}
+                    {renderField('Risk/Reward Ratio', 'risk_reward_ratio', 'number')}
+                    {renderField('Risk/Reward Ratio (Long)', 'risk_reward_ratio_long', 'number')}
+                    {renderField('SL Size', 'sl_size', 'number')}
+                    {renderField('Liquidity', 'liquidity', 'select', LIQUIDITY_OPTIONS)}
+                    {renderField('P&L Percentage', 'pnl_percentage', 'number')}
+                    {/* Calculated Profit (read-only) */}
+                    {editedTrade && (
+                      <div className="mb-2">
+                        <label className="block text-sm font-medium text-slate-700">Calculated Profit</label>
+                        <input
+                          type="text"
+                          value={typeof editedTrade.calculated_profit === 'number'
+                            ? editedTrade.calculated_profit.toFixed(2)
+                            : editedTrade.calculated_profit
+                          }
+                          readOnly
+                          className="mt-1 w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
+                        />
+                      </div>
+                    )}
+                  </dl>
+                </div>
+                {/* Trade Analysis */}
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900 mb-2">Trade Analysis</h3>
+                  <dl>
+                    {renderField('MSS', 'mss', 'select', MSS_OPTIONS)}
+                    {renderField('Break Even', 'break_even', 'boolean')}
+                    {renderField('Re-entry', 'reentry', 'boolean')}
+                    {renderField('News Related', 'news_related', 'boolean')}
+                    {renderField('Local High/Low', 'local_high_low', 'boolean')}
+                    {renderField('Evaluation Grade', 'evaluation', 'select', EVALUATION_OPTIONS)}
+                    {renderField('1.4RR Hit', 'rr_hit_1_4', 'boolean')}
+                    {renderField('Partials', 'partials_taken', 'boolean')}
+                    {renderField('Executed', 'executed', 'boolean')}
+                    {renderField('Launch Hour', 'launch_hour', 'boolean')}
+                  </dl>
+                </div>
+              </div>
+              {/* Trade Link */}
+              <div className="mt-4">
+                <h3 className="text-base font-semibold text-slate-900 mb-2">Trade Link</h3>
                 <dl>
-                  {renderField('Date', 'trade_date')}
-                  {renderField('Time', 'trade_time')}
-                  {renderField('Day', 'day_of_week', 'select', DAY_OF_WEEK_OPTIONS)}
-                  {renderField('Market', 'market', 'select', MARKET_OPTIONS)}
-                  {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
-                  {renderField('Setup Type', 'setup_type', 'select', SETUP_OPTIONS)}
-                  {renderField('Outcome', 'trade_outcome', 'outcome', ['Win', 'Lose'])}
+                  {renderField('Trade', 'trade_link')}
+                  {renderField('Liquidity Taken', 'liquidity_taken')}
                 </dl>
               </div>
-              {/* Risk Management */}
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Risk Management</h3>
-                <dl>
-                  {renderField('Risk', 'risk_per_trade', 'number')}
-                  {renderField('Risk/Reward Ratio', 'risk_reward_ratio', 'number')}
-                  {renderField('Risk/Reward Ratio (Long)', 'risk_reward_ratio_long', 'number')}
-                  {renderField('SL Size', 'sl_size', 'number')}
-                  {renderField('Liquidity', 'liquidity', 'select', LIQUIDITY_OPTIONS)}
-                  {renderField('P&L Percentage', 'pnl_percentage', 'number')}
-                  {/* Calculated Profit (read-only) */}
-                  {editedTrade && (
-                    <div className="mb-2">
-                      <label className="block text-sm font-medium text-slate-700">Calculated Profit</label>
-                      <input
-                        type="text"
-                        value={typeof editedTrade.calculated_profit === 'number'
-                          ? editedTrade.calculated_profit.toFixed(2)
-                          : editedTrade.calculated_profit
-                        }
-                        readOnly
-                        className="mt-1 w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
-                      />
-                    </div>
-                  )}
-                </dl>
+              {/* Notes */}
+              <div className="mt-4">
+                <h3 className="text-base font-semibold text-slate-900 mb-2">Notes</h3>
+                <textarea
+                  value={editedTrade?.notes ?? ''}
+                  onChange={(e) => handleInputChange('notes', e.target.value)}
+                  className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+                  rows={8}
+                  disabled={!isEditing}
+                  readOnly={!isEditing}
+                />
               </div>
-              {/* Trade Analysis */}
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Trade Analysis</h3>
-                <dl>
-                  {renderField('MSS', 'mss', 'select', MSS_OPTIONS)}
-                  {renderField('Break Even', 'break_even', 'boolean')}
-                  {renderField('Re-entry', 'reentry', 'boolean')}
-                  {renderField('News Related', 'news_related', 'boolean')}
-                  {renderField('Local High/Low', 'local_high_low', 'boolean')}
-                  {renderField('Evaluation Grade', 'evaluation', 'select', EVALUATION_OPTIONS)}
-                  {renderField('1.4RR Hit', 'rr_hit_1_4', 'boolean')}
-                  {renderField('Partials', 'partials_taken', 'boolean')}
-                  {renderField('Executed', 'executed', 'boolean')}
-                  {renderField('Launch Hour', 'launch_hour', 'boolean')}
-                </dl>
-              </div>
-            </div>
-            {/* Trade Link */}
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">Trade Link</h3>
-              <dl>
-                {renderField('Trade', 'trade_link')}
-                {renderField('Liquidity Taken', 'liquidity_taken')}
-              </dl>
-            </div>
-            {/* Notes */}
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">Notes</h3>
-              <textarea
-                value={editedTrade?.notes ?? ''}
-                onChange={(e) => handleInputChange('notes', e.target.value)}
-                className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
-                rows={8}
-                disabled={!isEditing}
-                readOnly={!isEditing}
-              />
-            </div>
-            {/* Delete confirm */}
-            {showDeleteConfirm && (
-              <Card className="mt-4 bg-red-50 border border-red-200">
-                <CardHeader>
-                  <CardTitle>
-                    <span className="text-red-500 font-semibold text-base">Confirm Delete</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-red-500 mb-1">Are you sure you want to delete this trade?</p>
-                  <p className="text-red-500 mb-4 text-sm">This action cannot be undone.</p>
-                  <div className="flex gap-3">
-                    <Button
-                      variant="destructive"
-                      onClick={handleDelete}
-                      disabled={isDeleting}
-                      className="text-white"
+              {/* Delete confirm using AlertDialog */}
+              <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      <span className="text-red-500 font-semibold text-base">Confirm Delete</span>
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      <p className="text-red-500 mb-1">Are you sure you want to delete this trade?</p>
+                      <p className="text-red-500 mb-4 text-sm">This action cannot be undone.</p>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="flex gap-3">
+                    <AlertDialogAction
+                      asChild
                     >
-                      {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+                      <Button
+                        variant="destructive"
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className="text-white"
+                      >
+                        {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+                      </Button>
+                    </AlertDialogAction>
+                    <AlertDialogCancel
+                      asChild
+                    >
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowDeleteConfirm(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </AlertDialogCancel>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              {/* Action Buttons */}
+              <div className="mt-6 flex justify-end gap-2">
+                {!isEditing ? (
+                  <>
+                    <Button onClick={() => setIsEditing(true)} variant="default">
+                      Edit Trade
                     </Button>
                     <Button
+                      onClick={() => setShowDeleteConfirm(true)}
+                      variant="destructive"
+                      className='text-white'
+                    >
+                      Delete Trade
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
                       variant="outline"
-                      onClick={() => setShowDeleteConfirm(false)}
+                      onClick={() => {
+                        setIsEditing(false);
+                        setEditedTrade(trade);
+                      }}
                     >
                       Cancel
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {/* Action Buttons */}
-            <div className="mt-6 flex justify-end gap-2">
-              {!isEditing ? (
-                <>
-                  <Button onClick={() => setIsEditing(true)} variant="default">
-                    Edit Trade
-                  </Button>
-                  <Button onClick={() => setShowDeleteConfirm(true)} variant="destructive" className='text-white'>
-                    Delete Trade
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setIsEditing(false);
-                      setEditedTrade(trade);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="default"
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="bg-emerald-600 text-white hover:bg-emerald-700"
-                  >
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+                    <Button
+                      variant="default"
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="bg-emerald-600 text-white hover:bg-emerald-700"
+                    >
+                      {isSaving ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </AlertDialogContent>
+    </AlertDialog>
   );
-} 
+}
