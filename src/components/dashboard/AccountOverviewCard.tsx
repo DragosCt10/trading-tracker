@@ -77,12 +77,12 @@ export function AccountOverviewCard({
             >
             <XAxis
               dataKey="month"
-              tick={{ fill: '#64748b', fontSize: 14}} // text-slate-500
+              tick={{ fill: '#64748b', fontSize: 13}} // text-slate-500
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              tick={{ fill: '#64748b', fontSize: 14 }} // text-slate-500
+              tick={{ fill: '#64748b', fontSize: 11 }} // text-slate-500
               axisLine={false}
               tickLine={false}
               tickFormatter={(v: number) =>
