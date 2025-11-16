@@ -82,8 +82,41 @@
   max-height: 90vh;
   overflow-y: auto;
   /* Optional: add a box-shadow or border-radius for aesthetics */
-  box-shadow: 0 2px 24px rgba(0, 0, 0, 0.12);
-  border-radius: 12px;
+  /* box-shadow: 0 2px 24px rgba(0, 0, 0, 0.12);
+  border-radius: 12px; */
+}
+
+/* Custom tweaks for date range picker header (remove bg, remove border, transparent effect) */
+.rdrDefinedRangesWrapper {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.rdrDateDisplayWrapper {
+  background: transparent !important;
+}
+
+.rdrDateDisplayItem {
+  color: #64748b; /* slate-500 */
+}
+.rdrDateDisplayItemActive {
+  border-color: #64748b !important; /* slate-500 */
+}
+
+.rdrMonthAndYearPickers select:hover {
+  background-color: #f1f5f9 !important; /* slate-100 */
+}
+
+.rdrDayDisabled .rdrInRange,
+.rdrDayDisabled .rdrStartEdge,
+.rdrDayDisabled .rdrEndEdge,
+.rdrDayDisabled .rdrSelected,
+.rdrDayDisabled .rdrDayStartPreview,
+.rdrDayDisabled .rdrDayInPreview,
+.rdrDayDisabled .rdrDayEndPreview {
+  opacity: 0.5;
+  filter: none !important;
 }
 
 @theme inline {
