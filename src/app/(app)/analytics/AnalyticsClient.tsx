@@ -3254,6 +3254,7 @@ import { MonthPerformanceCard } from '@/components/dashboard/MonthPerformanceCar
 import { AccountOverviewCard } from '@/components/dashboard/AccountOverviewCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MonthlyPerformanceChart } from '@/components/dashboard/MonthlyPerformanceChart';
+import { DateRangeValue, TradeFiltersBar } from '@/components/dashboard/TradeFiltersBar';
 
 ChartJS.register(
   CategoryScale,
@@ -3764,6 +3765,8 @@ export default function Dashboard() {
       : stats.currentStreak < 0
       ? 'text-red-500'
       : 'text-slate-500';
+
+  const markets = Array.from(new Set(allTrades.map((t) => t.market)));
 
   const totalYearProfit = useMemo(
     () =>
@@ -4396,182 +4399,23 @@ export default function Dashboard() {
           getCurrencySymbol={getCurrencySymbol}
         />
 
-      <h2 className="text-2xl font-bold text-stone-900 mt-20">Date Range Stats</h2>
-      <p className="text-stone-500 mb-10">Trading performance metrics for your selected date range.</p>
+      <h2 className="text-2xl font-medium text-slate-800 mt-20">Date Range Stats</h2>
+      <p className="text-slate-500 mb-10">Trading performance metrics for your selected date range.</p>
 
       {/* Date Range and Filter Buttons */}
-      <div className="mb-8 bg-white border border-stone-200 rounded-lg shadow-sm p-6">  
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-72">
-              <div className="relative w-full">
-                <input
-                  ref={inputRef}
-                  placeholder="Select date range"
-                  type="text"
-                  className="w-full aria-disabled:cursor-not-allowed outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer pr-10"
-                  value={`${dateRange.startDate} ~ ${dateRange.endDate}`}
-                  readOnly
-                  onFocus={() => setShowDatePicker(true)}
-                  onClick={() => setShowDatePicker(true)}
-                />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer" onClick={() => setShowDatePicker(v => !v)}>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z" />
-                  </svg>
-                </span>
-                {showDatePicker && (
-                  <div ref={pickerRef} className="absolute shadow-lg rounded-lg z-50 mt-2 left-0 date-range-popup">
-                    <DateRange
-                      ranges={[{
-                        startDate: new Date(tempRange.startDate),
-                        endDate:   new Date(tempRange.endDate),
-                        key: 'selection',
-                      }]}
-                      onChange={(ranges) => {
-                        const { startDate, endDate } = ranges.selection;
-                        setTempRange({
-                          startDate: format(startDate as Date, 'yyyy-MM-dd'),
-                          endDate:   format(endDate   as Date, 'yyyy-MM-dd'),
-                        });
-                      }}
-                      moveRangeOnFirstSelection={false}
-                      editableDateInputs
-                      maxDate={new Date()}
-                      showMonthAndYearPickers
-                      rangeColors={['#333']}
-                      direction="vertical"
-                    />
-
-                    <div className="flex justify-end gap-2 p-2 bg-white">
-                      <button
-                        className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-linear-to-b from-white to-white border-stone-200 text-stone-700 rounded-lg hover:bg-linear-to-b hover:from-stone-50 hover:to-stone-50 hover:border-stone-200 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-1px_0px_rgba(0,0,0,0.20)] after:pointer-events-none transition antialiased"
-                        onClick={() => {
-                          // discard changes
-                          setTempRange({ ...dateRange });
-                          setShowDatePicker(false);
-                        }}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
-                        onClick={() => {
-                          // commit changes, reset to page 1, and close picker
-                          setDateRange({ ...tempRange });
-                          setShowDatePicker(false);
-                        }}
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="font-semibold text-stone-700 text-sm">Filter by period:</span>
-            <div className="flex flex-wrap gap-2">
-              <button
-                className={`inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md ${
-                  activeFilter === 'year' && !isCustomRange
-                    ? 'relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased' 
-                    : 'bg-transparent relative text-stone-700 hover:text-stone-700 border-stone-500 hover:bg-transparent duration-150 hover:border-stone-600 rounded-lg hover:opacity-60 hover:shadow-none'
-                }`}
-                onClick={() => handleFilter('year')}
-              >
-                Current Year
-              </button>
-              <button
-                className={`inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md ${
-                  activeFilter === '15days' && !isCustomRange
-                    ? 'relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased' 
-                    : 'bg-transparent relative text-stone-700 hover:text-stone-700 border-stone-500 hover:bg-transparent duration-150 hover:border-stone-600 rounded-lg hover:opacity-60 hover:shadow-none'
-                }`}
-                onClick={() => handleFilter('15days')}
-              >
-                Last 15 Days
-              </button>
-              <button
-                className={`inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md ${
-                  activeFilter === '30days' && !isCustomRange
-                    ? 'relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased' 
-                    : 'bg-transparent relative text-stone-700 hover:text-stone-700 border-stone-500 hover:bg-transparent duration-150 hover:border-stone-600 rounded-lg hover:opacity-60 hover:shadow-none'
-                }`}
-                onClick={() => handleFilter('30days')}
-              >
-                Last 30 Days
-              </button>
-              <button
-                className={`inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md ${
-                  activeFilter === 'month' && !isCustomRange
-                    ? 'relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased' 
-                    : 'bg-transparent relative text-stone-700 hover:text-stone-700 border-stone-500 hover:bg-transparent duration-150 hover:border-stone-600 rounded-lg hover:opacity-60 hover:shadow-none'
-                }`}
-                onClick={() => handleFilter('month')}
-              >
-                Current Month
-              </button>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 ml-auto">
-            <span className="font-semibold text-stone-700 text-sm">Filter by market:</span>
-            <div className="relative">
-              <select
-                value={selectedMarket}
-                onChange={(e) => setSelectedMarket(e.target.value)}
-                className="aria-disabled:cursor-not-allowed w-40 appearance-none outline-none cursor-pointer focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 px-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none peer"
-              >
-                <option value="all">All Markets</option>
-                {Array.from(new Set(allTrades.map(trade => trade.market))).map(market => (
-                  <option key={market} value={market}>{market}</option>
-                ))}
-              </select>
-              <span className="pointer-events-none absolute top-1/2 -translate-y-1/2 right-2.5 text-stone-600/70 peer-focus:text-stone-800 peer-focus:text-stone-800 dark:peer-hover:text-white dark:peer-focus:text-white transition-all duration-300 ease-in overflow-hidden w-5 h-5">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4 mt-0.5 text-stone-800">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                </svg>
-              </span>
-            </div>
-            {/* <button
-              onClick={async () => {
-                const analysisData: TradingAnalysisRequest = { 
-                  startDate: dateRange.startDate,
-                  endDate: dateRange.endDate,
-                  accountBalance: selection.activeAccount?.account_balance || 0,
-                  totalTrades: stats.totalTrades,
-                  totalWins: stats.totalWins,
-                  totalLosses: stats.totalLosses,
-                  winRate: stats.winRate,
-                  winRateWithBE: stats.winRateWithBE,
-                  totalProfit: stats.totalProfit,
-                  averageProfit: stats.averageProfit,
-                  maxDrawdown: stats.maxDrawdown,
-                  averagePnLPercentage: stats.averagePnLPercentage,
-                  profitFactor: macroStats.profitFactor,
-                  consistencyScore: macroStats.consistencyScore,
-                  consistencyScoreWithBE: macroStats.consistencyScoreWithBE,
-                  sharpeWithBE: macroStats.sharpeWithBE
-                };
-
-                try {
-                  setOpenAnalyzeModal(true);
-                  setAnalysisResults(''); // Reset
-                  await analyzeTradingData(analysisData, (partial) => {
-                    setAnalysisResults(partial);
-                  });
-                } catch (error) {
-                  setAnalysisResults('Error generating analysis. Please try again.');
-                }
-              }}
-              className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
-            >
-              Analyze Trading Performance
-            </button> */}
-          </div>
-        </div>
-      </div>
+      <TradeFiltersBar
+        dateRange={dateRange}
+        onDateRangeChange={(range: DateRangeValue) => {
+          setDateRange(range);
+          // reset pagination etc if needed
+        }}
+        activeFilter={activeFilter}
+        onFilterChange={handleFilter}
+        isCustomRange={isCustomRange}
+        selectedMarket={selectedMarket}
+        onSelectedMarketChange={setSelectedMarket}
+        markets={markets}
+      />
 
       {/* Stats and Best/Worst Month Cards Row */}
       <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
