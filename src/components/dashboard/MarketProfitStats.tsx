@@ -156,7 +156,7 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
         <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
           Market Profit Statistics
         </CardTitle>
-        <CardDescription className="text-sm text-slate-500 mb-2 leading-tight">
+        <CardDescription className="text-sm text-slate-500 mb-3 leading-tight">
           Profit and P&amp;L percentage by market
         </CardDescription>
       </CardHeader>
