@@ -1,7 +1,7 @@
 'use client';
 
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip as ReTooltip, Bar as ReBar, Cell, LabelList } from 'recharts';
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardTitle, CardContent } from "@/components/ui/card";
 
 interface MonthlyStats {
   [month: string]: {
@@ -114,8 +114,8 @@ export function AccountOverviewCard({
                   key={month}
                   fill={
                     (monthlyStatsAllTrades[month]?.profit ?? 0) >= 0
-                      ? '#34d399' // emerald-400
-                      : '#f87171' // red-400
+                      ? 'rgba(52,211,153,0.8)' // emerald-400
+                      : 'rgba(248,113,113,0.8)' // red-400
                   }
                 />
               ))}
