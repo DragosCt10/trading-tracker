@@ -3622,9 +3622,7 @@ export default function Dashboard() {
       endDate: format(monthEnd, 'yyyy-MM-dd'),
     });
   };
-
-
-
+  
   // update calendar when main date range changes
   useEffect(() => {
     const endDateObj = new Date(dateRange.endDate);
@@ -3749,6 +3747,23 @@ export default function Dashboard() {
       );
     };
   }, []);
+
+  const profitColor =
+    stats.totalProfit >= 0 ? 'text-emerald-500' : 'text-red-500';
+  const avgProfitColor =
+    stats.averageProfit >= 0 ? 'text-emerald-500' : 'text-red-500';
+  const pnlColor =
+    stats.averagePnLPercentage > 0
+      ? 'text-emerald-500'
+      : stats.averagePnLPercentage < 0
+      ? 'text-red-500'
+      : 'text-slate-500';
+  const streakColor =
+    stats.currentStreak > 0
+      ? 'text-emerald-500'
+      : stats.currentStreak < 0
+      ? 'text-red-500'
+      : 'text-slate-500';
 
   const totalYearProfit = useMemo(
     () =>
@@ -4018,16 +4033,16 @@ export default function Dashboard() {
         <StatCard
           title="Consistency Score"
           tooltipContent={
-            <div className="space-y-2 text-slate-700">
-              <div className="font-semibold text-slate-900">
+            <div className="space-y-2 text-slate-800">
+              <div className="font-semibold text-slate-800">
                 Consistency Score Interpretation
               </div>
               <div
                 className={cn(
-                  'border rounded p-1.5 sm:p-2',
+                  'rounded-lg p-1.5 sm:p-2',
                   macroStats.consistencyScore < 40
-                    ? 'bg-red-50 border-red-200'
-                    : 'bg-slate-50 border-slate-200'
+                    ? 'bg-red-50 border border-red-100'
+                    : ''
                 )}
               >
                 <span className="font-medium">🚫 0% – 39%</span> — Very
@@ -4035,11 +4050,11 @@ export default function Dashboard() {
               </div>
               <div
                 className={cn(
-                  'border rounded p-1.5 sm:p-2',
+                  'rounded-lg p-1.5 sm:p-2',
                   macroStats.consistencyScore >= 40 &&
                     macroStats.consistencyScore < 60
-                    ? 'bg-orange-50 border-orange-200'
-                    : 'bg-slate-50 border-slate-200'
+                    ? 'bg-orange-50 border border-orange-100'
+                    : ''
                 )}
               >
                 <span className="font-medium">❗ 40% – 59%</span> — Inconsistent.
@@ -4047,11 +4062,11 @@ export default function Dashboard() {
               </div>
               <div
                 className={cn(
-                  'border rounded p-1.5 sm:p-2',
+                  'rounded-lg p-1.5 sm:p-2',
                   macroStats.consistencyScore >= 60 &&
                     macroStats.consistencyScore < 75
-                    ? 'bg-yellow-50 border-yellow-200'
-                    : 'bg-slate-50 border-slate-200'
+                    ? 'bg-yellow-50 border border-yellow-200'
+                    : ''
                 )}
               >
                 <span className="font-medium">⚠️ 60% – 74%</span> — Moderately
@@ -4059,11 +4074,11 @@ export default function Dashboard() {
               </div>
               <div
                 className={cn(
-                  'border rounded p-1.5 sm:p-2',
+                  'rounded-lg p-1.5 sm:p-2',
                   macroStats.consistencyScore >= 75 &&
                     macroStats.consistencyScore < 90
-                    ? 'bg-green-50 border-green-200'
-                    : 'bg-slate-50 border-slate-200'
+                    ? 'bg-emerald-50 border border-emerald-100'
+                    : ''
                 )}
               >
                 <span className="font-medium">✅ 75% – 89%</span> — Very
@@ -4071,10 +4086,10 @@ export default function Dashboard() {
               </div>
               <div
                 className={cn(
-                  'border rounded p-1.5 sm:p-2',
+                  'rounded-lg p-1.5 sm:p-2',
                   macroStats.consistencyScore >= 90
-                    ? 'bg-blue-50 border-blue-200'
-                    : 'bg-slate-50 border-slate-200'
+                    ? 'bg-blue-50 border border-blue-100'
+                    : ''
                 )}
               >
                 <span className="font-medium">💎 90% – 100%</span> — Extremely
@@ -4186,52 +4201,53 @@ export default function Dashboard() {
               <div className="font-semibold text-slate-900">
                 Sharpe Ratio Interpretation
               </div>
+
               <div
                 className={cn(
-                  'border rounded p-1.5 sm:p-2',
+                  'rounded-lg p-1.5 sm:p-2',
                   macroStats.sharpeWithBE < 0.2
-                    ? 'bg-red-50 border-red-200'
-                    : 'bg-slate-50 border-slate-200'
+                    ? 'bg-red-50 border border-red-100'
+                    : ''
                 )}
               >
                 <span className="font-medium">🛑 &lt; 0.2</span> — Very weak. High volatility relative to returns. Consider reviewing trade consistency or overtrading.
               </div>
               <div
                 className={cn(
-                  'border rounded p-1.5 sm:p-2',
+                  'rounded-lg p-1.5 sm:p-2',
                   macroStats.sharpeWithBE >= 0.2 && macroStats.sharpeWithBE < 0.5
-                    ? 'bg-orange-50 border-orange-200'
-                    : 'bg-slate-50 border-slate-200'
+                    ? 'bg-orange-50 border border-orange-100'
+                    : ''
                 )}
               >
                 <span className="font-medium">❗ 0.2 – 0.49</span> — Acceptable for asymmetric strategies (like RR=2). Profit exists, but results are uneven.
               </div>
               <div
                 className={cn(
-                  'border rounded p-1.5 sm:p-2',
+                  'rounded-lg p-1.5 sm:p-2',
                   macroStats.sharpeWithBE >= 0.5 && macroStats.sharpeWithBE < 1
-                    ? 'bg-yellow-50 border-yellow-200'
-                    : 'bg-slate-50 border-slate-200'
+                    ? 'bg-amber-50 border border-amber-100'
+                    : ''
                 )}
               >
                 <span className="font-medium">⚠️ 0.5 – 0.99</span> — Solid performance. Profits outweigh risk, even if trades are not consecutive winners.
               </div>
               <div
                 className={cn(
-                  'border rounded p-1.5 sm:p-2',
+                  'rounded-lg p-1.5 sm:p-2',
                   macroStats.sharpeWithBE >= 1 && macroStats.sharpeWithBE < 2
-                    ? 'bg-green-50 border-green-200'
-                    : 'bg-slate-50 border-slate-200'
+                    ? 'bg-emerald-50 border border-emerald-100'
+                    : ''
                 )}
               >
                 <span className="font-medium">✅ 1.0 – 1.99</span> — Very strong risk-adjusted return. Consistent growth and low volatility.
               </div>
               <div
                 className={cn(
-                  'border rounded p-1.5 sm:p-2',
+                  'rounded-lg p-1.5 sm:p-2',
                   macroStats.sharpeWithBE >= 2
-                    ? 'bg-blue-50 border-blue-200'
-                    : 'bg-slate-50 border-slate-200'
+                    ? 'bg-blue-50 border border-blue-100'
+                    : ''
                 )}
               >
                 <span className="font-medium">💎 2.0+</span> — Exceptional. Usually seen in highly optimized or low-volatility systems.
@@ -4518,7 +4534,7 @@ export default function Dashboard() {
                 </svg>
               </span>
             </div>
-            <button
+            {/* <button
               onClick={async () => {
                 const analysisData: TradingAnalysisRequest = { 
                   startDate: dateRange.startDate,
@@ -4552,173 +4568,267 @@ export default function Dashboard() {
               className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
             >
               Analyze Trading Performance
-            </button>
+            </button> */}
           </div>
         </div>
       </div>
 
-      {/* Stats and Best/Worst Month Cards Row - David UI Style */}
+      {/* Stats and Best/Worst Month Cards Row */}
       <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Stat Cards */}
-        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
-          <h3 className="text-sm font-semibold text-stone-500 mb-1">Total Trades</h3>
-          <p className="text-2xl font-bold text-stone-900">{stats.totalTrades}</p>
-        </div>
-        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
-          <h3 className="text-sm font-semibold text-stone-500 mb-1">Win Rate</h3>
-          <p className="text-2xl font-bold text-stone-900">{stats.winRate.toFixed(2)}% <span className="text-stone-500 text-sm">({stats.winRateWithBE.toFixed(2)}% w/ BE)</span></p>
-        </div>
-        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
-          <h3 className="text-sm font-semibold text-stone-500 mb-1">Total Profit</h3>
-          <p className={`text-2xl font-bold ${stats.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{currencySymbol}{stats.totalProfit.toFixed(2)}</p>
-        </div>
-        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
-          <h3 className="text-sm font-semibold text-stone-500 mb-1">Average Profit</h3>
-          <p className={`text-2xl font-bold ${stats.averageProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{currencySymbol}{stats.averageProfit.toFixed(2)}</p>
-        </div>
-        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
-          <h3 className="text-sm font-semibold text-stone-500 mb-1">Total Wins</h3>
-          <p className="text-2xl font-bold text-green-600">
-            {stats.totalWins} {stats.beWins > 0 ? `(${stats.beWins} BE)` : ''}
-          </p>
-        </div>
-        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
-          <h3 className="text-sm font-semibold text-stone-500 mb-1">Total Losses</h3>
-          <p className="text-2xl font-bold text-red-600">
-            {stats.totalLosses} {stats.beLosses > 0 ? `(${stats.beLosses} BE)` : ''}
-          </p>
-        </div>
-        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
-          <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
-            Max Drawdown
-            <span className="ml-1 cursor-help group relative">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-72 sm:w-80 md:w-96 bg-white border border-stone-200 rounded-lg shadow-lg p-3 sm:p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="text-xs sm:text-sm text-stone-700 space-y-1 sm:space-y-2">
-                  <div className="font-semibold text-stone-900 mb-1 sm:mb-2">Drawdown Interpretation</div>
-                  <div className={`${stats.maxDrawdown <= 2 ? 'bg-blue-50 border-blue-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                    <span className="font-medium">🔹 0% – 2%</span> — Excellent. Very low risk. Usually seen in algo/automated or conservative systems.
-                  </div>
-                  <div className={`${stats.maxDrawdown > 2 && stats.maxDrawdown <= 5 ? 'bg-green-50 border-green-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                    <span className="font-medium">✅ 2% – 5%</span> — Healthy/Moderate. Most professional strategies fall in this zone.
-                  </div>
-                  <div className={`${stats.maxDrawdown > 5 && stats.maxDrawdown <= 10 ? 'bg-yellow-50 border-yellow-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                    <span className="font-medium">⚠️ 5% – 10%</span> — Aggressive but Acceptable. Common for swing traders and trend followers.
-                  </div>
-                  <div className={`${stats.maxDrawdown > 10 && stats.maxDrawdown <= 20 ? 'bg-orange-50 border-orange-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                    <span className="font-medium">❗ 10% – 20%</span> — High Risk. Suitable only for high-volatility strategies.
-                  </div>
-                  <div className={`${stats.maxDrawdown > 20 ? 'bg-red-50 border-red-200' : 'bg-stone-50 border-stone-200'} border rounded p-1.5 sm:p-2`}>
-                    <span className="font-medium">🚫 20%+</span> — Danger Zone. Signals poor risk control or heavy leverage.
-                  </div>
-                </div>
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-stone-200 transform rotate-45"></div>
-              </div>
-            </span>
-          </h3>
-          <p className="text-2xl font-bold">{stats.maxDrawdown.toFixed(2)}%</p>
-        </div>
-        {/* P&L % Stat Card */}
-        <div className="bg-white border border-stone-200 rounded-lg shadow-sm p-6 flex flex-col items-center">
-          
-          <h3 className="text-sm font-semibold text-stone-500 mb-1 flex items-center">
-            P&L %
-            <span className="ml-1 cursor-help group relative">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-60 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="text-xs sm:text-sm text-stone-700">Average P&L % over starting balance.</div>
-              </div>
-            </span>
-          </h3>
-           <p className={`text-2xl font-bold ${stats.averagePnLPercentage > 0 ? 'text-green-600' : stats.averagePnLPercentage < 0 ? 'text-red-600' : 'text-stone-600'}`}>{stats.averagePnLPercentage.toFixed(2)}%</p>
-        </div>
+        {/* Total Trades */}
+        <StatCard
+          title="Total Trades"
+          value={
+            <p className="text-2xl font-medium text-slate-800">
+              {stats.totalTrades}
+            </p>
+          }
+        />
 
-        {/* Streak Stats */}
-        <div className="bg-white p-4 rounded-lg border border-stone-200 text-center">
-          <h3 className="text-sm font-medium text-stone-600 mb-1 flex items-center justify-center">
-            Current Streak
-            <span className="ml-1 cursor-help group relative">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-60 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="text-xs sm:text-sm text-stone-700">Current winning (positive) or losing (negative) streak.</div>
-              </div>
-            </span>
-          </h3>
-          <p className={`text-2xl font-bold ${stats.currentStreak > 0 ? 'text-green-600' : stats.currentStreak < 0 ? 'text-red-600' : 'text-stone-600'}`}>
-            {stats.currentStreak > 0 ? '+' : ''}{stats.currentStreak}
-          </p>
-        </div>
+        {/* Win Rate */}
+        <StatCard
+          title="Win Rate"
+          value={
+            <p className="text-2xl font-medium text-slate-800">
+              {stats.winRate.toFixed(2)}%
+              <span className="text-slate-500 text-sm ml-1">
+                ({stats.winRateWithBE.toFixed(2)}% w/ BE)
+              </span>
+            </p>
+          }
+        />
 
-        <div className="bg-white p-4 rounded-lg border border-stone-200 text-center flex flex-col items-center">
-          <h3 className="text-sm font-medium text-stone-600 mb-1 flex items-center justify-center">
-            Best Streaks
-            <span className="ml-1 cursor-help group relative">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-60 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="text-xs sm:text-sm text-stone-700">Best winning and losing streaks in the selected period.</div>
-              </div>
-            </span>
-          </h3>
-          <div className="flex gap-4">
-            <div>
-              <p className="text-xs text-stone-500">Winning</p>
-              <p className="text-xl font-bold text-green-600">+{stats.maxWinningStreak}</p>
-            </div>
-            <div>
-              <p className="text-xs text-stone-500">Losing</p>
-              <p className="text-xl font-bold text-red-600">-{stats.maxLosingStreak}</p>
-            </div>
-          </div>
-        </div>
+        {/* Total Profit */}
+        <StatCard
+          title="Total Profit"
+          value={
+            <p className={`text-2xl font-medium ${profitColor}`}>
+              {currencySymbol}
+              {stats.totalProfit.toFixed(2)}
+            </p>
+          }
+        />
 
-        <div className="bg-white p-4 rounded-lg border border-stone-200 text-center flex flex-col items-center">
-          <h3 className="text-sm font-medium text-stone-600 mb-1 flex items-center justify-center">
-            Average Days Between Trades
-            <span className="ml-1 cursor-help group relative">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-60 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="text-xs sm:text-sm text-stone-700">Average number of days between your trades in the selected period.</div>
-              </div>
-            </span>
-          </h3>
-          <div className="mt-2">
-            <p className="text-xl font-bold text-stone-700">{stats.averageDaysBetweenTrades} days</p>
-          </div>
-        </div>
+        {/* Average Profit */}
+        <StatCard
+          title="Average Profit"
+          value={
+            <p className={`text-2xl font-medium ${avgProfitColor}`}>
+              {currencySymbol}
+              {stats.averageProfit.toFixed(2)}
+            </p>
+          }
+        />
 
-        <div className="bg-white p-4 rounded-lg border border-stone-200 text-center flex flex-col items-center">
-          <h3 className="text-sm font-medium text-stone-600 mb-1 flex items-center justify-center">
-            Partial Trades - <span className="text-stone-700 font-bold text-xs ml-1">{stats.partialWinRate.toFixed(1)}% ({stats.partialWinRateWithBE.toFixed(1)}% w/ BE)</span>
-            <span className="ml-1 cursor-help group relative">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="absolute bottom-full -left-5 md:left-1/2 transform -translate-x-1/2 mb-2 w-60 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="text-xs sm:text-sm text-stone-700">Trades where partial profits were taken in the selected period.</div>
+        {/* Total Wins */}
+        <StatCard
+          title="Total Wins"
+          value={
+            <p className="text-2xl font-medium text-emerald-500">
+              {stats.totalWins}
+              {stats.beWins > 0 && (
+                <span className="text-sm font-medium text-slate-500 ml-1">
+                  ({stats.beWins} BE)
+                </span>
+              )}
+            </p>
+          }
+        />
+
+        {/* Total Losses */}
+        <StatCard
+          title="Total Losses"
+          value={
+            <p className="text-2xl font-medium text-red-500">
+              {stats.totalLosses}
+              {stats.beLosses > 0 && (
+                <span className="text-sm font-medium text-slate-500 ml-1">
+                  ({stats.beLosses} BE)
+                </span>
+              )}
+            </p>
+          }
+        />
+
+        {/* Max Drawdown */}
+        <StatCard
+          title="Max Drawdown"
+          tooltipContent={
+            <div className="space-y-1 text-slate-800 text-xs sm:text-sm">
+              <div className="font-semibold text-slate-800">
+                Drawdown Interpretation
               </div>
-            </span>
-          </h3>
-          <div className="flex gap-4">
-            <div>
-              <p className="text-xs text-stone-500">Winning</p>
-              <p className="text-xl font-bold text-green-600">{stats.partialWinningTrades} ({stats.beWinPartialTrades} BE)</p>
+
+              <div
+                className={`rounded-lg p-1.5 sm:p-2 ${
+                  stats.maxDrawdown <= 2
+                    ? 'bg-blue-50 border border-blue-100'
+                    : ''
+                }`}
+              >
+                <span className="font-medium">🔹 0% – 2%</span> — Excellent. Very low
+                risk. Usually seen in algo/automated or conservative systems.
+              </div>
+              <div
+                className={`rounded-lg p-1.5 sm:p-2 ${
+                  stats.maxDrawdown > 2 && stats.maxDrawdown <= 5
+                    ? 'bg-emerald-50 border border-emerald-100'
+                    : ''
+                }`}
+              >
+                <span className="font-medium">✅ 2% – 5%</span> — Healthy/Moderate.
+                Most professional strategies fall in this zone.
+              </div>
+              <div
+                className={`rounded-lg p-1.5 sm:p-2 ${
+                  stats.maxDrawdown > 5 && stats.maxDrawdown <= 10
+                    ? 'bg-amber-50 border border-amber-100'
+                    : ''
+                }`}
+              >
+                <span className="font-medium">⚠️ 5% – 10%</span> — Aggressive but
+                acceptable. Common for swing traders and trend followers.
+              </div>
+              <div
+                className={`rounded-lg p-1.5 sm:p-2 ${
+                  stats.maxDrawdown > 10 && stats.maxDrawdown <= 20
+                    ? 'bg-orange-50 border border-orange-100'
+                    : ''
+                }`}
+              >
+                <span className="font-medium">❗ 10% – 20%</span> — High risk.
+                Suitable only for high-volatility strategies.
+              </div>
+              <div
+                className={`rounded-lg p-1.5 sm:p-2 ${
+                  stats.maxDrawdown > 20
+                    ? 'bg-red-50 border border-red-100'
+                    : ''
+                }`}
+              >
+                <span className="font-medium">🚫 20%+</span> — Danger zone. Signals
+                poor risk control or heavy leverage.
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-stone-500">Losing</p>
-              <p className="text-xl font-bold text-red-600">{stats.partialLosingTrades} ({stats.beLosingPartialTrades} BE)</p>
+          }
+          value={
+            <p className="text-2xl font-medium text-slate-800">
+              {stats.maxDrawdown.toFixed(2)}%
+            </p>
+          }
+        />
+
+        {/* P&L % */}
+        <StatCard
+          title="P&L %"
+          tooltipContent={
+            <p className="text-xs sm:text-sm text-slate-500">
+              Average P&amp;L % over starting balance.
+            </p>
+          }
+          value={
+            <p className={`text-2xl font-medium ${pnlColor}`}>
+              {stats.averagePnLPercentage.toFixed(2)}%
+            </p>
+          }
+        />
+
+        {/* Current Streak */}
+        <StatCard
+          title="Current Streak"
+          tooltipContent={
+            <p className="text-xs sm:text-sm text-slate-500">
+              Current winning (positive) or losing (negative) streak.
+            </p>
+          }
+          value={
+            <p className={`text-2xl font-medium ${streakColor}`}>
+              {stats.currentStreak > 0 ? '+' : ''}
+              {stats.currentStreak}
+            </p>
+          }
+        />
+
+        {/* Best Streaks */}
+        <StatCard
+          title="Best Streaks"
+          tooltipContent={
+            <p className="text-xs sm:text-sm text-slate-500">
+              Best winning and losing streaks in the selected period.
+            </p>
+          }
+          value={
+            <div className="flex gap-6 text-center">
+              <div>
+                <p className="text-xs text-slate-500">Winning</p>
+                <p className="text-xl font-medium text-emerald-500">
+                  +{stats.maxWinningStreak}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">Losing</p>
+                <p className="text-xl font-medium text-red-500">
+                  -{stats.maxLosingStreak}
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
+          }
+        />
+
+        {/* Average Days Between Trades */}
+        <StatCard
+          title="Average Days Between Trades"
+          tooltipContent={
+            <p className="text-xs sm:text-sm text-slate-800">
+              Average number of days between your trades in the selected period.
+            </p>
+          }
+          value={
+            <p className="text-xl font-medium text-slate-800">
+              {stats.averageDaysBetweenTrades} days
+            </p>
+          }
+        />
+
+        {/* Partial Trades */}
+        <StatCard
+          title={
+            <>
+              Partial Trades{' '}
+              <span className="text-slate-500 font-medium text-xs ml-1">
+                {stats.partialWinRate.toFixed(1)}% (
+                {stats.partialWinRateWithBE.toFixed(1)}% w/ BE)
+              </span>
+            </>
+          }
+          tooltipContent={
+            <p className="text-xs sm:text-sm text-slate-500">
+              Trades where partial profits were taken in the selected period.
+            </p>
+          }
+          value={
+            <div className="flex gap-6 text-center">
+              <div>
+                <p className="text-xs text-slate-500">Winning</p>
+                <p className="text-xl font-medium text-emerald-500">
+                  {stats.partialWinningTrades}{' '}
+                  <span className="text-slate-500 text-sm">
+                    ({stats.beWinPartialTrades} BE)
+                  </span>
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">Losing</p>
+                <p className="text-xl font-medium text-red-500">
+                  {stats.partialLosingTrades}{' '}
+                  <span className="text-slate-500 text-sm">
+                    ({stats.beLosingPartialTrades} BE)
+                  </span>
+                </p>
+              </div>
+            </div>
+          }
+        />
       </div>
 
 
