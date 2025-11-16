@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils';
 
 interface StatCardProps {
-  title: string;
+  title: React.ReactNode;
   value: React.ReactNode;
   tooltipContent?: React.ReactNode;
   className?: string;
