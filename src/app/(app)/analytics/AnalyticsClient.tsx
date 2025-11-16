@@ -3869,8 +3869,8 @@ export default function Dashboard() {
     <> 
       <div className="flex justify-between items-center my-10">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-800">Overview Stats</h2>
-          <p className="text-slate-500">View your comprehensive trading performance metrics and analytics.</p>
+          <h2 className="text-2xl font-semibold text-slate-800">Yearly Stats</h2>
+          <p className="text-slate-500">Review your yearly trading performance and statistics.</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-28">
