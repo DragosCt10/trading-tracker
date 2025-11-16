@@ -112,7 +112,7 @@ export function MonthlyPerformanceChart({
         dy={16}
         textAnchor="middle"
         fill={slate500}
-        fontSize={11}
+        fontSize={12}
       >
         {d.month} ({d.totalTrades})
       </text>
