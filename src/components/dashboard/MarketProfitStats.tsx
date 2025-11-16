@@ -99,7 +99,7 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
       <g>
         <text
           x={x}
-          y={y - 2}
+          y={y + 10}
           textAnchor="middle"
           fill="#64748b" // slate-500
           fontSize={12}
@@ -109,7 +109,7 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
         </text>
         <text
           x={x}
-          y={y + 11}
+          y={y + 25}
           textAnchor="middle"
           fill="#64748b" // slate-500
           fontSize={12}
