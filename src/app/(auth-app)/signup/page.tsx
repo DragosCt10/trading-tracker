@@ -1,12 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLoading } from '@/context/LoadingContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
-import { useEffect } from 'react';
+
+// shadcn/ui imports
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -47,72 +59,71 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex items-center justify-center bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-stone-900">
-            Create your account
-          </h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSignup}>
-          <div className="rounded-lg shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-stone-200 placeholder-stone-500 text-stone-900 rounded-t-lg hover:border-stone-300 focus:border-stone-400 focus:ring-none focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-stone-200 placeholder-stone-500 text-stone-900 rounded-b-lg hover:border-stone-300 focus:border-stone-400 focus:ring-none focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+    <Card className="w-full max-w-md mx-auto shadow-none">
+      <CardHeader>
+        <CardTitle className="text-2xl font-semibold text-center text-slate-800">
+          Create your account
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form className="space-y-6" onSubmit={handleSignup}>
+          <div>
+            <Label htmlFor="email" className="block text-sm font-medium text-slate-500 mb-1">
+              Email address
+            </Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              placeholder="Enter your email"
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 shadow-none"
+            />
+          </div>
+          <div>
+            <Label htmlFor="password" className="block text-sm font-medium text-slate-500 mb-1">
+              Password
+            </Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              required
+              value={password}
+              placeholder="Password"
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 shadow-none"
+            />
           </div>
 
           {error && (
-            <div className="text-red-500 text-sm text-center">{error}</div>
+            <div className={cn('rounded-md mt-2 bg-red-50 p-3 border border-red-300')}>
+              <div className="text-sm text-red-500 text-center">{error}</div>
+            </div>
           )}
 
-          <div>
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased w-full"
-            >
-              Sign up
-            </button>
-          </div>
+          <Button size="lg" type="submit" className="w-full">
+            Sign up
+          </Button>
 
-          <div className="text-sm text-center">
-            <Link
-              href="/login"
-              className="font-medium text-stone-700 hover:text-stone-800"
-            >
-              Already have an account? Sign in
-            </Link>
+          <div className="flex items-center justify-center">
+            <div className="text-sm">
+              <Link
+                href="/login"
+                className={cn(
+                  'font-medium text-slate-700 hover:text-slate-900 transition-colors'
+                )}
+              >
+                Already have an account? Sign in
+              </Link>
+            </div>
           </div>
         </form>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

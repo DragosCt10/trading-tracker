@@ -7,6 +7,20 @@ import Link from 'next/link';
 import { useLoading } from '@/context/LoadingContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
 
+// shadcn/ui imports
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label'; // <-- Added Label from shadcn/ui
+// Remove Form, FormField, etc. since we are not using them anymore
+import { cn } from '@/lib/utils';
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -48,91 +62,97 @@ export default function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <div className="flex flex-col items-center">
-            <img 
-              src="/trading-tracker-logo.png" 
-              alt="Trading Tracker Logo" 
-              className="h-16 w-auto mb-4"
-            />
-            <h2 className="mt-2 text-center text-3xl font-extrabold text-stone-900">
-              Sign in to Trading Tracker
-            </h2>
-          </div>
+    <Card className="w-full max-w-md mx-auto shadow-none">
+      <CardHeader className="flex flex-col items-center">
+        <div className="grid h-10 w-10 place-content-center rounded-xl bg-gradient-to-br from-slate-200 via-slate-300 to-slate-400 border border-slate-300 mb-4">
+          {/* Candlestick chart icon for trading (custom SVG) */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="28"
+            height="28"
+            viewBox="0 0 28 28"
+            fill="none"
+            className="h-6 w-6"
+          >
+            <rect x="5" y="6" width="3" height="12" rx="1" className="fill-slate-500" />
+            <rect x="12.5" y="3" width="3" height="18" rx="1" className="fill-slate-600" />
+            <rect x="20" y="10" width="3" height="8" rx="1" className="fill-slate-400" />
+            {/* Top wicks */}
+            <rect x="6.25" y="4" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
+            <rect x="13.75" y="1" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
+            <rect x="21.25" y="8" width="0.5" height="2" rx="0.25" className="fill-slate-300" />
+            {/* Bottom wicks */}
+            <rect x="6.25" y="18" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
+            <rect x="13.75" y="21" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
+            <rect x="21.25" y="18" width="0.5" height="2" rx="0.25" className="fill-slate-300" />
+          </svg>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-          <div className="rounded-lg space-y-4">
+        <CardTitle className="text-2xl font-semibold text-center text-slate-800">
+          Sign in 
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form className="space-y-6" onSubmit={handleLogin}>
+          <div className="space-y-4">
             <div>
-              <label htmlFor="email-address" className="block text-sm font-medium text-stone-700 mb-1">
+              <Label htmlFor="email-address" className="block text-sm font-medium text-slate-500">
                 Email address
-              </label>
-              <input
+              </Label>
+              <Input
                 id="email-address"
-                name="email"
                 type="email"
-                autoComplete="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-stone-300 placeholder-stone-400 text-stone-900 focus:outline-none hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none sm:text-sm"
+                autoComplete="email"
                 placeholder="Enter your email"
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1 shadow-none"
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-stone-700 mb-1">
+              <Label htmlFor="password" className="block text-sm font-medium text-slate-500">
                 Password
-              </label>
-              <input
+              </Label>
+              <Input
                 id="password"
-                name="password"
                 type="password"
-                autoComplete="current-password"
                 required
+                autoComplete="current-password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-stone-300 placeholder-stone-400 text-stone-900 focus:outline-none hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none sm:text-sm"
                 placeholder="Enter your password"
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-1 shadow-none"
               />
             </div>
           </div>
-
           {error && (
-            <div className="rounded-lg bg-red-50 p-4">
+            <div className={cn('rounded-md mt-2 bg-red-50 p-3 border border-red-300')}>
               <div className="text-sm text-red-500">{error}</div>
             </div>
           )}
-
-          <div className="flex items-center justify-between">
-            <div className="text-sm">
-              <Link
-                href="/reset-password"
-                className="font-medium text-stone-700 hover:text-stone-900 transition-colors duration-200"
-              >
-                Forgot your password?
-              </Link>
-            </div>
-            <div className="text-sm">
-              <Link
-                href="/signup"
-                className="font-medium text-stone-700 hover:text-stone-900 transition-colors duration-200"
-              >
-                Create an account
-              </Link>
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-base w-full py-2.5 px-5 shadow-sm hover:shadow-md relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
+          <div className="flex items-center justify-between text-sm">
+            <Link
+              href="/reset-password"
+              className={cn(
+                'font-medium text-slate-700 hover:text-slate-900 transition-colors'
+              )}
             >
-              Sign in
-            </button>
+              Forgot your password?
+            </Link>
+            <Link
+              href="/signup"
+              className={cn(
+                'font-medium text-slate-700 hover:text-slate-900 transition-colors'
+              )}
+            >
+              Create an account
+            </Link>
           </div>
+          <Button size="lg" type="submit" className="w-full">
+            Sign in
+          </Button>
         </form>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

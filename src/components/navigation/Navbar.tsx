@@ -75,11 +75,29 @@ export default function Navbar() {
             className="ml-1 mr-2 flex items-center gap-2 font-semibold"
           >
             {/* Consider next/image if you prefer */}
-            <img
-              src="/trading-tracker-logo.png"
-              alt="Trading Tracker Logo"
-              className="h-9 w-9"
-            />
+            <div className="grid h-10 w-10 place-content-center rounded-xl bg-gradient-to-br from-slate-200 via-slate-300 to-slate-400 border border-slate-300">
+              {/* Candlestick chart icon for trading (custom SVG) */}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 28 28"
+                fill="none"
+                className="h-6 w-6"
+              >
+                <rect x="5" y="6" width="3" height="12" rx="1" className="fill-slate-500" />
+                <rect x="12.5" y="3" width="3" height="18" rx="1" className="fill-slate-600" />
+                <rect x="20" y="10" width="3" height="8" rx="1" className="fill-slate-400" />
+                {/* Top wicks */}
+                <rect x="6.25" y="4" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
+                <rect x="13.75" y="1" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
+                <rect x="21.25" y="8" width="0.5" height="2" rx="0.25" className="fill-slate-300" />
+                {/* Bottom wicks */}
+                <rect x="6.25" y="18" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
+                <rect x="13.75" y="21" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
+                <rect x="21.25" y="18" width="0.5" height="2" rx="0.25" className="fill-slate-300" />
+              </svg>
+            </div>
             <span className="hidden sm:inline">Trading Tracker</span>
           </Link>
 

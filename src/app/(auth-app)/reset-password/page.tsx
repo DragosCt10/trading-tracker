@@ -5,6 +5,19 @@ import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 import { useLoading } from '@/context/LoadingContext';
 
+// shadcn/ui imports
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+
 export default function ResetPassword() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -37,67 +50,67 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="flex items-center justify-center bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-stone-900">
-            Reset your password
-          </h2>
-          <p className="mt-2 text-center text-sm text-stone-600">
-            Enter your email address and we'll send you a link to reset your password
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleResetPassword}>
+    <Card className="w-full max-w-md mx-auto shadow-none">
+      <CardHeader className="flex flex-col items-center">
+        <img
+          src="/trading-tracker-logo.png"
+          alt="Trading Tracker Logo"
+          className="h-16 w-auto mb-4"
+        />
+        <CardTitle className="text-2xl font-semibold text-center text-slate-800">
+          Reset your password
+        </CardTitle>
+        <p className="mt-2 text-center text-sm text-slate-600 font-normal">
+          Enter your email address and we'll send you a link to reset your password
+        </p>
+      </CardHeader>
+      <CardContent>
+        <form className="space-y-6" onSubmit={handleResetPassword}>
           <div>
-            <label htmlFor="email-address" className="block text-sm font-medium text-stone-700 mb-1">
+            <Label htmlFor="email-address" className="block text-sm font-medium text-slate-500 mb-1">
               Email address
-            </label>
-            <input
+            </Label>
+            <Input
               id="email-address"
               name="email"
               type="email"
               autoComplete="email"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-stone-300 placeholder-stone-400 text-stone-900 focus:outline-none hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none sm:text-sm"
               placeholder="Enter your email"
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 shadow-none"
             />
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-50 p-4">
+            <div className={cn('rounded-md mt-2 bg-red-50 p-3 border border-red-300')}>
               <div className="text-sm text-red-500">{error}</div>
             </div>
           )}
-
           {message && (
-            <div className="rounded-lg bg-green-50 p-4">
-              <div className="text-sm text-green-500">{message}</div>
+            <div className={cn('rounded-md mt-2 bg-green-50 p-3 border border-green-300')}>
+              <div className="text-sm text-green-600">{message}</div>
             </div>
           )}
 
-          <div>
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-base w-full py-2.5 px-5 shadow-sm hover:shadow-md relative bg-linear-to-b from-stone-700 to-stone-800 border-stone-900 text-stone-50 rounded-lg hover:bg-linear-to-b hover:from-stone-800 hover:to-stone-800 hover:border-stone-900 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.25),inset_0_-2px_0px_rgba(0,0,0,0.35)] after:pointer-events-none transition antialiased"
-            >
-              Send reset link
-            </button>
-          </div>
-
+          <Button size="lg" type="submit" className="w-full">
+            Send reset link
+          </Button>
           <div className="flex items-center justify-center">
             <div className="text-sm">
               <Link
                 href="/login"
-                className="font-medium text-stone-700 hover:text-stone-900 transition-colors duration-200"
+                className={cn(
+                  'font-medium text-slate-700 hover:text-slate-900 transition-colors'
+                )}
               >
                 Back to login
               </Link>
             </div>
           </div>
         </form>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
