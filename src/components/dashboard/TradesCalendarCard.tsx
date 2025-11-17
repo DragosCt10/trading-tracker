@@ -9,6 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Trade } from '@/types/trade';
 import { cn } from '@/lib/utils';
 
+// Import shadcn tooltip
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
 interface WeeklyStat {
   totalProfit: number;
   wins: number;
@@ -106,7 +114,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
               >
                 {/* Header: Week + trades pill */}
                 <div className="flex items-start justify-between">
-                  <div className="text-base font-medium text-slate-800">
+                  <div className="text-sm font-medium text-slate-800">
                     {`Week ${idx + 1}`}
                   </div>
                   <span className="inline-flex items-center rounded-full bg-slate-100/70 px-3 py-1 text-xs font-medium text-slate-600">
@@ -163,176 +171,239 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
           })}
         </div>
 
-
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-1">
-          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-            <div
-              key={day}
-              className="p-2 text-center text-sm font-medium text-slate-500"
-            >
-              {day}
-            </div>
-          ))}
-
-          {[...emptyCells, ...daysInMonth].map((date, index) => {
-            if (!date) {
-              return (
-                <div
-                  key={`empty-${index}`}
-                  className="min-h-[80px] rounded-lg border border-slate-100 bg-slate-50 p-3"
-                />
-              );
-            }
-
-            // All trades on this day
-            const dayTrades = calendarMonthTrades.filter((trade) => {
-              const tradeDate = new Date(trade.trade_date);
-              return (
-                format(tradeDate, 'yyyy-MM-dd') ===
-                format(date, 'yyyy-MM-dd')
-              );
-            });
-
-            const filteredDayTrades =
-              selectedMarket === 'all'
-                ? dayTrades
-                : dayTrades.filter((trade) => trade.market === selectedMarket);
-
-            // Non-BE trades + BE with partials
-            const realDayTrades = filteredDayTrades.filter(
-              (trade) =>
-                !trade.break_even ||
-                (trade.break_even && trade.partials_taken),
-            );
-
-            const beTrades = filteredDayTrades.filter(
-              (trade) => trade.break_even,
-            );
-            const hasBE = beTrades.length > 0;
-            const beOutcome =
-              beTrades.length > 0 ? beTrades[0].trade_outcome : null;
-
-            const totalPnLPercentage = realDayTrades.reduce((sum, trade) => {
-              if (trade.break_even && !trade.partials_taken) return sum;
-              return (
-                sum +
-                (typeof trade.pnl_percentage === 'number'
-                  ? trade.pnl_percentage
-                  : 0)
-              );
-            }, 0);
-
-            const displayProfit = realDayTrades.reduce((sum, trade) => {
-              if (trade.break_even && !trade.partials_taken) return sum;
-              return sum + (trade.calculated_profit || 0);
-            }, 0);
-
-            const baseColor =
-              displayProfit > 0
-                ? 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
-                : displayProfit < 0
-                ? 'bg-red-50 border-red-200 hover:bg-red-100'
-                : hasBE && beOutcome === 'Win'
-                ? 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
-                : hasBE && beOutcome === 'Lose'
-                ? 'bg-red-50 border-red-200 hover:bg-red-100'
-                : 'bg-slate-50 border-slate-200 hover:bg-slate-100';
-
-            return (
+        {/* TooltipProvider wraps grid for day cell tooltips */}
+        <TooltipProvider>
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
               <div
-                key={date.toString()}
-                className={cn(
-                  'group relative min-h-[80px] rounded-lg border p-3 transition-all duration-200',
-                  baseColor,
-                )}
+                key={day}
+                className="p-2 text-center text-sm font-medium text-slate-500"
               >
-                <div className="mb-1 text-sm font-medium text-slate-800">
-                  {format(date, 'd')}
-                </div>
+                {day}
+              </div>
+            ))}
 
-                {hasBE && (
-                  <div className="absolute right-2.5 top-3.5 px-1 text-xs font-medium text-slate-800">
-                    {beTrades.length} BE
+            {[...emptyCells, ...daysInMonth].map((date, index) => {
+              if (!date) {
+                return (
+                  <div
+                    key={`empty-${index}`}
+                    className="min-h-[80px] rounded-lg border border-slate-100 bg-slate-50 p-3"
+                  />
+                );
+              }
+
+              // All trades on this day
+              const dayTrades = calendarMonthTrades.filter((trade) => {
+                const tradeDate = new Date(trade.trade_date);
+                return (
+                  format(tradeDate, 'yyyy-MM-dd') ===
+                  format(date, 'yyyy-MM-dd')
+                );
+              });
+
+              const filteredDayTrades =
+                selectedMarket === 'all'
+                  ? dayTrades
+                  : dayTrades.filter((trade) => trade.market === selectedMarket);
+
+              // Non-BE trades + BE with partials
+              const realDayTrades = filteredDayTrades.filter(
+                (trade) =>
+                  !trade.break_even ||
+                  (trade.break_even && trade.partials_taken),
+              );
+
+              const beTrades = filteredDayTrades.filter(
+                (trade) => trade.break_even,
+              );
+              const hasBE = beTrades.length > 0;
+              const beOutcome =
+                beTrades.length > 0 ? beTrades[0].trade_outcome : null;
+
+              const totalPnLPercentage = realDayTrades.reduce((sum, trade) => {
+                if (trade.break_even && !trade.partials_taken) return sum;
+                return (
+                  sum +
+                  (typeof trade.pnl_percentage === 'number'
+                    ? trade.pnl_percentage
+                    : 0)
+                );
+              }, 0);
+
+              const displayProfit = realDayTrades.reduce((sum, trade) => {
+                if (trade.break_even && !trade.partials_taken) return sum;
+                return sum + (trade.calculated_profit || 0);
+              }, 0);
+
+              const baseColor =
+                displayProfit > 0
+                  ? 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
+                  : displayProfit < 0
+                  ? 'bg-red-50 border-red-200 hover:bg-red-100'
+                  : hasBE && beOutcome === 'Win'
+                  ? 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
+                  : hasBE && beOutcome === 'Lose'
+                  ? 'bg-red-50 border-red-200 hover:bg-red-100'
+                  : 'bg-slate-50 border-slate-200 hover:bg-slate-100';
+
+              const dayCellContent = (
+                <>
+                  <div className="mb-1 text-sm font-medium text-slate-800">
+                    {format(date, 'd')}
                   </div>
-                )}
 
-                {filteredDayTrades.length > 0 && (
-                  <>
-                    <div className="text-xs space-y-1">
-                      <div className="font-medium text-slate-800">
-                        {filteredDayTrades.length} trade
-                        {filteredDayTrades.length !== 1 ? 's' : ''}
+                  {hasBE && (
+                    <div className="absolute right-2.5 top-3.5 px-1 text-xs font-medium text-slate-800">
+                      {beTrades.length} BE
+                    </div>
+                  )}
+
+                  {filteredDayTrades.length > 0 && (
+                    <>
+                      {/* --- CELL CONTENT --- */}
+                      <div className="text-xs space-y-1">
+                        {/* Always visible on all breakpoints */}
+                        <div className="font-medium text-slate-800">
+                          {filteredDayTrades.length} trade
+                          {filteredDayTrades.length !== 1 ? 's' : ''}
+                        </div>
+
+                        {/* Profit + P&L only visible from md and up */}
+                        <div className="hidden md:flex md:flex-col md:space-y-0.5">
+                          <div
+                            className={cn(
+                              'font-medium',
+                              displayProfit >= 0 ? 'text-emerald-500' : 'text-red-500',
+                            )}
+                          >
+                            {currencySymbol}
+                            {displayProfit.toFixed(2)}
+                          </div>
+                        </div>
                       </div>
+
+                      {/* Bottom-right P&L badge – only md+ */}
+                      <div className="hidden md:block absolute bottom-3 right-3 text-xs font-medium">
+                        <span
+                          className={
+                            totalPnLPercentage >= 0 ? 'text-emerald-500' : 'text-red-500'
+                          }
+                        >
+                          {totalPnLPercentage >= 0 ? '+' : ''}
+                          {totalPnLPercentage.toFixed(2)}%
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </>
+              );
+
+              // Only use tooltip if there are trades
+              if (filteredDayTrades.length > 0) {
+                return (
+                  <Tooltip key={date.toString()} delayDuration={160}>
+                    <TooltipTrigger asChild>
                       <div
                         className={cn(
-                          'font-medium',
-                          displayProfit >= 0
-                            ? 'text-emerald-500'
-                            : 'text-red-500',
+                          'group relative min-h-[80px] rounded-lg border p-3 transition-all duration-200 cursor-pointer',
+                          baseColor,
                         )}
+                        tabIndex={0}
+                        // Accessibility: make cell focusable for keyboard users
                       >
-                        {currencySymbol}
-                        {displayProfit.toFixed(2)}
+                        {dayCellContent}
                       </div>
-                    </div>
-
-                    <div className="absolute bottom-3 right-3 text-xs font-medium">
-                      <span
-                        className={
-                          totalPnLPercentage >= 0
-                            ? 'text-emerald-500'
-                            : 'text-red-500'
-                        }
-                      >
-                        {totalPnLPercentage >= 0 ? '+' : ''}
-                        {totalPnLPercentage.toFixed(2)}%
-                      </span>
-                    </div>
-
-                    {/* Hover tooltip for day details */}
-                    <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-48 -translate-x-1/2 rounded-lg border border-slate-200 bg-white p-3 text-xs opacity-0 shadow-lg transition-all duration-200 group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100">
-                      <div className="space-y-1">
-                        {filteredDayTrades.map((trade, i) => (
-                          <div
-                            key={i}
-                            className="flex items-center justify-between"
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      align="center"
+                      className={cn(
+                        'w-48 p-3 text-xs bg-white border border-slate-200 shadow-none space-y-1'
+                      )}
+                    >
+                      {/* Existing list of trades (all breakpoints) */}
+                      {filteredDayTrades.map((trade, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="font-medium text-slate-800">
+                            {trade.market}
+                          </span>
+                          <span
+                            className={cn(
+                              'font-medium',
+                              trade.break_even
+                                ? 'text-slate-500'
+                                : trade.calculated_profit &&
+                                  trade.calculated_profit >= 0
+                                ? 'text-emerald-500'
+                                : 'text-red-500',
+                            )}
                           >
-                            <span className="font-medium text-slate-800">
-                              {trade.market}
-                            </span>
-                            <span
-                              className={cn(
-                                'font-medium',
-                                trade.break_even
-                                  ? 'text-slate-500'
-                                  : trade.calculated_profit &&
-                                    trade.calculated_profit >= 0
-                                  ? 'text-emerald-500'
-                                  : 'text-red-500',
-                              )}
-                            >
-                              {trade.break_even
-                                ? trade.trade_outcome === 'Win'
-                                  ? 'W (BE)'
-                                  : 'L (BE)'
-                                : trade.trade_outcome === 'Win'
-                                ? 'W'
-                                : 'L'}
-                              {!trade.break_even &&
-                                trade.pnl_percentage &&
-                                ` (${trade.pnl_percentage.toFixed(2)}%)`}
-                            </span>
-                          </div>
-                        ))}
+                            {trade.break_even
+                              ? trade.trade_outcome === 'Win'
+                                ? 'W (BE)'
+                                : 'L (BE)'
+                              : trade.trade_outcome === 'Win'
+                              ? 'W'
+                              : 'L'}
+                            {!trade.break_even &&
+                              trade.pnl_percentage &&
+                              ` (${trade.pnl_percentage.toFixed(2)}%)`}
+                          </span>
+                        </div>
+                      ))}
+
+                      <div className="my-2 border-t border-slate-100 md:hidden" />
+
+                      {/* Summary rows visible only on small screens */}
+                      <div className="flex items-center justify-between md:hidden">
+                        <span className="font-medium text-slate-800">Profit</span>
+                        <span
+                          className={cn(
+                            'font-medium',
+                            displayProfit >= 0 ? 'text-emerald-500' : 'text-red-500',
+                          )}
+                        >
+                          {currencySymbol}
+                          {displayProfit.toFixed(2)}
+                        </span>
                       </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                      <div className="flex items-center justify-between md:hidden">
+                        <span className="font-medium text-slate-700">P&amp;L</span>
+                        <span
+                          className={cn(
+                            'font-medium',
+                            totalPnLPercentage >= 0 ? 'text-emerald-500' : 'text-red-500',
+                          )}
+                        >
+                          {totalPnLPercentage >= 0 ? '+' : ''}
+                          {totalPnLPercentage.toFixed(2)}%
+                        </span>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+
+              // No trades - no tooltip
+              return (
+                <div
+                  key={date.toString()}
+                  className={cn(
+                    'group relative min-h-[80px] rounded-lg border p-3 transition-all duration-200',
+                    baseColor,
+                  )}
+                >
+                  {dayCellContent}
+                </div>
+              );
+            })}
+          </div>
+        </TooltipProvider>
       </CardContent>
     </Card>
   );
