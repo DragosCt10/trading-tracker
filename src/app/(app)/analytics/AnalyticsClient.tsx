@@ -3255,6 +3255,7 @@ import { AccountOverviewCard } from '@/components/dashboard/AccountOverviewCard'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MonthlyPerformanceChart } from '@/components/dashboard/MonthlyPerformanceChart';
 import { DateRangeValue, TradeFiltersBar } from '@/components/dashboard/TradeFiltersBar';
+import { TradesCalendarCard } from '@/components/dashboard/TradesCalendarCard';
 
 ChartJS.register(
   CategoryScale,
@@ -4329,9 +4330,10 @@ export default function Dashboard() {
         />
 
         {/* Risk Per Trade stays its own component */}
-        <RiskPerTrade allTradesRiskStats={allTradesRiskStats} userData={userData} />
+        <RiskPerTrade
+          allTradesRiskStats={allTradesRiskStats as any}
+        />
       </div>
-
 
       {openAnalyzeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-9999">
@@ -4628,8 +4630,8 @@ export default function Dashboard() {
             </p>
           }
           value={
-            <p className="text-xl font-medium text-slate-800">
-              {stats.averageDaysBetweenTrades} days
+            <p className="text-2xl font-medium text-slate-800">
+              {stats.averageDaysBetweenTrades} <small className="text-sm text-slate-500">days</small>
             </p>
           }
         />
@@ -4677,180 +4679,20 @@ export default function Dashboard() {
 
 
       {/* Risk Per Trade Card */}
-      <RiskPerTrade className="mb-8" allTradesRiskStats={riskStats} userData={userData} />
+      <RiskPerTrade className="mb-8" allTradesRiskStats={riskStats as any} />
 
       {/* Calendar View */}
-      <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
-        <div className="flex justify-between items-center mb-4">
-          <button
-            onClick={() => handleMonthNavigation('prev')}
-            disabled={!canNavigateMonth('prev')}
-            className={`inline-grid place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in text-sm min-w-[38px] min-h-[38px] rounded-md bg-transparent border-transparent ${canNavigateMonth('prev') ? 'text-stone-800 hover:bg-stone-800/5 hover:border-stone-800/5' : 'text-stone-400 cursor-not-allowed'} shadow-none hover:shadow-none`}
-            aria-label="Previous month"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h2 className="text-xl font-bold text-stone-900">
-            {format(currentDate, 'MMMM yyyy')}
-          </h2>
-          <button
-            onClick={() => handleMonthNavigation('next')}
-            disabled={!canNavigateMonth('next')}
-            className={`inline-grid place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in text-sm min-w-[38px] min-h-[38px] rounded-md bg-transparent border-transparent ${canNavigateMonth('next') ? 'text-stone-800 hover:bg-stone-800/5 hover:border-stone-800/5' : 'text-stone-400 cursor-not-allowed'} shadow-none hover:shadow-none`}
-            aria-label="Next month"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Weekly Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          {weeklyStats.map((week, idx) => (
-            <div
-              key={idx}
-              className="bg-white border border-stone-200 rounded-lg shadow-sm p-3 flex flex-col items-center"
-            >
-              <div className="text-xs font-semibold text-stone-500 mb-1">{`Week ${idx + 1}`}</div>
-              <div className={`text-lg font-bold ${week.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{currencySymbol}{week.totalProfit.toFixed(2)}</div>
-              <div className="flex gap-2 text-xs mt-1">
-                <span className="text-green-700 font-semibold">W: {week.wins}</span>
-                <span className="text-red-700 font-semibold">L: {week.losses}</span>
-                <span className="text-stone-700 font-semibold">BE: {week.beCount}</span>
-              </div>
-              <span className="text-stone-700 font-semibold text-xs mt-1.5">P&L: {((week.totalProfit / (selection.activeAccount?.account_balance || 1)) * 100).toFixed(2)}%</span>
-              <div className="text-[10px] text-stone-400 mt-1">{week.weekLabel}</div>
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 gap-1">
-          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-            <div key={day} className="text-center font-semibold text-sm text-stone-600 p-2">
-              {day}
-            </div>
-          ))}
-          
-          {(() => {
-            const firstDay = getDaysInMonth[0];
-            
-            const firstDayOfWeek = firstDay.getDay();
-            const mondayBasedFirstDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
-            
-            const emptyCells = Array(mondayBasedFirstDay).fill(null);
-            
-            return [...emptyCells, ...getDaysInMonth].map((date, index): ReactNode => {
-              if (!date) {
-                return (
-                  <div
-                    key={`empty-${index}`}
-                    className="p-2 min-h-[80px] border rounded-lg bg-stone-50 border-stone-200"
-                  />
-                );
-              }
-
-              // First filter trades by date
-              const dayTrades = calendarMonthTrades.filter(trade => {
-                const tradeDate = new Date(trade.trade_date);
-                return format(tradeDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
-              });
-
-              // Then filter by selected market
-              const filteredDayTrades = selectedMarket === 'all' 
-                ? dayTrades 
-                : dayTrades.filter(trade => trade.market === selectedMarket);
-              
-              // Include all non-BE trades and BE trades with partials
-              const realDayTrades = filteredDayTrades.filter(trade =>
-                !trade.break_even || (trade.break_even && trade.partials_taken)
-              );
-              const dayStats = getDayAggregates(filteredDayTrades);
-              const beTrades = filteredDayTrades.filter(trade => trade.break_even);
-              const hasBE = beTrades.length > 0;
-
-              // Get BE trade outcome for coloring
-              const beOutcome = beTrades.length > 0 ? beTrades[0].trade_outcome : null;
-
-              // Calculate total P&L percentage for the day
-              const totalPnLPercentage = realDayTrades.reduce((sum, trade) => {
-                if (trade.break_even && !trade.partials_taken) return sum; // Skip BE trades without partials
-                return sum + (typeof trade.pnl_percentage === 'number' ? trade.pnl_percentage : 0);
-              }, 0);
-
-              // Calculate profit for display
-              const displayProfit = realDayTrades.reduce((sum, trade) => {
-                if (trade.break_even && !trade.partials_taken) return sum; // BE trades without partials should be 0
-                return sum + (trade.calculated_profit || 0);
-              }, 0);
-
-              return (
-                <div
-                  key={date.toString()}
-                  className={`relative p-2 min-h-[80px] border rounded-lg transition-all duration-200 group ${
-                    displayProfit > 0 
-                      ? 'bg-green-100/50 border-green-200 hover:bg-green-100' 
-                      : displayProfit < 0 
-                      ? 'bg-red-100/50 border-red-200 hover:bg-red-100'
-                      : hasBE && beOutcome === 'Win'
-                        ? 'bg-green-100/50 border-green-200 hover:bg-green-100'
-                        : hasBE && beOutcome === 'Lose'
-                          ? 'bg-red-100/50 border-red-200 hover:bg-red-100'
-                          : 'bg-stone-50 border-stone-200 hover:bg-stone-100'
-                  }`}
-                >
-                  <div className="text-sm font-medium text-stone-800 mb-1">{format(date, 'd')}</div>
-                  {hasBE && (
-                    <div className="absolute top-1 right-1 text-xs font-bold text-stone-900 px-1">
-                      {beTrades.length} BE 
-                    </div>
-                  )}
-                  {filteredDayTrades.length > 0 && (
-                    <>
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium text-stone-700">
-                          {filteredDayTrades.length} trade{filteredDayTrades.length !== 1 ? 's' : ''}
-                        </div>
-                        <div className={`font-semibold ${displayProfit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                          {currencySymbol}{displayProfit.toFixed(2)}
-                        </div>
-                      </div>
-                      <div className="absolute bottom-2.5 right-1 text-xs font-semibold">
-                        <span className={totalPnLPercentage >= 0 ? 'text-green-700' : 'text-red-700'}>
-                          {totalPnLPercentage >= 0 ? '+' : ''}{totalPnLPercentage.toFixed(2)}%
-                        </span>
-                      </div>
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-white border border-stone-200 rounded-lg shadow-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                        <div className="text-xs space-y-1">
-                          {filteredDayTrades.map((trade, i) => (
-                            <div key={i} className="flex justify-between items-center">
-                              <span className="font-medium">{trade.market}</span>
-                              <span className={`font-semibold ${
-                                trade.break_even 
-                                  ? 'text-stone-600'
-                                  : trade.calculated_profit && trade.calculated_profit >= 0 
-                                    ? 'text-green-600' 
-                                    : 'text-red-600'
-                              }`}>
-                                {trade.break_even
-                                  ? (trade.trade_outcome === 'Win' ? 'W (BE)' : 'L (BE)')
-                                  : (trade.trade_outcome === 'Win' ? 'W' : 'L')}
-                                {!trade.break_even && trade.pnl_percentage && ` (${trade.pnl_percentage.toFixed(2)}%)`}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            });
-          })()}
-        </div>
-      </div>
+      <TradesCalendarCard
+        currentDate={currentDate}
+        onMonthNavigate={handleMonthNavigation}
+        canNavigateMonth={canNavigateMonth}
+        weeklyStats={weeklyStats}
+        calendarMonthTrades={calendarMonthTrades}
+        selectedMarket={selectedMarket}
+        currencySymbol={currencySymbol}
+        accountBalance={selection.activeAccount?.account_balance}
+        getDaysInMonth={() => getDaysInMonth}
+      />
 
        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
         {/* Market Profit Statistics Card */}
