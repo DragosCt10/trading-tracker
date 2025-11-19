@@ -54,6 +54,34 @@ const TIME_INTERVALS = [
   { label: '17 p.m - 21 p.m', start: '17:00', end: '20:59' },
 ] as const;
 
+async function fetchAllRows<T>(baseQuery: any, limit = 500): Promise<T[]> {
+  let offset = 0;
+  let total = 0;
+  let rows: T[] = [];
+
+  const { data: first, error: e1, count } = await baseQuery
+    .select('*', { count: 'exact' })
+    .order('trade_date', { ascending: false })
+    .range(0, limit - 1);
+
+  if (e1) throw e1;
+  total = count ?? 0;
+  rows = (first ?? []) as T[];
+
+  offset = limit;
+  while (offset < total) {
+    const { data: more, error: eMore } = await baseQuery
+      .select('*')
+      .order('trade_date', { ascending: false })
+      .range(offset, offset + limit - 1);
+    if (eMore) throw eMore;
+    rows = rows.concat((more ?? []) as T[]);
+    offset += limit;
+  }
+  return rows;
+}
+
+
 function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
   return {
     id: trade.id,
@@ -192,176 +220,101 @@ export function useDashboardData({
   const [evaluationStats, setEvaluationStats] = useState<EvaluationStats[]>([]);
   const [intervalStats, setIntervalStats] = useState<IntervalStats[]>([]);
   // Query for all trades in the selected year (only used for monthly stats)
-  const { data: allTrades = [], isLoading: allTradesLoading } = useQuery<Trade[]>({
+  const {
+    data: allTrades = [],
+    isFetching: allTradesLoading,
+  } = useQuery<Trade[]>({
     queryKey: ['allTrades', mode, activeAccount?.id, session?.user?.id, selectedYear],
     queryFn: async () => {
-      if (!session?.user?.id || !activeAccount?.id) {
-        return [];
-      }
-      
+      if (!session?.user?.id || !activeAccount?.id) return [];
       const supabase = createClient();
       const startDate = `${selectedYear}-01-01`;
-      const endDate = `${selectedYear}-12-31`;
-      const limit = 500; // Initial batch size
-      let offset = 0;
-      let allTrades: Trade[] = [];
-      let totalCount = 0;
-    
+      const endDate   = `${selectedYear}-12-31`;
+
+      const base = supabase
+        .from(`${mode}_trades`)
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('account_id', activeAccount.id)
+        .gte('trade_date', startDate)
+        .lte('trade_date', endDate)
+        .not('executed', 'eq', false);
+
       try {
-        // First query to get total count and initial batch
-        const initialQuery = supabase
-          .from(`${mode}_trades`)
-          .select('*', { count: 'exact' })
-          .eq('user_id', session.user.id)
-          .eq('account_id', activeAccount.id)
-          .gte('trade_date', startDate)
-          .lte('trade_date', endDate)
-          .not('executed', 'eq', false)
-          .order('trade_date', { ascending: false })
-          .range(offset, offset + limit - 1);
-
-        const { data: initialData, error: initialError, count } = await initialQuery;
-
-        if (initialError) {
-          console.error('Supabase error:', initialError);
-          throw initialError;
-        }
-
-        totalCount = count || 0;
-        allTrades = initialData || [];
-
-        // Start background fetch of remaining data
-        if (totalCount > limit) {
-          offset += limit;
-          const fetchRemainingData = async () => {
-            while (offset < totalCount) {
-              const { data: moreData, error: fetchError } = await supabase
-                .from(`${mode}_trades`)
-                .select('*')
-                .eq('user_id', session.user.id)
-                .eq('account_id', activeAccount.id)
-                .gte('trade_date', startDate)
-                .lte('trade_date', endDate)
-                .not('executed', 'eq', false)
-                .order('trade_date', { ascending: false })
-                .range(offset, offset + limit - 1);
-
-              if (fetchError) {
-                console.error('Error fetching more data:', fetchError);
-                break;
-              }
-
-              allTrades = allTrades.concat(moreData || []);
-              offset += limit;
-            }
-          };
-
-          // Start background fetch without awaiting
-          fetchRemainingData();
-        }
-
-        // Transform Supabase data to match Trade type
-        return allTrades.map(trade => mapSupabaseTradeToTrade(trade, mode));
-      } catch (error) {
-        console.error('Error in fetchTrades:', error);
+        const rows = await fetchAllRows<any>(base);
+        return rows.map((t) => mapSupabaseTradeToTrade(t, mode));
+      } catch (err) {
+        console.error('Error in fetchTrades:', err);
         return [];
       }
     },
-    enabled: !contextLoading && !isSessionLoading && !userLoading && !!session?.user?.id && !!activeAccount?.id,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    enabled: !!session?.user?.id && !!activeAccount?.id && !!selectedYear && !!mode,
+    staleTime: 0,              // refetch when key changes (selectedYear/mode/account)
+    gcTime: 5 * 60_000,        // keep cache 5 min (tweak as you like)
   });
 
   // Query for non-executed trades
-  const { data: nonExecutedTradesData = [], isLoading: nonExecutedTradesLoading } = useQuery<Trade[]>({
-    queryKey: ['nonExecutedTrades', mode, activeAccount?.id, session?.user?.id, dateRange.startDate, dateRange.endDate],
+  const {
+    data: nonExecutedTradesData = [],
+    isFetching: nonExecutedTradesLoading,
+  } = useQuery<Trade[]>({
+    queryKey: [
+      'nonExecutedTrades',
+      mode,
+      activeAccount?.id,
+      session?.user?.id,
+      dateRange.startDate,
+      dateRange.endDate,
+    ],
     queryFn: async () => {
       if (!session?.user?.id || !activeAccount?.id) return [];
-      
       const supabase = createClient();
-      const limit = 500;
-      let offset = 0;
-      let allTrades: Trade[] = [];
-      let totalCount = 0;
-      
+
+      const base = supabase
+        .from(`${mode}_trades`)
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('account_id', activeAccount.id)
+        .gte('trade_date', dateRange.startDate)
+        .lte('trade_date', dateRange.endDate)
+        .eq('executed', false);
+
       try {
-        const initialQuery = supabase
-          .from(`${mode}_trades`)
-          .select('*', { count: 'exact' })
-          .eq('user_id', session.user.id)
-          .eq('account_id', activeAccount.id)
-          .gte('trade_date', dateRange.startDate)
-          .lte('trade_date', dateRange.endDate)
-          .eq('executed', false)
-          .order('trade_date', { ascending: false })
-          .range(offset, offset + limit - 1);
-
-        const { data: initialData, error: initialError, count } = await initialQuery;
-
-        if (initialError) {
-          console.error('Supabase error:', initialError);
-          throw initialError;
-        }
-
-        totalCount = count || 0;
-        allTrades = initialData || [];
-
-        if (totalCount > limit) {
-          offset += limit;
-          const fetchRemainingData = async () => {
-            while (offset < totalCount) {
-              const { data: moreData, error: fetchError } = await supabase
-                .from(`${mode}_trades`)
-                .select('*')
-                .eq('user_id', session.user.id)
-                .eq('account_id', activeAccount.id)
-                .gte('trade_date', dateRange.startDate)
-                .lte('trade_date', dateRange.endDate)
-                .eq('executed', false)
-                .order('trade_date', { ascending: false })
-                .range(offset, offset + limit - 1);
-
-              if (fetchError) {
-                console.error('Error fetching more data:', fetchError);
-                break;
-              }
-
-              allTrades = allTrades.concat(moreData || []);
-              offset += limit;
-            }
-          };
-
-          fetchRemainingData();
-        }
-
-        return allTrades.map(trade => mapSupabaseTradeToTrade(trade, mode));
+        const rows = await fetchAllRows<any>(base);
+        return rows.map((t) => mapSupabaseTradeToTrade(t, mode));
       } catch (error) {
         console.error('Error in fetchTrades:', error);
         return [];
       }
     },
-    enabled: !contextLoading && !isSessionLoading && !userLoading && !!session?.user?.id && !!activeAccount?.id,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    enabled:
+      !!session?.user?.id &&
+      !!activeAccount?.id &&
+      !!dateRange.startDate &&
+      !!dateRange.endDate &&
+      !!mode,
+    staleTime: 0,
+    gcTime: 5 * 60_000,
   });
 
   // Query to count all non-executed trades from the current year
-  const { data: nonExecutedTotalTradesCount, isLoading: nonExecutedTotalTradesLoading } = useQuery<number>({
+  const {
+    data: nonExecutedTotalTradesCount = 0,
+    isFetching: nonExecutedTotalTradesLoading,
+  } = useQuery<number>({
     queryKey: [
       'nonExecutedTotalTradesCount',
       mode,
       activeAccount?.id,
       session?.user?.id,
-      // Use current year as part of the key
-      selectedYear
+      selectedYear,
     ],
     queryFn: async () => {
       if (!session?.user?.id || !activeAccount?.id) return 0;
 
       const supabase = createClient();
-      const currentYear = selectedYear;
-      const startOfYear = `${currentYear}-01-01`;
-      const endOfYear = `${currentYear}-12-31`;
+      const startOfYear = `${selectedYear}-01-01`;
+      const endOfYear   = `${selectedYear}-12-31`;
 
       const { count, error } = await supabase
         .from(`${mode}_trades`)
@@ -376,27 +329,38 @@ export function useDashboardData({
         console.error('Error counting non-executed trades:', error);
         return 0;
       }
-
-      return count || 0;
+      return count ?? 0;
     },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    enabled: !!session?.user?.id && !!activeAccount?.id && !!selectedYear && !!mode,
+    staleTime: 0,
+    gcTime: 5 * 60_000,
   });
 
+
   // Query for filtered trades based on date range (independent of year selection)
-  const { data: filteredTrades = [], isLoading: filteredTradesLoading } = useQuery<Trade[]>({
-    queryKey: ['filteredTrades', mode, activeAccount?.id, session?.user?.id, dateRange.startDate, dateRange.endDate],
+  const {
+    data: filteredTrades = [],
+    isFetching: filteredTradesLoading,
+  } = useQuery<Trade[]>({
+    queryKey: [
+      'filteredTrades',
+      mode,
+      activeAccount?.id,
+      session?.user?.id,
+      dateRange.startDate,
+      dateRange.endDate
+    ],
+
     queryFn: async () => {
       if (!session?.user?.id || !activeAccount?.id) return [];
-      
+
       const supabase = createClient();
-      const limit = 500; // Initial batch size
+      const limit = 500;
       let offset = 0;
       let allTrades: Trade[] = [];
       let totalCount = 0;
-      
+
       try {
-        // First query to get total count and initial batch
         const initialQuery = supabase
           .from(`${mode}_trades`)
           .select('*', { count: 'exact' })
@@ -418,47 +382,41 @@ export function useDashboardData({
         totalCount = count || 0;
         allTrades = initialData || [];
 
-        // Start background fetch of remaining data
-        if (totalCount > limit) {
+        // Manual pagination
+        offset += limit;
+        while (offset < totalCount) {
+          const { data: moreData, error: fetchError } = await supabase
+            .from(`${mode}_trades`)
+            .select('*')
+            .eq('user_id', session.user.id)
+            .eq('account_id', activeAccount.id)
+            .gte('trade_date', dateRange.startDate)
+            .lte('trade_date', dateRange.endDate)
+            .not('executed', 'eq', false)
+            .order('trade_date', { ascending: false })
+            .range(offset, offset + limit - 1);
+
+          if (fetchError) {
+            console.error('Error fetching more data:', fetchError);
+            break;
+          }
+
+          allTrades = allTrades.concat(moreData || []);
           offset += limit;
-          const fetchRemainingData = async () => {
-            while (offset < totalCount) {
-              const { data: moreData, error: fetchError } = await supabase
-                .from(`${mode}_trades`)
-                .select('*')
-                .eq('user_id', session.user.id)
-                .eq('account_id', activeAccount.id)
-                .gte('trade_date', dateRange.startDate)
-                .lte('trade_date', dateRange.endDate)
-                .not('executed', 'eq', false)
-                .order('trade_date', { ascending: false })
-                .range(offset, offset + limit - 1);
-
-              if (fetchError) {
-                console.error('Error fetching more data:', fetchError);
-                break;
-              }
-
-              allTrades = allTrades.concat(moreData || []);
-              offset += limit;
-            }
-          };
-
-          // Start background fetch without awaiting
-          fetchRemainingData();
         }
 
-        // Transform Supabase data to match Trade type
-        return allTrades.map(trade => mapSupabaseTradeToTrade(trade, mode));
+        return allTrades.map((trade) => mapSupabaseTradeToTrade(trade, mode));
       } catch (error) {
         console.error('Error in fetchTrades:', error);
         return [];
       }
     },
-    enabled: !contextLoading && !isSessionLoading && !userLoading && !!session?.user?.id && !!activeAccount?.id,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+
+    enabled: !!session?.user?.id && !!activeAccount?.id && !!dateRange.startDate && !!dateRange.endDate,
+    staleTime: 0,      // allow refetch when inputs change
+    gcTime: 5 * 60_000 // (optional) 5 minutes
   });
+  
 
   const calendarMonthTrades = useMemo(() => {
     if (!allTrades.length) return [];
@@ -671,7 +629,6 @@ export function useDashboardData({
       setRiskStats(prev => (prev === null ? prev : null));
     }
   }, [filteredTrades, selectedMarket, activeAccount?.account_balance]);
-
 
   return {
     calendarMonthTrades,

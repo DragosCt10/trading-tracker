@@ -12,16 +12,22 @@ interface RiskStats {
 }
 
 interface RiskAnalysis {
+  risk025: RiskStats;
   risk03: RiskStats;
+  risk035: RiskStats;
   risk05: RiskStats;
   risk07: RiskStats;
+  risk1: RiskStats;
 }
 
 export function calculateRiskPerTradeStats(trades: Trade[]): RiskAnalysis {
   const result: RiskAnalysis = {
-    risk03: { total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0 },
-    risk05: { total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0 },
-    risk07: { total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0 }
+    risk025: { total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0 },
+    risk03:  { total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0 },
+    risk035: { total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0 },
+    risk05:  { total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0 },
+    risk07:  { total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0 },
+    risk1:   { total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0 }
   };
 
   trades.forEach(trade => {
@@ -47,17 +53,23 @@ export function calculateRiskPerTradeStats(trades: Trade[]): RiskAnalysis {
     };
 
     // Categorize trades based on risk percentage
-    if (risk === 0.3) {
+    if (risk === 0.25) {
+      updateRiskStats('risk025');
+    } else if (risk === 0.3) {
       updateRiskStats('risk03');
+    } else if (risk === 0.35) {
+      updateRiskStats('risk035');
     } else if (risk === 0.5) {
       updateRiskStats('risk05');
     } else if (risk === 0.7) {
       updateRiskStats('risk07');
+    } else if (risk === 1) {
+      updateRiskStats('risk1');
     }
   });
 
   // Calculate winrate for each risk category
-  (['risk03', 'risk05', 'risk07'] as (keyof RiskAnalysis)[]).forEach(riskKey => {
+  (['risk025', 'risk03', 'risk035', 'risk05', 'risk07', 'risk1'] as (keyof RiskAnalysis)[]).forEach(riskKey => {
     const stats = result[riskKey];
     const denominator = stats.total - stats.breakEven;
     stats.winrate = denominator > 0 ? (stats.wins / denominator) * 100 : 0;

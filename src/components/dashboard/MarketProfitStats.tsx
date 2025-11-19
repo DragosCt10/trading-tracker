@@ -1,9 +1,25 @@
+'use client';
+
 import React from 'react';
-import { Bar } from 'react-chartjs-2';
-import type { ChartOptions, ChartData, TooltipItem } from 'chart.js';
+import {
+  ResponsiveContainer,
+  BarChart,
+  XAxis,
+  YAxis,
+  Tooltip as ReTooltip,
+  Bar as ReBar,
+  Cell,
+  LabelList,
+} from 'recharts';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from '@/components/ui/card';
 import { Trade } from '@/types/trade';
 
-// Define the shape of each market statistic
 export interface MarketStat {
   market: string;
   profit: number;
@@ -17,122 +33,172 @@ export interface MarketStat {
   profitTaken: boolean;
 }
 
-// Props for the component
 interface MarketProfitStatisticsCardProps {
   marketStats: MarketStat[];
-  chartOptions: ChartOptions<'bar'>;
+  chartOptions: any; // kept for API compatibility, not used
   getCurrencySymbol: () => string;
   trades: Trade[];
 }
 
-/**
- * MarketProfitStatisticsCard
- * 
- * Displays profit and PnL percentage by market in a horizontal bar chart.
- * Profit includes calculated_profit for non-BE trades and BE trades when profit_taken is true.
- */
+// Colors as used in MonthlyPerformanceChart
+const COLOR_PROFIT_POSITIVE = 'rgba(52,211,153,0.8)'; // emerald-400
+const COLOR_PROFIT_NEGATIVE = 'rgba(248,113,113,0.8)'; // red-400
+
 const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
   marketStats,
-  chartOptions,
   getCurrencySymbol,
   trades,
 }) => {
-  // Prepare chart data
-  const data: ChartData<'bar', number[], string> = {
-    labels: marketStats.map(
-      (stat) => `${stat.market} (${stat.pnlPercentage.toFixed(2)}%)`
-    ),
-    datasets: [
-      {
-        label: 'Profit',
-        data: marketStats.map((stat) => {
-          // Base profit from non-BE trades
-          let totalProfit = stat.profit;
-          
-          // Add BE trades profit if profit_taken is true
-          if (stat.profitTaken) {
-            const beProfit = (stat.beWins + stat.beLosses) * stat.profit;
-            totalProfit += beProfit;
-          }
-          
-          return totalProfit;
-        }),
-        backgroundColor: marketStats.map((stat) =>
-          stat.profit >= 0 ? 'rgba(74, 222, 128, 0.8)' : 'rgba(239, 68, 68, 0.8)'
-        ),
-        borderColor: marketStats.map((stat) =>
-          stat.profit >= 0 ? 'rgb(74, 222, 128)' : 'rgb(239, 68, 68)'
-        ),
-        borderWidth: 0,
-        borderRadius: 4,
-        barPercentage: 0.5,
-        categoryPercentage: 0.5,
-      },
-    ],
+  const chartData = marketStats.map((stat) => ({
+    ...stat,
+    tradeCount: trades.filter((t) => t.market === stat.market).length,
+    profitPercent: stat.pnlPercentage ? Number(stat.pnlPercentage.toFixed(2)) : 0,
+  }));
+
+  // Use same coloring as MonthlyPerformanceChart (emerald/red w/opacity)
+  const getBarColor = (profit: number) =>
+    profit >= 0 ? COLOR_PROFIT_POSITIVE : COLOR_PROFIT_NEGATIVE;
+
+  const CustomTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: any[];
+  }) => {
+    if (active && payload && payload.length > 0) {
+      const stat: MarketStat & { tradeCount: number } = payload[0].payload;
+      const currencySymbol = getCurrencySymbol();
+      return (
+        <div className="rounded-lg shadow bg-white p-3 border border-slate-200 text-slate-800 text-[13px] leading-snug min-w-[140px]">
+          <div className="font-semibold mb-1 text-[15px]">{stat.market}</div>
+          <div className="text-slate-500 mb-1">
+            Profit:{' '}
+            <span className="text-slate-800 font-semibold">
+              {currencySymbol}
+              {stat.profit.toFixed(2)}
+            </span>{' '}
+            ({stat.tradeCount} trade{stat.tradeCount === 1 ? '' : 's'})
+          </div>
+          <div className="text-slate-500">
+            P&amp;L: {stat.pnlPercentage.toFixed(2)}% | {stat.wins}W / {stat.losses}L
+          </div>
+        </div>
+      );
+    }
+    return null;
   };
 
-  // Extend base chart options
-  const options: ChartOptions<'bar'> = {
-    ...chartOptions,
-    indexAxis: 'y',
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        callbacks: {
-          label: (context: TooltipItem<'bar'>) => {
-            const label = context.label as string;
-            const marketName = label.split(' (')[0];
-            // Count all trades for this market
-            const tradeCount = trades.filter(t => t.market === marketName).length;
-            const market = marketStats.find((s) => s.market === marketName);
-            const profit = market?.profit || 0;
-            const currencySymbol = getCurrencySymbol();
-            return [
-              ` ${tradeCount} trades`,
-              ` Profit: ${currencySymbol}${profit.toFixed(2)}`
-            ];
-          },
-          title: () => '',
-        },
-      },
-    },
-    scales: {
-      x: {
-        stacked: true,
-        grid: {
-          display: false,
-        },
-      },
-      y: {
-        stacked: true,
-        grid: {
-          display: false,
-        },
-        ticks: {
-          color: 'rgb(41, 37, 36)', // stone-800
-          font: {
-            size: 13,
-            weight: 'bold',
-          },
-        },
-      },
-    },
+  // X-Axis: custom tick (market + tradeCount + pnl%)
+  const renderXAxisTick = (props: any) => {
+    const { x, y, index } = props;
+    const stat = chartData[index];
+    if (!stat) return null;
+
+    return (
+      <g>
+        <text
+          x={x}
+          y={y + 10}
+          textAnchor="middle"
+          fill="#64748b" // slate-500
+          fontSize={12}
+          fontWeight={500} // font-medium
+        >
+          {stat.market} - {stat.tradeCount}
+        </text>
+        <text
+          x={x}
+          y={y + 25}
+          textAnchor="middle"
+          fill="#64748b" // slate-500
+          fontSize={12}
+          fontWeight={500} // font-medium
+        >
+          ({stat.profitPercent}%)
+        </text>
+      </g>
+    );
+  };
+
+  const yAxisTickFormatter = (value: number) =>
+    `${getCurrencySymbol()}${Number(value ?? 0).toLocaleString('en-US', {
+      maximumFractionDigits: 0,
+    })}`;
+
+  const renderBarLabel = (props: any) => {
+    if (!props || props.value == null) return null;
+    const value = Number(props.value);
+    const x = Number(props.x || 0);
+    const y = Number(props.y || 0);
+    const width = Number(props.width);
+    const height = Number(props.height);
+    const yPos = value >= 0 ? y - 5 : y + height - 5;
+
+    return (
+      <text
+        x={x + width / 2}
+        y={yPos}
+        fill="#1e293b"
+        textAnchor="middle"
+        fontSize={12}
+        fontWeight={500}
+      >
+        {getCurrencySymbol()}
+        {value.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+      </text>
+    );
   };
 
   return (
-    <div className="bg-white border-stone-200 border rounded-lg shadow-sm p-6">
-      <h2 className="text-lg font-bold text-stone-900 mb-1">
-        Market Profit Statistics
-      </h2>
-      <p className="text-sm text-stone-500 mb-4">
-        Profit and PnL percentage by market
-      </p>
-      <div className="h-96 flex items-center">
-        <Bar options={options} data={data} />
-      </div>
-    </div>
+    <Card className="border shadow-none h-[360px] flex flex-col bg-white">
+      <CardHeader className="pb-1 flex-shrink-0">
+        <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
+          Market Profit Statistics
+        </CardTitle>
+        <CardDescription className="text-sm text-slate-500 mb-3 leading-tight">
+          Profit and P&amp;L percentage by market
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex-1 flex items-end mt-1">
+        <div className="w-full h-[250px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{ top: 30, right: 18, left: 5, bottom: 10 }}
+              barCategoryGap="25%"
+            >
+              <XAxis
+                dataKey="market"
+                tick={(props: any) => renderXAxisTick(props) ?? <></>} 
+                axisLine={false}
+                tickLine={false}
+                interval={0}
+                height={38}
+              />
+              <YAxis
+                tick={{ fill: '#64748b', fontSize: 11 }} // slate-500, 11px
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={yAxisTickFormatter}
+                width={60}
+              />
+              <ReTooltip
+                content={<CustomTooltip />}
+                cursor={false}
+                wrapperStyle={{ outline: 'none' }}
+              />
+              <ReBar dataKey="profit" radius={[7, 7, 7, 7]} barSize={32}>
+                {chartData.map((stat) => (
+                  <Cell key={stat.market} fill={getBarColor(stat.profit)} />
+                ))}
+                <LabelList dataKey="profit" content={renderBarLabel} />
+              </ReBar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

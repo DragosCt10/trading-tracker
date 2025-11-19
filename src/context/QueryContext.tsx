@@ -7,12 +7,23 @@ interface ProvidersProps {
   children: ReactNode;
 }
 
-export default function QueryProvider({ children }: ProvidersProps) {
-  // Create a new QueryClient per session
-  const [queryClient] = useState(() => new QueryClient());
+const client = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // v5 names
+      // gcTime: Infinity,          // never garbage-collect
+      // staleTime: Infinity,       // never mark stale (no auto refetch)
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      retry: false,
+    },
+  },
+});
 
+export default function QueryProvider({ children }: ProvidersProps) {
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={client}>
       {children}
     </QueryClientProvider>
   );

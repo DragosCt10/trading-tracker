@@ -1,29 +1,56 @@
 'use client';
+
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { useTradingMode } from '@/context/TradingModeContext';
-import { Bars3Icon, ChartBarIcon, CogIcon, DocumentTextIcon, PlusCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import {
+  Bars3Icon,
+  ChartBarIcon,
+  DocumentTextIcon,
+  PlusCircleIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQueryClient } from '@tanstack/react-query';
+import ActionBar from '../shared/ActionBar';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
+import { CreateAccountAlertDialog } from '../CreateAccountModal';
+import { useActionBarSelection } from '@/hooks/useActionBarSelection';
+import { useAccounts } from '@/hooks/useAccounts';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: userData, isLoading: userLoading } = useUserDetails();
-  const { mode, activeAccount, setMode } = useTradingMode();
   const supabase = createClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const queryClient = useQueryClient();
-  
-  // Reset isSigningOut state when user data changes or component mounts
+
   useEffect(() => {
-    if (userData?.user) {
-      setIsSigningOut(false);
-    }
+    if (userData?.user) setIsSigningOut(false);
   }, [userData?.user]);
+
+   const { selection, setSelection } = useActionBarSelection();
+
+    // 👇 useAccounts here ONLY to get refetch; same key as ActionBar
+    const { refetch: refetchAccounts } = useAccounts({
+      userId: userData?.user?.id,
+      pendingMode: selection.mode,
+    });
+
+    useEffect(() => {
+      if (userData?.user) setIsSigningOut(false);
+    }, [userData?.user]);
 
   const handleSignOut = async () => {
     try {
@@ -36,192 +63,227 @@ export default function Navbar() {
     }
   };
 
-  const handleModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setMode(e.target.value as 'live' | 'demo' | 'backtesting');
-  };
-
-  const isActive = (path: string) => {
-    return pathname === path ? '!bg-stone-100 rounded' : '';
-  };
-
-  const handleStatsClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    queryClient.clear();
-    router.push('/dashboard');
-  };
-
-  // Don't render the navbar if there's no session and user
-  // if (!userData?.session || !userData?.user) {
-  //   return null;
-  // }
+  const isActive = (path: string) => pathname === path;
 
   return (
-    <nav className="fixed top-2 left-0 right-0 z-50 rounded-lg border overflow-hidden p-2 bg-white border-stone-200 shadow-stone-950/5 mx-auto w-full max-w-screen-xl">
-      <div className="flex items-center">
-        <Link href="/" className="font-sans antialiased text-sm text-current ml-2 mr-2 block py-1 font-semibold flex items-center">
-          <img src="/trading-tracker-logo.png" alt="Trading Tracker Logo" className="h-10 w-10 mr-2" />
-          Trading Tracker
-        </Link>
-        <hr className="ml-1 mr-4 hidden h-5 w-px border-l border-t-0 border-secondary-dark lg:block" />
-        <div className="hidden lg:block">
-          <ul className="mt-4 flex flex-col gap-x-3 gap-y-1.5 lg:mt-0 lg:flex-row lg:items-center">
-            <li>
-              <button
-                type="button"
-                onClick={handleStatsClick}
-                className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary bg-transparent border-none outline-none cursor-pointer ${isActive('/dashboard')}`}
+    <>
+    <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-(--breakpoint-xl)">
+      <div className="mx-4 sm:mx-0 rounded-xl border bg-background">
+        <div className="flex items-center px-3 py-2">
+          <Link
+            href="/"
+            className="ml-1 mr-2 flex items-center gap-2 font-semibold"
+          >
+            {/* Consider next/image if you prefer */}
+            <div className="grid h-10 w-10 place-content-center rounded-xl bg-gradient-to-br from-slate-200 via-slate-300 to-slate-400 border border-slate-300">
+              {/* Candlestick chart icon for trading (custom SVG) */}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="28"
+                height="28"
+                viewBox="0 0 28 28"
+                fill="none"
+                className="h-6 w-6"
               >
-                <ChartBarIcon className="h-4 w-4" />
-                Stats
-              </button>
-            </li>
-            <li>
-              <Link href="/trades/new" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/trades/new')}`}>
-                <PlusCircleIcon className="h-4 w-4" />
-                New Trade
-              </Link>
-            </li>
-            <li>
-              <Link href="/trades" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/trades')}`}>
-                <DocumentTextIcon className="h-4 w-4" />
-                My Trades
-              </Link>
-            </li>
-            <li>
-              <Link href="/settings" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/settings')}`}>
-                <CogIcon className="h-4 w-4" />
-                Settings
-              </Link>
-            </li>
-          </ul>
-        </div>
-        <div className="flex items-center ml-auto mr-2">
-          <label htmlFor="trading-mode" className="mr-2 text-sm font-medium text-stone-700">
-            Mode:
-          </label>
-          <div className="relative">
-            <select
-              id="trading-mode"
-              value={mode}
-              onChange={handleModeChange}
-              className="aria-disabled:cursor-not-allowed w-32 appearance-none outline-none focus:outline-none text-stone-800 placeholder:text-stone-600/60 ring-transparent border border-stone-200 transition-all ease-in disabled:opacity-50 disabled:pointer-events-none select-none text-sm py-2 pl-2.5 ring shadow-sm bg-white rounded-lg duration-100 hover:border-stone-300 hover:ring-none focus:border-stone-400 focus:ring-none"
-            >
-              <option value="live">Live</option>
-              <option value="demo">Demo</option>
-              <option value="backtesting">Backtesting</option>
-            </select>
-            <svg 
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-500 pointer-events-none" 
-              xmlns="http://www.w3.org/2000/svg" 
-              viewBox="0 0 20 20" 
-              fill="currentColor"
-            >
-              <path 
-                fillRule="evenodd" 
-                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" 
-                clipRule="evenodd" 
-              />
-            </svg>
-          </div>
-        </div>
-        
-        <button
-          onClick={handleSignOut}
-          disabled={isSigningOut}
-          className="items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-red-500 hover:bg-error-light relative bg-gradient-to-b from-red-500 to-red-600 border-red-600 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-red-600 hover:to-red-600 hover:border-red-600 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-2px_0px_rgba(0,0,0,0.18)] after:pointer-events-none transition antialiased hidden lg:inline-block"
-        >
-          {isSigningOut ? (
-            <span className="flex items-center">
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <rect x="5" y="6" width="3" height="12" rx="1" className="fill-slate-500" />
+                <rect x="12.5" y="3" width="3" height="18" rx="1" className="fill-slate-600" />
+                <rect x="20" y="10" width="3" height="8" rx="1" className="fill-slate-400" />
+                {/* Top wicks */}
+                <rect x="6.25" y="4" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
+                <rect x="13.75" y="1" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
+                <rect x="21.25" y="8" width="0.5" height="2" rx="0.25" className="fill-slate-300" />
+                {/* Bottom wicks */}
+                <rect x="6.25" y="18" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
+                <rect x="13.75" y="21" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
+                <rect x="21.25" y="18" width="0.5" height="2" rx="0.25" className="fill-slate-300" />
               </svg>
-              Signing out...
-            </span>
-          ) : (
-            'Sign Out'
-          )}
-        </button>
-        
-        <div 
-          data-dui-toggle="collapse" 
-          data-dui-target="#navbarCollapse" 
-          aria-expanded={mobileMenuOpen ? "true" : "false"} 
-          aria-controls="navbarCollapse" 
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="place-items-center border align-middle select-none font-sans font-medium text-center transition-all duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none text-sm min-w-[34px] min-h-[34px] rounded-md bg-transparent border-transparent text-stone-800 hover:bg-stone-200/10 hover:border-stone-600/10 shadow-none hover:shadow-none ml-auto grid lg:hidden cursor-pointer"
-        >
-          {mobileMenuOpen ? (
-            <XMarkIcon className="h-4 w-4" />
-          ) : (
-            <Bars3Icon className="h-4 w-4" />
-          )}
-        </div>
-      </div>
-      
-      <div 
-        className={`overflow-hidden transition-[max-height] duration-300 ease-in-out ${mobileMenuOpen ? 'max-h-96' : 'max-h-0'} lg:hidden`} 
-        id="navbarCollapse"
-      >
-        <ul className="flex flex-col gap-y-1.5 mt-4">
-          <li>
-            <Link href="/dashboard" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/dashboard')}`}>
-              Dashboard
-            </Link>
-          </li>
-          <li>
-            <Link href="/trades/new" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/trades/new')}`}>
-              New Trade
-            </Link>
-          </li>
-          <li>
-            <Link href="/trades" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/trades')}`}>
-              My Trades
-            </Link>
-          </li>
-          <li>
-            <Link href="/settings" className={`font-sans antialiased text-sm text-current flex items-center gap-x-2 p-2 hover:text-primary ${isActive('/settings')}`}>
-              Settings
-            </Link>
-          </li>
-          <li className="mt-2">
-            <div className="flex items-center mb-2">
-              <label htmlFor="mobile-trading-mode" className="mr-2 text-sm font-medium text-stone-700">
-                Mode:
-              </label>
-              <select
-                id="mobile-trading-mode"
-                value={mode}
-                onChange={handleModeChange}
-                className="text-sm py-2 px-4 border border-stone-500 rounded-lg text-stone-700 bg-white focus:outline-none focus:ring-2 focus:ring-stone-500"
-              >
-                <option value="live">Live</option>
-                <option value="demo">Demo</option>
-                <option value="backtesting">Backtesting</option>
-              </select>
             </div>
-          </li>
-          <li className="mt-2">
-            <button
+            <span className="hidden sm:inline">Trading Tracker</span>
+          </Link>
+
+          <Separator orientation="vertical" className="mx-3 hidden h-6 lg:flex" />
+
+          {/* Desktop nav */}
+          <div className="hidden lg:block">
+            <ul className="flex items-center gap-1">
+              <li>
+                <Button
+                  variant={isActive('/analytics') ? 'secondary' : 'ghost'}
+                  asChild
+                  size="sm"
+                  className={cn('gap-2')}
+                >
+                  <Link href="/analytics">
+                    <ChartBarIcon className="h-4 w-4" />
+                    <span>Analytics</span>
+                  </Link>
+                </Button>
+              </li>
+              <li>
+                <Button
+                  variant={isActive('/trades/new') ? 'secondary' : 'ghost'}
+                  asChild
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Link href="/trades/new">
+                    <PlusCircleIcon className="h-4 w-4" />
+                    <span>New Trade</span>
+                  </Link>
+                </Button>
+              </li>
+              <li>
+                <Button
+                  variant={isActive('/trades') ? 'secondary' : 'ghost'}
+                  asChild
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Link href="/trades">
+                    <DocumentTextIcon className="h-4 w-4" />
+                    <span>My Trades</span>
+                  </Link>
+                </Button>
+              </li>
+            </ul>
+          </div>
+
+          {/* Right actions */}
+          <div className="ml-auto hidden items-center gap-2 lg:flex">
+            <CreateAccountAlertDialog
+                onCreated={async (created) => {
+                  // refresh accounts list used by ActionBar
+                  await refetchAccounts();
+                }}
+              />
+
+            <Button
+              variant="destructive"
+              size="sm"
+              className="text-white"
               onClick={handleSignOut}
               disabled={isSigningOut}
-              className="inline-flex w-full items-center justify-center border align-middle select-none font-sans font-medium text-center duration-300 ease-in disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed focus:shadow-none text-sm py-2 px-4 shadow-sm hover:shadow-md bg-red-500 hover:bg-error-light relative bg-gradient-to-b from-red-500 to-red-600 border-red-600 text-stone-50 rounded-lg hover:bg-gradient-to-b hover:from-red-600 hover:to-red-600 hover:border-red-600 after:absolute after:inset-0 after:rounded-[inherit] after:box-shadow after:shadow-[inset_0_1px_0px_rgba(255,255,255,0.35),inset_0_-2px_0px_rgba(0,0,0,0.18)] after:pointer-events-none transition antialiased"
             >
               {isSigningOut ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <span className="flex items-center gap-2">
+                  <svg
+                    className="h-4 w-4 animate-spin"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
                   </svg>
                   Signing out...
                 </span>
               ) : (
                 'Sign Out'
               )}
-            </button>
-          </li>
-        </ul>
+            </Button>
+          </div>
+
+          {/* Mobile: sheet trigger */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-auto lg:hidden"
+                aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              >
+                {mobileMenuOpen ? (
+                  <XMarkIcon className="h-5 w-5" />
+                ) : (
+                  <Bars3Icon className="h-5 w-5" />
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-80">
+              <SheetHeader>
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+
+              <div className="mt-4 space-y-2">
+                <Button
+                  variant={isActive('/analytics') ? 'secondary' : 'ghost'}
+                  asChild
+                  className="w-full justify-start gap-2"
+                >
+                  <Link href="/analytics" onClick={() => setMobileMenuOpen(false)}>
+                    <ChartBarIcon className="h-4 w-4" />
+                    Analytics
+                  </Link>
+                </Button>
+
+                <Button
+                  variant={isActive('/trades/new') ? 'secondary' : 'ghost'}
+                  asChild
+                  className="w-full justify-start gap-2"
+                >
+                  <Link href="/trades/new" onClick={() => setMobileMenuOpen(false)}>
+                    <PlusCircleIcon className="h-4 w-4" />
+                    New Trade
+                  </Link>
+                </Button>
+
+                <Button
+                  variant={isActive('/trades') ? 'secondary' : 'ghost'}
+                  asChild
+                  className="w-full justify-start gap-2"
+                >
+                  <Link href="/trades" onClick={() => setMobileMenuOpen(false)}>
+                    <DocumentTextIcon className="h-4 w-4" />
+                    My Trades
+                  </Link>
+                </Button>
+
+                <Separator className="my-2" />
+
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    alert('Create New Account clicked!');
+                  }}
+                >
+                  Create New Account
+                </Button>
+
+                <Button
+                  variant="destructive"
+                  className="w-full text-white"
+                  onClick={async () => {
+                    setMobileMenuOpen(false);
+                    await handleSignOut();
+                  }}
+                  disabled={isSigningOut}
+                >
+                  {isSigningOut ? 'Signing out…' : 'Sign Out'}
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </nav>
+    <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-40 w-auto">
+      <div className="inline-block mx-4 bg-background border rounded-xl px-3 pb-2 pt-2">
+        <ActionBar />
+      </div>
+    </div>
+  </>
   );
 }
