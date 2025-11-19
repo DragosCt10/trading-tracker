@@ -5,7 +5,6 @@ import { createClient } from '@/utils/supabase/client';
 import { Trade } from '@/types/trade';
 import { useRouter } from 'next/navigation';
 import { useUserDetails } from '@/hooks/useUserDetails';
-
 import { useQueryClient } from '@tanstack/react-query';
 
 // shadcn/ui
@@ -34,15 +33,15 @@ import { Loader2, Info } from 'lucide-react';
 
 const MARKET_OPTIONS = ['DAX', 'US30', 'UK100', 'US100', 'EURUSD', 'GBPUSD'];
 const SETUP_OPTIONS = [
-  'OG','TG','TCG','3G','3CG','MultipleGaps',
-  'SLG+OG','SLG+TG','SLG+TCG','SLG+3G','SLG+3CG'
+  'OG', 'TG', 'TCG', '3G', '3CG', 'MultipleGaps',
+  'SLG+OG', 'SLG+TG', 'SLG+TCG', 'SLG+3G', 'SLG+3CG'
 ];
 const LIQUIDITY_OPTIONS = ['Liq. Majora', 'Liq. Minora', 'Liq. Locala', 'HOD', 'LOD'];
 const MSS_OPTIONS = ['Normal', 'Agresiv'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
-const WEEKDAY_MAP: Record<string,string> = {
-  Monday:'Luni', Tuesday:'Marti', Wednesday:'Miercuri', Thursday:'Joi',
-  Friday:'Vineri', Saturday:'Sambata', Sunday:'Duminica',
+const WEEKDAY_MAP: Record<string, string> = {
+  Monday: 'Luni', Tuesday: 'Marti', Wednesday: 'Miercuri', Thursday: 'Joi',
+  Friday: 'Vineri', Saturday: 'Sambata', Sunday: 'Duminica',
 };
 
 function getQuarter(dateStr: string): string {
@@ -128,7 +127,7 @@ export default function NewTradeForm({
               WEEKDAY_MAP[new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' })],
             quarter: parsed.quarter || getQuarter(dateStr),
           };
-        } catch {}
+        } catch { }
       }
     }
     return initialTradeState;
@@ -146,7 +145,7 @@ export default function NewTradeForm({
       const next = { ...prev, ...patch };
       try {
         localStorage.setItem(`new-trade-draft-${selection.mode}`, JSON.stringify(next));
-      } catch {}
+      } catch { }
       return next;
     });
   }, [selection.mode]);
@@ -167,7 +166,7 @@ export default function NewTradeForm({
   const accountBalance = selection.activeAccount?.account_balance ?? 0;
   const currency = selection.activeAccount?.currency === 'EUR' ? '€' : '$';
 
-    // -------- P&L calculation --------
+  // -------- P&L calculation --------
   const { signedProfit, pnlPercentage } = useMemo(() => {
     if (!accountBalance) {
       return { signedProfit: 0, pnlPercentage: 0 };
@@ -196,18 +195,11 @@ export default function NewTradeForm({
     };
   }, [accountBalance, trade.break_even, trade.trade_outcome, trade.risk_per_trade, trade.risk_reward_ratio]);
 
-
-  // Save on tab hide
+  // Save trade draft to localStorage every time the trade state changes
   useEffect(() => {
-    const handler = () => {
-      if (document.visibilityState === 'hidden') {
-        try {
-          localStorage.setItem(`new-trade-draft-${selection.mode}`, JSON.stringify(trade));
-        } catch {}
-      }
-    };
-    document.addEventListener('visibilitychange', handler);
-    return () => document.removeEventListener('visibilitychange', handler);
+    try {
+      localStorage.setItem(`new-trade-draft-${selection.mode}`, JSON.stringify(trade));
+    } catch { }
   }, [trade, selection.mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -239,7 +231,7 @@ export default function NewTradeForm({
       const supabase = createClient();
       const tableName = `${selection.mode}_trades`;
 
-            const { error } = await supabase
+      const { error } = await supabase
         .from(tableName)
         .insert([{
           ...trade,
