@@ -1906,7 +1906,7 @@ export default function Dashboard() {
         {/* 1.4RR Hit Statistics */}
         <RRHitStats trades={filteredTrades} />
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
          {/* Partials + BE Statistics */}
         <TradeStatsBarCard
           title="Partials + BE Statistics"
