@@ -251,16 +251,12 @@ export default function Navbar() {
 
                 <Separator className="my-2" />
 
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    alert('Create New Account clicked!');
+                <CreateAccountAlertDialog
+                  onCreated={async (created) => {
+                    // refresh accounts list used by ActionBar
+                    await refetchAccounts();
                   }}
-                >
-                  Create New Account
-                </Button>
+                />
 
                 <Button
                   variant="destructive"
