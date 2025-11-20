@@ -319,34 +319,32 @@ export function EditAccountAlertDialog({
                 Cancel
               </AlertDialogCancel>
 
-              {/* Use asChild so the button submits the form */}
-              <AlertDialogAction asChild>
-                <Button type="submit" disabled={submitting || !account}>
-                  {submitting && (
-                    <svg
-                      className="mr-2 h-4 w-4 animate-spin"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                        className="opacity-25"
-                      />
-                      <path
-                        className="opacity-90"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"
-                      />
-                    </svg>
-                  )}
-                  Save changes
-                </Button>
-              </AlertDialogAction>
+              {/* Plain submit button, NOT wrapped in AlertDialogAction */}
+              <Button type="submit" disabled={submitting || !account}>
+                {submitting && (
+                  <svg
+                    className="mr-2 h-4 w-4 animate-spin"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                      className="opacity-25"
+                    />
+                    <path
+                      className="opacity-90"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"
+                    />
+                  </svg>
+                )}
+                Save changes
+              </Button>
             </AlertDialogFooter>
           </form>
         </AlertDialogContent>
