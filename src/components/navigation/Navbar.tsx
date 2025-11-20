@@ -35,6 +35,7 @@ export default function Navbar() {
   const supabase = createClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (userData?.user) setIsSigningOut(false);
@@ -253,8 +254,9 @@ export default function Navbar() {
 
                 <CreateAccountAlertDialog
                   onCreated={async (created) => {
-                    // refresh accounts list used by ActionBar
-                    await refetchAccounts();
+                    await queryClient.invalidateQueries({
+                      predicate: (q) => q.queryKey[0] === 'accounts', // or your exact key
+                    });
                   }}
                 />
 
