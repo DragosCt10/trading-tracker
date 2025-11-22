@@ -57,6 +57,8 @@ import { NonExecutedTradesCard } from '@/components/dashboard/NonExecutedTradesC
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { DisplacementSizeStats } from '@/components/dashboard/DisplacementSizeStats';
+import { getAverageDisplacementPerMarket } from '@/utils/getAverageDisplacementPerMarket';
 
 ChartJS.register(
   CategoryScale,
@@ -1907,7 +1909,20 @@ export default function Dashboard() {
         <RRHitStats trades={filteredTrades} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-         {/* Partials + BE Statistics */}
+        <TradeStatsBarCard
+          title="Average Displacement Size (Points)"
+          description="Average displacement size (points) for each market."
+          data={getAverageDisplacementPerMarket(filteredTrades)}
+          mode="singleValue"
+          valueKey="value"
+        />
+        
+        {/* Displacement Size Profitability by Market and Size Points */}
+        <DisplacementSizeStats trades={filteredTrades} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Partials + BE Statistics */}
         <TradeStatsBarCard
           title="Partials + BE Statistics"
           description="Analysis of trades marked as both Break Even and Partials Taken"
@@ -1915,9 +1930,12 @@ export default function Dashboard() {
           mode="winsLossesWinRate"
           heightClassName="h-80"
         />
-        {/* Launch Hour Trades Statistics */}
+         
+         {/* Launch Hour Trades Statistics */}
         <LaunchHourTradesCard filteredTrades={filteredTrades} />
       </div>
+
+
 
       <h2 className="text-2xl font-semibold text-slate-800 mt-20">Non-executed Trades by date range</h2>
 
