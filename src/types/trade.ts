@@ -31,4 +31,5 @@ export interface Trade {
   partials_taken: boolean;  // New field to track if partials were taken at 1.4RR
   executed: boolean;
   launch_hour: boolean;  // Indicates if the trade was executed during the launch hour
+  displacement_size: number;
 }
