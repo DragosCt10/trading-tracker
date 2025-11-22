@@ -114,7 +114,8 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
     rr_hit_1_4: trade.rr_hit_1_4,
     partials_taken: trade.partials_taken,
     executed: trade.executed,
-    launch_hour: trade.launch_hour
+    launch_hour: trade.launch_hour,
+    displacement_size: trade.displacement_size
   };
 }
 
