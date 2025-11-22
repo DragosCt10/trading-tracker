@@ -119,6 +119,8 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         setup_type: editedTrade.setup_type,
         liquidity: editedTrade.liquidity,
         sl_size: editedTrade.sl_size,
+        // insert displacement_size here in the update
+        displacement_size: editedTrade.displacement_size,
         risk_per_trade: editedTrade.risk_per_trade,
         trade_outcome: editedTrade.trade_outcome,
         risk_reward_ratio: editedTrade.risk_reward_ratio,
@@ -242,16 +244,23 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       }
       if (type === 'number') {
         const displayValue = typeof value === 'number' ? value.toFixed(2) : value;
-        if (field === 'pnl_percentage' || field === 'risk_per_trade') {
+        if (field === 'pnl_percentage' || field === 'risk_per_trade' || field === 'displacement_size') {
+          // Highlight risk_per_trade/pnl_percentage fields with percent suffix and color if needed, and displacement_size as normal number
           return (
             <div className="mb-2">
               <dt className="text-sm font-medium text-slate-500">{label}</dt>
-              <dd className={`mt-1 text-sm ${field === 'pnl_percentage'
-                ? (editedTrade.trade_outcome === 'Lose'
-                  ? 'text-red-500'
-                  : 'text-emerald-500')
-                : 'text-slate-900'}`}>
-                {`${displayValue}%`}
+              <dd className={
+                `mt-1 text-sm ${
+                  field === 'pnl_percentage'
+                    ? (editedTrade.trade_outcome === 'Lose'
+                      ? 'text-red-500'
+                      : 'text-emerald-500')
+                    : 'text-slate-900'
+                }`
+              }>
+                {field === 'pnl_percentage' || field === 'risk_per_trade'
+                  ? `${displayValue}%`
+                  : displayValue}
               </dd>
             </div>
           );
@@ -321,6 +330,26 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
           </div>
         );
       }
+    }
+
+    // For Displacement Size, handle as number
+    if (field === 'displacement_size') {
+      return (
+        <div className="mb-2">
+          <label className="block text-sm font-medium text-slate-700">{label}</label>
+          <input
+            type="number"
+            value={isNaN(value as number) ? '' : value as number}
+            onChange={e => {
+              const val = e.target.value;
+              handleInputChange(field, val === '' ? '' : parseFloat(val));
+            }}
+            className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+            disabled={!isEditing}
+            readOnly={!isEditing}
+          />
+        </div>
+      );
     }
 
     switch (type) {
@@ -454,6 +483,8 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     {renderField('Risk/Reward Ratio', 'risk_reward_ratio', 'number')}
                     {renderField('Risk/Reward Ratio (Long)', 'risk_reward_ratio_long', 'number')}
                     {renderField('SL Size', 'sl_size', 'number')}
+                    {/* Add Displacement Size field here */}
+                    {renderField('Displacement Size', 'displacement_size', 'number')}
                     {renderField('Liquidity', 'liquidity', 'select', LIQUIDITY_OPTIONS)}
                     {renderField('P&L Percentage', 'pnl_percentage', 'number')}
                     {/* Calculated Profit (read-only) */}
