@@ -109,6 +109,7 @@ export default function NewTradeForm({
     partials_taken: false,
     executed: true,
     launch_hour: false,
+    displacement_size: 0
   };
 
   const [trade, setTrade] = useState<Trade>(() => {
@@ -489,13 +490,13 @@ export default function NewTradeForm({
                 <TooltipTrigger asChild>
                   <Info className="h-4 w-4 cursor-help text-muted-foreground" />
                 </TooltipTrigger>
-                <TooltipContent className="w-80">
+                <TooltipContent className="w-80 bg-white border p-4">
                   <div className="space-y-2 text-xs">
-                    <div className="font-semibold">Evaluation Grade Guide</div>
-                    <div className="rounded border bg-blue-50 p-2"><span className="font-medium">A+</span> — Perfect execution.</div>
-                    <div className="rounded border bg-green-50 p-2"><span className="font-medium">A</span> — Excellent trade.</div>
-                    <div className="rounded border bg-yellow-50 p-2"><span className="font-medium">B</span> — Good trade.</div>
-                    <div className="rounded border bg-orange-50 p-2"><span className="font-medium">C</span> — Poor execution.</div>
+                    <div className="font-semibold text-slate-800">Evaluation Grade Guide</div>
+                    <div className="rounded border border-blue-300 text-slate-500 p-2"><span className="font-medium">A+</span> — Perfect execution.</div>
+                    <div className="rounded border border-emerald-300 text-slate-500 p-2"><span className="font-medium">A</span> — Excellent trade.</div>
+                    <div className="rounded border border-yellow-300 text-slate-500 p-2"><span className="font-medium">B</span> — Good trade.</div>
+                    <div className="rounded border border-orange-300 text-slate-500 p-2"><span className="font-medium">C</span> — Poor execution.</div>
                   </div>
                 </TooltipContent>
               </Tooltip>
@@ -508,6 +509,16 @@ export default function NewTradeForm({
             </SelectContent>
           </Select>
         </div>
+
+        <Uncontrolled
+          id="displacement_size"
+          label="Displacement Size (Points)"
+          type="number"
+          inputMode="decimal"
+          step="0.01"
+          defaultValue={trade.displacement_size}
+          onCommit={(v) => commitAndSave({ displacement_size: parseFloat(v) || 0 })}
+        />
 
         {/* Notes (uncontrolled) */}
         <div className="md:col-span-2">
