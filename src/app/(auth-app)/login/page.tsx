@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label'; // <-- Added Label from shadcn/ui
 // Remove Form, FormField, etc. since we are not using them anymore
 import { cn } from '@/lib/utils';
+import Logo from '@/components/shared/Logo';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -66,26 +67,7 @@ export default function Login() {
       <CardHeader className="flex flex-col items-center">
         <div className="grid h-10 w-10 place-content-center rounded-xl bg-gradient-to-br from-slate-200 via-slate-300 to-slate-400 border border-slate-300 mb-4">
           {/* Candlestick chart icon for trading (custom SVG) */}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="28"
-            height="28"
-            viewBox="0 0 28 28"
-            fill="none"
-            className="h-6 w-6"
-          >
-            <rect x="5" y="6" width="3" height="12" rx="1" className="fill-slate-500" />
-            <rect x="12.5" y="3" width="3" height="18" rx="1" className="fill-slate-600" />
-            <rect x="20" y="10" width="3" height="8" rx="1" className="fill-slate-400" />
-            {/* Top wicks */}
-            <rect x="6.25" y="4" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
-            <rect x="13.75" y="1" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
-            <rect x="21.25" y="8" width="0.5" height="2" rx="0.25" className="fill-slate-300" />
-            {/* Bottom wicks */}
-            <rect x="6.25" y="18" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
-            <rect x="13.75" y="21" width="0.5" height="2" rx="0.25" className="fill-slate-400" />
-            <rect x="21.25" y="18" width="0.5" height="2" rx="0.25" className="fill-slate-300" />
-          </svg>
+          <Logo width={35} height={35} />
         </div>
         <CardTitle className="text-2xl font-semibold text-center text-slate-800">
           Sign in 
