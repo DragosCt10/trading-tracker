@@ -25,19 +25,20 @@ interface DisplacementSizeStatsProps {
 
 const slate500 = '#64748b';
 
+// Add "Under 20" bucket
 const DISPLACEMENT_BUCKETS = [
+  { key: 'under-20', label: '< 20', min: -Infinity, max: 20 },
   { key: '20-30', label: '20–30', min: 20, max: 30 },
   { key: '30-40', label: '30–40', min: 30, max: 40 },
   { key: '40+', label: '40+', min: 40, max: Infinity },
 ];
 
 export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
-  // Only consider trades that have a displacement_size >= 20
-  // and a clear outcome (Win / Lose / BE)
+  // Only consider trades that have a numerical displacement_size and a clear outcome (Win / Lose / BE)
+  // Displacement size can be any number (no filtering by 20+)
   const filteredTrades = trades.filter(
     (t) =>
       typeof t.displacement_size === 'number' &&
-      t.displacement_size >= 20 &&
       (t.trade_outcome === 'Win' || t.trade_outcome === 'Lose' || t.trade_outcome === 'BE')
   );
 
@@ -212,7 +213,7 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
               className="flex items-center justify-center text-slate-400 h-full text-sm"
               style={{ minHeight: 180 }}
             >
-              No qualifying trades with displacement size of 20 points or more.
+              No qualifying trades with displacement size recorded.
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
