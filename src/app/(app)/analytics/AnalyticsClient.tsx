@@ -1969,6 +1969,19 @@ export default function Dashboard() {
           heightClassName="h-96"
         />
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
+        <TradeStatsBarCard
+          title="Average Displacement Size (Points)"
+          description="Average displacement size (points) for each market."
+          data={getAverageDisplacementPerMarket(nonExecutedTrades)}
+          mode="singleValue"
+          valueKey="value"
+        />
+        
+        {/* Displacement Size Profitability by Market and Size Points */}
+        <DisplacementSizeStats trades={nonExecutedTrades} />
+      </div>
     </>
   );
 }
