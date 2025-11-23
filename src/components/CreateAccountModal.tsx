@@ -160,7 +160,7 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
 
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogTrigger asChild>
-          <Button type="button" size="sm" className="cursor-pointer">
+          <Button type="button" size="sm" className="cursor-pointer w-full lg:w-auto">
             New Account
           </Button>
         </AlertDialogTrigger>
