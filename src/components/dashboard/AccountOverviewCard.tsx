@@ -28,6 +28,24 @@ export function AccountOverviewCard({
   months,
   monthlyStatsAllTrades,
 }: AccountOverviewCardProps) {
+  // Prepare chart data
+  const chartData = months.map((month) => ({
+    month,
+    profit: monthlyStatsAllTrades[month]?.profit ?? 0,
+    profitPercent: monthlyStatsAllTrades[month]
+      ? Number(
+          (
+            (monthlyStatsAllTrades[month].profit /
+              (accountBalance || 1)) *
+            100
+          ).toFixed(2)
+        )
+      : 0,
+  }));
+
+  // Check if there are any trades in this year (any month has profit !== 0)
+  const hasTrades = chartData.some(item => item.profit !== 0);
+
   return (
     <Card className="mb-8 p-6 border shadow-none">
       {/* Header */}
@@ -56,98 +74,97 @@ export function AccountOverviewCard({
         </div>
       </div>
 
-      {/* Chart */}
+      {/* Chart or No Trades Message */}
       <CardContent className="h-64 mb-2 relative p-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={months.map((month) => ({
-              month,
-              profit: monthlyStatsAllTrades[month]?.profit ?? 0,
-              profitPercent: monthlyStatsAllTrades[month]
-                ? Number(
-                    (
-                      (monthlyStatsAllTrades[month].profit /
-                        (accountBalance || 1)) *
-                      100
-                    ).toFixed(2)
-                  )
-                : 0,
-            }))}
-            margin={{ top: 30, right: 10, left: 0, bottom: 0 }}
+        {!hasTrades ? (
+          <div className="flex flex-col justify-center items-center w-full h-full">
+            <div className="text-base font-medium text-slate-500 text-center mb-1">
+              No trades found
+            </div>
+            <div className="text-sm text-slate-400 text-center max-w-xs">
+              There are no trades to display for this account yet. Start trading to see your statistics here!
+            </div>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{ top: 30, right: 10, left: 0, bottom: 0 }}
             >
-            <XAxis
-              dataKey="month"
-              tick={{ fill: '#64748b', fontSize: 13}} // text-slate-500
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              tick={{ fill: '#64748b', fontSize: 11 }} // text-slate-500
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={(v: number) =>
-                `${currencySymbol}${v.toLocaleString('en-US', {
-                  maximumFractionDigits: 0,
-                })}`
-              }
-            />
-            {/* Custom tooltip using shadcn with slate styles */}
-            <ReTooltip
-              contentStyle={{ background: 'white', border: '1px solid #cbd5e1', borderRadius: 8, padding: '12px 16px', color: '#1e293b', fontSize: 14 }} // Tailwind slate-200 border, slate-800 text
-              wrapperStyle={{ outline: 'none' }}
-              cursor={false}
-              formatter={(value: number) =>
-                <span className="text-slate-800 font-semibold">
-                  {currencySymbol}
-                  {value.toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
-              }
-              labelStyle={{ color: '#64748b', fontWeight: 400, fontSize: 14 }}
-            />
-
-            <ReBar dataKey="profit" radius={[4, 4, 4, 4]} barSize={32}>
-              {months.map((month) => (
-                <Cell
-                  key={month}
-                  fill={
-                    (monthlyStatsAllTrades[month]?.profit ?? 0) >= 0
-                      ? 'rgba(52,211,153,0.8)' // emerald-400
-                      : 'rgba(248,113,113,0.8)' // red-400
-                  }
-                />
-              ))}
-
-              <LabelList
-                dataKey="profitPercent"
-                content={(props: any) => {
-                  if (!props || props.value == null) return null;
-
-                  const value = Number(props.value);
-                  const x = Number(props.x || 0);
-                  const y = Number(props.y || 0);
-                  const width = Number(props.width);
-                  const height = Number(props.height);
-                  const yPos = value >= 0 ? y - 5 : y + height - 5;
-
-                  return (
-                    <text
-                      x={x + width / 2}
-                      y={yPos}
-                      fill="#1e293b" // slate-800
-                      textAnchor="middle"
-                      className="text-xs font-medium"
-                    >
-                      {`${value}%`}
-                    </text>
-                  );
-                }}
+              <XAxis
+                dataKey="month"
+                tick={{ fill: '#64748b', fontSize: 13}} // text-slate-500
+                axisLine={false}
+                tickLine={false}
               />
-            </ReBar>
-          </BarChart>
-        </ResponsiveContainer>
+              <YAxis
+                tick={{ fill: '#64748b', fontSize: 11 }} // text-slate-500
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v: number) =>
+                  `${currencySymbol}${v.toLocaleString('en-US', {
+                    maximumFractionDigits: 0,
+                  })}`
+                }
+              />
+              {/* Custom tooltip using shadcn with slate styles */}
+              <ReTooltip
+                contentStyle={{ background: 'white', border: '1px solid #cbd5e1', borderRadius: 8, padding: '12px 16px', color: '#1e293b', fontSize: 14 }} // Tailwind slate-200 border, slate-800 text
+                wrapperStyle={{ outline: 'none' }}
+                cursor={false}
+                formatter={(value: number) =>
+                  <span className="text-slate-800 font-semibold">
+                    {currencySymbol}
+                    {value.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                }
+                labelStyle={{ color: '#64748b', fontWeight: 400, fontSize: 14 }}
+              />
+
+              <ReBar dataKey="profit" radius={[4, 4, 4, 4]} barSize={32}>
+                {months.map((month) => (
+                  <Cell
+                    key={month}
+                    fill={
+                      (monthlyStatsAllTrades[month]?.profit ?? 0) >= 0
+                        ? 'rgba(52,211,153,0.8)' // emerald-400
+                        : 'rgba(248,113,113,0.8)' // red-400
+                    }
+                  />
+                ))}
+
+                <LabelList
+                  dataKey="profitPercent"
+                  content={(props: any) => {
+                    if (!props || props.value == null) return null;
+
+                    const value = Number(props.value);
+                    const x = Number(props.x || 0);
+                    const y = Number(props.y || 0);
+                    const width = Number(props.width);
+                    const height = Number(props.height);
+                    const yPos = value >= 0 ? y - 5 : y + height - 5;
+
+                    return (
+                      <text
+                        x={x + width / 2}
+                        y={yPos}
+                        fill="#1e293b" // slate-800
+                        textAnchor="middle"
+                        className="text-xs font-medium"
+                      >
+                        {`${value}%`}
+                      </text>
+                    );
+                  }}
+                />
+              </ReBar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );
