@@ -56,6 +56,32 @@ export function MonthlyPerformanceChart({
     };
   });
 
+  // If no trades, show matching message as in TradesStatsBarCard
+  if (!chartData.length) {
+    return (
+      <Card className="border shadow-none bg-white h-96 flex flex-col">
+        <CardHeader className="pb-2 flex-shrink-0">
+          <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
+            Monthly Performance
+          </CardTitle>
+          <CardDescription className="text-sm text-slate-500">
+            Monthly performance of trades
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 flex justify-center items-center">
+          <div className="flex flex-col justify-center items-center w-full h-full">
+            <div className="text-base font-medium text-slate-500 text-center mb-1">
+              No trades found
+            </div>
+            <div className="text-sm text-slate-400 text-center max-w-xs">
+              There are no trades to display for this category yet. Start trading to see your statistics here!
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Calculate the max of wins or losses (show on Y axis)
   const maxWinsLosses = Math.max(
     ...chartData.map((d) => Math.max(d.wins, d.losses)),
