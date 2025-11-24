@@ -25,9 +25,8 @@ interface DisplacementSizeStatsProps {
 
 const slate500 = '#64748b';
 
-// Add "Under 20" bucket
 const DISPLACEMENT_BUCKETS = [
-  { key: 'under-20', label: '< 20', min: -Infinity, max: 20 },
+  { key: '10-20', label: '10–20', min: 10, max: 20 },
   { key: '20-30', label: '20–30', min: 20, max: 30 },
   { key: '30-40', label: '30–40', min: 30, max: 40 },
   { key: '40+', label: '40+', min: 40, max: Infinity },
