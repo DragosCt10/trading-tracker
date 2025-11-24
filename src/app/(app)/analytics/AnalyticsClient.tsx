@@ -903,55 +903,6 @@ export default function Dashboard() {
     );
   }
 
-  // Fix: Improve logic/readability and refactor the "No Trades" empty state card.
-  if (
-    selection.activeAccount &&
-    !isInitialLoading &&
-    !filteredTradesLoading &&
-    !allTradesLoading &&
-    !showDatePicker &&
-    allTrades.length === 0 &&
-    filteredTrades.length === 0
-  ) {
-    return (
-      <div className="flex items-center justify-center w-full h-full min-h-[400px] p-8">
-        <Card className="w-full max-w-xl mx-auto border-slate-200 shadow-sm p-6 text-center">
-          <CardHeader>
-            <div className="mb-6">
-              <svg
-                className="mx-auto h-12 w-12 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-              </svg>
-            </div>
-            <CardTitle className="text-xl font-semibold text-slate-800 mb-1">
-              No Trades Yet
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-slate-500 mb-6">
-              You haven't added any trades to this account. Start tracking your performance by adding your first trade!
-            </p>
-            <a href="/trades/new" tabIndex={-1}>
-              <Button className="w-full sm:w-auto" tabIndex={0}>
-                Add Your First Trade
-              </Button>
-            </a>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   if (!userData?.session) {
     return null;
   }
@@ -1210,8 +1161,8 @@ export default function Dashboard() {
           value={
             <p className="text-2xl font-semibold text-slate-800">
               {monthlyStats.monthlyData
-                ? (
-                    Object.values(monthlyStats.monthlyData).reduce(
+                ? (() => {
+                    const totalTrades = Object.values(monthlyStats.monthlyData).reduce(
                       (sum, month) =>
                         sum +
                         month.wins +
@@ -1219,8 +1170,13 @@ export default function Dashboard() {
                         month.beWins +
                         month.beLosses,
                       0
-                    ) / Object.keys(monthlyStats.monthlyData).length
-                  ).toFixed(0)
+                    );
+                    const monthsCount = Object.keys(monthlyStats.monthlyData).length;
+                    const avg =
+                      monthsCount > 0 ? totalTrades / monthsCount : 0;
+                    const value = isNaN(avg) || !isFinite(avg) ? 0 : avg;
+                    return value.toFixed(0);
+                  })()
                 : '0'}{' '}
               <span className="text-slate-500 text-sm">(incl. BE)</span>
             </p>
@@ -1245,26 +1201,34 @@ export default function Dashboard() {
             <p
               className={cn(
                 'text-2xl font-semibold',
-                monthlyStats.monthlyData
-                  ? Object.values(monthlyStats.monthlyData).reduce(
-                      (sum, month) => sum + month.profit,
+                monthlyStats.monthlyData && Object.keys(monthlyStats.monthlyData).length > 0
+                  ? (
+                      Object.values(monthlyStats.monthlyData).reduce(
+                        (sum, month) => sum + month.profit,
+                        0
+                      ) /
+                        Object.keys(monthlyStats.monthlyData).length >
                       0
-                    ) /
-                      Object.keys(monthlyStats.monthlyData).length >
-                    0
-                    ? 'text-emerald-500'
-                    : 'text-red-500'
+                      ? 'text-emerald-500'
+                      : 'text-red-500'
+                    )
                   : 'text-slate-800'
               )}
             >
-              {monthlyStats.monthlyData
-                ? `${currencySymbol}${(
-                    Object.values(monthlyStats.monthlyData).reduce(
-                      (sum, month) => sum + month.profit,
-                      0
-                    ) / Object.keys(monthlyStats.monthlyData).length
-                  ).toFixed(2)}`
-                : '$0.00'}
+              {monthlyStats.monthlyData && Object.keys(monthlyStats.monthlyData).length > 0
+                ? <>
+                    <span className="mr-1">{currencySymbol}</span>
+                    {(
+                      Object.values(monthlyStats.monthlyData).reduce(
+                        (sum, month) => sum + month.profit,
+                        0
+                      ) / Object.keys(monthlyStats.monthlyData).length
+                    ).toFixed(2)}
+                  </>
+                : <>
+                    <span className="mr-1">{currencySymbol}</span>0
+                  </>
+              }
             </p>
           }
         />
