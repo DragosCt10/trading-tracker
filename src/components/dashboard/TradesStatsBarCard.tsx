@@ -53,10 +53,23 @@ export function TradeStatsBarCard({
   valueKey = 'value',
   heightClassName, // ignored for height consistency
 }: TradeStatsBarCardProps) {
-  if (!data || data.length === 0) {
+  // Show "No trades found" if there is no data or all categories have 0 trades (totalTrades, wins, losses, beWins, beLosses all 0 or undefined)
+  const onlyZero =
+    !data ||
+    data.length === 0 ||
+    data.every(
+      (d) =>
+        (d.totalTrades ?? 0) === 0 &&
+        (d.wins ?? 0) === 0 &&
+        (d.losses ?? 0) === 0 &&
+        (d.beWins ?? 0) === 0 &&
+        (d.beLosses ?? 0) === 0
+    );
+
+  if (onlyZero) {
     return (
-      <Card className="border shadow-none bg-white">
-        <CardHeader className="pb-2">
+      <Card className="border shadow-none bg-white h-96 flex flex-col">
+        <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
             {title}
           </CardTitle>
@@ -64,8 +77,15 @@ export function TradeStatsBarCard({
             {description}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-slate-400">No data available.</p>
+        <CardContent className="flex-1 flex justify-center items-center">
+          <div className="flex flex-col justify-center items-center w-full h-full">
+            <div className="text-base font-medium text-slate-500 text-center mb-1">
+              No trades found
+            </div>
+            <div className="text-sm text-slate-400 text-center max-w-xs">
+              There are no trades to display for this category yet. Start trading to see your statistics here!
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
