@@ -55,6 +55,32 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
     profitPercent: stat.pnlPercentage ? Number(stat.pnlPercentage.toFixed(2)) : 0,
   }));
 
+  // Handle no trades: Show empty message like TradesStatsBarCard
+  if (!marketStats || marketStats.length === 0) {
+    return (
+      <Card className="border shadow-none bg-white h-[360px] flex flex-col">
+        <CardHeader className="pb-1 flex-shrink-0">
+          <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
+            Market Profit Statistics
+          </CardTitle>
+          <CardDescription className="text-sm text-slate-500 mb-3 leading-tight">
+            Profit and P&amp;L percentage by market
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 flex justify-center items-center">
+          <div className="flex flex-col justify-center items-center w-full h-full">
+            <div className="text-base font-medium text-slate-500 text-center mb-1">
+              No trades found
+            </div>
+            <div className="text-sm text-slate-400 text-center max-w-xs">
+              There are no trades to display for this category yet. Start trading to see your statistics here!
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Use same coloring as MonthlyPerformanceChart (emerald/red w/opacity)
   const getBarColor = (profit: number) =>
     profit >= 0 ? COLOR_PROFIT_POSITIVE : COLOR_PROFIT_NEGATIVE;
