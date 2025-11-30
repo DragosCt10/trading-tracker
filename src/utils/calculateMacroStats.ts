@@ -1,6 +1,8 @@
 // src/utils/calculateMacroStats.ts
 import { Trade } from '@/types/trade';
 import { MacroStats } from '@/types/dashboard';
+import { calculateTradeQualityIndex } from './calculateTradeQualityIndex';
+import { calculateRRStats } from './calculateRMultiple';
 
 /** Simple sample‐based Sharpe ratio. */
 function calcSharpe(returns: number[]): number {
@@ -16,7 +18,7 @@ function calcSharpe(returns: number[]): number {
 }
 
 /**
- * Calculate profitFactor, consistency (excl-BE & incl-BE), and Sharpe.
+ * Calculate profitFactor, consistency (excl-BE & incl-BE), Sharpe, and TQI.
  */
 export function calculateMacroStats(
   trades: Trade[],
@@ -82,10 +84,16 @@ export function calculateMacroStats(
   // Sharpe
   const sharpeWithBE = calcSharpe(returnsWithBE);
 
+  // Trade Quality Index
+  const tradeQualityIndex = calculateTradeQualityIndex(trades);
+  const multipleR = calculateRRStats(trades)
+
   return {
     profitFactor,
     consistencyScore,
     consistencyScoreWithBE,
     sharpeWithBE,
+    tradeQualityIndex,
+    multipleR
   };
 }
