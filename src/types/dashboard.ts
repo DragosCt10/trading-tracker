@@ -25,6 +25,8 @@ export interface MacroStats {
   consistencyScore: number;        // excluding BE
   consistencyScoreWithBE: number;  // including BE
   sharpeWithBE: number;            // including BE
+  tradeQualityIndex: number;
+  multipleR: number;
 }
 
 export interface BaseStats {
@@ -146,4 +148,6 @@ export interface Stats {
   partialWinRateWithBE: number;
   totalPartialTradesCount: number;
   totalPartialsBECount: number;
+  tradeQualityIndex: number;
+  multipleR: number;
   }
