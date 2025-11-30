@@ -838,13 +838,13 @@ export default function Dashboard() {
       ? 'text-emerald-500'
       : stats.averagePnLPercentage < 0
       ? 'text-red-500'
-      : 'text-slate-500';
+      : 'text-slate-800';
   const streakColor =
     stats.currentStreak > 0
       ? 'text-emerald-500'
       : stats.currentStreak < 0
       ? 'text-red-500'
-      : 'text-slate-500';
+      : 'text-slate-800';
 
   const markets = Array.from(new Set(allTrades.map((t) => t.market)));
 
@@ -983,60 +983,60 @@ export default function Dashboard() {
               <div className="font-semibold text-slate-900">
                 Profit Factor Interpretation
               </div>
+
               <div
                 className={cn(
-                  'border rounded p-1.5 sm:p-2',
+                  "rounded-lg p-1.5 sm:p-2",
                   macroStats.profitFactor < 1
-                    ? 'bg-red-50 border-red-200'
-                    : 'bg-slate-50 border-slate-200'
+                    ? "bg-red-50 border border-red-100"
+                    : ""
                 )}
               >
-                <span className="font-medium">🚫 &lt; 1.0</span> — Losing strategy.
-                Losses exceed profits.
+                <span className="font-medium">🚫 &lt; 1.0</span> — Losing strategy. Losses exceed profits.
               </div>
+
               <div
                 className={cn(
-                  'border rounded p-1.5 sm:p-2',
+                  "rounded-lg p-1.5 sm:p-2",
                   macroStats.profitFactor >= 1 && macroStats.profitFactor < 1.5
-                    ? 'bg-yellow-50 border-yellow-200'
-                    : 'bg-slate-50 border-slate-200'
+                    ? "bg-orange-50 border border-orange-100"
+                    : ""
                 )}
               >
-                <span className="font-medium">⚠️ 1.0 – 1.49</span> — Weak or
-                marginal profitability. Use caution.
+                <span className="font-medium">⚠️ 1.0 – 1.49</span> — Weak or marginal profitability. Use caution.
               </div>
+
               <div
                 className={cn(
-                  'border rounded p-1.5 sm:p-2',
+                  "rounded-lg p-1.5 sm:p-2",
                   macroStats.profitFactor >= 1.5 && macroStats.profitFactor < 2
-                    ? 'bg-green-50 border-green-200'
-                    : 'bg-slate-50 border-slate-200'
+                    ? "bg-amber-50 border border-amber-100"
+                    : ""
                 )}
               >
-                <span className="font-medium">✅ 1.5 – 1.99</span> — Good
-                performance. Solid, sustainable strategy.
+                <span className="font-medium">✅ 1.5 – 1.99</span> — Good performance. Solid, sustainable strategy.
               </div>
+
               <div
                 className={cn(
-                  'border rounded p-1.5 sm:p-2',
+                  "rounded-lg p-1.5 sm:p-2",
                   macroStats.profitFactor >= 2 && macroStats.profitFactor < 3
-                    ? 'bg-blue-50 border-blue-200'
-                    : 'bg-slate-50 border-slate-200'
+                    ? "bg-emerald-50 border border-emerald-100"
+                    : ""
                 )}
               >
-                <span className="font-medium">🔷 2.0 – 2.99</span> — Very good.
-                High reward vs. risk.
+                <span className="font-medium">🔷 2.0 – 2.99</span> — Very good. High reward vs. risk.
               </div>
+
               <div
                 className={cn(
-                  'border rounded p-1.5 sm:p-2',
+                  "rounded-lg p-1.5 sm:p-2",
                   macroStats.profitFactor >= 3
-                    ? 'bg-purple-50 border-purple-200'
-                    : 'bg-slate-50 border-slate-200'
+                    ? "bg-blue-50 border border-blue-100"
+                    : ""
                 )}
               >
-                <span className="font-medium">💎 3.0+</span> — Excellent. Possibly
-                overfitted — verify robustness.
+                <span className="font-medium">💎 3.0+</span> — Excellent. Possibly overfitted — verify robustness.
               </div>
             </div>
           }
@@ -1044,9 +1044,9 @@ export default function Dashboard() {
             <p
               className={cn(
                 'text-2xl font-semibold',
-                macroStats.profitFactor > 0
+                macroStats.profitFactor > 1.5
                   ? 'text-emerald-500'
-                  : macroStats.profitFactor < 0
+                  : macroStats.profitFactor < 1.49
                   ? 'text-red-500'
                   : 'text-slate-800'
               )}
@@ -1128,9 +1128,9 @@ export default function Dashboard() {
             <p
               className={cn(
                 'text-2xl font-semibold',
-                macroStats.consistencyScore > 0
+                macroStats.consistencyScore > 60
                   ? 'text-emerald-500'
-                  : macroStats.consistencyScore < 0
+                  : macroStats.consistencyScore < 59
                   ? 'text-red-500'
                   : 'text-slate-800'
               )}
@@ -1298,9 +1298,9 @@ export default function Dashboard() {
             <p
               className={cn(
                 'text-2xl font-semibold',
-                macroStats.sharpeWithBE > 0
+                macroStats.sharpeWithBE > 0.5
                   ? 'text-emerald-500'
-                  : macroStats.sharpeWithBE < 0
+                  : macroStats.sharpeWithBE < 0.49
                   ? 'text-red-500'
                   : 'text-slate-800'
               )}
@@ -1361,6 +1361,110 @@ export default function Dashboard() {
                   : 0}{' '}
                 w/ BE)
               </span>
+            </p>
+          }
+        />
+        
+        {/* TQI (Trade Quality Index) */}
+        <StatCard
+          title="TQI"
+          tooltipContent={
+            <div className="space-y-2 text-slate-700">
+              <div className="font-semibold text-slate-900">
+                TQI (Trade Quality Index) Interpretation
+              </div>
+
+              <div
+                className={cn(
+                  "rounded-lg p-1.5 sm:p-2",
+                  macroStats.tradeQualityIndex < 0.20 ? "bg-red-50 border border-red-100" : ""
+                )}
+              >
+                <span className="font-medium">🛑 &lt; 0.20</span> — Very weak. 
+                Unstable win rate or highly inconsistent RR. Indicates no reliable edge yet.
+              </div>
+
+              <div
+                className={cn(
+                  "rounded-lg p-1.5 sm:p-2",
+                  macroStats.tradeQualityIndex >= 0.20 && macroStats.tradeQualityIndex < 0.30
+                    ? "bg-orange-50 border border-orange-100"
+                    : ""
+                )}
+              >
+                <span className="font-medium">❗ 0.20 – 0.29</span> — Weak stability. 
+                Edge may exist but results are too inconsistent or conditions too variable.
+              </div>
+
+              <div
+                className={cn(
+                  "rounded-lg p-1.5 sm:p-2",
+                  macroStats.tradeQualityIndex >= 0.30 && macroStats.tradeQualityIndex < 0.40
+                    ? "bg-amber-50 border border-amber-100"
+                    : ""
+                )}
+              >
+                <span className="font-medium">⚠️ 0.30 – 0.39</span> — Good. 
+                Strategy shows stability and repeatable behavior. Early signs of robustness.
+              </div>
+
+              <div
+                className={cn(
+                  "rounded-lg p-1.5 sm:p-2",
+                  macroStats.tradeQualityIndex >= 0.40 && macroStats.tradeQualityIndex < 0.55
+                    ? "bg-emerald-50 border border-emerald-100"
+                    : ""
+                )}
+              >
+                <span className="font-medium">✅ 0.40 – 0.55</span> — Very strong. 
+                High trade consistency and reliable RR structure. Robust performance.
+              </div>
+
+              <div
+                className={cn(
+                  "rounded-lg p-1.5 sm:p-2",
+                  macroStats.tradeQualityIndex >= 0.55
+                    ? "bg-blue-50 border border-blue-100"
+                    : ""
+                )}
+              >
+                <span className="font-medium">💎 0.55+</span> — Elite trade quality. 
+                Exceptional consistency in win rate and RR. Typical of advanced, highly disciplined strategies.
+              </div>
+            </div>
+          }
+
+          value={
+            <p
+              className={cn(
+                'text-2xl font-medium',
+                typeof macroStats.tradeQualityIndex === 'number'
+                  ? macroStats.tradeQualityIndex > 0.30
+                    ? 'text-emerald-500'
+                    : macroStats.tradeQualityIndex < 0.29
+                    ? 'text-red-500'
+                    : 'text-slate-800'
+                  : 'text-slate-800'
+              )}
+            >
+              {typeof macroStats.tradeQualityIndex === 'number'
+                ? macroStats.tradeQualityIndex.toFixed(2)
+                : '—'}
+            </p>
+          }
+        />
+
+        <StatCard
+          title="RR Multiple"
+          value={
+            <p
+              className={cn(
+                'text-2xl font-medium text-slate-800'
+              )}
+            >
+              {typeof macroStats.multipleR === 'number'
+                ? macroStats.multipleR.toFixed(2)
+                : '—'}
             </p>
           }
         />
@@ -1711,7 +1815,109 @@ export default function Dashboard() {
             </div>
           }
         />
+
+        {/* TQI (Trade Quality Index) */}
+        <StatCard
+          title="TQI"
+          tooltipContent={
+            <div className="space-y-2 text-slate-700">
+              <div className="font-semibold text-slate-900">
+                TQI (Trade Quality Index) Interpretation
+              </div>
+
+              <div
+                className={cn(
+                  "rounded-lg p-1.5 sm:p-2",
+                  stats.tradeQualityIndex < 0.20 ? "bg-red-50 border border-red-100" : ""
+                )}
+              >
+                <span className="font-medium">🛑 &lt; 0.20</span> — Very weak. 
+                Unstable win rate or highly inconsistent RR. Indicates no reliable edge yet.
+              </div>
+
+              <div
+                className={cn(
+                  "rounded-lg p-1.5 sm:p-2",
+                  stats.tradeQualityIndex >= 0.20 && stats.tradeQualityIndex < 0.30
+                    ? "bg-orange-50 border border-orange-100"
+                    : ""
+                )}
+              >
+                <span className="font-medium">❗ 0.20 – 0.29</span> — Weak stability. 
+                Edge may exist but results are too inconsistent or conditions too variable.
+              </div>
+
+              <div
+                className={cn(
+                  "rounded-lg p-1.5 sm:p-2",
+                  stats.tradeQualityIndex >= 0.30 && stats.tradeQualityIndex < 0.40
+                    ? "bg-amber-50 border border-amber-100"
+                    : ""
+                )}
+              >
+                <span className="font-medium">⚠️ 0.30 – 0.39</span> — Good. 
+                Strategy shows stability and repeatable behavior. Early signs of robustness.
+              </div>
+
+              <div
+                className={cn(
+                  "rounded-lg p-1.5 sm:p-2",
+                  stats.tradeQualityIndex >= 0.40 && stats.tradeQualityIndex < 0.55
+                    ? "bg-emerald-50 border border-emerald-100"
+                    : ""
+                )}
+              >
+                <span className="font-medium">✅ 0.40 – 0.55</span> — Very strong. 
+                High trade consistency and reliable RR structure. Robust performance.
+              </div>
+
+              <div
+                className={cn(
+                  "rounded-lg p-1.5 sm:p-2",
+                  stats.tradeQualityIndex >= 0.55
+                    ? "bg-blue-50 border border-blue-100"
+                    : ""
+                )}
+              >
+                <span className="font-medium">💎 0.55+</span> — Elite trade quality. 
+                Exceptional consistency in win rate and RR. Typical of advanced, highly disciplined strategies.
+              </div>
+            </div>
+          }
+
+          value={
+            <p
+              className={cn(
+                'text-2xl font-medium',
+                typeof stats.tradeQualityIndex === 'number'
+                  ? stats.tradeQualityIndex > 0.30
+                    ? 'text-emerald-500'
+                    : stats.tradeQualityIndex < 0.29
+                    ? 'text-red-500'
+                    : 'text-slate-800'
+                  : 'text-slate-800'
+              )}
+            >
+              {typeof stats.tradeQualityIndex === 'number'
+                ? stats.tradeQualityIndex.toFixed(2)
+                : '—'}
+            </p>
+          }
+        />
+
+        <StatCard
+          title="RR Multiple"
+          value={
+            <p className="text-2xl font-medium text-slate-800">
+              {typeof stats.multipleR === 'number'
+                ? stats.multipleR.toFixed(2)
+                : '—'}
+            </p>
+          }
+        />
       </div>
+
+      
 
 
       {/* Risk Per Trade Card */}
