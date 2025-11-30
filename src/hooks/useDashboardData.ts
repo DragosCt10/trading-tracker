@@ -45,6 +45,8 @@ import {
   Stats, 
   TradeTypeStats } from '@/types/dashboard';
 import { calculateEvaluationStats } from '@/utils/calculateEvaluationStats';
+import { calculateTradeQualityIndex } from '@/utils/calculateTradeQualityIndex';
+import { calculateRRStats } from '@/utils/calculateRMultiple';
 
 
 const TIME_INTERVALS = [
@@ -142,7 +144,6 @@ export function useDashboardData({
   selectedYear: number;
   selectedMarket: string;
 }) {
-  const { data: user, isLoading: userLoading, error } = useUserDetails();
   const [stats, setStats] = useState<Stats>({
     totalTrades: 0,
     totalWins: 0,
@@ -168,7 +169,9 @@ export function useDashboardData({
     partialWinRate: 0,
     partialWinRateWithBE: 0,
     totalPartialTradesCount: 0,
-    totalPartialsBECount: 0
+    totalPartialsBECount: 0,
+    tradeQualityIndex: 0,
+    multipleR: 0
   });
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStatsResult>({
     bestMonth: null,
@@ -215,6 +218,8 @@ export function useDashboardData({
     consistencyScore: 0,
     consistencyScoreWithBE: 0,
     sharpeWithBE: 0,
+    tradeQualityIndex: 0,
+    multipleR: 0
   });
   const [riskStats, setRiskStats] = useState<RiskAnalysis | null>(null);
   const [allTradesRiskStats, setAllTradesRiskStats] = useState<RiskAnalysis | null>(null);
@@ -467,7 +472,7 @@ export function useDashboardData({
         JSON.stringify(prev) !== JSON.stringify(riskAnalysis) ? riskAnalysis : prev
       );
     } else {
-      setMacroStats({ profitFactor: 0, consistencyScore: 0, consistencyScoreWithBE: 0, sharpeWithBE: 0 });
+      setMacroStats({ profitFactor: 0, consistencyScore: 0, consistencyScoreWithBE: 0, sharpeWithBE: 0, tradeQualityIndex: 0, multipleR: 0 });
       setAllTradesRiskStats(null);
     }
   }, [allTrades.length, activeAccount?.account_balance]);
@@ -491,6 +496,8 @@ export function useDashboardData({
       const evaluationStats = calculateEvaluationStats(filtered);
       const { currentStreak, maxWinningStreak, maxLosingStreak } = calculateStreaks(filtered);
       const averageDaysBetweenTrades = calculateAverageDaysBetweenTrades(filtered);
+      const tradeQualityIndex = calculateTradeQualityIndex(filtered);
+      const multipleR = calculateRRStats(filtered)
       const { 
         partialWinningTrades, 
         partialLosingTrades, 
@@ -527,7 +534,9 @@ export function useDashboardData({
         partialWinRate,
         partialWinRateWithBE,
         totalPartialTradesCount,
-        totalPartialsBECount
+        totalPartialsBECount,
+        tradeQualityIndex,
+        multipleR
       }));
     } else {
       // Reset stats when no filtered trades, but only if not already cleared
@@ -557,6 +566,8 @@ export function useDashboardData({
           partialWinRateWithBE: 0,
           totalPartialTradesCount: 0,
           totalPartialsBECount: 0,
+          tradeQualityIndex: 0,
+          multipleR: 0
         };
         return JSON.stringify(prev) === JSON.stringify(cleared) ? prev : cleared;
       });
