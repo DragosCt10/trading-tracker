@@ -153,7 +153,6 @@ export function calculateIntervalStats(
     };
   });
 }
-
 /**
  * SL size stats: average SL per market.
  */
