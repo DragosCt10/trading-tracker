@@ -57,6 +57,7 @@ export default function Navbar() {
   const handleSignOut = async () => {
     try {
       setIsSigningOut(true);
+      await queryClient.invalidateQueries();
       await supabase.auth.signOut();
       router.replace('/');
     } catch (error) {
