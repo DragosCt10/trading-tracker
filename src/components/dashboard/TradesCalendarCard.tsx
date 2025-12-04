@@ -222,23 +222,22 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
               const beOutcome =
                 beTrades.length > 0 ? beTrades[0].trade_outcome : null;
 
-              const totalPnLPercentage = filteredDayTrades.reduce((sum, trade) => {
-                if (trade.break_even) {
-                  // completely skip BE trades
-                  return sum;
-                }
+              // Filter out all pure BE trades
+              const validTradesForPNL = filteredDayTrades.filter(
+                (trade) => !trade.break_even // ignore all BE completely
+              );
 
-                return (
-                  sum +
-                  (typeof trade.pnl_percentage === 'number'
-                    ? trade.pnl_percentage
-                    : 0)
-                );
+              // Profit (€)
+              const displayProfit = validTradesForPNL.reduce((sum, trade) => {
+                return sum + (trade.calculated_profit || 0);
               }, 0);
 
-              const displayProfit = realDayTrades.reduce((sum, trade) => {
-                if (trade.break_even && !trade.partials_taken) return sum;
-                return sum + (trade.calculated_profit || 0);
+              // Percentage (only non-BE %)
+              const totalPnLPercentage = validTradesForPNL.reduce((sum, trade) => {
+                return sum +
+                  (typeof trade.pnl_percentage === 'number'
+                    ? trade.pnl_percentage
+                    : 0);
               }, 0);
 
               const baseColor =
