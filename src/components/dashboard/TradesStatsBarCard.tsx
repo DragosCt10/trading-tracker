@@ -30,6 +30,7 @@ export interface TradeStatDatum {
   winRate?: number;        // 0–100
   winRateWithBE?: number;  // 0–100
   value?: number;          // generic value (e.g. SL size)
+  // Flexible for chart data that does not supply all above (e.g. just `category` and `value`)
 }
 
 type Mode = 'winsLossesWinRate' | 'singleValue';
@@ -53,17 +54,29 @@ export function TradeStatsBarCard({
   valueKey = 'value',
   heightClassName, // ignored for height consistency
 }: TradeStatsBarCardProps) {
-  // Show "No trades found" if there is no data or all categories have 0 trades (totalTrades, wins, losses, beWins, beLosses all 0 or undefined)
-  const onlyZero =
-    !data ||
-    data.length === 0 ||
-    data.every(
-      (d) =>
-        (d.totalTrades ?? 0) === 0 &&
-        (d.wins ?? 0) === 0 &&
-        (d.losses ?? 0) === 0 &&
-        (d.beWins ?? 0) === 0 &&
-        (d.beLosses ?? 0) === 0
+  // "No Trades" fallback must support partial objects
+  // If mode === 'winsLossesWinRate', require at least one of wins/losses/beWins/beLosses/totalTrades to be > 0
+  // If mode === 'singleValue', require at least one data point with a defined and finite value in valueKey
+  const onlyZero = !data || data.length === 0 ||
+    (
+      mode === 'winsLossesWinRate'
+        ? data.every(
+            (d) =>
+              (d.totalTrades ?? 0) === 0 &&
+              (d.wins ?? 0) === 0 &&
+              (d.losses ?? 0) === 0 &&
+              (d.beWins ?? 0) === 0 &&
+              (d.beLosses ?? 0) === 0
+          )
+        : mode === 'singleValue'
+        ? data.every(
+            (d) =>
+              d[valueKey] === undefined ||
+              d[valueKey] === null ||
+              isNaN(Number(d[valueKey])) ||
+              !isFinite(Number(d[valueKey]))
+          )
+        : true
     );
 
   if (onlyZero) {
