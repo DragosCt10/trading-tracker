@@ -119,7 +119,6 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         setup_type: editedTrade.setup_type,
         liquidity: editedTrade.liquidity,
         sl_size: editedTrade.sl_size,
-        // insert displacement_size here in the update
         displacement_size: editedTrade.displacement_size,
         risk_per_trade: editedTrade.risk_per_trade,
         trade_outcome: editedTrade.trade_outcome,
@@ -153,7 +152,9 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         throw updateError;
       }
 
-      await queryClient.invalidateQueries({ queryKey: ['trades'] });
+      // Invalidate all queries in the cache
+      await queryClient.invalidateQueries();
+
       setIsEditing(false);
       if (onTradeUpdated) onTradeUpdated();
       onClose();
