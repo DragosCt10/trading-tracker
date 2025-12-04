@@ -299,22 +299,22 @@ function buildWeeklyStats(
         ? trades
         : trades.filter((t) => t.market === selectedMarket);
 
-    // include all non-BE trades and BE trades with partials
-    const realTrades = filteredTrades.filter(
-      (t) => !t.break_even || (t.break_even && t.partials_taken)
-    );
+    const nonBETrades = filteredTrades.filter((t) => !t.break_even);
     const beTrades = filteredTrades.filter((t) => t.break_even);
 
-    const totalProfit = realTrades.reduce(
+    const totalProfit = nonBETrades.reduce(
       (sum, trade) => sum + (trade.calculated_profit || 0),
       0
     );
-    const wins = realTrades.filter(
-      (t) => t.trade_outcome === 'Win' && !t.break_even
+
+    const wins = nonBETrades.filter(
+      (t) => t.trade_outcome === 'Win'
     ).length;
-    const losses = realTrades.filter(
-      (t) => t.trade_outcome === 'Lose' && !t.break_even
+
+    const losses = nonBETrades.filter(
+      (t) => t.trade_outcome === 'Lose'
     ).length;
+
     const beCount = beTrades.length;
 
     const weekLabel = `${format(days[0], 'd MMM')} - ${format(
@@ -323,9 +323,7 @@ function buildWeeklyStats(
     )}`;
 
     const pnlPercent =
-      accountBalance > 0
-        ? (totalProfit / accountBalance) * 100
-        : 0;
+      accountBalance > 0 ? (totalProfit / accountBalance) * 100 : 0;
 
     return {
       totalProfit,
