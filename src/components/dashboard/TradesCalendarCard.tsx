@@ -222,8 +222,12 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
               const beOutcome =
                 beTrades.length > 0 ? beTrades[0].trade_outcome : null;
 
-              const totalPnLPercentage = realDayTrades.reduce((sum, trade) => {
-                if (trade.break_even && !trade.partials_taken) return sum;
+              const totalPnLPercentage = filteredDayTrades.reduce((sum, trade) => {
+                if (trade.break_even) {
+                  // completely skip BE trades
+                  return sum;
+                }
+
                 return (
                   sum +
                   (typeof trade.pnl_percentage === 'number'
