@@ -990,7 +990,9 @@ export default function Dashboard() {
                     : ""
                 )}
               >
-                <span className="font-medium">🚫 &lt; 1.0</span> — Losing strategy. Losses exceed profits.
+                <span className="font-medium">🔹 &lt; 1.0</span> — Negative Efficiency
+                <br />
+                Losses outweigh gains.
               </div>
 
               <div
@@ -1001,7 +1003,9 @@ export default function Dashboard() {
                     : ""
                 )}
               >
-                <span className="font-medium">⚠️ 1.0 – 1.49</span> — Weak or marginal profitability. Use caution.
+                <span className="font-medium">🟠 1.0 – 1.49</span> — Marginal Efficiency
+                <br />
+                Profitable but limited.
               </div>
 
               <div
@@ -1012,7 +1016,9 @@ export default function Dashboard() {
                     : ""
                 )}
               >
-                <span className="font-medium">✅ 1.5 – 1.99</span> — Good performance. Solid, sustainable strategy.
+                <span className="font-medium">🟢 1.5 – 1.99</span> — Solid Efficiency
+                <br />
+                Consistent and sustainable edge.
               </div>
 
               <div
@@ -1023,7 +1029,9 @@ export default function Dashboard() {
                     : ""
                 )}
               >
-                <span className="font-medium">🔷 2.0 – 2.99</span> — Very good. High reward vs. risk.
+                <span className="font-medium">🔷 2.0 – 2.99</span> — High Efficiency
+                <br />
+                Strong reward relative to risk.
               </div>
 
               <div
@@ -1034,7 +1042,9 @@ export default function Dashboard() {
                     : ""
                 )}
               >
-                <span className="font-medium">💎 3.0+</span> — Excellent. Possibly overfitted — verify robustness.
+                <span className="font-medium">💎 3.0+</span> — Exceptional Efficiency
+                <br />
+                Very high edge — confirm durability.
               </div>
             </div>
           }
@@ -1070,8 +1080,9 @@ export default function Dashboard() {
                     : ''
                 )}
               >
-                <span className="font-medium">🚫 0% – 39%</span> — Very
-                inconsistent. Strategy is unstable or random.
+                <span className="font-medium">🔹 0% – 39%</span> — Low Consistency
+                <br />
+                Results are highly variable.
               </div>
               <div
                 className={cn(
@@ -1082,8 +1093,9 @@ export default function Dashboard() {
                     : ''
                 )}
               >
-                <span className="font-medium">❗ 40% – 59%</span> — Inconsistent.
-                Profits are unreliable across time.
+                <span className="font-medium">🟠 40% – 59%</span> — Developing Consistency
+                <br />
+                Some patterns, but still unreliable.
               </div>
               <div
                 className={cn(
@@ -1094,8 +1106,9 @@ export default function Dashboard() {
                     : ''
                 )}
               >
-                <span className="font-medium">⚠️ 60% – 74%</span> — Moderately
-                consistent. Needs improvement.
+                <span className="font-medium">🟡 60% – 74%</span> — Moderate Consistency
+                <br />
+                Improving, with room to refine.
               </div>
               <div
                 className={cn(
@@ -1106,8 +1119,9 @@ export default function Dashboard() {
                     : ''
                 )}
               >
-                <span className="font-medium">✅ 75% – 89%</span> — Very
-                consistent. Reliable performance.
+                <span className="font-medium">🟢 75% – 89%</span> — Strong Consistency
+                <br />
+                Reliable performance across trades.
               </div>
               <div
                 className={cn(
@@ -1117,8 +1131,9 @@ export default function Dashboard() {
                     : ''
                 )}
               >
-                <span className="font-medium">💎 90% – 100%</span> — Extremely
-                consistent. Top-tier strategy.
+                <span className="font-medium">💎 90% – 100%</span> — Exceptional Consistency
+                <br />
+                Top-tier, highly repeatable results.
               </div>
             </div>
           }
