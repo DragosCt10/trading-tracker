@@ -1242,53 +1242,63 @@ export default function Dashboard() {
 
               <div
                 className={cn(
-                  'rounded-lg p-1.5 sm:p-2',
+                  "rounded-lg p-1.5 sm:p-2",
                   macroStats.sharpeWithBE < 0.2
-                    ? 'bg-red-50 border border-red-100'
-                    : ''
+                    ? "bg-orange-50 border border-orange-100"
+                    : ""
                 )}
               >
-                <span className="font-medium">🛑 &lt; 0.2</span> — Very weak. High volatility relative to returns. Consider reviewing trade consistency or overtrading.
+                <span className="font-medium">🔹 &lt; 0.20</span> — High Variability
+                <br />
+                Large swings relative to returns.
               </div>
               <div
                 className={cn(
-                  'rounded-lg p-1.5 sm:p-2',
+                  "rounded-lg p-1.5 sm:p-2",
                   macroStats.sharpeWithBE >= 0.2 && macroStats.sharpeWithBE < 0.5
-                    ? 'bg-orange-50 border border-orange-100'
-                    : ''
+                    ? "bg-orange-100 border border-orange-200"
+                    : ""
                 )}
               >
-                <span className="font-medium">❗ 0.2 – 0.49</span> — Acceptable for asymmetric strategies (like RR=2). Profit exists, but results are uneven.
+                <span className="font-medium">🟠 0.20 – 0.49</span> — Developing Stability
+                <br />
+                Profitable but uneven.
               </div>
               <div
                 className={cn(
-                  'rounded-lg p-1.5 sm:p-2',
+                  "rounded-lg p-1.5 sm:p-2",
                   macroStats.sharpeWithBE >= 0.5 && macroStats.sharpeWithBE < 1
-                    ? 'bg-amber-50 border border-amber-100'
-                    : ''
+                    ? "bg-amber-50 border border-amber-100"
+                    : ""
                 )}
               >
-                <span className="font-medium">⚠️ 0.5 – 0.99</span> — Solid performance. Profits outweigh risk, even if trades are not consecutive winners.
+                <span className="font-medium">🟡 0.50 – 0.99</span> — Balanced Performance
+                <br />
+                Returns generally outweigh risk.
               </div>
               <div
                 className={cn(
-                  'rounded-lg p-1.5 sm:p-2',
+                  "rounded-lg p-1.5 sm:p-2",
                   macroStats.sharpeWithBE >= 1 && macroStats.sharpeWithBE < 2
-                    ? 'bg-emerald-50 border border-emerald-100'
-                    : ''
+                    ? "bg-emerald-50 border border-emerald-100"
+                    : ""
                 )}
               >
-                <span className="font-medium">✅ 1.0 – 1.99</span> — Very strong risk-adjusted return. Consistent growth and low volatility.
+                <span className="font-medium">🟢 1.0 – 1.99</span> — Strong Efficiency
+                <br />
+                Consistent returns with controlled risk.
               </div>
               <div
                 className={cn(
-                  'rounded-lg p-1.5 sm:p-2',
+                  "rounded-lg p-1.5 sm:p-2",
                   macroStats.sharpeWithBE >= 2
-                    ? 'bg-blue-50 border border-blue-100'
-                    : ''
+                    ? "bg-blue-50 border border-blue-100"
+                    : ""
                 )}
               >
-                <span className="font-medium">💎 2.0+</span> — Exceptional. Usually seen in highly optimized or low-volatility systems.
+                <span className="font-medium">💎 2.0+</span> — Exceptional Efficiency
+                <br />
+                Rare stability and optimized execution.
               </div>
             </div>
           }
