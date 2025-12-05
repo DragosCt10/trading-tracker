@@ -1380,7 +1380,7 @@ export default function Dashboard() {
               >
                 <span className="font-medium">🔸 &lt; 0.20</span> — Needs Development
                 <br />
-                Results show limited consistency so far. Strategy may require refinement or more data to validate edge.
+                Limited consistency so far. Strategy may need work or more data.
               </div>
 
               <div
@@ -1393,7 +1393,7 @@ export default function Dashboard() {
               >
                 <span className="font-medium">🟠 0.20 – 0.29</span> — Early Stage Consistency
                 <br />
-                Some positive behavior is present, but outcomes remain variable. Continued improvement and testing recommended.
+                Some positive signs, but outcomes are still variable. Keep refining.
               </div>
 
               <div
@@ -1406,7 +1406,7 @@ export default function Dashboard() {
               >
                 <span className="font-medium">🟡 0.30 – 0.39</span> — Moderate Stability
                 <br />
-                Strategy demonstrates repeatable elements and growing robustness. Encouraging direction with room to enhance performance.
+                Shows repeatable elements and more robustness. Keep improving.
               </div>
 
               <div
@@ -1419,7 +1419,7 @@ export default function Dashboard() {
               >
                 <span className="font-medium">🟢 0.40 – 0.55</span> — Strong Quality
                 <br />
-                Good consistency in trade execution and RR structure. Strategy is performing well across conditions.
+                Good consistency and solid results across conditions.
               </div>
 
               <div
@@ -1432,7 +1432,7 @@ export default function Dashboard() {
               >
                 <span className="font-medium">💎 0.55+</span> — Exceptional Quality
                 <br />
-                High and reliable trade performance with excellent consistency. Reflects strong strategic refinement and discipline.
+                Very strong and reliable performance. The strategy is well-refined.
               </div>
             </div>
           }
@@ -1831,64 +1831,64 @@ export default function Dashboard() {
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  stats.tradeQualityIndex < 0.20 ? "bg-orange-50 border border-orange-100" : ""
+                  macroStats.tradeQualityIndex < 0.20 ? "bg-orange-50 border border-orange-100" : ""
                 )}
               >
                 <span className="font-medium">🔸 &lt; 0.20</span> — Needs Development
                 <br />
-                Results show limited consistency so far. Strategy may require refinement or more data to validate edge.
+                Limited consistency so far. Strategy may need work or more data.
               </div>
 
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  stats.tradeQualityIndex >= 0.20 && stats.tradeQualityIndex < 0.30
+                  macroStats.tradeQualityIndex >= 0.20 && macroStats.tradeQualityIndex < 0.30
                     ? "bg-orange-100 border border-orange-200"
                     : ""
                 )}
               >
                 <span className="font-medium">🟠 0.20 – 0.29</span> — Early Stage Consistency
                 <br />
-                Some positive behavior is present, but outcomes remain variable. Continued improvement and testing recommended.
+                Some positive signs, but outcomes are still variable. Keep refining.
               </div>
 
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  stats.tradeQualityIndex >= 0.30 && stats.tradeQualityIndex < 0.40
+                  macroStats.tradeQualityIndex >= 0.30 && macroStats.tradeQualityIndex < 0.40
                     ? "bg-amber-50 border border-amber-100"
                     : ""
                 )}
               >
                 <span className="font-medium">🟡 0.30 – 0.39</span> — Moderate Stability
                 <br />
-                Strategy demonstrates repeatable elements and growing robustness. Encouraging direction with room to enhance performance.
+                Shows repeatable elements and more robustness. Keep improving.
               </div>
 
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  stats.tradeQualityIndex >= 0.40 && stats.tradeQualityIndex < 0.55
+                  macroStats.tradeQualityIndex >= 0.40 && macroStats.tradeQualityIndex < 0.55
                     ? "bg-emerald-50 border border-emerald-100"
                     : ""
                 )}
               >
                 <span className="font-medium">🟢 0.40 – 0.55</span> — Strong Quality
                 <br />
-                Good consistency in trade execution and RR structure. Strategy is performing well across conditions.
+                Good consistency and solid results across conditions.
               </div>
 
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  stats.tradeQualityIndex >= 0.55
+                  macroStats.tradeQualityIndex >= 0.55
                     ? "bg-blue-50 border border-blue-100"
                     : ""
                 )}
               >
                 <span className="font-medium">💎 0.55+</span> — Exceptional Quality
                 <br />
-                High and reliable trade performance with excellent consistency. Reflects strong strategic refinement and discipline.
+                Very strong and reliable performance. The strategy is well-refined.
               </div>
             </div>
           }
