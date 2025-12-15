@@ -1080,7 +1080,7 @@ export default function Dashboard() {
                     : ''
                 )}
               >
-                <span className="font-medium">🔹 0% – 39%</span> — Low Consistency
+                <span className="font-medium">🔹 0% – 39%</span> — Low
                 <br />
                 Results are highly variable.
               </div>
@@ -1093,7 +1093,7 @@ export default function Dashboard() {
                     : ''
                 )}
               >
-                <span className="font-medium">🟠 40% – 59%</span> — Developing Consistency
+                <span className="font-medium">🟠 40% – 59%</span> — Developing
                 <br />
                 Some patterns, but still unreliable.
               </div>
@@ -1106,7 +1106,7 @@ export default function Dashboard() {
                     : ''
                 )}
               >
-                <span className="font-medium">🟡 60% – 74%</span> — Moderate Consistency
+                <span className="font-medium">🟡 60% – 74%</span> — Moderate
                 <br />
                 Improving, with room to refine.
               </div>
@@ -1119,7 +1119,7 @@ export default function Dashboard() {
                     : ''
                 )}
               >
-                <span className="font-medium">🟢 75% – 89%</span> — Strong Consistency
+                <span className="font-medium">🟢 75% – 89%</span> — Strong
                 <br />
                 Reliable performance across trades.
               </div>
@@ -1131,7 +1131,7 @@ export default function Dashboard() {
                     : ''
                 )}
               >
-                <span className="font-medium">💎 90% – 100%</span> — Exceptional Consistency
+                <span className="font-medium">💎 90% – 100%</span> — Exceptional
                 <br />
                 Top-tier, highly repeatable results.
               </div>
