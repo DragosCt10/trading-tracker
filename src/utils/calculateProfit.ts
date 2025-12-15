@@ -3,9 +3,9 @@
 import { Trade } from '@/types/trade';
 
 export interface ProfitStats {
-  /** Sum of PnL for all non-BE trades (static sizing). */
+  /** Sum of calculated_profit for all non-BE trades. */
   totalProfit: number;
-  /** Average PnL per non-BE trade (static sizing). */
+  /** Average calculated_profit per non-BE trade. */
   averageProfit: number;
   /** Total profit as a percentage of the starting balance. */
   averagePnLPercentage: number;
@@ -14,80 +14,54 @@ export interface ProfitStats {
 }
 
 /**
- * @param trades           Array of trades (will filter out BE for all stats).
+ * @param trades           Array of trades.
  * @param accountBalance   Starting account balance.
  *
- * - **totalProfit**, **averageProfit**, **averagePnLPercentage** use a *static* risk amount (pct of starting balance).
- * - **maxDrawdown** uses the original code's *dynamic* risk amount (pct of running balance) + initial peak=0 logic.
+ * - **totalProfit** is the sum of calculated_profit values (absolute currency) for all non-BE trades (ignores partials_taken and all BE trades).
+ * - **averageProfit**, **averagePnLPercentage**, and **maxDrawdown** are based on non-BE trades.
  */
 export function calculateProfit(
   trades: Trade[],
   accountBalance: number
 ): ProfitStats {
-  let totalProfit = 0;
-  let nonBECount  = 0;
-
-  // For drawdown:
-  let runningBalance = accountBalance;
-  let peak = 0;
-  let maxDrawdown = 0;
-
-  // Take only non-BE trades for drawdown calculation
-  const sortedForDrawdown = trades
+  // Filter non-BE trades only (ignoring all BE and partial trades)
+  const nonBETrades = trades
     .filter(t => !t.break_even)
     .slice()
     .sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime());
 
-  // For profit calculation, include BE trades if they have partials
-  const sortedForProfit = trades
-    .filter(t => !t.break_even || (t.break_even && t.partials_taken))
-    .slice()
-    .sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime());
-
-  // Calculate drawdown using only non-BE trades
-  for (const t of sortedForDrawdown) {
-    const pct = t.risk_per_trade ?? 0.5;
-    const rr  = t.risk_reward_ratio ?? 2;
-
-    // --- DYNAMIC‐BALANCE drawdown
-    const dynamicAmt = runningBalance * (pct / 100);
-    const pnl = t.trade_outcome === 'Win'
-      ? dynamicAmt * rr
-      : -dynamicAmt;
-    runningBalance += pnl;
-
-    if (runningBalance > peak) {
-      peak = runningBalance;
-    }
-    const drawdown = peak > 0
-      ? ((peak - runningBalance) / peak) * 100
-      : 0;
-    if (drawdown > maxDrawdown) {
-      maxDrawdown = drawdown;
-    }
-  }
-
-  // Calculate profit including BE trades with partials
-  for (const t of sortedForProfit) {
-    const pct = t.risk_per_trade ?? 0.5;
-    const rr = t.risk_reward_ratio ?? 2;
-    
-    // Calculate profit based on risk_per_trade and account balance
-    const riskAmount = accountBalance * (pct / 100);
-    const profit = t.trade_outcome === 'Win'
-      ? riskAmount * rr
-      : -riskAmount;
-      
-    totalProfit += profit;
-    if (!t.break_even) {
-      nonBECount++;
-    }
+  // Sum calculated_profit for all non-BE trades (stored as absolute currency amounts)
+  let totalProfit = 0;
+  let nonBECount = nonBETrades.length;
+  for (const t of nonBETrades) {
+    totalProfit += typeof t.calculated_profit === 'number' ? t.calculated_profit : 0;
   }
 
   const averageProfit = nonBECount > 0 ? totalProfit / nonBECount : 0;
   const averagePnLPercentage = accountBalance > 0
     ? (totalProfit / accountBalance) * 100
     : 0;
+
+  // Max drawdown calculation: Track running equity using absolute P/L, find largest relative peak-to-trough drop
+  let balanceHistory: number[] = [accountBalance];
+  let balance = accountBalance;
+  for (const t of nonBETrades) {
+    const profit = typeof t.calculated_profit === 'number' ? t.calculated_profit : 0;
+    balance += profit;
+    balanceHistory.push(balance);
+  }
+
+  let peak = balanceHistory[0];
+  let maxDrawdown = 0;
+  for (let i = 1; i < balanceHistory.length; i++) {
+    if (balanceHistory[i] > peak) {
+      peak = balanceHistory[i];
+    }
+    const drawdown = peak > 0 ? ((peak - balanceHistory[i]) / peak) * 100 : 0;
+    if (drawdown > maxDrawdown) {
+      maxDrawdown = drawdown;
+    }
+  }
 
   return {
     totalProfit,
