@@ -299,21 +299,13 @@ export function calculateMarketStats(trades: Trade[], accountBalance: number): M
   return calculateGroupedStats(trades, t => t.market || 'Unknown')
     .map(g => {
       const marketTrades = trades.filter(t => (t.market || 'Unknown') === g.type);
+
+      // Use stored absolute P/L per trade (calculated_profit); ignore non-numeric entries
       const profit = marketTrades.reduce((sum, trade) => {
-        const pct = trade.risk_per_trade ?? 0.5;
-        const rr = trade.risk_reward_ratio ?? 2;
-        const riskAmount = accountBalance * (pct / 100);
-        
-        // For non-BE trades
-        if (!trade.break_even) {
-          return sum + (trade.trade_outcome === 'Win' ? riskAmount * rr : -riskAmount);
-        }
-        // For BE trades with partials
-        if (trade.break_even && trade.partials_taken) {
-          return sum + (riskAmount * rr); // BE with partials is always treated as a win
-        }
-        return sum;
+        const value = typeof trade.calculated_profit === 'number' ? trade.calculated_profit : 0;
+        return sum + value;
       }, 0);
+
       const pnlPercentage = accountBalance > 0 ? (profit / accountBalance) * 100 : 0;
       return {
         market: g.type,
