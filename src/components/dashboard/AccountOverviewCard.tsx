@@ -112,15 +112,19 @@ export function AccountOverviewCard({
                 contentStyle={{ background: 'white', border: '1px solid #cbd5e1', borderRadius: 8, padding: '12px 16px', color: '#1e293b', fontSize: 14 }} // Tailwind slate-200 border, slate-800 text
                 wrapperStyle={{ outline: 'none' }}
                 cursor={false}
-                formatter={(value: number) =>
-                  <span className="text-slate-800 font-semibold">
-                    {currencySymbol}
-                    {value.toLocaleString('en-US', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </span>
-                }
+                formatter={(value) => {
+                  if (typeof value !== 'number') return null;
+
+                  return (
+                    <span className="text-slate-800 font-semibold">
+                      {currencySymbol}
+                      {value.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  );
+                }}
                 labelStyle={{ color: '#64748b', fontWeight: 400, fontSize: 14 }}
               />
 
