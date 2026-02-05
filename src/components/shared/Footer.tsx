@@ -12,7 +12,7 @@ export function Footer() {
           <div className="text-sm text-muted-foreground">
             © {YEAR}{" "}
             <Link href="/" className="underline-offset-4 hover:underline text-foreground">
-              Trading Tracker
+              TI Tracker
             </Link>
           </div>
         </div>
