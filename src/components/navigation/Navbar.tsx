@@ -82,7 +82,7 @@ export default function Navbar() {
               {/* Candlestick chart icon for trading (custom SVG) */}
               <Logo width={35} height={35} />
             </div>
-            <span className="hidden sm:inline">Trading Tracker</span>
+            <span className="hidden sm:inline">TI Tracker</span>
           </Link>
 
           <Separator orientation="vertical" className="mx-3 hidden h-6 lg:flex" />
