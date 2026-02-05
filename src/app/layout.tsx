@@ -8,7 +8,7 @@ import QueryProvider from '@/context/QueryContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Trading Tracker',
+  title: 'TI Tracker',
   description: 'Track your trading performance and journal your trades',
 };
 
