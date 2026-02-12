@@ -172,22 +172,22 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
           </Button>
         </AlertDialogTrigger>
 
-        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 dark:from-[#0a0f0d] dark:via-[#0d1612] dark:to-[#0a0f0d] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl px-6 py-5">
-          {/* Gradient orbs background (from auth layout) */}
-          {/* <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl px-6 py-5">
+          {/* Gradient orbs background */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
             <div
-              className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-emerald-500/15 dark:bg-emerald-500/10 rounded-full blur-3xl animate-pulse"
+              className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/8 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse"
               style={{ animationDuration: '8s' }}
             />
             <div
-              className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-green-500/15 dark:bg-green-500/10 rounded-full blur-3xl animate-pulse"
+              className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/8 dark:bg-violet-500/10 rounded-full blur-3xl animate-pulse"
               style={{ animationDuration: '10s', animationDelay: '2s' }}
             />
-          </div> */}
+          </div>
 
-          {/* Noise texture overlay (from update-password page) */}
+          {/* Noise texture overlay */}
           <div
-            className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none"
+            className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
               backgroundRepeat: 'repeat',
