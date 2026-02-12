@@ -159,22 +159,22 @@ export default function ActionBar() {
   // badge color mapping (shadcn Badge + utility classes)
   const badgeClass =
     activeMode === 'live'
-      ? 'bg-emerald-100 hover:bg-emerald-100 text-emerald-500'
+      ? 'bg-emerald-50/90 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/25'
       : activeMode === 'backtesting'
-      ? 'bg-violet-100 hover:bg-violet-100 text-violet-500'
+      ? 'bg-violet-50/90 text-violet-700 border border-violet-200/80 dark:bg-violet-500/10 dark:text-violet-300 dark:border-violet-500/25'
       : activeMode === 'demo'
-      ? 'bg-sky-100 hover:bg-sky-100 text-sky-500'
+      ? 'bg-sky-50/90 text-sky-700 border border-sky-200/80 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/25'
       : '';
 
   return (
     <div className="flex items-center justify-end w-full">
-      <div className="flex flex-col gap-2 w-full items-stretch sm:flex-row sm:items-center sm:justify-end sm:gap-2">
+      <div className="flex flex-col gap-2 w-full items-stretch sm:flex-row sm:items-center sm:justify-end sm:gap-2 text-xs sm:text-sm">
         {/* Current mode badge */}
         <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
           <Badge
             title={`Current mode: ${activeMode ?? '—'}`}
             className={clsx(
-              'px-2.5 py-1 text-xs shadow-none',
+              'px-2.5 py-1 text-[11px] rounded-full font-medium shadow-none pointer-events-none',
               badgeClass
             )}
           >
@@ -190,13 +190,13 @@ export default function ActionBar() {
             value={pendingMode}
             onValueChange={(val: Mode) => setPendingMode(val)}
           >
-            <SelectTrigger className="text-sm h-8 shadow-none min-w-[130px] w-full sm:w-[130px] md:w-[160px]">
+            <SelectTrigger className="h-9 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[130px] w-full sm:w-[130px] md:w-[160px] focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 transition-all duration-200">
               <SelectValue placeholder="Select mode" />
             </SelectTrigger>
-            <SelectContent className="text-sm min-w-[140px] md:min-w-[160px]">
-              <SelectItem value="live" className="text-sm">Live</SelectItem>
-              <SelectItem value="backtesting" className="text-sm">Backtesting</SelectItem>
-              <SelectItem value="demo" className="text-sm">Demo</SelectItem>
+            <SelectContent className="text-xs sm:text-sm min-w-[140px] md:min-w-[160px] border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+              <SelectItem value="live" className="text-xs sm:text-sm">Live</SelectItem>
+              <SelectItem value="backtesting" className="text-xs sm:text-sm">Backtesting</SelectItem>
+              <SelectItem value="demo" className="text-xs sm:text-sm">Demo</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -213,13 +213,13 @@ export default function ActionBar() {
             onValueChange={(val) => setPendingAccountId(val ?? null)}
             disabled={accountsLoading || noAccounts}
           >
-            <SelectTrigger className="text-sm h-8 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px]">
+            <SelectTrigger className="h-9 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px] focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 transition-all duration-200">
               <SelectValue placeholder={noAccounts ? 'No subaccounts' : 'Choose subaccount…'} />
             </SelectTrigger>
-            <SelectContent className="text-sm min-w-[170px] md:min-w-[200px]">
+            <SelectContent className="text-xs sm:text-sm min-w-[170px] md:min-w-[200px] border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
               {!noAccounts ? (
                 accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id} className="text-sm">
+                  <SelectItem key={a.id} value={a.id} className="text-xs sm:text-sm">
                     {a.name}
                   </SelectItem>
                 ))
@@ -253,21 +253,24 @@ export default function ActionBar() {
           <Button
             type="button"
             size="sm"
-            className="w-full sm:w-auto"
+            className="relative w-full sm:w-auto h-9 overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 via-green-600 to-teal-600 hover:from-emerald-600 hover:via-green-700 hover:to-teal-700 text-white font-semibold shadow-md shadow-emerald-500/30 dark:shadow-emerald-500/20 group border-0 text-xs sm:text-sm transition-all duration-300 disabled:opacity-60"
             onClick={onApply}
             disabled={
               applying ||
               (!pendingAccountId && !noAccounts) ||
               isAlreadyActive
             }
-          >
-            {applying && (
-              <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" className="opacity-25" />
-                <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z" />
-              </svg>
-            )}
-            Apply
+            >
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              {applying && (
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" className="opacity-25" />
+                  <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z" />
+                </svg>
+              )}
+              Apply
+            </span>
+            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
           </Button>
         </div>
       </div>

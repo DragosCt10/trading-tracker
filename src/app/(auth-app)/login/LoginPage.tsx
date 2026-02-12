@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLoading } from '@/context/LoadingContext';
+import { useUserDetails } from '@/hooks/useUserDetails';
 
 // shadcn/ui imports
 import { Button } from '@/components/ui/button';
@@ -12,21 +13,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Logo from '@/components/shared/Logo';
 
-export default function UpdatePassword() {
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const router = useRouter();
-  const { setIsLoading: setGlobalLoading } = useLoading();
+  const { setIsLoading } = useLoading();
+  const { data: userData } = useUserDetails();
 
   useEffect(() => {
+    // If user is already logged in, redirect to dashboard
+    if (userData?.user && userData?.session) {
+      router.push('/analytics');
+    }
+
     // Check for saved theme preference or system preference
     const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
     const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     setTheme(savedTheme || systemTheme);
-  }, []);
+  }, [userData, router]);
 
   useEffect(() => {
     // Apply theme to document
@@ -35,45 +41,43 @@ export default function UpdatePassword() {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
-  const handleUpdatePassword = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setGlobalLoading(true);
     setError('');
-    setMessage('');
+    setIsLoading(true);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({
-      password: password,
-    });
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setError(error.message);
-    } else {
-      setMessage('Password updated successfully. Redirecting to login...');
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
+      if (error) {
+        setError(error.message);
+      } else {
+        router.push('/analytics');
+        router.refresh();
+      }
+    } catch (err) {
+      setError('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
-    setGlobalLoading(false);
   };
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4 transition-colors duration-500">
-
+    
       {/* Noise texture overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02] mix-blend-overlay pointer-events-none"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-          backgroundRepeat: 'repeat',
-        }}
-      />
+      <div className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02] mix-blend-overlay pointer-events-none"
+           style={{
+             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+             backgroundRepeat: 'repeat'
+           }} />
 
       {/* Theme toggle button */}
       <button
@@ -82,23 +86,11 @@ export default function UpdatePassword() {
         aria-label="Toggle theme"
       >
         {theme === 'dark' ? (
-          <svg
-            className="w-5 h-5 text-amber-400 group-hover:rotate-180 transition-transform duration-500"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
-              fillRule="evenodd"
-              clipRule="evenodd"
-            />
+          <svg className="w-5 h-5 text-amber-400 group-hover:rotate-180 transition-transform duration-500" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fillRule="evenodd" clipRule="evenodd" />
           </svg>
         ) : (
-          <svg
-            className="w-5 h-5 text-slate-700 group-hover:rotate-180 transition-transform duration-500"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
+          <svg className="w-5 h-5 text-slate-700 group-hover:rotate-180 transition-transform duration-500" fill="currentColor" viewBox="0 0 20 20">
             <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
           </svg>
         )}
@@ -106,13 +98,13 @@ export default function UpdatePassword() {
 
       {/* Main content - Full page card */}
       <div className="relative z-10 w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-1000">
-
+        
         {/* Top accent line */}
         <div className="absolute -top-20 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50" />
-
+        
         {/* Content container */}
         <div className="relative">
-
+          
           {/* Header section */}
           <div className="flex flex-col items-center space-y-6 mb-10">
             {/* Logo with glow effect */}
@@ -122,38 +114,58 @@ export default function UpdatePassword() {
                 <Logo width={48} height={48} />
               </div>
             </div>
-
+            
             <div className="text-center space-y-2">
               <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-50 animate-in fade-in slide-in-from-top-2 duration-700 delay-150">
-                Update your password
+                Welcome Back
               </h1>
               <p className="text-sm text-slate-600 dark:text-slate-400 font-medium animate-in fade-in slide-in-from-top-2 duration-700 delay-300">
-                Choose a new secure password to protect your account
+                Sign in to access your trading journal
               </p>
             </div>
           </div>
 
           {/* Form section */}
-          <form className="space-y-6" onSubmit={handleUpdatePassword}>
+          <form className="space-y-6" onSubmit={handleLogin}>
             <div className="space-y-5">
-              {/* Password input */}
+              {/* Email input */}
               <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-700 delay-500">
-                <Label
-                  htmlFor="password"
+                <Label 
+                  htmlFor="email-address" 
                   className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
                 >
-                  New password
+                  Email address
+                </Label>
+                <div className="relative group">
+                  <Input
+                    id="email-address"
+                    type="email"
+                    required
+                    value={email}
+                    autoComplete="email"
+                    placeholder="trader@example.com"
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+
+              {/* Password input */}
+              <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-700 delay-700">
+                <Label 
+                  htmlFor="password" 
+                  className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                >
+                  Password
                 </Label>
                 <div className="relative group">
                   <Input
                     id="password"
-                    name="password"
                     type="password"
-                    autoComplete="new-password"
                     required
-                    minLength={6}
+                    autoComplete="current-password"
                     value={password}
-                    placeholder="Create a new password"
+                    placeholder="••••••••"
                     onChange={(e) => setPassword(e.target.value)}
                     className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
                   />
@@ -166,29 +178,9 @@ export default function UpdatePassword() {
               <div className="rounded-lg bg-red-500/10 backdrop-blur-sm p-4 border border-red-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="flex items-center gap-2">
                   <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                   <span className="text-sm font-medium text-red-400">{error}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Success message */}
-            {message && (
-              <div className="rounded-lg bg-emerald-500/10 backdrop-blur-sm p-4 border border-emerald-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.707a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="text-sm font-medium text-emerald-400">{message}</span>
                 </div>
               </div>
             )}
@@ -196,33 +188,34 @@ export default function UpdatePassword() {
             {/* Links */}
             <div className="flex items-center justify-between text-sm animate-in fade-in duration-700 delay-1000">
               <Link
-                href="/login"
+                href="/reset-password"
                 className="font-medium text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-300 transition-colors duration-200"
               >
-                Back to login
+                Forgot password?
+              </Link>
+              <Link
+                href="/signup"
+                className="font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors duration-200 flex items-center gap-1"
+              >
+                Create account
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
               </Link>
             </div>
 
             {/* Submit button */}
             <div className="animate-in fade-in duration-700 delay-1100">
-              <Button
-                size="lg"
-                type="submit"
-                disabled={isLoading}
-                className="relative w-full h-12 overflow-hidden bg-gradient-to-r from-emerald-500 via-green-600 to-teal-600 hover:from-emerald-600 hover:via-green-700 hover:to-teal-700 text-white font-semibold shadow-lg shadow-emerald-500/30 dark:shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/40 dark:hover:shadow-emerald-500/30 transition-all duration-300 group border-0 disabled:opacity-60"
+              <Button 
+                size="lg" 
+                type="submit" 
+                className="relative w-full h-12 overflow-hidden bg-gradient-to-r from-emerald-500 via-green-600 to-teal-600 hover:from-emerald-600 hover:via-green-700 hover:to-teal-700 text-white font-semibold shadow-lg shadow-emerald-500/30 dark:shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/40 dark:hover:shadow-emerald-500/30 transition-all duration-300 group border-0"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
-                  {isLoading ? 'Updating...' : 'Update password'}
-                  {!isLoading && (
-                    <svg
-                      className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  )}
+                  Sign in to Dashboard
+                  <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
                 </span>
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
               </Button>
@@ -231,7 +224,7 @@ export default function UpdatePassword() {
 
           {/* Footer text */}
           <p className="mt-8 text-center text-xs text-slate-500 dark:text-slate-500 animate-in fade-in duration-700 delay-1200">
-            Your new password will be used the next time you sign in
+            Track your trades, analyze your performance, and optimize your strategy
           </p>
         </div>
       </div>

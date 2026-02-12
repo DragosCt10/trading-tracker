@@ -32,27 +32,41 @@ import Logo from '../shared/Logo';
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { data: userData, isLoading: userLoading } = useUserDetails();
+  const { data: userData } = useUserDetails();
   const supabase = createClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const queryClient = useQueryClient();
+
+  const { selection } = useActionBarSelection();
+
+  // 👇 useAccounts here ONLY to get refetch; same key as ActionBar
+  const { refetch: refetchAccounts } = useAccounts({
+    userId: userData?.user?.id,
+    pendingMode: selection.mode,
+  });
 
   useEffect(() => {
     if (userData?.user) setIsSigningOut(false);
   }, [userData?.user]);
 
-   const { selection, setSelection } = useActionBarSelection();
+  useEffect(() => {
+    // Check for saved theme preference or system preference
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    setTheme(savedTheme || systemTheme);
+  }, []);
 
-    // 👇 useAccounts here ONLY to get refetch; same key as ActionBar
-    const { refetch: refetchAccounts } = useAccounts({
-      userId: userData?.user?.id,
-      pendingMode: selection.mode,
-    });
+  useEffect(() => {
+    // Apply theme to document
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
-    useEffect(() => {
-      if (userData?.user) setIsSigningOut(false);
-    }, [userData?.user]);
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   const handleSignOut = async () => {
     try {
@@ -67,23 +81,30 @@ export default function Navbar() {
   };
 
   const isActive = (path: string) => pathname === path;
+  const navButtonClass = (active: boolean) =>
+    cn(
+      'gap-2 rounded-xl border transition-all duration-200',
+      'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 hover:border-slate-300/70',
+      'dark:text-slate-200 dark:hover:text-slate-50 dark:hover:bg-slate-800/70 dark:hover:border-slate-700/70',
+      active &&
+        'bg-emerald-500/5 border-emerald-500/30 text-emerald-700 hover:bg-emerald-500/15 hover:border-emerald-500/40 dark:text-emerald-300 dark:bg-emerald-500/10 dark:border-emerald-400/25'
+    );
 
   return (
     <>
-    <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-(--breakpoint-xl)">
-      <div className="mx-4 sm:mx-0 rounded-xl border bg-background">
-        <div className="flex items-center px-3 py-2">
-          <Link
-            href="/"
-            className="mr-2 flex items-center gap-2 font-semibold"
-          >
-            {/* Consider next/image if you prefer */}
-            <div className="grid h-10 w-10 place-content-center rounded-xl bg-gradient-to-br from-slate-200 via-slate-300 to-slate-400 border border-slate-300">
-              {/* Candlestick chart icon for trading (custom SVG) */}
+      <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-(--breakpoint-xl) px-4 sm:px-0">
+        <div className="relative rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-teal-500/5" />
+          <div className="relative flex items-center px-3 py-2 sm:px-4 sm:py-2.5">
+            <Link
+              href="/"
+              className="mr-2 flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-50"
+            >
               <Logo width={35} height={35} />
-            </div>
-            <span className="hidden sm:inline">TI Tracker</span>
-          </Link>
+              <span className="hidden sm:inline text-sm font-semibold tracking-tight">
+                TI Tracker
+              </span>
+            </Link>
 
           <Separator orientation="vertical" className="mx-3 hidden h-6 lg:flex" />
 
@@ -92,10 +113,10 @@ export default function Navbar() {
             <ul className="flex items-center gap-1">
               <li>
                 <Button
-                  variant={isActive('/analytics') ? 'secondary' : 'ghost'}
+                  variant="ghost"
                   asChild
                   size="sm"
-                  className={cn('gap-2')}
+                  className={navButtonClass(isActive('/analytics'))}
                 >
                   <Link href="/analytics">
                     <ChartBarIcon className="h-4 w-4" />
@@ -105,10 +126,10 @@ export default function Navbar() {
               </li>
               <li>
                 <Button
-                  variant={isActive('/trades/new') ? 'secondary' : 'ghost'}
+                  variant="ghost"
                   asChild
                   size="sm"
-                  className="gap-2"
+                  className={navButtonClass(isActive('/trades/new'))}
                 >
                   <Link href="/trades/new">
                     <PlusCircleIcon className="h-4 w-4" />
@@ -118,10 +139,10 @@ export default function Navbar() {
               </li>
               <li>
                 <Button
-                  variant={isActive('/trades') ? 'secondary' : 'ghost'}
+                  variant="ghost"
                   asChild
                   size="sm"
-                  className="gap-2"
+                  className={navButtonClass(isActive('/trades'))}
                 >
                   <Link href="/trades">
                     <DocumentTextIcon className="h-4 w-4" />
@@ -134,22 +155,50 @@ export default function Navbar() {
 
           {/* Right actions */}
           <div className="ml-auto hidden items-center gap-2 lg:flex">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl bg-slate-100/70 border border-slate-200/80 text-slate-700 hover:bg-slate-200/80 hover:border-slate-300/80 dark:bg-slate-800/70 dark:border-slate-700/80 dark:text-slate-100 dark:hover:bg-slate-700/80 dark:hover:border-slate-600/80 shadow-sm transition-all duration-300 hover:shadow-md group"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? (
+                <svg
+                  className="h-4 w-4 text-amber-400 group-hover:rotate-180 transition-transform duration-500"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="h-4 w-4 text-slate-700 dark:text-slate-100 group-hover:rotate-180 transition-transform duration-500"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                </svg>
+              )}
+            </button>
+
             <CreateAccountAlertDialog
-                onCreated={async (created) => {
-                  // refresh accounts list used by ActionBar
-                  await refetchAccounts();
-                }}
-              />
+              onCreated={async () => {
+                // refresh accounts list used by ActionBar
+                await refetchAccounts();
+              }}
+            />
 
             <Button
               variant="destructive"
               size="sm"
-              className="text-white"
+              className="relative h-9 px-4 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
               onClick={handleSignOut}
               disabled={isSigningOut}
             >
-              {isSigningOut ? (
-                <span className="flex items-center gap-2">
+              <span className="relative z-10 flex items-center gap-2">
+                {isSigningOut && (
                   <svg
                     className="h-4 w-4 animate-spin"
                     xmlns="http://www.w3.org/2000/svg"
@@ -170,11 +219,10 @@ export default function Navbar() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  Signing out...
-                </span>
-              ) : (
-                'Sign Out'
-              )}
+                )}
+                {isSigningOut ? 'Signing out...' : 'Sign Out'}
+              </span>
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
             </Button>
           </div>
 
@@ -184,7 +232,7 @@ export default function Navbar() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="ml-auto lg:hidden"
+                className="ml-auto lg:hidden rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-100/50 dark:bg-slate-800/40 hover:bg-slate-200/60 dark:hover:bg-slate-700/50"
                 aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               >
                 {mobileMenuOpen ? (
@@ -201,9 +249,9 @@ export default function Navbar() {
 
               <div className="mt-4 space-y-2">
                 <Button
-                  variant={isActive('/analytics') ? 'secondary' : 'ghost'}
+                  variant="ghost"
                   asChild
-                  className="w-full justify-start gap-2"
+                  className={cn('w-full justify-start', navButtonClass(isActive('/analytics')))}
                 >
                   <Link href="/analytics" onClick={() => setMobileMenuOpen(false)}>
                     <ChartBarIcon className="h-4 w-4" />
@@ -212,9 +260,9 @@ export default function Navbar() {
                 </Button>
 
                 <Button
-                  variant={isActive('/trades/new') ? 'secondary' : 'ghost'}
+                  variant="ghost"
                   asChild
-                  className="w-full justify-start gap-2"
+                  className={cn('w-full justify-start', navButtonClass(isActive('/trades/new')))}
                 >
                   <Link href="/trades/new" onClick={() => setMobileMenuOpen(false)}>
                     <PlusCircleIcon className="h-4 w-4" />
@@ -223,9 +271,9 @@ export default function Navbar() {
                 </Button>
 
                 <Button
-                  variant={isActive('/trades') ? 'secondary' : 'ghost'}
+                  variant="ghost"
                   asChild
-                  className="w-full justify-start gap-2"
+                  className={cn('w-full justify-start', navButtonClass(isActive('/trades')))}
                 >
                   <Link href="/trades" onClick={() => setMobileMenuOpen(false)}>
                     <DocumentTextIcon className="h-4 w-4" />
@@ -235,8 +283,42 @@ export default function Navbar() {
 
                 <Separator className="my-2" />
 
+                {/* Mobile theme toggle */}
+                <div className="flex items-center justify-between rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-900/60 px-3 py-2">
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                    Appearance
+                  </span>
+                  <button
+                    onClick={toggleTheme}
+                    className="p-2 rounded-xl bg-slate-100/70 border border-slate-200/80 text-slate-700 hover:bg-slate-200/80 hover:border-slate-300/80 dark:bg-slate-800/70 dark:border-slate-700/80 dark:text-slate-100 dark:hover:bg-slate-700/80 dark:hover:border-slate-600/80 shadow-sm transition-all duration-300 hover:shadow-md group"
+                    aria-label="Toggle theme"
+                  >
+                    {theme === 'dark' ? (
+                      <svg
+                        className="h-4 w-4 text-amber-400 group-hover:rotate-180 transition-transform duration-500"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                          fillRule="evenodd"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="h-4 w-4 text-slate-700 dark:text-slate-100 group-hover:rotate-180 transition-transform duration-500"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+
                 <CreateAccountAlertDialog
-                  onCreated={async (created) => {
+                  onCreated={async () => {
                     await queryClient.invalidateQueries({
                       predicate: (q) => q.queryKey[0] === 'accounts', // or your exact key
                     });
@@ -245,26 +327,51 @@ export default function Navbar() {
 
                 <Button
                   variant="destructive"
-                  className="w-full text-white"
+                  className="relative w-full h-10 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
                   onClick={async () => {
                     setMobileMenuOpen(false);
                     await handleSignOut();
                   }}
                   disabled={isSigningOut}
                 >
-                  {isSigningOut ? 'Signing out…' : 'Sign Out'}
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    {isSigningOut && (
+                      <svg
+                        className="h-4 w-4 animate-spin"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                    )}
+                    {isSigningOut ? 'Signing out…' : 'Sign Out'}
+                  </span>
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 </Button>
               </div>
             </SheetContent>
           </Sheet>
         </div>
       </div>
-    </nav>
-    <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-40 w-auto">
-      <div className="inline-block mx-4 bg-background border rounded-xl px-3 pb-2 pt-2">
-        <ActionBar />
+      </nav>
+      <div className="fixed top-20 left-1/2 z-40 w-auto -translate-x-1/2 transform">
+        <div className="inline-block mx-4 rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 pb-2 pt-2">
+          <ActionBar />
+        </div>
       </div>
-    </div>
-  </>
+    </>
   );
 }

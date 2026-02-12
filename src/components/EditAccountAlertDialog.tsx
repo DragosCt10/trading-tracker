@@ -208,145 +208,204 @@ export function EditAccountAlertDialog({
         <AlertDialogTrigger asChild>
           <Button
             type="button"
-            variant="outline"
             size="sm"
-            className="w-full sm:w-auto"
+            className="relative w-full sm:w-auto h-9 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-xs sm:text-sm font-medium transition-colors duration-200 disabled:opacity-50"
             disabled={!account}
           >
             Edit
           </Button>
         </AlertDialogTrigger>
 
-        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Edit account</AlertDialogTitle>
-            <AlertDialogDescription>
-              Update the settings for this account.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 dark:from-[#0a0f0d] dark:via-[#0d1612] dark:to-[#0a0f0d] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl px-6 py-5">
+          {/* Gradient orbs background (match CreateAccountModal) */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div
+              className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-emerald-500/12 dark:bg-emerald-500/10 rounded-full blur-3xl animate-pulse"
+              style={{ animationDuration: '8s' }}
+            />
+            <div
+              className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-green-500/12 dark:bg-green-500/10 rounded-full blur-3xl animate-pulse"
+              style={{ animationDuration: '10s', animationDelay: '2s' }}
+            />
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-            {/* Account name */}
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-account-name">Account name</Label>
-              <Input
-                id="edit-account-name"
-                placeholder="Account name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
+          {/* Noise overlay */}
+          <div
+            className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'repeat',
+            }}
+          />
 
-            {/* Balance + Currency */}
-            <div className="grid grid-cols-2 gap-3">
+          {/* Top accent line */}
+          <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-60" />
+
+          <div className="relative">
+            <AlertDialogHeader className="space-y-1.5 mb-4">
+              <AlertDialogTitle className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                Edit account
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
+                Update the settings for this trading account. You can adjust these details later.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+              {/* Account name */}
               <div className="space-y-1.5">
-                <Label htmlFor="edit-account-balance">Balance</Label>
+                <Label
+                  htmlFor="edit-account-name"
+                  className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                >
+                  Account name
+                </Label>
                 <Input
-                  id="edit-account-balance"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  value={balance}
-                  onChange={(e) => setBalance(e.target.value)}
+                  id="edit-account-name"
+                  placeholder="Account name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   required
+                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
                 />
               </div>
 
+              {/* Balance + Currency */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="edit-account-balance"
+                    className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                  >
+                    Balance
+                  </Label>
+                  <Input
+                    id="edit-account-balance"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={balance}
+                    onChange={(e) => setBalance(e.target.value)}
+                    required
+                    className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Currency
+                  </Label>
+                  <Select
+                    value={currency}
+                    onValueChange={(val: Currency) => setCurrency(val)}
+                  >
+                    <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                      <SelectValue placeholder="Select currency" />
+                    </SelectTrigger>
+                    <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="GBP">GBP</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Mode */}
               <div className="space-y-1.5">
-                <Label>Currency</Label>
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Mode
+                </Label>
                 <Select
-                  value={currency}
-                  onValueChange={(val: Currency) => setCurrency(val)}
+                  value={mode}
+                  onValueChange={(val: Mode) => setMode(val)}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select currency" />
+                  <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                    <SelectValue placeholder="Select mode" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
+                  <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                    <SelectItem value="live">Live</SelectItem>
+                    <SelectItem value="backtesting">Backtesting</SelectItem>
+                    <SelectItem value="demo">Demo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            {/* Mode */}
-            <div className="space-y-1.5">
-              <Label>Mode</Label>
-              <Select
-                value={mode}
-                onValueChange={(val: Mode) => setMode(val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select mode" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="live">Live</SelectItem>
-                  <SelectItem value="backtesting">Backtesting</SelectItem>
-                  <SelectItem value="demo">Demo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              {/* Description */}
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="edit-account-description"
+                  className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                >
+                  Description
+                </Label>
+                <Textarea
+                  id="edit-account-description"
+                  placeholder="Optional notes about this account…"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="min-h-[80px] bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 transition-all duration-300"
+                />
+              </div>
 
-            {/* Description */}
-            <div className="space-y-1.5">
-              <Label htmlFor="edit-account-description">Description</Label>
-              <Textarea
-                id="edit-account-description"
-                placeholder="Optional notes about this account…"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-              />
-            </div>
+              {error && (
+                <div className="rounded-lg bg-red-500/10 backdrop-blur-sm p-3 border border-red-500/20">
+                  <p className="text-xs text-red-500 dark:text-red-300 font-medium">
+                    {error}
+                  </p>
+                </div>
+              )}
 
-            {error && (
-              <p className="text-sm text-destructive mt-1">
-                {error}
-              </p>
-            )}
+              <AlertDialogFooter className="mt-4 flex items-center justify-between gap-2">
+                <AlertDialogCancel
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    if (account) resetFormFromAccount();
+                  }}
+                  className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200"
+                >
+                  Cancel
+                </AlertDialogCancel>
 
-            <AlertDialogFooter className="mt-4">
-              <AlertDialogCancel
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  if (account) resetFormFromAccount();
-                }}
-              >
-                Cancel
-              </AlertDialogCancel>
-
-              {/* Plain submit button, NOT wrapped in AlertDialogAction */}
-              <Button type="submit" disabled={submitting || !account}>
-                {submitting && (
-                  <svg
-                    className="mr-2 h-4 w-4 animate-spin"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                      className="opacity-25"
-                    />
-                    <path
-                      className="opacity-90"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"
-                    />
-                  </svg>
-                )}
-                Save changes
-              </Button>
-            </AlertDialogFooter>
-          </form>
+                {/* Plain submit button, NOT wrapped in AlertDialogAction */}
+                <Button
+                  type="submit"
+                  disabled={submitting || !account}
+                  className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 via-green-600 to-teal-600 hover:from-emerald-600 hover:via-green-700 hover:to-teal-700 text-white font-semibold shadow-md shadow-emerald-500/30 dark:shadow-emerald-500/20 px-4 py-2 group border-0 disabled:opacity-60 text-sm"
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    {submitting && (
+                      <svg
+                        className="h-4 w-4 animate-spin"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                          className="opacity-25"
+                        />
+                        <path
+                          className="opacity-90"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"
+                        />
+                      </svg>
+                    )}
+                    Save changes
+                  </span>
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                </Button>
+              </AlertDialogFooter>
+            </form>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </>
