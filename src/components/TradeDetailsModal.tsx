@@ -38,6 +38,37 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
+  // Helper function to invalidate and refetch all trade-related queries
+  const invalidateAndRefetchTradeQueries = async () => {
+    const tradeQueryPredicate = (query: any) => {
+      const key = query.queryKey[0] as string;
+      return (
+        key === 'allTrades' ||
+        key === 'filteredTrades' ||
+        key === 'nonExecutedTrades' ||
+        key === 'nonExecutedTotalTradesCount' ||
+        key === 'discoverTrades' ||
+        key === 'trades'
+      );
+    };
+
+    // Remove queries from cache to force fresh fetch
+    queryClient.removeQueries({
+      predicate: tradeQueryPredicate,
+    });
+
+    // Invalidate queries (marks them as stale for any that weren't removed)
+    await queryClient.invalidateQueries({
+      predicate: tradeQueryPredicate,
+    });
+
+    // Refetch active queries immediately to ensure fresh data
+    await queryClient.refetchQueries({
+      predicate: tradeQueryPredicate,
+      type: 'active', // Only refetch queries that are currently being used by mounted components
+    });
+  };
+
   const MARKET_OPTIONS = ['DAX', 'US30', 'UK100', 'US100', 'EURUSD', 'GBPUSD'];
   const SETUP_OPTIONS = [
     'OG',
@@ -152,8 +183,8 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         throw updateError;
       }
 
-      // Invalidate all queries in the cache
-      await queryClient.invalidateQueries();
+      // ✅ Invalidate and refetch all trade-related queries to ensure fresh data everywhere
+      await invalidateAndRefetchTradeQueries();
 
       setIsEditing(false);
       if (onTradeUpdated) onTradeUpdated();
@@ -179,7 +210,9 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
       if (deleteError) throw deleteError;
 
-      await queryClient.invalidateQueries({ queryKey: ['trades'] });
+      // ✅ Invalidate and refetch all trade-related queries to ensure fresh data everywhere
+      await invalidateAndRefetchTradeQueries();
+
       if (onTradeUpdated) onTradeUpdated();
       onClose();
     } catch (err: any) {

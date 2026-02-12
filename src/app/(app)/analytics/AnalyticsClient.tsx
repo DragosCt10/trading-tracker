@@ -34,10 +34,6 @@ import {
   PointElement,
   ArcElement,
 } from 'chart.js';
-
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
-
 import { RiskRewardStats } from '@/components/dashboard/RiskRewardStats';
 import { EvaluationStats } from '@/components/dashboard/EvaluationStats';
 import { RRHitStats } from '@/components/dashboard/RRHitStats';

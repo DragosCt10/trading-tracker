@@ -249,11 +249,33 @@ export default function NewTradeForm({
         localStorage.removeItem(`new-trade-draft-${selection.mode}`);
       }
 
-      // ✅ make sure every trades list is stale
+      // ✅ Invalidate and refetch all trade-related queries to ensure fresh data everywhere
+      const tradeQueryPredicate = (query: any) => {
+        const key = query.queryKey[0] as string;
+        return (
+          key === 'allTrades' ||
+          key === 'filteredTrades' ||
+          key === 'nonExecutedTrades' ||
+          key === 'nonExecutedTotalTradesCount' ||
+          key === 'discoverTrades' ||
+          key === 'trades'
+        );
+      };
+
+      // Remove queries from cache to force fresh fetch
+      queryClient.removeQueries({
+        predicate: tradeQueryPredicate,
+      });
+
+      // Invalidate queries (marks them as stale for any that weren't removed)
       await queryClient.invalidateQueries({
-        // this will invalidate all queries whose key starts with 'allTrades'
-        queryKey: ['allTrades'],
-        exact: false,
+        predicate: tradeQueryPredicate,
+      });
+
+      // Refetch active queries immediately to ensure fresh data when navigating
+      await queryClient.refetchQueries({
+        predicate: tradeQueryPredicate,
+        type: 'active', // Only refetch queries that are currently being used by mounted components
       });
 
       router.push('/trades');

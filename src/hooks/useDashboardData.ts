@@ -110,6 +110,7 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
     local_high_low: trade.local_high_low,
     risk_per_trade: trade.risk_per_trade,
     calculated_profit: trade.calculated_profit,
+    notes: trade.notes,
     pnl_percentage: trade.pnl_percentage,
     quarter: trade.quarter,
     evaluation: trade.evaluation,

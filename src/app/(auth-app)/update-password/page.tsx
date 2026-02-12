@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLoading } from '@/context/LoadingContext';
+import { useTheme } from '@/hooks/useTheme';
 
 // shadcn/ui imports
 import { Button } from '@/components/ui/button';
@@ -17,26 +18,9 @@ export default function UpdatePassword() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const router = useRouter();
   const { setIsLoading: setGlobalLoading } = useLoading();
-
-  useEffect(() => {
-    // Check for saved theme preference or system preference
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    setTheme(savedTheme || systemTheme);
-  }, []);
-
-  useEffect(() => {
-    // Apply theme to document
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
-  };
+  const { theme, toggleTheme, mounted } = useTheme();
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +65,15 @@ export default function UpdatePassword() {
         className="absolute top-6 right-4 z-50 p-3 rounded-xl bg-slate-100/50 border-slate-300 dark:bg-slate-700/50 backdrop-blur-md border dark:border-slate-700/50 dark:border-slate-600/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
         aria-label="Toggle theme"
       >
-        {theme === 'dark' ? (
+        {!mounted ? (
+          <svg
+            className="w-5 h-5 text-slate-700 dark:text-slate-100 group-hover:rotate-180 transition-transform duration-500"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+          </svg>
+        ) : theme === 'dark' ? (
           <svg
             className="w-5 h-5 text-amber-400 group-hover:rotate-180 transition-transform duration-500"
             fill="currentColor"

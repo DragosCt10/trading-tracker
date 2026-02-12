@@ -9,10 +9,12 @@ import {
   DocumentTextIcon,
   PlusCircleIcon,
   XMarkIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTheme } from '@/hooks/useTheme';
 import ActionBar from '../shared/ActionBar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -36,8 +38,8 @@ export default function Navbar() {
   const supabase = createClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const queryClient = useQueryClient();
+  const { theme, toggleTheme, mounted } = useTheme();
 
   const { selection } = useActionBarSelection();
 
@@ -51,27 +53,26 @@ export default function Navbar() {
     if (userData?.user) setIsSigningOut(false);
   }, [userData?.user]);
 
-  useEffect(() => {
-    // Check for saved theme preference or system preference
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    setTheme(savedTheme || systemTheme);
-  }, []);
-
-  useEffect(() => {
-    // Apply theme to document
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
-
   const handleSignOut = async () => {
     try {
       setIsSigningOut(true);
-      await queryClient.invalidateQueries();
+      
+      // ✅ Clear all queries from cache to ensure no user data persists after logout
+      queryClient.clear();
+      
+      // Clear any localStorage items related to trades/drafts
+      if (typeof window !== 'undefined') {
+        // Clear trade draft data
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('new-trade-draft-') || key.startsWith('trade-'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+      }
+      
       await supabase.auth.signOut();
       router.replace('/');
     } catch (error) {
@@ -129,6 +130,19 @@ export default function Navbar() {
                   variant="ghost"
                   asChild
                   size="sm"
+                  className={navButtonClass(isActive('/discover'))}
+                >
+                  <Link href="/discover">
+                    <SparklesIcon className="h-4 w-4" />
+                    <span>Discover</span>
+                  </Link>
+                </Button>
+              </li>
+              <li>
+                <Button
+                  variant="ghost"
+                  asChild
+                  size="sm"
                   className={navButtonClass(isActive('/trades/new'))}
                 >
                   <Link href="/trades/new">
@@ -160,7 +174,15 @@ export default function Navbar() {
               className="p-2 rounded-xl bg-slate-100/70 border border-slate-200/80 text-slate-700 hover:bg-slate-200/80 hover:border-slate-300/80 dark:bg-slate-800/70 dark:border-slate-700/80 dark:text-slate-100 dark:hover:bg-slate-700/80 dark:hover:border-slate-600/80 shadow-sm transition-all duration-300 hover:shadow-md group"
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? (
+              {!mounted ? (
+                <svg
+                  className="h-4 w-4 text-slate-700 dark:text-slate-100 group-hover:rotate-180 transition-transform duration-500"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                </svg>
+              ) : theme === 'dark' ? (
                 <svg
                   className="h-4 w-4 text-amber-400 group-hover:rotate-180 transition-transform duration-500"
                   fill="currentColor"
@@ -262,6 +284,17 @@ export default function Navbar() {
                 <Button
                   variant="ghost"
                   asChild
+                  className={cn('w-full justify-start', navButtonClass(isActive('/discover')))}
+                >
+                  <Link href="/discover" onClick={() => setMobileMenuOpen(false)}>
+                    <SparklesIcon className="h-4 w-4" />
+                    Discover
+                  </Link>
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  asChild
                   className={cn('w-full justify-start', navButtonClass(isActive('/trades/new')))}
                 >
                   <Link href="/trades/new" onClick={() => setMobileMenuOpen(false)}>
@@ -293,7 +326,15 @@ export default function Navbar() {
                     className="p-2 rounded-xl bg-slate-100/70 border border-slate-200/80 text-slate-700 hover:bg-slate-200/80 hover:border-slate-300/80 dark:bg-slate-800/70 dark:border-slate-700/80 dark:text-slate-100 dark:hover:bg-slate-700/80 dark:hover:border-slate-600/80 shadow-sm transition-all duration-300 hover:shadow-md group"
                     aria-label="Toggle theme"
                   >
-                    {theme === 'dark' ? (
+                    {!mounted ? (
+                      <svg
+                        className="h-4 w-4 text-slate-700 dark:text-slate-100 group-hover:rotate-180 transition-transform duration-500"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                      </svg>
+                    ) : theme === 'dark' ? (
                       <svg
                         className="h-4 w-4 text-amber-400 group-hover:rotate-180 transition-transform duration-500"
                         fill="currentColor"

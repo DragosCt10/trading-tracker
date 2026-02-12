@@ -9,8 +9,6 @@ import NotesModal from '@/components/NotesModal';
 import { useQuery } from '@tanstack/react-query';
 import { format, endOfMonth } from 'date-fns';
 import { DateRange } from 'react-date-range';
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
 import AppLayout from '@/components/shared/layout/AppLayout';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 
