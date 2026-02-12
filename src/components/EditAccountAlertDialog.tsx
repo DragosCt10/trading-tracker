@@ -63,9 +63,9 @@ function SuccessAlert({
   }, [onClose]);
 
   return (
-    <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 shadow flex items-center gap-2">
+    <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 shadow flex items-center gap-2">
       <svg
-        className="w-5 h-5 text-green-600"
+        className="w-5 h-5 text-purple-600"
         fill="none"
         stroke="currentColor"
         strokeWidth="2"
@@ -73,7 +73,7 @@ function SuccessAlert({
       >
         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
-      <span className="text-green-800 font-normal">{message}</span>
+      <span className="text-purple-800 font-normal">{message}</span>
     </div>
   );
 }
@@ -216,22 +216,22 @@ export function EditAccountAlertDialog({
           </Button>
         </AlertDialogTrigger>
 
-        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 dark:from-[#0a0f0d] dark:via-[#0d1612] dark:to-[#0a0f0d] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl px-6 py-5">
-          {/* Gradient orbs background (match CreateAccountModal) */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl px-6 py-5">
+          {/* Gradient orbs background */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
             <div
-              className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-emerald-500/12 dark:bg-emerald-500/10 rounded-full blur-3xl animate-pulse"
+              className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/8 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse"
               style={{ animationDuration: '8s' }}
             />
             <div
-              className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-green-500/12 dark:bg-green-500/10 rounded-full blur-3xl animate-pulse"
+              className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/8 dark:bg-violet-500/10 rounded-full blur-3xl animate-pulse"
               style={{ animationDuration: '10s', animationDelay: '2s' }}
             />
           </div>
 
           {/* Noise overlay */}
           <div
-            className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none"
+            className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
               backgroundRepeat: 'repeat',
@@ -239,7 +239,7 @@ export function EditAccountAlertDialog({
           />
 
           {/* Top accent line */}
-          <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-60" />
+          <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60" />
 
           <div className="relative">
             <AlertDialogHeader className="space-y-1.5 mb-4">
@@ -266,7 +266,7 @@ export function EditAccountAlertDialog({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
                 />
               </div>
 
@@ -288,7 +288,7 @@ export function EditAccountAlertDialog({
                     value={balance}
                     onChange={(e) => setBalance(e.target.value)}
                     required
-                    className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                    className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
                   />
                 </div>
 
@@ -300,7 +300,7 @@ export function EditAccountAlertDialog({
                     value={currency}
                     onValueChange={(val: Currency) => setCurrency(val)}
                   >
-                    <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                    <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
                       <SelectValue placeholder="Select currency" />
                     </SelectTrigger>
                     <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
@@ -346,7 +346,7 @@ export function EditAccountAlertDialog({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
-                  className="min-h-[80px] bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 transition-all duration-300"
+                  className="min-h-[80px] bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
                 />
               </div>
 
@@ -374,7 +374,7 @@ export function EditAccountAlertDialog({
                 <Button
                   type="submit"
                   disabled={submitting || !account}
-                  className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 via-green-600 to-teal-600 hover:from-emerald-600 hover:via-green-700 hover:to-teal-700 text-white font-semibold shadow-md shadow-emerald-500/30 dark:shadow-emerald-500/20 px-4 py-2 group border-0 disabled:opacity-60 text-sm"
+                  className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0 disabled:opacity-60 text-sm"
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
                     {submitting && (
