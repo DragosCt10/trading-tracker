@@ -1,11 +1,12 @@
 import AppLayout from '@/components/shared/layout/AppLayout';
 import { ReactNode } from 'react';
 
-interface DiscoverLayoutProps {
+interface AppLayoutProps {
   children: ReactNode;
+  title?: string;
 }
 
-export default function DiscoverLayout({ children }: DiscoverLayoutProps) {  
+export default function AppLayoutComponent({ children }: AppLayoutProps) {  
   return (
     <AppLayout>
       {children}
