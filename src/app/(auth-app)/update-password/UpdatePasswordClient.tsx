@@ -100,7 +100,7 @@ export default function UpdatePasswordClient() {
       <div className="relative z-10 w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-1000">
 
         {/* Top accent line */}
-        <div className="absolute -top-20 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50" />
+        <div className="absolute -top-20 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50" />
 
         {/* Content container */}
         <div className="relative">
@@ -109,7 +109,7 @@ export default function UpdatePasswordClient() {
           <div className="flex flex-col items-center space-y-6 mb-10">
             {/* Logo with glow effect */}
             <div className="relative group">
-              <div className="absolute -inset-3 bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-teal-500/20 rounded-2xl opacity-75 blur-xl group-hover:opacity-100 transition duration-500" />
+              <div className="absolute -inset-3 bg-gradient-to-r from-purple-500/20 via-violet-500/20 to-fuchsia-500/20 rounded-2xl opacity-75 blur-xl group-hover:opacity-100 transition duration-500" />
               <div className="relative grid h-20 w-20 place-content-center rounded-xl bg-slate-100/50 border-slate-300 dark:bg-slate-800/50 backdrop-blur-sm border dark:border-slate-600/50 dark:border-slate-700/50 shadow-2xl">
                 <Logo width={48} height={48} />
               </div>
@@ -147,7 +147,7 @@ export default function UpdatePasswordClient() {
                     value={password}
                     placeholder="Create a new password"
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                    className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
                   />
                 </div>
               </div>
@@ -171,16 +171,16 @@ export default function UpdatePasswordClient() {
 
             {/* Success message */}
             {message && (
-              <div className="rounded-lg bg-emerald-500/10 backdrop-blur-sm p-4 border border-emerald-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="rounded-lg bg-purple-500/10 backdrop-blur-sm p-4 border border-purple-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
                     <path
                       fillRule="evenodd"
                       d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.707a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span className="text-sm font-medium text-emerald-400">{message}</span>
+                  <span className="text-sm font-medium text-purple-400">{message}</span>
                 </div>
               </div>
             )}
@@ -201,7 +201,7 @@ export default function UpdatePasswordClient() {
                 size="lg"
                 type="submit"
                 disabled={isLoading}
-                className="relative w-full h-12 overflow-hidden bg-gradient-to-r from-emerald-500 via-green-600 to-teal-600 hover:from-emerald-600 hover:via-green-700 hover:to-teal-700 text-white font-semibold shadow-lg shadow-emerald-500/30 dark:shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/40 dark:hover:shadow-emerald-500/30 transition-all duration-300 group border-0 disabled:opacity-60"
+                className="relative w-full h-12 overflow-hidden bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-lg shadow-purple-500/30 dark:shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/40 dark:hover:shadow-purple-500/30 transition-all duration-300 group border-0 disabled:opacity-60"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   {isLoading ? 'Updating...' : 'Update password'}

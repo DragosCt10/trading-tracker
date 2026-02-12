@@ -159,7 +159,7 @@ export default function ActionBar() {
   // badge color mapping (shadcn Badge + utility classes)
   const badgeClass =
     activeMode === 'live'
-      ? 'bg-emerald-50/90 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/25'
+      ? 'bg-purple-50/90 text-purple-700 border border-purple-200/80 dark:bg-purple-500/10 dark:text-purple-300 dark:border-purple-500/25'
       : activeMode === 'backtesting'
       ? 'bg-violet-50/90 text-violet-700 border border-violet-200/80 dark:bg-violet-500/10 dark:text-violet-300 dark:border-violet-500/25'
       : activeMode === 'demo'
@@ -190,7 +190,7 @@ export default function ActionBar() {
             value={pendingMode}
             onValueChange={(val: Mode) => setPendingMode(val)}
           >
-            <SelectTrigger className="h-9 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[130px] w-full sm:w-[130px] md:w-[160px] focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 transition-all duration-200">
+            <SelectTrigger className="h-9 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[130px] w-full sm:w-[130px] md:w-[160px] focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200">
               <SelectValue placeholder="Select mode" />
             </SelectTrigger>
             <SelectContent className="text-xs sm:text-sm min-w-[140px] md:min-w-[160px] border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
@@ -213,7 +213,7 @@ export default function ActionBar() {
             onValueChange={(val) => setPendingAccountId(val ?? null)}
             disabled={accountsLoading || noAccounts}
           >
-            <SelectTrigger className="h-9 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px] focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 transition-all duration-200">
+            <SelectTrigger className="h-9 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px] focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200">
               <SelectValue placeholder={noAccounts ? 'No subaccounts' : 'Choose subaccount…'} />
             </SelectTrigger>
             <SelectContent className="text-xs sm:text-sm min-w-[170px] md:min-w-[200px] border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
@@ -253,7 +253,7 @@ export default function ActionBar() {
           <Button
             type="button"
             size="sm"
-            className="relative w-full sm:w-auto h-9 overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 via-green-600 to-teal-600 hover:from-emerald-600 hover:via-green-700 hover:to-teal-700 text-white font-semibold shadow-md shadow-emerald-500/30 dark:shadow-emerald-500/20 group border-0 text-xs sm:text-sm transition-all duration-300 disabled:opacity-60"
+            className="relative w-full sm:w-auto h-9 overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 group border-0 text-xs sm:text-sm transition-all duration-300 disabled:opacity-60"
             onClick={onApply}
             disabled={
               applying ||

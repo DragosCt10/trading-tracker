@@ -88,14 +88,14 @@ export default function Navbar() {
       'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 hover:border-slate-300/70',
       'dark:text-slate-200 dark:hover:text-slate-50 dark:hover:bg-slate-800/70 dark:hover:border-slate-700/70',
       active &&
-        'bg-emerald-500/5 border-emerald-500/30 text-emerald-700 hover:bg-emerald-500/15 hover:border-emerald-500/40 dark:text-emerald-300 dark:bg-emerald-500/10 dark:border-emerald-400/25'
+        'bg-purple-500/5 border-purple-500/30 text-purple-700 hover:bg-purple-500/15 hover:border-purple-500/40 dark:text-purple-300 dark:bg-purple-500/10 dark:border-purple-400/25'
     );
 
   return (
     <>
       <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-(--breakpoint-xl) px-4 sm:px-0">
         <div className="relative rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-teal-500/5" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-fuchsia-500/5" />
           <div className="relative flex items-center px-3 py-2 sm:px-4 sm:py-2.5">
             <Link
               href="/"
@@ -368,7 +368,7 @@ export default function Navbar() {
 
                 <Button
                   variant="destructive"
-                  className="relative w-full h-10 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
+                  className="relative h-9 px-4 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
                   onClick={async () => {
                     setMobileMenuOpen(false);
                     await handleSignOut();

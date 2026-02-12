@@ -106,7 +106,7 @@ export default function SignupClient() {
       <div className="relative z-10 w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-1000">
 
         {/* Top accent line */}
-        <div className="absolute -top-20 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50" />
+        <div className="absolute -top-20 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50" />
 
         {/* Content container */}
         <div className="relative">
@@ -115,7 +115,7 @@ export default function SignupClient() {
           <div className="flex flex-col items-center space-y-6 mb-10">
             {/* Logo with glow effect */}
             <div className="relative group">
-              <div className="absolute -inset-3 bg-gradient-to-r from-emerald-500/20 via-green-500/20 to-teal-500/20 rounded-2xl opacity-75 blur-xl group-hover:opacity-100 transition duration-500" />
+              <div className="absolute -inset-3 bg-gradient-to-r from-purple-500/20 via-violet-500/20 to-fuchsia-500/20 rounded-2xl opacity-75 blur-xl group-hover:opacity-100 transition duration-500" />
               <div className="relative grid h-20 w-20 place-content-center rounded-xl bg-slate-100/50 border-slate-300 dark:bg-slate-800/50 backdrop-blur-sm border dark:border-slate-600/50 dark:border-slate-700/50 shadow-2xl">
                 <Logo width={48} height={48} />
               </div>
@@ -152,7 +152,7 @@ export default function SignupClient() {
                     value={email}
                     placeholder="trader@example.com"
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                    className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
                   />
                 </div>
               </div>
@@ -175,7 +175,7 @@ export default function SignupClient() {
                     value={password}
                     placeholder="Create a strong password"
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                    className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
                   />
                 </div>
               </div>
@@ -207,7 +207,7 @@ export default function SignupClient() {
               </Link>
               <Link
                 href="/reset-password"
-                className="font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors duration-200 flex items-center gap-1"
+                className="font-medium text-purple-600 hover:text-purple-500 dark:text-purple-400 dark:hover:text-purple-300 transition-colors duration-200 flex items-center gap-1"
               >
                 Forgot password?
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -221,7 +221,7 @@ export default function SignupClient() {
               <Button
                 size="lg"
                 type="submit"
-                className="relative w-full h-12 overflow-hidden bg-gradient-to-r from-emerald-500 via-green-600 to-teal-600 hover:from-emerald-600 hover:via-green-700 hover:to-teal-700 text-white font-semibold shadow-lg shadow-emerald-500/30 dark:shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/40 dark:hover:shadow-emerald-500/30 transition-all duration-300 group border-0"
+                className="relative w-full h-12 overflow-hidden bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-lg shadow-purple-500/30 dark:shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/40 dark:hover:shadow-purple-500/30 transition-all duration-300 group border-0"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   Create account

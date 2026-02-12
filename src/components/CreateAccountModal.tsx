@@ -56,11 +56,11 @@ function SuccessAlert({ message, onClose }: { message: string; onClose: () => vo
   }, [onClose]);
 
   return (
-    <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-none flex items-center gap-2">
-      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 shadow-none flex items-center gap-2">
+      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
-      <span className="text-green-800 font-normal">{message}</span>
+      <span className="text-purple-800 font-normal">{message}</span>
     </div>
   );
 }
@@ -163,7 +163,7 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
           <Button
             type="button"
             size="sm"
-            className="cursor-pointer w-full lg:w-auto relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 via-green-600 to-teal-600 hover:from-emerald-600 hover:via-green-700 hover:to-teal-700 text-white font-semibold shadow-md shadow-emerald-500/30 dark:shadow-emerald-500/20 px-4 py-2 group border-0"
+            className="cursor-pointer w-full lg:w-auto relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0"
           >
             <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
               New Account
@@ -195,7 +195,7 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
           />
 
           {/* Top accent line */}
-          <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-60" />
+          <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60" />
 
           <div className="relative">
             <AlertDialogHeader className="space-y-1.5 mb-4">
@@ -219,7 +219,7 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
                 <Input
                   id="account-name"
                   placeholder="My account"
-                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -237,7 +237,7 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
                   <Input
                     id="account-balance"
                     type="number"
-                    className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                    className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
                     step="0.01"
                     min="0"
                     placeholder="0.00"
@@ -255,7 +255,7 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
                     value={currency}
                     onValueChange={(val: Currency) => setCurrency(val)}
                   >
-                    <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                    <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
                       <SelectValue placeholder="Select currency" />
                     </SelectTrigger>
                     <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
@@ -275,7 +275,7 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
                   value={mode}
                   onValueChange={(val: Mode) => setMode(val)}
                 >
-                  <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                  <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
                     <SelectValue placeholder="Select mode" />
                   </SelectTrigger>
                   <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
@@ -294,7 +294,7 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
                   Description
                 </Label>
                 <Textarea
-                  className="min-h-[80px] bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-emerald-400/20 transition-all duration-300"
+                  className="min-h-[80px] bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
                   id="account-description"
                   placeholder="Optional notes about this account…"
                   value={description}
@@ -327,7 +327,7 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
                 <Button
                   type="submit"
                   disabled={!canSubmit}
-                  className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 via-green-600 to-teal-600 hover:from-emerald-600 hover:via-green-700 hover:to-teal-700 text-white font-semibold shadow-md shadow-emerald-500/30 dark:shadow-emerald-500/20 px-4 py-2 group border-0 disabled:opacity-60"
+                  className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0 disabled:opacity-60"
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
                     {submitting && (
