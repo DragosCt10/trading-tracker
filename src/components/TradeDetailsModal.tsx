@@ -9,6 +9,14 @@ import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 // shadcn UI components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -226,8 +234,10 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const renderStatusBadge = (value: boolean | string) => {
     const isActive = typeof value === 'boolean' ? value : value === 'Yes';
     return (
-      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-        isActive ? 'bg-emerald-100 text-emerald-500' : 'bg-slate-100 text-slate-800'
+      <span className={`px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-lg ${
+        isActive 
+          ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' 
+          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
       }`}>
         {isActive ? 'Yes' : 'No'}
       </span>
@@ -236,13 +246,13 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
   const renderOutcomeBadge = (outcome: string) => {
     const colors: Record<string, string> = {
-      'Win': 'bg-emerald-100 text-emerald-500',
-      'Lose': 'bg-red-100 text-red-500',
-      'Break Even': 'bg-amber-100 text-amber-600'
+      'Win': 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400',
+      'Lose': 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
+      'Break Even': 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
     };
     return (
-      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-        colors[outcome] || 'bg-slate-100 text-slate-800'
+      <span className={`px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-lg ${
+        colors[outcome] || 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
       }`}>
         {outcome}
       </span>
@@ -261,35 +271,34 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     if (!isEditing) {
       if (type === 'boolean') {
         return (
-          <div className="mb-2">
-            <dt className="text-sm font-medium text-slate-500">{label}</dt>
-            <dd className="mt-1 text-sm">{renderStatusBadge(value as boolean)}</dd>
+          <div>
+            <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
+            <dd className="mt-1.5">{renderStatusBadge(value as boolean)}</dd>
           </div>
         );
       }
       if (type === 'outcome') {
         const outcome = value as string;
         return (
-          <div className="mb-2">
-            <dt className="text-sm font-medium text-slate-500">{label}</dt>
-            <dd className="mt-1">{renderOutcomeBadge(outcome)}</dd>
+          <div>
+            <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
+            <dd className="mt-1.5">{renderOutcomeBadge(outcome)}</dd>
           </div>
         );
       }
       if (type === 'number') {
         const displayValue = typeof value === 'number' ? value.toFixed(2) : value;
         if (field === 'pnl_percentage' || field === 'risk_per_trade' || field === 'displacement_size') {
-          // Highlight risk_per_trade/pnl_percentage fields with percent suffix and color if needed, and displacement_size as normal number
           return (
-            <div className="mb-2">
-              <dt className="text-sm font-medium text-slate-500">{label}</dt>
+            <div>
+              <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
               <dd className={
-                `mt-1 text-sm ${
+                `mt-1.5 text-sm font-semibold ${
                   field === 'pnl_percentage'
                     ? (editedTrade.trade_outcome === 'Lose'
-                      ? 'text-red-500'
-                      : 'text-emerald-500')
-                    : 'text-slate-900'
+                      ? 'text-red-500 dark:text-red-400'
+                      : 'text-emerald-500 dark:text-emerald-400')
+                    : 'text-slate-900 dark:text-slate-100'
                 }`
               }>
                 {field === 'pnl_percentage' || field === 'risk_per_trade'
@@ -300,17 +309,17 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
           );
         } else {
           return (
-            <div className="mb-2">
-              <dt className="text-sm font-medium text-slate-500">{label}</dt>
-              <dd className="mt-1 text-sm text-slate-900">{displayValue}</dd>
+            <div>
+              <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
+              <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">{displayValue}</dd>
             </div>
           );
         }
       }
       return (
-        <div className="mb-2">
-          <dt className="text-sm font-medium text-slate-500">{label}</dt>
-          <dd className="mt-1 text-sm text-slate-900">{value as string}</dd>
+        <div>
+          <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
+          <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">{value as string}</dd>
         </div>
       );
     }
@@ -320,13 +329,13 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       const numValue = typeof value === 'number' && !isNaN(value) ? value : 0;
       const displayValue = numValue.toFixed(2);
       return (
-        <div className="mb-2">
-          <label className="block text-sm font-medium text-slate-700">{label}</label>
-          <input
+        <div>
+          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+          <Input
             type="text"
             value={`${displayValue}%`}
             readOnly
-            className="mt-1 w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
+            className="h-12 bg-slate-200/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 cursor-not-allowed transition-all duration-300"
           />
         </div>
       );
@@ -338,28 +347,28 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       const displayValue = numValue.toFixed(2);
       if (isEditing) {
         return (
-          <div className="mb-2">
-            <label className="block text-sm font-medium text-slate-700">{label}</label>
-            <input
+          <div>
+            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+            <Input
               type="number"
               value={isNaN(value as number) ? '' : value as number}
               onChange={e => {
                 const val = e.target.value;
                 handleInputChange(field, val === '' ? '' : parseFloat(val));
               }}
-              className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+              className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
             />
           </div>
         );
       } else {
         return (
-          <div className="mb-2">
-            <label className="block text-sm font-medium text-slate-700">{label}</label>
-            <input
+          <div>
+            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+            <Input
               type="text"
               value={`${displayValue}%`}
               readOnly
-              className="mt-1 w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
+              className="h-12 bg-slate-200/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 cursor-not-allowed transition-all duration-300"
             />
           </div>
         );
@@ -369,16 +378,16 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     // For Displacement Size, handle as number
     if (field === 'displacement_size') {
       return (
-        <div className="mb-2">
-          <label className="block text-sm font-medium text-slate-700">{label}</label>
-          <input
+        <div>
+          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+          <Input
             type="number"
             value={isNaN(value as number) ? '' : value as number}
             onChange={e => {
               const val = e.target.value;
               handleInputChange(field, val === '' ? '' : parseFloat(val));
             }}
-            className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+            className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
             disabled={!isEditing}
             readOnly={!isEditing}
           />
@@ -389,73 +398,85 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     switch (type) {
       case 'number':
         return (
-          <div className="mb-2">
-            <label className="block text-sm font-medium text-slate-700">{label}</label>
-            <input
+          <div>
+            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+            <Input
               type="number"
               value={isNaN(value as number) ? '' : value as number}
               onChange={e => {
                 const val = e.target.value;
                 handleInputChange(field, val === '' ? '' : parseFloat(val));
               }}
-              className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+              className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
             />
           </div>
         );
       case 'select':
         return (
-          <div className="mb-2">
-            <label className="block text-sm font-medium text-slate-700">{label}</label>
-            <select
+          <div>
+            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+            <Select
               value={value as string}
-              onChange={(e) => handleInputChange(field, e.target.value)}
-              className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+              onValueChange={(val) => handleInputChange(field, val)}
             >
-              {options?.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                {options?.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         );
       case 'boolean':
         return (
-          <div className="mb-2">
-            <label className="block text-sm font-medium text-slate-700">{label}</label>
-            <select
+          <div>
+            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+            <Select
               value={value ? 'true' : 'false'}
-              onChange={(e) => handleInputChange(field, e.target.value === 'true')}
-              className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+              onValueChange={(val) => handleInputChange(field, val === 'true')}
             >
-              <option value="true">Yes</option>
-              <option value="false">No</option>
-            </select>
+              <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                <SelectItem value="true">Yes</SelectItem>
+                <SelectItem value="false">No</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         );
       case 'outcome':
         return (
-          <div className="mb-2">
-            <label className="block text-sm font-medium text-slate-700">{label}</label>
-            <select
+          <div>
+            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+            <Select
               value={value as string}
-              onChange={(e) => handleInputChange(field, e.target.value)}
-              className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+              onValueChange={(val) => handleInputChange(field, val)}
             >
-              <option value="Win">Win</option>
-              <option value="Lose">Lose</option>
-            </select>
+              <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                <SelectItem value="Win">Win</SelectItem>
+                <SelectItem value="Lose">Lose</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         );
       default:
         return (
-          <div className="mb-2">
-            <label className="block text-sm font-medium text-slate-700">{label}</label>
-            <input
+          <div>
+            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+            <Input
               type="text"
               value={value as string}
               onChange={(e) => handleInputChange(field, e.target.value)}
-              className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
+              className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
             />
           </div>
         );
@@ -464,193 +485,402 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
   return (
     <AlertDialog open={isOpen}>
-      <AlertDialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto fade-content data-[state=open]:fade-content data-[state=closed]:fade-content">
-        <div className="absolute top-3 right-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="rounded-full"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-            <span className="sr-only">Close</span>
-          </Button>
+      <AlertDialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-2xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl">
+        {/* Gradient orbs background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
+          <div
+            className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/8 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse"
+            style={{ animationDuration: '8s' }}
+          />
+          <div
+            className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/8 dark:bg-violet-500/10 rounded-full blur-3xl animate-pulse"
+            style={{ animationDuration: '10s', animationDelay: '2s' }}
+          />
         </div>
-        
-        <AlertDialogHeader>
-          <AlertDialogTitle className="text-xl">Trade Details</AlertDialogTitle>
-          <AlertDialogDescription>
-            Detailed information about the selected trade.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
 
-        <div className="p-0 px-0 mt-4">
-          <Card className="shadow-none border-none">
-            <CardContent className="px-0">
-              {error && (
-                <Card className="mb-4 bg-red-50 border border-red-200">
-                  <CardContent className="text-red-500 px-4 py-3">{error}</CardContent>
-                </Card>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Basic Information */}
+        {/* Noise texture overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'repeat',
+          }}
+        />
+
+        {/* Top accent line */}
+        <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60" />
+
+        <div className="relative">
+          <div className="absolute top-3 right-3 z-10">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="rounded-full hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 cursor-pointer"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+              <span className="sr-only">Close</span>
+            </Button>
+          </div>
+          
+          <AlertDialogHeader className="mb-6">
+            <AlertDialogTitle className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+              Trade Details
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-slate-600 dark:text-slate-400">
+              {editedTrade?.market} {editedTrade?.direction} • {editedTrade?.trade_date} {editedTrade?.trade_time}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-6">
+            {error && (
+              <div className="rounded-lg bg-red-500/10 backdrop-blur-sm p-3 border border-red-500/20">
+                <p className="text-sm text-red-500 dark:text-red-400 font-medium">{error}</p>
+              </div>
+            )}
+
+            {/* Trade Outcome Card - Prominent Display */}
+            <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900 mb-2">Basic Information</h3>
-                  <dl>
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Outcome</label>
+                  <div className="mt-2">
+                    {!isEditing ? (
+                      renderOutcomeBadge(editedTrade?.trade_outcome as string)
+                    ) : (
+                      <Select
+                        value={editedTrade?.trade_outcome as string}
+                        onValueChange={(val) => handleInputChange('trade_outcome', val)}
+                      >
+                        <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                          <SelectItem value="Win">Win</SelectItem>
+                          <SelectItem value="Lose">Lose</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">P&L %</label>
+                  <div className={`mt-2 text-2xl font-bold ${editedTrade?.trade_outcome === 'Lose' ? 'text-red-500 dark:text-red-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
+                    {typeof editedTrade?.pnl_percentage === 'number' ? editedTrade.pnl_percentage.toFixed(2) : '0.00'}%
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Profit/Loss</label>
+                  <div className={`mt-2 text-2xl font-bold ${editedTrade?.trade_outcome === 'Lose' ? 'text-red-500 dark:text-red-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
+                    {typeof editedTrade?.calculated_profit === 'number' ? editedTrade.calculated_profit.toFixed(2) : '0.00'}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Evaluation</label>
+                  <div className="mt-2">
+                    {!isEditing ? (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                        {editedTrade?.evaluation}
+                      </span>
+                    ) : (
+                      <Select
+                        value={editedTrade?.evaluation as string}
+                        onValueChange={(val) => handleInputChange('evaluation', val)}
+                      >
+                        <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                          {EVALUATION_OPTIONS.map((opt) => (
+                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Trade Details Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Basic Information */}
+              <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Basic Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-3">
                     {renderField('Date', 'trade_date')}
                     {renderField('Time', 'trade_time')}
+                  </div>
+                  <div className="space-y-3">
                     {renderField('Day', 'day_of_week', 'select', DAY_OF_WEEK_OPTIONS)}
                     {renderField('Market', 'market', 'select', MARKET_OPTIONS)}
+                  </div>
+                  <div className="space-y-3">
                     {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
                     {renderField('Setup Type', 'setup_type', 'select', SETUP_OPTIONS)}
-                    {renderField('Outcome', 'trade_outcome', 'outcome', ['Win', 'Lose'])}
-                  </dl>
+                  </div>
                 </div>
-                {/* Risk Management */}
-                <div>
-                  <h3 className="text-base font-semibold text-slate-900 mb-2">Risk Management</h3>
-                  <dl>
-                    {renderField('Risk', 'risk_per_trade', 'number')}
-                    {renderField('Risk/Reward Ratio', 'risk_reward_ratio', 'number')}
-                    {renderField('Risk/Reward Ratio (Long)', 'risk_reward_ratio_long', 'number')}
+              </div>
+
+              {/* Risk Management */}
+              <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  Risk Management
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-3">
+                    {renderField('Risk %', 'risk_per_trade', 'number')}
+                    {renderField('Risk/Reward', 'risk_reward_ratio', 'number')}
+                  </div>
+                  <div className="space-y-3">
+                    {renderField('RR (Long)', 'risk_reward_ratio_long', 'number')}
                     {renderField('SL Size', 'sl_size', 'number')}
-                    {/* Add Displacement Size field here */}
-                    {renderField('Displacement Size', 'displacement_size', 'number')}
+                  </div>
+                  <div className="space-y-3">
+                    {renderField('Displacement', 'displacement_size', 'number')}
                     {renderField('Liquidity', 'liquidity', 'select', LIQUIDITY_OPTIONS)}
-                    {renderField('P&L Percentage', 'pnl_percentage', 'number')}
-                    {/* Calculated Profit (read-only) */}
-                    {editedTrade && (
-                      <div className="mb-2">
-                        <label className="block text-sm font-medium text-slate-700">Calculated Profit</label>
-                        <input
-                          type="text"
-                          value={typeof editedTrade.calculated_profit === 'number'
-                            ? editedTrade.calculated_profit.toFixed(2)
-                            : editedTrade.calculated_profit
-                          }
-                          readOnly
-                          className="mt-1 w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
-                        />
-                      </div>
-                    )}
-                  </dl>
+                  </div>
                 </div>
-                {/* Trade Analysis */}
+              </div>
+            </div>
+
+            {/* Trade Conditions - Single Card with 3 columns */}
+            <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
+                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Trade Conditions
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Execution */}
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900 mb-2">Trade Analysis</h3>
-                  <dl>
+                  <h4 className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-3">Execution</h4>
+                  <div className="space-y-3">
                     {renderField('MSS', 'mss', 'select', MSS_OPTIONS)}
                     {renderField('Break Even', 'break_even', 'boolean')}
                     {renderField('Re-entry', 'reentry', 'boolean')}
+                  </div>
+                </div>
+
+                {/* Context */}
+                <div>
+                  <h4 className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-3">Context</h4>
+                  <div className="space-y-3">
                     {renderField('News Related', 'news_related', 'boolean')}
                     {renderField('Local High/Low', 'local_high_low', 'boolean')}
-                    {renderField('Evaluation Grade', 'evaluation', 'select', EVALUATION_OPTIONS)}
+                    {renderField('Launch Hour', 'launch_hour', 'boolean')}
+                  </div>
+                </div>
+
+                {/* Performance */}
+                <div>
+                  <h4 className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-3">Performance</h4>
+                  <div className="space-y-3">
                     {renderField('1.4RR Hit', 'rr_hit_1_4', 'boolean')}
                     {renderField('Partials', 'partials_taken', 'boolean')}
                     {renderField('Executed', 'executed', 'boolean')}
-                    {renderField('Launch Hour', 'launch_hour', 'boolean')}
-                  </dl>
+                  </div>
                 </div>
               </div>
-              {/* Trade Link */}
-              <div className="mt-4">
-                <h3 className="text-base font-semibold text-slate-900 mb-2">Trade Link</h3>
-                <dl>
-                  {renderField('Trade', 'trade_link')}
-                  {renderField('Liquidity Taken', 'liquidity_taken')}
-                </dl>
-              </div>
-              {/* Notes */}
-              <div className="mt-4">
-                <h3 className="text-base font-semibold text-slate-900 mb-2">Notes</h3>
-                <textarea
-                  value={editedTrade?.notes ?? ''}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
-                  className="mt-1 w-full bg-white border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm"
-                  rows={8}
-                  disabled={!isEditing}
-                  readOnly={!isEditing}
-                />
-              </div>
-              {/* Delete confirm using AlertDialog */}
-              <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-                <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      <span className="text-red-500 font-semibold text-base">Confirm Delete</span>
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      <span className="text-slate-500 mb-1">Are you sure you want to delete this trade? This action cannot be undone.</span>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter className="flex gap-3">
-                    <AlertDialogAction
-                      asChild
-                    >
-                      <Button
-                        variant="destructive"
-                        onClick={handleDelete}
-                        disabled={isDeleting}
-                        className="text-white"
-                      >
-                        {isDeleting ? 'Deleting...' : 'Yes, Delete'}
-                      </Button>
-                    </AlertDialogAction>
-                    <AlertDialogCancel
-                      asChild
-                    >
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowDeleteConfirm(false)}
-                      >
-                        Cancel
-                      </Button>
-                    </AlertDialogCancel>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-              {/* Action Buttons */}
-              <div className="mt-6 flex justify-end gap-2">
-                {!isEditing ? (
-                  <>
-                    <Button onClick={() => setIsEditing(true)} variant="default">
-                      Edit Trade
-                    </Button>
-                    <Button
-                      onClick={() => setShowDeleteConfirm(true)}
-                      variant="destructive"
-                      className='text-white'
-                    >
-                      Delete Trade
-                    </Button>
-                  </>
-                ) : (
-                  <>
+            </div>
+
+            {/* Trade Screenshots */}
+            <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
+                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Trade Screenshots
+              </h3>
+              
+              {!isEditing ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Trade Link Image */}
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Trade Chart</label>
+                    {editedTrade?.trade_link ? (
+                      <a href={editedTrade.trade_link} target="_blank" rel="noopener noreferrer" className="block group">
+                        <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 hover:border-purple-500 dark:hover:border-purple-400 transition-all duration-300">
+                          <img 
+                            src={editedTrade.trade_link} 
+                            alt="Trade Chart" 
+                            className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+                            <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </div>
+                        </div>
+                      </a>
+                    ) : (
+                      <div className="flex items-center justify-center h-64 rounded-lg bg-slate-200/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700">
+                        <span className="text-sm text-slate-500 dark:text-slate-400">No image</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Liquidity Taken Image */}
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Liquidity Taken</label>
+                    {editedTrade?.liquidity_taken ? (
+                      <a href={editedTrade.liquidity_taken} target="_blank" rel="noopener noreferrer" className="block group">
+                        <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 hover:border-purple-500 dark:hover:border-purple-400 transition-all duration-300">
+                          <img 
+                            src={editedTrade.liquidity_taken} 
+                            alt="Liquidity Taken" 
+                            className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+                            <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </div>
+                        </div>
+                      </a>
+                    ) : (
+                      <div className="flex items-center justify-center h-64 rounded-lg bg-slate-200/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700">
+                        <span className="text-sm text-slate-500 dark:text-slate-400">No image</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">Trade Chart URL</label>
+                    <Input
+                      type="text"
+                      value={editedTrade?.trade_link as string}
+                      onChange={(e) => handleInputChange('trade_link', e.target.value)}
+                      className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">Liquidity Taken URL</label>
+                    <Input
+                      type="text"
+                      value={editedTrade?.liquidity_taken as string}
+                      onChange={(e) => handleInputChange('liquidity_taken', e.target.value)}
+                      className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                      placeholder="https://..."
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Notes */}
+            <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
+                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Notes
+              </h3>
+              <textarea
+                value={editedTrade?.notes ?? ''}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                className="w-full bg-transparent border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-3 text-sm focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 resize-none"
+                rows={8}
+                disabled={!isEditing}
+                readOnly={!isEditing}
+                placeholder="Add notes about this trade..."
+              />
+            </div>
+
+            {/* Delete confirm using AlertDialog */}
+            <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+              <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] rounded-2xl">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    <span className="text-red-500 dark:text-red-400 font-semibold text-lg">Confirm Delete</span>
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    <span className="text-slate-600 dark:text-slate-400">Are you sure you want to delete this trade? This action cannot be undone.</span>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="flex gap-3">
+                  <AlertDialogCancel asChild>
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        setIsEditing(false);
-                        setEditedTrade(trade);
-                      }}
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
                     >
                       Cancel
                     </Button>
+                  </AlertDialogCancel>
+                  <AlertDialogAction asChild>
                     <Button
-                      variant="default"
-                      onClick={handleSave}
-                      disabled={isSaving}
-                      className="bg-emerald-600 text-white hover:bg-emerald-700"
+                      variant="destructive"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
                     >
-                      {isSaving ? 'Saving...' : 'Save Changes'}
+                      {isDeleting ? 'Deleting...' : 'Yes, Delete'}
                     </Button>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-2">
+              {!isEditing ? (
+                <>
+                  <Button 
+                    onClick={() => setIsEditing(true)} 
+                    className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-5 py-2 group border-0"
+                  >
+                    <span className="relative z-10">Edit Trade</span>
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                  </Button>
+                  <Button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    variant="destructive"
+                    className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
+                  >
+                    Delete Trade
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditedTrade(trade);
+                    }}
+                    className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 via-green-600 to-teal-600 hover:from-emerald-600 hover:via-green-700 hover:to-teal-700 text-white font-semibold shadow-md shadow-emerald-500/30 dark:shadow-emerald-500/20 px-5 py-2 group border-0 disabled:opacity-60"
+                  >
+                    <span className="relative z-10">{isSaving ? 'Saving...' : 'Save Changes'}</span>
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </AlertDialogContent>
     </AlertDialog>
