@@ -201,8 +201,11 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
 
           <div className="relative">
             <AlertDialogHeader className="space-y-1.5 mb-4">
-              <AlertDialogTitle className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                Create a new account
+              <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50">
+                  <UserPlus className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <span>Create a new account</span>
               </AlertDialogTitle>
               <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
                 Configure a trading account used to track your performance. You can adjust these
