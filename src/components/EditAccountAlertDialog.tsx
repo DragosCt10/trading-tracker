@@ -245,8 +245,11 @@ export function EditAccountAlertDialog({
 
           <div className="relative">
             <AlertDialogHeader className="space-y-1.5 mb-4">
-              <AlertDialogTitle className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                Edit account
+              <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50">
+                  <Pencil className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <span>Edit account</span>
               </AlertDialogTitle>
               <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
                 Update the settings for this trading account. You can adjust these details later.
