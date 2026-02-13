@@ -90,6 +90,7 @@ export function EditAccountAlertDialog({
   const { data: userId } = useUserDetails();
 
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,6 +101,11 @@ export function EditAccountAlertDialog({
   const [description, setDescription] = useState('');
 
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Helper: reset form from the current account
   const resetFormFromAccount = React.useCallback(() => {
@@ -194,6 +200,8 @@ export function EditAccountAlertDialog({
       setSubmitting(false);
     }
   };
+
+  if (!mounted) return null;
 
   return (
     <>

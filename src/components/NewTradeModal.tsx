@@ -1,0 +1,613 @@
+'use client';
+
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createClient } from '@/utils/supabase/client';
+import { Trade } from '@/types/trade';
+import { useUserDetails } from '@/hooks/useUserDetails';
+import { useQueryClient } from '@tanstack/react-query';
+import { useActionBarSelection } from '@/hooks/useActionBarSelection';
+import { PlusCircle } from 'lucide-react';
+
+// shadcn/ui
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Loader2, Info, AlertCircle, X } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+} from '@/components/ui/alert-dialog';
+
+const MARKET_OPTIONS = ['DAX', 'US30', 'UK100', 'US100', 'EURUSD', 'GBPUSD'];
+const SETUP_OPTIONS = [
+  'OG', 'TG', 'TCG', '3G', '3CG', 'MultipleGaps',
+  'SLG+OG', 'SLG+TG', 'SLG+TCG', 'SLG+3G', 'SLG+3CG'
+];
+const LIQUIDITY_OPTIONS = ['Liq. Majora', 'Liq. Minora', 'Liq. Locala', 'HOD', 'LOD'];
+const MSS_OPTIONS = ['Normal', 'Agresiv'];
+const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
+const WEEKDAY_MAP: Record<string, string> = {
+  Monday: 'Luni', Tuesday: 'Marti', Wednesday: 'Miercuri', Thursday: 'Joi',
+  Friday: 'Vineri', Saturday: 'Sambata', Sunday: 'Duminica',
+};
+
+function getQuarter(dateStr: string): string {
+  const m = new Date(dateStr).getMonth() + 1;
+  if (m <= 3) return 'Q1';
+  if (m <= 6) return 'Q2';
+  if (m <= 9) return 'Q3';
+  return 'Q4';
+}
+
+const NOTES_TEMPLATE = `📈 Setup:
+(Descrie setup-ul tehnic sau fundamental – de ce ai intrat în trade? Ce pattern, indicator sau logică ai urmat?)
+
+✅ Plusuri:
+(Ce ai făcut bine? Ce a mers conform planului? A existat disciplină, răbdare, timing bun?)
+
+❌ Minusuri:
+(Ce nu a mers? Ai intrat prea devreme/târziu? Ai ignorat ceva? Overtrading? FOMO?)
+
+🧠 Emoții:
+(Ce ai simțit în timpul trade-ului? Încredere? Frică? Nerăbdare? Calm? Ai fost influențat emoțional?)
+
+🎯 Lecții învățate:
+(Ce poți îmbunătăți? Ce vei face diferit data viitoare?)`;
+
+interface NewTradeModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onTradeCreated?: () => void;
+}
+
+export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTradeModalProps) {
+  const { selection } = useActionBarSelection();
+  const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const { data: userDetails } = useUserDetails();
+
+  // Prevent hydration mismatch by only rendering on client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const initialTradeState: Trade = {
+    trade_link: '',
+    liquidity_taken: '',
+    trade_time: '',
+    trade_date: new Date().toISOString().split('T')[0],
+    day_of_week: WEEKDAY_MAP[new Date().toLocaleDateString('en-US', { weekday: 'long' })],
+    market: '',
+    setup_type: '',
+    liquidity: '',
+    sl_size: 0,
+    direction: 'Long',
+    trade_outcome: 'Win',
+    break_even: false,
+    reentry: false,
+    news_related: false,
+    mss: '',
+    risk_per_trade: 0,
+    risk_reward_ratio: 0,
+    risk_reward_ratio_long: 0,
+    local_high_low: false,
+    mode: selection.mode,
+    notes: NOTES_TEMPLATE,
+    quarter: '',
+    evaluation: '',
+    rr_hit_1_4: false,
+    partials_taken: false,
+    executed: true,
+    launch_hour: false,
+    displacement_size: 0
+  };
+
+  const [trade, setTrade] = useState<Trade>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`new-trade-draft-${selection.mode}`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          const dateStr = parsed.trade_date || new Date().toISOString().split('T')[0];
+          return {
+            ...initialTradeState,
+            ...parsed,
+            trade_date: dateStr,
+            day_of_week:
+              parsed.day_of_week ||
+              WEEKDAY_MAP[new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' })],
+            quarter: parsed.quarter || getQuarter(dateStr),
+          };
+        } catch { }
+      }
+    }
+    return initialTradeState;
+  });
+
+  const notesRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const updateTrade = <K extends keyof Trade>(key: K, value: Trade[K]) => {
+    setTrade((prev) => (prev[key] === value ? prev : { ...prev, [key]: value }));
+  };
+
+  // Helper function to invalidate and refetch all trade-related queries
+  const invalidateAndRefetchTradeQueries = async () => {
+    const tradeQueryPredicate = (query: any) => {
+      const key = query.queryKey[0] as string;
+      return (
+        key === 'allTrades' ||
+        key === 'filteredTrades' ||
+        key === 'nonExecutedTrades' ||
+        key === 'nonExecutedTotalTradesCount' ||
+        key === 'discoverTrades' ||
+        key === 'trades'
+      );
+    };
+
+    queryClient.removeQueries({ predicate: tradeQueryPredicate });
+    await queryClient.invalidateQueries({ predicate: tradeQueryPredicate });
+    await queryClient.refetchQueries({ predicate: tradeQueryPredicate, type: 'active' });
+  };
+
+  // keep weekday + quarter in sync when the committed date changes
+  useEffect(() => {
+    const dateStr = trade.trade_date;
+    const dt = new Date(dateStr);
+    const engDay = dt.toLocaleDateString('en-US', { weekday: 'long' });
+    const roDay = WEEKDAY_MAP[engDay] ?? engDay;
+    setTrade((prev) => {
+      const next = { ...prev, day_of_week: roDay, quarter: getQuarter(dateStr) };
+      return prev.day_of_week === next.day_of_week && prev.quarter === next.quarter ? prev : next;
+    });
+  }, [trade.trade_date]);
+
+  // -------- Derived calculations --------
+  const accountBalance = selection.activeAccount?.account_balance ?? 0;
+  const currency = selection.activeAccount?.currency === 'EUR' ? '€' : '$';
+
+  const { signedProfit, pnlPercentage } = useMemo(() => {
+    if (!accountBalance) {
+      return { signedProfit: 0, pnlPercentage: 0 };
+    }
+
+    if (trade.break_even) {
+      return { signedProfit: 0, pnlPercentage: 0 };
+    }
+
+    let pnlPct = 0;
+
+    if (trade.trade_outcome === 'Lose') {
+      pnlPct = -trade.risk_per_trade;
+    } else {
+      pnlPct = trade.risk_per_trade * (trade.risk_reward_ratio || 0);
+    }
+
+    const profit = (pnlPct / 100) * accountBalance;
+
+    return {
+      signedProfit: profit,
+      pnlPercentage: pnlPct,
+    };
+  }, [accountBalance, trade.break_even, trade.trade_outcome, trade.risk_per_trade, trade.risk_reward_ratio]);
+
+  // Save trade draft to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(`new-trade-draft-${selection.mode}`, JSON.stringify(trade));
+    } catch { }
+  }, [trade, selection.mode]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+
+    if (!trade.market || !trade.setup_type || !trade.liquidity || !trade.mss) {
+      setError('Please fill in all required fields');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!selection.activeAccount) {
+      setError('No active account found. Please set up an account in settings.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      if (notesRef.current) {
+        const latestNotes = notesRef.current.value;
+        if (latestNotes !== trade.notes) {
+          trade.notes = latestNotes;
+        }
+      }
+
+      const supabase = createClient();
+      const tableName = `${selection.mode}_trades`;
+
+      const { error } = await supabase
+        .from(tableName)
+        .insert([{
+          ...trade,
+          user_id: userDetails?.user?.id,
+          calculated_profit: signedProfit,
+          pnl_percentage: pnlPercentage,
+          account_id: selection.activeAccount.id,
+        }] as any)
+        .select();
+
+      if (error) throw error;
+
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(`new-trade-draft-${selection.mode}`);
+      }
+
+      await invalidateAndRefetchTradeQueries();
+
+      if (onTradeCreated) onTradeCreated();
+      onClose();
+
+      // Reset form
+      setTrade(initialTradeState);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create trade');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!mounted || !isOpen) return null;
+
+  return (
+    <AlertDialog open={isOpen} onOpenChange={onClose}>
+      <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl px-6 py-5">
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-lg p-2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors z-50"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        {/* Gradient orbs background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
+          <div
+            className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/8 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse"
+            style={{ animationDuration: '8s' }}
+          />
+          <div
+            className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/8 dark:bg-violet-500/10 rounded-full blur-3xl animate-pulse"
+            style={{ animationDuration: '10s', animationDelay: '2s' }}
+          />
+        </div>
+
+        {/* Noise texture overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'repeat',
+          }}
+        />
+
+        {/* Top accent line */}
+        <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60" />
+
+        <div className="relative">
+          <AlertDialogHeader className="space-y-1.5 mb-4">
+            <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50">
+                <PlusCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <span>Add New Trade</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
+              Adding trade for <span className="font-medium text-slate-900 dark:text-slate-50">{selection.mode}</span> mode
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {error && (
+            <Alert variant="destructive" className="mb-4 bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 backdrop-blur-sm">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+            {/* Date & Time Section */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="trade-date" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Trade Date *
+                </Label>
+                <Input
+                  id="trade-date"
+                  type="date"
+                  value={trade.trade_date}
+                  onChange={(e) => updateTrade('trade_date', e.target.value)}
+                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="trade-time" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Trade Time
+                </Label>
+                <Input
+                  id="trade-time"
+                  type="time"
+                  value={trade.trade_time}
+                  onChange={(e) => updateTrade('trade_time', e.target.value)}
+                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Market & Setup Section */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Market *</Label>
+                <Select value={trade.market} onValueChange={(v) => updateTrade('market', v)}>
+                  <SelectTrigger className="h-11 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700">
+                    <SelectValue placeholder="Select Market" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MARKET_OPTIONS.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Setup Type *</Label>
+                <Select value={trade.setup_type} onValueChange={(v) => updateTrade('setup_type', v)}>
+                  <SelectTrigger className="h-11 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700">
+                    <SelectValue placeholder="Select Setup" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SETUP_OPTIONS.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Direction & Outcome */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Direction</Label>
+                <Select value={trade.direction} onValueChange={(v) => updateTrade('direction', v as 'Long' | 'Short')}>
+                  <SelectTrigger className="h-11 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Long">Long</SelectItem>
+                    <SelectItem value="Short">Short</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Trade Outcome</Label>
+                <Select value={trade.trade_outcome} onValueChange={(v) => updateTrade('trade_outcome', v as 'Win' | 'Lose')}>
+                  <SelectTrigger className="h-11 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Win">Win</SelectItem>
+                    <SelectItem value="Lose">Lose</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Liquidity & MSS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Liquidity *</Label>
+                <Select value={trade.liquidity} onValueChange={(v) => updateTrade('liquidity', v)}>
+                  <SelectTrigger className="h-11 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700">
+                    <SelectValue placeholder="Select Liquidity" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LIQUIDITY_OPTIONS.map((l) => (
+                      <SelectItem key={l} value={l}>{l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">MSS *</Label>
+                <Select value={trade.mss} onValueChange={(v) => updateTrade('mss', v)}>
+                  <SelectTrigger className="h-11 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700">
+                    <SelectValue placeholder="Select MSS" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MSS_OPTIONS.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Risk Management Section */}
+            <Separator />
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Risk per Trade (%)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={trade.risk_per_trade}
+                  onChange={(e) => updateTrade('risk_per_trade', parseFloat(e.target.value) || 0)}
+                  className="h-11 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Risk:Reward Ratio</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={trade.risk_reward_ratio}
+                  onChange={(e) => updateTrade('risk_reward_ratio', parseFloat(e.target.value) || 0)}
+                  className="h-11 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">SL Size (pips)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={trade.sl_size}
+                  onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
+                  className="h-11 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700"
+                />
+              </div>
+            </div>
+
+            {/* P&L Display */}
+            <div className="p-5 rounded-xl bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-300 dark:border-slate-700 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">Calculated P&L:</span>
+                <div className="flex items-center gap-3">
+                  <Badge 
+                    variant={pnlPercentage >= 0 ? 'default' : 'destructive'} 
+                    className={`text-sm font-bold px-2.5 py-1 ${
+                      pnlPercentage >= 0 
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' 
+                        : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                    }`}
+                  >
+                    {pnlPercentage >= 0 ? '+' : ''}{pnlPercentage.toFixed(2)}%
+                  </Badge>
+                  <span className={`text-xl font-bold ${pnlPercentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                    {currency}{signedProfit.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Options - Checkboxes */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="break-even"
+                  checked={trade.break_even}
+                  onCheckedChange={(checked) => updateTrade('break_even', checked as boolean)}
+                />
+                <Label htmlFor="break-even" className="text-sm font-medium cursor-pointer">Break Even</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="reentry"
+                  checked={trade.reentry}
+                  onCheckedChange={(checked) => updateTrade('reentry', checked as boolean)}
+                />
+                <Label htmlFor="reentry" className="text-sm font-medium cursor-pointer">Reentry</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="news-related"
+                  checked={trade.news_related}
+                  onCheckedChange={(checked) => updateTrade('news_related', checked as boolean)}
+                />
+                <Label htmlFor="news-related" className="text-sm font-medium cursor-pointer">News Related</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="local-high-low"
+                  checked={trade.local_high_low}
+                  onCheckedChange={(checked) => updateTrade('local_high_low', checked as boolean)}
+                />
+                <Label htmlFor="local-high-low" className="text-sm font-medium cursor-pointer">Local High/Low</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="executed"
+                  checked={trade.executed}
+                  onCheckedChange={(checked) => updateTrade('executed', checked as boolean)}
+                />
+                <Label htmlFor="executed" className="text-sm font-medium cursor-pointer">Executed</Label>
+              </div>
+            </div>
+
+            {/* Notes Section */}
+            <div className="space-y-1.5">
+              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Notes</Label>
+              <Textarea
+                ref={notesRef}
+                defaultValue={trade.notes}
+                onBlur={(e) => updateTrade('notes', e.target.value)}
+                className="min-h-[200px] bg-transparent border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-600"
+                placeholder="Add your trade notes here..."
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="h-11 px-6 rounded-xl border-slate-300 dark:border-slate-700 bg-slate-100/50 dark:bg-slate-800/50 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-300 font-medium transition-all duration-200"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="relative h-11 px-6 overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 group border-0 transition-all duration-300 disabled:opacity-60"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isSubmitting ? 'Creating...' : 'Create Trade'}
+                </span>
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+              </Button>
+            </div>
+          </form>
+        </div>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}

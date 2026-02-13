@@ -31,6 +31,7 @@ import { CreateAccountAlertDialog } from '../CreateAccountModal';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useAccounts } from '@/hooks/useAccounts';
 import Logo from '../shared/Logo';
+import NewTradeModal from '../NewTradeModal';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -39,6 +40,7 @@ export default function Navbar() {
   const supabase = createClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [newTradeModalOpen, setNewTradeModalOpen] = useState(false);
   const queryClient = useQueryClient();
   const { theme, toggleTheme, mounted } = useTheme();
 
@@ -142,14 +144,12 @@ export default function Navbar() {
               <li>
                 <Button
                   variant="ghost"
-                  asChild
                   size="sm"
-                  className={navButtonClass(isActive('/trades/new'))}
+                  className={navButtonClass(false)}
+                  onClick={() => setNewTradeModalOpen(true)}
                 >
-                  <Link href="/trades/new">
-                    <PlusCircle className="h-4 w-4" />
-                    <span>New Trade</span>
-                  </Link>
+                  <PlusCircle className="h-4 w-4" />
+                  <span>New Trade</span>
                 </Button>
               </li>
               <li>
@@ -297,13 +297,14 @@ export default function Navbar() {
 
                 <Button
                   variant="ghost"
-                  asChild
-                  className={cn('w-full justify-start', navButtonClass(isActive('/trades/new')))}
+                  className={cn('w-full justify-start', navButtonClass(false))}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setNewTradeModalOpen(true);
+                  }}
                 >
-                  <Link href="/trades/new" onClick={() => setMobileMenuOpen(false)}>
-                    <PlusCircle className="h-4 w-4" />
-                    New Trade
-                  </Link>
+                  <PlusCircle className="h-4 w-4" />
+                  New Trade
                 </Button>
 
                 <Button
@@ -418,6 +419,16 @@ export default function Navbar() {
           <ActionBar />
         </div>
       </div>
+
+      {/* New Trade Modal */}
+      <NewTradeModal
+        isOpen={newTradeModalOpen}
+        onClose={() => setNewTradeModalOpen(false)}
+        onTradeCreated={() => {
+          // Modal will handle query invalidation
+          setNewTradeModalOpen(false);
+        }}
+      />
     </>
   );
 }

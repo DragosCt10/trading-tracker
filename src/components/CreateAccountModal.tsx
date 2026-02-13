@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -72,6 +72,7 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
   const { data: userId } = useUserDetails();
 
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -81,6 +82,11 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
   const [currency, setCurrency] = useState<Currency>('EUR');
   const [mode, setMode] = useState<Mode>('live');
   const [description, setDescription] = useState('');
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isNameValid = name.trim().length > 0;
   const isBalanceValid =
@@ -154,6 +160,8 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
       setSubmitting(false);
     }
   };
+
+  if (!mounted) return null;
 
   return (
     <>
