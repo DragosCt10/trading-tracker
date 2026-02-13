@@ -10,6 +10,9 @@ import { format, endOfMonth, startOfMonth, startOfYear, endOfYear, subDays } fro
 import { DateRange } from 'react-date-range';
 import AppLayout from '@/components/shared/layout/AppLayout';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
+import { useAccounts } from '@/hooks/useAccounts';
+import { createClient } from '@/utils/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Import shadcn components
 import { Button } from '@/components/ui/button';
@@ -20,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -41,11 +45,87 @@ export default function TradesPage() {
     direction: 'asc'
   });
 
-  const { selection } = useActionBarSelection();
+  const queryClient = useQueryClient();
+  const supabase = createClient();
+  const { selection, actionBarloading, setSelection } = useActionBarSelection();
   const { data: userDetails, isLoading: userLoading } = useUserDetails();
+  
+  // Fetch live accounts for initialization
+  const {
+    accounts: liveAccounts,
+    accountsLoading: liveAccountsLoading,
+  } = useAccounts({ userId: userDetails?.user?.id, pendingMode: 'live' });
 
   const queryEnabled =
     !!selection.activeAccount?.id && !!userDetails?.user;
+
+  // Auto-initialize: Set first live account as active on mount if none is selected
+  const autoInitializedRef = useRef(false);
+  useEffect(() => {
+    if (autoInitializedRef.current) return;
+    if (!userDetails?.user?.id) return;
+    
+    // Only auto-initialize if nothing chosen yet
+    if (selection.activeAccount) return;
+    
+    // Only auto-initialize for live mode
+    if (selection.mode !== 'live') return;
+    
+    if (liveAccountsLoading) return;
+    
+    // Prefer an already-active one in DB; otherwise first (sorted by created_at)
+    const pick = liveAccounts.find(a => a.is_active) ?? liveAccounts[0];
+    if (!pick) return;
+    
+    autoInitializedRef.current = true;
+    
+    // Set the account as active in the database and cache
+    const initializeAccount = async () => {
+      try {
+        // Set all live accounts to inactive first
+        await supabase
+          .from('account_settings')
+          .update({ is_active: false } as never)
+          .eq('user_id', userDetails?.user?.id ?? '')
+          .eq('mode', 'live');
+
+        // Set the selected account as active
+        await supabase
+          .from('account_settings')
+          .update({ is_active: true } as never)
+          .eq('id', pick.id)
+          .eq('user_id', userDetails?.user?.id ?? '');
+        
+        // Update the cache
+        setSelection({ mode: 'live', activeAccount: pick });
+        // Invalidate and refetch trades queries
+        const keysToNukeStartsWith = [
+          'allTrades', 'filteredTrades',
+          'nonExecutedTrades', 'nonExecutedTotalTradesCount',
+        ];
+        queryClient.removeQueries({
+          predicate: q => keysToNukeStartsWith.includes((q.queryKey?.[0] as string) ?? ''),
+        });
+        queryClient.refetchQueries({
+          predicate: q => keysToNukeStartsWith.includes((q.queryKey?.[0] as string) ?? ''),
+          type: 'active',
+        });
+      } catch (error) {
+        console.error('Error initializing account:', error);
+      }
+    };
+    
+    initializeAccount();
+  }, [
+    userDetails?.user?.id,
+    liveAccountsLoading,
+    liveAccounts,
+    selection.activeAccount,
+    selection.mode,
+    setSelection,
+    supabase,
+    queryClient,
+  ]);
 
   const today = new Date();
   const initialStartDate = format(today, 'yyyy-MM-01');
@@ -373,26 +453,6 @@ export default function TradesPage() {
     }
   };
 
-  // still waiting for user info
-  // All three loading states render the same content; let's DRY it up with a function/component.
-
-  function LoadingScreen() {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div role="status">
-          <svg aria-hidden="true" className="w-8 h-8 text-slate-200 animate-spin fill-slate-800" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor" />
-            <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill" />
-          </svg>
-        </div>
-        <p className="ml-4 text-slate-600">Loading...</p>
-      </div>
-    );
-  }
-
-  if (userLoading || (!selection.activeAccount) || (queryEnabled && allTradesLoading)) {
-    return <LoadingScreen />;
-  }
 
   // optional: handle error
   if (allTradesError) {
@@ -407,49 +467,6 @@ export default function TradesPage() {
               <div className="text-red-600 dark:text-red-400 font-semibold">
                 Failed to load trades: {(allTradesError as Error).message}
               </div>
-            </div>
-          </Card>
-        </div>
-      </AppLayout>
-    );
-  }
-
-
-  if (!selection.activeAccount) {
-    return (
-      <AppLayout>
-        <div className="p-8">
-          <Card className="group relative max-w-2xl mx-auto overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-white via-slate-50/30 to-purple-50/20 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm transition-all duration-500 hover:shadow-xl hover:shadow-slate-200/60 dark:hover:border-slate-600/50 p-8 text-center">
-            {/* Ambient glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-violet-500/5 dark:from-purple-500/10 dark:to-violet-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-            
-            <div className="relative">
-              <div className="mb-6">
-                <svg
-                  className="mx-auto h-12 w-12 text-slate-400 dark:text-slate-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <h2 className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-2">No Active Account</h2>
-              <p className="text-slate-600 dark:text-slate-400 mb-6">
-                Please set up and activate an account for {selection.mode} mode to view your trades.
-              </p>
-              <Button asChild className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0">
-                <a href="/settings">
-                  <span className="relative z-10">Go to Settings</span>
-                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-                </a>
-              </Button>
             </div>
           </Card>
         </div>
@@ -699,11 +716,11 @@ export default function TradesPage() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3 mt-2 md:mt-0 md:items-end">
+              <div className="flex items-center gap-3 mt-2 md:mt-0">
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
                   Filter by:
                 </span>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 items-center">
                   {(['year', '15days', '30days', 'month'] as const).map((filterType) => {
                     const isActive = activeFilter === filterType && !isCustomDateRange();
                     const labels: Record<Exclude<FilterType, null>, string> = {
@@ -717,9 +734,9 @@ export default function TradesPage() {
                         key={filterType}
                         variant={isActive ? 'default' : 'outline'}
                         onClick={() => handleFilter(filterType)}
-                        className={`cursor-pointer rounded-lg px-4 py-2 text-sm transition-colors duration-200 ${
+                        className={`cursor-pointer rounded-xl px-4 py-2 text-sm transition-all duration-200 ${
                           isActive
-                            ? 'bg-slate-800 text-slate-50 hover:bg-slate-900 border-slate-900 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600'
+                            ? 'bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white border-0 shadow-md shadow-purple-500/30 dark:shadow-purple-500/20'
                             : 'border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80'
                         }`}
                       >
@@ -748,7 +765,7 @@ export default function TradesPage() {
           <Card className="relative overflow-hidden border border-slate-300 dark:border-slate-700 bg-transparent">
             <div className="relative overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200/30 dark:divide-slate-700/30">
-                <thead className="bg-transparent">
+                <thead className="bg-transparent border-b border-slate-300 dark:border-slate-700">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Date</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Time</th>
@@ -764,7 +781,47 @@ export default function TradesPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-transparent divide-y divide-slate-200/30 dark:divide-slate-700/30">
-                  {paginatedTrades.map((trade: Trade) => (
+                  {(actionBarloading || userLoading || (queryEnabled && allTradesLoading)) ? (
+                    // Skeleton rows
+                    Array.from({ length: 6 }).map((_, index) => (
+                      <tr key={`skeleton-${index}`}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton className="h-4 w-20" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton className="h-4 w-16" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton className="h-4 w-16" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton className="h-4 w-12" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton className="h-4 w-20" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton className="h-6 w-16 rounded-full" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton className="h-4 w-12" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton className="h-4 w-20" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton className="h-4 w-20" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton className="h-4 w-20" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton className="h-4 w-24" />
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    paginatedTrades.map((trade: Trade) => (
                     <tr key={trade.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">{trade.trade_date}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">{trade.trade_time}</td>
@@ -893,7 +950,19 @@ export default function TradesPage() {
                         </a>
                       </td>
                     </tr>
-                  ))}
+                    ))
+                  )}
+                  {!actionBarloading && !userLoading && !allTradesLoading && paginatedTrades.length === 0 && selection.activeAccount && (
+                    <tr>
+                      <td colSpan={11} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center">
+                          <p className="text-slate-600 dark:text-slate-400 text-sm">
+                            No trades found for the selected filters.
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
