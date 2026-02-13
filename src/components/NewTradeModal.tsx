@@ -103,16 +103,16 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     market: '',
     setup_type: '',
     liquidity: '',
-    sl_size: 0,
+    sl_size: undefined as any,
     direction: 'Long',
     trade_outcome: 'Win',
     break_even: false,
     reentry: false,
     news_related: false,
     mss: '',
-    risk_per_trade: 0,
-    risk_reward_ratio: 0,
-    risk_reward_ratio_long: 0,
+    risk_per_trade: undefined as any,
+    risk_reward_ratio: undefined as any,
+    risk_reward_ratio_long: undefined as any,
     local_high_low: false,
     mode: selection.mode,
     notes: NOTES_TEMPLATE,
@@ -122,7 +122,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     partials_taken: false,
     executed: true,
     launch_hour: false,
-    displacement_size: 0
+    displacement_size: undefined as any
   };
 
   const [trade, setTrade] = useState<Trade>(() => {
@@ -497,7 +497,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   type="number"
                   step="0.01"
                   inputMode="decimal"
-                  value={trade.risk_per_trade}
+                  value={String(trade.risk_per_trade ?? '')}
                   onChange={(e) => updateTrade('risk_per_trade', parseFloat(e.target.value) || 0)}
                   className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
                   required
@@ -510,7 +510,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   type="number"
                   step="0.01"
                   inputMode="decimal"
-                  value={trade.risk_reward_ratio}
+                  value={String(trade.risk_reward_ratio ?? '')}
                   onChange={(e) => updateTrade('risk_reward_ratio', parseFloat(e.target.value) || 0)}
                   className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
                   required
@@ -523,7 +523,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   type="number"
                   step="0.01"
                   inputMode="decimal"
-                  value={trade.risk_reward_ratio_long}
+                  value={String(trade.risk_reward_ratio_long ?? '')}
                   onChange={(e) => updateTrade('risk_reward_ratio_long', parseFloat(e.target.value) || 0)}
                   className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
                   placeholder="Potential RR"
@@ -536,7 +536,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   type="number"
                   step="0.01"
                   inputMode="decimal"
-                  value={trade.sl_size}
+                  value={String(trade.sl_size ?? '')}
                   onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
                   className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
                 />
@@ -548,7 +548,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   type="number"
                   step="0.01"
                   inputMode="decimal"
-                  value={trade.displacement_size}
+                  value={String(trade.displacement_size ?? '')}
                   onChange={(e) => updateTrade('displacement_size', parseFloat(e.target.value) || 0)}
                   className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
                   placeholder="Displacement"
@@ -625,7 +625,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   id="break-even"
                   checked={trade.break_even}
                   onCheckedChange={(checked) => updateTrade('break_even', checked as boolean)}
-                  className="p-2 rounded shadow-none cursor-pointer border-slate-300 dark:border-slate-600 data-[state=checked]:border-slate-800 dark:data-[state=checked]:border-slate-300"
+                  className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
                 />
                 <Label htmlFor="break-even" className="text-sm font-normal cursor-pointer">Break Even</Label>
               </div>
@@ -635,7 +635,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   id="reentry"
                   checked={trade.reentry}
                   onCheckedChange={(checked) => updateTrade('reentry', checked as boolean)}
-                  className="p-2 rounded shadow-none cursor-pointer border-slate-300 dark:border-slate-600 data-[state=checked]:border-slate-800 dark:data-[state=checked]:border-slate-300"
+                  className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
                 />
                 <Label htmlFor="reentry" className="text-sm font-normal cursor-pointer">Re-entry</Label>
               </div>
@@ -645,7 +645,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   id="news-related"
                   checked={trade.news_related}
                   onCheckedChange={(checked) => updateTrade('news_related', checked as boolean)}
-                  className="p-2 rounded shadow-none cursor-pointer border-slate-300 dark:border-slate-600 data-[state=checked]:border-slate-800 dark:data-[state=checked]:border-slate-300"
+                  className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
                 />
                 <Label htmlFor="news-related" className="text-sm font-normal cursor-pointer">News</Label>
               </div>
@@ -655,7 +655,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   id="local-high-low"
                   checked={trade.local_high_low}
                   onCheckedChange={(checked) => updateTrade('local_high_low', checked as boolean)}
-                  className="p-2 rounded shadow-none cursor-pointer border-slate-300 dark:border-slate-600 data-[state=checked]:border-slate-800 dark:data-[state=checked]:border-slate-300"
+                  className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
                 />
                 <Label htmlFor="local-high-low" className="text-sm font-normal cursor-pointer">Local High/Low</Label>
               </div>
@@ -665,7 +665,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   id="rr-hit-1-4"
                   checked={trade.rr_hit_1_4}
                   onCheckedChange={(checked) => updateTrade('rr_hit_1_4', checked as boolean)}
-                  className="p-2 rounded shadow-none cursor-pointer border-slate-300 dark:border-slate-600 data-[state=checked]:border-slate-800 dark:data-[state=checked]:border-slate-300"
+                  className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
                 />
                 <Label htmlFor="rr-hit-1-4" className="text-sm font-normal cursor-pointer">1.4RR Hit</Label>
               </div>
@@ -675,7 +675,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   id="launch-hour"
                   checked={trade.launch_hour}
                   onCheckedChange={(checked) => updateTrade('launch_hour', checked as boolean)}
-                  className="p-2 rounded shadow-none cursor-pointer border-slate-300 dark:border-slate-600 data-[state=checked]:border-slate-800 dark:data-[state=checked]:border-slate-300"
+                  className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
                 />
                 <Label htmlFor="launch-hour" className="text-sm font-normal cursor-pointer">LH</Label>
               </div>
@@ -686,7 +686,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   id="not-executed"
                   checked={trade.executed === false}
                   onCheckedChange={(checked) => updateTrade('executed', checked ? false : true)}
-                  className="p-2 rounded shadow-none cursor-pointer border-slate-300 dark:border-slate-600 data-[state=checked]:border-slate-800 dark:data-[state=checked]:border-slate-300"
+                  className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
                 />
                 <div className="flex items-center gap-1">
                   <Label htmlFor="not-executed" className="text-sm font-normal cursor-pointer">Not Executed</Label>
@@ -722,22 +722,22 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end gap-3 pt-4">
+            <div className="flex justify-end gap-2 pt-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className="h-11 px-6 rounded-xl border-slate-300 dark:border-slate-700 bg-slate-100/50 dark:bg-slate-800/50 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-300 font-medium transition-all duration-200"
+                className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="relative h-11 px-6 overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 group border-0 transition-all duration-300 disabled:opacity-60"
+                className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0 disabled:opacity-60"
               >
-                <span className="relative z-10 flex items-center gap-2">
+                <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
                   {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                   {isSubmitting ? 'Creating...' : 'Create Trade'}
                 </span>
