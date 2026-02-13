@@ -327,7 +327,7 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
                 </div>
               )}
 
-              <AlertDialogFooter className="mt-4 flex items-center justify-between gap-2">
+              <AlertDialogFooter className="mt-4 flex items-center justify-between">
                 <AlertDialogCancel
                   type="button"
                   onClick={resetForm}
