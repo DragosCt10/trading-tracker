@@ -257,8 +257,8 @@ export function AccountOverviewCard({
                       zIndex: 1000
                     }}
                     cursor={{ 
-                      fill: 'rgba(148, 163, 184, 0.08)', 
-                      radius: 8 
+                      fill: 'transparent', 
+                      radius: 8,
                     }}
                     content={({ active, payload }) => {
                       if (!active || !payload || !payload.length) return null;
@@ -327,9 +327,9 @@ export function AccountOverviewCard({
                         const x = Number(props.x || 0);
                         const y = Number(props.y || 0);
                         const width = Number(props.width);
-                        const height = Number(props.height);
-                        // Positive values above bar, negative values at the top of bar
-                        const yPos = value >= 0 ? y - 8 : y - 8;
+                        const height = Number(props.height || 0);
+                        // Positive values: above bar top, Negative values: above baseline (y + height is baseline for negative bars)
+                        const yPos = value >= 0 ? y - 8 : y + height - 8;
 
                         return (
                           <text
@@ -340,7 +340,6 @@ export function AccountOverviewCard({
                             dominantBaseline="middle"
                             className="text-xs font-bold"
                             style={{ 
-                              textShadow: '0 1px 3px rgba(255, 255, 255, 0.9)',
                               fontFamily: 'system-ui, -apple-system, sans-serif'
                             }}
                           >
