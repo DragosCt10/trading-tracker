@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { PencilIcon } from '@heroicons/react/24/outline';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -209,10 +210,11 @@ export function EditAccountAlertDialog({
           <Button
             type="button"
             size="sm"
-            className="relative w-full sm:w-auto h-9 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-xs sm:text-sm font-medium transition-colors duration-200 disabled:opacity-50"
+            className="relative w-full sm:w-auto h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 text-xs sm:text-sm font-medium transition-colors duration-200 disabled:opacity-50 gap-2"
             disabled={!account}
           >
-            Edit
+            <PencilIcon className="h-4 w-4" />
+            <span>Edit</span>
           </Button>
         </AlertDialogTrigger>
 
