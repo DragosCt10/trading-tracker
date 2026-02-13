@@ -36,22 +36,14 @@ export function AccountOverviewCard({
   // Check if we have meaningful data
   const hasData = accountName !== null && updatedBalance !== 0;
   
-  // Only show skeleton if data is NOT immediately available on mount
-  const [showSkeleton, setShowSkeleton] = useState(!hasData);
-  const [isReadyToShowContent, setIsReadyToShowContent] = useState(hasData);
-  const [hasShownSkeleton, setHasShownSkeleton] = useState(!hasData);
+  // Always show skeleton initially, even if data exists
+  const [showSkeleton, setShowSkeleton] = useState(true);
+  const [isReadyToShowContent, setIsReadyToShowContent] = useState(false);
 
-  // Control skeleton visibility based on loading state and data availability
+  // Control skeleton visibility - always show skeleton initially, then transition to content
   useEffect(() => {
-    // If data is immediately available (from cache), show content right away
-    if (hasData && !hasShownSkeleton) {
-      setShowSkeleton(false);
-      setIsReadyToShowContent(true);
-      return;
-    }
-
-    // If skeleton was shown (hard refresh case), ensure minimum display time
-    if (!isLoading && hasData && hasShownSkeleton) {
+    // Always show skeleton for minimum duration, then transition to content
+    if (!isLoading && hasData) {
       const timer = setTimeout(() => {
         setShowSkeleton(false);
         // Add buffer before showing content for smooth transition
@@ -62,13 +54,12 @@ export function AccountOverviewCard({
       return () => clearTimeout(timer);
     }
     
-    // Keep showing skeleton if we don't have data yet
-    if (!hasData) {
+    // Keep showing skeleton if we don't have data yet or still loading
+    if (!hasData || isLoading) {
       setShowSkeleton(true);
       setIsReadyToShowContent(false);
-      setHasShownSkeleton(true);
     }
-  }, [isLoading, hasData, hasShownSkeleton]);
+  }, [isLoading, hasData]);
 
   // Prepare chart data
   const chartData = months.map((month) => ({
