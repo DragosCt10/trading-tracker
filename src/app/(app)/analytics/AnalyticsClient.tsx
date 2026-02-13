@@ -888,7 +888,7 @@ export default function Dashboard() {
           <div className="w-28">
             {/* Using shadcn/ui Select */}
             <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(Number(value))}>
-              <SelectTrigger className="w-full shadow-none">
+              <SelectTrigger className="w-full shadow-none" suppressHydrationWarning>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
