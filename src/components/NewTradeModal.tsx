@@ -283,7 +283,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl px-6 py-5">
+      <AlertDialogContent className="max-w-3xl max-h-[90vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl p-0 flex flex-col overflow-hidden">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -293,7 +293,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
           <X className="h-5 w-5" />
         </button>
 
-        {/* Gradient orbs background */}
+        {/* Gradient orbs background - fixed to modal */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
           <div
             className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/8 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse"
@@ -305,7 +305,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
           />
         </div>
 
-        {/* Noise texture overlay */}
+        {/* Noise texture overlay - fixed to modal */}
         <div
           className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl"
           style={{
@@ -317,7 +317,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         {/* Top accent line */}
         <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60" />
 
-        <div className="relative">
+        {/* Scrollable content wrapper */}
+        <div className="relative overflow-y-auto flex-1 px-6 py-5">
           <AlertDialogHeader className="space-y-1.5 mb-4">
             <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
               <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50">
