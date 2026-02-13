@@ -3,11 +3,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { Trade } from '@/types/trade';
 import { useUserDetails } from '@/hooks/useUserDetails';
-import Link from 'next/link';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import NotesModal from '@/components/NotesModal';
 import { useQuery } from '@tanstack/react-query';
-import { format, endOfMonth } from 'date-fns';
+import { format, endOfMonth, startOfMonth, startOfYear, endOfYear, subDays } from 'date-fns';
 import { DateRange } from 'react-date-range';
 import AppLayout from '@/components/shared/layout/AppLayout';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
@@ -63,6 +62,92 @@ export default function TradesPage() {
     startDate: initialStartDate,
     endDate: initialEndDate,
   });
+
+  type FilterType = 'year' | '15days' | '30days' | 'month' | null;
+  const [activeFilter, setActiveFilter] = useState<FilterType>('month');
+
+  // Check if current date range is custom
+  const isCustomDateRange = () => {
+    const today = new Date();
+    const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
+    
+    const yearStart = fmt(startOfYear(today));
+    const yearEnd = fmt(endOfYear(today));
+    const last15Start = fmt(subDays(today, 14));
+    const last30Start = fmt(subDays(today, 29));
+    const monthStart = fmt(startOfMonth(today));
+    const monthEnd = fmt(endOfMonth(today));
+
+    const presets = [
+      { startDate: yearStart, endDate: yearEnd },
+      { startDate: last15Start, endDate: fmt(today) },
+      { startDate: last30Start, endDate: fmt(today) },
+      { startDate: monthStart, endDate: monthEnd },
+    ];
+
+    return !presets.some(
+      (p) => p.startDate === dateRange.startDate && p.endDate === dateRange.endDate
+    );
+  };
+
+  // Update activeFilter when dateRange changes externally (only if it doesn't match current filter)
+  useEffect(() => {
+    const today = new Date();
+    const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
+    const yearStart = fmt(startOfYear(today));
+    const yearEnd = fmt(endOfYear(today));
+    const last15Start = fmt(subDays(today, 14));
+    const last30Start = fmt(subDays(today, 29));
+    const monthStart = fmt(startOfMonth(today));
+    const monthEnd = fmt(endOfMonth(today));
+
+    let newFilter: FilterType = null;
+    if (dateRange.startDate === yearStart && dateRange.endDate === yearEnd) {
+      newFilter = 'year';
+    } else if (dateRange.startDate === last15Start && dateRange.endDate === fmt(today)) {
+      newFilter = '15days';
+    } else if (dateRange.startDate === last30Start && dateRange.endDate === fmt(today)) {
+      newFilter = '30days';
+    } else if (dateRange.startDate === monthStart && dateRange.endDate === monthEnd) {
+      newFilter = 'month';
+    }
+
+    // Only update if the filter actually changed
+    setActiveFilter((currentFilter) => {
+      if (newFilter !== currentFilter) {
+        return newFilter;
+      }
+      return currentFilter;
+    });
+  }, [dateRange.startDate, dateRange.endDate]);
+
+  // Handle preset filter changes
+  const handleFilter = (type: Exclude<FilterType, null>) => {
+    const today = new Date();
+    const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
+
+    let startDate: string;
+    let endDate: string;
+
+    if (type === 'year') {
+      startDate = fmt(startOfYear(today));
+      endDate = fmt(endOfYear(today));
+    } else if (type === '15days') {
+      endDate = fmt(today);
+      startDate = fmt(subDays(today, 14));
+    } else if (type === '30days') {
+      endDate = fmt(today);
+      startDate = fmt(subDays(today, 29));
+    } else {
+      // current month
+      startDate = fmt(startOfMonth(today));
+      endDate = fmt(endOfMonth(today));
+    }
+
+    setActiveFilter(type);
+    setDateRange({ startDate, endDate });
+    setCurrentPage(1);
+  };
 
   const {
     data: allTradesData,
@@ -185,10 +270,13 @@ export default function TradesPage() {
   }, [showDatePicker]);
 
   const clearFilters = () => {
+    const today = new Date();
+    const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
     setDateRange({
-      startDate: initialStartDate,
-      endDate: initialEndDate,
+      startDate: fmt(startOfMonth(today)),
+      endDate: fmt(endOfMonth(today)),
     });
+    setActiveFilter('month');
     setCurrentPage(1);
     setSelectedMarket('all');
     setShowNonExecuted(false);
@@ -382,13 +470,12 @@ export default function TradesPage() {
                   Viewing trades for {selection.mode} mode
                 </p>
               </div>
-              <Button asChild className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0">
-                <Link href="/trades/new">
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    Add New Trade
-                  </span>
-                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-                </Link>
+              <Button 
+                onClick={exportToCSV} 
+                className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0"
+              >
+                <span className="relative z-10">Export Trades</span>
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
               </Button>
             </div>
           </div>
@@ -578,6 +665,27 @@ export default function TradesPage() {
                         <Button
                           onClick={() => {
                             setDateRange({ ...tempRange });
+                            // Check if the selected range matches a preset, otherwise reset filter
+                            const today = new Date();
+                            const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
+                            const yearStart = fmt(startOfYear(today));
+                            const yearEnd = fmt(endOfYear(today));
+                            const last15Start = fmt(subDays(today, 14));
+                            const last30Start = fmt(subDays(today, 29));
+                            const monthStart = fmt(startOfMonth(today));
+                            const monthEnd = fmt(endOfMonth(today));
+
+                            if (tempRange.startDate === yearStart && tempRange.endDate === yearEnd) {
+                              setActiveFilter('year');
+                            } else if (tempRange.startDate === last15Start && tempRange.endDate === fmt(today)) {
+                              setActiveFilter('15days');
+                            } else if (tempRange.startDate === last30Start && tempRange.endDate === fmt(today)) {
+                              setActiveFilter('30days');
+                            } else if (tempRange.startDate === monthStart && tempRange.endDate === monthEnd) {
+                              setActiveFilter('month');
+                            } else {
+                              setActiveFilter(null);
+                            }
                             setCurrentPage(1);
                             setShowDatePicker(false);
                           }}
@@ -591,34 +699,35 @@ export default function TradesPage() {
                   )}
                 </div>
               </div>
-              <div className="flex gap-2 mt-2 md:mt-0 md:items-end">
-                <Button 
-                  onClick={exportToCSV} 
-                  className="cursor-pointer w-full md:w-auto relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0"
-                >
-                  <span className="relative z-10">Export Trades</span>
-                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={clearFilters}
-                  className="cursor-pointer w-full md:w-auto rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200"
-                >
-                  Current Month
-                </Button>
-                <Button
-                  variant="outline"
-                  className="cursor-pointer w-full md:w-auto rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200"
-                  onClick={() => {
-                    const now = new Date();
-                    const startOfYear = `${now.getFullYear()}-01-01`;
-                    const endOfYear = `${now.getFullYear()}-12-31`;
-                    setDateRange({ startDate: startOfYear, endDate: endOfYear });
-                    setCurrentPage(1);
-                  }}
-                >
-                  Current Year
-                </Button>
+              <div className="flex items-center gap-3 mt-2 md:mt-0 md:items-end">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                  Filter by:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {(['year', '15days', '30days', 'month'] as const).map((filterType) => {
+                    const isActive = activeFilter === filterType && !isCustomDateRange();
+                    const labels: Record<Exclude<FilterType, null>, string> = {
+                      year: 'Current Year',
+                      '15days': 'Last 15 Days',
+                      '30days': 'Last 30 Days',
+                      month: 'Current Month',
+                    };
+                    return (
+                      <Button
+                        key={filterType}
+                        variant={isActive ? 'default' : 'outline'}
+                        onClick={() => handleFilter(filterType)}
+                        className={`cursor-pointer rounded-lg px-4 py-2 text-sm transition-colors duration-200 ${
+                          isActive
+                            ? 'bg-slate-800 text-slate-50 hover:bg-slate-900 border-slate-900 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600'
+                            : 'border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80'
+                        }`}
+                      >
+                        {labels[filterType]}
+                      </Button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
