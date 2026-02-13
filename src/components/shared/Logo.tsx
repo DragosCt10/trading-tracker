@@ -18,13 +18,6 @@ export default function Logo({ width = 512, height = 512, className, ...props }:
       {...props}
     >
       <defs>
-        {/* Premium gradient background - purple to fuchsia */}
-        <linearGradient id="bgGradient" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#7c3aed" />
-          <stop offset="50%" stopColor="#8b5cf6" />
-          <stop offset="100%" stopColor="#a855f7" />
-        </linearGradient>
-        
         {/* Vibrant bar gradients */}
         <linearGradient id="bar1" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#c084fc" />
@@ -37,8 +30,8 @@ export default function Logo({ width = 512, height = 512, className, ...props }:
         </linearGradient>
         
         <linearGradient id="bar3" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#a78bfa" />
-          <stop offset="100%" stopColor="#8b5cf6" />
+          <stop offset="0%" stopColor="#e879f9" />
+          <stop offset="100%" stopColor="#d946ef" />
         </linearGradient>
         
         {/* Glow effect */}
@@ -50,12 +43,6 @@ export default function Logo({ width = 512, height = 512, className, ...props }:
           </feMerge>
         </filter>
       </defs>
-
-      {/* Rounded Square Background with gradient */}
-      <rect width="512" height="512" rx="110" fill="url(#bgGradient)" />
-      
-      {/* Inner glow overlay */}
-      <rect width="512" height="512" rx="110" fill="url(#bgGradient)" opacity="0.3" />
 
       {/* Trading Chart Bars with glow */}
       <g filter="url(#glow)">
