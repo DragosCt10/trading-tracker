@@ -1,18 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, subDays, startOfYear, endOfYear } from 'date-fns';
 import { Trade } from '@/types/trade';
-import { useUserDetails } from '@/hooks/useUserDetails';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
-import { useDashboardData } from '@/hooks/useDashboardData';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ArrowRight } from 'lucide-react';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import { TradeFiltersBar, DateRangeValue } from '@/components/dashboard/TradeFiltersBar';
+import { getFilteredTrades } from '@/lib/server/trades';
+import type { Database } from '@/types/supabase';
+
+type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
 const ITEMS_PER_PAGE = 12;
 
@@ -24,13 +27,6 @@ type DateRangeState = {
 type FilterType = 'year' | '15days' | '30days' | 'month';
 
 const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
-
-function createInitialDateRange(today = new Date()): DateRangeState {
-  return {
-    startDate: fmt(startOfMonth(today)),
-    endDate: fmt(endOfMonth(today)),
-  };
-}
 
 function buildPresetRange(
   type: FilterType,
@@ -87,40 +83,127 @@ function isCustomDateRange(range: DateRangeState): boolean {
   );
 }
 
-export default function DiscoverClient() {
-  const today = new Date();
-  const initialRange = createInitialDateRange(today);
+interface DiscoverClientProps {
+  /** User id from server (avoids useUserDetails on this page) */
+  initialUserId: string;
+  initialFilteredTrades: Trade[];
+  initialAllTrades: Trade[];
+  initialDateRange: DateRangeState;
+  initialMode: 'live' | 'backtesting' | 'demo';
+  initialActiveAccount: AccountRow | null;
+}
 
-  const [dateRange, setDateRange] = useState<DateRangeState>(initialRange);
+export default function DiscoverClient({
+  initialUserId,
+  initialFilteredTrades,
+  initialAllTrades,
+  initialDateRange,
+  initialMode,
+  initialActiveAccount,
+}: DiscoverClientProps) {
+  const today = new Date();
+
+  const [dateRange, setDateRange] = useState<DateRangeState>(initialDateRange);
   const [currentPage, setCurrentPage] = useState(1);
-  const [currentDate] = useState(new Date());
-  const [calendarDateRange] = useState(createInitialDateRange(today));
   const [selectedYear] = useState(new Date().getFullYear());
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>('month');
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
 
-  const { data: userDetails, isLoading: userLoading } = useUserDetails();
-  const { selection, actionBarloading } = useActionBarSelection();
+  const { selection, setSelection } = useActionBarSelection();
   const queryClient = useQueryClient();
 
-  // Use the shared hook instead of a separate query
-  const { filteredTrades, filteredTradesLoading, allTrades } = useDashboardData({
-    session: userDetails?.session,
-    dateRange,
-    mode: selection.mode,
-    activeAccount: selection.activeAccount,
-    contextLoading: actionBarloading,
-    isSessionLoading: userLoading,
-    currentDate,
-    calendarDateRange,
-    selectedYear,
-    selectedMarket,
+  // Initialize selection from server props if not already set
+  useEffect(() => {
+    if (initialActiveAccount && !selection.activeAccount && initialMode) {
+      setSelection({
+        mode: initialMode,
+        activeAccount: initialActiveAccount,
+      });
+    }
+  }, [initialActiveAccount, initialMode, selection.activeAccount, setSelection]);
+
+  // Resolve account: use selection when set, else initial from server (so query can run before action bar hydrates)
+  const activeAccount = selection.activeAccount ?? initialActiveAccount;
+  const userId = initialUserId;
+
+  // Initial server data is only valid for the same mode + account + date range; otherwise we must refetch
+  const isInitialContext =
+    selection.mode === initialMode &&
+    activeAccount?.id === initialActiveAccount?.id &&
+    dateRange.startDate === initialDateRange.startDate &&
+    dateRange.endDate === initialDateRange.endDate;
+
+  // Server query when date range, mode, or account change (queryKey includes all of them)
+  const {
+    data: rawFilteredTrades,
+    isLoading: filteredTradesLoading,
+    isFetching: filteredTradesFetching,
+  } = useQuery<Trade[]>({
+    queryKey: [
+      'filteredTrades',
+      selection.mode,
+      activeAccount?.id,
+      userId,
+      dateRange.startDate,
+      dateRange.endDate,
+    ],
+    queryFn: async () => {
+      if (!userId || !activeAccount?.id) return [];
+      return getFilteredTrades({
+        userId,
+        accountId: activeAccount.id,
+        mode: selection.mode,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+      });
+    },
+    initialData: isInitialContext ? initialFilteredTrades : undefined,
+    placeholderData: undefined,
+    enabled: !!userId && !!activeAccount?.id,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
+  // Use initial data only when mode/account/date range still match initial; otherwise show skeleton until fetch completes
+  const filteredTrades = rawFilteredTrades ?? (isInitialContext ? initialFilteredTrades : []);
+
+  // Fetch all trades for markets list (server query; refetch when mode/account/year changes)
+  const isInitialModeAndAccount =
+    selection.mode === initialMode && activeAccount?.id === initialActiveAccount?.id;
+  const {
+    data: rawAllTrades,
+  } = useQuery<Trade[]>({
+    queryKey: [
+      'allTrades',
+      selection.mode,
+      activeAccount?.id,
+      userId,
+      selectedYear,
+    ],
+    queryFn: async () => {
+      if (!userId || !activeAccount?.id) return [];
+      const currentYear = new Date().getFullYear();
+      return getFilteredTrades({
+        userId,
+        accountId: activeAccount.id,
+        mode: selection.mode,
+        startDate: `${currentYear}-01-01`,
+        endDate: `${currentYear}-12-31`,
+      });
+    },
+    initialData: isInitialModeAndAccount ? initialAllTrades : undefined,
+    enabled: !!userId && !!activeAccount?.id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+  const allTrades = rawAllTrades ?? (isInitialModeAndAccount ? initialAllTrades : []);
+
   // Extract unique markets from all trades
-  const markets = Array.from(new Set(allTrades.map((t) => t.market)));
+  const markets = useMemo(() => {
+    return Array.from(new Set(allTrades.map((t) => t.market)));
+  }, [allTrades]);
 
   // Check if current date range is custom
   const isCustomRange = isCustomDateRange(dateRange);
@@ -135,18 +218,24 @@ export default function DiscoverClient() {
     setCurrentPage(1); // Reset pagination
   };
 
+  // Filter by market (client-side: date-range data is already loaded)
+  const trades = useMemo(() => {
+    const list = filteredTrades || [];
+    if (selectedMarket === 'all') return list;
+    return list.filter((t) => t.market === selectedMarket);
+  }, [filteredTrades, selectedMarket]);
+
   // Pagination
-  const trades = filteredTrades || [];
   const totalPages = Math.ceil(trades.length / ITEMS_PER_PAGE);
   const paginatedCurrentPage = Math.min(currentPage, totalPages === 0 ? 1 : totalPages);
   const startIdx = (paginatedCurrentPage - 1) * ITEMS_PER_PAGE;
   const endIdx = startIdx + ITEMS_PER_PAGE;
   const paginatedTrades = trades.slice(startIdx, endIdx);
 
-  // Reset to page 1 when date range changes
+  // Reset to page 1 when date range or market filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [dateRange]);
+  }, [dateRange, selectedMarket]);
 
   const openModal = (trade: Trade) => {
     setSelectedTrade(trade);
@@ -158,31 +247,19 @@ export default function DiscoverClient() {
     setIsModalOpen(false);
   };
 
-  // Loading state
-  if (userLoading || actionBarloading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="flex items-center" role="status">
-          <Loader2 className="w-8 h-8 text-slate-800 animate-spin" />
-          <span className="ml-4 text-slate-600">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
   // No active account
-  if (!selection.activeAccount) {
-    return (
-      <div className="p-8">
-        <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-sm p-8 text-center">
-          <h2 className="text-xl font-semibold text-slate-900 mb-2">No Active Account</h2>
-          <p className="text-slate-600 mb-6">
-            Please set up and activate an account for {selection.mode} mode to discover trades.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  // if (!selection.activeAccount && !initialActiveAccount) {
+  //   return (
+  //     <div className="p-8">
+  //       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-sm p-8 text-center">
+  //         <h2 className="text-xl font-semibold text-slate-900 mb-2">No Active Account</h2>
+  //         <p className="text-slate-600 mb-6">
+  //           Please set up and activate an account for {selection.mode} mode to discover trades.
+  //         </p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4">
@@ -209,16 +286,30 @@ export default function DiscoverClient() {
         markets={markets}
       />
 
-      {/* Loading State */}
-      {filteredTradesLoading && (
-        <div className="flex justify-center items-center py-12">
-          <Loader2 className="w-8 h-8 text-slate-800 animate-spin" />
-          <span className="ml-4 text-slate-600">Loading trades...</span>
+      {/* Skeleton only when we have no data yet (new filter/key); show cached data immediately when revisiting */}
+      {(filteredTradesLoading || filteredTradesFetching) && filteredTrades.length === 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
+          {Array.from({ length: 12 }).map((_, index) => (
+            <Card key={`skeleton-${index}`} className="overflow-hidden">
+              <Skeleton className="aspect-video w-full" />
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Skeleton className="h-6 w-20" />
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+                <Skeleton className="h-4 w-32 mt-3" />
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
-      {/* Trade Cards Grid */}
-      {!filteredTradesLoading && (
+      {/* Trade Cards Grid (show cached data even while background refetch runs) */}
+      {((!filteredTradesLoading && !filteredTradesFetching) || filteredTrades.length > 0) && (
         <>
           {paginatedTrades.length === 0 ? (
             <div className="text-center py-12">
