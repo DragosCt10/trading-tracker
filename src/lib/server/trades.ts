@@ -84,12 +84,15 @@ export async function getFilteredTrades({
   mode,
   startDate,
   endDate,
+  includeNonExecuted = false,
 }: {
   userId: string;
   accountId: string;
   mode: string;
   startDate: string;
   endDate: string;
+  /** When true, include trades where executed=false (e.g. for Trades page filter) */
+  includeNonExecuted?: boolean;
 }): Promise<Trade[]> {
   const supabase = await createClient();
 
@@ -104,18 +107,22 @@ export async function getFilteredTrades({
   let allTrades: any[] = [];
   let totalCount = 0;
 
-  try {
-    const initialQuery = supabase
+  const baseFilter = (q: any) => {
+    let query = q
       .from(`${mode}_trades`)
       .select('*', { count: 'exact' })
-      .eq('user_id', userId) // Server-enforced
+      .eq('user_id', userId)
       .eq('account_id', accountId)
       .gte('trade_date', startDate)
-      .lte('trade_date', endDate)
-      .not('executed', 'eq', false)
-      .order('trade_date', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .lte('trade_date', endDate);
+    if (!includeNonExecuted) {
+      query = query.not('executed', 'eq', false);
+    }
+    return query.order('trade_date', { ascending: false });
+  };
 
+  try {
+    const initialQuery = baseFilter(supabase).range(offset, offset + limit - 1);
     const { data: initialData, error: initialError, count } = await initialQuery;
 
     if (initialError) {
@@ -129,16 +136,8 @@ export async function getFilteredTrades({
     // Manual pagination
     offset += limit;
     while (offset < totalCount) {
-      const { data: moreData, error: fetchError } = await supabase
-        .from(`${mode}_trades`)
-        .select('*')
-        .eq('user_id', userId) // Server-enforced
-        .eq('account_id', accountId)
-        .gte('trade_date', startDate)
-        .lte('trade_date', endDate)
-        .not('executed', 'eq', false)
-        .order('trade_date', { ascending: false })
-        .range(offset, offset + limit - 1);
+      const paginationQuery = baseFilter(supabase).range(offset, offset + limit - 1);
+      const { data: moreData, error: fetchError } = await paginationQuery;
 
       if (fetchError) {
         console.error('Error fetching more data:', fetchError);
