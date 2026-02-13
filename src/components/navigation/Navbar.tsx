@@ -145,7 +145,7 @@ export default function Navbar() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={navButtonClass(false)}
+                  className={cn(navButtonClass(false), 'cursor-pointer')}
                   onClick={() => setNewTradeModalOpen(true)}
                 >
                   <PlusCircle className="h-4 w-4" />
@@ -297,7 +297,7 @@ export default function Navbar() {
 
                 <Button
                   variant="ghost"
-                  className={cn('w-full justify-start', navButtonClass(false))}
+                  className={cn('w-full justify-start cursor-pointer', navButtonClass(false))}
                   onClick={() => {
                     setMobileMenuOpen(false);
                     setNewTradeModalOpen(true);
