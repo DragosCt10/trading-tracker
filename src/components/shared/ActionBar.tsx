@@ -8,6 +8,7 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useCallback, useEffect, useRef } from 'react';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { CheckIcon } from '@heroicons/react/24/outline';
 
 // shadcn/ui
 import { Badge } from '@/components/ui/badge';
@@ -190,7 +191,7 @@ export default function ActionBar() {
             value={pendingMode}
             onValueChange={(val: Mode) => setPendingMode(val)}
           >
-            <SelectTrigger className="h-9 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[130px] w-full sm:w-[130px] md:w-[160px] focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200">
+            <SelectTrigger className="h-8 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[130px] w-full sm:w-[130px] md:w-[160px] focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200">
               <SelectValue placeholder="Select mode" />
             </SelectTrigger>
             <SelectContent className="text-xs sm:text-sm min-w-[140px] md:min-w-[160px] border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
@@ -213,7 +214,7 @@ export default function ActionBar() {
             onValueChange={(val) => setPendingAccountId(val ?? null)}
             disabled={accountsLoading || noAccounts}
           >
-            <SelectTrigger className="h-9 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px] focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200">
+            <SelectTrigger className="h-8 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px] focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200">
               <SelectValue placeholder={noAccounts ? 'No subaccounts' : 'Choose subaccount…'} />
             </SelectTrigger>
             <SelectContent className="text-xs sm:text-sm min-w-[170px] md:min-w-[200px] border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
@@ -253,7 +254,7 @@ export default function ActionBar() {
           <Button
             type="button"
             size="sm"
-            className="relative w-full sm:w-auto h-9 overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 group border-0 text-xs sm:text-sm transition-all duration-300 disabled:opacity-60"
+            className="relative w-full sm:w-auto h-8 overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 group border-0 text-xs sm:text-sm transition-all duration-300 disabled:opacity-60"
             onClick={onApply}
             disabled={
               applying ||
@@ -262,13 +263,15 @@ export default function ActionBar() {
             }
             >
             <span className="relative z-10 flex items-center justify-center gap-2">
-              {applying && (
+              {applying ? (
                 <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" className="opacity-25" />
                   <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z" />
                 </svg>
+              ) : (
+                <CheckIcon className="h-4 w-4" />
               )}
-              Apply
+              <span>Apply</span>
             </span>
             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
           </Button>
