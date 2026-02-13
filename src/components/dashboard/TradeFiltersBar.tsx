@@ -221,7 +221,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
             value={selectedMarket}
             onValueChange={onSelectedMarketChange}
           >
-            <SelectTrigger className="flex w-40 shadow-none">
+            <SelectTrigger className="flex w-40 shadow-none" suppressHydrationWarning>
               <SelectValue placeholder="All Markets" />
             </SelectTrigger>
             <SelectContent className="">
