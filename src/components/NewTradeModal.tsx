@@ -37,6 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogDescription,
+  AlertDialogFooter,
 } from '@/components/ui/alert-dialog';
 
 const MARKET_OPTIONS = ['DAX', 'US30', 'UK100', 'US100', 'EURUSD', 'GBPUSD'];
@@ -87,6 +88,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [progressDialog, setProgressDialog] = useState<{
+    open: boolean;
+    status: 'loading' | 'success' | 'error';
+    message: string;
+  }>({ open: false, status: 'loading', message: '' });
   const { data: userDetails } = useUserDetails();
 
   // Prevent hydration mismatch by only rendering on client
@@ -153,23 +159,12 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     setTrade((prev) => (prev[key] === value ? prev : { ...prev, [key]: value }));
   };
 
-  // Helper function to invalidate and refetch all trade-related queries
+  // Helper function to invalidate and refetch ALL queries (ensures analytics updates)
   const invalidateAndRefetchTradeQueries = async () => {
-    const tradeQueryPredicate = (query: any) => {
-      const key = query.queryKey[0] as string;
-      return (
-        key === 'allTrades' ||
-        key === 'filteredTrades' ||
-        key === 'nonExecutedTrades' ||
-        key === 'nonExecutedTotalTradesCount' ||
-        key === 'discoverTrades' ||
-        key === 'trades'
-      );
-    };
-
-    queryClient.removeQueries({ predicate: tradeQueryPredicate });
-    await queryClient.invalidateQueries({ predicate: tradeQueryPredicate });
-    await queryClient.refetchQueries({ predicate: tradeQueryPredicate, type: 'active' });
+    // Invalidate ALL queries to ensure analytics charts and stats update immediately
+    await queryClient.invalidateQueries();
+    // Refetch all active queries (currently mounted components)
+    await queryClient.refetchQueries({ type: 'active' });
   };
 
   // keep weekday + quarter in sync when the committed date changes
@@ -197,12 +192,16 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       return { signedProfit: 0, pnlPercentage: 0 };
     }
 
+    // Ensure we have valid numbers, default to 0 if undefined/NaN
+    const riskPerTrade = Number(trade.risk_per_trade) || 0;
+    const riskRewardRatio = Number(trade.risk_reward_ratio) || 0;
+
     let pnlPct = 0;
 
     if (trade.trade_outcome === 'Lose') {
-      pnlPct = -trade.risk_per_trade;
+      pnlPct = -riskPerTrade;
     } else {
-      pnlPct = trade.risk_per_trade * (trade.risk_reward_ratio || 0);
+      pnlPct = riskPerTrade * riskRewardRatio;
     }
 
     const profit = (pnlPct / 100) * accountBalance;
@@ -222,20 +221,21 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setError(null);
 
-    if (!trade.market || !trade.setup_type || !trade.liquidity || !trade.mss) {
+    if (!trade.market || !trade.setup_type || !trade.liquidity || !trade.mss || !trade.sl_size) {
       setError('Please fill in all required fields');
-      setIsSubmitting(false);
       return;
     }
 
     if (!selection.activeAccount) {
       setError('No active account found. Please set up an account in settings.');
-      setIsSubmitting(false);
       return;
     }
+
+    // Show progress dialog
+    setIsSubmitting(true);
+    setProgressDialog({ open: true, status: 'loading', message: 'Please wait while we save your trade data...' });
 
     try {
       if (notesRef.current) {
@@ -265,16 +265,30 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         localStorage.removeItem(`new-trade-draft-${selection.mode}`);
       }
 
+      // Update progress message
+      setProgressDialog({ open: true, status: 'loading', message: 'Updating analytics and refreshing charts...' });
+
+      // ✅ Invalidate and refetch all queries to ensure analytics updates immediately
       await invalidateAndRefetchTradeQueries();
 
-      if (onTradeCreated) onTradeCreated();
-      onClose();
+      // Show success
+      setProgressDialog({ open: true, status: 'success', message: 'Your trade has been added successfully. All charts and statistics have been updated.' });
 
-      // Reset form
-      setTrade(initialTradeState);
+      // Wait 5 seconds to show success message, then close
+      setTimeout(() => {
+        setProgressDialog({ open: false, status: 'loading', message: '' });
+        setIsSubmitting(false);
+        if (onTradeCreated) onTradeCreated();
+        onClose();
+        // Reset form
+        setTrade(initialTradeState);
+      }, 5000);
     } catch (err: any) {
-      setError(err.message || 'Failed to create trade');
-    } finally {
+      setProgressDialog({ 
+        open: true, 
+        status: 'error', 
+        message: 'Failed to create trade. Please check your data and try again.'
+      });
       setIsSubmitting(false);
     }
   };
@@ -282,6 +296,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   if (!mounted || !isOpen) return null;
 
   return (
+    <>
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent className="max-w-3xl max-h-[90vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl p-0 flex flex-col overflow-hidden">
         {/* Gradient orbs background - fixed to modal */}
@@ -531,7 +546,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               </div>
 
               <div className="space-y-1.5">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">SL Size (pips)</Label>
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">SL Size *</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -539,6 +554,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   value={String(trade.sl_size ?? '')}
                   onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
                   className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
+                  required
                 />
               </div>
 
@@ -748,5 +764,67 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         </div>
       </AlertDialogContent>
     </AlertDialog>
+
+    {/* Progress Dialog - matches TradeDetailsModal delete dialog design */}
+    <AlertDialog open={progressDialog.open} onOpenChange={() => {
+      if (progressDialog.status !== 'loading') {
+        setProgressDialog({ open: false, status: 'loading', message: '' });
+      }
+    }}>
+      <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] rounded-2xl">
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {progressDialog.status === 'loading' && (
+              <span className="text-purple-600 dark:text-purple-400 font-semibold text-lg flex items-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Creating Trade
+              </span>
+            )}
+            {progressDialog.status === 'success' && (
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-lg flex items-center gap-2">
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                Trade Created Successfully
+              </span>
+            )}
+            {progressDialog.status === 'error' && (
+              <span className="text-red-500 dark:text-red-400 font-semibold text-lg flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" />
+                Error Creating Trade
+              </span>
+            )}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            <span className="text-slate-600 dark:text-slate-400">
+              {progressDialog.message}
+            </span>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        
+        {/* Only show footer with button for error state */}
+        {progressDialog.status === 'error' && (
+          <AlertDialogFooter className="flex gap-3">
+            <Button
+              onClick={() => setProgressDialog({ open: false, status: 'loading', message: '' })}
+              className="cursor-pointer rounded-xl border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
+            >
+              Close
+            </Button>
+          </AlertDialogFooter>
+        )}
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
