@@ -4,13 +4,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import {
-  Bars3Icon,
-  ChartBarIcon,
-  DocumentTextIcon,
-  PlusCircleIcon,
-  XMarkIcon,
-  SparklesIcon,
-} from '@heroicons/react/24/outline';
+  Menu,
+  ChartBar,
+  FileText,
+  PlusCircle,
+  X,
+  Sparkles,
+  LogOut,
+} from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQueryClient } from '@tanstack/react-query';
@@ -120,7 +121,7 @@ export default function Navbar() {
                   className={navButtonClass(isActive('/analytics'))}
                 >
                   <Link href="/analytics">
-                    <ChartBarIcon className="h-4 w-4" />
+                    <ChartBar className="h-4 w-4" />
                     <span>Analytics</span>
                   </Link>
                 </Button>
@@ -133,7 +134,7 @@ export default function Navbar() {
                   className={navButtonClass(isActive('/discover'))}
                 >
                   <Link href="/discover">
-                    <SparklesIcon className="h-4 w-4" />
+                    <Sparkles className="h-4 w-4" />
                     <span>Discover</span>
                   </Link>
                 </Button>
@@ -146,7 +147,7 @@ export default function Navbar() {
                   className={navButtonClass(isActive('/trades/new'))}
                 >
                   <Link href="/trades/new">
-                    <PlusCircleIcon className="h-4 w-4" />
+                    <PlusCircle className="h-4 w-4" />
                     <span>New Trade</span>
                   </Link>
                 </Button>
@@ -159,7 +160,7 @@ export default function Navbar() {
                   className={navButtonClass(isActive('/trades'))}
                 >
                   <Link href="/trades">
-                    <DocumentTextIcon className="h-4 w-4" />
+                    <FileText className="h-4 w-4" />
                     <span>My Trades</span>
                   </Link>
                 </Button>
@@ -220,7 +221,7 @@ export default function Navbar() {
               disabled={isSigningOut}
             >
               <span className="relative z-10 flex items-center gap-2">
-                {isSigningOut && (
+                {isSigningOut ? (
                   <svg
                     className="h-4 w-4 animate-spin"
                     xmlns="http://www.w3.org/2000/svg"
@@ -241,8 +242,10 @@ export default function Navbar() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
+                ) : (
+                  <LogOut className="h-4 w-4" />
                 )}
-                {isSigningOut ? 'Signing out...' : 'Sign Out'}
+                <span>{isSigningOut ? 'Signing out...' : 'Sign Out'}</span>
               </span>
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
             </Button>
@@ -258,9 +261,9 @@ export default function Navbar() {
                 aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               >
                 {mobileMenuOpen ? (
-                  <XMarkIcon className="h-5 w-5" />
+                  <X className="h-5 w-5" />
                 ) : (
-                  <Bars3Icon className="h-5 w-5" />
+                  <Menu className="h-5 w-5" />
                 )}
               </Button>
             </SheetTrigger>
@@ -276,7 +279,7 @@ export default function Navbar() {
                   className={cn('w-full justify-start', navButtonClass(isActive('/analytics')))}
                 >
                   <Link href="/analytics" onClick={() => setMobileMenuOpen(false)}>
-                    <ChartBarIcon className="h-4 w-4" />
+                    <ChartBar className="h-4 w-4" />
                     Analytics
                   </Link>
                 </Button>
@@ -287,7 +290,7 @@ export default function Navbar() {
                   className={cn('w-full justify-start', navButtonClass(isActive('/discover')))}
                 >
                   <Link href="/discover" onClick={() => setMobileMenuOpen(false)}>
-                    <SparklesIcon className="h-4 w-4" />
+                    <Sparkles className="h-4 w-4" />
                     Discover
                   </Link>
                 </Button>
@@ -298,7 +301,7 @@ export default function Navbar() {
                   className={cn('w-full justify-start', navButtonClass(isActive('/trades/new')))}
                 >
                   <Link href="/trades/new" onClick={() => setMobileMenuOpen(false)}>
-                    <PlusCircleIcon className="h-4 w-4" />
+                    <PlusCircle className="h-4 w-4" />
                     New Trade
                   </Link>
                 </Button>
@@ -309,7 +312,7 @@ export default function Navbar() {
                   className={cn('w-full justify-start', navButtonClass(isActive('/trades')))}
                 >
                   <Link href="/trades" onClick={() => setMobileMenuOpen(false)}>
-                    <DocumentTextIcon className="h-4 w-4" />
+                    <FileText className="h-4 w-4" />
                     My Trades
                   </Link>
                 </Button>
@@ -376,7 +379,7 @@ export default function Navbar() {
                   disabled={isSigningOut}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
-                    {isSigningOut && (
+                    {isSigningOut ? (
                       <svg
                         className="h-4 w-4 animate-spin"
                         xmlns="http://www.w3.org/2000/svg"
@@ -397,8 +400,10 @@ export default function Navbar() {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                         />
                       </svg>
+                    ) : (
+                      <LogOut className="h-4 w-4" />
                     )}
-                    {isSigningOut ? 'Signing out…' : 'Sign Out'}
+                    <span>{isSigningOut ? 'Signing out…' : 'Sign Out'}</span>
                   </span>
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 </Button>

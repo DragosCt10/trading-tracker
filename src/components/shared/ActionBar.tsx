@@ -8,7 +8,7 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useCallback, useEffect, useRef } from 'react';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
-import { CheckIcon } from '@heroicons/react/24/outline';
+import { Check } from 'lucide-react';
 
 // shadcn/ui
 import { Badge } from '@/components/ui/badge';
@@ -269,7 +269,7 @@ export default function ActionBar() {
                   <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z" />
                 </svg>
               ) : (
-                <CheckIcon className="h-4 w-4" />
+                <Check className="h-4 w-4" />
               )}
               <span>Apply</span>
             </span>
