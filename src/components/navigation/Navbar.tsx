@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Menu,
   ChartBar,
@@ -31,7 +32,11 @@ import { CreateAccountAlertDialog } from '../CreateAccountModal';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useAccounts } from '@/hooks/useAccounts';
 import Logo from '../shared/Logo';
-import NewTradeModal from '../NewTradeModal';
+
+// Dynamically import NewTradeModal with SSR disabled to prevent hydration errors
+const NewTradeModal = dynamic(() => import('../NewTradeModal'), {
+  ssr: false,
+});
 
 export default function Navbar() {
   const pathname = usePathname();
