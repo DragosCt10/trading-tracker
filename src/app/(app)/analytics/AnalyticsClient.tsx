@@ -877,30 +877,6 @@ export default function Dashboard() {
 
   const isCustomRange = isCustomDateRange(dateRange);
 
-  /* -------------------------------------------------------
-   * Early returns for loading / empty states
-   * ---------------------------------------------------- */
-
-  if (userLoading || actionBarloading || isInitialLoading) {
-    // shadcn/ui migration for loading spinner
-    // Use <Skeleton> and/or <div className="flex items-center ..."> with the shadcn <Loader2> icon
-    // (Loader2 is commonly used, comes from lucide-react)
-    // If you do not have shadcn icon imports, add:
-    // import { Loader2 } from "lucide-react";
-    return (
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full h-full flex items-center justify-center bg-background">
-        <div className="flex items-center" role="status">
-          <Loader2 className="w-8 h-8 text-slate-800 animate-spin" />
-          <span className="ml-4 text-slate-500">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!userData?.session) {
-    return null;
-  }
-
   return (
     <> 
       <div className="flex justify-between items-center my-10">
