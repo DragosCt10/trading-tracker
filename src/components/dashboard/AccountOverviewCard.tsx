@@ -212,13 +212,17 @@ export function AccountOverviewCard({
                   margin={{ top: 35, right: 15, left: 10, bottom: 5 }}
                 >
                   <defs>
+                    {/* Modern profit gradient - emerald to teal */}
                     <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="rgb(16, 185, 129)" stopOpacity={0.9} />
-                      <stop offset="100%" stopColor="rgb(5, 150, 105)" stopOpacity={0.7} />
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+                      <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
                     </linearGradient>
-                    <linearGradient id="lossGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="rgb(244, 63, 94)" stopOpacity={0.9} />
-                      <stop offset="100%" stopColor="rgb(225, 29, 72)" stopOpacity={0.7} />
+                    {/* Modern loss gradient - rose to red */}
+                    <linearGradient id="lossGradient" x1="0" y1="1" x2="0" y2="0">
+                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
+                      <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
                     </linearGradient>
                   </defs>
                   
@@ -276,7 +280,7 @@ export function AccountOverviewCard({
                           <div className="space-y-2">
                             <div className="flex items-baseline justify-between gap-4">
                               <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Profit:</span>
-                              <span className={`text-lg font-bold ${isProfit ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                              <span className={`text-lg font-bold ${isProfit ? 'text-teal-600 dark:text-teal-400' : 'text-rose-600 dark:text-rose-400'}`}>
                                 {currencySymbol}
                                 {profit.toLocaleString('en-US', {
                                   minimumFractionDigits: 2,
@@ -288,7 +292,7 @@ export function AccountOverviewCard({
                               <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Return:</span>
                               <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold ${
                                 isProfit 
-                                  ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' 
+                                  ? 'bg-teal-500/10 text-teal-600 dark:bg-teal-500/20 dark:text-teal-400' 
                                   : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
                               }`}>
                                 {isProfit ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
@@ -303,9 +307,8 @@ export function AccountOverviewCard({
 
                   <ReBar 
                     dataKey="profit" 
-                    radius={[8, 8, 0, 0]} 
-                    barSize={36}
-                    className="drop-shadow-sm"
+                    radius={[10, 10, 0, 0]} 
+                    barSize={38}
                   >
                     {months.map((month) => {
                       const profit = monthlyStatsAllTrades[month]?.profit ?? 0;
@@ -313,7 +316,8 @@ export function AccountOverviewCard({
                         <Cell
                           key={month}
                           fill={profit >= 0 ? 'url(#profitGradient)' : 'url(#lossGradient)'}
-                          className="transition-all duration-200 hover:opacity-90"
+                          className="transition-all duration-300 hover:opacity-95"
+                          style={{ cursor: 'pointer' }}
                         />
                       );
                     })}
@@ -335,7 +339,7 @@ export function AccountOverviewCard({
                           <text
                             x={x + width / 2}
                             y={yPos}
-                            fill={value >= 0 ? '#059669' : '#e11d48'}
+                            fill={value >= 0 ? '#0d9488' : '#e11d48'}
                             textAnchor="middle"
                             dominantBaseline="middle"
                             className="text-xs font-bold"
