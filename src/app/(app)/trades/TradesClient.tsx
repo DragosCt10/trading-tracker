@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Trade } from '@/types/trade';
-import { useUserDetails } from '@/hooks/useUserDetails';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import NotesModal from '@/components/NotesModal';
 import { useQuery } from '@tanstack/react-query';
@@ -10,9 +9,9 @@ import { format, endOfMonth, startOfMonth, startOfYear, endOfYear, subDays } fro
 import { DateRange } from 'react-date-range';
 import AppLayout from '@/components/shared/layout/AppLayout';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
-import { useAccounts } from '@/hooks/useAccounts';
-import { createClient } from '@/utils/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { getFilteredTrades } from '@/lib/server/trades';
+import type { Database } from '@/types/supabase';
 
 // Import shadcn components
 import { Button } from '@/components/ui/button';
@@ -25,9 +24,27 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
+type AccountRow = Database['public']['Tables']['account_settings']['Row'];
+
 const ITEMS_PER_PAGE = 10;
 
-export default function TradesPage() {
+type DateRangeState = { startDate: string; endDate: string };
+
+interface TradesClientProps {
+  initialUserId: string;
+  initialTrades: Trade[];
+  initialDateRange: DateRangeState;
+  initialMode: 'live' | 'backtesting' | 'demo';
+  initialActiveAccount: AccountRow | null;
+}
+
+export default function TradesClient({
+  initialUserId,
+  initialTrades,
+  initialDateRange,
+  initialMode,
+  initialActiveAccount,
+}: TradesClientProps) {
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
@@ -46,102 +63,23 @@ export default function TradesPage() {
   });
 
   const queryClient = useQueryClient();
-  const supabase = createClient();
-  const { selection, actionBarloading, setSelection } = useActionBarSelection();
-  const { data: userDetails, isLoading: userLoading } = useUserDetails();
-  
-  // Fetch live accounts for initialization
-  const {
-    accounts: liveAccounts,
-    accountsLoading: liveAccountsLoading,
-  } = useAccounts({ userId: userDetails?.user?.id, pendingMode: 'live' });
+  const { selection, setSelection } = useActionBarSelection();
+  const userId = initialUserId;
+  const activeAccount = selection.activeAccount ?? initialActiveAccount;
 
-  const queryEnabled =
-    !!selection.activeAccount?.id && !!userDetails?.user;
-
-  // Auto-initialize: Set first live account as active on mount if none is selected
-  const autoInitializedRef = useRef(false);
+  // Sync selection from server when action bar has not hydrated yet
   useEffect(() => {
-    if (autoInitializedRef.current) return;
-    if (!userDetails?.user?.id) return;
-    
-    // Only auto-initialize if nothing chosen yet
-    if (selection.activeAccount) return;
-    
-    // Only auto-initialize for live mode
-    if (selection.mode !== 'live') return;
-    
-    if (liveAccountsLoading) return;
-    
-    // Prefer an already-active one in DB; otherwise first (sorted by created_at)
-    const pick = liveAccounts.find(a => a.is_active) ?? liveAccounts[0];
-    if (!pick) return;
-    
-    autoInitializedRef.current = true;
-    
-    // Set the account as active in the database and cache
-    const initializeAccount = async () => {
-      try {
-        // Set all live accounts to inactive first
-        await supabase
-          .from('account_settings')
-          .update({ is_active: false } as never)
-          .eq('user_id', userDetails?.user?.id ?? '')
-          .eq('mode', 'live');
+    if (initialActiveAccount && !selection.activeAccount && initialMode) {
+      setSelection({ mode: initialMode, activeAccount: initialActiveAccount });
+    }
+  }, [initialActiveAccount, initialMode, selection.activeAccount, setSelection]);
 
-        // Set the selected account as active
-        await supabase
-          .from('account_settings')
-          .update({ is_active: true } as never)
-          .eq('id', pick.id)
-          .eq('user_id', userDetails?.user?.id ?? '');
-        
-        // Update the cache
-        setSelection({ mode: 'live', activeAccount: pick });
-        // Invalidate and refetch trades queries
-        const keysToNukeStartsWith = [
-          'allTrades', 'filteredTrades',
-          'nonExecutedTrades', 'nonExecutedTotalTradesCount',
-        ];
-        queryClient.removeQueries({
-          predicate: q => keysToNukeStartsWith.includes((q.queryKey?.[0] as string) ?? ''),
-        });
-        queryClient.refetchQueries({
-          predicate: q => keysToNukeStartsWith.includes((q.queryKey?.[0] as string) ?? ''),
-          type: 'active',
-        });
-      } catch (error) {
-        console.error('Error initializing account:', error);
-      }
-    };
-    
-    initializeAccount();
-  }, [
-    userDetails?.user?.id,
-    liveAccountsLoading,
-    liveAccounts,
-    selection.activeAccount,
-    selection.mode,
-    setSelection,
-    supabase,
-    queryClient,
-  ]);
-
-  const today = new Date();
-  const initialStartDate = format(today, 'yyyy-MM-01');
-  const initialEndDate = format(endOfMonth(today), 'yyyy-MM-dd');
-  const [dateRange, setDateRange] = useState({
-    startDate: initialStartDate,
-    endDate: initialEndDate,
-  });
+  const [dateRange, setDateRange] = useState<DateRangeState>(initialDateRange);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  const [tempRange, setTempRange] = useState({
-    startDate: initialStartDate,
-    endDate: initialEndDate,
-  });
+  const [tempRange, setTempRange] = useState<DateRangeState>(initialDateRange);
 
   type FilterType = 'year' | '15days' | '30days' | 'month' | null;
   const [activeFilter, setActiveFilter] = useState<FilterType>('month');
@@ -229,46 +167,43 @@ export default function TradesPage() {
     setCurrentPage(1);
   };
 
+  const isInitialContext =
+    selection.mode === initialMode &&
+    activeAccount?.id === initialActiveAccount?.id &&
+    dateRange.startDate === initialDateRange.startDate &&
+    dateRange.endDate === initialDateRange.endDate;
+
   const {
-    data: allTradesData,
+    data: rawTrades,
     isLoading: allTradesLoading,
     error: allTradesError,
-    refetch: refetchAllTrades,
   } = useQuery<Trade[]>({
     queryKey: [
       'allTrades',
       selection.mode,
-      selection.activeAccount?.id,
+      activeAccount?.id,
+      userId,
       dateRange.startDate,
       dateRange.endDate,
-      userDetails?.user?.id,
     ],
     queryFn: async () => {
-      if (!userDetails?.user || !selection.activeAccount?.id) {
-        throw new Error('User not authenticated or no active account');
-      }
-
-      const supabase = (await import('@/utils/supabase/client')).createClient();
-
-      let query = supabase
-        .from(`${selection.mode}_trades`)
-        .select('*')
-        .eq('user_id', userDetails.user.id)
-        .eq('account_id', selection.activeAccount.id);
-
-      if (dateRange.startDate) query = query.gte('trade_date', dateRange.startDate);
-      if (dateRange.endDate) query = query.lte('trade_date', dateRange.endDate);
-
-      query = query.order('trade_date', { ascending: false });
-
-      const { data, error } = await query;
-      if (error) throw new Error(error.message);
-      return (data || []) as Trade[];
+      if (!userId || !activeAccount?.id) return [];
+      return getFilteredTrades({
+        userId,
+        accountId: activeAccount.id,
+        mode: selection.mode,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        includeNonExecuted: true,
+      });
     },
-    enabled: queryEnabled,
-    refetchOnMount: 'always'
+    initialData: isInitialContext ? initialTrades : undefined,
+    enabled: !!userId && !!activeAccount?.id,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
+  const allTradesData = rawTrades ?? (isInitialContext ? initialTrades : []);
 
   // Market options
   const tradesForMarketDropdown = allTradesData || [];
@@ -781,7 +716,7 @@ export default function TradesPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-transparent divide-y divide-slate-200/30 dark:divide-slate-700/30">
-                  {(actionBarloading || userLoading || (queryEnabled && allTradesLoading)) ? (
+                  {allTradesLoading && allTrades.length === 0 ? (
                     // Skeleton rows
                     Array.from({ length: 6 }).map((_, index) => (
                       <tr key={`skeleton-${index}`}>
@@ -862,7 +797,7 @@ export default function TradesPage() {
                           {trade.launch_hour && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Badge className="bg-yellow-100 hover:bg-yellow-100 text-yellow-800 relative shadow-none cursor-pointer">
+                                <Badge className="shadow-none border-none outline-none ring-0 bg-gradient-to-br from-amber-400 to-orange-500 text-white cursor-pointer">
                                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
                                     <circle cx="12" cy="12" r="7" stroke="currentColor" strokeWidth="1.5" fill="none"/>
                                     <path strokeLinecap="round" strokeLinejoin="round" stroke="currentColor" strokeWidth="1.5" d="M12 8v4l2 2"/>
@@ -952,7 +887,7 @@ export default function TradesPage() {
                     </tr>
                     ))
                   )}
-                  {!actionBarloading && !userLoading && !allTradesLoading && paginatedTrades.length === 0 && selection.activeAccount && (
+                  {!allTradesLoading && paginatedTrades.length === 0 && activeAccount && (
                     <tr>
                       <td colSpan={11} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center">
@@ -1003,7 +938,9 @@ export default function TradesPage() {
               isOpen={isModalOpen}
               onClose={closeModal}
               trade={selectedTrade}
-              onTradeUpdated={() => refetchAllTrades()}
+              onTradeUpdated={() => {
+                queryClient.invalidateQueries({ predicate: (q) => (q.queryKey?.[0] as string) === 'allTrades' });
+              }}
             />
           )}
 
