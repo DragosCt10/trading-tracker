@@ -28,6 +28,22 @@ type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
 const ITEMS_PER_PAGE = 10;
 
+/** Normalize trade_time so server and client render the same (avoids hydration mismatch from timezone). */
+function formatTradeTimeForDisplay(value: string | Date | unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string') {
+    if (value.includes('T') || value.includes('Z')) {
+      const d = new Date(value);
+      return d.toISOString().slice(11, 19);
+    }
+    return value;
+  }
+  if (value instanceof Date) {
+    return value.toISOString().slice(11, 19);
+  }
+  return String(value);
+}
+
 type DateRangeState = { startDate: string; endDate: string };
 
 interface TradesClientProps {
@@ -721,37 +737,37 @@ export default function TradesClient({
                     Array.from({ length: 6 }).map((_, index) => (
                       <tr key={`skeleton-${index}`}>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-5 w-20" />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-4 w-16" />
+                          <Skeleton className="h-5 w-16" />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-4 w-16" />
+                          <Skeleton className="h-5 w-16" />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-4 w-12" />
+                          <Skeleton className="h-5 w-12" />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-5 w-20" />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-6 w-16 rounded-full" />
+                          <Skeleton className="h-5 w-16 rounded-full" />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-4 w-12" />
+                          <Skeleton className="h-5 w-12" />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-5 w-20" />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-5 w-20" />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-5 w-20" />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-5 w-24" />
                         </td>
                       </tr>
                     ))
@@ -759,7 +775,7 @@ export default function TradesClient({
                     paginatedTrades.map((trade: Trade) => (
                     <tr key={trade.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">{trade.trade_date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">{trade.trade_time}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300" suppressHydrationWarning>{formatTradeTimeForDisplay(trade.trade_time)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">{trade.market}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">{trade.direction}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">{trade.setup_type}</td>
