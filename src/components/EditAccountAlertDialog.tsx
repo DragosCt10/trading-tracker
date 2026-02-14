@@ -3,9 +3,9 @@
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/utils/supabase/client';
+import { deleteAccount, updateAccount } from '@/lib/server/accounts';
 import { useUserDetails } from '@/hooks/useUserDetails';
-import { Pencil } from 'lucide-react';
+import { AlertCircle, Loader2, Pencil, Trash2 } from 'lucide-react';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -43,49 +43,19 @@ export type AccountSettings = {
   description: string | null;
 };
 
+const SUCCESS_DELAY_MS = 2000;
+
 interface EditAccountAlertDialogProps {
   account: AccountSettings | null;
-  // called after a successful update so parent can refetch / update UI
   onUpdated?: (updated: AccountSettings) => void;
+  onDeleted?: () => void;
 }
-
-/* ---------------- Success toast ---------------- */
-
-function SuccessAlert({
-  message,
-  onClose,
-}: {
-  message: string;
-  onClose: () => void;
-}) {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 2500);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 shadow flex items-center gap-2">
-      <svg
-        className="w-5 h-5 text-purple-600"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
-      <span className="text-purple-800 font-normal">{message}</span>
-    </div>
-  );
-}
-
-/* ---------------- Edit dialog ---------------- */
 
 export function EditAccountAlertDialog({
   account,
   onUpdated,
+  onDeleted,
 }: EditAccountAlertDialogProps) {
-  const supabase = createClient();
   const queryClient = useQueryClient();
   const { data: userId } = useUserDetails();
 
@@ -93,14 +63,20 @@ export function EditAccountAlertDialog({
   const [mounted, setMounted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progressDialog, setProgressDialog] = useState<{
+    open: boolean;
+    status: 'loading' | 'success' | 'error';
+    message: string;
+    title: string; // "Update" | "Delete" for dialog title
+  }>({ open: false, status: 'loading', message: '', title: 'Update' });
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [name, setName] = useState('');
   const [balance, setBalance] = useState('');
   const [currency, setCurrency] = useState<Currency>('EUR');
   const [mode, setMode] = useState<Mode>('live');
   const [description, setDescription] = useState('');
-
-  const [showSuccess, setShowSuccess] = useState(false);
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -162,42 +138,118 @@ export function EditAccountAlertDialog({
     }
 
     setSubmitting(true);
+    setProgressDialog({
+      open: true,
+      status: 'loading',
+      message: 'Please wait while we save your account...',
+      title: 'Update',
+    });
+
     try {
-      const { data, error: updateError } = await supabase
-        .from('account_settings')
-        .update({
-          name,
-          account_balance: parsedBalance,
-          currency,
-          mode,
-          description: description || null,
-        } as never)
-        .eq('id', account.id)
-        .eq('user_id', userId.user.id)
-        .select('*');
+      const { data, error: updateError } = await updateAccount(account.id, {
+        name: name.trim(),
+        account_balance: parsedBalance,
+        currency,
+        mode,
+        description: description.trim() || null,
+      });
 
       if (updateError) {
-        setError(updateError.message ?? 'Failed to update account.');
+        setProgressDialog({
+          open: true,
+          status: 'error',
+          message: updateError.message ?? 'Failed to update account. Please try again.',
+          title: 'Update',
+        });
+        setSubmitting(false);
         return;
       }
 
-      if (!data || data.length === 0) {
-        setError('No rows were updated (check id/user_id / RLS).');
+      if (!data) {
+        setProgressDialog({
+          open: true,
+          status: 'error',
+          message: 'Failed to update account. Please try again.',
+          title: 'Update',
+        });
+        setSubmitting(false);
         return;
       }
 
-      const updatedAccount = data[0] as AccountSettings;
+      setProgressDialog({
+        open: true,
+        status: 'success',
+        message: 'Account settings saved!',
+        title: 'Update',
+      });
 
-      // Let parent know so it can refetch/update its list
-      onUpdated?.(updatedAccount);
-
-      // Also mark queries stale just in case
+      onUpdated?.(data as AccountSettings);
       await queryClient.invalidateQueries();
-
       setOpen(false);
-      setShowSuccess(true);
-    } finally {
+
+      setTimeout(() => {
+        setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
+        setSubmitting(false);
+      }, SUCCESS_DELAY_MS);
+    } catch {
+      setProgressDialog({
+        open: true,
+        status: 'error',
+        message: 'Failed to update account. Please check your data and try again.',
+        title: 'Update',
+      });
       setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!account) return;
+    setDeleteConfirmOpen(false);
+    setDeleting(true);
+    setProgressDialog({
+      open: true,
+      status: 'loading',
+      message: 'Deleting account...',
+      title: 'Delete',
+    });
+
+    try {
+      const { error: deleteError } = await deleteAccount(account.id);
+
+      if (deleteError) {
+        setProgressDialog({
+          open: true,
+          status: 'error',
+          message: deleteError.message ?? 'Failed to delete account. Please try again.',
+          title: 'Delete',
+        });
+        setDeleting(false);
+        return;
+      }
+
+      setProgressDialog({
+        open: true,
+        status: 'success',
+        message: 'Account deleted successfully.',
+        title: 'Delete',
+      });
+
+      onDeleted?.();
+      await queryClient.invalidateQueries();
+      setOpen(false);
+
+      setTimeout(() => {
+        setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
+        setDeleting(false);
+      }, SUCCESS_DELAY_MS);
+    } catch {
+      setProgressDialog({
+        open: true,
+        status: 'error',
+        message: 'Failed to delete account. Please try again.',
+        title: 'Delete',
+      });
+      setDeleting(false);
     }
   };
 
@@ -205,13 +257,6 @@ export function EditAccountAlertDialog({
 
   return (
     <>
-      {showSuccess && (
-        <SuccessAlert
-          message="Account settings saved!"
-          onClose={() => setShowSuccess(false)}
-        />
-      )}
-
       <AlertDialog open={open} onOpenChange={setOpen}>
         {/* Trigger button (disabled if nothing selected) */}
         <AlertDialogTrigger asChild>
@@ -371,54 +416,167 @@ export function EditAccountAlertDialog({
                 </div>
               )}
 
-              <AlertDialogFooter className="mt-4 flex items-center justify-between">
-                <AlertDialogCancel
-                  type="button"
-                  onClick={() => {
-                    setOpen(false);
-                    if (account) resetFormFromAccount();
-                  }}
-                  className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200"
-                >
-                  Cancel
-                </AlertDialogCancel>
-
-                {/* Plain submit button, NOT wrapped in AlertDialogAction */}
-                <Button
-                  type="submit"
-                  disabled={submitting || !account}
-                  className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0 disabled:opacity-60 text-sm"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    {submitting && (
-                      <svg
-                        className="h-4 w-4 animate-spin"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <circle
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          fill="none"
-                          className="opacity-25"
-                        />
-                        <path
-                          className="opacity-90"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"
-                        />
-                      </svg>
-                    )}
-                    Save changes
-                  </span>
-                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-                </Button>
+              <AlertDialogFooter className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex w-full sm:w-auto order-2 sm:order-1">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={!account || submitting || deleting}
+                    onClick={() => setDeleteConfirmOpen(true)}
+                    className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 gap-2"
+                  >
+                    <span className="relative z-10 flex items-center gap-2">
+                      <Trash2 className="h-4 w-4" />
+                      Delete account
+                    </span>
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                  </Button>
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto justify-end order-1 sm:order-2">
+                  <AlertDialogCancel
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      if (account) resetFormFromAccount();
+                    }}
+                    className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200"
+                  >
+                    Cancel
+                  </AlertDialogCancel>
+                  <Button
+                    type="submit"
+                    disabled={submitting || deleting || !account}
+                    className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0 disabled:opacity-60 text-sm"
+                  >
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      {submitting && (
+                        <svg
+                          className="h-4 w-4 animate-spin"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                            className="opacity-25"
+                          />
+                          <path
+                            className="opacity-90"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"
+                          />
+                        </svg>
+                      )}
+                      Save changes
+                    </span>
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                  </Button>
+                </div>
               </AlertDialogFooter>
             </form>
           </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete confirmation - same design as TradeDetailsModal */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              <span className="text-red-500 dark:text-red-400 font-semibold text-lg">Confirm Delete</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="text-slate-600 dark:text-slate-400">Are you sure you want to delete this account? This action cannot be undone.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3">
+            <AlertDialogCancel asChild>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteConfirmOpen(false)}
+                className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
+              >
+                Cancel
+              </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
+              >
+                {deleting ? 'Deleting...' : 'Yes, Delete'}
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Progress Dialog - same pattern as CreateAccountModal, 3s success */}
+      <AlertDialog
+        open={progressDialog.open}
+        onOpenChange={() => {
+          if (progressDialog.status !== 'loading') {
+            setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {progressDialog.status === 'loading' && (
+                <span className="text-purple-600 dark:text-purple-400 font-semibold text-lg flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  {progressDialog.title === 'Delete' ? 'Deleting Account' : 'Updating Account'}
+                </span>
+              )}
+              {progressDialog.status === 'success' && (
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-lg flex items-center gap-2">
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  {progressDialog.title === 'Delete' ? 'Account Deleted Successfully' : 'Account Updated Successfully'}
+                </span>
+              )}
+              {progressDialog.status === 'error' && (
+                <span className="text-red-500 dark:text-red-400 font-semibold text-lg flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5" />
+                  {progressDialog.title === 'Delete' ? 'Error Deleting Account' : 'Error Updating Account'}
+                </span>
+              )}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="text-slate-600 dark:text-slate-400">
+                {progressDialog.message}
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {progressDialog.status === 'error' && (
+            <AlertDialogFooter className="flex gap-3">
+              <Button
+                onClick={() => setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' })}
+                className="cursor-pointer rounded-xl border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
+              >
+                Close
+              </Button>
+            </AlertDialogFooter>
+          )}
         </AlertDialogContent>
       </AlertDialog>
     </>
