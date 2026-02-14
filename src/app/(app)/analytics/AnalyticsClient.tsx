@@ -51,7 +51,6 @@ import { TradesCalendarCard } from '@/components/dashboard/TradesCalendarCard';
 import { TradeStatDatum, TradeStatsBarCard } from '@/components/dashboard/TradesStatsBarCard';
 import { LaunchHourTradesCard } from '@/components/dashboard/LaunchHourTradesCard';
 import { NonExecutedTradesCard } from '@/components/dashboard/NonExecutedTradesCard';
-import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DisplacementSizeStats } from '@/components/dashboard/DisplacementSizeStats';
@@ -384,7 +383,6 @@ export default function AnalyticsClient(
 
   const [activeFilter, setActiveFilter] =
     useState<FilterType>('30days');
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
 
@@ -580,14 +578,6 @@ export default function AnalyticsClient(
       router.replace('/login');
     }
   }, [userLoading, userData, router]);
-
-  // initial loading (wait for context)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsInitialLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [selection.activeAccount]);
 
   // streaming analysis listener
   useEffect(() => {
