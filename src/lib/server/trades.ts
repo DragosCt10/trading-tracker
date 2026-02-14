@@ -173,3 +173,41 @@ export async function getUserSession() {
 
 /** Cached per request; use in layout + pages so data components can receive user without a second read */
 export const getCachedUserSession = cache(getUserSession);
+
+/**
+ * Creates a new trade for the current user (server-side only; user_id from session).
+ * Inserts into live_trades, backtesting_trades, or demo_trades based on mode.
+ */
+export async function createTrade(params: {
+  mode: 'live' | 'backtesting' | 'demo';
+  account_id: string;
+  calculated_profit: number;
+  pnl_percentage: number;
+  trade: Omit<Trade, 'id' | 'user_id' | 'account_id' | 'calculated_profit' | 'pnl_percentage'>;
+}): Promise<{ error: { message: string } | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { error: { message: 'Unauthorized' } };
+  }
+
+  const tableName = `${params.mode}_trades`;
+  const row = {
+    ...params.trade,
+    user_id: user.id,
+    account_id: params.account_id,
+    calculated_profit: params.calculated_profit,
+    pnl_percentage: params.pnl_percentage,
+  };
+
+  const { error } = await supabase.from(tableName).insert([row] as any);
+
+  if (error) {
+    console.error('Error creating trade:', error);
+    return { error: { message: error.message ?? 'Failed to create trade' } };
+  }
+  return { error: null };
+}
