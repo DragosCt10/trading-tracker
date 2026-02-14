@@ -21,6 +21,7 @@ import { Trade } from '@/types/trade';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
+import { useQueryClient } from '@tanstack/react-query';
 
 import {
   Chart as ChartJS,
@@ -334,27 +335,51 @@ function buildWeeklyStats(
 }
 
 /* ---------------------------------------------------------
+ * Props from server (AnalyticsData)
+ * ------------------------------------------------------ */
+
+export type AnalyticsClientInitialProps = {
+  initialUserId: string;
+  initialFilteredTrades: Trade[];
+  initialAllTrades: Trade[];
+  initialNonExecutedTrades: Trade[];
+  initialNonExecutedTotalTradesCount: number;
+  initialDateRange: DateRangeState;
+  initialSelectedYear: number;
+  initialMode: 'live' | 'backtesting' | 'demo';
+  initialActiveAccount: { id: string; [key: string]: unknown } | null;
+};
+
+const defaultInitialRange = createInitialDateRange();
+const defaultSelectedYear = new Date().getFullYear();
+
+/* ---------------------------------------------------------
  * Dashboard component
  * ------------------------------------------------------ */
 
-export default function Dashboard() {
+export default function AnalyticsClient(
+  props?: Partial<AnalyticsClientInitialProps>
+) {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const initialRange = props?.initialDateRange ?? defaultInitialRange;
+  const initialYear = props?.initialSelectedYear ?? defaultSelectedYear;
+
+  const [currentDate, setCurrentDate] = useState(
+    () => new Date(initialRange.endDate)
+  );
   const [analysisResults, setAnalysisResults] = useState<string | null>(null);
   const [openAnalyzeModal, setOpenAnalyzeModal] = useState(false);
 
-  const [selectedYear, setSelectedYear] = useState(
-    new Date().getFullYear()
-  );
+  const [selectedYear, setSelectedYear] = useState(initialYear);
 
   // date range + calendar state
-  const initialRange = createInitialDateRange();
   const [dateRange, setDateRange] = useState<DateRangeState>(initialRange);
 
   const [calendarDateRange, setCalendarDateRange] =
     useState<DateRangeState>(
-      createCalendarRangeFromEnd(new Date(initialRange.endDate))
+      () => createCalendarRangeFromEnd(new Date(initialRange.endDate))
     );
 
   const [activeFilter, setActiveFilter] =
@@ -367,7 +392,43 @@ export default function Dashboard() {
   const pickerRef = useRef<HTMLDivElement>(null);
 
   const { data: userData, isLoading: userLoading } = useUserDetails();
-  const { selection, actionBarloading } = useActionBarSelection();
+  const { selection, setSelection, actionBarloading } = useActionBarSelection();
+
+  // Sync ActionBar selection from server so useDashboardData query keys match hydrated cache
+  useEffect(() => {
+    if (props?.initialActiveAccount && props.initialMode) {
+      setSelection({
+        mode: props.initialMode,
+        activeAccount: props.initialActiveAccount as Parameters<typeof setSelection>[0]['activeAccount'],
+      });
+    }
+  }, [props?.initialActiveAccount?.id, props?.initialMode, setSelection]);
+
+  // Hydrate React Query cache with server-fetched data so useDashboardData sees it on first paint
+  useEffect(() => {
+    const uid = props?.initialUserId;
+    const acc = props?.initialActiveAccount;
+    const dr = props?.initialDateRange;
+    const yr = props?.initialSelectedYear;
+    if (!uid || !acc?.id || !dr) return;
+    const mode = props.initialMode ?? 'live';
+    queryClient.setQueryData(
+      ['filteredTrades', mode, acc.id, uid, dr.startDate, dr.endDate],
+      props.initialFilteredTrades ?? []
+    );
+    queryClient.setQueryData(
+      ['allTrades', mode, acc.id, uid, yr ?? new Date().getFullYear()],
+      props.initialAllTrades ?? []
+    );
+    queryClient.setQueryData(
+      ['nonExecutedTrades', mode, acc.id, uid, dr.startDate, dr.endDate],
+      props.initialNonExecutedTrades ?? []
+    );
+    queryClient.setQueryData(
+      ['nonExecutedTotalTradesCount', mode, acc.id, uid, yr ?? new Date().getFullYear()],
+      props.initialNonExecutedTotalTradesCount ?? 0
+    );
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount with server initial data
 
   const currencySymbol = getCurrencySymbolFromAccount(
     selection.activeAccount ?? undefined
