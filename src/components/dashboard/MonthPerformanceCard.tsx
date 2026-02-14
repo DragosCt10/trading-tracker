@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Card, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { Calendar, TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface MonthPerformanceCardProps {
   title: string;           // "Best Month" / "Worst Month"
@@ -34,51 +34,46 @@ export const MonthPerformanceCard: React.FC<MonthPerformanceCardProps> = ({
   return (
     <Card
       className={cn(
-        'relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex-1 flex flex-col',
+        'relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex-1 flex flex-col',
         className
       )}
     >
       <div className="relative p-6 flex flex-col flex-1">
-        {/* One row: left = icon + title/month, right = Win rate + P&L aligned on same line */}
+        {/* One row: left = title/month, right = Win rate + P&L aligned on same line */}
         <div className="flex flex-row items-start justify-between gap-4 w-full">
-          {/* Left: icon + title, then month + year under */}
-          <div className="flex flex-row gap-3 min-w-0">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50 shadow-sm shrink-0">
-              <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div className="flex flex-col gap-1 min-w-0">
-              <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                {title}
-              </CardTitle>
-              <p className="text-xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-                {month} {year}
-              </p>
-            </div>
+          {/* Left: title, then month + year under */}
+          <div className="flex flex-col gap-1 min-w-0">
+            <CardTitle className="text-sm font-semibold tracking-wide text-slate-500 dark:text-slate-400">
+              {title}
+            </CardTitle>
+            <p className="text-xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+              {month} {year}
+            </p>
           </div>
 
-          {/* Right: Win rate and P&L on same line, aligned with title/month */}
-          <div className="flex flex-row gap-6 items-center shrink-0">
+          {/* Right: Win rate and P&L — same baseline, both right-aligned with consistent width */}
+          <div className="flex flex-row gap-8 items-start shrink-0">
             {/* Win rate */}
-            <div className="flex flex-col gap-1 items-end">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            <div className="flex flex-col gap-1.5 items-end text-right min-w-[7rem]">
+              <div className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500 w-full">
                 Win rate
               </div>
               <div
                 className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold',
+                  'inline-flex items-center justify-end gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold',
                   positive
                     ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
                     : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
                 )}
               >
-                <TrendIcon className="w-4 h-4" />
+                <TrendIcon className="w-4 h-4 shrink-0" />
                 {winRate.toFixed(1)}%
               </div>
             </div>
 
             {/* P&L */}
-            <div className="flex flex-col gap-1.5 items-end">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            <div className="flex flex-col gap-1.5 items-end text-right min-w-[7rem]">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 w-full">
                 P&L
               </div>
               <div
