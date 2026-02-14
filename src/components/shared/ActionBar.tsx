@@ -3,7 +3,7 @@
 import * as React from 'react';
 import clsx from 'clsx';
 import { useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/utils/supabase/client';
+import { setActiveAccount } from '@/lib/server/accounts';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
@@ -46,7 +46,6 @@ interface ActionBarProps {
 
 export default function ActionBar({ initialData }: ActionBarProps) {
   const queryClient = useQueryClient();
-  const supabase = createClient();
   const hydratedRef = useRef(false);
 
   // Hydrate TanStack cache from server-fetched initial data (before paint so first render can use it)
@@ -107,26 +106,15 @@ export default function ActionBar({ initialData }: ActionBarProps) {
       if (!userId?.user?.id) return;
       setApplying(true);
       try {
-        await supabase
-          .from('account_settings')
-          .update({ is_active: false } as never)
-          .eq('user_id', userId.user.id)
-          .eq('mode', mode);
-
-        let activeAccountObj: any = null;
-
-        if (accountId) {
-          await supabase
-            .from('account_settings')
-            .update({ is_active: true } as never)
-            .eq('id', accountId)
-            .eq('user_id', userId.user.id);
-
-          activeAccountObj = accounts.find(a => a.id === accountId) ?? null;
+        const { data: activeAccountObj, error } = await setActiveAccount(mode, accountId);
+        if (error) {
+          console.error('setActiveAccount failed:', error.message);
+          return;
         }
 
-        // publish committed selection into the cache
-        setSelection({ mode, activeAccount: activeAccountObj });
+        // publish committed selection into the cache (use server-returned account or fallback to local list)
+        const resolved = activeAccountObj ?? (accountId ? accounts.find(a => a.id === accountId) ?? null : null);
+        setSelection({ mode, activeAccount: resolved });
         setActiveMode(mode);
 
         // refresh queries
@@ -147,7 +135,7 @@ export default function ActionBar({ initialData }: ActionBarProps) {
         setApplying(false);
       }
     },
-    [userId, supabase, accounts, queryClient, refetchAccounts, setSelection]
+    [userId, accounts, queryClient, refetchAccounts, setSelection]
   );
 
   // existing button handler just delegates to helper
