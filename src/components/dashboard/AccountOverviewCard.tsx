@@ -1,9 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip as ReTooltip, Bar as ReBar, Cell, LabelList } from 'recharts';
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 
 interface MonthlyStats {
@@ -20,7 +18,8 @@ interface AccountOverviewCardProps {
   accountBalance: number;
   months: string[];
   monthlyStatsAllTrades: MonthlyStats;
-  isLoading?: boolean;
+  /** When true, year data (allTrades) is still loading; avoid showing "No trades found" until false */
+  isYearDataLoading?: boolean;
 }
 
 export function AccountOverviewCard({
@@ -31,37 +30,8 @@ export function AccountOverviewCard({
   accountBalance,
   months,
   monthlyStatsAllTrades,
-  isLoading = false,
+  isYearDataLoading = false,
 }: AccountOverviewCardProps) {
-  // Check if we have meaningful data
-  const hasData = accountName !== null && updatedBalance !== 0;
-  
-  // Always show skeleton initially, even if data exists
-  const [showSkeleton, setShowSkeleton] = useState(true);
-  const [isReadyToShowContent, setIsReadyToShowContent] = useState(false);
-
-  // Control skeleton visibility - always show skeleton initially, then transition to content
-  useEffect(() => {
-    // Always show skeleton for minimum duration, then transition to content
-    if (!isLoading && hasData) {
-      const timer = setTimeout(() => {
-        setShowSkeleton(false);
-        // Add buffer before showing content for smooth transition
-        setTimeout(() => {
-          setIsReadyToShowContent(true);
-        }, 200);
-      }, 800);
-      return () => clearTimeout(timer);
-    }
-    
-    // Keep showing skeleton if we don't have data yet or still loading
-    if (!hasData || isLoading) {
-      setShowSkeleton(true);
-      setIsReadyToShowContent(false);
-    }
-  }, [isLoading, hasData]);
-
-  // Prepare chart data
   const chartData = months.map((month) => ({
     month,
     profit: monthlyStatsAllTrades[month]?.profit ?? 0,
@@ -76,62 +46,8 @@ export function AccountOverviewCard({
       : 0,
   }));
 
-  // Check if there are any trades in this year (any month has profit !== 0)
   const hasTrades = chartData.some(item => item.profit !== 0);
-
-  // Predefined heights for skeleton bars (avoids hydration mismatch)
-  const barHeights = [45, 65, 50, 70, 55, 60, 48, 72, 58, 63, 52, 68];
-
-  // Show skeleton while loading or until ready to show content
-  if (showSkeleton || !isReadyToShowContent) {
-    return (
-      <Card className="group relative mb-8 overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-white via-slate-50/30 to-purple-50/20 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
-        {/* Ambient glow effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-violet-500/5 dark:from-purple-500/10 dark:to-violet-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-        
-        <div className="relative p-8">
-          {/* Header Skeleton */}
-          <div className="flex justify-between items-start mb-8">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-10 w-10 rounded-xl" />
-                <Skeleton className="h-8 w-56" />
-              </div>
-              <Skeleton className="h-4 w-36 ml-[52px]" />
-            </div>
-
-            <div className="text-right space-y-3">
-              <Skeleton className="h-3 w-44 ml-auto" />
-              <Skeleton className="h-9 w-40 ml-auto bg-gradient-to-r from-purple-100 to-violet-100 dark:from-purple-900/40 dark:to-violet-900/40 rounded-lg" />
-              <Skeleton className="h-6 w-28 ml-auto rounded-full" />
-            </div>
-          </div>
-
-          {/* Chart Skeleton */}
-          <CardContent className="h-72 relative p-0">
-            <div className="w-full h-full flex items-end justify-between gap-3 px-2">
-              {barHeights.map((height, i) => (
-                <div
-                  key={i}
-                  className="flex-1 flex flex-col items-center gap-3"
-                >
-                  <Skeleton 
-                    className="w-full bg-gradient-to-t from-purple-200/80 via-purple-100/60 to-purple-50/40 dark:from-purple-900/50 dark:via-purple-800/30 dark:to-purple-700/10 rounded-t-xl"
-                    style={{ 
-                      height: `${height}%`,
-                      animationDelay: `${i * 0.08}s`,
-                      animationDuration: '1.8s'
-                    }}
-                  />
-                  <Skeleton className="h-3 w-9 rounded" />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </div>
-      </Card>
-    );
-  }
+  const showNoTradesMessage = !isYearDataLoading && !hasTrades;
 
   return (
     <Card className="group relative mb-8 overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-white via-slate-50/30 to-purple-50/20 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm transition-all duration-500 hover:shadow-xl hover:shadow-slate-200/60 dark:hover:border-slate-600/50">
@@ -183,7 +99,7 @@ export function AccountOverviewCard({
 
         {/* Chart or No Trades Message */}
         <CardContent className="h-72 relative p-0">
-          {!hasTrades ? (
+          {showNoTradesMessage ? (
             <div className="flex flex-col justify-center items-center w-full h-full transition-all duration-300 opacity-100">
               <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-100/50 to-slate-50 dark:from-slate-800/50 dark:to-slate-800/30 border border-slate-200 dark:border-slate-700 mb-4">
                 <Wallet className="w-12 h-12 text-slate-400 dark:text-slate-500" />
