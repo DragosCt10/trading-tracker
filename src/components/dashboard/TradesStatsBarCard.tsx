@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -54,9 +54,6 @@ export function TradeStatsBarCard({
   valueKey = 'value',
   heightClassName, // ignored for height consistency
 }: TradeStatsBarCardProps) {
-  // "No Trades" fallback must support partial objects
-  // If mode === 'winsLossesWinRate', require at least one of wins/losses/beWins/beLosses/totalTrades to be > 0
-  // If mode === 'singleValue', require at least one data point with a defined and finite value in valueKey
   const onlyZero = !data || data.length === 0 ||
     (
       mode === 'winsLossesWinRate'
@@ -78,6 +75,27 @@ export function TradeStatsBarCard({
           )
         : true
     );
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) {
+    return (
+      <Card className="border shadow-none bg-white h-96 flex flex-col">
+        <CardHeader className="pb-2 flex-shrink-0">
+          <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
+            {title}
+          </CardTitle>
+          <CardDescription className="text-sm text-slate-500">
+            {description}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 flex justify-center items-center">
+          <div className="w-full h-full min-h-[180px]" aria-hidden>—</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (onlyZero) {
     return (

@@ -1,7 +1,7 @@
 'use client';
 
 import { Session, User } from '@supabase/supabase-js';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardHeader,
@@ -59,7 +59,10 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
     return stats && stats.total > 0;
   });
 
-  if (visibleRiskLevels.length === 0) return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted || visibleRiskLevels.length === 0) return null;
 
   const GRID_COLS = 3;
   const extraCardsNeeded =

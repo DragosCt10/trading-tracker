@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -55,7 +55,27 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
     profitPercent: stat.pnlPercentage ? Number(stat.pnlPercentage.toFixed(2)) : 0,
   }));
 
-  // Handle no trades: Show empty message like TradesStatsBarCard
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) {
+    return (
+      <Card className="border shadow-none bg-white h-[360px] flex flex-col">
+        <CardHeader className="pb-1 flex-shrink-0">
+          <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
+            Market Profit Statistics
+          </CardTitle>
+          <CardDescription className="text-sm text-slate-500 mb-3 leading-tight">
+            Profit and P&amp;L percentage by market
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 flex justify-center items-center">
+          <div className="w-full h-full min-h-[180px]" aria-hidden>—</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!marketStats || marketStats.length === 0) {
     return (
       <Card className="border shadow-none bg-white h-[360px] flex flex-col">

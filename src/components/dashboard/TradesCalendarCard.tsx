@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -54,6 +55,9 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
   getDaysInMonth,
 }) => {
   const balance = accountBalance || 1;
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const daysInMonth = getDaysInMonth();
   const firstDay = daysInMonth[0];
@@ -118,11 +122,11 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                     {`Week ${idx + 1}`}
                   </div>
                   <span className="inline-flex items-center rounded-full bg-slate-100/70 px-3 py-1 text-xs font-medium text-slate-600">
-                    {(week.wins + week.losses + week.beCount)} trades
+                    {mounted ? (week.wins + week.losses + week.beCount) : '\u2014'} trades
                   </span>
                 </div>
 
-                {/* Body rows – same structure as Risk card */}
+                {/* Body rows – same structure as Risk card; defer values until mounted to avoid hydration mismatch */}
                 <div className="mt-4 space-y-2">
                   {/* Profit row */}
                   <div className="flex items-center justify-between">
@@ -130,11 +134,10 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                     <span
                       className={cn(
                         "text-sm font-medium",
-                        week.totalProfit >= 0 ? "text-emerald-500" : "text-red-500"
+                        mounted && week.totalProfit >= 0 ? "text-emerald-500" : mounted && week.totalProfit < 0 ? "text-red-500" : "text-slate-500"
                       )}
                     >
-                      {currencySymbol}
-                      {week.totalProfit.toFixed(2)}
+                      {mounted ? `${currencySymbol}${week.totalProfit.toFixed(2)}` : '\u2014'}
                     </span>
                   </div>
 
@@ -142,11 +145,11 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-500">Results</span>
                     <span className="text-sm font-medium text-slate-500">
-                      <span className="text-emerald-500">W: {week.wins}</span>
+                      <span className="text-emerald-500">W: {mounted ? week.wins : '\u2014'}</span>
                       <span className="mx-1.5 text-slate-500">·</span>
-                      <span className="text-red-500">L: {week.losses}</span>
+                      <span className="text-red-500">L: {mounted ? week.losses : '\u2014'}</span>
                       <span className="mx-1.5 text-slate-500">·</span>
-                      <span className="text-slate-500">BE: {week.beCount}</span>
+                      <span className="text-slate-500">BE: {mounted ? week.beCount : '\u2014'}</span>
                     </span>
                   </div>
 
@@ -157,14 +160,14 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                   <div className="flex items-center justify-between pt-2">
                     <span className="text-sm text-slate-500">P&amp;L</span>
                     <span className="text-sm font-medium text-slate-800">
-                      {pnlPercent.toFixed(2)}%
+                      {mounted ? `${pnlPercent.toFixed(2)}%` : '\u2014'}
                     </span>
                   </div>
                 </div>
 
                 {/* Week label (date range) */}
                 <div className="mt-3 text-center text-xs font-medium text-slate-400">
-                  {week.weekLabel}
+                  {mounted ? week.weekLabel : '\u2014'}
                 </div>
               </div>
             );
@@ -257,7 +260,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                     {format(date, 'd')}
                   </div>
 
-                  {hasBE && (
+                  {mounted && hasBE && (
                     <div className="absolute right-2.5 top-3.5 px-1 text-xs font-medium text-slate-800">
                       {beTrades.length} BE
                     </div>
@@ -267,13 +270,10 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                     <>
                       {/* --- CELL CONTENT --- */}
                       <div className="text-xs space-y-1">
-                        {/* Always visible on all breakpoints */}
                         <div className="font-medium text-slate-800">
                           {filteredDayTrades.length} trade
                           {filteredDayTrades.length !== 1 ? 's' : ''}
                         </div>
-
-                        {/* Profit + P&L only visible from md and up */}
                         <div className="hidden md:flex md:flex-col md:space-y-0.5">
                           <div
                             className={cn(
@@ -286,8 +286,6 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                           </div>
                         </div>
                       </div>
-
-                      {/* Bottom-right P&L badge – only md+ */}
                       <div className="hidden md:block absolute bottom-3 right-3 text-xs font-medium">
                         <span
                           className={
@@ -303,21 +301,31 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                 </>
               );
 
-              // Only use tooltip if there are trades
+              const cellDiv = (
+                <div
+                  className={cn(
+                    'group relative min-h-[80px] rounded-lg border p-3 transition-all duration-200',
+                    !mounted ? 'bg-slate-50 border-slate-200' : [filteredDayTrades.length > 0 && 'cursor-pointer', baseColor],
+                  )}
+                  {...(mounted && filteredDayTrades.length > 0 ? { tabIndex: 0 } : {})}
+                >
+                  {!mounted ? (
+                    <><div className="mb-1 text-sm font-medium text-slate-800">{format(date, 'd')}</div><div className="text-xs font-medium text-slate-800">—</div></>
+                  ) : (
+                    dayCellContent
+                  )}
+                </div>
+              );
+
+              if (!mounted) {
+                return <React.Fragment key={date.toString()}>{cellDiv}</React.Fragment>;
+              }
+
               if (filteredDayTrades.length > 0) {
                 return (
                   <Tooltip key={date.toString()} delayDuration={160}>
                     <TooltipTrigger asChild>
-                      <div
-                        className={cn(
-                          'group relative min-h-[80px] rounded-lg border p-3 transition-all duration-200 cursor-pointer',
-                          baseColor,
-                        )}
-                        tabIndex={0}
-                        // Accessibility: make cell focusable for keyboard users
-                      >
-                        {dayCellContent}
-                      </div>
+                      {cellDiv}
                     </TooltipTrigger>
                     <TooltipContent
                       side="top"
@@ -392,18 +400,8 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                 );
               }
 
-              // No trades - no tooltip
-              return (
-                <div
-                  key={date.toString()}
-                  className={cn(
-                    'group relative min-h-[80px] rounded-lg border p-3 transition-all duration-200',
-                    baseColor,
-                  )}
-                >
-                  {dayCellContent}
-                </div>
-              );
+              // No trades - no tooltip (same cell div, no tabIndex)
+              return <React.Fragment key={date.toString()}>{cellDiv}</React.Fragment>;
             })}
           </div>
         </TooltipProvider>

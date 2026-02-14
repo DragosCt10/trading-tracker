@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip as ReTooltip, Bar as ReBar, Cell, LabelList } from 'recharts';
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Wallet } from 'lucide-react';
@@ -49,6 +50,15 @@ export function AccountOverviewCard({
   const hasTrades = chartData.some(item => item.profit !== 0);
   const showNoTradesMessage = !isYearDataLoading && !hasTrades;
 
+  // Defer account-dependent header until after mount so server and client first paint match (avoids hydration when e.g. account has no subaccounts and client cache isn't ready yet)
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const displayName = mounted ? (accountName || 'No Active Account') : '\u00A0';
+  const displayBalanceStr = mounted
+    ? `${currencySymbol}${updatedBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : '\u00A0';
+
   return (
     <Card className="group relative mb-8 overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-white via-slate-50/30 to-purple-50/20 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm transition-all duration-500 hover:shadow-xl hover:shadow-slate-200/60 dark:hover:border-slate-600/50">
       {/* Ambient glow effect */}
@@ -63,7 +73,7 @@ export function AccountOverviewCard({
                 <Wallet className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <CardTitle className="text-2xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-                {accountName || 'No Active Account'}
+                {displayName}
               </CardTitle>
             </div>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400 ml-[52px]">Current Balance</p>
@@ -74,33 +84,46 @@ export function AccountOverviewCard({
               Balance incl. year profit
             </div>
             <div className="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-              {currencySymbol}
-              {updatedBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {displayBalanceStr}
             </div>
             <div className="flex items-center justify-end gap-1.5">
-              {totalYearProfit >= 0 ? (
-                <TrendingUp className="w-4 h-4 text-emerald-500" />
+              {!mounted ? (
+                <>
+                  <span className="w-4 h-4" aria-hidden />
+                  <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-slate-500/10 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                    —% YTD
+                  </div>
+                </>
               ) : (
-                <TrendingDown className="w-4 h-4 text-rose-500" />
+                <>
+                  {totalYearProfit >= 0 ? (
+                    <TrendingUp className="w-4 h-4 text-emerald-500" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4 text-rose-500" />
+                  )}
+                  <div
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${
+                      totalYearProfit >= 0 
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' 
+                        : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                    }`}
+                  >
+                    {totalYearProfit >= 0 ? '+' : ''}
+                    {((totalYearProfit / (accountBalance || 1)) * 100).toFixed(2)}% YTD
+                  </div>
+                </>
               )}
-              <div
-                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${
-                  totalYearProfit >= 0 
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' 
-                    : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
-                }`}
-              >
-                {totalYearProfit >= 0 ? '+' : ''}
-                {((totalYearProfit / (accountBalance || 1)) * 100).toFixed(2)}% YTD
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Chart or No Trades Message */}
+        {/* Chart or No Trades Message - defer branch until mounted so server and client first paint match (same wrapper) */}
         <CardContent className="h-72 relative p-0">
-          {showNoTradesMessage ? (
-            <div className="flex flex-col justify-center items-center w-full h-full transition-all duration-300 opacity-100">
+          <div className="w-full h-full transition-all duration-300 opacity-100">
+          {!mounted ? (
+            <div className="w-full h-full min-h-[200px]" aria-hidden />
+          ) : showNoTradesMessage ? (
+            <div className="flex flex-col justify-center items-center w-full h-full">
               <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-100/50 to-slate-50 dark:from-slate-800/50 dark:to-slate-800/30 border border-slate-200 dark:border-slate-700 mb-4">
                 <Wallet className="w-12 h-12 text-slate-400 dark:text-slate-500" />
               </div>
@@ -112,7 +135,7 @@ export function AccountOverviewCard({
               </div>
             </div>
           ) : (
-            <div className="w-full h-full transition-all duration-300 opacity-100">
+            <>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={chartData}
@@ -262,8 +285,9 @@ export function AccountOverviewCard({
                   </ReBar>
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            </>
           )}
+          </div>
         </CardContent>
       </div>
     </Card>

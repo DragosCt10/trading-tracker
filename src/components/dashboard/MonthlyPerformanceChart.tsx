@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -56,7 +56,27 @@ export function MonthlyPerformanceChart({
     };
   });
 
-  // If no trades, show matching message as in TradesStatsBarCard
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) {
+    return (
+      <Card className="border shadow-none bg-white h-96 flex flex-col">
+        <CardHeader className="pb-2 flex-shrink-0">
+          <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
+            Monthly Performance
+          </CardTitle>
+          <CardDescription className="text-sm text-slate-500">
+            Monthly performance of trades
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 flex justify-center items-center">
+          <div className="w-full h-full min-h-[180px]" aria-hidden>—</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!chartData.length) {
     return (
       <Card className="border shadow-none bg-white h-96 flex flex-col">

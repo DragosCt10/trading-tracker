@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -42,6 +43,9 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
   );
 
   const hasAnyQualifyingTrades = filteredTrades.length > 0;
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Unique markets from filtered trades, sorted alphabetically
   const uniqueMarkets = Array.from(
@@ -207,7 +211,15 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
       </CardHeader>
       <CardContent className="flex-1 flex items-center">
         <div className="w-full h-full">
-          {!hasAnyQualifyingTrades ? (
+          {!mounted ? (
+            <div
+              className="flex items-center justify-center text-slate-400 h-full text-sm"
+              style={{ minHeight: 180 }}
+              aria-hidden
+            >
+              —
+            </div>
+          ) : !hasAnyQualifyingTrades ? (
             <div
               className="flex items-center justify-center text-slate-400 h-full text-sm"
               style={{ minHeight: 180 }}

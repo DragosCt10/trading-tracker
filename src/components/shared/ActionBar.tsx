@@ -174,6 +174,11 @@ export default function ActionBar({ initialData }: ActionBarProps) {
 
   const noAccounts = accounts.length === 0;
 
+  // Render subaccount Select only after mount to avoid Radix/SelectValue hydration mismatch
+  // (server and client can resolve placeholder vs value differently).
+  const [selectMounted, setSelectMounted] = React.useState(false);
+  React.useEffect(() => setSelectMounted(true), []);
+
   // Determine if apply button should be disabled due to already-active selection
   const isAlreadyActive =
     activeMode === pendingMode &&
@@ -229,28 +234,37 @@ export default function ActionBar({ initialData }: ActionBarProps) {
           <Separator orientation="vertical" className="mx-1 h-5" />
         </div>
 
-        {/* Subaccount select */}
+        {/* Subaccount select - only mount on client to avoid SelectValue hydration mismatch */}
         <div className="flex-1 sm:flex-initial">
-          <Select
-            value={pendingAccountId ?? undefined}
-            onValueChange={(val) => setPendingAccountId(val ?? null)}
-            disabled={accountsLoading || noAccounts}
-          >
-            <SelectTrigger className="h-8 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px] focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200">
-              <SelectValue placeholder={noAccounts ? 'No subaccounts' : 'Choose subaccount…'} />
-            </SelectTrigger>
-            <SelectContent className="text-xs sm:text-sm min-w-[170px] md:min-w-[200px] border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
-              {!noAccounts ? (
-                accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id} className="text-xs sm:text-sm">
-                    {a.name}
-                  </SelectItem>
-                ))
-              ) : (
-                <div className="px-2 py-1.5 text-sm text-muted-foreground">No subaccounts</div>
-              )}
-            </SelectContent>
-          </Select>
+          {!selectMounted ? (
+            <div
+              className="h-8 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px] flex items-center px-3"
+              aria-hidden
+            >
+              Choose subaccount…
+            </div>
+          ) : (
+            <Select
+              value={pendingAccountId ?? undefined}
+              onValueChange={(val) => setPendingAccountId(val ?? null)}
+              disabled={accountsLoading || noAccounts}
+            >
+              <SelectTrigger className="h-8 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px] focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200">
+                <SelectValue placeholder="Choose subaccount…" />
+              </SelectTrigger>
+              <SelectContent className="text-xs sm:text-sm min-w-[170px] md:min-w-[200px] border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                {!noAccounts ? (
+                  accounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id} className="text-xs sm:text-sm">
+                      {a.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">No subaccounts</div>
+                )}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {/* Edit and Apply buttons (stack on mobile, inline on sm+) */}

@@ -18,6 +18,7 @@ import {
 import { useRouter } from 'next/navigation';
 
 import { Trade } from '@/types/trade';
+import type { AccountSettings } from '@/types/account-settings';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
@@ -384,11 +385,16 @@ export default function AnalyticsClient(
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
 
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   const { data: userData, isLoading: userLoading } = useUserDetails();
   const { selection, setSelection, actionBarloading } = useActionBarSelection();
+
+  const resolvedAccount = props?.initialActiveAccount ?? selection.activeAccount;
 
   // Sync ActionBar selection from server so useDashboardData query keys match hydrated cache
   useEffect(() => {
@@ -400,42 +406,70 @@ export default function AnalyticsClient(
     }
   }, [props?.initialActiveAccount?.id, props?.initialMode, setSelection]);
 
-  // Hydrate React Query cache with server-fetched data so useDashboardData sees it on first paint
+  // Hydrate React Query cache synchronously so useDashboardData sees server data on first paint (avoids hydration when e.g. no subaccounts)
+  const uid = props?.initialUserId;
+  const acc = props?.initialActiveAccount;
+  const dr = props?.initialDateRange;
+  const yr = props?.initialSelectedYear;
+  if (uid && acc?.id && dr) {
+    const mode = props?.initialMode ?? 'live';
+    const year = yr ?? new Date().getFullYear();
+    if (queryClient.getQueryData(['allTrades', mode, acc.id, uid, year]) === undefined) {
+      queryClient.setQueryData(
+        ['filteredTrades', mode, acc.id, uid, dr.startDate, dr.endDate],
+        props?.initialFilteredTrades ?? []
+      );
+      queryClient.setQueryData(
+        ['allTrades', mode, acc.id, uid, year],
+        props?.initialAllTrades ?? []
+      );
+      queryClient.setQueryData(
+        ['nonExecutedTrades', mode, acc.id, uid, dr.startDate, dr.endDate],
+        props?.initialNonExecutedTrades ?? []
+      );
+      queryClient.setQueryData(
+        ['nonExecutedTotalTradesCount', mode, acc.id, uid, year],
+        props?.initialNonExecutedTotalTradesCount ?? 0
+      );
+    }
+  }
+
+  // Also hydrate in useEffect for client navigations / fallback
   useEffect(() => {
-    const uid = props?.initialUserId;
-    const acc = props?.initialActiveAccount;
-    const dr = props?.initialDateRange;
-    const yr = props?.initialSelectedYear;
     if (!uid || !acc?.id || !dr) return;
-    const mode = props.initialMode ?? 'live';
+    const mode = props?.initialMode ?? 'live';
+    const year = yr ?? new Date().getFullYear();
     queryClient.setQueryData(
       ['filteredTrades', mode, acc.id, uid, dr.startDate, dr.endDate],
-      props.initialFilteredTrades ?? []
+      props?.initialFilteredTrades ?? []
     );
     queryClient.setQueryData(
-      ['allTrades', mode, acc.id, uid, yr ?? new Date().getFullYear()],
-      props.initialAllTrades ?? []
+      ['allTrades', mode, acc.id, uid, year],
+      props?.initialAllTrades ?? []
     );
     queryClient.setQueryData(
       ['nonExecutedTrades', mode, acc.id, uid, dr.startDate, dr.endDate],
-      props.initialNonExecutedTrades ?? []
+      props?.initialNonExecutedTrades ?? []
     );
     queryClient.setQueryData(
-      ['nonExecutedTotalTradesCount', mode, acc.id, uid, yr ?? new Date().getFullYear()],
-      props.initialNonExecutedTotalTradesCount ?? 0
+      ['nonExecutedTotalTradesCount', mode, acc.id, uid, year],
+      props?.initialNonExecutedTotalTradesCount ?? 0
     );
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount with server initial data
 
   const currencySymbol = getCurrencySymbolFromAccount(
-    selection.activeAccount ?? undefined
+    (props?.initialActiveAccount ?? selection.activeAccount) as
+      | { currency?: string | null }
+      | undefined
   );
 
   const getCurrencySymbol = () => {
-    if (!selection.activeAccount?.currency) return '$';
+    const account = props?.initialActiveAccount ?? selection.activeAccount;
+    if (!account?.currency) return '$';
     return (
       CURRENCY_SYMBOLS[
-        selection.activeAccount.currency as keyof typeof CURRENCY_SYMBOLS
-      ] || selection.activeAccount.currency
+        account.currency as keyof typeof CURRENCY_SYMBOLS
+      ] || account.currency
     );
   };
 
@@ -561,7 +595,7 @@ export default function AnalyticsClient(
     session: userData?.session,
     dateRange,
     mode: selection.mode,
-    activeAccount: selection.activeAccount,
+    activeAccount: (resolvedAccount ?? null) as AccountSettings | null,
     contextLoading: actionBarloading,
     isSessionLoading: userLoading,
     currentDate,
@@ -901,7 +935,7 @@ export default function AnalyticsClient(
   );
 
   const updatedBalance =
-    (selection.activeAccount?.account_balance || 0) + totalYearProfit;
+    ((resolvedAccount as { account_balance?: number } | null)?.account_balance ?? 0) + totalYearProfit;
 
   const getDaysInMonth = useMemo(
     () => getDaysInMonthForDate(currentDate),
@@ -952,19 +986,19 @@ export default function AnalyticsClient(
         </div>
       </div>
 
-      {/* Account Overview Card */}
+      {/* Account Overview Card - use resolved account (props first) so server and client match; card defers display until mount to avoid hydration when e.g. no subaccounts */}
       <AccountOverviewCard
-        accountName={selection.activeAccount?.name || null}
+        accountName={(props?.initialActiveAccount?.name as string | undefined) ?? selection.activeAccount?.name ?? null}
         currencySymbol={currencySymbol}
         updatedBalance={updatedBalance}
         totalYearProfit={totalYearProfit}
-        accountBalance={selection.activeAccount?.account_balance || 1}
+        accountBalance={((props?.initialActiveAccount ?? selection.activeAccount) as { account_balance?: number } | null)?.account_balance || 1}
         months={MONTHS}
         monthlyStatsAllTrades={monthlyStatsAllTrades}
         isYearDataLoading={allTradesLoading}
       />
 
-      {/* Month Stats Cards */}
+      Month Stats Cards
       <div className="flex flex-col gap-4 pb-8 sm:flex-row sm:items-stretch">
         {monthlyStats.bestMonth && (
           <MonthPerformanceCard
@@ -1233,36 +1267,17 @@ export default function AnalyticsClient(
             </div>
           }
           value={
-            <p
-              className={cn(
-                'text-2xl font-semibold',
-                monthlyStats.monthlyData && Object.keys(monthlyStats.monthlyData).length > 0
-                  ? (
-                      Object.values(monthlyStats.monthlyData).reduce(
-                        (sum, month) => sum + month.profit,
-                        0
-                      ) /
-                        Object.keys(monthlyStats.monthlyData).length >
-                      0
-                      ? 'text-emerald-500'
-                      : 'text-red-500'
-                    )
-                  : 'text-slate-800'
-              )}
-            >
-              {monthlyStats.monthlyData && Object.keys(monthlyStats.monthlyData).length > 0
-                ? <>
-                    <span className="mr-1">{currencySymbol}</span>
-                    {(
-                      Object.values(monthlyStats.monthlyData).reduce(
-                        (sum, month) => sum + month.profit,
-                        0
-                      ) / Object.keys(monthlyStats.monthlyData).length
-                    ).toFixed(2)}
-                  </>
-                : <>
-                    <span className="mr-1">{currencySymbol}</span>0
-                  </>
+            <p className={cn('text-2xl font-semibold', !hydrated ? 'text-slate-800' : monthlyStats.monthlyData && Object.keys(monthlyStats.monthlyData).length > 0 ? (Object.values(monthlyStats.monthlyData).reduce((sum, month) => sum + month.profit, 0) / Object.keys(monthlyStats.monthlyData).length > 0 ? 'text-emerald-500' : 'text-red-500') : 'text-slate-800')}>
+              {!hydrated
+                ? '\u2014'
+                : monthlyStats.monthlyData && Object.keys(monthlyStats.monthlyData).length > 0
+                  ? <>
+                      <span className="mr-1">{currencySymbol}</span>
+                      {(Object.values(monthlyStats.monthlyData).reduce((sum, month) => sum + month.profit, 0) / Object.keys(monthlyStats.monthlyData).length).toFixed(2)}
+                    </>
+                  : <>
+                      <span className="mr-1">{currencySymbol}</span>0
+                    </>
               }
             </p>
           }
@@ -1373,9 +1388,11 @@ export default function AnalyticsClient(
           }
           value={
             <p className="text-2xl font-medium text-slate-800">
-              {typeof nonExecutedTotalTradesCount === 'number'
-                ? nonExecutedTotalTradesCount
-                : 0}
+              {typeof props?.initialNonExecutedTotalTradesCount === 'number'
+                ? props.initialNonExecutedTotalTradesCount
+                : typeof nonExecutedTotalTradesCount === 'number'
+                  ? nonExecutedTotalTradesCount
+                  : 0}
               <span className="text-slate-500 text-sm ml-1">(incl. BE)</span>
             </p>
           }
@@ -1634,24 +1651,22 @@ export default function AnalyticsClient(
           }
         />
 
-        {/* Total Profit */}
+        {/* Total Profit - defer until hydrated to avoid $ vs € mismatch when no accounts (new user) */}
         <StatCard
           title="Total Profit"
           value={
-            <p className={`text-2xl font-medium ${profitColor}`}>
-              {currencySymbol}
-              {stats.totalProfit.toFixed(2)}
+            <p className={hydrated ? `text-2xl font-medium ${profitColor}` : 'text-2xl font-medium text-slate-800'}>
+              {hydrated ? `${currencySymbol}${stats.totalProfit.toFixed(2)}` : '\u2014'}
             </p>
           }
         />
 
-        {/* Average Profit */}
+        {/* Average Profit - defer until hydrated to avoid $ vs € mismatch when no accounts (new user) */}
         <StatCard
           title="Average Profit"
           value={
-            <p className={`text-2xl font-medium ${avgProfitColor}`}>
-              {currencySymbol}
-              {stats.averageProfit.toFixed(2)}
+            <p className={hydrated ? `text-2xl font-medium ${avgProfitColor}` : 'text-2xl font-medium text-slate-800'}>
+              {hydrated ? `${currencySymbol}${stats.averageProfit.toFixed(2)}` : '\u2014'}
             </p>
           }
         />

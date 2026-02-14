@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Trade } from '@/types/trade';
 import {
   Card,
@@ -16,6 +17,9 @@ interface NonExecutedTradesCardProps {
 export function NonExecutedTradesCard({
   nonExecutedTrades,
 }: NonExecutedTradesCardProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const totalNonExecuted = nonExecutedTrades.length;
 
   const beWins = nonExecutedTrades.filter(
@@ -54,7 +58,7 @@ export function NonExecutedTradesCard({
       <CardContent className="h-72 flex flex-col items-center justify-center">
         <div className="w-full text-center">
           <div className="text-4xl font-medium text-slate-800 mb-2">
-            {totalNonExecuted}
+            {mounted ? totalNonExecuted : '\u2014'}
           </div>
           <div className="text-slate-500 text-sm mb-2">
             Total Non Executed Trades
@@ -64,16 +68,16 @@ export function NonExecutedTradesCard({
             <div className="flex flex-wrap items-center justify-center gap-4">
               <div className="text-emerald-500 font-medium text-lg">
                 Wins:{' '}
-                <span className="font-bold">{wins}</span>{' '}
+                <span className="font-bold">{mounted ? wins : '—'}</span>{' '}
                 <span className="text-sm text-slate-500">
-                  ({beWins} BE)
+                  ({mounted ? beWins : '—'} BE)
                 </span>
               </div>
               <div className="text-red-500 font-medium text-lg">
                 Losses:{' '}
-                <span className="font-bold">{losses}</span>{' '}
+                <span className="font-bold">{mounted ? losses : '—'}</span>{' '}
                 <span className="text-sm text-slate-500">
-                  ({beLosses} BE)
+                  ({mounted ? beLosses : '—'} BE)
                 </span>
               </div>
             </div>
@@ -81,22 +85,22 @@ export function NonExecutedTradesCard({
             <div className="font-semibold text-lg mt-2">
               <span className="font-medium">
                 Winrate:{' '}
-                {tradesWithoutBE > 0
-                  ? winRate.toFixed(1)
-                  : '0.0'}
+                {mounted
+                  ? (tradesWithoutBE > 0 ? winRate.toFixed(1) : '0.0')
+                  : '—'}
                 %
               </span>
               <span className="text-slate-500 text-sm ml-2">
                 (
-                {totalWithBE > 0
-                  ? winRateWithBE.toFixed(1)
-                  : '0.0'}
+                {mounted
+                  ? (totalWithBE > 0 ? winRateWithBE.toFixed(1) : '0.0')
+                  : '—'}
                 % incl. BE)
               </span>
             </div>
           </div>
 
-          {totalNonExecuted === 0 && (
+          {mounted && totalNonExecuted === 0 && (
             <div className="text-slate-400 text-sm mt-8">
               No non executed trades in this period.
             </div>

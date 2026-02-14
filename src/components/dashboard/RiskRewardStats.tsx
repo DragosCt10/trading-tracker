@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -149,8 +150,10 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
 
   // --- 4. Render card + chart -------------------------------------------
 
-  // Only show empty message if there are no trades with ANY qualifying ratio for any market
   const hasAnyQualifyingTrades = filteredTrades.length > 0;
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   return (
     <Card className="border shadow-none h-96 flex flex-col bg-white">
@@ -165,7 +168,15 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
 
       <CardContent className="flex-1 flex items-center">
         <div className="w-full h-full">
-          {!hasAnyQualifyingTrades ? (
+          {!mounted ? (
+            <div
+              className="flex items-center justify-center text-slate-400 h-full text-sm"
+              style={{ minHeight: 180 }}
+              aria-hidden
+            >
+              —
+            </div>
+          ) : !hasAnyQualifyingTrades ? (
             <div
               className="flex items-center justify-center text-slate-400 h-full text-sm"
               style={{ minHeight: 180 }}
