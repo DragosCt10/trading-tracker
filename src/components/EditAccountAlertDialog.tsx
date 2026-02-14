@@ -234,8 +234,16 @@ export function EditAccountAlertDialog({
         title: 'Delete',
       });
 
+      // Clear ActionBar selection if the deleted account was the active one (so dashboard/AccountOverviewCard stops showing it)
+      const selectionKey = ['actionBar:selection'] as const;
+      const currentSelection = queryClient.getQueryData(selectionKey) as { mode: string; activeAccount: { id: string } | null } | undefined;
+      if (currentSelection?.activeAccount?.id === account.id) {
+        queryClient.setQueryData(selectionKey, { ...currentSelection, activeAccount: null });
+      }
+
       onDeleted?.();
       await queryClient.invalidateQueries();
+      await queryClient.refetchQueries({ type: 'active' });
       setOpen(false);
 
       setTimeout(() => {
