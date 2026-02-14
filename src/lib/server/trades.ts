@@ -211,3 +211,64 @@ export async function createTrade(params: {
   }
   return { error: null };
 }
+
+/**
+ * Updates an existing trade. Only the owner (from session) can update.
+ */
+export async function updateTrade(
+  tradeId: string,
+  mode: 'live' | 'backtesting' | 'demo',
+  updateData: Partial<Omit<Trade, 'id' | 'user_id' | 'account_id'>>
+): Promise<{ error: { message: string } | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { error: { message: 'Unauthorized' } };
+  }
+
+  const tableName = `${mode}_trades`;
+  const { error } = await supabase
+    .from(tableName)
+    .update(updateData as any)
+    .eq('id', tradeId)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('Error updating trade:', error);
+    return { error: { message: error.message ?? 'Failed to update trade' } };
+  }
+  return { error: null };
+}
+
+/**
+ * Deletes a trade. Only the owner (from session) can delete.
+ */
+export async function deleteTrade(
+  tradeId: string,
+  mode: 'live' | 'backtesting' | 'demo'
+): Promise<{ error: { message: string } | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { error: { message: 'Unauthorized' } };
+  }
+
+  const tableName = `${mode}_trades`;
+  const { error } = await supabase
+    .from(tableName)
+    .delete()
+    .eq('id', tradeId)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('Error deleting trade:', error);
+    return { error: { message: error.message ?? 'Failed to delete trade' } };
+  }
+  return { error: null };
+}
