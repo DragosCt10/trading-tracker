@@ -214,41 +214,41 @@ export function TradesSkeleton() {
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200/30 dark:divide-slate-700/30">
-                  {Array.from({ length: 8 }).map((_, index) => (
+                <tbody className="bg-transparent divide-y divide-slate-200/30 dark:divide-slate-700/30">
+                  {Array.from({ length: 10 }).map((_, index) => (
                     <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Skeleton className="h-4 w-20" />
+                      <td className="px-6 py-4 whitespace-nowrap text-sm align-middle">
+                        <Skeleton className="h-4 w-20 inline-block align-middle" />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Skeleton className="h-4 w-16" />
+                      <td className="px-6 py-4 whitespace-nowrap text-sm align-middle">
+                        <Skeleton className="h-4 w-16 inline-block align-middle" />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Skeleton className="h-4 w-16" />
+                      <td className="px-6 py-4 whitespace-nowrap text-sm align-middle">
+                        <Skeleton className="h-4 w-16 inline-block align-middle" />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Skeleton className="h-4 w-12" />
+                      <td className="px-6 py-4 whitespace-nowrap text-sm align-middle">
+                        <Skeleton className="h-4 w-12 inline-block align-middle" />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Skeleton className="h-4 w-20" />
+                      <td className="px-6 py-4 whitespace-nowrap text-sm align-middle">
+                        <Skeleton className="h-4 w-20 inline-block align-middle" />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Skeleton className="h-6 w-16 rounded-full" />
+                      <td className="px-6 py-4 whitespace-nowrap text-sm align-middle">
+                        <Skeleton className="h-6 w-16 rounded-full inline-block align-middle" />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Skeleton className="h-4 w-12" />
+                      <td className="px-6 py-4 whitespace-nowrap text-sm align-middle">
+                        <Skeleton className="h-4 w-12 inline-block align-middle" />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Skeleton className="h-4 w-20" />
+                      <td className="px-6 py-4 whitespace-nowrap text-sm align-middle">
+                        <Skeleton className="h-4 w-20 inline-block align-middle" />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Skeleton className="h-4 w-20" />
+                      <td className="px-6 py-4 whitespace-nowrap text-sm align-middle">
+                        <Skeleton className="h-4 w-20 inline-block align-middle" />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Skeleton className="h-4 w-20" />
+                      <td className="px-6 py-4 whitespace-nowrap text-sm align-middle">
+                        <Skeleton className="h-4 w-20 inline-block align-middle" />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Skeleton className="h-4 w-24" />
+                      <td className="px-6 py-4 whitespace-nowrap text-sm align-middle">
+                        <Skeleton className="h-4 w-24 inline-block align-middle" />
                       </td>
                     </tr>
                   ))}
