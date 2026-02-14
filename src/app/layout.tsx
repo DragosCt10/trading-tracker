@@ -21,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} bg-[#faf5fc] dark:bg-[#0f0a14] bg-gradient-to-br from-purple-50 via-violet-100 to-fuchsia-200 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14]`}>
+      <body className={`${inter.className} bg-[#faf5fc] dark:bg-[#0f0a14] bg-gradient-to-br bg-purple-50 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14]`}>
         <script
           dangerouslySetInnerHTML={{
             __html: `
