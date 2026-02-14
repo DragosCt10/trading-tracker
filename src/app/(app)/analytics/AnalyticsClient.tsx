@@ -1025,6 +1025,13 @@ export default function AnalyticsClient(
             winRate={monthlyStats.bestMonth.stats.winRate}
             profit={monthlyStats.bestMonth.stats.profit}
             currencySymbol={getCurrencySymbol()}
+            profitPercent={
+              resolvedAccount
+                ? ((resolvedAccount as { account_balance?: number }).account_balance ?? 1) > 0
+                  ? (monthlyStats.bestMonth.stats.profit / ((resolvedAccount as { account_balance?: number }).account_balance ?? 1)) * 100
+                  : undefined
+                : undefined
+            }
             positive
             className="w-full"
           />
@@ -1038,6 +1045,13 @@ export default function AnalyticsClient(
             winRate={monthlyStats.worstMonth.stats.winRate}
             profit={monthlyStats.worstMonth.stats.profit}
             currencySymbol={getCurrencySymbol()}
+            profitPercent={
+              resolvedAccount
+                ? ((resolvedAccount as { account_balance?: number }).account_balance ?? 1) > 0
+                  ? (monthlyStats.worstMonth.stats.profit / ((resolvedAccount as { account_balance?: number }).account_balance ?? 1)) * 100
+                  : undefined
+                : undefined
+            }
             positive={false}
             className="w-full"
           />
