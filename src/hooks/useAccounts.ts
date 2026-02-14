@@ -1,9 +1,8 @@
+import { getAccountsForMode } from '@/lib/server/accounts';
+import type { AccountRow } from '@/lib/server/accounts';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/utils/supabase/client';
-import type { Database } from '@/types/supabase';
 
 type Mode = 'live' | 'backtesting' | 'demo';
-type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
 interface UseAccountsOptions {
   userId?: string;
@@ -33,20 +32,10 @@ export function useAccounts({ userId, pendingMode }: UseAccountsOptions) {
     staleTime: Infinity,
     gcTime: Infinity,
 
+    // Server-side fetch: no client Supabase call
     queryFn: async (): Promise<AccountRow[]> => {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('account_settings')
-        .select('*')
-        .eq('user_id', userId!)
-        .eq('mode', pendingMode!)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error loading accounts:', error);
-        return [];
-      }
-      return data ?? [];
+      if (!userId || !pendingMode) return [];
+      return getAccountsForMode(userId, pendingMode);
     },
   });
 
