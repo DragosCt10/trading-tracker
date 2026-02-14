@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { Trade } from '@/types/trade';
-import { createClient } from '@/utils/supabase/client';
+import { deleteTrade, updateTrade } from '@/lib/server/trades';
 import { useQueryClient } from '@tanstack/react-query';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 // shadcn UI components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,37 +45,18 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progressDialog, setProgressDialog] = useState<{
+    open: boolean;
+    status: 'loading' | 'success' | 'error';
+    message: string;
+    title: 'Update' | 'Delete';
+  }>({ open: false, status: 'loading', message: '', title: 'Update' });
   const queryClient = useQueryClient();
 
-  // Helper function to invalidate and refetch all trade-related queries
+  // Helper: invalidate and refetch ALL queries (same as NewTradeModal – ensures list, analytics, discover all update)
   const invalidateAndRefetchTradeQueries = async () => {
-    const tradeQueryPredicate = (query: any) => {
-      const key = query.queryKey[0] as string;
-      return (
-        key === 'allTrades' ||
-        key === 'filteredTrades' ||
-        key === 'nonExecutedTrades' ||
-        key === 'nonExecutedTotalTradesCount' ||
-        key === 'discoverTrades' ||
-        key === 'trades'
-      );
-    };
-
-    // Remove queries from cache to force fresh fetch
-    queryClient.removeQueries({
-      predicate: tradeQueryPredicate,
-    });
-
-    // Invalidate queries (marks them as stale for any that weren't removed)
-    await queryClient.invalidateQueries({
-      predicate: tradeQueryPredicate,
-    });
-
-    // Refetch active queries immediately to ensure fresh data
-    await queryClient.refetchQueries({
-      predicate: tradeQueryPredicate,
-      type: 'active', // Only refetch queries that are currently being used by mounted components
-    });
+    await queryClient.invalidateQueries();
+    await queryClient.refetchQueries({ type: 'active' });
   };
 
   const MARKET_OPTIONS = ['DAX', 'US30', 'UK100', 'US100', 'EURUSD', 'GBPUSD'];
@@ -142,12 +124,12 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
   const handleSave = async () => {
     if (!editedTrade || !editedTrade.id) return;
-    try {
-      setIsSaving(true);
-      setError(null);
-      const supabase = createClient();
-      const tradingMode = selection.mode;
+    setError(null);
+    setIsSaving(true);
+    setProgressDialog({ open: true, status: 'loading', message: 'Please wait while we save your trade data...', title: 'Update' });
 
+    try {
+      const tradingMode = (editedTrade.mode || selection.mode) as 'live' | 'backtesting' | 'demo';
       const updateData = {
         trade_date: editedTrade.trade_date,
         trade_time: editedTrade.trade_time,
@@ -170,7 +152,6 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         reentry: editedTrade.reentry,
         news_related: editedTrade.news_related,
         local_high_low: editedTrade.local_high_low,
-        mode: tradingMode,
         notes: editedTrade.notes,
         pnl_percentage: editedTrade.pnl_percentage,
         calculated_profit: editedTrade.calculated_profit,
@@ -178,56 +159,66 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         rr_hit_1_4: editedTrade.rr_hit_1_4,
         partials_taken: editedTrade.partials_taken,
         executed: editedTrade.executed,
-        launch_hour: editedTrade.launch_hour
+        launch_hour: editedTrade.launch_hour,
       };
 
-      const { error: updateError } = await (supabase
-        .from(`${tradingMode}_trades`) as any)
-        .update(updateData)
-        .eq('id', editedTrade.id);
+      const { error: updateError } = await updateTrade(editedTrade.id, tradingMode, updateData);
 
       if (updateError) {
-        console.error('Error updating trade:', updateError);
-        throw updateError;
+        setProgressDialog({ open: true, status: 'error', message: updateError.message ?? 'Failed to update trade. Please try again.', title: 'Update' });
+        setIsSaving(false);
+        return;
       }
 
-      // ✅ Invalidate and refetch all trade-related queries to ensure fresh data everywhere
+      setProgressDialog({ open: true, status: 'loading', message: 'Updating analytics and refreshing charts...', title: 'Update' });
       await invalidateAndRefetchTradeQueries();
 
+      setProgressDialog({ open: true, status: 'success', message: 'Your trade has been updated successfully. All charts and statistics have been updated.', title: 'Update' });
       setIsEditing(false);
       if (onTradeUpdated) onTradeUpdated();
-      onClose();
+
+      setTimeout(() => {
+        setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
+        setIsSaving(false);
+        onClose();
+      }, 2000);
     } catch (err: any) {
-      setError(err.message || 'Failed to save trade. Please try again.');
-    } finally {
+      setProgressDialog({ open: true, status: 'error', message: err.message || 'Failed to save trade. Please try again.', title: 'Update' });
       setIsSaving(false);
     }
   };
 
   const handleDelete = async () => {
     if (!trade || !trade.id) return;
+    setShowDeleteConfirm(false);
+    setIsDeleting(true);
+    setError(null);
+    setProgressDialog({ open: true, status: 'loading', message: 'Deleting trade...', title: 'Delete' });
+
     try {
-      setIsDeleting(true);
-      setError(null);
-      const supabase = createClient();
+      const tradingMode = (trade.mode || selection.mode) as 'live' | 'backtesting' | 'demo';
+      const { error: deleteError } = await deleteTrade(trade.id, tradingMode);
 
-      const { error: deleteError } = await supabase
-        .from(`${trade.mode || selection.mode}_trades`)
-        .delete()
-        .eq('id', trade.id);
+      if (deleteError) {
+        setProgressDialog({ open: true, status: 'error', message: deleteError.message ?? 'Failed to delete trade. Please try again.', title: 'Delete' });
+        setIsDeleting(false);
+        return;
+      }
 
-      if (deleteError) throw deleteError;
-
-      // ✅ Invalidate and refetch all trade-related queries to ensure fresh data everywhere
+      setProgressDialog({ open: true, status: 'loading', message: 'Updating analytics and refreshing charts...', title: 'Delete' });
       await invalidateAndRefetchTradeQueries();
 
+      setProgressDialog({ open: true, status: 'success', message: 'Your trade has been deleted successfully. All charts and statistics have been updated.', title: 'Delete' });
       if (onTradeUpdated) onTradeUpdated();
-      onClose();
+
+      setTimeout(() => {
+        setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
+        setIsDeleting(false);
+        onClose();
+      }, 2000);
     } catch (err: any) {
-      setError(err.message);
-    } finally {
+      setProgressDialog({ open: true, status: 'error', message: err.message ?? 'Failed to delete trade. Please try again.', title: 'Delete' });
       setIsDeleting(false);
-      setShowDeleteConfirm(false);
     }
   };
 
@@ -341,17 +332,20 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       );
     }
 
-    // For Risk, make it editable only in editing mode
+    // For Risk, make it editable only in editing mode (normalize so no leading zeros like "04")
     if (field === 'risk_per_trade') {
       const numValue = typeof value === 'number' && !isNaN(value) ? value : 0;
       const displayValue = numValue.toFixed(2);
       if (isEditing) {
+        const num = value != null && !isNaN(Number(value)) ? Number(value) : null;
         return (
           <div>
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
             <Input
               type="number"
-              value={isNaN(value as number) ? '' : value as number}
+              step="any"
+              min={0}
+              value={num !== null ? String(num) : ''}
               onChange={e => {
                 const val = e.target.value;
                 handleInputChange(field, val === '' ? '' : parseFloat(val));
@@ -375,14 +369,16 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       }
     }
 
-    // For Displacement Size, handle as number
+    // For Displacement Size, handle as number (normalize so no leading zeros)
     if (field === 'displacement_size') {
+      const num = value != null && !isNaN(Number(value)) ? Number(value) : null;
       return (
         <div>
           <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
           <Input
             type="number"
-            value={isNaN(value as number) ? '' : value as number}
+            step="any"
+            value={num !== null ? String(num) : ''}
             onChange={e => {
               const val = e.target.value;
               handleInputChange(field, val === '' ? '' : parseFloat(val));
@@ -397,12 +393,14 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
     switch (type) {
       case 'number':
+        const numVal = value != null && !isNaN(Number(value)) ? Number(value) : null;
         return (
           <div>
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
             <Input
               type="number"
-              value={isNaN(value as number) ? '' : value as number}
+              step="any"
+              value={numVal !== null ? String(numVal) : ''}
               onChange={e => {
                 const val = e.target.value;
                 handleInputChange(field, val === '' ? '' : parseFloat(val));
@@ -416,7 +414,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
           <div>
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
             <Select
-              value={value as string}
+              value={value != null ? String(value) : ''}
               onValueChange={(val) => handleInputChange(field, val)}
             >
               <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
@@ -455,7 +453,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
           <div>
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
             <Select
-              value={value as string}
+              value={value != null ? String(value) : ''}
               onValueChange={(val) => handleInputChange(field, val)}
             >
               <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
@@ -474,7 +472,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
             <Input
               type="text"
-              value={value as string}
+              value={value != null ? String(value) : ''}
               onChange={(e) => handleInputChange(field, e.target.value)}
               className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
             />
@@ -552,7 +550,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                       renderOutcomeBadge(editedTrade?.trade_outcome as string)
                     ) : (
                       <Select
-                        value={editedTrade?.trade_outcome as string}
+                        value={editedTrade?.trade_outcome ?? ''}
                         onValueChange={(val) => handleInputChange('trade_outcome', val)}
                       >
                         <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
@@ -587,7 +585,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                       </span>
                     ) : (
                       <Select
-                        value={editedTrade?.evaluation as string}
+                        value={editedTrade?.evaluation ?? ''}
                         onValueChange={(val) => handleInputChange('evaluation', val)}
                       >
                         <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
@@ -764,7 +762,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">Trade Chart URL</label>
                     <Input
                       type="text"
-                      value={editedTrade?.trade_link as string}
+                      value={editedTrade?.trade_link ?? ''}
                       onChange={(e) => handleInputChange('trade_link', e.target.value)}
                       className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
                       placeholder="https://..."
@@ -774,7 +772,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">Liquidity Taken URL</label>
                     <Input
                       type="text"
-                      value={editedTrade?.liquidity_taken as string}
+                      value={editedTrade?.liquidity_taken ?? ''}
                       onChange={(e) => handleInputChange('liquidity_taken', e.target.value)}
                       className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
                       placeholder="https://..."
@@ -835,6 +833,56 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     </Button>
                   </AlertDialogAction>
                 </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Progress Dialog - same pattern as NewTradeModal */}
+            <AlertDialog
+              open={progressDialog.open}
+              onOpenChange={() => {
+                if (progressDialog.status !== 'loading') {
+                  setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
+                }
+              }}
+            >
+              <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] rounded-2xl">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {progressDialog.status === 'loading' && (
+                      <span className="text-purple-600 dark:text-purple-400 font-semibold text-lg flex items-center gap-2">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        {progressDialog.title === 'Delete' ? 'Deleting Trade' : 'Updating Trade'}
+                      </span>
+                    )}
+                    {progressDialog.status === 'success' && (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-lg flex items-center gap-2">
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {progressDialog.title === 'Delete' ? 'Trade Deleted Successfully' : 'Trade Updated Successfully'}
+                      </span>
+                    )}
+                    {progressDialog.status === 'error' && (
+                      <span className="text-red-500 dark:text-red-400 font-semibold text-lg flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5" />
+                        {progressDialog.title === 'Delete' ? 'Error Deleting Trade' : 'Error Updating Trade'}
+                      </span>
+                    )}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    <span className="text-slate-600 dark:text-slate-400">{progressDialog.message}</span>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                {progressDialog.status === 'error' && (
+                  <AlertDialogFooter className="flex gap-3">
+                    <Button
+                      onClick={() => setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' })}
+                      className="cursor-pointer rounded-xl border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
+                    >
+                      Close
+                    </Button>
+                  </AlertDialogFooter>
+                )}
               </AlertDialogContent>
             </AlertDialog>
 
