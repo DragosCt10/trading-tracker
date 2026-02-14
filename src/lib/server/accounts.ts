@@ -171,3 +171,53 @@ export async function deleteAccount(
   }
   return { error: null };
 }
+
+/**
+ * Sets the active account for a mode (server-side only). Replaces client-side
+ * account_settings updates so security does not depend on RLS alone.
+ */
+export async function setActiveAccount(
+  mode: AccountMode,
+  accountId: string | null
+): Promise<{ data: AccountRow | null; error: { message: string } | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { data: null, error: { message: 'Unauthorized' } };
+  }
+
+  // Clear active flag for all user's accounts in this mode
+  const { error: clearError } = await supabase
+    .from('account_settings')
+    .update({ is_active: false } as never)
+    .eq('user_id', user.id)
+    .eq('mode', mode);
+
+  if (clearError) {
+    console.error('Error clearing active account:', clearError);
+    return { data: null, error: { message: clearError.message ?? 'Failed to set active account' } };
+  }
+
+  if (!accountId) {
+    return { data: null, error: null };
+  }
+
+  // Set the selected account as active (only if it belongs to this user)
+  const { data: updated, error: setError } = await supabase
+    .from('account_settings')
+    .update({ is_active: true } as never)
+    .eq('id', accountId)
+    .eq('user_id', user.id)
+    .select('*')
+    .single();
+
+  if (setError) {
+    console.error('Error setting active account:', setError);
+    return { data: null, error: { message: setError.message ?? 'Failed to set active account' } };
+  }
+
+  return { data: updated as AccountRow, error: null };
+}
