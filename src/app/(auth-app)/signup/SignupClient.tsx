@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLoading } from '@/context/LoadingContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useTheme } from '@/hooks/useTheme';
+import { signupAction } from '@/lib/server/auth';
 
 // shadcn/ui imports
 import { Button } from '@/components/ui/button';
@@ -36,18 +36,20 @@ export default function SignupClient() {
     setIsLoading(true);
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      const formData = new FormData();
+      formData.set('email', email);
+      formData.set('password', password);
+      const result = await signupAction(null, formData);
 
-      if (error) throw error;
-
-      router.refresh();
-      router.push('/trades/new');
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'An error occurred');
+      if (result.error) {
+        setError(result.error);
+      } else {
+        // Full page nav so the next request sends the session cookies set by the action
+        window.location.href = '/analytics';
+        return;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);
     }
