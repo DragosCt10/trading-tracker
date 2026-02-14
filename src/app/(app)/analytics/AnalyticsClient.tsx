@@ -394,17 +394,25 @@ export default function AnalyticsClient(
   const { data: userData, isLoading: userLoading } = useUserDetails();
   const { selection, setSelection, actionBarloading } = useActionBarSelection();
 
-  const resolvedAccount = props?.initialActiveAccount ?? selection.activeAccount;
+  // Prefer ActionBar selection (what user applied) over server props so switching account/mode in the bar updates the dashboard
+  const resolvedAccount = selection.activeAccount ?? props?.initialActiveAccount;
 
-  // Sync ActionBar selection from server so useDashboardData query keys match hydrated cache
+  // Sync ActionBar selection from server only once on mount so dashboard matches initial load.
+  // After that, the client selection (user's Apply in ActionBar) is the source of truth.
+  const hasSyncedSelectionFromServerRef = useRef(false);
   useEffect(() => {
+    if (hasSyncedSelectionFromServerRef.current) return;
     if (props?.initialActiveAccount && props.initialMode) {
+      hasSyncedSelectionFromServerRef.current = true;
       setSelection({
         mode: props.initialMode,
         activeAccount: props.initialActiveAccount as Parameters<typeof setSelection>[0]['activeAccount'],
       });
     }
-  }, [props?.initialActiveAccount?.id, props?.initialMode, setSelection]);
+    // Ensure useEffect dependencies are safe: props is optional so access defensively
+    // Also, props?.initialMode and setSelection will not change across renders (setSelection is from a hook)
+    // so this effect will run only when initialActiveAccount or initialMode change
+  }, [props?.initialActiveAccount, props?.initialMode, setSelection]);
 
   // Hydrate React Query cache synchronously so useDashboardData sees server data on first paint (avoids hydration when e.g. no subaccounts)
   const uid = props?.initialUserId;
@@ -458,13 +466,13 @@ export default function AnalyticsClient(
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount with server initial data
 
   const currencySymbol = getCurrencySymbolFromAccount(
-    (props?.initialActiveAccount ?? selection.activeAccount) as
+    (selection.activeAccount ?? props?.initialActiveAccount) as
       | { currency?: string | null }
       | undefined
   );
 
   const getCurrencySymbol = () => {
-    const account = props?.initialActiveAccount ?? selection.activeAccount;
+    const account = selection.activeAccount ?? props?.initialActiveAccount;
     if (!account?.currency) return '$';
     return (
       CURRENCY_SYMBOLS[
@@ -988,11 +996,11 @@ export default function AnalyticsClient(
 
       {/* Account Overview Card - use resolved account (props first) so server and client match; card defers display until mount to avoid hydration when e.g. no subaccounts */}
       <AccountOverviewCard
-        accountName={(props?.initialActiveAccount?.name as string | undefined) ?? selection.activeAccount?.name ?? null}
+        accountName={(resolvedAccount?.name as string | undefined) ?? null}
         currencySymbol={currencySymbol}
         updatedBalance={updatedBalance}
         totalYearProfit={totalYearProfit}
-        accountBalance={((props?.initialActiveAccount ?? selection.activeAccount) as { account_balance?: number } | null)?.account_balance || 1}
+        accountBalance={((selection.activeAccount ?? props?.initialActiveAccount) as { account_balance?: number } | null)?.account_balance || 1}
         months={MONTHS}
         monthlyStatsAllTrades={monthlyStatsAllTrades}
         isYearDataLoading={allTradesLoading}
