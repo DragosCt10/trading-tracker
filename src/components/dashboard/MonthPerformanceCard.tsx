@@ -1,8 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { Calendar, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface MonthPerformanceCardProps {
   title: string;           // "Best Month" / "Worst Month"
@@ -11,6 +12,8 @@ interface MonthPerformanceCardProps {
   winRate: number;         // 0–100
   profit: number;          // numeric P&L
   currencySymbol: string;  // e.g. "$"
+  /** P&L as percentage of account balance (e.g. 5.25 for +5.25%) */
+  profitPercent?: number;
   positive?: boolean;      // true for best, false for worst
   className?: string;
 }
@@ -22,35 +25,87 @@ export const MonthPerformanceCard: React.FC<MonthPerformanceCardProps> = ({
   winRate,
   profit,
   currencySymbol,
+  profitPercent,
   positive = true,
   className,
 }) => {
-  const color = positive ? 'text-emerald-500' : 'text-red-500';
+  const TrendIcon = positive ? TrendingUp : TrendingDown;
 
   return (
     <Card
       className={cn(
-        'flex-1 border shadow-none flex flex-col items-center',
+        'relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex-1 flex flex-col',
         className
       )}
     >
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-slate-500">
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-1 flex flex-col items-center text-center">
-        <p className="text-2xl font-semibold text-slate-800">
-          {month} {year}
-          <span className={cn('text-base font-semibold ml-1', color)}>
-            ({winRate.toFixed(2)}% WR)
-          </span>
-        </p>
-        <p className={cn('text-sm font-semibold mt-1', color)}>
-          {currencySymbol}
-          {profit.toFixed(2)}
-        </p>
-      </CardContent>
+      <div className="relative p-6 flex flex-col flex-1">
+        {/* One row: left = icon + title/month, right = Win rate + P&L aligned on same line */}
+        <div className="flex flex-row items-start justify-between gap-4 w-full">
+          {/* Left: icon + title, then month + year under */}
+          <div className="flex flex-row gap-3 min-w-0">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50 shadow-sm shrink-0">
+              <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div className="flex flex-col gap-1 min-w-0">
+              <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {title}
+              </CardTitle>
+              <p className="text-xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                {month} {year}
+              </p>
+            </div>
+          </div>
+
+          {/* Right: Win rate and P&L on same line, aligned with title/month */}
+          <div className="flex flex-row gap-6 items-center shrink-0">
+            {/* Win rate */}
+            <div className="flex flex-col gap-1 items-end">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                Win rate
+              </div>
+              <div
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold',
+                  positive
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                    : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                )}
+              >
+                <TrendIcon className="w-4 h-4" />
+                {winRate.toFixed(1)}%
+              </div>
+            </div>
+
+            {/* P&L */}
+            <div className="flex flex-col gap-1.5 items-end">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                P&L
+              </div>
+              <div
+                className={cn(
+                  'text-xl font-bold tracking-tight leading-tight',
+                  positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                )}
+              >
+                {positive && profit >= 0 ? '+' : ''}
+                {currencySymbol}
+                {profit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              {profitPercent != null && (
+                <div
+                  className={cn(
+                    'text-xs font-semibold',
+                    positive ? 'text-emerald-600/90 dark:text-emerald-400/90' : 'text-rose-600/90 dark:text-rose-400/90'
+                  )}
+                >
+                  {profitPercent >= 0 ? '+' : ''}
+                  {profitPercent.toFixed(2)}%
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </Card>
   );
 };
