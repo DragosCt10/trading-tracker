@@ -22,6 +22,7 @@ import type { AccountSettings } from '@/types/account-settings';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
+import { useAccounts } from '@/hooks/useAccounts';
 import { useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -393,9 +394,17 @@ export default function AnalyticsClient(
 
   const { data: userData, isLoading: userLoading } = useUserDetails();
   const { selection, setSelection, actionBarloading } = useActionBarSelection();
+  const { accounts: accountsForMode } = useAccounts({ userId: userData?.user?.id, pendingMode: selection.mode });
 
-  // Prefer ActionBar selection (what user applied) over server props so switching account/mode in the bar updates the dashboard
-  const resolvedAccount = selection.activeAccount ?? props?.initialActiveAccount;
+  // Prefer ActionBar selection (what user applied) over server props so switching account/mode in the bar updates the dashboard.
+  // When there are no accounts for this mode (e.g. user deleted all subaccounts), show no account so AccountOverviewCard shows "No Active Account".
+  const candidateAccount = selection.activeAccount ?? props?.initialActiveAccount;
+  const resolvedAccount =
+    accountsForMode.length === 0
+      ? null
+      : candidateAccount && accountsForMode.some((a) => a.id === candidateAccount.id)
+        ? candidateAccount
+        : null;
 
   // Sync ActionBar selection from server only once on mount so dashboard matches initial load.
   // After that, the client selection (user's Apply in ActionBar) is the source of truth.
