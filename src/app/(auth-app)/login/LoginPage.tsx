@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLoading } from '@/context/LoadingContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useTheme } from '@/hooks/useTheme';
+import { loginAction } from '@/lib/server/auth';
 
 // shadcn/ui imports
 import { Button } from '@/components/ui/button';
@@ -36,17 +36,17 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const formData = new FormData();
+      formData.set('email', email);
+      formData.set('password', password);
+      const result = await loginAction(null, formData);
 
-      if (error) {
-        setError(error.message);
+      if (result.error) {
+        setError(result.error);
       } else {
-        router.push('/analytics');
-        router.refresh();
+        // Full page nav so the next request sends the session cookies set by the action
+        window.location.href = '/analytics';
+        return;
       }
     } catch (err) {
       setError('An unexpected error occurred');
