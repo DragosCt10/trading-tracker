@@ -158,7 +158,7 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
       setTimeout(() => {
         setProgressDialog({ open: false, status: 'loading', message: '' });
         setSubmitting(false);
-      }, 3000);
+      }, 2000);
     } catch {
       setProgressDialog({
         open: true,
