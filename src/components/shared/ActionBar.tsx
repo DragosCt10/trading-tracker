@@ -281,7 +281,9 @@ export default function ActionBar({ initialData }: ActionBarProps) {
                 : null
             }
             onUpdated={async () => {
-              // force the accounts list to refresh so the Select shows the new name
+              await refetchAccounts?.();
+            }}
+            onDeleted={async () => {
               await refetchAccounts?.();
             }}
           />
