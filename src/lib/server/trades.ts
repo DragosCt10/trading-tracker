@@ -5,36 +5,6 @@ import { createClient } from '@/utils/supabase/server';
 import { Trade } from '@/types/trade';
 
 /**
- * Fetches all rows from a Supabase query with pagination
- */
-async function fetchAllRows<T>(baseQuery: any, limit = 500): Promise<T[]> {
-  let offset = 0;
-  let total = 0;
-  let rows: T[] = [];
-
-  const { data: first, error: e1, count } = await baseQuery
-    .select('*', { count: 'exact' })
-    .order('trade_date', { ascending: false })
-    .range(0, limit - 1);
-
-  if (e1) throw e1;
-  total = count ?? 0;
-  rows = (first ?? []) as T[];
-
-  offset = limit;
-  while (offset < total) {
-    const { data: more, error: eMore } = await baseQuery
-      .select('*')
-      .order('trade_date', { ascending: false })
-      .range(offset, offset + limit - 1);
-    if (eMore) throw eMore;
-    rows = rows.concat((more ?? []) as T[]);
-    offset += limit;
-  }
-  return rows;
-}
-
-/**
  * Maps Supabase trade data to Trade type
  */
 function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
