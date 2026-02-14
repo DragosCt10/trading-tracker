@@ -961,6 +961,7 @@ export default function AnalyticsClient(
         accountBalance={selection.activeAccount?.account_balance || 1}
         months={MONTHS}
         monthlyStatsAllTrades={monthlyStatsAllTrades}
+        isYearDataLoading={allTradesLoading}
       />
 
       {/* Month Stats Cards */}
