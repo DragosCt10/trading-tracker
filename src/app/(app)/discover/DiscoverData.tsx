@@ -1,22 +1,15 @@
 import { Suspense } from 'react';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
-import { getUserSession, getFilteredTrades } from '@/lib/server/trades';
+import { getFilteredTrades } from '@/lib/server/trades';
 import { getActiveAccountForMode } from '@/lib/server/accounts';
 import DiscoverClient from './DiscoverClient';
 import { Trade } from '@/types/trade';
 import { DiscoverSkeleton } from './DiscoverSkeleton';
+import type { User } from '@supabase/supabase-js';
 
 const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 
-// Async component that fetches data
-async function DiscoverDataFetcher() {
-  const { user } = await getUserSession();
-
-  if (!user) {
-    return null;
-  }
-
-  // Get default date range (current month)
+async function DiscoverDataFetcher({ user }: { user: User }) {
   const today = new Date();
   const initialDateRange = {
     startDate: fmt(startOfMonth(today)),
@@ -79,11 +72,14 @@ async function DiscoverDataFetcher() {
   );
 }
 
-// Main component with Suspense
-export default function DiscoverData() {
+interface DiscoverDataProps {
+  user: User;
+}
+
+export default function DiscoverData({ user }: DiscoverDataProps) {
   return (
     <Suspense fallback={<DiscoverSkeleton />}>
-      <DiscoverDataFetcher />
+      <DiscoverDataFetcher user={user} />
     </Suspense>
   );
 }
