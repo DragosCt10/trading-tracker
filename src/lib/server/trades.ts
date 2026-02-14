@@ -86,6 +86,7 @@ export async function getFilteredTrades({
   startDate,
   endDate,
   includeNonExecuted = false,
+  onlyNonExecuted = false,
 }: {
   userId: string;
   accountId: string;
@@ -94,6 +95,8 @@ export async function getFilteredTrades({
   endDate: string;
   /** When true, include trades where executed=false (e.g. for Trades page filter) */
   includeNonExecuted?: boolean;
+  /** When true, return only trades where executed=false (e.g. for analytics non-executed list) */
+  onlyNonExecuted?: boolean;
 }): Promise<Trade[]> {
   const supabase = await createClient();
 
@@ -116,7 +119,9 @@ export async function getFilteredTrades({
       .eq('account_id', accountId)
       .gte('trade_date', startDate)
       .lte('trade_date', endDate);
-    if (!includeNonExecuted) {
+    if (onlyNonExecuted) {
+      query = query.eq('executed', false);
+    } else if (!includeNonExecuted) {
       query = query.not('executed', 'eq', false);
     }
     return query.order('trade_date', { ascending: false });
