@@ -60,7 +60,7 @@ export function AccountOverviewCard({
     : '\u00A0';
 
   return (
-    <Card className="relative mb-8 overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/50  dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+    <Card className="relative mb-8 overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70  dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
       <div className="relative p-8">
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
@@ -77,7 +77,7 @@ export function AccountOverviewCard({
           </div>
 
           <div className="text-right space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            <div className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500">
               Balance incl. year profit
             </div>
             <div className="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
