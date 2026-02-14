@@ -1015,7 +1015,7 @@ export default function AnalyticsClient(
         isYearDataLoading={allTradesLoading}
       />
 
-      Month Stats Cards
+      {/* Month Stats Cards */}
       <div className="flex flex-col gap-4 pb-8 sm:flex-row sm:items-stretch">
         {monthlyStats.bestMonth && (
           <MonthPerformanceCard
