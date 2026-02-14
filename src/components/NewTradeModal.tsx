@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { createTrade } from '@/lib/server/trades';
 import { Trade } from '@/types/trade';
-import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQueryClient } from '@tanstack/react-query';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { PlusCircle } from 'lucide-react';
@@ -93,7 +92,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     status: 'loading' | 'success' | 'error';
     message: string;
   }>({ open: false, status: 'loading', message: '' });
-  const { data: userDetails } = useUserDetails();
 
   // Prevent hydration mismatch by only rendering on client
   useEffect(() => {
@@ -245,21 +243,16 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         }
       }
 
-      const supabase = createClient();
-      const tableName = `${selection.mode}_trades`;
+      const { id, user_id, account_id, calculated_profit, pnl_percentage, ...tradePayload } = trade as Trade & { user_id?: string; account_id?: string };
+      const { error } = await createTrade({
+        mode: selection.mode,
+        account_id: selection.activeAccount.id,
+        calculated_profit: signedProfit,
+        pnl_percentage: pnlPercentage,
+        trade: tradePayload,
+      });
 
-      const { error } = await supabase
-        .from(tableName)
-        .insert([{
-          ...trade,
-          user_id: userDetails?.user?.id,
-          calculated_profit: signedProfit,
-          pnl_percentage: pnlPercentage,
-          account_id: selection.activeAccount.id,
-        }] as any)
-        .select();
-
-      if (error) throw error;
+      if (error) throw new Error(error.message);
 
       if (typeof window !== 'undefined') {
         localStorage.removeItem(`new-trade-draft-${selection.mode}`);
@@ -282,7 +275,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         onClose();
         // Reset form
         setTrade(initialTradeState);
-      }, 5000);
+      }, 2000);
     } catch (err: any) {
       setProgressDialog({ 
         open: true, 
