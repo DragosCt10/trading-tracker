@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useLoading } from '@/context/LoadingContext';
 import { useTheme } from '@/hooks/useTheme';
+import { resetPasswordAction } from '@/lib/server/auth';
 
 // shadcn/ui imports
 import { Button } from '@/components/ui/button';
@@ -26,13 +26,13 @@ export default function ResetPasswordClient() {
     setError('');
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`,
-      });
+      const formData = new FormData();
+      formData.set('email', email);
+      formData.set('redirectTo', `${window.location.origin}/update-password`);
+      const result = await resetPasswordAction(null, formData);
 
-      if (error) {
-        setError(error.message);
+      if (result.error) {
+        setError(result.error);
       } else {
         setMessage('Check your email for the password reset link');
         setEmail('');
