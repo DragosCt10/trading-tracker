@@ -1,12 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLoading } from '@/context/LoadingContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useTheme } from '@/hooks/useTheme';
 import { loginAction } from '@/lib/server/auth';
+
+/** Only allow relative path for post-login redirect (prevent open redirect). */
+function safeRedirectPath(path: string | null): string | null {
+  if (!path || !path.startsWith('/') || path.startsWith('//') || path.includes(':')) return null;
+  // Don't send users to auth pages after login
+  if (path === '/' || path.startsWith('/login') || path.startsWith('/signup') || path.startsWith('/reset-password') || path.startsWith('/update-password') || path.startsWith('/auth')) return null;
+  return path;
+}
 
 // shadcn/ui imports
 import { Button } from '@/components/ui/button';
@@ -19,16 +27,18 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setIsLoading } = useLoading();
   const { data: userData } = useUserDetails();
   const { theme, toggleTheme, mounted } = useTheme();
 
   useEffect(() => {
-    // If user is already logged in, redirect to dashboard
+    // If user is already logged in, redirect to dashboard or redirectTo
     if (userData?.user && userData?.session) {
-      router.push('/analytics');
+      const to = safeRedirectPath(searchParams.get('redirectTo'));
+      router.push(to ?? '/analytics');
     }
-  }, [userData, router]);
+  }, [userData, router, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +55,8 @@ export default function LoginPage() {
         setError(result.error);
       } else {
         // Full page nav so the next request sends the session cookies set by the action
-        window.location.href = '/analytics';
+        const to = safeRedirectPath(searchParams.get('redirectTo'));
+        window.location.href = to ?? '/analytics';
         return;
       }
     } catch (err) {
