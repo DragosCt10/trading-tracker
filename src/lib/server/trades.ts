@@ -3,6 +3,7 @@
 import { cache } from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { Trade } from '@/types/trade';
+import { getAccountsForMode } from '@/lib/server/accounts';
 
 /**
  * Maps Supabase trade data to Trade type
@@ -167,6 +168,12 @@ export async function createTrade(params: {
   } = await supabase.auth.getUser();
   if (authError || !user) {
     return { error: { message: 'Unauthorized' } };
+  }
+
+  // Ensure the account belongs to the session user (defense in depth)
+  const userAccounts = await getAccountsForMode(user.id, params.mode);
+  if (!userAccounts.some((a) => a.id === params.account_id)) {
+    return { error: { message: 'Account not found or access denied' } };
   }
 
   const tableName = `${params.mode}_trades`;
