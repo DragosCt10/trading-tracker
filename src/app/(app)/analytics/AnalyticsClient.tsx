@@ -51,8 +51,6 @@ import { TradesCalendarCard } from '@/components/dashboard/TradesCalendarCard';
 import { TradeStatDatum, TradeStatsBarCard } from '@/components/dashboard/TradesStatsBarCard';
 import { LaunchHourTradesCard } from '@/components/dashboard/LaunchHourTradesCard';
 import { NonExecutedTradesCard } from '@/components/dashboard/NonExecutedTradesCard';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { DisplacementSizeStats } from '@/components/dashboard/DisplacementSizeStats';
 import { getAverageDisplacementPerMarket } from '@/utils/getAverageDisplacementPerMarket';
 
