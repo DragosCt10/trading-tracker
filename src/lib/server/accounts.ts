@@ -37,3 +37,26 @@ export async function getActiveAccountForMode(
   const activeAccount = accounts.find((a) => a.is_active) ?? accounts[0] ?? null;
   return activeAccount as AccountRow;
 }
+
+/**
+ * Gets all accounts for a user and mode (for ActionBar dropdown, etc.).
+ */
+export async function getAccountsForMode(
+  userId: string,
+  mode: AccountMode = 'live'
+): Promise<AccountRow[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('account_settings')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('mode', mode)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching accounts for mode:', error);
+    return [];
+  }
+  return (data ?? []) as AccountRow[];
+}

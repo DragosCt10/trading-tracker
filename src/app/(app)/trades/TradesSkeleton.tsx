@@ -196,7 +196,8 @@ export function TradesSkeleton() {
           </div>
 
           {/* Table - real headers, skeleton only in tbody */}
-          <Card className="relative overflow-hidden border border-slate-300 dark:border-slate-700 bg-transparent">
+          <Card className="group relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-white via-slate-50/30 to-purple-50/20 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm transition-all duration-500 hover:shadow-xl hover:shadow-slate-200/60 dark:hover:border-slate-600/50">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-violet-500/5 dark:from-purple-500/10 dark:to-violet-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" aria-hidden />
             <div className="relative overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200/30 dark:divide-slate-700/30">
                 <thead className="bg-transparent border-b border-slate-300 dark:border-slate-700">

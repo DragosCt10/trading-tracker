@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, subDays, startOfYear, endOfYear } from 'date-fns';
 import { Trade } from '@/types/trade';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
+import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -84,7 +85,7 @@ function isCustomDateRange(range: DateRangeState): boolean {
 }
 
 interface DiscoverClientProps {
-  /** User id from server (avoids useUserDetails on this page) */
+  /** User id from server (fallback when useUserDetails cache not yet hydrated) */
   initialUserId: string;
   initialFilteredTrades: Trade[];
   initialAllTrades: Trade[];
@@ -111,8 +112,10 @@ export default function DiscoverClient({
   const [activeFilter, setActiveFilter] = useState<FilterType>('month');
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
 
+  const { data: userDetails } = useUserDetails();
   const { selection, setSelection } = useActionBarSelection();
   const queryClient = useQueryClient();
+  const userId = userDetails?.user?.id ?? initialUserId;
 
   // Initialize selection from server props if not already set
   useEffect(() => {
@@ -126,7 +129,6 @@ export default function DiscoverClient({
 
   // Resolve account: use selection when set, else initial from server (so query can run before action bar hydrates)
   const activeAccount = selection.activeAccount ?? initialActiveAccount;
-  const userId = initialUserId;
 
   // Initial server data is only valid for the same mode + account + date range; otherwise we must refetch
   const isInitialContext =

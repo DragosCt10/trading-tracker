@@ -9,6 +9,7 @@ import { format, endOfMonth, startOfMonth, startOfYear, endOfYear, subDays } fro
 import { DateRange } from 'react-date-range';
 import AppLayout from '@/components/shared/layout/AppLayout';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
+import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQueryClient } from '@tanstack/react-query';
 import { getFilteredTrades } from '@/lib/server/trades';
 import type { Database } from '@/types/supabase';
@@ -79,8 +80,9 @@ export default function TradesClient({
   });
 
   const queryClient = useQueryClient();
+  const { data: userDetails } = useUserDetails();
   const { selection, setSelection } = useActionBarSelection();
-  const userId = initialUserId;
+  const userId = userDetails?.user?.id ?? initialUserId;
   const activeAccount = selection.activeAccount ?? initialActiveAccount;
 
   // Sync selection from server when action bar has not hydrated yet
@@ -712,8 +714,9 @@ export default function TradesClient({
             )}
           </div>
 
-          {/* Trades Table Card */}
-          <Card className="relative overflow-hidden border border-slate-300 dark:border-slate-700 bg-transparent">
+          {/* Trades Table Card - same bg as AccountOverviewCard */}
+          <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm transition-all duration-500">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-violet-500/5 dark:from-purple-500/10 dark:to-violet-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" aria-hidden />
             <div className="relative overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200/30 dark:divide-slate-700/30">
                 <thead className="bg-transparent border-b border-slate-300 dark:border-slate-700">

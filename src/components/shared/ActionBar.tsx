@@ -5,10 +5,11 @@ import clsx from 'clsx';
 import { useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/utils/supabase/client';
 import { useAccounts } from '@/hooks/useAccounts';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { Check } from 'lucide-react';
+import type { Database } from '@/types/supabase';
 
 // shadcn/ui
 import { Badge } from '@/components/ui/badge';
@@ -24,10 +25,43 @@ import {
 import { EditAccountAlertDialog } from '../EditAccountAlertDialog';
 
 type Mode = 'live' | 'backtesting' | 'demo';
+type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
-export default function ActionBar() {
+/** Optional server-fetched initial data. When provided, hydrates TanStack cache so hooks use it without client fetch. */
+export interface ActionBarInitialData {
+  userDetails: { user: { id: string }; session: unknown } | null;
+  mode: Mode;
+  activeAccount: AccountRow | null;
+  accountsForMode: AccountRow[];
+}
+
+interface ActionBarProps {
+  /**
+   * Server-fetched initial data. When provided, hydrates React Query cache in useLayoutEffect
+   * so useUserDetails, useActionBarSelection, and useAccounts use it (no client fetch for first paint).
+   * Build with: getUserSession(), getActiveAccountForMode(user.id, 'live'), getAccountsForMode(user.id, 'live').
+   */
+  initialData?: ActionBarInitialData | null;
+}
+
+export default function ActionBar({ initialData }: ActionBarProps) {
   const queryClient = useQueryClient();
   const supabase = createClient();
+  const hydratedRef = useRef(false);
+
+  // Hydrate TanStack cache from server-fetched initial data (before paint so first render can use it)
+  useLayoutEffect(() => {
+    if (!initialData || hydratedRef.current) return;
+    const { userDetails, mode, activeAccount, accountsForMode } = initialData;
+    const userId = userDetails?.user?.id;
+    if (userId) {
+      queryClient.setQueryData(['userDetails'], userDetails);
+      queryClient.setQueryData(['actionBar:selection'], { mode, activeAccount });
+      queryClient.setQueryData(['accounts:list', userId, mode], accountsForMode);
+      hydratedRef.current = true;
+    }
+  }, [initialData, queryClient]);
+
   const { data: userId } = useUserDetails();
   const { selection, setSelection } = useActionBarSelection();
 
