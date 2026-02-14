@@ -1,20 +1,15 @@
 import { Suspense } from 'react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { getUserSession, getFilteredTrades } from '@/lib/server/trades';
+import { getFilteredTrades } from '@/lib/server/trades';
 import { getActiveAccountForMode } from '@/lib/server/accounts';
 import TradesClient from './TradesClient';
 import { Trade } from '@/types/trade';
 import { TradesSkeleton } from './TradesSkeleton';
+import type { User } from '@supabase/supabase-js';
 
 const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 
-async function TradesDataFetcher() {
-  const { user } = await getUserSession();
-
-  if (!user) {
-    return null;
-  }
-
+async function TradesDataFetcher({ user }: { user: User }) {
   const today = new Date();
   const initialDateRange = {
     startDate: fmt(startOfMonth(today)),
@@ -60,10 +55,14 @@ async function TradesDataFetcher() {
   );
 }
 
-export default function TradesData() {
+interface TradesDataProps {
+  user: User;
+}
+
+export default function TradesData({ user }: TradesDataProps) {
   return (
     <Suspense fallback={<TradesSkeleton />}>
-      <TradesDataFetcher />
+      <TradesDataFetcher user={user} />
     </Suspense>
   );
 }
