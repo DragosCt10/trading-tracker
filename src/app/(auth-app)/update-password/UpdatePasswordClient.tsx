@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLoading } from '@/context/LoadingContext';
 import { useTheme } from '@/hooks/useTheme';
+import { updatePasswordAction } from '@/lib/server/auth';
 
 // shadcn/ui imports
 import { Button } from '@/components/ui/button';
@@ -29,22 +29,23 @@ export default function UpdatePasswordClient() {
     setError('');
     setMessage('');
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({
-      password: password,
-    });
+    try {
+      const formData = new FormData();
+      formData.set('password', password);
+      const result = await updatePasswordAction(null, formData);
 
-    if (error) {
-      setError(error.message);
-    } else {
-      setMessage('Password updated successfully. Redirecting to login...');
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setMessage('Password updated successfully. Redirecting to login...');
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
+      }
+    } finally {
+      setIsLoading(false);
+      setGlobalLoading(false);
     }
-
-    setIsLoading(false);
-    setGlobalLoading(false);
   };
 
   return (
