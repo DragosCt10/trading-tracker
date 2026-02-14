@@ -924,21 +924,21 @@ export default function AnalyticsClient(
   
 
   const profitColor =
-    stats.totalProfit >= 0 ? 'text-emerald-500' : 'text-red-500';
+    stats.totalProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
   const avgProfitColor =
-    stats.averageProfit >= 0 ? 'text-emerald-500' : 'text-red-500';
+    stats.averageProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
   const pnlColor =
     stats.averagePnLPercentage > 0
-      ? 'text-emerald-500'
+      ? 'text-emerald-600 dark:text-emerald-400'
       : stats.averagePnLPercentage < 0
-      ? 'text-red-500'
-      : 'text-slate-800';
+      ? 'text-rose-600 dark:text-rose-400'
+      : 'text-slate-900 dark:text-slate-100';
   const streakColor =
     stats.currentStreak > 0
-      ? 'text-emerald-500'
+      ? 'text-emerald-600 dark:text-emerald-400'
       : stats.currentStreak < 0
-      ? 'text-red-500'
-      : 'text-slate-800';
+      ? 'text-rose-600 dark:text-rose-400'
+      : 'text-slate-900 dark:text-slate-100';
 
   const markets = Array.from(new Set(allTrades.map((t) => t.market)));
 
@@ -1138,12 +1138,12 @@ export default function AnalyticsClient(
           value={
             <p
               className={cn(
-                'text-2xl font-semibold',
+                'text-2xl font-bold',
                 macroStats.profitFactor > 1.5
-                  ? 'text-emerald-500'
+                  ? 'text-emerald-600 dark:text-emerald-400'
                   : macroStats.profitFactor < 1.49
-                  ? 'text-red-500'
-                  : 'text-slate-800'
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-slate-900 dark:text-slate-100'
               )}
             >
               {macroStats.profitFactor.toFixed(2)}
@@ -1227,12 +1227,12 @@ export default function AnalyticsClient(
           value={
             <p
               className={cn(
-                'text-2xl font-semibold',
+                'text-2xl font-bold',
                 macroStats.consistencyScore > 60
-                  ? 'text-emerald-500'
+                  ? 'text-emerald-600 dark:text-emerald-400'
                   : macroStats.consistencyScore < 59
-                  ? 'text-red-500'
-                  : 'text-slate-800'
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-slate-900 dark:text-slate-100'
               )}
             >
               {macroStats.consistencyScore.toFixed(2)}{' '}
@@ -1259,7 +1259,7 @@ export default function AnalyticsClient(
             </div>
           }
           value={
-            <p className="text-2xl font-semibold text-slate-800">
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {monthlyStats.monthlyData
                 ? (() => {
                     const totalTrades = Object.values(monthlyStats.monthlyData).reduce(
@@ -1298,7 +1298,7 @@ export default function AnalyticsClient(
             </div>
           }
           value={
-            <p className={cn('text-2xl font-semibold', !hydrated ? 'text-slate-800' : monthlyStats.monthlyData && Object.keys(monthlyStats.monthlyData).length > 0 ? (Object.values(monthlyStats.monthlyData).reduce((sum, month) => sum + month.profit, 0) / Object.keys(monthlyStats.monthlyData).length > 0 ? 'text-emerald-500' : 'text-red-500') : 'text-slate-800')}>
+            <p className={cn('text-2xl font-bold', !hydrated ? 'text-slate-900 dark:text-slate-100' : monthlyStats.monthlyData && Object.keys(monthlyStats.monthlyData).length > 0 ? (Object.values(monthlyStats.monthlyData).reduce((sum, month) => sum + month.profit, 0) / Object.keys(monthlyStats.monthlyData).length > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400') : 'text-slate-900 dark:text-slate-100')}>
               {!hydrated
                 ? '\u2014'
                 : monthlyStats.monthlyData && Object.keys(monthlyStats.monthlyData).length > 0
@@ -1388,12 +1388,12 @@ export default function AnalyticsClient(
           value={
             <p
               className={cn(
-                'text-2xl font-semibold',
+                'text-2xl font-bold',
                 macroStats.sharpeWithBE > 0.5
-                  ? 'text-emerald-500'
+                  ? 'text-emerald-600 dark:text-emerald-400'
                   : macroStats.sharpeWithBE < 0.49
-                  ? 'text-red-500'
-                  : 'text-slate-800'
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-slate-900 dark:text-slate-100'
               )}
             >
               {macroStats.sharpeWithBE.toFixed(2)}{' '}
@@ -1418,7 +1418,7 @@ export default function AnalyticsClient(
             </div>
           }
           value={
-            <p className="text-2xl font-medium text-slate-800">
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {typeof props?.initialNonExecutedTotalTradesCount === 'number'
                 ? props.initialNonExecutedTotalTradesCount
                 : typeof nonExecutedTotalTradesCount === 'number'
@@ -1444,7 +1444,7 @@ export default function AnalyticsClient(
             </div>
           }
           value={
-            <p className="text-2xl font-medium text-slate-800">
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {typeof yearlyPartialTradesCount === 'number'
                 ? yearlyPartialTradesCount
                 : 0}
@@ -1535,14 +1535,14 @@ export default function AnalyticsClient(
           value={
             <p
               className={cn(
-                'text-2xl font-medium',
+                'text-2xl font-bold',
                 typeof macroStats.tradeQualityIndex === 'number'
                   ? macroStats.tradeQualityIndex > 0.30
-                    ? 'text-emerald-500'
+                    ? 'text-emerald-600 dark:text-emerald-400'
                     : macroStats.tradeQualityIndex < 0.29
-                    ? 'text-red-500'
-                    : 'text-slate-800'
-                  : 'text-slate-800'
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : 'text-slate-900 dark:text-slate-100'
+                  : 'text-slate-900 dark:text-slate-100'
               )}
             >
               {typeof macroStats.tradeQualityIndex === 'number'
@@ -1557,7 +1557,7 @@ export default function AnalyticsClient(
           value={
             <p
               className={cn(
-                'text-2xl font-medium text-slate-800'
+                'text-2xl font-bold text-slate-900 dark:text-slate-100'
               )}
             >
               {typeof macroStats.multipleR === 'number'
@@ -1663,7 +1663,7 @@ export default function AnalyticsClient(
         <StatCard
           title="Total Trades"
           value={
-            <p className="text-2xl font-medium text-slate-800">
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {stats.totalTrades}
             </p>
           }
@@ -1673,7 +1673,7 @@ export default function AnalyticsClient(
         <StatCard
           title="Win Rate"
           value={
-            <p className="text-2xl font-medium text-slate-800">
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {stats.winRate.toFixed(2)}%
               <span className="text-slate-500 text-sm ml-1">
                 ({stats.winRateWithBE.toFixed(2)}% w/ BE)
@@ -1686,7 +1686,7 @@ export default function AnalyticsClient(
         <StatCard
           title="Total Profit"
           value={
-            <p className={hydrated ? `text-2xl font-medium ${profitColor}` : 'text-2xl font-medium text-slate-800'}>
+            <p className={hydrated ? `text-2xl font-bold ${profitColor}` : 'text-2xl font-bold text-slate-900 dark:text-slate-100'}>
               {hydrated ? `${currencySymbol}${stats.totalProfit.toFixed(2)}` : '\u2014'}
             </p>
           }
@@ -1696,7 +1696,7 @@ export default function AnalyticsClient(
         <StatCard
           title="Average Profit"
           value={
-            <p className={hydrated ? `text-2xl font-medium ${avgProfitColor}` : 'text-2xl font-medium text-slate-800'}>
+            <p className={hydrated ? `text-2xl font-bold ${avgProfitColor}` : 'text-2xl font-bold text-slate-900 dark:text-slate-100'}>
               {hydrated ? `${currencySymbol}${stats.averageProfit.toFixed(2)}` : '\u2014'}
             </p>
           }
@@ -1706,7 +1706,7 @@ export default function AnalyticsClient(
         <StatCard
           title="Total Wins"
           value={
-            <p className="text-2xl font-medium text-emerald-500">
+            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
               {stats.totalWins}
               {stats.beWins > 0 && (
                 <span className="text-sm font-medium text-slate-500 ml-1">
@@ -1721,7 +1721,7 @@ export default function AnalyticsClient(
         <StatCard
           title="Total Losses"
           value={
-            <p className="text-2xl font-medium text-red-500">
+            <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">
               {stats.totalLosses}
               {stats.beLosses > 0 && (
                 <span className="text-sm font-medium text-slate-500 ml-1">
@@ -1794,7 +1794,7 @@ export default function AnalyticsClient(
             </div>
           }
           value={
-            <p className="text-2xl font-medium text-slate-800">
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {stats.maxDrawdown.toFixed(2)}%
             </p>
           }
@@ -1809,7 +1809,7 @@ export default function AnalyticsClient(
             </p>
           }
           value={
-            <p className={`text-2xl font-medium ${pnlColor}`}>
+            <p className={`text-2xl font-bold ${pnlColor}`}>
               {stats.averagePnLPercentage.toFixed(2)}%
             </p>
           }
@@ -1824,7 +1824,7 @@ export default function AnalyticsClient(
             </p>
           }
           value={
-            <p className={`text-2xl font-medium ${streakColor}`}>
+            <p className={`text-2xl font-bold ${streakColor}`}>
               {stats.currentStreak > 0 ? '+' : ''}
               {stats.currentStreak}
             </p>
@@ -1843,13 +1843,13 @@ export default function AnalyticsClient(
             <div className="flex gap-6 text-center">
               <div>
                 <p className="text-xs text-slate-500">Winning</p>
-                <p className="text-xl font-medium text-emerald-500">
+                <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
                   +{stats.maxWinningStreak}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-slate-500">Losing</p>
-                <p className="text-xl font-medium text-red-500">
+                <p className="text-xl font-bold text-rose-600 dark:text-rose-400">
                   -{stats.maxLosingStreak}
                 </p>
               </div>
@@ -1866,7 +1866,7 @@ export default function AnalyticsClient(
             </p>
           }
           value={
-            <p className="text-2xl font-medium text-slate-800">
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {stats.averageDaysBetweenTrades} <small className="text-sm text-slate-500">days</small>
             </p>
           }
@@ -1892,7 +1892,7 @@ export default function AnalyticsClient(
             <div className="flex gap-6 text-center">
               <div>
                 <p className="text-xs text-slate-500">Winning</p>
-                <p className="text-xl font-medium text-emerald-500">
+                <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
                   {stats.partialWinningTrades}{' '}
                   <span className="text-slate-500 text-sm">
                     ({stats.beWinPartialTrades} BE)
@@ -1901,7 +1901,7 @@ export default function AnalyticsClient(
               </div>
               <div>
                 <p className="text-xs text-slate-500">Losing</p>
-                <p className="text-xl font-medium text-red-500">
+                <p className="text-xl font-bold text-rose-600 dark:text-rose-400">
                   {stats.partialLosingTrades}{' '}
                   <span className="text-slate-500 text-sm">
                     ({stats.beLosingPartialTrades} BE)
@@ -1989,14 +1989,14 @@ export default function AnalyticsClient(
           value={
             <p
               className={cn(
-                'text-2xl font-medium',
+                'text-2xl font-bold',
                 typeof stats.tradeQualityIndex === 'number'
                   ? stats.tradeQualityIndex > 0.30
-                    ? 'text-emerald-500'
+                    ? 'text-emerald-600 dark:text-emerald-400'
                     : stats.tradeQualityIndex < 0.29
-                    ? 'text-red-500'
-                    : 'text-slate-800'
-                  : 'text-slate-800'
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : 'text-slate-900 dark:text-slate-100'
+                  : 'text-slate-900 dark:text-slate-100'
               )}
             >
               {typeof stats.tradeQualityIndex === 'number'
@@ -2009,7 +2009,7 @@ export default function AnalyticsClient(
         <StatCard
           title="RR Multiple"
           value={
-            <p className="text-2xl font-medium text-slate-800">
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {typeof stats.multipleR === 'number'
                 ? stats.multipleR.toFixed(2)
                 : '—'}
