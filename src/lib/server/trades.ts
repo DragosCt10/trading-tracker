@@ -1,5 +1,6 @@
 'use server';
 
+import { cache } from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { Trade } from '@/types/trade';
 
@@ -162,10 +163,13 @@ export async function getUserSession() {
   const supabase = await createClient();
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  
+
   if (userError || sessionError) {
     return { user: null, session: null };
   }
-  
+
   return { user, session };
 }
+
+/** Cached per request; use in layout + pages so data components can receive user without a second read */
+export const getCachedUserSession = cache(getUserSession);
