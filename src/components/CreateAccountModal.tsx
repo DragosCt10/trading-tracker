@@ -3,9 +3,9 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/utils/supabase/client';
+import { createAccount } from '@/lib/server/accounts';
 import { useUserDetails } from '@/hooks/useUserDetails';
-import { UserPlus } from 'lucide-react';
+import { AlertCircle, Loader2, UserPlus } from 'lucide-react';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -49,25 +49,7 @@ interface CreateAccountAlertDialogProps {
   onCreated?: (created: AccountSettings) => void;
 }
 
-// toast
-function SuccessAlert({ message, onClose }: { message: string; onClose: () => void }) {
-  React.useEffect(() => {
-    const timer = setTimeout(onClose, 2500);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 shadow-none flex items-center gap-2">
-      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
-      <span className="text-purple-800 font-normal">{message}</span>
-    </div>
-  );
-}
-
 export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialogProps) {
-  const supabase = createClient();
   const queryClient = useQueryClient();
   const { data: userId } = useUserDetails();
 
@@ -75,7 +57,11 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
   const [mounted, setMounted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [progressDialog, setProgressDialog] = useState<{
+    open: boolean;
+    status: 'loading' | 'success' | 'error';
+    message: string;
+  }>({ open: false, status: 'loading', message: '' });
 
   const [name, setName] = useState('');
   const [balance, setBalance] = useState('');
@@ -125,38 +111,60 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
     }
 
     setSubmitting(true);
+    setProgressDialog({ open: true, status: 'loading', message: 'Please wait while we save your account...' });
+
     try {
-      const { data, error: insertError } = await supabase
-        .from('account_settings')
-        .insert({
-          user_id: userId.user.id,
-          name,
-          account_balance: parsedBalance,
-          currency,
-          mode,
-          description: description || null,
-          is_active: false,
-        } as never)
-        .select('*')
-        .single(); // get created row
+      const { data, error: insertError } = await createAccount({
+        name: name.trim(),
+        account_balance: parsedBalance,
+        currency,
+        mode,
+        description: description.trim() || null,
+      });
 
       if (insertError) {
-        setError(insertError.message ?? 'Failed to create account.');
+        setProgressDialog({
+          open: true,
+          status: 'error',
+          message: insertError.message ?? 'Failed to create account. Please try again.',
+        });
+        setSubmitting(false);
+        return;
+      }
+
+      if (!data) {
+        setProgressDialog({
+          open: true,
+          status: 'error',
+          message: 'Failed to create account. Please try again.',
+        });
+        setSubmitting(false);
         return;
       }
 
       const createdAccount = data as AccountSettings;
 
-      // let parent know
+      setProgressDialog({
+        open: true,
+        status: 'success',
+        message: 'Account created successfully. You can now select it in the action bar.',
+      });
+
       onCreated?.(createdAccount);
-
-      // fallback: mark anything related stale
       await queryClient.invalidateQueries();
-
       resetForm();
       setOpen(false);
-      setSuccess('Account created successfully!');
-    } finally {
+
+      setTimeout(() => {
+        setProgressDialog({ open: false, status: 'loading', message: '' });
+        setSubmitting(false);
+      }, 5000);
+    } catch {
+      setProgressDialog({
+        open: true,
+        status: 'error',
+        message: 'Failed to create account. Please check your data and try again.',
+      });
       setSubmitting(false);
     }
   };
@@ -165,8 +173,6 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
 
   return (
     <>
-      {success && <SuccessAlert message={success} onClose={() => setSuccess(null)} />}
-
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogTrigger asChild>
           <Button
@@ -372,6 +378,69 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
               </AlertDialogFooter>
             </form>
           </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Progress Dialog - same pattern as NewTradeModal */}
+      <AlertDialog
+        open={progressDialog.open}
+        onOpenChange={() => {
+          if (progressDialog.status !== 'loading') {
+            setProgressDialog({ open: false, status: 'loading', message: '' });
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {progressDialog.status === 'loading' && (
+                <span className="text-purple-600 dark:text-purple-400 font-semibold text-lg flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Creating Account
+                </span>
+              )}
+              {progressDialog.status === 'success' && (
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-lg flex items-center gap-2">
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  Account Created Successfully
+                </span>
+              )}
+              {progressDialog.status === 'error' && (
+                <span className="text-red-500 dark:text-red-400 font-semibold text-lg flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5" />
+                  Error Creating Account
+                </span>
+              )}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="text-slate-600 dark:text-slate-400">
+                {progressDialog.message}
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {progressDialog.status === 'error' && (
+            <AlertDialogFooter className="flex gap-3">
+              <Button
+                onClick={() => setProgressDialog({ open: false, status: 'loading', message: '' })}
+                className="cursor-pointer rounded-xl border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
+              >
+                Close
+              </Button>
+            </AlertDialogFooter>
+          )}
         </AlertDialogContent>
       </AlertDialog>
     </>
