@@ -100,3 +100,74 @@ export async function createAccount(params: {
   }
   return { data: data as AccountRow, error: null };
 }
+
+/**
+ * Updates an account. Only the owner (from session) can update.
+ */
+export async function updateAccount(
+  accountId: string,
+  params: {
+    name: string;
+    account_balance: number;
+    currency: string;
+    mode: AccountMode;
+    description: string | null;
+  }
+): Promise<{ data: AccountRow | null; error: { message: string } | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { data: null, error: { message: 'Unauthorized' } };
+  }
+
+  const { data, error } = await supabase
+    .from('account_settings')
+    .update({
+      name: params.name,
+      account_balance: params.account_balance,
+      currency: params.currency,
+      mode: params.mode,
+      description: params.description,
+    })
+    .eq('id', accountId)
+    .eq('user_id', user.id)
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error('Error updating account:', error);
+    return { data: null, error: { message: error.message ?? 'Failed to update account' } };
+  }
+  return { data: data as AccountRow, error: null };
+}
+
+/**
+ * Deletes an account. Only the owner (from session) can delete.
+ */
+export async function deleteAccount(
+  accountId: string
+): Promise<{ error: { message: string } | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { error: { message: 'Unauthorized' } };
+  }
+
+  const { error } = await supabase
+    .from('account_settings')
+    .delete()
+    .eq('id', accountId)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('Error deleting account:', error);
+    return { error: { message: error.message ?? 'Failed to delete account' } };
+  }
+  return { error: null };
+}
