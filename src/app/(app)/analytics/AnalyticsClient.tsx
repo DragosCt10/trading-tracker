@@ -1078,7 +1078,7 @@ export default function AnalyticsClient(
         )}
       </div>
 
-      <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-100 mt-10 mb-4">Key Metrics</h2>
+      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-8 mb-2">Key Metrics</h2>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Profit factor, consistency, Sharpe ratio, and other yearly performance indicators.</p>
 
       <div className="flex flex-col md:grid md:grid-cols-3 gap-4 pb-8 w-full">
