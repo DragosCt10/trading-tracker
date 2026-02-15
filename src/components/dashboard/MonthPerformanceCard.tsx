@@ -43,7 +43,7 @@ export const MonthPerformanceCard: React.FC<MonthPerformanceCardProps> = ({
         <div className="flex flex-row items-start justify-between gap-4 w-full">
           {/* Left: title, then month + year under */}
           <div className="flex flex-col gap-1 min-w-0">
-            <CardTitle className="text-sm font-semibold tracking-wide text-slate-500 dark:text-slate-400">
+            <CardTitle className="text-sm font-semibold tracking-wide text-slate-400 dark:text-slate-400">
               {title}
             </CardTitle>
             <p className="text-xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
