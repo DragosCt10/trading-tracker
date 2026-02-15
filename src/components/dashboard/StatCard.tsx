@@ -33,7 +33,7 @@ export const StatCard: React.FC<StatCardProps> = ({
           /* Centered: title, value stacked */
           <div className="flex flex-col items-center justify-center text-center gap-3 w-full">
             <div className="flex items-center justify-center gap-1.5">
-              <CardTitle className="text-sm font-semibold tracking-wide text-slate-500 dark:text-slate-400">
+              <CardTitle className="text-sm font-semibold tracking-wide text-slate-400 dark:text-slate-400">
                 {title}
               </CardTitle>
               {tooltipContent && (
@@ -68,7 +68,7 @@ export const StatCard: React.FC<StatCardProps> = ({
           <div className="flex flex-row items-start justify-between gap-4 w-full">
             <div className="flex flex-col gap-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-400">
                   {title}
                 </CardTitle>
                   {tooltipContent && (
