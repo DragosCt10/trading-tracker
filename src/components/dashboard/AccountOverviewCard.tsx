@@ -73,7 +73,7 @@ export function AccountOverviewCard({
                 {displayName}
               </CardTitle>
             </div>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 ml-[52px]">Current Balance</p>
+            <p className="text-sm font-medium text-slate-400 dark:text-slate-400 ml-[52px]">Current Balance</p>
           </div>
 
           <div className="text-right space-y-2">
