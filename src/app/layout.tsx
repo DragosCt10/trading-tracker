@@ -21,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} bg-[#faf5fc] dark:bg-[#0f0a14] bg-gradient-to-br bg-purple-50 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] min-h-screen relative overflow-hidden`}>
+      <body className={`${inter.className} bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] min-h-screen relative`}>
         {/* Same gradient orbs as CreateAccountModal */}
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden>
           <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-500/8 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
