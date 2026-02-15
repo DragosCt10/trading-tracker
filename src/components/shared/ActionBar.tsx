@@ -218,7 +218,7 @@ export default function ActionBar({ initialData }: ActionBarProps) {
             value={pendingMode}
             onValueChange={(val: Mode) => setPendingMode(val)}
           >
-            <SelectTrigger className="h-8 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[130px] w-full sm:w-[130px] md:w-[160px] focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200">
+            <SelectTrigger className="h-8 rounded-xl bg-transparent border border-slate-200/70 dark:border-slate-700/70 text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[130px] w-full sm:w-[130px] md:w-[160px] focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200">
               <SelectValue placeholder="Select mode" />
             </SelectTrigger>
             <SelectContent className="text-xs sm:text-sm min-w-[140px] md:min-w-[160px] border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
@@ -238,7 +238,7 @@ export default function ActionBar({ initialData }: ActionBarProps) {
         <div className="flex-1 sm:flex-initial">
           {!selectMounted ? (
             <div
-              className="h-8 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px] flex items-center px-3"
+              className="h-8 rounded-xl bg-transparent border border-slate-200/70 dark:border-slate-700/70 text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px] flex items-center px-3"
               aria-hidden
             >
               Choose subaccount…
@@ -249,7 +249,7 @@ export default function ActionBar({ initialData }: ActionBarProps) {
               onValueChange={(val) => setPendingAccountId(val ?? null)}
               disabled={accountsLoading || noAccounts}
             >
-              <SelectTrigger className="h-8 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/70 backdrop-blur-sm text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px] focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200">
+              <SelectTrigger className="h-8 rounded-xl bg-transparent border border-slate-200/70 dark:border-slate-700/70 text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px] focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200">
                 <SelectValue placeholder="Choose subaccount…" />
               </SelectTrigger>
               <SelectContent className="text-xs sm:text-sm min-w-[170px] md:min-w-[200px] border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
