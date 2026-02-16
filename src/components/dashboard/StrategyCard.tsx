@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip as ReTooltip } from 'recharts';
-import { Trash2} from 'lucide-react';
+import { Trash2, Pencil, ChartBar } from 'lucide-react';
 import { Strategy } from '@/types/strategy';
 import { Trade } from '@/types/trade';
 import { calculateWinRates } from '@/utils/calculateWinRates';
@@ -243,55 +243,98 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 mt-auto pt-4 border-t border-slate-200/60 dark:border-slate-700/50">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit(strategy)}
-            className="text-xs h-8 px-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-          >
-            Edit
-          </Button>
+        <div className="flex items-center justify-between gap-2 mt-auto pt-4 border-t border-slate-200/60 dark:border-slate-700/50">
           <Button
             variant="outline"
             size="sm"
-            onClick={handleAnalytics}
-            className="text-xs h-8 px-3 flex-1 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+            onClick={() => onEdit(strategy)}
+            className="cursor-pointer relative w-full sm:w-auto h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 text-xs font-medium transition-colors duration-200 gap-2"
           >
-            Analytics
+            <Pencil className="h-4 w-4" />
+            <span>Edit</span>
           </Button>
-          {!isDefault && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAnalytics}
+              className="cursor-pointer relative w-full sm:w-auto h-8 overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 group border-0 text-xs"
+            >
+              <span className="relative z-10 flex items-center justify-center gap-2 group-hover:text-white">
+                <ChartBar className="h-4 w-4 group-hover:text-white" />
+                <span className="group-hover:text-white">Analytics</span>
+              </span>
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+            </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant="destructive"
                   size="sm"
                   disabled={isDeleting}
-                  className="text-xs h-8 w-8 p-0 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
+                  className="relative cursor-pointer p-2 px-4.5 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 h-8 w-8"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <span className="relative z-10 flex items-center justify-center">
+                    {isDeleting ? (
+                      <svg
+                        className="h-4 w-4 animate-spin"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </span>
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] rounded-2xl">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Strategy</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    <span className="text-red-500 dark:text-red-400 font-semibold text-lg">Confirm Delete</span>
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to delete "{strategy.name}"? This action cannot be undone.
-                    All trades associated with this strategy will have their strategy_id set to null.
+                    <span className="text-slate-600 dark:text-slate-400">Are you sure you want to delete "{strategy.name}"? This action cannot be undone.</span>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    className="bg-rose-600 hover:bg-rose-700 text-white"
-                  >
-                    {isDeleting ? 'Deleting...' : 'Delete'}
+                <AlertDialogFooter className="flex gap-3">
+                  <AlertDialogCancel asChild>
+                    <Button
+                      variant="outline"
+                      className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
+                    >
+                      Cancel
+                    </Button>
+                  </AlertDialogCancel>
+                  <AlertDialogAction asChild>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
+                    >
+                      {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+                    </Button>
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          )}
+          </div>
         </div>
       </div>
     </Card>
