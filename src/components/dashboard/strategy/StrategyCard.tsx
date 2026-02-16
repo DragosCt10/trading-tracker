@@ -152,7 +152,6 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
   }
 
   const hasTrades = stats.totalTrades > 0;
-  const isDefault = strategy.slug === 'trading-institutional';
 
   return (
     <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
@@ -266,8 +265,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
               </span>
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
             </Button>
-            {!isDefault && (
-              <AlertDialog>
+            <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="destructive"
@@ -309,9 +307,9 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
                     <AlertDialogTitle>
                       <span className="text-red-500 dark:text-red-400 font-semibold text-lg">Confirm Delete</span>
                     </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      <span className="text-slate-600 dark:text-slate-400">Are you sure you want to delete "{strategy.name}"? This action cannot be undone.</span>
-                    </AlertDialogDescription>
+                  <AlertDialogDescription>
+                    <span className="text-slate-600 dark:text-slate-400">Are you sure you want to delete "{strategy.name}"? This action cannot be undone. All trades associated with this strategy will keep their strategy reference for historical data integrity.</span>
+                  </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter className="flex gap-3">
                     <AlertDialogCancel asChild>
@@ -335,7 +333,6 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            )}
           </div>
         </div>
       </div>
