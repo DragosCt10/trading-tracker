@@ -15,10 +15,10 @@ export const AddStrategyCard: React.FC<AddStrategyCardProps> = ({ onClick }) => 
       className="relative overflow-hidden border-dashed border-2 border-slate-300 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm cursor-pointer hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-all duration-200"
     >
       <div className="relative p-6 flex flex-col items-center justify-center h-full min-h-[320px]">
-        <div className="w-16 h-16 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center mb-4">
-          <Plus className="w-8 h-8 text-slate-500 dark:text-slate-400" />
+        <div className="w-16 h-16 rounded-full bg-[#e1d8fa]/50 dark:bg-[#e1d8fa]/10 flex items-center justify-center mb-4">
+          <Plus className="w-8 h-8 text-[#883ee0] dark:text-[#a855f7]" />
         </div>
-        <p className="text-base font-semibold text-slate-600 dark:text-slate-300">
+        <p className="text-base font-medium text-slate-500 dark:text-slate-400 dark:text-slate-100">
           Create new strategy
         </p>
       </div>
