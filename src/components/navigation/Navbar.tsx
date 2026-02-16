@@ -149,48 +149,11 @@ export default function Navbar() {
                   variant="ghost"
                   asChild
                   size="sm"
-                  className={navButtonClass(isActive('/discover'))}
-                >
-                  <Link href="/discover">
-                    <Sparkles className="h-4 w-4" />
-                    <span>Discover</span>
-                  </Link>
-                </Button>
-              </li>
-              <li>
-                <Button
-                  variant="ghost"
-                  asChild
-                  size="sm"
                   className={navButtonClass(isActive('/notes'))}
                 >
                   <Link href="/notes">
                     <BookOpen className="h-4 w-4" />
                     <span>Notes</span>
-                  </Link>
-                </Button>
-              </li>
-              <li>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(navButtonClass(false), 'cursor-pointer')}
-                  onClick={() => setNewTradeModalOpen(true)}
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  <span>New Trade</span>
-                </Button>
-              </li>
-              <li>
-                <Button
-                  variant="ghost"
-                  asChild
-                  size="sm"
-                  className={navButtonClass(isActive('/trades'))}
-                >
-                  <Link href="/trades">
-                    <FileText className="h-4 w-4" />
-                    <span>My Trades</span>
                   </Link>
                 </Button>
               </li>
@@ -316,45 +279,11 @@ export default function Navbar() {
                 <Button
                   variant="ghost"
                   asChild
-                  className={cn('w-full justify-start', navButtonClass(isActive('/discover')))}
-                >
-                  <Link href="/discover" onClick={() => setMobileMenuOpen(false)}>
-                    <Sparkles className="h-4 w-4" />
-                    Discover
-                  </Link>
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  asChild
                   className={cn('w-full justify-start', navButtonClass(isActive('/notes')))}
                 >
                   <Link href="/notes" onClick={() => setMobileMenuOpen(false)}>
                     <BookOpen className="h-4 w-4" />
                     Notes
-                  </Link>
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  className={cn('w-full justify-start cursor-pointer', navButtonClass(false))}
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setNewTradeModalOpen(true);
-                  }}
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  New Trade
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  asChild
-                  className={cn('w-full justify-start', navButtonClass(isActive('/trades')))}
-                >
-                  <Link href="/trades" onClick={() => setMobileMenuOpen(false)}>
-                    <FileText className="h-4 w-4" />
-                    My Trades
                   </Link>
                 </Button>
 
@@ -454,9 +383,54 @@ export default function Navbar() {
         </div>
       </div>
       </nav>
+      
+      {/* ActionBar - Under Navbar */}
       <div className="fixed top-20 left-1/2 z-40 w-auto -translate-x-1/2 transform">
         <div className="inline-block mx-4 rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 pb-2 pt-2">
           <ActionBar />
+        </div>
+      </div>
+
+      {/* Floating Left Bar - Centered Middle */}
+      <div className="fixed left-4 top-1/2 -translate-y-1/2 z-40 hidden lg:block group">
+        <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden transition-all duration-300 w-20 hover:w-48">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5" />
+          <div className="relative flex flex-col gap-2 p-3">
+            <Button
+              variant="ghost"
+              asChild
+              size="sm"
+              className={cn(navButtonClass(isActive('/trades')), 'w-full h-auto min-h-[64px] !p-0')}
+            >
+              <Link href="/trades" className="block w-full h-full relative min-h-[40px]">
+                <FileText className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">My Trades</span>
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full h-auto min-h-[64px] cursor-pointer transition-all duration-300 relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 border-0 !p-0"
+              onClick={() => setNewTradeModalOpen(true)}
+            >
+              <div className="block w-full h-full relative min-h-[40px]">
+                <PlusCircle className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">New Trade</span>
+              </div>
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+            </Button>
+            <Button
+              variant="ghost"
+              asChild
+              size="sm"
+              className={cn(navButtonClass(isActive('/discover')), 'w-full h-auto min-h-[64px] !p-0')}
+            >
+              <Link href="/discover" className="block w-full h-full relative min-h-[40px]">
+                <Sparkles className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Discover</span>
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
