@@ -145,7 +145,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
 
   if (!mounted) {
     return (
-      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm">
         <div className="relative p-6 h-[320px]" aria-hidden />
       </Card>
     );
@@ -154,7 +154,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
   const hasTrades = stats.totalTrades > 0;
 
   return (
-    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm">
       <div className="relative p-6 flex flex-col h-full">
         {/* Strategy Name */}
         <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4">
