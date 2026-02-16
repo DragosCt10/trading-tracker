@@ -9,11 +9,16 @@ export type NoteRow = Database['public']['Tables']['notes']['Row'];
 /**
  * Maps Supabase note data to Note type
  */
-function mapSupabaseNoteToNote(note: NoteRow, strategy?: { id: string; name: string; slug: string } | null): Note {
+function mapSupabaseNoteToNote(
+  note: NoteRow, 
+  strategy?: { id: string; name: string; slug: string } | null,
+  strategies?: Array<{ id: string; name: string; slug: string }>
+): Note {
   return {
     id: note.id,
     user_id: note.user_id,
     strategy_id: note.strategy_id,
+    strategy_ids: (note as any).strategy_ids || undefined,
     title: note.title,
     content: note.content,
     created_at: note.created_at,
@@ -21,6 +26,7 @@ function mapSupabaseNoteToNote(note: NoteRow, strategy?: { id: string; name: str
     is_pinned: note.is_pinned ?? false,
     tags: note.tags ?? [],
     strategy: strategy || undefined,
+    strategies: strategies || undefined,
   };
 }
 
@@ -71,13 +77,46 @@ export async function getNotes(
       return [];
     }
 
+    // Fetch strategies for all notes that have strategy_ids
+    const allStrategyIds = new Set<string>();
+    (data || []).forEach((note: any) => {
+      if (note.strategy_ids && Array.isArray(note.strategy_ids)) {
+        note.strategy_ids.forEach((id: string) => allStrategyIds.add(id));
+      }
+    });
+
+    let strategiesMap = new Map<string, { id: string; name: string; slug: string }>();
+    if (allStrategyIds.size > 0) {
+      const { data: strategiesData } = await supabase
+        .from('strategies')
+        .select('id, name, slug')
+        .in('id', Array.from(allStrategyIds))
+        .eq('user_id', userId);
+
+      if (strategiesData) {
+        strategiesData.forEach((s) => {
+          strategiesMap.set(s.id, { id: s.id, name: s.name, slug: s.slug });
+        });
+      }
+    }
+
     return (data || []).map((note: any) => {
       const strategy = note.strategy ? {
         id: note.strategy.id,
         name: note.strategy.name,
         slug: note.strategy.slug,
       } : null;
-      return mapSupabaseNoteToNote(note, strategy);
+      
+      // Get strategies from strategy_ids array
+      const strategies = note.strategy_ids && Array.isArray(note.strategy_ids)
+        ? note.strategy_ids
+            .map((id: string) => strategiesMap.get(id))
+            .filter((s: { id: string; name: string; slug: string } | undefined): s is { id: string; name: string; slug: string } => {
+              return s !== undefined;
+            })
+        : undefined;
+
+      return mapSupabaseNoteToNote(note, strategy, strategies);
     });
   } catch (error) {
     console.error('Error in getNotes:', error);
@@ -123,7 +162,25 @@ export async function getNoteById(noteId: string, userId: string): Promise<Note 
       slug: data.strategy.slug,
     } : null;
 
-    return mapSupabaseNoteToNote(data, strategy);
+    // Fetch strategies from strategy_ids array if present
+    let strategies: Array<{ id: string; name: string; slug: string }> | undefined;
+    if (data.strategy_ids && Array.isArray(data.strategy_ids) && data.strategy_ids.length > 0) {
+      const { data: strategiesData } = await supabase
+        .from('strategies')
+        .select('id, name, slug')
+        .in('id', data.strategy_ids)
+        .eq('user_id', userId);
+
+      if (strategiesData) {
+        strategies = strategiesData.map((s: { id: string; name: string; slug: string }) => ({
+          id: s.id,
+          name: s.name,
+          slug: s.slug,
+        }));
+      }
+    }
+
+    return mapSupabaseNoteToNote(data, strategy, strategies);
   } catch (error) {
     console.error('Error in getNoteById:', error);
     return null;
@@ -162,11 +219,34 @@ export async function createNote(
     }
   }
 
+  // Validate strategy_ids belong to user if provided
+  if (note.strategy_ids && note.strategy_ids.length > 0) {
+    const { data: strategies, error: strategiesError } = await supabase
+      .from('strategies')
+      .select('id')
+      .in('id', note.strategy_ids)
+      .eq('user_id', userId);
+
+    if (strategiesError || !strategies || strategies.length !== note.strategy_ids.length) {
+      return { data: null, error: { message: 'One or more strategies not found or access denied' } };
+    }
+  }
+
+  // Use first strategy_id from strategy_ids array for backward compatibility, or use strategy_id
+  const finalStrategyId = (note.strategy_ids && note.strategy_ids.length > 0) 
+    ? note.strategy_ids[0] 
+    : (note.strategy_id || null);
+
+  const strategyIdsArray = note.strategy_ids && note.strategy_ids.length > 0 
+    ? note.strategy_ids 
+    : (note.strategy_id ? [note.strategy_id] : null);
+
   const { data, error } = await supabase
     .from('notes')
     .insert({
       user_id: userId,
-      strategy_id: note.strategy_id || null,
+      strategy_id: finalStrategyId,
+      strategy_ids: strategyIdsArray,
       title: note.title.trim(),
       content: note.content,
       is_pinned: note.is_pinned ?? false,
@@ -189,7 +269,25 @@ export async function createNote(
     slug: data.strategy.slug,
   } : null;
 
-  return { data: mapSupabaseNoteToNote(data, strategy), error: null };
+  // Fetch strategies from strategy_ids array if present
+  let strategies: Array<{ id: string; name: string; slug: string }> | undefined;
+  if (data.strategy_ids && Array.isArray(data.strategy_ids) && data.strategy_ids.length > 0) {
+    const { data: strategiesData } = await supabase
+      .from('strategies')
+      .select('id, name, slug')
+      .in('id', data.strategy_ids)
+      .eq('user_id', userId);
+
+    if (strategiesData) {
+      strategies = strategiesData.map((s: { id: string; name: string; slug: string }) => ({
+        id: s.id,
+        name: s.name,
+        slug: s.slug,
+      }));
+    }
+  }
+
+  return { data: mapSupabaseNoteToNote(data, strategy, strategies), error: null };
 }
 
 /**
@@ -237,10 +335,37 @@ export async function updateNote(
     }
   }
 
+  // Validate strategy_ids belong to user if provided
+  if (updates.strategy_ids !== undefined && updates.strategy_ids.length > 0) {
+    const { data: strategies, error: strategiesError } = await supabase
+      .from('strategies')
+      .select('id')
+      .in('id', updates.strategy_ids)
+      .eq('user_id', userId);
+
+    if (strategiesError || !strategies || strategies.length !== updates.strategy_ids.length) {
+      return { data: null, error: { message: 'One or more strategies not found or access denied' } };
+    }
+  }
+
   const updateData: any = {};
   if (updates.title !== undefined) updateData.title = updates.title.trim();
   if (updates.content !== undefined) updateData.content = updates.content;
-  if (updates.strategy_id !== undefined) updateData.strategy_id = updates.strategy_id || null;
+  
+  // Handle strategy_ids array
+  if (updates.strategy_ids !== undefined) {
+    updateData.strategy_ids = updates.strategy_ids.length > 0 ? updates.strategy_ids : null;
+    updateData.strategy_id = updates.strategy_ids.length > 0 ? updates.strategy_ids[0] : null;
+  } else if (updates.strategy_id !== undefined) {
+    updateData.strategy_id = updates.strategy_id || null;
+    // If strategy_id is set but strategy_ids is not, update strategy_ids to match
+    if (updates.strategy_id) {
+      updateData.strategy_ids = [updates.strategy_id];
+    } else {
+      updateData.strategy_ids = null;
+    }
+  }
+  
   if (updates.is_pinned !== undefined) updateData.is_pinned = updates.is_pinned;
   if (updates.tags !== undefined) updateData.tags = updates.tags;
 
@@ -266,7 +391,25 @@ export async function updateNote(
     slug: data.strategy.slug,
   } : null;
 
-  return { data: mapSupabaseNoteToNote(data, strategy), error: null };
+  // Fetch strategies from strategy_ids array if present
+  let strategies: Array<{ id: string; name: string; slug: string }> | undefined;
+  if (data.strategy_ids && Array.isArray(data.strategy_ids) && data.strategy_ids.length > 0) {
+    const { data: strategiesData } = await supabase
+      .from('strategies')
+      .select('id, name, slug')
+      .in('id', data.strategy_ids)
+      .eq('user_id', userId);
+
+    if (strategiesData) {
+      strategies = strategiesData.map((s: { id: string; name: string; slug: string }) => ({
+        id: s.id,
+        name: s.name,
+        slug: s.slug,
+      }));
+    }
+  }
+
+  return { data: mapSupabaseNoteToNote(data, strategy, strategies), error: null };
 }
 
 /**
