@@ -3,7 +3,7 @@
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
-import { TradeFiltersBar } from '@/components/dashboard/TradeFiltersBar';
+import { TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
 
 const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 
