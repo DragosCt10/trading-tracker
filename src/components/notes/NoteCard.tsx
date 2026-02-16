@@ -12,7 +12,7 @@ interface NoteCardProps {
 }
 
 export function NoteCard({ note, onClick }: NoteCardProps) {
-  // Strip markdown and get preview (first 100 chars)
+  // Strip markdown and get preview
   const getPreview = (content: string): string => {
     // Remove markdown syntax
     const plainText = content
@@ -24,7 +24,7 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
       .replace(/```[\s\S]*?```/g, '') // Code blocks
       .trim();
 
-    return plainText.length > 100 ? plainText.substring(0, 100) + '...' : plainText;
+    return plainText;
   };
 
   const preview = getPreview(note.content);
@@ -46,16 +46,38 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
         </div>
 
         {preview && (
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-3 flex-1">
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-3 flex-1 overflow-hidden text-ellipsis">
             {preview}
           </p>
         )}
 
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
-          {note.strategy && (
-            <Badge className="bg-purple-100 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 shadow-none text-xs">
-              {note.strategy.name}
-            </Badge>
+        <div className="space-y-2 mb-4">
+          {(note.strategy || (note.strategies && note.strategies.length > 0)) && (
+            <div className="flex items-start gap-2 flex-wrap">
+              {(() => {
+                const strategyCount = note.strategies?.length || (note.strategy ? 1 : 0);
+                const label = strategyCount === 1 ? 'Strategy:' : 'Strategies:';
+                return (
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 mt-0.5">{label}</span>
+                );
+              })()}
+              <div className="flex flex-wrap gap-1.5">
+                {note.strategies && note.strategies.length > 0 ? (
+                  note.strategies.map((strategy) => (
+                    <Badge
+                      key={strategy.id}
+                      className="bg-purple-100 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 shadow-none text-xs"
+                    >
+                      {strategy.name}
+                    </Badge>
+                  ))
+                ) : note.strategy ? (
+                  <Badge className="bg-purple-100 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 shadow-none text-xs">
+                    {note.strategy.name}
+                  </Badge>
+                ) : null}
+              </div>
+            </div>
           )}
           <span className="text-xs text-slate-500 dark:text-slate-500">
             {formattedDate}
@@ -67,7 +89,7 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
             e.stopPropagation();
             onClick();
           }}
-          className="inline-flex items-center text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium mt-auto"
+          className="inline-flex items-center text-sm text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 underline cursor-pointer mt-auto"
         >
           View Details
           <ArrowRight className="w-4 h-4 ml-1" />
