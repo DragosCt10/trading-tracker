@@ -22,13 +22,62 @@ function generateSlug(name: string): string {
 
 /**
  * CRITICAL: Ensures the default "Trading Institutional" strategy exists for a user.
- * Creates it if missing. This function is called before fetching strategies to guarantee
- * every user always has the default strategy.
+ * Creates it only if the user has no active strategies. This prevents duplicate
+ * default strategies when the original default strategy is renamed.
  */
-export async function ensureDefaultStrategy(userId: string): Promise<Strategy> {
+export async function ensureDefaultStrategy(userId: string): Promise<Strategy | null> {
   const supabase = await createClient();
 
-  // Check if default strategy exists (including inactive ones)
+  // First, check if user has any active strategies
+  const { data: activeStrategies, error: activeCheckError } = await supabase
+    .from('strategies')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .limit(1);
+
+  if (activeCheckError) {
+    console.error('Error checking for active strategies:', activeCheckError);
+  }
+
+  // If user already has active strategies, don't create a default one
+  // (they may have renamed the default strategy)
+  if (activeStrategies && activeStrategies.length > 0) {
+    // Check if default strategy exists (including inactive ones)
+    const { data: existing } = await supabase
+      .from('strategies')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('slug', 'trading-institutional')
+      .single();
+
+    if (existing) {
+      // If default strategy exists but is inactive, reactivate it
+      if (!existing.is_active) {
+        const { data: reactivated, error: reactivateError } = await supabase
+          .from('strategies')
+          .update({ is_active: true, updated_at: new Date().toISOString() })
+          .eq('id', existing.id)
+          .select()
+          .single();
+
+        if (reactivateError) {
+          console.error('Error reactivating default strategy:', reactivateError);
+          return existing as Strategy;
+        }
+
+        return reactivated as Strategy;
+      }
+
+      return existing as Strategy;
+    }
+
+    // User has strategies but default doesn't exist (was renamed) - return null
+    // Don't create a duplicate default strategy
+    return null;
+  }
+
+  // User has no active strategies - check if default strategy exists (including inactive)
   const { data: existing, error: checkError } = await supabase
     .from('strategies')
     .select('*')
@@ -62,7 +111,7 @@ export async function ensureDefaultStrategy(userId: string): Promise<Strategy> {
     return existing as Strategy;
   }
 
-  // Create default strategy if missing
+  // User has no strategies at all - create default strategy
   const { data: created, error: createError } = await supabase
     .from('strategies')
     .insert({
@@ -84,14 +133,14 @@ export async function ensureDefaultStrategy(userId: string): Promise<Strategy> {
 
 /**
  * Gets all active strategies for a user.
- * CRITICAL: This function ensures the default strategy exists before fetching.
- * Every user will always have at least the "Trading Institutional" strategy.
+ * Ensures the default strategy exists only if user has no active strategies.
  * Only returns strategies where is_active = true.
  */
 export async function getUserStrategies(userId: string): Promise<Strategy[]> {
   const supabase = await createClient();
 
-  // Ensure default strategy exists first
+  // Ensure default strategy exists only if user has no active strategies
+  // This prevents creating duplicate defaults when the original was renamed
   await ensureDefaultStrategy(userId);
 
   // Fetch only active strategies
