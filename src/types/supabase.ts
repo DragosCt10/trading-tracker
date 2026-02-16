@@ -225,6 +225,41 @@ export interface Database {
           is_active: boolean;
         }>;
       };
+
+      // ─────────────────────────────────────────────────────────────
+      // Notes table
+      notes: {
+        Row: {
+          id: string;
+          user_id: string;
+          strategy_id: string | null;
+          title: string;
+          content: string;
+          created_at: string;
+          updated_at: string;
+          is_pinned: boolean | null;
+          tags: string[] | null;
+        };
+        Insert: {
+          user_id: string;
+          strategy_id?: string | null;
+          title: string;
+          content: string;
+          is_pinned?: boolean | null;
+          tags?: string[] | null;
+        };
+        Update: Partial<{
+          id: string;
+          user_id: string;
+          strategy_id: string | null;
+          title: string;
+          content: string;
+          created_at: string;
+          updated_at: string;
+          is_pinned: boolean | null;
+          tags: string[] | null;
+        }>;
+      };
     };
     Views: {
       [_ in never]: never;

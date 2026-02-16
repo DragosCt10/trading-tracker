@@ -1,0 +1,75 @@
+'use client';
+
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ArrowRight, Pin } from 'lucide-react';
+import { Note } from '@/types/note';
+import { format } from 'date-fns';
+
+interface NoteCardProps {
+  note: Note;
+  onClick: () => void;
+}
+
+export function NoteCard({ note, onClick }: NoteCardProps) {
+  // Strip markdown and get preview (first 100 chars)
+  const getPreview = (content: string): string => {
+    // Remove markdown syntax
+    const plainText = content
+      .replace(/#{1,6}\s+/g, '') // Headers
+      .replace(/\*\*([^*]+)\*\*/g, '$1') // Bold
+      .replace(/\*([^*]+)\*/g, '$1') // Italic
+      .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // Links
+      .replace(/`([^`]+)`/g, '$1') // Inline code
+      .replace(/```[\s\S]*?```/g, '') // Code blocks
+      .trim();
+
+    return plainText.length > 100 ? plainText.substring(0, 100) + '...' : plainText;
+  };
+
+  const preview = getPreview(note.content);
+  const formattedDate = format(new Date(note.created_at), 'MMM d, yyyy');
+
+  return (
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={onClick}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between mb-3">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50 line-clamp-2 flex-1">
+            {note.title}
+          </h3>
+          {note.is_pinned && (
+            <Pin className="h-4 w-4 text-purple-500 dark:text-purple-400 flex-shrink-0 ml-2" />
+          )}
+        </div>
+
+        {preview && (
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 line-clamp-3">
+            {preview}
+          </p>
+        )}
+
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          {note.strategy && (
+            <Badge className="bg-purple-100 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 shadow-none text-xs">
+              {note.strategy.name}
+            </Badge>
+          )}
+          <span className="text-xs text-slate-500 dark:text-slate-500">
+            {formattedDate}
+          </span>
+        </div>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick();
+          }}
+          className="inline-flex items-center text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-50 underline cursor-pointer"
+        >
+          View Details
+          <ArrowRight className="w-4 h-4 ml-1" />
+        </button>
+      </CardContent>
+    </Card>
+  );
+}

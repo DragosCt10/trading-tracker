@@ -13,6 +13,7 @@ import {
   Sparkles,
   LogOut,
   Target,
+  BookOpen,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -95,6 +96,9 @@ export default function Navbar() {
     if (path === '/strategies') {
       return pathname.startsWith('/strategies');
     }
+    if (path === '/notes') {
+      return pathname.startsWith('/notes');
+    }
     return pathname === path;
   };
   const navButtonClass = (active: boolean) =>
@@ -150,6 +154,19 @@ export default function Navbar() {
                   <Link href="/discover">
                     <Sparkles className="h-4 w-4" />
                     <span>Discover</span>
+                  </Link>
+                </Button>
+              </li>
+              <li>
+                <Button
+                  variant="ghost"
+                  asChild
+                  size="sm"
+                  className={navButtonClass(isActive('/notes'))}
+                >
+                  <Link href="/notes">
+                    <BookOpen className="h-4 w-4" />
+                    <span>Notes</span>
                   </Link>
                 </Button>
               </li>
@@ -304,6 +321,17 @@ export default function Navbar() {
                   <Link href="/discover" onClick={() => setMobileMenuOpen(false)}>
                     <Sparkles className="h-4 w-4" />
                     Discover
+                  </Link>
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  asChild
+                  className={cn('w-full justify-start', navButtonClass(isActive('/notes')))}
+                >
+                  <Link href="/notes" onClick={() => setMobileMenuOpen(false)}>
+                    <BookOpen className="h-4 w-4" />
+                    Notes
                   </Link>
                 </Button>
 
