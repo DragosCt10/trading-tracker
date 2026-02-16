@@ -368,3 +368,77 @@ export async function deleteStrategy(
 
   return { error: null };
 }
+
+/**
+ * Gets all inactive (archived) strategies for a user.
+ * Returns strategies where is_active = false.
+ */
+export async function getInactiveStrategies(userId: string): Promise<Strategy[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('strategies')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_active', false)
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching inactive strategies:', error);
+    return [];
+  }
+
+  return (data ?? []) as Strategy[];
+}
+
+/**
+ * Reactivates a strategy by setting is_active to true.
+ */
+export async function reactivateStrategy(
+  strategyId: string,
+  userId: string
+): Promise<{ data: Strategy | null; error: { message: string } | null }> {
+  const supabase = await createClient();
+
+  // Verify user is authenticated
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user || user.id !== userId) {
+    return { data: null, error: { message: 'Unauthorized' } };
+  }
+
+  // Verify strategy belongs to user
+  const { data: existing } = await supabase
+    .from('strategies')
+    .select('*')
+    .eq('id', strategyId)
+    .eq('user_id', userId)
+    .single();
+
+  if (!existing) {
+    return { data: null, error: { message: 'Strategy not found' } };
+  }
+
+  // Check if strategy is already active
+  if (existing.is_active) {
+    return { data: existing as Strategy, error: null };
+  }
+
+  // Reactivate the strategy
+  const { data: reactivated, error } = await supabase
+    .from('strategies')
+    .update({ is_active: true, updated_at: new Date().toISOString() })
+    .eq('id', strategyId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error reactivating strategy:', error);
+    return { data: null, error: { message: error.message ?? 'Failed to reactivate strategy' } };
+  }
+
+  return { data: reactivated as Strategy, error: null };
+}
