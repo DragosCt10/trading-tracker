@@ -37,7 +37,7 @@ export default function AppLayout({
 
   return (
     <>
-      <div className="mt-40 max-w-(--breakpoint-xl) mx-auto">
+      <div className="mt-48 max-w-(--breakpoint-xl) mx-auto">
         <Navbar />
         {children}
       </div>
