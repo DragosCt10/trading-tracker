@@ -207,11 +207,13 @@ export interface Database {
           slug: string;
           created_at: string;
           updated_at: string;
+          is_active: boolean;
         };
         Insert: {
           user_id: string;
           name: string;
           slug: string;
+          is_active?: boolean;
         };
         Update: Partial<{
           id: string;
@@ -220,6 +222,7 @@ export interface Database {
           slug: string;
           created_at: string;
           updated_at: string;
+          is_active: boolean;
         }>;
       };
     };
