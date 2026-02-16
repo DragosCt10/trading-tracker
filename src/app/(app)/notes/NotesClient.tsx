@@ -1,15 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { format } from 'date-fns';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Note } from '@/types/note';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowRight, Plus, Pin } from 'lucide-react';
+import { Plus, BookOpen, Loader2 } from 'lucide-react';
 import NoteDetailsModal from '@/components/notes/NoteDetailsModal';
 import NewNoteModal from '@/components/notes/NewNoteModal';
 import { NoteCard } from '@/components/notes/NoteCard';
@@ -24,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 
-const ITEMS_PER_PAGE = 12;
+const ITEMS_PER_LOAD = 12;
 
 interface NotesClientProps {
   initialUserId: string;
@@ -38,14 +36,21 @@ export default function NotesClient({
   const { data: userDetails } = useUserDetails();
   const queryClient = useQueryClient();
   const userId = userDetails?.user?.id ?? initialUserId;
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isNewNoteModalOpen, setIsNewNoteModalOpen] = useState(false);
   const [selectedStrategy, setSelectedStrategy] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_LOAD);
+  const [mounted, setMounted] = useState(false);
+  const observerTarget = useRef<HTMLDivElement>(null);
 
   const { strategies } = useStrategies({ userId });
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fetch notes with React Query
   const {
@@ -79,17 +84,42 @@ export default function NotesClient({
     );
   }, [notesList, searchQuery]);
 
-  // Pagination
-  const totalPages = Math.ceil(filteredNotes.length / ITEMS_PER_PAGE);
-  const paginatedCurrentPage = Math.min(currentPage, totalPages === 0 ? 1 : totalPages);
-  const startIdx = (paginatedCurrentPage - 1) * ITEMS_PER_PAGE;
-  const endIdx = startIdx + ITEMS_PER_PAGE;
-  const paginatedNotes = filteredNotes.slice(startIdx, endIdx);
-
-  // Reset to page 1 when filter or search changes
+  // Reset displayed count when filters change
   useEffect(() => {
-    setCurrentPage(1);
+    setDisplayedCount(ITEMS_PER_LOAD);
   }, [selectedStrategy, searchQuery]);
+
+  // Get displayed notes (for infinite scroll)
+  const displayedNotes = useMemo(() => {
+    return filteredNotes.slice(0, displayedCount);
+  }, [filteredNotes, displayedCount]);
+
+  const hasMore = displayedCount < filteredNotes.length;
+
+  // Intersection Observer for infinite scroll (only on client)
+  useEffect(() => {
+    if (!mounted) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !notesLoading && !notesFetching) {
+          setDisplayedCount((prev) => Math.min(prev + ITEMS_PER_LOAD, filteredNotes.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [mounted, hasMore, notesLoading, notesFetching, filteredNotes.length]);
 
   const openModal = (note: Note) => {
     setSelectedNote(note);
@@ -117,26 +147,36 @@ export default function NotesClient({
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Notes</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Your trading notes and insights
-          </p>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50 shadow-sm">
+              <BookOpen className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            </div>
+            <h1 className="text-3xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+              Notes
+            </h1>
+          </div>
+          <Button
+            onClick={() => setIsNewNoteModalOpen(true)}
+            className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0"
+          >
+            <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
+              <Plus className="h-4 w-4" />
+              <span>New Note</span>
+            </span>
+            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+          </Button>
         </div>
-        <Button
-          onClick={() => setIsNewNoteModalOpen(true)}
-          className="bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Note
-        </Button>
+        <p className="text-sm text-slate-600 dark:text-slate-400 ml-[52px]">
+          Your trading notes and insights. Organize your thoughts, strategies, and learnings.
+        </p>
       </div>
 
       {/* Filters */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <Input
             placeholder="Search notes..."
@@ -163,83 +203,65 @@ export default function NotesClient({
         </div>
       </div>
 
-      {/* Skeleton only when we have no data yet */}
-      {(notesLoading || notesFetching) && notesList.length === 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <Card key={`skeleton-${index}`} className="overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <Skeleton className="h-6 w-32" />
-                  <Skeleton className="h-5 w-5 rounded-full" />
-                </div>
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-3/4 mb-4" />
-                <div className="flex items-center gap-2 mb-3">
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-4 w-20" />
-                </div>
-                <Skeleton className="h-4 w-24" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Notes Cards Grid */}
-      {((!notesLoading && !notesFetching) || notesList.length > 0) && (
-        <>
-          {paginatedNotes.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-slate-500 dark:text-slate-400">
-                {searchQuery ? 'No notes found matching your search.' : 'No notes yet. Create your first note!'}
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-                {paginatedNotes.map((note) => (
-                  <NoteCard
-                    key={note.id}
-                    note={note}
-                    onClick={() => openModal(note)}
-                  />
-                ))}
+      {/* Notes Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {!mounted || notesLoading ? (
+          // Skeleton loader
+          <>
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Card
+                key={`skeleton-${index}`}
+                className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm"
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <Skeleton className="h-6 w-32" />
+                    <Skeleton className="h-5 w-5 rounded-full" />
+                  </div>
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-3/4 mb-4" />
+                  <div className="flex items-center gap-2 mb-3">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                  <Skeleton className="h-4 w-24" />
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : displayedNotes.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50 text-slate-400 dark:text-slate-600" />
+            <p className="text-slate-500 dark:text-slate-400">
+              {searchQuery ? 'No notes found matching your search.' : 'No notes yet. Create your first note!'}
+            </p>
+          </div>
+        ) : (
+          <>
+            {displayedNotes.map((note) => (
+              <NoteCard
+                key={note.id}
+                note={note}
+                onClick={() => openModal(note)}
+              />
+            ))}
+            
+            {/* Infinite scroll trigger */}
+            {hasMore && (
+              <div ref={observerTarget} className="col-span-full flex justify-center py-4">
+                {notesFetching ? (
+                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Loading more notes...</span>
+                  </div>
+                ) : (
+                  <div className="h-4" /> // Spacer for intersection observer
+                )}
               </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between border-t pt-4">
-                  <div className="text-sm text-slate-700 dark:text-slate-300">
-                    Showing <span className="font-medium">{startIdx + 1}</span> to{' '}
-                    <span className="font-medium">
-                      {Math.min(endIdx, filteredNotes.length)}
-                    </span>{' '}
-                    of <span className="font-medium">{filteredNotes.length}</span> notes
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="secondary"
-                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                      disabled={paginatedCurrentPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                      }
-                      disabled={paginatedCurrentPage === totalPages || totalPages === 0}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </>
-      )}
+            )}
+          </>
+        )}
+      </div>
 
       {/* Note Details Modal */}
       {selectedNote && (
