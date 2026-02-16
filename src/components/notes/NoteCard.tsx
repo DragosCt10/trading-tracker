@@ -31,24 +31,27 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
   const formattedDate = format(new Date(note.created_at), 'MMM d, yyyy');
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={onClick}>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-3">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50 line-clamp-2 flex-1">
+    <Card
+      className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm cursor-pointer hover:shadow-md transition-all duration-200"
+      onClick={onClick}
+    >
+      <CardContent className="p-6 flex flex-col h-full">
+        <div className="flex items-start justify-between mb-4">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50 line-clamp-2 flex-1 pr-2">
             {note.title}
           </h3>
           {note.is_pinned && (
-            <Pin className="h-4 w-4 text-purple-500 dark:text-purple-400 flex-shrink-0 ml-2" />
+            <Pin className="h-4 w-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
           )}
         </div>
 
         {preview && (
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 line-clamp-3">
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-3 flex-1">
             {preview}
           </p>
         )}
 
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
           {note.strategy && (
             <Badge className="bg-purple-100 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 shadow-none text-xs">
               {note.strategy.name}
@@ -64,7 +67,7 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
             e.stopPropagation();
             onClick();
           }}
-          className="inline-flex items-center text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-50 underline cursor-pointer"
+          className="inline-flex items-center text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium mt-auto"
         >
           View Details
           <ArrowRight className="w-4 h-4 ml-1" />
