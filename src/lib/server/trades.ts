@@ -308,7 +308,7 @@ export async function getStrategyStatsFromTrades({
       .not('executed', 'eq', false); // Only executed trades
 
     // Fetch in batches to handle thousands of trades efficiently
-    const batchSize = 1000;
+    const batchSize = 500;
     let offset = 0;
     let allStats: Array<{ trade_outcome: string; break_even: boolean | null; risk_reward_ratio: number | null }> = [];
     let hasMore = true;
