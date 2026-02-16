@@ -14,7 +14,6 @@ import { EditStrategyModal } from '@/components/EditStrategyModal';
 import { deleteStrategy } from '@/lib/server/strategies';
 import { Strategy } from '@/types/strategy';
 import { Trade } from '@/types/trade';
-import { startOfYear, endOfYear } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { Target } from 'lucide-react';
 
@@ -36,18 +35,17 @@ export function StrategiesClient() {
   // Get currency symbol from active account
   const currencySymbol = activeAccount?.currency === 'USD' ? '$' : activeAccount?.currency === 'EUR' ? '€' : '£';
 
-  // Fetch trades for each strategy
-  const currentYear = new Date().getFullYear();
-  const startDate = startOfYear(new Date(currentYear, 0, 1)).toISOString().split('T')[0];
-  const endDate = endOfYear(new Date(currentYear, 11, 31)).toISOString().split('T')[0];
+  // Fetch trades for each strategy (all years)
+  const startDate = '2000-01-01'; // Very early date to fetch all trades
+  const endDate = new Date().toISOString().split('T')[0]; // Today's date
 
 
-  // Fetch trades for all strategies using a single query (for current year)
+  // Fetch trades for all strategies using a single query (for all years)
   const {
     data: allStrategyTrades,
     isFetching: tradesLoading,
   } = useQuery<Record<string, Trade[]>>({
-    queryKey: ['all-strategy-trades', userId, activeAccount?.id, mode, startDate, endDate],
+    queryKey: ['all-strategy-trades', userId, activeAccount?.id, mode, 'all-years'],
     queryFn: async () => {
       if (!userId || !activeAccount?.id || strategies.length === 0) return {};
       
