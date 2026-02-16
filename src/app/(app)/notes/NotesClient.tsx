@@ -182,12 +182,12 @@ export default function NotesClient({
             placeholder="Search notes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-md h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
+            className="max-w-md h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm"
           />
         </div>
         <div className="w-full sm:w-48">
           <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
-            <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300">
+            <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm">
               <SelectValue placeholder="Filter by strategy" />
             </SelectTrigger>
             <SelectContent>
@@ -213,18 +213,27 @@ export default function NotesClient({
                 key={`skeleton-${index}`}
                 className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm"
               >
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <Skeleton className="h-6 w-32" />
-                    <Skeleton className="h-5 w-5 rounded-full" />
+                <CardContent className="p-6 flex flex-col h-full">
+                  <div className="flex items-start justify-between mb-4">
+                    <Skeleton className="h-6 w-32 flex-1 pr-2" />
+                    <Skeleton className="h-4 w-4 flex-shrink-0" />
                   </div>
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-3/4 mb-4" />
-                  <div className="flex items-center gap-2 mb-3">
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-full mb-1" />
+                  <Skeleton className="h-4 w-full mb-1" />
+                  <Skeleton className="h-4 w-3/4 mb-4 flex-1" />
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-start gap-2 flex-wrap">
+                      <Skeleton className="h-3 w-16" />
+                      <div className="flex flex-wrap gap-1.5">
+                        <Skeleton className="h-5 w-20 rounded-full" />
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-3 w-24" />
                   </div>
-                  <Skeleton className="h-4 w-24" />
+                  <div className="inline-flex items-center mt-auto">
+                    <Skeleton className="h-4 w-24" />
+                  </div>
                 </CardContent>
               </Card>
             ))}
