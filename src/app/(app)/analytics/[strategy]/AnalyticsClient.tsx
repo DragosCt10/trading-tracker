@@ -37,23 +37,23 @@ import {
   PointElement,
   ArcElement,
 } from 'chart.js';
-import { RiskRewardStats } from '@/components/dashboard/RiskRewardStats';
-import { EvaluationStats } from '@/components/dashboard/EvaluationStats';
-import { RRHitStats } from '@/components/dashboard/RRHitStats';
-import MarketProfitStatisticsCard from '@/components/dashboard/MarketProfitStats';
-import RiskPerTrade from '@/components/dashboard/RiskPerTrade';
-import { StatCard } from '@/components/dashboard/StatCard';
+import { RiskRewardStats } from '@/components/dashboard/analytics/RiskRewardStats';
+import { EvaluationStats } from '@/components/dashboard/analytics/EvaluationStats';
+import { RRHitStats } from '@/components/dashboard/analytics/RRHitStats';
+import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketProfitStats';
+import RiskPerTrade from '@/components/dashboard/analytics/RiskPerTrade';
+import { StatCard } from '@/components/dashboard/analytics/StatCard';
 import { cn } from '@/lib/utils';
-import { MonthPerformanceCard } from '@/components/dashboard/MonthPerformanceCard';
-import { AccountOverviewCard } from '@/components/dashboard/AccountOverviewCard';
+import { MonthPerformanceCard } from '@/components/dashboard/analytics/MonthPerformanceCard';
+import { AccountOverviewCard } from '@/components/dashboard/analytics/AccountOverviewCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MonthlyPerformanceChart } from '@/components/dashboard/MonthlyPerformanceChart';
-import { DateRangeValue, TradeFiltersBar } from '@/components/dashboard/TradeFiltersBar';
-import { TradesCalendarCard } from '@/components/dashboard/TradesCalendarCard';
-import { TradeStatDatum, TradeStatsBarCard } from '@/components/dashboard/TradesStatsBarCard';
-import { LaunchHourTradesCard } from '@/components/dashboard/LaunchHourTradesCard';
-import { NonExecutedTradesCard } from '@/components/dashboard/NonExecutedTradesCard';
-import { DisplacementSizeStats } from '@/components/dashboard/DisplacementSizeStats';
+import { MonthlyPerformanceChart } from '@/components/dashboard/analytics/MonthlyPerformanceChart';
+import { DateRangeValue, TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
+import { TradesCalendarCard } from '@/components/dashboard/analytics/TradesCalendarCard';
+import { TradeStatDatum, TradeStatsBarCard } from '@/components/dashboard/analytics/TradesStatsBarCard';
+import { LaunchHourTradesCard } from '@/components/dashboard/analytics/LaunchHourTradesCard';
+import { NonExecutedTradesCard } from '@/components/dashboard/analytics/NonExecutedTradesCard';
+import { DisplacementSizeStats } from '@/components/dashboard/analytics/DisplacementSizeStats';
 import { getAverageDisplacementPerMarket } from '@/utils/getAverageDisplacementPerMarket';
 
 ChartJS.register(
