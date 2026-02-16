@@ -28,7 +28,7 @@ function generateSlug(name: string): string {
 export async function ensureDefaultStrategy(userId: string): Promise<Strategy> {
   const supabase = await createClient();
 
-  // Check if default strategy exists
+  // Check if default strategy exists (including inactive ones)
   const { data: existing, error: checkError } = await supabase
     .from('strategies')
     .select('*')
@@ -42,6 +42,23 @@ export async function ensureDefaultStrategy(userId: string): Promise<Strategy> {
   }
 
   if (existing) {
+    // If default strategy exists but is inactive, reactivate it
+    if (!existing.is_active) {
+      const { data: reactivated, error: reactivateError } = await supabase
+        .from('strategies')
+        .update({ is_active: true, updated_at: new Date().toISOString() })
+        .eq('id', existing.id)
+        .select()
+        .single();
+
+      if (reactivateError) {
+        console.error('Error reactivating default strategy:', reactivateError);
+        return existing as Strategy;
+      }
+
+      return reactivated as Strategy;
+    }
+
     return existing as Strategy;
   }
 
@@ -52,6 +69,7 @@ export async function ensureDefaultStrategy(userId: string): Promise<Strategy> {
       user_id: userId,
       name: 'Trading Institutional',
       slug: 'trading-institutional',
+      is_active: true,
     })
     .select()
     .single();
@@ -65,9 +83,10 @@ export async function ensureDefaultStrategy(userId: string): Promise<Strategy> {
 }
 
 /**
- * Gets all strategies for a user.
+ * Gets all active strategies for a user.
  * CRITICAL: This function ensures the default strategy exists before fetching.
  * Every user will always have at least the "Trading Institutional" strategy.
+ * Only returns strategies where is_active = true.
  */
 export async function getUserStrategies(userId: string): Promise<Strategy[]> {
   const supabase = await createClient();
@@ -75,11 +94,12 @@ export async function getUserStrategies(userId: string): Promise<Strategy[]> {
   // Ensure default strategy exists first
   await ensureDefaultStrategy(userId);
 
-  // Fetch all strategies
+  // Fetch only active strategies
   const { data, error } = await supabase
     .from('strategies')
     .select('*')
     .eq('user_id', userId)
+    .eq('is_active', true)
     .order('created_at', { ascending: true });
 
   if (error) {
@@ -93,6 +113,7 @@ export async function getUserStrategies(userId: string): Promise<Strategy[]> {
 /**
  * Gets a strategy by slug for a specific user.
  * Validates ownership to ensure users can only access their own strategies.
+ * Returns both active and inactive strategies (allows access to historical analytics).
  */
 export async function getStrategyBySlug(
   userId: string,
@@ -140,12 +161,13 @@ export async function createStrategy(
 
   const slug = generateSlug(name);
 
-  // Check if slug already exists for this user
+  // Check if slug already exists for this user (only check active strategies)
   const { data: existing } = await supabase
     .from('strategies')
     .select('id')
     .eq('user_id', userId)
     .eq('slug', slug)
+    .eq('is_active', true)
     .single();
 
   if (existing) {
@@ -161,6 +183,7 @@ export async function createStrategy(
       user_id: userId,
       name: name.trim(),
       slug,
+      is_active: true,
     })
     .select()
     .single();
@@ -178,7 +201,6 @@ export async function createStrategy(
 
 /**
  * Updates a strategy name (slug is regenerated automatically).
- * Prevents updating the default strategy to maintain consistency.
  */
 export async function updateStrategy(
   strategyId: string,
@@ -208,22 +230,15 @@ export async function updateStrategy(
     return { data: null, error: { message: 'Strategy not found' } };
   }
 
-  // Prevent renaming the default strategy
-  if (existing.slug === 'trading-institutional') {
-    return {
-      data: null,
-      error: { message: 'Cannot rename the default strategy' },
-    };
-  }
-
   const slug = generateSlug(name);
 
-  // Check if new slug already exists (different strategy)
+  // Check if new slug already exists (different strategy, only check active strategies)
   const { data: slugConflict } = await supabase
     .from('strategies')
     .select('id')
     .eq('user_id', userId)
     .eq('slug', slug)
+    .eq('is_active', true)
     .neq('id', strategyId)
     .single();
 
@@ -258,9 +273,10 @@ export async function updateStrategy(
 }
 
 /**
- * Deletes a strategy.
- * Prevents deletion of the default strategy.
- * Sets strategy_id to NULL for all trades using this strategy (via ON DELETE SET NULL).
+ * Soft deletes a strategy by setting is_active to false.
+ * Trades keep their strategy_id reference for historical data integrity.
+ * Note: If the default strategy is deleted, it will be automatically reactivated
+ * by ensureDefaultStrategy when getUserStrategies is called.
  */
 export async function deleteStrategy(
   strategyId: string,
@@ -277,7 +293,7 @@ export async function deleteStrategy(
     return { error: { message: 'Unauthorized' } };
   }
 
-  // Verify strategy belongs to user and check if it's the default
+  // Verify strategy belongs to user
   const { data: existing } = await supabase
     .from('strategies')
     .select('slug')
@@ -289,14 +305,10 @@ export async function deleteStrategy(
     return { error: { message: 'Strategy not found' } };
   }
 
-  // Prevent deletion of default strategy
-  if (existing.slug === 'trading-institutional') {
-    return { error: { message: 'Cannot delete the default strategy' } };
-  }
-
+  // Soft delete: set is_active to false instead of deleting
   const { error } = await supabase
     .from('strategies')
-    .delete()
+    .update({ is_active: false, updated_at: new Date().toISOString() })
     .eq('id', strategyId)
     .eq('user_id', userId);
 
