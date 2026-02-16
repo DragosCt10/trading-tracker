@@ -210,20 +210,25 @@ export async function createStrategy(
 
   const slug = generateSlug(name);
 
-  // Check if slug already exists for this user (only check active strategies)
-  const { data: existing } = await supabase
+  // Check if slug already exists for this user (check both active and inactive strategies)
+  const { data: existing, error: checkError } = await supabase
     .from('strategies')
-    .select('id')
+    .select('id, is_active')
     .eq('user_id', userId)
     .eq('slug', slug)
-    .eq('is_active', true)
-    .single();
+    .maybeSingle();
 
+  // If strategy exists (regardless of active status), return error
   if (existing) {
     return {
       data: null,
       error: { message: 'A strategy with this name already exists' },
     };
+  }
+
+  // If there was an error checking (other than "not found"), log it but continue
+  if (checkError && checkError.code !== 'PGRST116') {
+    console.error('Error checking for existing strategy:', checkError);
   }
 
   const { data, error } = await supabase
@@ -239,9 +244,18 @@ export async function createStrategy(
 
   if (error) {
     console.error('Error creating strategy:', error);
+    
+    // Handle unique constraint violation with user-friendly message
+    if (error.code === '23505' || error.message?.includes('unique constraint') || error.message?.includes('duplicate key')) {
+      return {
+        data: null,
+        error: { message: 'A strategy with this name already exists' },
+      };
+    }
+    
     return {
       data: null,
-      error: { message: error.message ?? 'Failed to create strategy' },
+      error: { message: 'Failed to create strategy. Please try again.' },
     };
   }
 
@@ -370,17 +384,24 @@ export async function deleteStrategy(
 }
 
 /**
- * Gets all inactive (archived) strategies for a user.
- * Returns strategies where is_active = false.
+ * Gets all inactive (archived) strategies for a user that are visible to the client.
+ * Returns strategies where is_active = false and archived less than 30 days ago.
+ * Strategies older than 30 days are hidden from the client but remain in the database.
  */
 export async function getInactiveStrategies(userId: string): Promise<Strategy[]> {
   const supabase = await createClient();
+
+  // Calculate the date 30 days ago
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const thirtyDaysAgoISO = thirtyDaysAgo.toISOString();
 
   const { data, error } = await supabase
     .from('strategies')
     .select('*')
     .eq('user_id', userId)
     .eq('is_active', false)
+    .gte('updated_at', thirtyDaysAgoISO) // Only get strategies updated (archived) within the last 30 days
     .order('updated_at', { ascending: false });
 
   if (error) {
