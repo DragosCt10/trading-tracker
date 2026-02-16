@@ -689,6 +689,16 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 <Label htmlFor="launch-hour" className="text-sm font-normal cursor-pointer">LH</Label>
               </div>
 
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="partials-taken"
+                  checked={trade.partials_taken}
+                  onCheckedChange={(checked) => updateTrade('partials_taken', checked as boolean)}
+                  className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
+                />
+                <Label htmlFor="partials-taken" className="text-sm font-normal cursor-pointer">Partial Profit</Label>
+              </div>
+
               {/* Not Executed (inverted logic) */}
               <div className="flex items-center gap-1.5">
                 <Checkbox
