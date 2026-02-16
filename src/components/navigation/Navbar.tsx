@@ -140,7 +140,7 @@ export default function Navbar() {
                 >
                   <Link href="/strategies">
                     <Target className="h-4 w-4" />
-                    <span>Strategies</span>
+                    <span>My Strategies</span>
                   </Link>
                 </Button>
               </li>
@@ -153,7 +153,7 @@ export default function Navbar() {
                 >
                   <Link href="/notes">
                     <BookOpen className="h-4 w-4" />
-                    <span>Notes</span>
+                    <span>My Notes</span>
                   </Link>
                 </Button>
               </li>
@@ -272,7 +272,7 @@ export default function Navbar() {
                 >
                   <Link href="/strategies" onClick={() => setMobileMenuOpen(false)}>
                     <Target className="h-4 w-4" />
-                    Strategies
+                    My Strategies
                   </Link>
                 </Button>
 
@@ -283,7 +283,7 @@ export default function Navbar() {
                 >
                   <Link href="/notes" onClick={() => setMobileMenuOpen(false)}>
                     <BookOpen className="h-4 w-4" />
-                    Notes
+                    My Notes
                   </Link>
                 </Button>
 
@@ -410,7 +410,7 @@ export default function Navbar() {
             <Button
               variant="ghost"
               size="sm"
-              className="w-full h-auto min-h-[64px] cursor-pointer transition-all duration-300 relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 border-0 !p-0"
+              className="w-full h-auto min-h-[64px] cursor-pointer transition-all duration-300 relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white hover:text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 border-0 !p-0 [&_svg]:text-white"
               onClick={() => setNewTradeModalOpen(true)}
             >
               <div className="block w-full h-full relative min-h-[40px]">
