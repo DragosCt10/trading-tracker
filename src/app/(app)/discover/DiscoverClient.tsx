@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowRight } from 'lucide-react';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
-import { TradeFiltersBar, DateRangeValue } from '@/components/dashboard/TradeFiltersBar';
+import { TradeFiltersBar, DateRangeValue } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { getFilteredTrades } from '@/lib/server/trades';
 import type { Database } from '@/types/supabase';
 
