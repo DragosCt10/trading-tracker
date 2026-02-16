@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { format, subDays } from 'date-fns';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { getActiveAccountForMode } from '@/lib/server/accounts';
+import { getStrategyBySlug } from '@/lib/server/strategies';
 import AnalyticsClient from './AnalyticsClient';
 import { Trade } from '@/types/trade';
 import type { User } from '@supabase/supabase-js';
@@ -17,12 +18,36 @@ function createInitialDateRange(today = new Date()) {
   };
 }
 
-async function AnalyticsDataFetcher({ user }: { user: User }) {
+async function AnalyticsDataFetcher({ user, strategySlug }: { user: User; strategySlug: string }) {
   const today = new Date();
   const initialDateRange = createInitialDateRange(today);
   const initialSelectedYear = today.getFullYear();
   const yearStart = `${initialSelectedYear}-01-01`;
   const yearEnd = `${initialSelectedYear}-12-31`;
+
+  // Get strategy ID if strategySlug is provided
+  let strategyId: string | null = null;
+  if (strategySlug) {
+    const strategy = await getStrategyBySlug(user.id, strategySlug);
+    if (!strategy) {
+      // Strategy not found - return empty state
+      return (
+        <AnalyticsClient
+          initialUserId={user.id}
+          initialFilteredTrades={[]}
+          initialAllTrades={[]}
+          initialNonExecutedTrades={[]}
+          initialNonExecutedTotalTradesCount={0}
+          initialDateRange={initialDateRange}
+          initialSelectedYear={initialSelectedYear}
+          initialMode="live"
+          initialActiveAccount={null}
+          initialStrategyId={null}
+        />
+      );
+    }
+    strategyId = strategy.id;
+  }
 
   const activeAccount = await getActiveAccountForMode(user.id, 'live');
 
@@ -38,6 +63,7 @@ async function AnalyticsDataFetcher({ user }: { user: User }) {
         initialSelectedYear={initialSelectedYear}
         initialMode="live"
         initialActiveAccount={null}
+        initialStrategyId={strategyId}
       />
     );
   }
@@ -56,6 +82,7 @@ async function AnalyticsDataFetcher({ user }: { user: User }) {
           mode: 'live',
           startDate: initialDateRange.startDate,
           endDate: initialDateRange.endDate,
+          strategyId,
         }),
         getFilteredTrades({
           userId: user.id,
@@ -63,6 +90,7 @@ async function AnalyticsDataFetcher({ user }: { user: User }) {
           mode: 'live',
           startDate: yearStart,
           endDate: yearEnd,
+          strategyId,
         }),
         getFilteredTrades({
           userId: user.id,
@@ -71,6 +99,7 @@ async function AnalyticsDataFetcher({ user }: { user: User }) {
           startDate: initialDateRange.startDate,
           endDate: initialDateRange.endDate,
           onlyNonExecuted: true,
+          strategyId,
         }),
         getFilteredTrades({
           userId: user.id,
@@ -79,6 +108,7 @@ async function AnalyticsDataFetcher({ user }: { user: User }) {
           startDate: yearStart,
           endDate: yearEnd,
           onlyNonExecuted: true,
+          strategyId,
         }),
       ]);
 
@@ -101,6 +131,7 @@ async function AnalyticsDataFetcher({ user }: { user: User }) {
       initialSelectedYear={initialSelectedYear}
       initialMode="live"
       initialActiveAccount={activeAccount}
+      initialStrategyId={strategyId}
     />
   );
 }
@@ -195,12 +226,13 @@ function AnalyticsSkeleton() {
 
 interface AnalyticsDataProps {
   user: User;
+  strategySlug: string;
 }
 
-export default function AnalyticsData({ user }: AnalyticsDataProps) {
+export default function AnalyticsData({ user, strategySlug }: AnalyticsDataProps) {
   return (
     <Suspense fallback={<AnalyticsSkeleton />}>
-      <AnalyticsDataFetcher user={user} />
+      <AnalyticsDataFetcher user={user} strategySlug={strategySlug} />
     </Suspense>
   );
 }

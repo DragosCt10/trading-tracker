@@ -33,10 +33,10 @@ export default function LoginPage() {
   const { theme, toggleTheme, mounted } = useTheme();
 
   useEffect(() => {
-    // If user is already logged in, redirect to dashboard or redirectTo
+    // If user is already logged in, redirect to strategies or redirectTo
     if (userData?.user && userData?.session) {
       const to = safeRedirectPath(searchParams.get('redirectTo'));
-      router.push(to ?? '/analytics');
+      router.push(to ?? '/strategies');
     }
   }, [userData, router, searchParams]);
 
@@ -56,7 +56,7 @@ export default function LoginPage() {
       } else {
         // Full page nav so the next request sends the session cookies set by the action
         const to = safeRedirectPath(searchParams.get('redirectTo'));
-        window.location.href = to ?? '/analytics';
+        window.location.href = to ?? '/strategies';
         return;
       }
     } catch (err) {

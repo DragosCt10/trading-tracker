@@ -24,9 +24,9 @@ export default function SignupClient() {
   const { theme, toggleTheme, mounted } = useTheme();
 
   useEffect(() => {
-    // If user is already logged in, redirect to dashboard
+    // If user is already logged in, redirect to strategies
     if (userData?.user && userData?.session) {
-      router.push('/dashboard');
+      router.push('/strategies');
     }
   }, [userData, router]);
 
@@ -45,7 +45,7 @@ export default function SignupClient() {
         setError(result.error);
       } else {
         // Full page nav so the next request sends the session cookies set by the action
-        window.location.href = '/analytics';
+        window.location.href = '/strategies';
         return;
       }
     } catch (err) {

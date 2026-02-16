@@ -347,6 +347,7 @@ export type AnalyticsClientInitialProps = {
   initialSelectedYear: number;
   initialMode: 'live' | 'backtesting' | 'demo';
   initialActiveAccount: { id: string; [key: string]: unknown } | null;
+  initialStrategyId?: string | null;
 };
 
 const defaultInitialRange = createInitialDateRange();
@@ -423,6 +424,9 @@ export default function AnalyticsClient(
     // so this effect will run only when initialActiveAccount or initialMode change
   }, [props?.initialActiveAccount, props?.initialMode, setSelection]);
 
+  // Store strategyId from props
+  const strategyId = props?.initialStrategyId ?? null;
+
   // Hydrate React Query cache synchronously so useDashboardData sees server data on first paint (avoids hydration when e.g. no subaccounts)
   const uid = props?.initialUserId;
   const acc = props?.initialActiveAccount;
@@ -431,21 +435,23 @@ export default function AnalyticsClient(
   if (uid && acc?.id && dr) {
     const mode = props?.initialMode ?? 'live';
     const year = yr ?? new Date().getFullYear();
-    if (queryClient.getQueryData(['allTrades', mode, acc.id, uid, year]) === undefined) {
+    const queryKeyAllTrades = ['allTrades', mode, acc.id, uid, year, strategyId];
+    const queryKeyFilteredTrades = ['filteredTrades', mode, acc.id, uid, dr.startDate, dr.endDate, strategyId];
+    if (queryClient.getQueryData(queryKeyAllTrades) === undefined) {
       queryClient.setQueryData(
-        ['filteredTrades', mode, acc.id, uid, dr.startDate, dr.endDate],
+        queryKeyFilteredTrades,
         props?.initialFilteredTrades ?? []
       );
       queryClient.setQueryData(
-        ['allTrades', mode, acc.id, uid, year],
+        queryKeyAllTrades,
         props?.initialAllTrades ?? []
       );
       queryClient.setQueryData(
-        ['nonExecutedTrades', mode, acc.id, uid, dr.startDate, dr.endDate],
+        ['nonExecutedTrades', mode, acc.id, uid, dr.startDate, dr.endDate, strategyId],
         props?.initialNonExecutedTrades ?? []
       );
       queryClient.setQueryData(
-        ['nonExecutedTotalTradesCount', mode, acc.id, uid, year],
+        ['nonExecutedTotalTradesCount', mode, acc.id, uid, year, strategyId],
         props?.initialNonExecutedTotalTradesCount ?? 0
       );
     }
@@ -456,20 +462,22 @@ export default function AnalyticsClient(
     if (!uid || !acc?.id || !dr) return;
     const mode = props?.initialMode ?? 'live';
     const year = yr ?? new Date().getFullYear();
+    const queryKeyAllTrades = ['allTrades', mode, acc.id, uid, year, strategyId];
+    const queryKeyFilteredTrades = ['filteredTrades', mode, acc.id, uid, dr.startDate, dr.endDate, strategyId];
     queryClient.setQueryData(
-      ['filteredTrades', mode, acc.id, uid, dr.startDate, dr.endDate],
+      queryKeyFilteredTrades,
       props?.initialFilteredTrades ?? []
     );
     queryClient.setQueryData(
-      ['allTrades', mode, acc.id, uid, year],
+      queryKeyAllTrades,
       props?.initialAllTrades ?? []
     );
     queryClient.setQueryData(
-      ['nonExecutedTrades', mode, acc.id, uid, dr.startDate, dr.endDate],
+      ['nonExecutedTrades', mode, acc.id, uid, dr.startDate, dr.endDate, strategyId],
       props?.initialNonExecutedTrades ?? []
     );
     queryClient.setQueryData(
-      ['nonExecutedTotalTradesCount', mode, acc.id, uid, year],
+      ['nonExecutedTotalTradesCount', mode, acc.id, uid, year, strategyId],
       props?.initialNonExecutedTotalTradesCount ?? 0
     );
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount with server initial data
@@ -619,6 +627,7 @@ export default function AnalyticsClient(
     calendarDateRange,
     selectedYear,
     selectedMarket,
+    strategyId,
   });
 
   // session check

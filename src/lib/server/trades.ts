@@ -43,6 +43,7 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
     executed: trade.executed,
     launch_hour: trade.launch_hour,
     displacement_size: trade.displacement_size,
+    strategy_id: trade.strategy_id,
   };
 }
 
@@ -58,6 +59,7 @@ export async function getFilteredTrades({
   endDate,
   includeNonExecuted = false,
   onlyNonExecuted = false,
+  strategyId,
 }: {
   userId: string;
   accountId: string;
@@ -68,6 +70,8 @@ export async function getFilteredTrades({
   includeNonExecuted?: boolean;
   /** When true, return only trades where executed=false (e.g. for analytics non-executed list) */
   onlyNonExecuted?: boolean;
+  /** Optional: Filter trades by strategy_id */
+  strategyId?: string | null;
 }): Promise<Trade[]> {
   const supabase = await createClient();
 
@@ -90,6 +94,12 @@ export async function getFilteredTrades({
       .eq('account_id', accountId)
       .gte('trade_date', startDate)
       .lte('trade_date', endDate);
+    
+    // Filter by strategy if provided
+    if (strategyId) {
+      query = query.eq('strategy_id', strategyId);
+    }
+    
     if (onlyNonExecuted) {
       query = query.eq('executed', false);
     } else if (!includeNonExecuted) {
@@ -253,4 +263,120 @@ export async function deleteTrade(
     return { error: { message: error.message ?? 'Failed to delete trade' } };
   }
   return { error: null };
+}
+
+/**
+ * Aggregates statistics from trades table efficiently using SQL aggregation.
+ * This handles thousands of trades by fetching only necessary fields and processing in batches.
+ * Returns winrate, total trades count, and average RR for a specific strategy.
+ * The table queried depends on the mode: live_trades, backtesting_trades, or demo_trades.
+ */
+export async function getStrategyStatsFromTrades({
+  userId,
+  accountId,
+  strategyId,
+  mode,
+}: {
+  userId: string;
+  accountId: string;
+  strategyId: string;
+  mode: 'live' | 'backtesting' | 'demo';
+}): Promise<{
+  totalTrades: number;
+  winRate: number;
+  avgRR: number;
+} | null> {
+  const supabase = await createClient();
+
+  // Verify user is authenticated
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user || user.id !== userId) {
+    throw new Error('Unauthorized');
+  }
+
+  try {
+    // Determine table name based on mode
+    const tableName = `${mode}_trades`;
+    
+    // Base query builder
+    const baseQuery = supabase
+      .from(tableName)
+      .select('trade_outcome, break_even, risk_reward_ratio')
+      .eq('user_id', userId)
+      .eq('account_id', accountId)
+      .eq('strategy_id', strategyId)
+      .not('executed', 'eq', false); // Only executed trades
+
+    // Fetch in batches to handle thousands of trades efficiently
+    const batchSize = 1000;
+    let offset = 0;
+    let allStats: Array<{ trade_outcome: string; break_even: boolean | null; risk_reward_ratio: number | null }> = [];
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data: batch, error } = await baseQuery
+        .range(offset, offset + batchSize - 1);
+
+      if (error) {
+        console.error('Error fetching strategy stats batch:', error);
+        break;
+      }
+
+      if (!batch || batch.length === 0) {
+        hasMore = false;
+        break;
+      }
+
+      allStats = allStats.concat(batch);
+      offset += batchSize;
+
+      // If we got fewer results than batch size, we've reached the end
+      if (batch.length < batchSize) {
+        hasMore = false;
+      }
+    }
+
+    if (allStats.length === 0) {
+      return {
+        totalTrades: 0,
+        winRate: 0,
+        avgRR: 0,
+      };
+    }
+
+    // Calculate winrate (excluding break-even trades)
+    let nonBEWins = 0;
+    let nonBELosses = 0;
+    const validRRs: number[] = [];
+
+    allStats.forEach((trade) => {
+      if (!trade.break_even) {
+        if (trade.trade_outcome === 'Win') {
+          nonBEWins++;
+        } else if (trade.trade_outcome === 'Lose') {
+          nonBELosses++;
+        }
+      }
+      
+      if (trade.risk_reward_ratio != null && trade.risk_reward_ratio > 0) {
+        validRRs.push(trade.risk_reward_ratio);
+      }
+    });
+
+    const totalTrades = allStats.length;
+    const denomExBE = nonBEWins + nonBELosses;
+    const winRate = denomExBE > 0 ? (nonBEWins / denomExBE) * 100 : 0;
+    const avgRR = validRRs.length > 0
+      ? validRRs.reduce((sum, rr) => sum + rr, 0) / validRRs.length
+      : 0;
+
+    return {
+      totalTrades,
+      winRate,
+      avgRR,
+    };
+  } catch (error) {
+    console.error('Error in getStrategyStatsFromTrades:', error);
+    return null;
+  }
 }

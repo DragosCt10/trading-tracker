@@ -74,6 +74,7 @@ export interface Database {
           partials_taken: boolean | null;
           executed: boolean | null;
           launch_hour: boolean | null;
+          strategy_id: string | null; // Added
         };
         Insert: Partial<Database['public']['Tables']['live_trades']['Row']> & {
           user_id: string;
@@ -126,6 +127,7 @@ export interface Database {
           partials_taken: boolean | null;
           executed: boolean | null;
           launch_hour: boolean | null;
+          strategy_id: string | null; // Added
         };
         Insert: Partial<Database['public']['Tables']['backtesting_trades']['Row']> & {
           user_id: string;
@@ -178,6 +180,7 @@ export interface Database {
           partials_taken: boolean | null;
           executed: boolean | null;
           launch_hour: boolean | null;
+          strategy_id: string | null; // Added
         };
         Insert: Partial<Database['public']['Tables']['demo_trades']['Row']> & {
           user_id: string;
@@ -194,7 +197,31 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['demo_trades']['Row']>;
       };
 
-      // If backtesting/demo have extra/different columns, copy and adjust.
+      // ─────────────────────────────────────────────────────────────
+      // Duplicated: strategies table (identical structure)
+      strategies: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          slug: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          name: string;
+          slug: string;
+        };
+        Update: Partial<{
+          id: string;
+          user_id: string;
+          name: string;
+          slug: string;
+          created_at: string;
+          updated_at: string;
+        }>;
+      };
     };
     Views: {
       [_ in never]: never;

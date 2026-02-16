@@ -67,6 +67,7 @@ export function useDashboardData({
   calendarDateRange,
   selectedYear,
   selectedMarket,
+  strategyId,
 }: {
   session: any;
   dateRange: { startDate: string; endDate: string };
@@ -78,6 +79,7 @@ export function useDashboardData({
   calendarDateRange: { startDate: string; endDate: string };
   selectedYear: number;
   selectedMarket: string;
+  strategyId?: string | null;
 }) {
   const [stats, setStats] = useState<Stats>({
     totalTrades: 0,
@@ -165,7 +167,7 @@ export function useDashboardData({
     data: allTrades = [],
     isFetching: allTradesLoading,
   } = useQuery<Trade[]>({
-    queryKey: ['allTrades', mode, activeAccount?.id, session?.user?.id, selectedYear],
+    queryKey: ['allTrades', mode, activeAccount?.id, session?.user?.id, selectedYear, strategyId],
     queryFn: async () => {
       if (!session?.user?.id || !activeAccount?.id) return [];
       const startDate = `${selectedYear}-01-01`;
@@ -177,6 +179,7 @@ export function useDashboardData({
           mode,
           startDate,
           endDate,
+          strategyId,
         });
       } catch (err) {
         console.error('Error fetching allTrades:', err);
@@ -200,6 +203,7 @@ export function useDashboardData({
       session?.user?.id,
       dateRange.startDate,
       dateRange.endDate,
+      strategyId,
     ],
     queryFn: async () => {
       if (!session?.user?.id || !activeAccount?.id) return [];
@@ -211,6 +215,7 @@ export function useDashboardData({
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
           onlyNonExecuted: true,
+          strategyId,
         });
       } catch (error) {
         console.error('Error fetching nonExecutedTrades:', error);
@@ -238,6 +243,7 @@ export function useDashboardData({
       activeAccount?.id,
       session?.user?.id,
       selectedYear,
+      strategyId,
     ],
     queryFn: async () => {
       if (!session?.user?.id || !activeAccount?.id) return 0;
@@ -251,6 +257,7 @@ export function useDashboardData({
           startDate: startOfYear,
           endDate: endOfYear,
           onlyNonExecuted: true,
+          strategyId,
         });
         return trades.length;
       } catch (error) {
@@ -276,6 +283,7 @@ export function useDashboardData({
       session?.user?.id,
       dateRange.startDate,
       dateRange.endDate,
+      strategyId,
     ],
     queryFn: async () => {
       if (!session?.user?.id || !activeAccount?.id) return [];
@@ -286,6 +294,7 @@ export function useDashboardData({
           mode,
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
+          strategyId,
         });
       } catch (error) {
         console.error('Error fetching filteredTrades:', error);

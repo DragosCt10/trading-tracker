@@ -1,11 +1,11 @@
-import { getCachedUserSession } from '@/lib/server/trades';
 import { redirect } from 'next/navigation';
-import AnalyticsData from './AnalyticsData';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Redirect /analytics to /strategies
+ * All analytics are now accessed via the dynamic route /analytics/[strategy]
+ */
 export default async function AnalyticsPage() {
-  const { user } = await getCachedUserSession();
-  if (!user) redirect('/login');
-  return <AnalyticsData user={user} />;
+  redirect('/strategies');
 }

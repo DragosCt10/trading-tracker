@@ -32,4 +32,5 @@ export interface Trade {
   executed: boolean;
   launch_hour: boolean;  // Indicates if the trade was executed during the launch hour
   displacement_size: number;
+  strategy_id?: string | null;
 }

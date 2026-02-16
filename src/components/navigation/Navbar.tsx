@@ -12,6 +12,7 @@ import {
   X,
   Sparkles,
   LogOut,
+  Target,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -89,7 +90,13 @@ export default function Navbar() {
     }
   };
 
-  const isActive = (path: string) => pathname === path;
+  const isActive = (path: string) => {
+    // For strategies, check if pathname starts with /strategies (to handle dynamic routes)
+    if (path === '/strategies') {
+      return pathname.startsWith('/strategies');
+    }
+    return pathname === path;
+  };
   const navButtonClass = (active: boolean) =>
     cn(
       'gap-2 rounded-xl border transition-all duration-200',
@@ -125,11 +132,11 @@ export default function Navbar() {
                   variant="ghost"
                   asChild
                   size="sm"
-                  className={navButtonClass(isActive('/analytics'))}
+                  className={navButtonClass(isActive('/strategies'))}
                 >
-                  <Link href="/analytics">
-                    <ChartBar className="h-4 w-4" />
-                    <span>Analytics</span>
+                  <Link href="/strategies">
+                    <Target className="h-4 w-4" />
+                    <span>Strategies</span>
                   </Link>
                 </Button>
               </li>
@@ -281,11 +288,11 @@ export default function Navbar() {
                 <Button
                   variant="ghost"
                   asChild
-                  className={cn('w-full justify-start', navButtonClass(isActive('/analytics')))}
+                  className={cn('w-full justify-start', navButtonClass(isActive('/strategies')))}
                 >
-                  <Link href="/analytics" onClick={() => setMobileMenuOpen(false)}>
-                    <ChartBar className="h-4 w-4" />
-                    Analytics
+                  <Link href="/strategies" onClick={() => setMobileMenuOpen(false)}>
+                    <Target className="h-4 w-4" />
+                    Strategies
                   </Link>
                 </Button>
 
