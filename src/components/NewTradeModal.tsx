@@ -316,19 +316,32 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         {/* Top accent line */}
         <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60" />
 
-        {/* Scrollable content wrapper */}
-        <div className="relative overflow-y-auto flex-1 px-6 py-5">
-          <AlertDialogHeader className="space-y-1.5 mb-4">
-            <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50">
-                <PlusCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <span>Add New Trade</span>
-            </AlertDialogTitle>
+        {/* Fixed Header */}
+        <div className="relative px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
+          <AlertDialogHeader className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50">
+                  <PlusCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <span>Add New Trade</span>
+              </AlertDialogTitle>
+              <button
+                onClick={onClose}
+                className="cursor-pointer rounded-sm ring-offset-background transition-all hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none h-8 w-8 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-black dark:hover:text-white"
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+              </button>
+            </div>
             <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
               Adding trade for <span className="font-medium text-slate-900 dark:text-slate-50">{selection.mode}</span> mode
             </AlertDialogDescription>
           </AlertDialogHeader>
+        </div>
+
+        {/* Scrollable content wrapper */}
+        <div className="relative overflow-y-auto flex-1 px-6 py-5">
 
           {error && (
             <Alert variant="destructive" className="mb-4 bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 backdrop-blur-sm">
