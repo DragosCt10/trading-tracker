@@ -12,6 +12,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import { Target } from 'lucide-react';
 import { updateStrategy } from '@/lib/server/strategies';
@@ -147,20 +148,19 @@ export function EditStrategyModal({
               </div>
             )}
 
-            <AlertDialogFooter className="gap-2 sm:gap-0">
-              <Button
+            <AlertDialogFooter className="mt-4 flex items-center justify-between">
+              <AlertDialogCancel
                 type="button"
-                variant="outline"
                 onClick={() => handleOpenChange(false)}
                 disabled={submitting}
-                className="border-slate-200 dark:border-slate-700"
+                className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200"
               >
                 Cancel
-              </Button>
+              </AlertDialogCancel>
               <Button
                 type="submit"
                 disabled={submitting || !name.trim() || name.trim() === strategy.name}
-                className="relative w-full sm:w-auto overflow-hidden bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0"
+                className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0 disabled:opacity-60"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
                   {submitting ? 'Updating...' : 'Update Strategy'}
