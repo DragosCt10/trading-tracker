@@ -69,6 +69,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
       });
       setError(null);
       setIsPreview(false);
+      setIsSubmitting(false);
     }
   }, [isOpen]);
 
@@ -99,6 +100,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
       if (createError) throw new Error(createError.message);
       if (!data) throw new Error('Failed to create note');
 
+      setIsSubmitting(false);
       if (onNoteCreated) onNoteCreated();
       onClose();
     } catch (err: any) {
