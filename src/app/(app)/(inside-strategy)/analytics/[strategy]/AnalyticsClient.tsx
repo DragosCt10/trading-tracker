@@ -1265,32 +1265,6 @@ export default function AnalyticsClient(
         </div>
       </div>
 
-      {/* Year Selection - Only show when in yearly mode */}
-      {viewMode === 'yearly' && (
-        <div className="flex items-center justify-end gap-2 mb-6">
-          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Year</span>
-          <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(Number(value))}>
-            <SelectTrigger
-              suppressHydrationWarning
-              className="w-28 h-10 rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-white dark:bg-slate-900/80 shadow-sm hover:bg-slate-50/80 dark:hover:bg-slate-800/80 text-slate-900 dark:text-slate-100 font-medium focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-white dark:bg-slate-900 shadow-lg">
-              {[selectedYear - 1, selectedYear, selectedYear + 1].map((year) => (
-                <SelectItem
-                  key={year}
-                  value={String(year)}
-                  className="rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800 focus:text-slate-900 dark:focus:text-slate-100"
-                >
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
       {/* Date Range and Filter Buttons - Only show when in dateRange mode, above AccountOverviewCard */}
       {viewMode === 'dateRange' && (
         <TradeFiltersBar
@@ -1308,12 +1282,39 @@ export default function AnalyticsClient(
         />
       )}
 
-      <hr className="my-16 border-t border-slate-200 dark:border-slate-700" />
+      <hr className="my-14 border-t border-slate-200 dark:border-slate-700" />
 
       {/* Overview & monthly highlights */}
-      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-8 mb-2">
-        Overview &amp; monthly highlights
-      </h2>
+      <div className="flex items-center justify-between mt-8 mb-2">
+        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
+          Overview &amp; Monthly highlights
+        </h2>
+        {/* Year Selection - Only show when in yearly mode */}
+        {viewMode === 'yearly' && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Year</span>
+            <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(Number(value))}>
+              <SelectTrigger
+                suppressHydrationWarning
+                className="w-28 h-10 rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-white dark:bg-slate-900/80 shadow-sm hover:bg-slate-50/80 dark:hover:bg-slate-800/80 text-slate-900 dark:text-slate-100 font-medium focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-white dark:bg-slate-900 shadow-lg">
+                {[selectedYear - 1, selectedYear, selectedYear + 1].map((year) => (
+                  <SelectItem
+                    key={year}
+                    value={String(year)}
+                    className="rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800 focus:text-slate-900 dark:focus:text-slate-100"
+                  >
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
       <p className="text-slate-500 dark:text-slate-400 mb-6">
         Account balance, yearly P&amp;L, and best and worst month for the selected year.
       </p>
