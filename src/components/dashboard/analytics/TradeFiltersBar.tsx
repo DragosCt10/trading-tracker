@@ -172,13 +172,13 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                     direction="vertical"
                   />
 
-                  <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm px-4 py-3">
+                  <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 backdrop-blur-sm px-4 py-3">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={handleCancel}
-                      className="border-slate-200/60 dark:border-slate-700/50 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all duration-200"
+                      className="cursor-pointer rounded-xl px-4 py-2 text-sm transition-colors duration-200 relative overflow-hidden group border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium"
                     >
                       Cancel
                     </Button>
@@ -186,9 +186,10 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                       type="button"
                       size="sm"
                       onClick={handleApply}
-                      className="bg-gradient-to-br from-purple-500 to-violet-600 text-white hover:from-purple-600 hover:to-violet-700 shadow-lg shadow-purple-500/30 dark:shadow-purple-900/50 rounded-xl transition-all duration-200"
+                      className="cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 relative overflow-hidden group border-0 bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white shadow-md shadow-purple-500/30 dark:shadow-purple-500/20"
                     >
-                      Apply
+                      <span className="relative z-10">Apply</span>
+                      <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                     </Button>
                   </div>
                 </div>
