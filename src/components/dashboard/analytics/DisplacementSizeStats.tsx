@@ -294,7 +294,7 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
                     fontSize: 12,
                     fontWeight: 500,
                     dy: -10,
-                    dx: -50,
+                    dx: -20,
                   }}
                 />
 
