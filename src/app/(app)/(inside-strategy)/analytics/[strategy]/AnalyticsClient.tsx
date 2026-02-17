@@ -1333,7 +1333,7 @@ export default function AnalyticsClient(
 
       {/* Month Stats Cards - Only show in yearly mode */}
       {viewMode === 'yearly' && (
-        <div className="flex flex-col gap-4 pb-8 sm:flex-row sm:items-stretch">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
           {monthlyStats.bestMonth && (
             <MonthPerformanceCard
               title="Best Month"
@@ -1376,7 +1376,24 @@ export default function AnalyticsClient(
         </div>
       )}
 
-      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-8 mb-2">Key Metrics</h2>
+      {/* Calendar View - Show in both modes */}
+      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Trades Calendar</h2>
+      <p className="text-slate-500 dark:text-slate-400 mb-6">
+        See your trades and activity by calendar day and week.
+      </p>
+      <TradesCalendarCard
+        currentDate={currentDate}
+        onMonthNavigate={handleMonthNavigation}
+        canNavigateMonth={canNavigateMonth}
+        weeklyStats={weeklyStats}
+        calendarMonthTrades={calendarMonthTradesToUse}
+        selectedMarket={selectedMarket}
+        currencySymbol={currencySymbol}
+        accountBalance={selection.activeAccount?.account_balance}
+        getDaysInMonth={() => getDaysInMonth}
+      />
+
+      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Key Metrics</h2>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Profit factor, consistency, Sharpe ratio, and other yearly performance indicators.</p>
 
       <div className="flex flex-col md:grid md:grid-cols-3 gap-4 pb-8 w-full">
@@ -2322,19 +2339,6 @@ export default function AnalyticsClient(
 
       {/* Risk Per Trade Card */}
       <RiskPerTrade className="mb-8" allTradesRiskStats={viewMode === 'yearly' ? allTradesRiskStats : riskStats as any} />
-
-      {/* Calendar View - Show in both modes */}
-      <TradesCalendarCard
-        currentDate={currentDate}
-        onMonthNavigate={handleMonthNavigation}
-        canNavigateMonth={canNavigateMonth}
-        weeklyStats={weeklyStats}
-        calendarMonthTrades={calendarMonthTradesToUse}
-        selectedMarket={selectedMarket}
-        currencySymbol={currencySymbol}
-        accountBalance={selection.activeAccount?.account_balance}
-        getDaysInMonth={() => getDaysInMonth}
-      />
 
       <div className="my-8">
         {/* Market Profit Statistics Card */}
