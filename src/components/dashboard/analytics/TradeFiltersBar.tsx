@@ -116,7 +116,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
   const displayRange = `${dateRange.startDate} ~ ${dateRange.endDate}`;
 
   return (
-    <Card className="mb-8 z-1 relative border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70  dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+    <Card className="mb-8 z-1 relative border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70  dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
       <div className="flex flex-wrap items-center justify-between gap-6 p-6">
         {/* Date range input + picker */}
         <div className="flex items-center gap-4">
