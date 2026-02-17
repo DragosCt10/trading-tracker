@@ -39,7 +39,28 @@ export function MonthlyPerformanceChart({
   monthlyStatsAllTrades,
   months,
 }: MonthlyPerformanceChartProps) {
-  const slate500 = '#64748b'; // tailwind slate-500
+  const [mounted, setMounted] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Check for dark mode
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    checkDarkMode();
+    // Watch for changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  // Dynamic colors based on dark mode
+  const slate500 = isDark ? '#94a3b8' : '#64748b'; // slate-400 in dark, slate-500 in light
+  const axisTextColor = isDark ? '#cbd5e1' : '#64748b'; // slate-300 in dark, slate-500 in light
 
   const chartData = months.map((month) => {
     const stats = monthlyStatsAllTrades[month] || {
@@ -63,12 +84,9 @@ export function MonthlyPerformanceChart({
     };
   });
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
   if (!mounted) {
     return (
-      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Monthly Performance
@@ -86,7 +104,7 @@ export function MonthlyPerformanceChart({
 
   if (!chartData.length) {
     return (
-      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Monthly Performance
@@ -173,7 +191,7 @@ export function MonthlyPerformanceChart({
         y={y}
         dy={16}
         textAnchor="middle"
-        fill={slate500}
+        fill={axisTextColor}
         fontSize={12}
       >
         {d.month} ({d.totalTrades})
@@ -186,7 +204,7 @@ export function MonthlyPerformanceChart({
     Number(value ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
   return (
-    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
       <CardHeader className="pb-2 flex-shrink-0">
         <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
           Monthly Performance
@@ -237,7 +255,7 @@ export function MonthlyPerformanceChart({
               {/* Y axis: numeric (wins/losses only, label is win/loss not %/winrate) */}
               <YAxis
                 type="number"
-                tick={{ fill: slate500, fontSize: 11 }}
+                tick={{ fill: axisTextColor, fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={yAxisTickFormatter}
@@ -247,7 +265,7 @@ export function MonthlyPerformanceChart({
                   value: 'Wins / Losses',
                   angle: -90,
                   position: 'middle',
-                  fill: slate500,
+                  fill: axisTextColor,
                   fontSize: 13,
                   fontWeight: 500,
                   dy: -10,
@@ -256,14 +274,20 @@ export function MonthlyPerformanceChart({
 
               <ReTooltip
                 contentStyle={{ 
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
+                  background: isDark 
+                    ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)' 
+                    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
                   backdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(148, 163, 184, 0.2)', 
+                  border: isDark 
+                    ? '1px solid rgba(51, 65, 85, 0.6)' 
+                    : '1px solid rgba(148, 163, 184, 0.2)', 
                   borderRadius: '16px', 
                   padding: '14px 18px', 
-                  color: '#1e293b', 
+                  color: isDark ? '#e2e8f0' : '#1e293b', 
                   fontSize: 14,
-                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+                  boxShadow: isDark
+                    ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+                    : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
                   minWidth: '160px'
                 }}
                 wrapperStyle={{ 

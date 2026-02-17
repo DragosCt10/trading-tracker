@@ -11,7 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Shield, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 type RiskStats = {
   total: number;
@@ -77,46 +77,41 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
 
   return (
     <Card
-      className={`col-span-3 relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm ${className}`}
+      className={`col-span-3 relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm ${className}`}
     >
       <div className="relative p-8">
-        {/* Header - same slick style as AccountOverviewCard */}
-        <div className="flex flex-wrap items-center gap-3 mb-6">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50 shadow-sm">
-            <Shield className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-          </div>
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-2xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-              Risk Per Trade
-            </CardTitle>
-            <TooltipProvider>
-              <Tooltip delayDuration={150}>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className="inline-flex h-4 w-4 items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none shrink-0"
-                    aria-label="Risk Per Trade Info"
-                  >
-                    <Info className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="w-72 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4"
-                  sideOffset={6}
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-6">
+          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+            Risk Per Trade
+          </CardTitle>
+          <TooltipProvider>
+            <Tooltip delayDuration={150}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-4 w-4 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none shrink-0"
+                  aria-label="Risk Per Trade Info"
                 >
-                  <div className="font-semibold text-slate-800 dark:text-slate-100 mb-2">
-                    Risk Per Trade
-                  </div>
-                  <p className="text-slate-500 dark:text-slate-400">
-                    Detailed breakdown of trades by risk percentage for the
-                    current year, showing wins, losses, and win rates for each
-                    risk level. Break-even (BE) trades are shown in parentheses.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+                  <Info className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                className="w-72 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 p-4"
+                sideOffset={6}
+              >
+                <div className="font-semibold text-slate-800 dark:text-slate-100 mb-2">
+                  Risk Per Trade
+                </div>
+                <p className="text-slate-500 dark:text-slate-400">
+                  Detailed breakdown of trades by risk percentage for the
+                  current year, showing wins, losses, and win rates for each
+                  risk level. Break-even (BE) trades are shown in parentheses.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
@@ -147,7 +142,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
                           <TooltipTrigger asChild>
                             <button
                               type="button"
-                              className="p-0 m-0 bg-transparent border-0 align-middle leading-none outline-none focus:ring-0 inline-flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                              className="p-0 m-0 bg-transparent border-0 align-middle leading-none outline-none focus:ring-0 inline-flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
                               aria-label={`${label} Info`}
                             >
                               <Info className="h-3.5 w-3.5" />
@@ -156,7 +151,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
                           <TooltipContent
                             side="top"
                             align="start"
-                            className="w-72 text-sm bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 p-4"
+                            className="w-72 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 p-4"
                             sideOffset={6}
                           >
                             {tooltip}

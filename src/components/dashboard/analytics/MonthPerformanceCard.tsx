@@ -34,7 +34,7 @@ export const MonthPerformanceCard: React.FC<MonthPerformanceCardProps> = ({
   return (
     <Card
       className={cn(
-        'relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex-1 flex flex-col',
+        'relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex-1 flex flex-col',
         className
       )}
     >

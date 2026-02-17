@@ -33,6 +33,28 @@ export function AccountOverviewCard({
   monthlyStatsAllTrades,
   isYearDataLoading = false,
 }: AccountOverviewCardProps) {
+  const [mounted, setMounted] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Check for dark mode
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    checkDarkMode();
+    // Watch for changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  // Dynamic colors based on dark mode
+  const axisTextColor = isDark ? '#cbd5e1' : '#64748b'; // slate-300 in dark, slate-500 in light
+
   const chartData = months.map((month) => ({
     month,
     profit: monthlyStatsAllTrades[month]?.profit ?? 0,
@@ -50,17 +72,13 @@ export function AccountOverviewCard({
   const hasTrades = chartData.some(item => item.profit !== 0);
   const showNoTradesMessage = !isYearDataLoading && !hasTrades;
 
-  // Defer account-dependent header until after mount so server and client first paint match (avoids hydration when e.g. account has no subaccounts and client cache isn't ready yet)
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
   const displayName = mounted ? (accountName || 'No Active Account') : '\u00A0';
   const displayBalanceStr = mounted
     ? `${currencySymbol}${updatedBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     : '\u00A0';
 
   return (
-    <Card className="relative mb-8 overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70  dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+    <Card className="relative mb-8 overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
       <div className="relative p-8">
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
@@ -155,12 +173,12 @@ export function AccountOverviewCard({
                   
                   <XAxis
                     dataKey="month"
-                    tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }}
+                    tick={{ fill: axisTextColor, fontSize: 12, fontWeight: 500 }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fill: '#64748b', fontSize: 11, fontWeight: 500 }}
+                    tick={{ fill: axisTextColor, fontSize: 11, fontWeight: 500 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v: number) =>
@@ -173,14 +191,20 @@ export function AccountOverviewCard({
                   {/* Sleek custom tooltip */}
                   <ReTooltip
                     contentStyle={{ 
-                      background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
+                      background: isDark 
+                        ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)' 
+                        : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
                       backdropFilter: 'blur(16px)',
-                      border: '1px solid rgba(148, 163, 184, 0.2)', 
+                      border: isDark 
+                        ? '1px solid rgba(51, 65, 85, 0.6)' 
+                        : '1px solid rgba(148, 163, 184, 0.2)', 
                       borderRadius: '16px', 
                       padding: '14px 18px', 
-                      color: '#1e293b', 
+                      color: isDark ? '#e2e8f0' : '#1e293b', 
                       fontSize: 14,
-                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+                      boxShadow: isDark
+                        ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+                        : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
                       minWidth: '160px'
                     }}
                     wrapperStyle={{ 
@@ -266,7 +290,9 @@ export function AccountOverviewCard({
                           <text
                             x={x + width / 2}
                             y={yPos}
-                            fill={value >= 0 ? '#0d9488' : '#e11d48'}
+                            fill={value >= 0 
+                              ? (isDark ? '#2dd4bf' : '#0d9488') 
+                              : (isDark ? '#fb7185' : '#e11d48')}
                             textAnchor="middle"
                             dominantBaseline="middle"
                             className="text-xs font-bold"
