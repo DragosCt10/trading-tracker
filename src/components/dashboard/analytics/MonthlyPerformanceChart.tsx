@@ -30,19 +30,26 @@ interface MonthlyStatsAllTrades {
 
 interface MonthlyPerformanceChartProps {
   monthlyStatsAllTrades: MonthlyStatsAllTrades;
+  months: string[];
   // kept for API compatibility, not used by Recharts
   chartOptions?: any;
 }
 
 export function MonthlyPerformanceChart({
   monthlyStatsAllTrades,
+  months,
 }: MonthlyPerformanceChartProps) {
   const slate500 = '#64748b'; // tailwind slate-500
 
-  const labels = Object.keys(monthlyStatsAllTrades);
-
-  const chartData = labels.map((month) => {
-    const stats = monthlyStatsAllTrades[month];
+  const chartData = months.map((month) => {
+    const stats = monthlyStatsAllTrades[month] || {
+      wins: 0,
+      losses: 0,
+      beWins: 0,
+      beLosses: 0,
+      winRate: 0,
+      winRateWithBE: 0,
+    };
     const totalTrades = stats.wins + stats.losses;
     return {
       month,
