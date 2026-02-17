@@ -34,6 +34,7 @@ export function RRHitStats({ trades }: RRHitStatsProps) {
       data={chartData}
       mode="singleValue"
       valueKey="value"
+      valueLabel="Setups:"
       heightClassName="h-80"
     />
   );
