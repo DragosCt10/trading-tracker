@@ -1,4 +1,4 @@
-import { TradeStatDatum } from '@/components/dashboard/TradesStatsBarCard';
+import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
 import { Trade } from '@/types/trade';
 
 export function getAverageDisplacementPerMarket(
