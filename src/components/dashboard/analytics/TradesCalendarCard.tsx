@@ -67,7 +67,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
   const emptyCells = Array(mondayBasedFirstDay).fill(null);
 
   return (
-    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm">
+    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
       {/* Header */}
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <Button
