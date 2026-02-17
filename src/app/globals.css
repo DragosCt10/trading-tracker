@@ -97,11 +97,32 @@
   background: transparent !important;
 }
 
-.rdrDateDisplayItem {
-  color: #64748b; /* slate-500 */
+.rdrCalendarWrapper {
+  background: transparent !important;
 }
+
+.rdrDateDisplayItem {
+  color: #64748b !important; /* slate-500 */
+  border-radius: 9999px !important; /* rounded-full */
+  border: 1px solid rgba(148, 163, 184, 0.5) !important; /* slate-400/50 */
+  background-color: transparent !important;
+  padding: 0.375rem 0.75rem !important; /* smaller padding */
+  font-weight: 500 !important;
+  font-size: 0.875rem !important; /* text-sm */
+  transition: all 0.2s !important;
+  box-shadow: none !important;
+}
+
+.rdrDateDisplayItem:hover {
+  background-color: rgba(243, 232, 255, 0.3) !important; /* purple-100/30 */
+  color: #7c3aed !important; /* purple-600 */
+}
+
 .rdrDateDisplayItemActive {
-  border-color: #64748b !important; /* slate-500 */
+  border-color: #a855f7 !important; /* purple-500 */
+  background-color: transparent !important;
+  color: #7c3aed !important; /* purple-600 */
+  box-shadow: none !important;
 }
 
 .rdrMonthAndYearPickers select:hover {
