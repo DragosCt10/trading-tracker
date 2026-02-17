@@ -109,7 +109,7 @@ export default function Navbar() {
   return (
     <>
       <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-(--breakpoint-xl) px-4 sm:px-0">
-        <div className="relative rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden">
+        <div className="relative rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-fuchsia-500/5" />
           <div className="relative flex items-center px-3 py-2 sm:px-4 sm:py-2.5">
             <Link
@@ -406,7 +406,7 @@ export default function Navbar() {
       
       {/* ActionBar - Under Navbar */}
       <div className="fixed top-20 left-1/2 z-40 w-auto -translate-x-1/2 transform">
-        <div className="inline-block mx-4 rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 pb-2 pt-2">
+        <div className="inline-block mx-4 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 pb-2 pt-2">
           <ActionBar />
         </div>
       </div>
