@@ -68,13 +68,13 @@ export function MonthlyPerformanceChart({
 
   if (!mounted) {
     return (
-      <Card className="border shadow-none bg-white h-96 flex flex-col">
+      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
+          <CardTitle className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Monthly Performance
           </CardTitle>
-          <CardDescription className="text-sm text-slate-500">
-            Monthly performance of trades
+          <CardDescription className="text-base text-slate-500 dark:text-slate-400">
+            Month-over-month results for your trades
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-1 flex justify-center items-center">
@@ -86,21 +86,21 @@ export function MonthlyPerformanceChart({
 
   if (!chartData.length) {
     return (
-      <Card className="border shadow-none bg-white h-96 flex flex-col">
+      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
+          <CardTitle className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Monthly Performance
           </CardTitle>
-          <CardDescription className="text-sm text-slate-500">
+          <CardDescription className="text-base text-slate-500 dark:text-slate-400">
             Monthly performance of trades
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-1 flex justify-center items-center">
           <div className="flex flex-col justify-center items-center w-full h-full">
-            <div className="text-base font-medium text-slate-500 text-center mb-1">
+            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
               No trades found
             </div>
-            <div className="text-sm text-slate-400 text-center max-w-xs">
+            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
               There are no trades to display for this category yet. Start trading to see your statistics here!
             </div>
           </div>
@@ -127,26 +127,35 @@ export function MonthlyPerformanceChart({
     const d = payload[0].payload as (typeof chartData)[number];
 
     return (
-      <div className="rounded-lg shadow bg-white p-3 border border-slate-200 text-[13px] leading-snug min-w-[160px]">
-        <div className="font-semibold mb-1 text-slate-800 text-[15px]">
+      <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
           {d.month} ({d.totalTrades} trades)
         </div>
-        <div className="text-slate-500">
-          Wins:{' '}
-          <span className="font-semibold text-emerald-600">{d.wins}</span>{' '}
-          ({d.beWins} BE)
-        </div>
-        <div className="text-slate-500">
-          Losses:{' '}
-          <span className="font-semibold text-red-500">{d.losses}</span>{' '}
-          ({d.beLosses} BE)
-        </div>
-        <div className="text-slate-500 mt-1">
-          Win Rate:{' '}
-          <span className="font-semibold text-amber-600">
-            {d.winRate.toFixed(2)}%
-          </span>{' '}
-          ({d.winRateWithBE.toFixed(2)}% w/ BE)
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
+            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+              {d.wins} {d.beWins > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({d.beWins} BE)</span>}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
+            <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
+              {d.losses} {d.beLosses > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({d.beLosses} BE)</span>}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
+            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+              {d.winRate.toFixed(2)}%
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-4 pt-1">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate (w/ BE):</span>
+            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+              {d.winRateWithBE.toFixed(2)}%
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -177,12 +186,12 @@ export function MonthlyPerformanceChart({
     Number(value ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
   return (
-    <Card className="border shadow-none h-96 flex flex-col bg-white">
+    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
       <CardHeader className="pb-2 flex-shrink-0">
-        <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
+        <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
           Monthly Performance
         </CardTitle>
-        <CardDescription className="text-sm text-slate-500 mb-3">
+        <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
           Monthly performance of trades
         </CardDescription>
       </CardHeader>
@@ -196,6 +205,27 @@ export function MonthlyPerformanceChart({
               margin={{ top: 10, right: 24, left: 16, bottom: 48 }}
               barCategoryGap="30%"
             >
+              <defs>
+                {/* Modern wins gradient - emerald to teal (same as profit in AccountOverviewCard) */}
+                <linearGradient id="winsGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+                  <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
+                </linearGradient>
+                {/* Modern losses gradient - rose to red (same as loss in AccountOverviewCard) */}
+                <linearGradient id="lossesGradient" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
+                  <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
+                </linearGradient>
+                {/* Win rate gradient - amber to orange */}
+                <linearGradient id="winRateGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
+                  <stop offset="50%" stopColor="#f97316" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#ea580c" stopOpacity={0.9} />
+                </linearGradient>
+              </defs>
+              
               {/* X axis: months and trade counts */}
               <XAxis
                 dataKey="month"
@@ -225,16 +255,33 @@ export function MonthlyPerformanceChart({
               />
 
               <ReTooltip
+                contentStyle={{ 
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(148, 163, 184, 0.2)', 
+                  borderRadius: '16px', 
+                  padding: '14px 18px', 
+                  color: '#1e293b', 
+                  fontSize: 14,
+                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+                  minWidth: '160px'
+                }}
+                wrapperStyle={{ 
+                  outline: 'none',
+                  zIndex: 1000
+                }}
+                cursor={{ 
+                  fill: 'transparent', 
+                  radius: 8,
+                }}
                 content={<CustomTooltip />}
-                cursor={false}
-                wrapperStyle={{ outline: 'none' }}
               />
 
               {/* Wins */}
               <ReBar
                 dataKey="wins"
                 name="Wins"
-                fill="rgba(52,211,153,0.8)" // emerald-400
+                fill="url(#winsGradient)"
                 radius={[4, 4, 0, 0]}
                 barSize={18}
               />
@@ -243,7 +290,7 @@ export function MonthlyPerformanceChart({
               <ReBar
                 dataKey="losses"
                 name="Losses"
-                fill="rgba(248,113,113,0.8)" // red-400
+                fill="url(#lossesGradient)"
                 radius={[4, 4, 0, 0]}
                 barSize={18}
               />
@@ -252,7 +299,7 @@ export function MonthlyPerformanceChart({
               <ReBar
                 dataKey="winRate"
                 name="Win Rate"
-                fill="rgba(253,186,116,0.8)" // orange-300
+                fill="url(#winRateGradient)"
                 radius={[4, 4, 0, 0]}
                 barSize={18}
                 yAxisId={1} // Place Win Rate on a secondary axis (not visible)
