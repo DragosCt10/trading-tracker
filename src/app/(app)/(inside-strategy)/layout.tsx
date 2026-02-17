@@ -1,0 +1,150 @@
+'use client';
+
+import { ReactNode, useState, useEffect, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import { FileText, PlusCircle, Sparkles, BarChart3 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+// Dynamically import NewTradeModal with SSR disabled to prevent hydration errors
+const NewTradeModal = dynamic(() => import('@/components/NewTradeModal'), {
+  ssr: false,
+});
+
+interface InsideStrategyLayoutProps {
+  children: ReactNode;
+}
+
+export default function InsideStrategyLayout({ children }: InsideStrategyLayoutProps) {
+  const pathname = usePathname();
+  const [newTradeModalOpen, setNewTradeModalOpen] = useState(false);
+  const [savedStrategySlug, setSavedStrategySlug] = useState<string | null>(null);
+
+  // Extract strategy slug from analytics route: /analytics/[strategy]
+  const currentStrategySlug = useMemo(() => {
+    const match = pathname.match(/^\/analytics\/(.+)$/);
+    return match ? decodeURIComponent(match[1]) : null;
+  }, [pathname]);
+
+  // Save strategy slug when on analytics page, persist in localStorage
+  useEffect(() => {
+    if (currentStrategySlug) {
+      setSavedStrategySlug(currentStrategySlug);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('last-analytics-strategy', currentStrategySlug);
+      }
+    } else {
+      // If not on analytics page, try to restore from localStorage
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('last-analytics-strategy');
+        if (saved) {
+          setSavedStrategySlug(saved);
+        }
+      }
+    }
+  }, [currentStrategySlug]);
+
+  // Note: localStorage cleanup happens in Navbar.tsx handleSignOut() on logout
+  // The strategy slug persists across inside-strategy route navigation (analytics/trades/discover)
+  // which is intentional - it allows users to return to their last viewed analytics page
+
+  // Get the analytics URL with the strategy slug
+  const analyticsUrl = useMemo(() => {
+    const slug = currentStrategySlug || savedStrategySlug;
+    return slug ? `/analytics/${encodeURIComponent(slug)}` : '/analytics';
+  }, [currentStrategySlug, savedStrategySlug]);
+
+  const isActive = (path: string) => {
+    if (path === '/trades') {
+      return pathname.startsWith('/trades');
+    }
+    if (path === '/discover') {
+      return pathname.startsWith('/discover');
+    }
+    if (path === '/analytics') {
+      return pathname.startsWith('/analytics');
+    }
+    return pathname === path;
+  };
+
+  const navButtonClass = (active: boolean) =>
+    cn(
+      'gap-2 rounded-xl border transition-all duration-200',
+      'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 hover:border-slate-300/70',
+      'dark:text-slate-200 dark:hover:text-slate-50 dark:hover:bg-slate-800/70 dark:hover:border-slate-700/70',
+      active &&
+        'bg-purple-500/5 border-purple-500/30 text-purple-700 hover:bg-purple-500/15 hover:border-purple-500/40 dark:text-purple-300 dark:bg-purple-500/10 dark:border-purple-400/25'
+    );
+
+  return (
+    <>
+      {children}
+
+      {/* Floating Left Bar - Centered Middle */}
+      <div className="fixed left-4 top-1/2 -translate-y-1/2 z-40 hidden lg:block group">
+        <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden transition-all duration-300 w-20 hover:w-48">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5" />
+          <div className="relative flex flex-col gap-2 p-3">
+            <Button
+              variant="ghost"
+              asChild
+              size="sm"
+              className={cn(navButtonClass(isActive('/analytics')), 'w-full h-auto min-h-[64px] !p-0')}
+            >
+              <Link href={analyticsUrl} className="block w-full h-full relative min-h-[40px]">
+                <BarChart3 className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Analytics</span>
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              asChild
+              size="sm"
+              className={cn(navButtonClass(isActive('/trades')), 'w-full h-auto min-h-[64px] !p-0')}
+            >
+              <Link href="/trades" className="block w-full h-full relative min-h-[40px]">
+                <FileText className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">My Trades</span>
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full h-auto min-h-[64px] cursor-pointer transition-all duration-300 relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white hover:text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 border-0 !p-0 [&_svg]:text-white"
+              onClick={() => setNewTradeModalOpen(true)}
+            >
+              <div className="block w-full h-full relative min-h-[40px]">
+                <PlusCircle className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">New Trade</span>
+              </div>
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+            </Button>
+            <Button
+              variant="ghost"
+              asChild
+              size="sm"
+              className={cn(navButtonClass(isActive('/discover')), 'w-full h-auto min-h-[64px] !p-0')}
+            >
+              <Link href="/discover" className="block w-full h-full relative min-h-[40px]">
+                <Sparkles className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Discover</span>
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* New Trade Modal */}
+      <NewTradeModal
+        isOpen={newTradeModalOpen}
+        onClose={() => setNewTradeModalOpen(false)}
+        onTradeCreated={() => {
+          // Modal will handle query invalidation
+          setNewTradeModalOpen(false);
+        }}
+      />
+    </>
+  );
+}

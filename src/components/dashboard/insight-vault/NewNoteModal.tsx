@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { createNote } from '@/lib/server/notes';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
-import { FileText, Loader2, AlertCircle, X } from 'lucide-react';
+import { FileText, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -13,13 +13,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -100,13 +93,13 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
       const { data, error: createError } = await createNote(userId, note);
 
       if (createError) throw new Error(createError.message);
-      if (!data) throw new Error('Failed to create note');
+      if (!data) throw new Error('Failed to create insight');
 
       setIsSubmitting(false);
       if (onNoteCreated) onNoteCreated();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to create note. Please try again.');
+      setError(err.message || 'Failed to create insight. Please try again.');
       setIsSubmitting(false);
     }
   };
@@ -148,7 +141,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
                 <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50">
                   <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
-                <span>New Note</span>
+                <span>New Insight</span>
               </AlertDialogTitle>
               <button
                 onClick={onClose}
@@ -159,7 +152,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
               </button>
             </div>
             <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
-              Create a new note with markdown support
+              Create a new insight with markdown support
             </AlertDialogDescription>
           </AlertDialogHeader>
         </div>
@@ -187,7 +180,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
                 value={note.title}
                 onChange={(e) => setNote({ ...note, title: e.target.value })}
                 className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100 focus:outline-none"
-                placeholder="Note title"
+                placeholder="Insight title"
                 required
               />
             </div>
@@ -297,7 +290,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
                     value={note.content}
                     onChange={(e) => setNote({ ...note, content: e.target.value })}
                     className="min-h-[400px] bg-transparent border-0 outline-none resize-none text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 font-mono text-sm p-4"
-                    placeholder="Start writing your note in markdown..."
+                    placeholder="Start writing your insight in markdown..."
                     required
                   />
                 )}
@@ -307,7 +300,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
               </p>
             </div>
 
-            {/* Pin Note */}
+            {/* Pin Insight */}
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="pin-note"
@@ -318,7 +311,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
                 className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
               />
               <Label htmlFor="pin-note" className="text-sm font-normal cursor-pointer text-slate-700 dark:text-slate-300">
-                Pin this note
+                Pin this insight
               </Label>
             </div>
 
@@ -361,7 +354,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
                       />
                     </svg>
                   )}
-                  Create Note
+                  Create Insight
                 </span>
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
               </Button>

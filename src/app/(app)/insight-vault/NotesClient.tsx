@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, BookOpen, Loader2 } from 'lucide-react';
-import NoteDetailsModal from '@/components/notes/NoteDetailsModal';
-import NewNoteModal from '@/components/notes/NewNoteModal';
-import { NoteCard } from '@/components/notes/NoteCard';
+import NoteDetailsModal from '@/components/dashboard/insight-vault/NoteDetailsModal';
+import NewNoteModal from '@/components/dashboard/insight-vault/NewNoteModal';
+import { NoteCard } from '@/components/dashboard/insight-vault/NoteCard';
 import { getNotes } from '@/lib/server/notes';
 import { useStrategies } from '@/hooks/useStrategies';
 import {
@@ -156,7 +156,7 @@ export default function NotesClient({
               <BookOpen className="w-6 h-6 text-purple-600 dark:text-purple-400" />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-              Notes
+              Insight Vault
             </h1>
           </div>
           <Button
@@ -165,13 +165,13 @@ export default function NotesClient({
           >
             <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
               <Plus className="h-4 w-4" />
-              <span>New Note</span>
+              <span>New Insight</span>
             </span>
             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
           </Button>
         </div>
         <p className="text-sm text-slate-600 dark:text-slate-400 ml-[52px]">
-          Your trading notes and insights. Organize your thoughts, strategies, and learnings.
+          Your vault of trading insights and knowledge. Store, organize, and unlock your strategic wisdom.
         </p>
       </div>
 
@@ -179,7 +179,7 @@ export default function NotesClient({
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <Input
-            placeholder="Search notes..."
+            placeholder="Search insights..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="max-w-md h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm"
@@ -191,7 +191,7 @@ export default function NotesClient({
               <SelectValue placeholder="Filter by strategy" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Notes</SelectItem>
+              <SelectItem value="all">All Insights</SelectItem>
               <SelectItem value="none">No Strategy</SelectItem>
               {strategies.map((strategy) => (
                 <SelectItem key={strategy.id} value={strategy.id}>
@@ -242,7 +242,7 @@ export default function NotesClient({
           <div className="col-span-full text-center py-12">
             <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50 text-slate-400 dark:text-slate-600" />
             <p className="text-slate-500 dark:text-slate-400">
-              {searchQuery ? 'No notes found matching your search.' : 'No notes yet. Create your first note!'}
+              {searchQuery ? 'No insights found matching your search.' : 'Your vault is empty. Create your first insight!'}
             </p>
           </div>
         ) : (

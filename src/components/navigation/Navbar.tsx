@@ -3,17 +3,13 @@
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
 import {
   Menu,
-  ChartBar,
-  FileText,
-  PlusCircle,
   X,
-  Sparkles,
   LogOut,
   Target,
   BookOpen,
+  Home,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -35,11 +31,6 @@ import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useAccounts } from '@/hooks/useAccounts';
 import Logo from '../shared/Logo';
 
-// Dynamically import NewTradeModal with SSR disabled to prevent hydration errors
-const NewTradeModal = dynamic(() => import('../NewTradeModal'), {
-  ssr: false,
-});
-
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -47,7 +38,6 @@ export default function Navbar() {
   const supabase = createClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [newTradeModalOpen, setNewTradeModalOpen] = useState(false);
   const queryClient = useQueryClient();
   const { theme, toggleTheme, mounted } = useTheme();
 
@@ -70,7 +60,7 @@ export default function Navbar() {
       // ✅ Clear all queries from cache to ensure no user data persists after logout
       queryClient.clear();
       
-      // Clear any localStorage items related to trades/drafts
+      // Clear any localStorage items related to trades/drafts and analytics
       if (typeof window !== 'undefined') {
         // Clear trade draft data
         const keysToRemove: string[] = [];
@@ -81,6 +71,8 @@ export default function Navbar() {
           }
         }
         keysToRemove.forEach(key => localStorage.removeItem(key));
+        // Clear analytics strategy slug
+        localStorage.removeItem('last-analytics-strategy');
       }
       
       await supabase.auth.signOut();
@@ -92,12 +84,16 @@ export default function Navbar() {
   };
 
   const isActive = (path: string) => {
+    // For home, check exact match
+    if (path === '/') {
+      return pathname === '/';
+    }
     // For strategies, check if pathname starts with /strategies (to handle dynamic routes)
     if (path === '/strategies') {
       return pathname.startsWith('/strategies');
     }
-    if (path === '/notes') {
-      return pathname.startsWith('/notes');
+    if (path === '/insight-vault') {
+      return pathname.startsWith('/insight-vault');
     }
     return pathname === path;
   };
@@ -136,6 +132,19 @@ export default function Navbar() {
                   variant="ghost"
                   asChild
                   size="sm"
+                  className={navButtonClass(isActive('/'))}
+                >
+                  <Link href="/">
+                    <Home className="h-4 w-4" />
+                    <span>Home</span>
+                  </Link>
+                </Button>
+              </li>
+              <li>
+                <Button
+                  variant="ghost"
+                  asChild
+                  size="sm"
                   className={navButtonClass(isActive('/strategies'))}
                 >
                   <Link href="/strategies">
@@ -149,11 +158,11 @@ export default function Navbar() {
                   variant="ghost"
                   asChild
                   size="sm"
-                  className={navButtonClass(isActive('/notes'))}
+                  className={navButtonClass(isActive('/insight-vault'))}
                 >
-                  <Link href="/notes">
+                  <Link href="/insight-vault">
                     <BookOpen className="h-4 w-4" />
-                    <span>My Notes</span>
+                    <span>Insight Vault</span>
                   </Link>
                 </Button>
               </li>
@@ -268,6 +277,17 @@ export default function Navbar() {
                 <Button
                   variant="ghost"
                   asChild
+                  className={cn('w-full justify-start', navButtonClass(isActive('/')))}
+                >
+                  <Link href="/" onClick={() => setMobileMenuOpen(false)}>
+                    <Home className="h-4 w-4" />
+                    Home
+                  </Link>
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  asChild
                   className={cn('w-full justify-start', navButtonClass(isActive('/strategies')))}
                 >
                   <Link href="/strategies" onClick={() => setMobileMenuOpen(false)}>
@@ -279,11 +299,11 @@ export default function Navbar() {
                 <Button
                   variant="ghost"
                   asChild
-                  className={cn('w-full justify-start', navButtonClass(isActive('/notes')))}
+                  className={cn('w-full justify-start', navButtonClass(isActive('/insight-vault')))}
                 >
-                  <Link href="/notes" onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/insight-vault" onClick={() => setMobileMenuOpen(false)}>
                     <BookOpen className="h-4 w-4" />
-                    My Notes
+                    Insight Vault
                   </Link>
                 </Button>
 
@@ -391,58 +411,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Floating Left Bar - Centered Middle */}
-      <div className="fixed left-4 top-1/2 -translate-y-1/2 z-40 hidden lg:block group">
-        <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden transition-all duration-300 w-20 hover:w-48">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5" />
-          <div className="relative flex flex-col gap-2 p-3">
-            <Button
-              variant="ghost"
-              asChild
-              size="sm"
-              className={cn(navButtonClass(isActive('/trades')), 'w-full h-auto min-h-[64px] !p-0')}
-            >
-              <Link href="/trades" className="block w-full h-full relative min-h-[40px]">
-                <FileText className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
-                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">My Trades</span>
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full h-auto min-h-[64px] cursor-pointer transition-all duration-300 relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white hover:text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 border-0 !p-0 [&_svg]:text-white"
-              onClick={() => setNewTradeModalOpen(true)}
-            >
-              <div className="block w-full h-full relative min-h-[40px]">
-                <PlusCircle className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
-                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">New Trade</span>
-              </div>
-              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-            </Button>
-            <Button
-              variant="ghost"
-              asChild
-              size="sm"
-              className={cn(navButtonClass(isActive('/discover')), 'w-full h-auto min-h-[64px] !p-0')}
-            >
-              <Link href="/discover" className="block w-full h-full relative min-h-[40px]">
-                <Sparkles className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
-                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Discover</span>
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* New Trade Modal */}
-      <NewTradeModal
-        isOpen={newTradeModalOpen}
-        onClose={() => setNewTradeModalOpen(false)}
-        onTradeCreated={() => {
-          // Modal will handle query invalidation
-          setNewTradeModalOpen(false);
-        }}
-      />
     </>
   );
 }

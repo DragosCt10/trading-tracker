@@ -3,10 +3,11 @@ import { getNotes } from '@/lib/server/notes';
 import NotesClient from './NotesClient';
 import { NotesSkeleton } from './NotesSkeleton';
 import type { User } from '@supabase/supabase-js';
+import type { Note } from '@/types/note';
 
 async function NotesDataFetcher({ user }: { user: User }) {
   // Fetch initial notes server-side
-  let initialNotes = [];
+  let initialNotes: Note[] = [];
 
   try {
     initialNotes = await getNotes(user.id);

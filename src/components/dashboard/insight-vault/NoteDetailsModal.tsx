@@ -6,7 +6,7 @@ import { deleteNote, updateNote } from '@/lib/server/notes';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
-import { AlertCircle, Loader2, Pencil, Trash2, Pin, X, FileText } from 'lucide-react';
+import { AlertCircle, Pencil, Trash2, Pin, X, FileText } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -15,13 +15,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -97,13 +90,13 @@ export default function NoteDetailsModal({
       });
 
       if (updateError) throw new Error(updateError.message);
-      if (!data) throw new Error('Failed to update note');
+      if (!data) throw new Error('Failed to update insight');
 
       setIsSaving(false);
       setIsEditing(false);
       if (onNoteUpdated) onNoteUpdated();
     } catch (err: any) {
-      setError(err.message || 'Failed to update note');
+      setError(err.message || 'Failed to update insight');
       setIsSaving(false);
     }
   };
@@ -125,7 +118,7 @@ export default function NoteDetailsModal({
       if (onNoteDeleted) onNoteDeleted();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to delete note');
+      setError(err.message || 'Failed to delete insight');
       setIsDeleting(false);
     }
   };
@@ -168,7 +161,7 @@ export default function NoteDetailsModal({
                   <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50">
                     <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <span>{isEditing ? 'Edit Note' : 'Note Details'}</span>
+                  <span>{isEditing ? 'Edit Insight' : 'Insight Details'}</span>
                 </AlertDialogTitle>
                 <div className="flex items-center gap-2">
                   {!isEditing && (
@@ -264,7 +257,7 @@ export default function NoteDetailsModal({
               </div>
               {!isEditing && (
                 <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
-                  View and manage your note details
+                  View and manage your insight details
                 </AlertDialogDescription>
               )}
             </AlertDialogHeader>
@@ -428,7 +421,7 @@ export default function NoteDetailsModal({
                     className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
                   />
                   <Label htmlFor="pin-note-edit" className="text-sm font-normal cursor-pointer text-slate-700 dark:text-slate-300">
-                    Pin this note
+                    Pin this insight
                   </Label>
                 </div>
 
