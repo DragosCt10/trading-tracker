@@ -181,7 +181,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
               <div
                 key={day}
-                className="p-2 text-center text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide"
+                className="p-2 text-center text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide"
               >
                 {day}
               </div>
