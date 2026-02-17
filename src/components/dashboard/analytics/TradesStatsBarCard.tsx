@@ -17,8 +17,6 @@ import {
   CardContent,
 } from '@/components/ui/card';
 
-const slate500 = '#64748b'; // tailwind slate-500
-
 // Generic shape for each bar/category
 export interface TradeStatDatum {
   category: string;        // label shown on X axis
@@ -42,6 +40,8 @@ interface TradeStatsBarCardProps {
   mode?: Mode;
   /** used only when mode === 'singleValue' */
   valueKey?: keyof TradeStatDatum;
+  /** label for the value in tooltip when mode === 'singleValue' (default: "Value:") */
+  valueLabel?: string;
   /** tailwind height for the chart container (default h-80; ignored) */
   heightClassName?: string;
 }
@@ -52,6 +52,7 @@ export function TradeStatsBarCard({
   data,
   mode = 'winsLossesWinRate',
   valueKey = 'value',
+  valueLabel = 'Value:',
   heightClassName, // ignored for height consistency
 }: TradeStatsBarCardProps) {
   const onlyZero = !data || data.length === 0 ||
@@ -77,16 +78,41 @@ export function TradeStatsBarCard({
     );
 
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Check for dark mode
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    checkDarkMode();
+    // Watch for changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  // Dynamic colors based on dark mode
+  const slate500 = isDark ? '#94a3b8' : '#64748b'; // slate-400 in dark, slate-500 in light
+  const axisTextColor = isDark ? '#cbd5e1' : '#64748b'; // slate-300 in dark, slate-500 in light
+
+  // Helper to sanitize title for use in gradient IDs (remove special characters)
+  const sanitizeTitleForId = (text: string) => {
+    return text.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '-');
+  };
 
   if (!mounted) {
     return (
-      <Card className="border shadow-none bg-white h-96 flex flex-col">
+      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
+          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             {title}
           </CardTitle>
-          <CardDescription className="text-sm text-slate-500">
+          <CardDescription className="text-base text-slate-500 dark:text-slate-400">
             {description}
           </CardDescription>
         </CardHeader>
@@ -99,21 +125,21 @@ export function TradeStatsBarCard({
 
   if (onlyZero) {
     return (
-      <Card className="border shadow-none bg-white h-96 flex flex-col">
+      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
+          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             {title}
           </CardTitle>
-          <CardDescription className="text-sm text-slate-500">
+          <CardDescription className="text-base text-slate-500 dark:text-slate-400">
             {description}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-1 flex justify-center items-center">
           <div className="flex flex-col justify-center items-center w-full h-full">
-            <div className="text-base font-medium text-slate-500 text-center mb-1">
+            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
               No trades found
             </div>
-            <div className="text-sm text-slate-400 text-center max-w-xs">
+            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
               There are no trades to display for this category yet. Start trading to see your statistics here!
             </div>
           </div>
@@ -161,15 +187,17 @@ export function TradeStatsBarCard({
 
     if (mode === 'singleValue') {
       const v = Number(d[valueKey] ?? 0);
+      // Display as integer if it's a whole number, otherwise show 2 decimal places
+      const displayValue = Number.isInteger(v) ? v.toString() : v.toFixed(2);
       return (
-        <div className="rounded-lg shadow bg-white p-3 border border-slate-200 text-[13px] leading-snug min-w-[160px]">
-          <div className="font-semibold mb-1 text-slate-800 text-[15px]">
+        <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
             {d.category}
           </div>
-          <div className="text-slate-500">
-            Value:{' '}
-            <span className="font-semibold text-slate-700">
-              {v.toFixed(2)}
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{valueLabel}</span>
+            <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
+              {displayValue}
             </span>
           </div>
         </div>
@@ -182,47 +210,39 @@ export function TradeStatsBarCard({
     const beLosses = d.beLosses ?? 0;
     const winRate = d.winRate ?? 0;
     const winRateWithBE = d.winRateWithBE ?? d.winRate ?? 0;
+    const totalTrades = d.totalTrades ?? ((wins + losses) || undefined);
 
     return (
-      <div className="rounded-lg shadow bg-white p-3 border border-slate-200 text-[13px] leading-snug min-w-[180px]">
-        <div className="font-semibold mb-1 text-slate-800 text-[15px]">
-          {d.category} 
-          {typeof d.totalTrades === 'number'
-            ? ` (${d.totalTrades} trade${d.totalTrades === 1 ? '' : 's'})`
-            : ''}
+      <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
+          {d.category} {typeof totalTrades === 'number' ? `(${totalTrades} trade${totalTrades === 1 ? '' : 's'})` : ''}
         </div>
-        <div className="text-slate-500">
-          Wins:{' '}
-          <span className="font-semibold text-emerald-600">{wins}</span>
-          {d.beWins !== undefined && (
-            <>
-              {' '}
-              (<span className="font-semibold text-slate-700">{beWins}</span>{' '}
-              BE)
-            </>
-          )}
-        </div>
-        <div className="text-slate-500">
-          Losses:{' '}
-          <span className="font-semibold text-red-500">{losses}</span>
-          {d.beLosses !== undefined && (
-            <>
-              {' '}
-              (<span className="font-semibold text-slate-700">{beLosses}</span>{' '}
-              BE)
-            </>
-          )}
-        </div>
-        <div className="text-slate-500 mt-1">
-          Win Rate:{' '}
-          <span className="font-semibold text-amber-600">
-            {winRate.toFixed(2)}%
-          </span>
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
+            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+              {wins} {beWins > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beWins} BE)</span>}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
+            <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
+              {losses} {beLosses > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beLosses} BE)</span>}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
+            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+              {winRate.toFixed(2)}%
+            </div>
+          </div>
           {d.winRateWithBE !== undefined && (
-            <>
-              {' '}
-              ({winRateWithBE.toFixed(2)}% w/ BE)
-            </>
+            <div className="flex items-center justify-between gap-4 pt-1">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate (w/ BE):</span>
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                {winRateWithBE.toFixed(2)}%
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -246,7 +266,7 @@ export function TradeStatsBarCard({
         y={y}
         dy={16}
         textAnchor="middle"
-        fill={slate500}
+        fill={axisTextColor}
         fontSize={12}
       >
         {label}
@@ -257,12 +277,12 @@ export function TradeStatsBarCard({
   // --- Render (use identical height + structure as MonthlyPerformanceChart) ---
 
   return (
-    <Card className="border shadow-none h-96 flex flex-col bg-white">
+    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
       <CardHeader className="pb-2 flex-shrink-0">
-        <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
+        <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
           {title}
         </CardTitle>
-        <CardDescription className="text-sm text-slate-500 mb-3">
+        <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
           {description}
         </CardDescription>
       </CardHeader>
@@ -276,16 +296,43 @@ export function TradeStatsBarCard({
               margin={{ top: 10, right: 24, left: 16, bottom: 48 }}
               barCategoryGap="30%"
             >
+              <defs>
+                {/* Modern wins gradient - emerald to teal (same as MonthlyPerformanceChart) */}
+                <linearGradient id={`winsGradient-${sanitizeTitleForId(title)}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+                  <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
+                </linearGradient>
+                {/* Modern losses gradient - rose to red (same as MonthlyPerformanceChart) */}
+                <linearGradient id={`lossesGradient-${sanitizeTitleForId(title)}`} x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
+                  <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
+                </linearGradient>
+                {/* Win rate gradient - amber to orange */}
+                <linearGradient id={`winRateGradient-${sanitizeTitleForId(title)}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
+                  <stop offset="50%" stopColor="#f97316" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#ea580c" stopOpacity={0.9} />
+                </linearGradient>
+                {/* Single value gradient - blue to cyan (modern and vibrant) */}
+                <linearGradient id={`valueGradient-${sanitizeTitleForId(title)}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+                  <stop offset="50%" stopColor="#06b6d4" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.9} />
+                </linearGradient>
+              </defs>
+              
               <XAxis
                 dataKey="category"
                 type="category"
                 axisLine={false}
                 tickLine={false}
-                tick={renderXAxisTick as any}
+                tick={renderXAxisTick as (props: any) => React.ReactElement<SVGElement>}
               />
               <YAxis
                 type="number"
-                tick={{ fill: slate500, fontSize: 11 }}
+                tick={{ fill: axisTextColor, fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={yAxisTickFormatter}
@@ -294,11 +341,10 @@ export function TradeStatsBarCard({
                   value: mode === 'singleValue' ? 'Value' : 'Wins / Losses',
                   angle: -90,
                   position: 'middle',
-                  fill: slate500,
+                  fill: axisTextColor,
                   fontSize: 13,
                   fontWeight: 500,
                   dy: -10,
-                  dx: -10
                 }}
               />
 
@@ -308,9 +354,32 @@ export function TradeStatsBarCard({
               )}
 
               <ReTooltip
+                contentStyle={{ 
+                  background: isDark 
+                    ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)' 
+                    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
+                  backdropFilter: 'blur(16px)',
+                  border: isDark 
+                    ? '1px solid rgba(51, 65, 85, 0.6)' 
+                    : '1px solid rgba(148, 163, 184, 0.2)', 
+                  borderRadius: '16px', 
+                  padding: '14px 18px', 
+                  color: isDark ? '#e2e8f0' : '#1e293b', 
+                  fontSize: 14,
+                  boxShadow: isDark
+                    ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+                    : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+                  minWidth: '160px'
+                }}
+                wrapperStyle={{ 
+                  outline: 'none',
+                  zIndex: 1000
+                }}
+                cursor={{ 
+                  fill: 'transparent', 
+                  radius: 8,
+                }}
                 content={<StatsTooltip />}
-                cursor={false}
-                wrapperStyle={{ outline: 'none' }}
               />
 
               {mode === 'winsLossesWinRate' ? (
@@ -318,21 +387,21 @@ export function TradeStatsBarCard({
                   <ReBar
                     dataKey="wins"
                     name="Wins"
-                    fill="rgba(52,211,153,0.8)" // emerald-400
+                    fill={`url(#winsGradient-${sanitizeTitleForId(title)})`}
                     radius={[4, 4, 0, 0]}
                     barSize={18}
                   />
                   <ReBar
                     dataKey="losses"
                     name="Losses"
-                    fill="rgba(248,113,113,0.8)" // red-400
+                    fill={`url(#lossesGradient-${sanitizeTitleForId(title)})`}
                     radius={[4, 4, 0, 0]}
                     barSize={18}
                   />
                   <ReBar
                     dataKey="winRate"
                     name="Win Rate"
-                    fill="rgba(253,186,116,0.8)" // orange-300
+                    fill={`url(#winRateGradient-${sanitizeTitleForId(title)})`}
                     radius={[4, 4, 0, 0]}
                     barSize={18}
                     yAxisId={1}
@@ -342,7 +411,7 @@ export function TradeStatsBarCard({
                 <ReBar
                   dataKey={valueKey as string}
                   name="Value"
-                  fill="rgba(148,163,184,0.4)" // slate-400-ish (like stone-200)
+                  fill={`url(#valueGradient-${sanitizeTitleForId(title)})`}
                   radius={[4, 4, 0, 0]}
                   barSize={18}
                 />
