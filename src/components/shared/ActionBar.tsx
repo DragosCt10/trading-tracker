@@ -221,7 +221,7 @@ export default function ActionBar({ initialData }: ActionBarProps) {
             <SelectTrigger className="h-8 rounded-xl bg-transparent border border-slate-200/70 dark:border-slate-700/70 text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[130px] w-full sm:w-[130px] md:w-[160px] focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200">
               <SelectValue placeholder="Select mode" />
             </SelectTrigger>
-            <SelectContent className="text-xs sm:text-sm min-w-[140px] md:min-w-[160px] border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+            <SelectContent className="text-xs sm:text-sm min-w-[140px] md:min-w-[160px] border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100">
               <SelectItem value="live" className="text-xs sm:text-sm">Live</SelectItem>
               <SelectItem value="backtesting" className="text-xs sm:text-sm">Backtesting</SelectItem>
               <SelectItem value="demo" className="text-xs sm:text-sm">Demo</SelectItem>
@@ -252,7 +252,7 @@ export default function ActionBar({ initialData }: ActionBarProps) {
               <SelectTrigger className="h-8 rounded-xl bg-transparent border border-slate-200/70 dark:border-slate-700/70 text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px] focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200">
                 <SelectValue placeholder="Choose subaccount…" />
               </SelectTrigger>
-              <SelectContent className="text-xs sm:text-sm min-w-[170px] md:min-w-[200px] border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+              <SelectContent className="text-xs sm:text-sm min-w-[170px] md:min-w-[200px] border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100">
                 {!noAccounts ? (
                   accounts.map((a) => (
                     <SelectItem key={a.id} value={a.id} className="text-xs sm:text-sm">
