@@ -53,6 +53,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
 }) => {
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [tempRange, setTempRange] = React.useState<DateRangeValue>(dateRange);
+  const [pickerPosition, setPickerPosition] = React.useState({ top: 0, left: 0 });
 
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const pickerRef = React.useRef<HTMLDivElement | null>(null);
@@ -61,6 +62,17 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
   React.useEffect(() => {
     setTempRange(dateRange);
   }, [dateRange]);
+
+  // Calculate picker position when opening
+  React.useEffect(() => {
+    if (showDatePicker && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setPickerPosition({
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.left + window.scrollX,
+      });
+    }
+  }, [showDatePicker]);
 
   // click-outside to close date picker
   React.useEffect(() => {
@@ -104,33 +116,35 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
   const displayRange = `${dateRange.startDate} ~ ${dateRange.endDate}`;
 
   return (
-    <Card className="mb-8 border shadow-none">
-      <div className="flex flex-wrap items-center justify-between gap-4 p-6">
+    <Card className="mb-8 z-1 relative border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+      <div className="flex flex-wrap items-center justify-between gap-6 p-6">
         {/* Date range input + picker */}
         <div className="flex items-center gap-4">
           <div className="w-72">
             <div className="relative w-full">
-              <Input
-                ref={inputRef}
-                readOnly
-                value={displayRange}
-                onFocus={() => setShowDatePicker(true)}
-                onClick={() => setShowDatePicker(true)}
-                placeholder="Select date range"
-                className="w-full cursor-pointer shadow-none"
-              />
-              <button
-                type="button"
-                onClick={() => setShowDatePicker((v) => !v)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center text-slate-600 hover:text-slate-800"
-              >
-                <Calendar className="h-4 w-4" />
-              </button>
+              <div className="relative">
+                <Input
+                  ref={inputRef}
+                  readOnly
+                  value={displayRange}
+                  onFocus={() => setShowDatePicker(true)}
+                  onClick={() => setShowDatePicker(true)}
+                  placeholder="Select date range"
+                  className="w-full cursor-pointer shadow-none border-slate-200/60 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 rounded-xl h-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowDatePicker((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                >
+                  <Calendar className="h-4 w-4" />
+                </button>
+              </div>
 
               {showDatePicker && (
                 <div
                   ref={pickerRef}
-                  className="absolute left-0 z-50 mt-2 rounded-lg overflow-hidden border border-slate-200 bg-white shadow-none"
+                  className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border border-slate-200/60 dark:border-slate-700/50 bg-white dark:bg-slate-900 shadow-xl shadow-slate-900/20 dark:shadow-black/60 backdrop-blur-xl [&_input]:cursor-pointer [&_input]:rounded-xl [&_input]:border [&_input]:border-slate-200/80 [&_input]:bg-slate-100/60 [&_input]:text-slate-700 [&_input]:hover:bg-slate-200/80 [&_input]:hover:text-slate-900 [&_input]:hover:border-slate-300/80 [&_input]:dark:border-slate-700/80 [&_input]:dark:bg-slate-900/40 [&_input]:dark:text-slate-200 [&_input]:dark:hover:bg-slate-800/70 [&_input]:dark:hover:text-slate-50 [&_input]:dark:hover:border-slate-600/80 [&_input]:font-medium [&_input]:transition-colors [&_input]:duration-200 [&_input]:px-3 [&_input]:py-2 [&_input]:text-sm"
                 >
                   <DateRange
                     ranges={[
@@ -154,17 +168,17 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                     editableDateInputs
                     maxDate={new Date()}
                     showMonthAndYearPickers
-                    rangeColors={['#1e293b']} // slate-800
+                    rangeColors={['#8b5cf6']} // violet-500
                     direction="vertical"
                   />
 
-                  <div className="flex justify-end gap-2 border-t border-slate-200 bg-white px-3 py-2">
+                  <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm px-4 py-3">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={handleCancel}
-                      className="border-slate-300 text-slate-700 hover:bg-slate-50"
+                      className="border-slate-200/60 dark:border-slate-700/50 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all duration-200"
                     >
                       Cancel
                     </Button>
@@ -172,7 +186,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                       type="button"
                       size="sm"
                       onClick={handleApply}
-                      className="bg-slate-800 text-slate-50 hover:bg-slate-900"
+                      className="bg-gradient-to-br from-purple-500 to-violet-600 text-white hover:from-purple-600 hover:to-violet-700 shadow-lg shadow-purple-500/30 dark:shadow-purple-900/50 rounded-xl transition-all duration-200"
                     >
                       Apply
                     </Button>
@@ -185,7 +199,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
 
         {/* Period filters */}
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-slate-800">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             Filter by period:
           </span>
           <div className="flex flex-wrap gap-2">
@@ -199,13 +213,16 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                   size="sm"
                   onClick={() => onFilterChange(preset.key)}
                   className={cn(
-                    'rounded-lg px-4 text-sm transition',
+                    'cursor-pointer rounded-xl px-4 py-2 text-sm transition-colors duration-200 relative overflow-hidden group',
                     isActive
-                      ? 'bg-slate-800 text-slate-50 hover:bg-slate-900 border-slate-900'
-                      : 'border-slate-400 text-slate-700 hover:bg-slate-50',
+                      ? 'bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 border-0'
+                      : 'border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium',
                   )}
                 >
-                  {preset.label}
+                  <span className="relative z-10">{preset.label}</span>
+                  {isActive && (
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                  )}
                 </Button>
               );
             })}
@@ -213,21 +230,24 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
         </div>
 
         {/* Market filter */}
-        <div className="ml-auto flex items-center gap-4">
-          <span className="text-sm font-medium text-slate-800">
+        <div className="ml-auto flex items-center gap-3">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             Filter by market:
           </span>
           <Select
             value={selectedMarket}
             onValueChange={onSelectedMarketChange}
           >
-            <SelectTrigger className="flex w-40 shadow-none" suppressHydrationWarning>
+            <SelectTrigger 
+              className="flex w-40 shadow-none border-slate-200/60 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 rounded-xl h-10" 
+              suppressHydrationWarning
+            >
               <SelectValue placeholder="All Markets" />
             </SelectTrigger>
-            <SelectContent className="">
-              <SelectItem value="all">All Markets</SelectItem>
+            <SelectContent className="rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-white dark:bg-slate-900 shadow-lg backdrop-blur-sm">
+              <SelectItem value="all" className="rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800">All Markets</SelectItem>
               {markets.map((market) => (
-                <SelectItem key={market} value={market}>
+                <SelectItem key={market} value={market} className="rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800">
                   {market}
                 </SelectItem>
               ))}
