@@ -331,16 +331,17 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                       side="top"
                       align="center"
                       className={cn(
-                        'w-48 p-3 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 shadow-lg dark:shadow-xl rounded-xl backdrop-blur-sm space-y-1'
+                        'w-48 p-4 text-xs bg-white/95 dark:bg-slate-800/98 border border-slate-200/60 dark:border-slate-600/50 text-slate-900 dark:text-slate-100 shadow-2xl dark:shadow-slate-900/50 rounded-2xl backdrop-blur-xl space-y-1.5'
                       )}
+                      sideOffset={6}
                     >
                       {/* Existing list of trades (all breakpoints) */}
                       {filteredDayTrades.map((trade, i) => (
                         <div
                           key={i}
-                          className="flex items-center justify-between"
+                          className="flex items-center justify-between py-0.5"
                         >
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">
+                          <span className="font-semibold text-slate-900 dark:text-slate-50">
                             {trade.market}
                           </span>
                           <span
@@ -368,11 +369,11 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                         </div>
                       ))}
 
-                      <div className="my-2 border-t border-slate-200/60 dark:border-slate-700/50 md:hidden" />
+                      <div className="my-2.5 border-t border-slate-200/60 dark:border-slate-600/40 md:hidden" />
 
                       {/* Summary rows visible only on small screens */}
-                      <div className="flex items-center justify-between md:hidden">
-                        <span className="font-semibold text-slate-900 dark:text-slate-100">Profit</span>
+                      <div className="flex items-center justify-between md:hidden pt-1">
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">Profit</span>
                         <span
                           className={cn(
                             'font-semibold',
@@ -383,8 +384,8 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                           {displayProfit.toFixed(2)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between md:hidden">
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">P&amp;L</span>
+                      <div className="flex items-center justify-between md:hidden pt-1">
+                        <span className="font-semibold text-slate-700 dark:text-slate-200">P&amp;L</span>
                         <span
                           className={cn(
                             'font-semibold',
