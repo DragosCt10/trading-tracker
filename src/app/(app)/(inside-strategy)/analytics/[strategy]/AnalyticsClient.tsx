@@ -1281,8 +1281,6 @@ export default function AnalyticsClient(
         </div>
       )}
 
-      <hr className="my-16 border-t border-slate-200 dark:border-slate-700" />
-
       {/* Date Range and Filter Buttons - Only show when in dateRange mode, above AccountOverviewCard */}
       {viewMode === 'dateRange' && (
         <TradeFiltersBar
@@ -1299,6 +1297,8 @@ export default function AnalyticsClient(
           markets={markets}
         />
       )}
+
+      <hr className="my-16 border-t border-slate-200 dark:border-slate-700" />
 
       {/* Overview & monthly highlights */}
       <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-8 mb-2">
