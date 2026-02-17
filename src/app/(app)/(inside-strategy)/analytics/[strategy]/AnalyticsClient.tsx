@@ -395,6 +395,7 @@ export default function AnalyticsClient(
 
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
+  const prevViewModeRef = useRef<'yearly' | 'dateRange'>(viewMode);
 
   const { data: userData, isLoading: userLoading } = useUserDetails();
   const { selection, setSelection, actionBarloading } = useActionBarSelection();
@@ -715,6 +716,23 @@ export default function AnalyticsClient(
       setDateRange({ startDate: yearStart, endDate: yearEnd });
     }
   }, [viewMode, selectedYear]);
+
+  // reset filter to '30days' when switching back to dateRange mode from yearly mode
+  useEffect(() => {
+    // Only reset if switching FROM yearly TO dateRange
+    if (viewMode === 'dateRange' && prevViewModeRef.current === 'yearly') {
+      // Reset activeFilter to '30days' and set dateRange to default "Last 30 Days"
+      setActiveFilter('30days');
+      const today = new Date();
+      const { dateRange: defaultRange, calendarRange, currentDate } =
+        buildPresetRange('30days', today);
+      setDateRange(defaultRange);
+      setCurrentDate(currentDate);
+      setCalendarDateRange(calendarRange);
+    }
+    // Update the ref to track current viewMode for next comparison
+    prevViewModeRef.current = viewMode;
+  }, [viewMode]);
 
   // close date picker on outside click
   useEffect(() => {
