@@ -40,32 +40,47 @@ interface MarketProfitStatisticsCardProps {
   trades: Trade[];
 }
 
-// Colors as used in MonthlyPerformanceChart
-const COLOR_PROFIT_POSITIVE = 'rgba(52,211,153,0.8)'; // emerald-400
-const COLOR_PROFIT_NEGATIVE = 'rgba(248,113,113,0.8)'; // red-400
-
 const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
   marketStats,
   getCurrencySymbol,
   trades,
 }) => {
+  const [mounted, setMounted] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Check for dark mode
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    checkDarkMode();
+    // Watch for changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  // Dynamic colors based on dark mode
+  const axisTextColor = isDark ? '#cbd5e1' : '#64748b'; // slate-300 in dark, slate-500 in light
+
   const chartData = marketStats.map((stat) => ({
     ...stat,
     tradeCount: trades.filter((t) => t.market === stat.market).length,
     profitPercent: stat.pnlPercentage ? Number(stat.pnlPercentage.toFixed(2)) : 0,
   }));
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
   if (!mounted) {
     return (
-      <Card className="border shadow-none bg-white h-[360px] flex flex-col">
-        <CardHeader className="pb-1 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
+      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[360px] flex flex-col">
+        <CardHeader className="pb-2 flex-shrink-0">
+          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Market Profit Statistics
           </CardTitle>
-          <CardDescription className="text-sm text-slate-500 mb-3 leading-tight">
+          <CardDescription className="text-base text-slate-500 dark:text-slate-400">
             Profit and P&amp;L percentage by market
           </CardDescription>
         </CardHeader>
@@ -78,21 +93,21 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
 
   if (!marketStats || marketStats.length === 0) {
     return (
-      <Card className="border shadow-none bg-white h-[360px] flex flex-col">
-        <CardHeader className="pb-1 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
+      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[360px] flex flex-col">
+        <CardHeader className="pb-2 flex-shrink-0">
+          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Market Profit Statistics
           </CardTitle>
-          <CardDescription className="text-sm text-slate-500 mb-3 leading-tight">
+          <CardDescription className="text-base text-slate-500 dark:text-slate-400">
             Profit and P&amp;L percentage by market
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-1 flex justify-center items-center">
           <div className="flex flex-col justify-center items-center w-full h-full">
-            <div className="text-base font-medium text-slate-500 text-center mb-1">
+            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
               No trades found
             </div>
-            <div className="text-sm text-slate-400 text-center max-w-xs">
+            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
               There are no trades to display for this category yet. Start trading to see your statistics here!
             </div>
           </div>
@@ -101,9 +116,9 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
     );
   }
 
-  // Use same coloring as MonthlyPerformanceChart (emerald/red w/opacity)
+  // Use gradient colors like MonthlyPerformanceChart
   const getBarColor = (profit: number) =>
-    profit >= 0 ? COLOR_PROFIT_POSITIVE : COLOR_PROFIT_NEGATIVE;
+    profit >= 0 ? 'url(#profitGradient)' : 'url(#lossGradient)';
 
   const CustomTooltip = ({
     active,
@@ -116,18 +131,36 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
       const stat: MarketStat & { tradeCount: number } = payload[0].payload;
       const currencySymbol = getCurrencySymbol();
       return (
-        <div className="rounded-lg shadow bg-white p-3 border border-slate-200 text-slate-800 text-[13px] leading-snug min-w-[140px]">
-          <div className="font-semibold mb-1 text-[15px]">{stat.market}</div>
-          <div className="text-slate-500 mb-1">
-            Profit:{' '}
-            <span className="text-slate-800 font-semibold">
-              {currencySymbol}
-              {stat.profit.toFixed(2)}
-            </span>{' '}
-            ({stat.tradeCount} trade{stat.tradeCount === 1 ? '' : 's'})
+        <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
+            {stat.market} ({stat.tradeCount} trade{stat.tradeCount === 1 ? '' : 's'})
           </div>
-          <div className="text-slate-500">
-            P&amp;L: {stat.pnlPercentage.toFixed(2)}% | {stat.wins}W / {stat.losses}L
+          <div className="space-y-2">
+            <div className="flex items-baseline justify-between gap-4">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Profit:</span>
+              <span className={`text-lg font-bold ${stat.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {currencySymbol}
+                {stat.profit.toFixed(2)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">P&amp;L:</span>
+              <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold ${
+                stat.pnlPercentage >= 0 
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' 
+                  : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
+              }`}>
+                {stat.pnlPercentage >= 0 ? '+' : ''}{stat.pnlPercentage.toFixed(2)}%
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-4 pt-1">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Results:</span>
+              <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                <span className="text-emerald-600 dark:text-emerald-400">{stat.wins}W</span>
+                <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
+                <span className="text-rose-600 dark:text-rose-400">{stat.losses}L</span>
+              </div>
+            </div>
           </div>
         </div>
       );
@@ -147,7 +180,7 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
           x={x}
           y={y + 10}
           textAnchor="middle"
-          fill="#64748b" // slate-500
+          fill={axisTextColor}
           fontSize={12}
           fontWeight={500} // font-medium
         >
@@ -157,7 +190,7 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
           x={x}
           y={y + 25}
           textAnchor="middle"
-          fill="#64748b" // slate-500
+          fill={axisTextColor}
           fontSize={12}
           fontWeight={500} // font-medium
         >
@@ -185,7 +218,7 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
       <text
         x={x + width / 2}
         y={yPos}
-        fill="#1e293b"
+        fill={isDark ? '#e2e8f0' : '#1e293b'}
         textAnchor="middle"
         fontSize={12}
         fontWeight={500}
@@ -197,12 +230,12 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
   };
 
   return (
-    <Card className="border shadow-none h-[360px] flex flex-col bg-white">
-      <CardHeader className="pb-1 flex-shrink-0">
-        <CardTitle className="text-lg font-semibold text-slate-800 mb-1">
+    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[360px] flex flex-col">
+      <CardHeader className="pb-2 flex-shrink-0">
+        <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
           Market Profit Statistics
         </CardTitle>
-        <CardDescription className="text-sm text-slate-500 mb-3 leading-tight">
+        <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
           Profit and P&amp;L percentage by market
         </CardDescription>
       </CardHeader>
@@ -214,6 +247,20 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
               margin={{ top: 30, right: 18, left: 5, bottom: 10 }}
               barCategoryGap="25%"
             >
+              <defs>
+                {/* Modern profit gradient - emerald to teal (same as MonthlyPerformanceChart) */}
+                <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+                  <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
+                </linearGradient>
+                {/* Modern loss gradient - rose to red (same as MonthlyPerformanceChart) */}
+                <linearGradient id="lossGradient" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
+                  <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
+                </linearGradient>
+              </defs>
               <XAxis
                 dataKey="market"
                 tick={(props: any) => renderXAxisTick(props) ?? <></>} 
@@ -223,16 +270,39 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
                 height={38}
               />
               <YAxis
-                tick={{ fill: '#64748b', fontSize: 11 }} // slate-500, 11px
+                tick={{ fill: axisTextColor, fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={yAxisTickFormatter}
                 width={60}
               />
               <ReTooltip
+                contentStyle={{ 
+                  background: isDark 
+                    ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)' 
+                    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
+                  backdropFilter: 'blur(16px)',
+                  border: isDark 
+                    ? '1px solid rgba(51, 65, 85, 0.6)' 
+                    : '1px solid rgba(148, 163, 184, 0.2)', 
+                  borderRadius: '16px', 
+                  padding: '14px 18px', 
+                  color: isDark ? '#e2e8f0' : '#1e293b', 
+                  fontSize: 14,
+                  boxShadow: isDark
+                    ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+                    : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+                  minWidth: '160px'
+                }}
+                wrapperStyle={{ 
+                  outline: 'none',
+                  zIndex: 1000
+                }}
+                cursor={{ 
+                  fill: 'transparent', 
+                  radius: 8,
+                }}
                 content={<CustomTooltip />}
-                cursor={false}
-                wrapperStyle={{ outline: 'none' }}
               />
               <ReBar dataKey="profit" radius={[7, 7, 7, 7]} barSize={32}>
                 {chartData.map((stat) => (
