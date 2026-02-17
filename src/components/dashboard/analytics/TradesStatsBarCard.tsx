@@ -337,15 +337,19 @@ export function TradeStatsBarCard({
                 tickLine={false}
                 tickFormatter={yAxisTickFormatter}
                 domain={[0, Math.ceil(maxWinsLosses * 1.12)]}
-                label={{
-                  value: mode === 'singleValue' ? 'Value' : 'Wins / Losses',
-                  angle: -90,
-                  position: 'middle',
-                  fill: axisTextColor,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  dy: -10,
-                }}
+                label={
+                  mode === 'singleValue' 
+                    ? undefined 
+                    : {
+                        value: 'Wins / Losses',
+                        angle: -90,
+                        position: 'middle',
+                        fill: axisTextColor,
+                        fontSize: 13,
+                        fontWeight: 500,
+                        dy: -10,
+                      }
+                }
               />
 
               {/* hidden secondary axis so winRate doesn't affect scaling */}
