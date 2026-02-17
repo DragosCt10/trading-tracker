@@ -374,6 +374,9 @@ export default function AnalyticsClient(
 
   const [selectedYear, setSelectedYear] = useState(initialYear);
 
+  // view mode: 'yearly' or 'dateRange'
+  const [viewMode, setViewMode] = useState<'yearly' | 'dateRange'>('yearly');
+
   // date range + calendar state
   const [dateRange, setDateRange] = useState<DateRangeState>(initialRange);
 
@@ -501,15 +504,53 @@ export default function AnalyticsClient(
   const canNavigateMonth = (direction: 'prev' | 'next') => {
     const currentMonth = currentDate.getMonth();
     const currentYear = currentDate.getFullYear();
-    const selectedDateYear = new Date(dateRange.startDate).getFullYear();
+    const startDate = new Date(dateRange.startDate);
+    const endDate = new Date(dateRange.endDate);
+    const startMonth = startDate.getMonth();
+    const startYear = startDate.getFullYear();
+    const endMonth = endDate.getMonth();
+    const endYear = endDate.getFullYear();
 
-    // Only allow navigation within the selected year
-    if (currentYear !== selectedDateYear) return false;
-
-    if (direction === 'prev') {
-      return currentMonth > 0;   // not January
+    if (viewMode === 'dateRange') {
+      // In date range mode: only allow navigation within the selected date range
+      if (direction === 'prev') {
+        // Can go back if current month/year is after start month/year
+        if (currentYear > startYear) return true;
+        if (currentYear === startYear && currentMonth > startMonth) return true;
+        return false;
+      } else {
+        // Can go forward if current month/year is before end month/year
+        if (currentYear < endYear) return true;
+        if (currentYear === endYear && currentMonth < endMonth) return true;
+        return false;
+      }
     } else {
-      return currentMonth < 11;  // not December
+      // In yearly mode: allow navigation within the selected year, but only to months with trades
+      if (currentYear !== selectedYear) return false;
+
+      // Get months that have trades in the selected year
+      const tradesToCheck = allTrades;
+      const monthsWithTrades = new Set<number>();
+      tradesToCheck.forEach((trade) => {
+        const tradeDate = new Date(trade.trade_date);
+        if (tradeDate.getFullYear() === selectedYear) {
+          monthsWithTrades.add(tradeDate.getMonth());
+        }
+      });
+
+      if (direction === 'prev') {
+        // Find the previous month with trades
+        for (let m = currentMonth - 1; m >= 0; m--) {
+          if (monthsWithTrades.has(m)) return true;
+        }
+        return false;
+      } else {
+        // Find the next month with trades
+        for (let m = currentMonth + 1; m <= 11; m++) {
+          if (monthsWithTrades.has(m)) return true;
+        }
+        return false;
+      }
     }
   };
 
@@ -520,10 +561,41 @@ export default function AnalyticsClient(
     let month = newDate.getMonth();
     const year = newDate.getFullYear();
 
-    if (direction === 'prev') {
-      month -= 1;
+    if (viewMode === 'yearly') {
+      // In yearly mode: navigate to the next/previous month that has trades
+      const tradesToCheck = allTrades;
+      const monthsWithTrades = new Set<number>();
+      tradesToCheck.forEach((trade) => {
+        const tradeDate = new Date(trade.trade_date);
+        if (tradeDate.getFullYear() === selectedYear) {
+          monthsWithTrades.add(tradeDate.getMonth());
+        }
+      });
+
+      if (direction === 'prev') {
+        // Find the previous month with trades
+        for (let m = month - 1; m >= 0; m--) {
+          if (monthsWithTrades.has(m)) {
+            month = m;
+            break;
+          }
+        }
+      } else {
+        // Find the next month with trades
+        for (let m = month + 1; m <= 11; m++) {
+          if (monthsWithTrades.has(m)) {
+            month = m;
+            break;
+          }
+        }
+      }
     } else {
-      month += 1;
+      // In date range mode: navigate normally
+      if (direction === 'prev') {
+        month -= 1;
+      } else {
+        month += 1;
+      }
     }
 
     const targetDate = new Date(year, month, 1);
@@ -540,10 +612,24 @@ export default function AnalyticsClient(
   // update calendar when main date range changes
   useEffect(() => {
     const endDateObj = new Date(dateRange.endDate);
-    setCurrentDate(endDateObj);
-    setSelectedYear(endDateObj.getFullYear());
-    setCalendarDateRange(createCalendarRangeFromEnd(endDateObj));
-  }, [dateRange]);
+    
+    if (viewMode === 'dateRange') {
+      // In date range mode: use the end date
+      setCurrentDate(endDateObj);
+      setSelectedYear(endDateObj.getFullYear());
+      setCalendarDateRange(createCalendarRangeFromEnd(endDateObj));
+    }
+    // Yearly mode calendar initialization is handled in a separate effect after allTrades is available
+  }, [dateRange, viewMode]);
+
+  // update dateRange when switching to yearly mode or when selectedYear changes
+  useEffect(() => {
+    if (viewMode === 'yearly') {
+      const yearStart = fmt(startOfYear(new Date(selectedYear, 0, 1)));
+      const yearEnd = fmt(endOfYear(new Date(selectedYear, 11, 31)));
+      setDateRange({ startDate: yearStart, endDate: yearEnd });
+    }
+  }, [viewMode, selectedYear]);
 
   // close date picker on outside click
   useEffect(() => {
@@ -636,6 +722,35 @@ export default function AnalyticsClient(
       router.replace('/login');
     }
   }, [userLoading, userData, router]);
+
+  // update calendar for yearly mode after allTrades is available
+  useEffect(() => {
+    if (viewMode === 'yearly' && allTrades.length >= 0) {
+      // In yearly mode: set to the first month with trades, or January if no trades
+      const monthsWithTrades = new Set<number>();
+      allTrades.forEach((trade) => {
+        const tradeDate = new Date(trade.trade_date);
+        if (tradeDate.getFullYear() === selectedYear) {
+          monthsWithTrades.add(tradeDate.getMonth());
+        }
+      });
+
+      let targetMonth = 0; // Default to January
+      if (monthsWithTrades.size > 0) {
+        // Find the first month with trades
+        for (let m = 0; m <= 11; m++) {
+          if (monthsWithTrades.has(m)) {
+            targetMonth = m;
+            break;
+          }
+        }
+      }
+      
+      const targetDate = new Date(selectedYear, targetMonth, 1);
+      setCurrentDate(targetDate);
+      setCalendarDateRange(createCalendarRangeFromEnd(targetDate));
+    }
+  }, [viewMode, selectedYear, allTrades]);
 
   // streaming analysis listener
   useEffect(() => {
@@ -951,13 +1066,45 @@ export default function AnalyticsClient(
 
   const markets = Array.from(new Set(allTrades.map((t) => t.market)));
 
+  // Compute monthly stats from trades array
+  const computeMonthlyStatsFromTrades = useMemo(() => {
+    return (trades: Trade[]): { [key: string]: { profit: number } } => {
+      const monthlyData: { [key: string]: { profit: number } } = {};
+      
+      trades.forEach((trade) => {
+        const tradeDate = new Date(trade.trade_date);
+        const monthName = MONTHS[tradeDate.getMonth()];
+        const profit = trade.calculated_profit || 0;
+        
+        if (!monthlyData[monthName]) {
+          monthlyData[monthName] = { profit: 0 };
+        }
+        
+        monthlyData[monthName].profit += profit;
+      });
+      
+      return monthlyData;
+    };
+  }, []);
+
+  // Determine which monthly stats to use based on view mode
+  const monthlyStatsToUse = useMemo(() => {
+    if (viewMode === 'yearly') {
+      // Use allTrades for yearly mode
+      return computeMonthlyStatsFromTrades(allTrades);
+    } else {
+      // Use filteredTrades for date range mode
+      return computeMonthlyStatsFromTrades(filteredTrades);
+    }
+  }, [viewMode, allTrades, filteredTrades, computeMonthlyStatsFromTrades]);
+
   const totalYearProfit = useMemo(
     () =>
-      Object.values(monthlyStatsAllTrades).reduce(
+      Object.values(monthlyStatsToUse).reduce(
         (sum, s) => sum + (s.profit || 0),
         0
       ),
-    [monthlyStatsAllTrades]
+    [monthlyStatsToUse]
   );
 
   const updatedBalance =
@@ -968,17 +1115,29 @@ export default function AnalyticsClient(
     [currentDate]
   );
 
+  // Get trades for the current calendar month based on view mode
+  const calendarMonthTradesToUse = useMemo(() => {
+    const tradesSource = viewMode === 'yearly' ? allTrades : filteredTrades;
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    
+    return tradesSource.filter((trade) => {
+      const tradeDate = new Date(trade.trade_date);
+      return tradeDate >= monthStart && tradeDate <= monthEnd;
+    });
+  }, [viewMode, allTrades, filteredTrades, currentDate]);
+
   const weeklyStats = useMemo(
     () =>
       buildWeeklyStats(
         currentDate,
-        calendarMonthTrades,
+        calendarMonthTradesToUse,
         selectedMarket,
         selection.activeAccount?.account_balance || 0
       ),
     [
       currentDate,
-      calendarMonthTrades,
+      calendarMonthTradesToUse,
       selectedMarket,
       selection.activeAccount?.account_balance,
     ]
@@ -986,19 +1145,59 @@ export default function AnalyticsClient(
 
   const isCustomRange = isCustomDateRange(dateRange);
 
+  // Determine which trades to use based on view mode
+  const tradesToUse = viewMode === 'yearly' ? allTrades : filteredTrades;
+
   return (
     <> 
-      {/* Main section: year selection and yearly stats */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-6 my-10">
+      {/* View Mode Toggle */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-6 my-10">
         <div className="mt-10">
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-            Year in Review
+            {viewMode === 'yearly' ? 'Year in Review' : 'Date Range Analytics'}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1">
-            Your yearly trading performance and statistics. Select a year to view.
+            {viewMode === 'yearly' 
+              ? 'Your yearly trading performance and statistics. Select a year to view.'
+              : 'Your trading performance for the selected date range.'}
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        
+        {/* Toggle Switch */}
+        <div className="flex items-center gap-4 shrink-0">
+          <span className={cn(
+            "text-sm font-medium transition-colors",
+            viewMode === 'yearly' ? "text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400"
+          )}>
+            Yearly
+          </span>
+          <button
+            type="button"
+            onClick={() => setViewMode(viewMode === 'yearly' ? 'dateRange' : 'yearly')}
+            className={cn(
+              "relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2",
+              viewMode === 'dateRange' ? "bg-purple-600 dark:bg-purple-500" : "bg-slate-300 dark:bg-slate-600"
+            )}
+          >
+            <span
+              className={cn(
+                "inline-block h-6 w-6 transform rounded-full bg-white transition-transform shadow-lg",
+                viewMode === 'dateRange' ? "translate-x-7" : "translate-x-1"
+              )}
+            />
+          </button>
+          <span className={cn(
+            "text-sm font-medium transition-colors",
+            viewMode === 'dateRange' ? "text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-400"
+          )}>
+            Date Range
+          </span>
+        </div>
+      </div>
+
+      {/* Year Selection - Only show when in yearly mode */}
+      {viewMode === 'yearly' && (
+        <div className="flex items-center justify-end gap-2 mb-6">
           <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Year</span>
           <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(Number(value))}>
             <SelectTrigger
@@ -1020,9 +1219,26 @@ export default function AnalyticsClient(
             </SelectContent>
           </Select>
         </div>
-      </div>
+      )}
 
       <hr className="my-16 border-t border-slate-200 dark:border-slate-700" />
+
+      {/* Date Range and Filter Buttons - Only show when in dateRange mode, above AccountOverviewCard */}
+      {viewMode === 'dateRange' && (
+        <TradeFiltersBar
+          dateRange={dateRange}
+          onDateRangeChange={(range: DateRangeValue) => {
+            setDateRange(range);
+            // reset pagination etc if needed
+          }}
+          activeFilter={activeFilter}
+          onFilterChange={handleFilter}
+          isCustomRange={isCustomRange}
+          selectedMarket={selectedMarket}
+          onSelectedMarketChange={setSelectedMarket}
+          markets={markets}
+        />
+      )}
 
       {/* Overview & monthly highlights */}
       <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-8 mb-2">
@@ -1040,52 +1256,54 @@ export default function AnalyticsClient(
         totalYearProfit={totalYearProfit}
         accountBalance={((selection.activeAccount ?? props?.initialActiveAccount) as { account_balance?: number } | null)?.account_balance || 1}
         months={MONTHS}
-        monthlyStatsAllTrades={monthlyStatsAllTrades}
-        isYearDataLoading={allTradesLoading}
+        monthlyStatsAllTrades={monthlyStatsToUse}
+        isYearDataLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
       />
 
-      {/* Month Stats Cards */}
-      <div className="flex flex-col gap-4 pb-8 sm:flex-row sm:items-stretch">
-        {monthlyStats.bestMonth && (
-          <MonthPerformanceCard
-            title="Best Month"
-            month={monthlyStats.bestMonth.month}
-            year={allTrades.length > 0 ? selectedYear : new Date().getFullYear()}
-            winRate={monthlyStats.bestMonth.stats.winRate}
-            profit={monthlyStats.bestMonth.stats.profit}
-            currencySymbol={getCurrencySymbol()}
-            profitPercent={
-              resolvedAccount
-                ? ((resolvedAccount as { account_balance?: number }).account_balance ?? 1) > 0
-                  ? (monthlyStats.bestMonth.stats.profit / ((resolvedAccount as { account_balance?: number }).account_balance ?? 1)) * 100
+      {/* Month Stats Cards - Only show in yearly mode */}
+      {viewMode === 'yearly' && (
+        <div className="flex flex-col gap-4 pb-8 sm:flex-row sm:items-stretch">
+          {monthlyStats.bestMonth && (
+            <MonthPerformanceCard
+              title="Best Month"
+              month={monthlyStats.bestMonth.month}
+              year={allTrades.length > 0 ? selectedYear : new Date().getFullYear()}
+              winRate={monthlyStats.bestMonth.stats.winRate}
+              profit={monthlyStats.bestMonth.stats.profit}
+              currencySymbol={getCurrencySymbol()}
+              profitPercent={
+                resolvedAccount
+                  ? ((resolvedAccount as { account_balance?: number }).account_balance ?? 1) > 0
+                    ? (monthlyStats.bestMonth.stats.profit / ((resolvedAccount as { account_balance?: number }).account_balance ?? 1)) * 100
+                    : undefined
                   : undefined
-                : undefined
-            }
-            positive
-            className="w-full"
-          />
-        )}
+              }
+              positive
+              className="w-full"
+            />
+          )}
 
-        {monthlyStats.worstMonth && (
-          <MonthPerformanceCard
-            title="Worst Month"
-            month={monthlyStats.worstMonth.month}
-            year={allTrades.length > 0 ? selectedYear : new Date().getFullYear()}
-            winRate={monthlyStats.worstMonth.stats.winRate}
-            profit={monthlyStats.worstMonth.stats.profit}
-            currencySymbol={getCurrencySymbol()}
-            profitPercent={
-              resolvedAccount
-                ? ((resolvedAccount as { account_balance?: number }).account_balance ?? 1) > 0
-                  ? (monthlyStats.worstMonth.stats.profit / ((resolvedAccount as { account_balance?: number }).account_balance ?? 1)) * 100
+          {monthlyStats.worstMonth && (
+            <MonthPerformanceCard
+              title="Worst Month"
+              month={monthlyStats.worstMonth.month}
+              year={allTrades.length > 0 ? selectedYear : new Date().getFullYear()}
+              winRate={monthlyStats.worstMonth.stats.winRate}
+              profit={monthlyStats.worstMonth.stats.profit}
+              currencySymbol={getCurrencySymbol()}
+              profitPercent={
+                resolvedAccount
+                  ? ((resolvedAccount as { account_balance?: number }).account_balance ?? 1) > 0
+                    ? (monthlyStats.worstMonth.stats.profit / ((resolvedAccount as { account_balance?: number }).account_balance ?? 1)) * 100
+                    : undefined
                   : undefined
-                : undefined
-            }
-            positive={false}
-            className="w-full"
-          />
-        )}
-      </div>
+              }
+              positive={false}
+              className="w-full"
+            />
+          )}
+        </div>
+      )}
 
       <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-8 mb-2">Key Metrics</h2>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Profit factor, consistency, Sharpe ratio, and other yearly performance indicators.</p>
@@ -1597,11 +1815,6 @@ export default function AnalyticsClient(
             </p>
           }
         />
-
-        {/* Risk Per Trade stays its own component */}
-        <RiskPerTrade
-          allTradesRiskStats={allTradesRiskStats as any}
-        />
       </div>
 
       {openAnalyzeModal && (
@@ -1654,39 +1867,24 @@ export default function AnalyticsClient(
         </div>
       )}
 
-      {/* Monthly Performance Chart */}
-      <div className="w-full mb-8">
-        <MonthlyPerformanceChart
-          monthlyStatsAllTrades={monthlyStatsAllTrades}
-          chartOptions={chartOptions}
-        />
-      </div>
+      {/* Monthly Performance Chart - Only show in yearly mode */}
+      {viewMode === 'yearly' && (
+        <div className="w-full mb-8">
+          <MonthlyPerformanceChart
+            monthlyStatsAllTrades={monthlyStatsAllTrades}
+            chartOptions={chartOptions}
+          />
+        </div>
+      )}
 
-      {/* Market Profit Statistics Card */}
-        <MarketProfitStatisticsCard
-          trades={allTrades}
-          marketStats={marketAllTradesStats}
-          chartOptions={chartOptions}
-          getCurrencySymbol={getCurrencySymbol}
-        />
 
-      <h2 className="text-2xl font-medium text-slate-800 mt-20">Date Range Stats</h2>
-      <p className="text-slate-500 mb-10">Trading performance metrics for your selected date range.</p>
-
-      {/* Date Range and Filter Buttons */}
-      <TradeFiltersBar
-        dateRange={dateRange}
-        onDateRangeChange={(range: DateRangeValue) => {
-          setDateRange(range);
-          // reset pagination etc if needed
-        }}
-        activeFilter={activeFilter}
-        onFilterChange={handleFilter}
-        isCustomRange={isCustomRange}
-        selectedMarket={selectedMarket}
-        onSelectedMarketChange={setSelectedMarket}
-        markets={markets}
-      />
+      {/* Date Range Stats Section - Only show when in dateRange mode */}
+      {viewMode === 'dateRange' && (
+        <>
+          <h2 className="text-2xl font-medium text-slate-800 mt-20">Date Range Stats</h2>
+          <p className="text-slate-500 mb-10">Trading performance metrics for your selected date range.</p>
+        </>
+      )}
 
       {/* Stats and Best/Worst Month Cards Row */}
       <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -2053,15 +2251,15 @@ export default function AnalyticsClient(
 
 
       {/* Risk Per Trade Card */}
-      <RiskPerTrade className="mb-8" allTradesRiskStats={riskStats as any} />
+      <RiskPerTrade className="mb-8" allTradesRiskStats={viewMode === 'yearly' ? allTradesRiskStats : riskStats as any} />
 
-      {/* Calendar View */}
+      {/* Calendar View - Show in both modes */}
       <TradesCalendarCard
         currentDate={currentDate}
         onMonthNavigate={handleMonthNavigation}
         canNavigateMonth={canNavigateMonth}
         weeklyStats={weeklyStats}
-        calendarMonthTrades={calendarMonthTrades}
+        calendarMonthTrades={calendarMonthTradesToUse}
         selectedMarket={selectedMarket}
         currencySymbol={currencySymbol}
         accountBalance={selection.activeAccount?.account_balance}
@@ -2071,8 +2269,8 @@ export default function AnalyticsClient(
       <div className="my-8">
         {/* Market Profit Statistics Card */}
         <MarketProfitStatisticsCard
-          trades={filteredTrades}
-          marketStats={marketStats}
+          trades={tradesToUse}
+          marketStats={viewMode === 'yearly' ? marketAllTradesStats : marketStats}
           chartOptions={chartOptions}
           getCurrencySymbol={getCurrencySymbol}
         />
@@ -2116,7 +2314,7 @@ export default function AnalyticsClient(
         />
 
         {/* Risk/Reward Statistics */}
-        <RiskRewardStats trades={filteredTrades} />
+        <RiskRewardStats trades={tradesToUse} />
 
         
       </div>
@@ -2202,25 +2400,25 @@ export default function AnalyticsClient(
         <TradeStatsBarCard
           title="Local H/L + BE Statistics"
           description="Analysis of trades marked as both Local High/Low and Break Even"
-          data={getLocalHLBreakEvenChartData(filteredTrades)}
+          data={getLocalHLBreakEvenChartData(tradesToUse)}
           mode="winsLossesWinRate"
           heightClassName="h-80"
         />
 
         {/* 1.4RR Hit Statistics */}
-        <RRHitStats trades={filteredTrades} />
+        <RRHitStats trades={tradesToUse} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <TradeStatsBarCard
           title="Average Displacement Size (Points)"
           description="Average displacement size (points) for each market."
-          data={getAverageDisplacementPerMarket(filteredTrades)}
+          data={getAverageDisplacementPerMarket(tradesToUse)}
           mode="singleValue"
           valueKey="value"
         />
         
         {/* Displacement Size Profitability by Market and Size Points */}
-        <DisplacementSizeStats trades={filteredTrades} />
+        <DisplacementSizeStats trades={tradesToUse} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -2228,13 +2426,13 @@ export default function AnalyticsClient(
         <TradeStatsBarCard
           title="Partials + BE Statistics"
           description="Analysis of trades marked as both Break Even and Partials Taken"
-          data={getPartialsBEChartData(filteredTrades)}
+          data={getPartialsBEChartData(tradesToUse)}
           mode="winsLossesWinRate"
           heightClassName="h-80"
         />
          
          {/* Launch Hour Trades Statistics */}
-        <LaunchHourTradesCard filteredTrades={filteredTrades} />
+        <LaunchHourTradesCard filteredTrades={tradesToUse} />
       </div>
 
 
