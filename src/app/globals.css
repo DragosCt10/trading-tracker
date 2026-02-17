@@ -111,10 +111,11 @@
   font-size: 0.875rem !important; /* text-sm */
   transition: all 0.2s !important;
   box-shadow: none !important;
+  color: #a855f7 !important;
 }
 
 .rdrDateDisplayItem:hover {
-  background-color: rgba(243, 232, 255, 0.3) !important; /* purple-100/30 */
+  background-color: transparent !important;
   color: #7c3aed !important; /* purple-600 */
 }
 
@@ -123,6 +124,12 @@
   background-color: transparent !important;
   color: #7c3aed !important; /* purple-600 */
   box-shadow: none !important;
+}
+
+.rdrDateDisplayItem input,
+.rdrDateDisplayItemActive input {
+  /* slate-800 */
+  color: #1e293b !important;
 }
 
 .rdrMonthAndYearPickers select:hover {
