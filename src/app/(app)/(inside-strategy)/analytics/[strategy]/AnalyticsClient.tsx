@@ -929,7 +929,10 @@ export default function AnalyticsClient(
     };
   });
 
-  const marketChartData: TradeStatDatum[] = marketStats.map((stat) => {
+  // Use correct market stats based on view mode
+  const marketStatsToUse = viewMode === 'yearly' ? marketAllTradesStats : marketStats;
+  
+  const marketChartData: TradeStatDatum[] = marketStatsToUse.map((stat) => {
     const totalTrades = stat.wins + stat.losses;
     // keep behavior similar to your original chart: compute rate from wins/total
     const computedWinRate =
@@ -1064,9 +1067,7 @@ export default function AnalyticsClient(
       ? 'text-rose-600 dark:text-rose-400'
       : 'text-slate-900 dark:text-slate-100';
 
-  const markets = Array.from(new Set(allTrades.map((t) => t.market)));
-
-  // Compute monthly stats from trades array
+  // Compute monthly stats from trades array (for AccountOverviewCard - profit only)
   const computeMonthlyStatsFromTrades = useMemo(() => {
     return (trades: Trade[]): { [key: string]: { profit: number } } => {
       const monthlyData: { [key: string]: { profit: number } } = {};
@@ -1087,7 +1088,52 @@ export default function AnalyticsClient(
     };
   }, []);
 
-  // Determine which monthly stats to use based on view mode
+  // Compute full monthly stats from trades array (for MonthlyPerformanceChart - wins, losses, winRate, etc.)
+  const computeFullMonthlyStatsFromTrades = useMemo(() => {
+    return (trades: Trade[]): { [key: string]: { wins: number; losses: number; beWins: number; beLosses: number; winRate: number; winRateWithBE: number } } => {
+      const monthlyData: { [key: string]: { wins: number; losses: number; beWins: number; beLosses: number; winRate: number; winRateWithBE: number } } = {};
+      
+      trades.forEach((trade) => {
+        const tradeDate = new Date(trade.trade_date);
+        const monthName = MONTHS[tradeDate.getMonth()];
+        
+        if (!monthlyData[monthName]) {
+          monthlyData[monthName] = { wins: 0, losses: 0, beWins: 0, beLosses: 0, winRate: 0, winRateWithBE: 0 };
+        }
+        
+        const isBreakEven = trade.break_even;
+        const outcome = trade.trade_outcome;
+        
+        if (isBreakEven) {
+          if (outcome === 'Win') {
+            monthlyData[monthName].beWins += 1;
+          } else if (outcome === 'Lose') {
+            monthlyData[monthName].beLosses += 1;
+          }
+        } else {
+          if (outcome === 'Win') {
+            monthlyData[monthName].wins += 1;
+          } else if (outcome === 'Lose') {
+            monthlyData[monthName].losses += 1;
+          }
+        }
+      });
+      
+      // Calculate win rates for each month
+      Object.keys(monthlyData).forEach((month) => {
+        const stats = monthlyData[month];
+        const nonBETrades = stats.wins + stats.losses;
+        const allTrades = nonBETrades + stats.beWins + stats.beLosses;
+        
+        stats.winRate = nonBETrades > 0 ? (stats.wins / nonBETrades) * 100 : 0;
+        stats.winRateWithBE = allTrades > 0 ? ((stats.wins + stats.beWins) / allTrades) * 100 : 0;
+      });
+      
+      return monthlyData;
+    };
+  }, []);
+
+  // Determine which monthly stats to use based on view mode (for AccountOverviewCard - profit only)
   const monthlyStatsToUse = useMemo(() => {
     if (viewMode === 'yearly') {
       // Use allTrades for yearly mode
@@ -1097,6 +1143,17 @@ export default function AnalyticsClient(
       return computeMonthlyStatsFromTrades(filteredTrades);
     }
   }, [viewMode, allTrades, filteredTrades, computeMonthlyStatsFromTrades]);
+
+  // Determine which full monthly stats to use based on view mode (for MonthlyPerformanceChart - wins, losses, winRate, etc.)
+  const monthlyPerformanceStatsToUse = useMemo(() => {
+    if (viewMode === 'yearly') {
+      // Use monthlyStatsAllTrades from hook for yearly mode
+      return monthlyStatsAllTrades;
+    } else {
+      // Compute from filteredTrades for date range mode
+      return computeFullMonthlyStatsFromTrades(filteredTrades);
+    }
+  }, [viewMode, monthlyStatsAllTrades, filteredTrades, computeFullMonthlyStatsFromTrades]);
 
   const totalYearProfit = useMemo(
     () =>
@@ -1147,6 +1204,9 @@ export default function AnalyticsClient(
 
   // Determine which trades to use based on view mode
   const tradesToUse = viewMode === 'yearly' ? allTrades : filteredTrades;
+
+  // Get markets from the trades being used
+  const markets = Array.from(new Set(tradesToUse.map((t) => t.market)));
 
   return (
     <> 
@@ -1867,15 +1927,14 @@ export default function AnalyticsClient(
         </div>
       )}
 
-      {/* Monthly Performance Chart - Only show in yearly mode */}
-      {viewMode === 'yearly' && (
-        <div className="w-full mb-8">
-          <MonthlyPerformanceChart
-            monthlyStatsAllTrades={monthlyStatsAllTrades}
-            chartOptions={chartOptions}
-          />
-        </div>
-      )}
+      {/* Monthly Performance Chart - Show in both modes */}
+      <div className="w-full mb-8">
+        <MonthlyPerformanceChart
+          monthlyStatsAllTrades={monthlyPerformanceStatsToUse}
+          months={MONTHS}
+          chartOptions={chartOptions}
+        />
+      </div>
 
 
       {/* Date Range Stats Section - Only show when in dateRange mode */}
