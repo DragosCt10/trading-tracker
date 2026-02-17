@@ -67,7 +67,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
   const emptyCells = Array(mondayBasedFirstDay).fill(null);
 
   return (
-    <Card className="shadow-none">
+    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm">
       {/* Header */}
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <Button
@@ -77,15 +77,15 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
           disabled={!canNavigateMonth('prev')}
           onClick={() => onMonthNavigate('prev')}
           className={cn(
-            'h-9 w-9 rounded-md border border-transparent text-slate-800 shadow-none hover:bg-slate-800/5 hover:border-slate-800/5',
+            'h-9 w-9 rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 shadow-sm hover:bg-slate-200/80 dark:hover:bg-slate-700/60 hover:border-slate-300/80 dark:hover:border-slate-600/80 transition-all duration-200',
             !canNavigateMonth('prev') &&
-              'cursor-not-allowed text-slate-400 hover:bg-transparent hover:border-transparent',
+              'cursor-not-allowed text-slate-400 dark:text-slate-600 hover:bg-slate-100/60 dark:hover:bg-slate-900/40 hover:border-slate-200/70 dark:hover:border-slate-700/70',
           )}
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
 
-        <CardTitle className="text-xl font-medium text-slate-800">
+        <CardTitle className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
           {format(currentDate, 'MMMM yyyy')}
         </CardTitle>
 
@@ -96,9 +96,9 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
           disabled={!canNavigateMonth('next')}
           onClick={() => onMonthNavigate('next')}
           className={cn(
-            'h-9 w-9 rounded-md border border-transparent text-slate-800 shadow-none hover:bg-slate-800/5 hover:border-slate-800/5',
+            'h-9 w-9 rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 shadow-sm hover:bg-slate-200/80 dark:hover:bg-slate-700/60 hover:border-slate-300/80 dark:hover:border-slate-600/80 transition-all duration-200',
             !canNavigateMonth('next') &&
-              'cursor-not-allowed text-slate-400 hover:bg-transparent hover:border-transparent',
+              'cursor-not-allowed text-slate-400 dark:text-slate-600 hover:bg-slate-100/60 dark:hover:bg-slate-900/40 hover:border-slate-200/70 dark:hover:border-slate-700/70',
           )}
         >
           <ChevronRight className="h-4 w-4" />
@@ -114,14 +114,14 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
             return (
               <div
                 key={idx}
-                className="flex flex-col rounded-xl border px-5 py-4 shadow-none mb-4"
+                className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm px-5 py-4 flex flex-col justify-between shadow-none rounded-2xl mb-4"
               >
                 {/* Header: Week + trades pill */}
                 <div className="flex items-start justify-between">
-                  <div className="text-sm font-medium text-slate-800">
+                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                     {`Week ${idx + 1}`}
                   </div>
-                  <span className="inline-flex items-center rounded-full bg-slate-100/70 px-3 py-1 text-xs font-medium text-slate-600">
+                  <span className="inline-flex items-center rounded-full bg-slate-100/80 dark:bg-slate-700/50 border border-slate-200/60 dark:border-slate-600/50 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-400">
                     {mounted ? (week.wins + week.losses + week.beCount) : '\u2014'} trades
                   </span>
                 </div>
@@ -130,11 +130,11 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                 <div className="mt-4 space-y-2">
                   {/* Profit row */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-500">Profit</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">Profit</span>
                     <span
                       className={cn(
-                        "text-sm font-medium",
-                        mounted && week.totalProfit >= 0 ? "text-emerald-500" : mounted && week.totalProfit < 0 ? "text-red-500" : "text-slate-500"
+                        "text-sm font-semibold",
+                        mounted && week.totalProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : mounted && week.totalProfit < 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-400"
                       )}
                     >
                       {mounted ? `${currencySymbol}${week.totalProfit.toFixed(2)}` : '\u2014'}
@@ -143,30 +143,30 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
 
                   {/* Wins / Losses / BE row */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-500">Results</span>
-                    <span className="text-sm font-medium text-slate-500">
-                      <span className="text-emerald-500">W: {mounted ? week.wins : '\u2014'}</span>
-                      <span className="mx-1.5 text-slate-500">·</span>
-                      <span className="text-red-500">L: {mounted ? week.losses : '\u2014'}</span>
-                      <span className="mx-1.5 text-slate-500">·</span>
-                      <span className="text-slate-500">BE: {mounted ? week.beCount : '\u2014'}</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">Results</span>
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                      <span className="text-emerald-600 dark:text-emerald-400">W: {mounted ? week.wins : '\u2014'}</span>
+                      <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
+                      <span className="text-rose-600 dark:text-rose-400">L: {mounted ? week.losses : '\u2014'}</span>
+                      <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
+                      <span className="text-slate-500 dark:text-slate-400">BE: {mounted ? week.beCount : '\u2014'}</span>
                     </span>
                   </div>
 
                   {/* Divider */}
-                  <div className="mt-2 border-t border-slate-200" />
+                  <div className="mt-2 border-t border-slate-200/60 dark:border-slate-700/50" />
 
                   {/* P&L % row – styled like Win Rate in the Risk card */}
                   <div className="flex items-center justify-between pt-2">
-                    <span className="text-sm text-slate-500">P&amp;L</span>
-                    <span className="text-sm font-medium text-slate-800">
+                    <span className="text-sm text-slate-500 dark:text-slate-400">P&amp;L</span>
+                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {mounted ? `${pnlPercent.toFixed(2)}%` : '\u2014'}
                     </span>
                   </div>
                 </div>
 
                 {/* Week label (date range) */}
-                <div className="mt-3 text-center text-xs font-medium text-slate-400">
+                <div className="mt-3 text-center text-xs font-medium text-slate-400 dark:text-slate-500">
                   {mounted ? week.weekLabel : '\u2014'}
                 </div>
               </div>
@@ -181,7 +181,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
               <div
                 key={day}
-                className="p-2 text-center text-sm font-medium text-slate-500"
+                className="p-2 text-center text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide"
               >
                 {day}
               </div>
@@ -192,7 +192,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                 return (
                   <div
                     key={`empty-${index}`}
-                    className="min-h-[80px] rounded-lg border border-slate-100 bg-slate-50 p-3"
+                    className="min-h-[80px] rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/20 p-3"
                   />
                 );
               }
@@ -245,23 +245,23 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
 
               const baseColor =
                 displayProfit > 0
-                  ? 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
+                  ? 'bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200/80 dark:border-emerald-700/50 hover:bg-emerald-100/90 dark:hover:bg-emerald-900/30 hover:border-emerald-300/80 dark:hover:border-emerald-600/60'
                   : displayProfit < 0
-                  ? 'bg-red-50 border-red-200 hover:bg-red-100'
+                  ? 'bg-rose-50/80 dark:bg-rose-900/20 border border-rose-200/80 dark:border-rose-700/50 hover:bg-rose-100/90 dark:hover:bg-rose-900/30 hover:border-rose-300/80 dark:hover:border-rose-600/60'
                   : hasBE && beOutcome === 'Win'
-                  ? 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
+                  ? 'bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200/80 dark:border-emerald-700/50 hover:bg-emerald-100/90 dark:hover:bg-emerald-900/30 hover:border-emerald-300/80 dark:hover:border-emerald-600/60'
                   : hasBE && beOutcome === 'Lose'
-                  ? 'bg-red-50 border-red-200 hover:bg-red-100'
-                  : 'bg-slate-50 border-slate-200 hover:bg-slate-100';
+                  ? 'bg-rose-50/80 dark:bg-rose-900/20 border border-rose-200/80 dark:border-rose-700/50 hover:bg-rose-100/90 dark:hover:bg-rose-900/30 hover:border-rose-300/80 dark:hover:border-rose-600/60'
+                  : 'bg-slate-50/50 dark:bg-slate-800/20 border border-slate-200/60 dark:border-slate-700/50 hover:bg-slate-100/70 dark:hover:bg-slate-800/30 hover:border-slate-300/80 dark:hover:border-slate-600/60';
 
               const dayCellContent = (
                 <>
-                  <div className="mb-1 text-sm font-medium text-slate-800">
+                  <div className="mb-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
                     {format(date, 'd')}
                   </div>
 
                   {mounted && hasBE && (
-                    <div className="absolute right-2.5 top-3.5 px-1 text-xs font-medium text-slate-800">
+                    <div className="absolute right-2.5 top-3.5 px-1.5 py-0.5 rounded-md bg-slate-200/80 dark:bg-slate-700/60 border border-slate-300/60 dark:border-slate-600/50 text-xs font-semibold text-slate-700 dark:text-slate-300">
                       {beTrades.length} BE
                     </div>
                   )}
@@ -270,15 +270,15 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                     <>
                       {/* --- CELL CONTENT --- */}
                       <div className="text-xs space-y-1">
-                        <div className="font-medium text-slate-800">
+                        <div className="font-semibold text-slate-900 dark:text-slate-100">
                           {filteredDayTrades.length} trade
                           {filteredDayTrades.length !== 1 ? 's' : ''}
                         </div>
                         <div className="hidden md:flex md:flex-col md:space-y-0.5">
                           <div
                             className={cn(
-                              'font-medium',
-                              displayProfit >= 0 ? 'text-emerald-500' : 'text-red-500',
+                              'font-semibold',
+                              displayProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400',
                             )}
                           >
                             {currencySymbol}
@@ -286,10 +286,10 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                           </div>
                         </div>
                       </div>
-                      <div className="hidden md:block absolute bottom-3 right-3 text-xs font-medium">
+                      <div className="hidden md:block absolute bottom-3 right-3 text-xs font-semibold">
                         <span
                           className={
-                            totalPnLPercentage >= 0 ? 'text-emerald-500' : 'text-red-500'
+                            totalPnLPercentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                           }
                         >
                           {totalPnLPercentage >= 0 ? '+' : ''}
@@ -304,13 +304,13 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
               const cellDiv = (
                 <div
                   className={cn(
-                    'group relative min-h-[80px] rounded-lg border p-3 transition-all duration-200',
-                    !mounted ? 'bg-slate-50 border-slate-200' : [filteredDayTrades.length > 0 && 'cursor-pointer', baseColor],
+                    'group relative min-h-[80px] rounded-xl p-3 transition-all duration-200',
+                    !mounted ? 'bg-slate-50/50 dark:bg-slate-800/20 border border-slate-200/60 dark:border-slate-700/50' : [filteredDayTrades.length > 0 && 'cursor-pointer', baseColor],
                   )}
                   {...(mounted && filteredDayTrades.length > 0 ? { tabIndex: 0 } : {})}
                 >
                   {!mounted ? (
-                    <><div className="mb-1 text-sm font-medium text-slate-800">{format(date, 'd')}</div><div className="text-xs font-medium text-slate-800">—</div></>
+                    <><div className="mb-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{format(date, 'd')}</div><div className="text-xs font-medium text-slate-500 dark:text-slate-400">—</div></>
                   ) : (
                     dayCellContent
                   )}
@@ -331,7 +331,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                       side="top"
                       align="center"
                       className={cn(
-                        'w-48 p-3 text-xs bg-white border border-slate-200 shadow-none space-y-1'
+                        'w-48 p-3 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 shadow-lg dark:shadow-xl rounded-xl backdrop-blur-sm space-y-1'
                       )}
                     >
                       {/* Existing list of trades (all breakpoints) */}
@@ -340,18 +340,18 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                           key={i}
                           className="flex items-center justify-between"
                         >
-                          <span className="font-medium text-slate-800">
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">
                             {trade.market}
                           </span>
                           <span
                             className={cn(
-                              'font-medium',
+                              'font-semibold',
                               trade.break_even
-                                ? 'text-slate-500'
+                                ? 'text-slate-500 dark:text-slate-400'
                                 : trade.calculated_profit &&
                                   trade.calculated_profit >= 0
-                                ? 'text-emerald-500'
-                                : 'text-red-500',
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-rose-600 dark:text-rose-400',
                             )}
                           >
                             {trade.break_even
@@ -368,15 +368,15 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                         </div>
                       ))}
 
-                      <div className="my-2 border-t border-slate-100 md:hidden" />
+                      <div className="my-2 border-t border-slate-200/60 dark:border-slate-700/50 md:hidden" />
 
                       {/* Summary rows visible only on small screens */}
                       <div className="flex items-center justify-between md:hidden">
-                        <span className="font-medium text-slate-800">Profit</span>
+                        <span className="font-semibold text-slate-900 dark:text-slate-100">Profit</span>
                         <span
                           className={cn(
-                            'font-medium',
-                            displayProfit >= 0 ? 'text-emerald-500' : 'text-red-500',
+                            'font-semibold',
+                            displayProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400',
                           )}
                         >
                           {currencySymbol}
@@ -384,11 +384,11 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                         </span>
                       </div>
                       <div className="flex items-center justify-between md:hidden">
-                        <span className="font-medium text-slate-700">P&amp;L</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">P&amp;L</span>
                         <span
                           className={cn(
-                            'font-medium',
-                            totalPnLPercentage >= 0 ? 'text-emerald-500' : 'text-red-500',
+                            'font-semibold',
+                            totalPnLPercentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400',
                           )}
                         >
                           {totalPnLPercentage >= 0 ? '+' : ''}
