@@ -512,16 +512,48 @@ export default function AnalyticsClient(
     const endYear = endDate.getFullYear();
 
     if (viewMode === 'dateRange') {
-      // In date range mode: only allow navigation within the selected date range
+      // In date range mode: only allow navigation within the selected date range AND to months with trades
+      // Get months that have trades within the date range
+      const tradesToCheck = allTrades;
+      const monthsWithTrades = new Map<string, boolean>(); // key: "year-month", value: has trades
+      
+      tradesToCheck.forEach((trade) => {
+        const tradeDate = new Date(trade.trade_date);
+        const tradeYear = tradeDate.getFullYear();
+        const tradeMonth = tradeDate.getMonth();
+        
+        // Check if trade is within date range
+        if (tradeDate >= startDate && tradeDate <= endDate) {
+          const key = `${tradeYear}-${tradeMonth}`;
+          monthsWithTrades.set(key, true);
+        }
+      });
+
       if (direction === 'prev') {
-        // Can go back if current month/year is after start month/year
-        if (currentYear > startYear) return true;
-        if (currentYear === startYear && currentMonth > startMonth) return true;
+        // Can go back if there's a previous month with trades within the date range
+        // Check months from current month backwards to start date
+        for (let y = currentYear; y >= startYear; y--) {
+          const startM = y === currentYear ? currentMonth - 1 : 11;
+          const endM = y === startYear ? startMonth : 0;
+          
+          for (let m = startM; m >= endM; m--) {
+            const key = `${y}-${m}`;
+            if (monthsWithTrades.has(key)) return true;
+          }
+        }
         return false;
       } else {
-        // Can go forward if current month/year is before end month/year
-        if (currentYear < endYear) return true;
-        if (currentYear === endYear && currentMonth < endMonth) return true;
+        // Can go forward if there's a next month with trades within the date range
+        // Check months from current month forwards to end date
+        for (let y = currentYear; y <= endYear; y++) {
+          const startM = y === currentYear ? currentMonth + 1 : 0;
+          const endM = y === endYear ? endMonth : 11;
+          
+          for (let m = startM; m <= endM; m++) {
+            const key = `${y}-${m}`;
+            if (monthsWithTrades.has(key)) return true;
+          }
+        }
         return false;
       }
     } else {
@@ -590,11 +622,63 @@ export default function AnalyticsClient(
         }
       }
     } else {
-      // In date range mode: navigate normally
+      // In date range mode: navigate to the next/previous month that has trades within the date range
+      const startDate = new Date(dateRange.startDate);
+      const endDate = new Date(dateRange.endDate);
+      const startMonth = startDate.getMonth();
+      const startYear = startDate.getFullYear();
+      const endMonth = endDate.getMonth();
+      const endYear = endDate.getFullYear();
+      
+      const tradesToCheck = allTrades;
+      const monthsWithTrades = new Map<string, number>(); // key: "year-month", value: month number
+      
+      tradesToCheck.forEach((trade) => {
+        const tradeDate = new Date(trade.trade_date);
+        const tradeYear = tradeDate.getFullYear();
+        const tradeMonth = tradeDate.getMonth();
+        
+        // Check if trade is within date range
+        if (tradeDate >= startDate && tradeDate <= endDate) {
+          const key = `${tradeYear}-${tradeMonth}`;
+          monthsWithTrades.set(key, tradeMonth);
+        }
+      });
+
       if (direction === 'prev') {
-        month -= 1;
+        // Find the previous month with trades
+        let found = false;
+        for (let y = year; y >= startYear && !found; y--) {
+          const startM = y === year ? month - 1 : 11;
+          const endM = y === startYear ? startMonth : 0;
+          
+          for (let m = startM; m >= endM; m--) {
+            const key = `${y}-${m}`;
+            if (monthsWithTrades.has(key)) {
+              month = m;
+              newDate.setFullYear(y);
+              found = true;
+              break;
+            }
+          }
+        }
       } else {
-        month += 1;
+        // Find the next month with trades
+        let found = false;
+        for (let y = year; y <= endYear && !found; y++) {
+          const startM = y === year ? month + 1 : 0;
+          const endM = y === endYear ? endMonth : 11;
+          
+          for (let m = startM; m <= endM; m++) {
+            const key = `${y}-${m}`;
+            if (monthsWithTrades.has(key)) {
+              month = m;
+              newDate.setFullYear(y);
+              found = true;
+              break;
+            }
+          }
+        }
       }
     }
 
@@ -609,12 +693,13 @@ export default function AnalyticsClient(
     });
   };
   
-  // update calendar when main date range changes
+  // update calendar when main date range changes (without allTrades dependency - handled separately)
   useEffect(() => {
     const endDateObj = new Date(dateRange.endDate);
     
     if (viewMode === 'dateRange') {
-      // In date range mode: use the end date
+      // In date range mode: temporarily use the end date
+      // Will be updated to first month with trades in the effect below after allTrades is available
       setCurrentDate(endDateObj);
       setSelectedYear(endDateObj.getFullYear());
       setCalendarDateRange(createCalendarRangeFromEnd(endDateObj));
@@ -751,6 +836,58 @@ export default function AnalyticsClient(
       setCalendarDateRange(createCalendarRangeFromEnd(targetDate));
     }
   }, [viewMode, selectedYear, allTrades]);
+
+  // update calendar for dateRange mode after allTrades is available
+  useEffect(() => {
+    if (viewMode === 'dateRange' && allTrades.length >= 0) {
+      const startDateObj = new Date(dateRange.startDate);
+      const endDateObj = new Date(dateRange.endDate);
+      
+      // In date range mode: find the first month with trades within the date range
+      const startYear = startDateObj.getFullYear();
+      const startMonth = startDateObj.getMonth();
+      const endYear = endDateObj.getFullYear();
+      const endMonth = endDateObj.getMonth();
+      
+      // Get months that have trades within the date range
+      const monthsWithTrades = new Map<string, { year: number; month: number }>();
+      allTrades.forEach((trade) => {
+        const tradeDate = new Date(trade.trade_date);
+        const tradeYear = tradeDate.getFullYear();
+        const tradeMonth = tradeDate.getMonth();
+        
+        // Check if trade is within date range
+        if (tradeDate >= startDateObj && tradeDate <= endDateObj) {
+          const key = `${tradeYear}-${tradeMonth}`;
+          if (!monthsWithTrades.has(key)) {
+            monthsWithTrades.set(key, { year: tradeYear, month: tradeMonth });
+          }
+        }
+      });
+      
+      // Find the first month with trades, or use start date if no trades
+      let targetYear = startYear;
+      let targetMonth = startMonth;
+      
+      if (monthsWithTrades.size > 0) {
+        // Find the earliest month with trades
+        let earliestDate = endDateObj;
+        monthsWithTrades.forEach(({ year, month }) => {
+          const monthDate = new Date(year, month, 1);
+          if (monthDate < earliestDate) {
+            earliestDate = monthDate;
+            targetYear = year;
+            targetMonth = month;
+          }
+        });
+      }
+      
+      const targetDate = new Date(targetYear, targetMonth, 1);
+      setCurrentDate(targetDate);
+      setSelectedYear(targetYear);
+      setCalendarDateRange(createCalendarRangeFromEnd(targetDate));
+    }
+  }, [viewMode, dateRange, allTrades]);
 
   // streaming analysis listener
   useEffect(() => {
