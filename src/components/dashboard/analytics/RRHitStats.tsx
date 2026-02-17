@@ -29,7 +29,7 @@ export function RRHitStats({ trades }: RRHitStatsProps) {
 
   return (
     <TradeStatsBarCard
-      title="Lose Trades that Hit 1.4RR by Market"
+      title="Lose Trades that Hit 1.4RR"
       description="Only losing trades that hit the 1.4 Risk/Reward ratio target, grouped by market."
       data={chartData}
       mode="singleValue"
