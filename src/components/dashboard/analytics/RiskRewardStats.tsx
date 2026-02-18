@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -19,15 +19,17 @@ import {
 } from '@/components/ui/card';
 
 import { Trade } from '@/types/trade';
+import { BouncePulse } from '@/components/ui/bounce-pulse';
 
 interface RiskRewardStatsProps {
   trades: Trade[];
+  isLoading?: boolean;
 }
 
 // Only ratios we care about
 const DISPLAY_RATIOS = [2, 2.5, 3];
 
-export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
+export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewardStatsProps) {
   // --- 1. Find all unique markets with at least one trade with a qualifying ratio -----
 
   // Instead of requiring every market to have ALL ratios, we'll include markets
@@ -113,6 +115,7 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
 
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
@@ -127,8 +130,34 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
       attributes: true,
       attributeFilter: ['class'],
     });
+    
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    // Keep loading until external loading is complete and minimum time has passed
+    if (mounted) {
+      // If external loading is provided, use it
+      if (externalLoading !== undefined) {
+        if (externalLoading) {
+          // Still loading externally - keep showing animation
+          setIsLoading(true);
+        } else {
+          // External loading is complete, wait minimum time then stop loading
+          const timer = setTimeout(() => {
+            setIsLoading(false);
+          }, 600);
+          return () => clearTimeout(timer);
+        }
+      } else {
+        // No external loading prop - use internal timer
+        const timer = setTimeout(() => {
+          setIsLoading(false);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [mounted, externalLoading]);
 
   // Dynamic colors based on dark mode
   const slate500 = isDark ? '#94a3b8' : '#64748b'; // slate-400 in dark, slate-500 in light
@@ -256,13 +285,9 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
 
       <CardContent className="flex-1 flex items-center">
         <div className="w-full h-full">
-          {!mounted ? (
-            <div
-              className="flex items-center justify-center text-slate-400 dark:text-slate-500 h-full text-sm"
-              style={{ minHeight: 180 }}
-              aria-hidden
-            >
-              —
+          {!mounted || isLoading ? (
+            <div className="flex items-center justify-center w-full h-full min-h-[180px]">
+              <BouncePulse size="md" />
             </div>
           ) : !hasAnyQualifyingTrades ? (
             <div className="flex flex-col justify-center items-center w-full h-full">
