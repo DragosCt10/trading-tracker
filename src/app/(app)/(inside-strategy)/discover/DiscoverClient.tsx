@@ -112,6 +112,12 @@ export default function DiscoverClient({
   const [activeFilter, setActiveFilter] = useState<FilterType>('month');
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
   const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'non-executed'>('all');
+  
+  // Map executionFilter to TradeFiltersBar's selectedExecution format
+  const selectedExecution: 'all' | 'nonExecuted' = executionFilter === 'non-executed' ? 'nonExecuted' : 'all';
+  const handleExecutionChange = (execution: 'all' | 'nonExecuted') => {
+    setExecutionFilter(execution === 'nonExecuted' ? 'non-executed' : 'all');
+  };
   const observerTarget = useRef<HTMLDivElement>(null);
 
   // Prevent hydration mismatch
@@ -327,8 +333,8 @@ export default function DiscoverClient({
         selectedMarket={selectedMarket}
         onSelectedMarketChange={setSelectedMarket}
         markets={markets}
-        executionFilter={executionFilter}
-        onExecutionFilterChange={setExecutionFilter}
+        selectedExecution={selectedExecution}
+        onSelectedExecutionChange={handleExecutionChange}
       />
 
       {/* Trade Cards Grid */}
