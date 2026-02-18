@@ -389,6 +389,7 @@ export default function AnalyticsClient(
     useState<FilterType>('30days');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
+  const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'non-executed'>('all');
 
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
@@ -1205,22 +1206,343 @@ export default function AnalyticsClient(
 
   
 
-  const profitColor =
-    stats.totalProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
-  const avgProfitColor =
-    stats.averageProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
-  const pnlColor =
-    stats.averagePnLPercentage > 0
-      ? 'text-emerald-600 dark:text-emerald-400'
-      : stats.averagePnLPercentage < 0
-      ? 'text-rose-600 dark:text-rose-400'
-      : 'text-slate-900 dark:text-slate-100';
-  const streakColor =
-    stats.currentStreak > 0
-      ? 'text-emerald-600 dark:text-emerald-400'
-      : stats.currentStreak < 0
-      ? 'text-rose-600 dark:text-rose-400'
-      : 'text-slate-900 dark:text-slate-100';
+
+  // Helper function to compute statistics from trades array
+  const computeStatsFromTrades = useMemo(() => {
+    return (trades: Trade[]) => {
+      // Setup stats
+      const setupMap = new Map<string, { wins: number; losses: number; beWins: number; beLosses: number }>();
+      // Liquidity stats
+      const liquidityMap = new Map<string, { wins: number; losses: number; beWins: number; beLosses: number }>();
+      // Direction stats
+      const directionMap = new Map<string, { wins: number; losses: number; beWins: number; beLosses: number }>();
+      // Local H/L stats
+      const localHLStats = { lichidat: { wins: 0, losses: 0, winsWithBE: 0, lossesWithBE: 0 }, nelichidat: { wins: 0, losses: 0, winsWithBE: 0, lossesWithBE: 0 } };
+      // SL Size stats
+      const slSizeMap = new Map<string, { total: number; sum: number }>();
+      // Reentry stats
+      const reentryStats = { wins: 0, losses: 0, beWins: 0, beLosses: 0 };
+      // Break-even stats
+      const breakEvenStats = { wins: 0, losses: 0, beWins: 0, beLosses: 0 };
+      // Interval stats
+      const intervalMap = new Map<string, { wins: number; losses: number; beWins: number; beLosses: number }>();
+      // MSS stats
+      const mssMap = new Map<string, { wins: number; losses: number; beWins: number; beLosses: number }>();
+      // News stats
+      const newsMap = new Map<string, { wins: number; losses: number; beWins: number; beLosses: number }>();
+      // Day stats
+      const dayMap = new Map<string, { wins: number; losses: number; beWins: number; beLosses: number }>();
+      // Market stats
+      const marketMap = new Map<string, { wins: number; losses: number; beWins: number; beLosses: number }>();
+
+      trades.forEach((trade) => {
+        const isWin = trade.trade_outcome === 'Win';
+        const isLoss = trade.trade_outcome === 'Lose';
+        const isBE = trade.break_even;
+        const setup = trade.setup_type || 'Unknown';
+        const liquidity = trade.liquidity || 'Unknown';
+        const direction = trade.direction || 'Unknown';
+        const market = trade.market || 'Unknown';
+        const mss = trade.mss || 'Unknown';
+        const news = trade.news_related ? 'Yes' : 'No';
+        const day = trade.day_of_week || 'Unknown';
+        const slSize = trade.sl_size || 0;
+
+        // Setup stats
+        if (!setupMap.has(setup)) {
+          setupMap.set(setup, { wins: 0, losses: 0, beWins: 0, beLosses: 0 });
+        }
+        const setupStat = setupMap.get(setup)!;
+        if (isBE) {
+          if (isWin) setupStat.beWins++;
+          if (isLoss) setupStat.beLosses++;
+        } else {
+          if (isWin) setupStat.wins++;
+          if (isLoss) setupStat.losses++;
+        }
+
+        // Liquidity stats
+        if (!liquidityMap.has(liquidity)) {
+          liquidityMap.set(liquidity, { wins: 0, losses: 0, beWins: 0, beLosses: 0 });
+        }
+        const liquidityStat = liquidityMap.get(liquidity)!;
+        if (isBE) {
+          if (isWin) liquidityStat.beWins++;
+          if (isLoss) liquidityStat.beLosses++;
+        } else {
+          if (isWin) liquidityStat.wins++;
+          if (isLoss) liquidityStat.losses++;
+        }
+
+        // Direction stats
+        if (!directionMap.has(direction)) {
+          directionMap.set(direction, { wins: 0, losses: 0, beWins: 0, beLosses: 0 });
+        }
+        const directionStat = directionMap.get(direction)!;
+        if (isBE) {
+          if (isWin) directionStat.beWins++;
+          if (isLoss) directionStat.beLosses++;
+        } else {
+          if (isWin) directionStat.wins++;
+          if (isLoss) directionStat.losses++;
+        }
+
+        // Local H/L stats
+        const isLichidat = String(trade.local_high_low) === 'true';
+        if (isLichidat) {
+          if (isBE) {
+            if (isWin) localHLStats.lichidat.winsWithBE++;
+            if (isLoss) localHLStats.lichidat.lossesWithBE++;
+          } else {
+            if (isWin) localHLStats.lichidat.wins++;
+            if (isLoss) localHLStats.lichidat.losses++;
+          }
+        } else {
+          if (isBE) {
+            if (isWin) localHLStats.nelichidat.winsWithBE++;
+            if (isLoss) localHLStats.nelichidat.lossesWithBE++;
+          } else {
+            if (isWin) localHLStats.nelichidat.wins++;
+            if (isLoss) localHLStats.nelichidat.losses++;
+          }
+        }
+
+        // SL Size stats
+        if (!slSizeMap.has(market)) {
+          slSizeMap.set(market, { total: 0, sum: 0 });
+        }
+        const slSizeStat = slSizeMap.get(market)!;
+        slSizeStat.total++;
+        slSizeStat.sum += slSize;
+
+        // Reentry stats
+        if (trade.reentry) {
+          if (isBE) {
+            if (isWin) reentryStats.beWins++;
+            if (isLoss) reentryStats.beLosses++;
+          } else {
+            if (isWin) reentryStats.wins++;
+            if (isLoss) reentryStats.losses++;
+          }
+        }
+
+        // Break-even stats
+        if (isBE) {
+          if (isWin) breakEvenStats.beWins++;
+          if (isLoss) breakEvenStats.beLosses++;
+        } else {
+          if (isWin) breakEvenStats.wins++;
+          if (isLoss) breakEvenStats.losses++;
+        }
+
+        // Interval stats (using trade_time)
+        const tradeTime = new Date(`2000-01-01T${trade.trade_time}`).getHours();
+        let intervalLabel = 'Unknown';
+        if (tradeTime >= 8 && tradeTime < 12) intervalLabel = 'Morning (8-12)';
+        else if (tradeTime >= 12 && tradeTime < 16) intervalLabel = 'Midday (12-16)';
+        else if (tradeTime >= 16 && tradeTime < 20) intervalLabel = 'Afternoon (16-20)';
+        else if (tradeTime >= 20 || tradeTime < 8) intervalLabel = 'Evening/Night (20-8)';
+
+        if (!intervalMap.has(intervalLabel)) {
+          intervalMap.set(intervalLabel, { wins: 0, losses: 0, beWins: 0, beLosses: 0 });
+        }
+        const intervalStat = intervalMap.get(intervalLabel)!;
+        if (isBE) {
+          if (isWin) intervalStat.beWins++;
+          if (isLoss) intervalStat.beLosses++;
+        } else {
+          if (isWin) intervalStat.wins++;
+          if (isLoss) intervalStat.losses++;
+        }
+
+        // MSS stats
+        if (!mssMap.has(mss)) {
+          mssMap.set(mss, { wins: 0, losses: 0, beWins: 0, beLosses: 0 });
+        }
+        const mssStat = mssMap.get(mss)!;
+        if (isBE) {
+          if (isWin) mssStat.beWins++;
+          if (isLoss) mssStat.beLosses++;
+        } else {
+          if (isWin) mssStat.wins++;
+          if (isLoss) mssStat.losses++;
+        }
+
+        // News stats
+        if (!newsMap.has(news)) {
+          newsMap.set(news, { wins: 0, losses: 0, beWins: 0, beLosses: 0 });
+        }
+        const newsStat = newsMap.get(news)!;
+        if (isBE) {
+          if (isWin) newsStat.beWins++;
+          if (isLoss) newsStat.beLosses++;
+        } else {
+          if (isWin) newsStat.wins++;
+          if (isLoss) newsStat.losses++;
+        }
+
+        // Day stats
+        if (!dayMap.has(day)) {
+          dayMap.set(day, { wins: 0, losses: 0, beWins: 0, beLosses: 0 });
+        }
+        const dayStat = dayMap.get(day)!;
+        if (isBE) {
+          if (isWin) dayStat.beWins++;
+          if (isLoss) dayStat.beLosses++;
+        } else {
+          if (isWin) dayStat.wins++;
+          if (isLoss) dayStat.losses++;
+        }
+
+        // Market stats
+        if (!marketMap.has(market)) {
+          marketMap.set(market, { wins: 0, losses: 0, beWins: 0, beLosses: 0 });
+        }
+        const marketStat = marketMap.get(market)!;
+        if (isBE) {
+          if (isWin) marketStat.beWins++;
+          if (isLoss) marketStat.beLosses++;
+        } else {
+          if (isWin) marketStat.wins++;
+          if (isLoss) marketStat.losses++;
+        }
+      });
+
+      // Calculate win rates
+      const calculateWinRate = (wins: number, losses: number) => {
+        const total = wins + losses;
+        return total > 0 ? (wins / total) * 100 : 0;
+      };
+
+      const calculateWinRateWithBE = (wins: number, losses: number, beWins: number, beLosses: number) => {
+        const total = wins + losses + beWins + beLosses;
+        return total > 0 ? ((wins + beWins) / total) * 100 : 0;
+      };
+
+      // Convert maps to arrays with win rates
+      const setupStatsArray = Array.from(setupMap.entries()).map(([setup, stat]) => ({
+        setup,
+        ...stat,
+        winRate: calculateWinRate(stat.wins, stat.losses),
+        winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+      }));
+
+      const liquidityStatsArray = Array.from(liquidityMap.entries()).map(([liquidity, stat]) => ({
+        liquidity,
+        ...stat,
+        winRate: calculateWinRate(stat.wins, stat.losses),
+        winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+      }));
+
+      const directionStatsArray = Array.from(directionMap.entries()).map(([direction, stat]) => ({
+        direction,
+        ...stat,
+        winRate: calculateWinRate(stat.wins, stat.losses),
+        winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+      }));
+
+      const slSizeStatsArray = Array.from(slSizeMap.entries()).map(([market, stat]) => ({
+        market,
+        averageSlSize: stat.total > 0 ? stat.sum / stat.total : 0,
+      }));
+
+      const intervalStatsArray = Array.from(intervalMap.entries()).map(([label, stat]) => ({
+        label,
+        ...stat,
+        winRate: calculateWinRate(stat.wins, stat.losses),
+        winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+      }));
+
+      const mssStatsArray = Array.from(mssMap.entries()).map(([mss, stat]) => ({
+        mss,
+        ...stat,
+        winRate: calculateWinRate(stat.wins, stat.losses),
+        winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+      }));
+
+      const newsStatsArray = Array.from(newsMap.entries()).map(([news, stat]) => ({
+        news,
+        ...stat,
+        winRate: calculateWinRate(stat.wins, stat.losses),
+        winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+      }));
+
+      const dayStatsArray = Array.from(dayMap.entries()).map(([day, stat]) => ({
+        day,
+        ...stat,
+        winRate: calculateWinRate(stat.wins, stat.losses),
+        winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+      }));
+
+      const marketStatsArray = Array.from(marketMap.entries()).map(([market, stat]) => ({
+        market,
+        ...stat,
+        winRate: calculateWinRate(stat.wins, stat.losses),
+        winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+      }));
+
+      // Calculate local H/L win rates
+      const lichidatTotal = localHLStats.lichidat.wins + localHLStats.lichidat.losses;
+      const nelichidatTotal = localHLStats.nelichidat.wins + localHLStats.nelichidat.losses;
+      const lichidatTotalWithBE = lichidatTotal + localHLStats.lichidat.winsWithBE + localHLStats.lichidat.lossesWithBE;
+      const nelichidatTotalWithBE = nelichidatTotal + localHLStats.nelichidat.winsWithBE + localHLStats.nelichidat.lossesWithBE;
+
+      const localHLStatsComputed = {
+        lichidat: {
+          ...localHLStats.lichidat,
+          wins: localHLStats.lichidat.wins,
+          losses: localHLStats.lichidat.losses,
+          winRate: calculateWinRate(localHLStats.lichidat.wins, localHLStats.lichidat.losses),
+          winRateWithBE: calculateWinRateWithBE(
+            localHLStats.lichidat.wins,
+            localHLStats.lichidat.losses,
+            localHLStats.lichidat.winsWithBE,
+            localHLStats.lichidat.lossesWithBE
+          ),
+        },
+        nelichidat: {
+          ...localHLStats.nelichidat,
+          wins: localHLStats.nelichidat.wins,
+          losses: localHLStats.nelichidat.losses,
+          winRate: calculateWinRate(localHLStats.nelichidat.wins, localHLStats.nelichidat.losses),
+          winRateWithBE: calculateWinRateWithBE(
+            localHLStats.nelichidat.wins,
+            localHLStats.nelichidat.losses,
+            localHLStats.nelichidat.winsWithBE,
+            localHLStats.nelichidat.lossesWithBE
+          ),
+        },
+      };
+
+      // Calculate reentry and break-even win rates
+      const reentryStatsComputed = {
+        ...reentryStats,
+        winRate: calculateWinRate(reentryStats.wins, reentryStats.losses),
+        winRateWithBE: calculateWinRateWithBE(reentryStats.wins, reentryStats.losses, reentryStats.beWins, reentryStats.beLosses),
+      };
+
+      const breakEvenStatsComputed = {
+        ...breakEvenStats,
+        winRate: calculateWinRate(breakEvenStats.wins, breakEvenStats.losses),
+        winRateWithBE: calculateWinRateWithBE(breakEvenStats.wins, breakEvenStats.losses, breakEvenStats.beWins, breakEvenStats.beLosses),
+      };
+
+      return {
+        setupStats: setupStatsArray,
+        liquidityStats: liquidityStatsArray,
+        directionStats: directionStatsArray,
+        localHLStats: localHLStatsComputed,
+        slSizeStats: slSizeStatsArray,
+        reentryStats: [reentryStatsComputed],
+        breakEvenStats: [breakEvenStatsComputed],
+        intervalStats: intervalStatsArray,
+        mssStats: mssStatsArray,
+        newsStats: newsStatsArray,
+        dayStats: dayStatsArray,
+        marketStats: marketStatsArray,
+      };
+    };
+  }, []);
 
   // Compute monthly stats from trades array (for AccountOverviewCard - profit only)
   const computeMonthlyStatsFromTrades = useMemo(() => {
@@ -1289,26 +1611,264 @@ export default function AnalyticsClient(
   }, []);
 
   // Determine which monthly stats to use based on view mode (for AccountOverviewCard - profit only)
-  const monthlyStatsToUse = useMemo(() => {
-    if (viewMode === 'yearly') {
-      // Use allTrades for yearly mode
-      return computeMonthlyStatsFromTrades(allTrades);
-    } else {
-      // Use filteredTrades for date range mode
-      return computeMonthlyStatsFromTrades(filteredTrades);
+  // Determine which trades to use based on view mode, execution filter, and market filter
+  const tradesToUse = useMemo(() => {
+    // When filtering by non-executed, use nonExecutedTrades from hook (already filtered by date range)
+    if (executionFilter === 'non-executed') {
+      let filtered = nonExecutedTrades;
+      // Apply market filter if needed
+      if (selectedMarket !== 'all') {
+        filtered = filtered.filter((t) => t.market === selectedMarket);
+      }
+      return filtered;
     }
-  }, [viewMode, allTrades, filteredTrades, computeMonthlyStatsFromTrades]);
+    
+    // Get base trades based on view mode
+    const baseTrades = viewMode === 'yearly' ? allTrades : filteredTrades;
+    
+    // Apply execution filter
+    let filteredTradesList = baseTrades;
+    if (executionFilter === 'executed') {
+      filteredTradesList = baseTrades.filter((t) => t.executed === true);
+    }
+    
+    // Apply market filter if needed
+    if (selectedMarket !== 'all') {
+      filteredTradesList = filteredTradesList.filter((t) => t.market === selectedMarket);
+    }
+    
+    return filteredTradesList;
+  }, [executionFilter, viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedMarket]);
+
+  // Compute filtered statistics when filters are applied
+  const filteredChartStats = useMemo(() => {
+    if (executionFilter === 'all' && selectedMarket === 'all') {
+      return null; // Use hook stats
+    }
+    return computeStatsFromTrades(tradesToUse);
+  }, [tradesToUse, executionFilter, selectedMarket, computeStatsFromTrades]);
+
+  // Use filtered stats when filters are applied, otherwise use hook stats
+  const statsToUseForCharts = filteredChartStats || {
+    setupStats,
+    liquidityStats,
+    directionStats,
+    localHLStats,
+    slSizeStats,
+    reentryStats,
+    breakEvenStats,
+    intervalStats,
+    mssStats,
+    newsStats,
+    dayStats,
+    marketStats: viewMode === 'yearly' ? marketAllTradesStats : marketStats,
+  };
+
+  // Recompute chart data arrays using filtered stats when filters are applied
+  const setupChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.setupStats.map((stat) => ({
+    category: `${stat.setup}`,
+    wins: stat.wins,
+    losses: stat.losses,
+    beWins: stat.beWins,
+    beLosses: stat.beLosses,
+    winRate: stat.winRate,
+    winRateWithBE: stat.winRateWithBE,
+  }));
+
+  const liquidityChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.liquidityStats.map((stat) => ({
+    category: `${stat.liquidity}`,
+    wins: stat.wins,
+    losses: stat.losses,
+    beWins: stat.beWins,
+    beLosses: stat.beLosses,
+    winRate: stat.winRate,
+    winRateWithBE: stat.winRateWithBE,
+  }));
+
+  const totalDirectionTradesFiltered = statsToUseForCharts.directionStats.reduce(
+    (sum, stat) => sum + (stat.wins ?? 0) + (stat.losses ?? 0),
+    0
+  );
+
+  const directionChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.directionStats.map((stat) => {
+    const directionTotal = (stat.wins ?? 0) + (stat.losses ?? 0);
+    const percentage =
+      totalDirectionTradesFiltered > 0
+        ? ((directionTotal / totalDirectionTradesFiltered) * 100).toFixed(1)
+        : "0.0";
+    return {
+      category: `${stat.direction} - ${percentage}%`,
+      wins: stat.wins,
+      losses: stat.losses,
+      beWins: stat.beWins,
+      beLosses: stat.beLosses,
+      winRate: stat.winRate,
+      winRateWithBE: stat.winRateWithBE,
+    };
+  });
+
+  const localHLChartDataFiltered: TradeStatDatum[] = [
+    {
+      category: `Lichidat`,
+      wins: statsToUseForCharts.localHLStats.lichidat.wins,
+      losses: statsToUseForCharts.localHLStats.lichidat.losses,
+      beWins: statsToUseForCharts.localHLStats.lichidat.winsWithBE,
+      beLosses: statsToUseForCharts.localHLStats.lichidat.lossesWithBE,
+      winRate: statsToUseForCharts.localHLStats.lichidat.winRate,
+      winRateWithBE: statsToUseForCharts.localHLStats.lichidat.winRateWithBE,
+    },
+    {
+      category: `Nelichidat`,
+      wins: statsToUseForCharts.localHLStats.nelichidat.wins,
+      losses: statsToUseForCharts.localHLStats.nelichidat.losses,
+      beWins: statsToUseForCharts.localHLStats.nelichidat.winsWithBE,
+      beLosses: statsToUseForCharts.localHLStats.nelichidat.lossesWithBE,
+      winRate: statsToUseForCharts.localHLStats.nelichidat.winRate,
+      winRateWithBE: statsToUseForCharts.localHLStats.nelichidat.winRateWithBE,
+    },
+  ];
+
+  const slSizeChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.slSizeStats.map((stat) => ({
+    category: stat.market,
+    value: stat.averageSlSize,
+  }));
+
+  const tradeTypesChartDataFiltered: TradeStatDatum[] = [
+    ...statsToUseForCharts.reentryStats.map((stat) => ({
+      category: `Re-entry`,
+      wins: stat.wins,
+      losses: stat.losses,
+      beWins: stat.beWins,
+      beLosses: stat.beLosses,
+      winRate: stat.winRate,
+      winRateWithBE: stat.winRateWithBE,
+    })),
+    ...statsToUseForCharts.breakEvenStats.map((stat) => ({
+      category: `Break-even`,
+      wins: stat.wins,
+      losses: stat.losses,
+      winRate: stat.winRate,
+    })),
+  ];
+
+  const timeIntervalChartDataFiltered: TradeStatDatum[] = TIME_INTERVALS.map((interval) => {
+    const stat =
+      statsToUseForCharts.intervalStats.find((s) => s.label === interval.label) ?? {
+        wins: 0,
+        losses: 0,
+        beWins: 0,
+        beLosses: 0,
+        winRate: 0,
+        winRateWithBE: 0,
+      };
+    return {
+      category: `${interval.label}`,
+      wins: stat.wins,
+      losses: stat.losses,
+      beWins: stat.beWins,
+      beLosses: stat.beLosses,
+      winRate: stat.winRate,
+      winRateWithBE: stat.winRateWithBE,
+      totalTrades: stat.wins + stat.losses,
+    };
+  });
+
+  const mssChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.mssStats.map((stat) => ({
+    category: stat.mss,
+    wins: stat.wins,
+    losses: stat.losses,
+    beWins: stat.beWins,
+    beLosses: stat.beLosses,
+    winRate: stat.winRate,
+    winRateWithBE: stat.winRateWithBE,
+    totalTrades: stat.wins + stat.losses,
+  }));
+
+  const newsChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.newsStats.map((stat) => ({
+    category: `${stat.news}`,
+    wins: stat.wins,
+    losses: stat.losses,
+    beWins: stat.beWins,
+    beLosses: stat.beLosses,
+    winRate: stat.winRate,
+    winRateWithBE: stat.winRateWithBE,
+    totalTrades: stat.wins + stat.losses,
+  }));
+
+  const dayChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.dayStats.map((stat) => ({
+    category: `${stat.day}`,
+    wins: stat.wins,
+    losses: stat.losses,
+    beWins: stat.beWins,
+    beLosses: stat.beLosses,
+    winRate: stat.winRate,
+    winRateWithBE: stat.winRateWithBE,
+    totalTrades: stat.wins + stat.losses,
+  }));
+
+  const marketChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.marketStats.map((stat) => {
+    const totalTrades = stat.wins + stat.losses;
+    const computedWinRate = totalTrades > 0 ? (stat.wins / totalTrades) * 100 : 0;
+    return {
+      category: `${stat.market}`,
+      wins: stat.wins,
+      losses: stat.losses,
+      beWins: stat.beWins,
+      beLosses: stat.beLosses,
+      winRate: computedWinRate,
+      winRateWithBE: stat.winRateWithBE ?? stat.winRate,
+      totalTrades,
+    };
+  });
+
+  // Use filtered chart data when filters are applied, otherwise use original
+  const setupChartDataToUse = filteredChartStats ? setupChartDataFiltered : setupChartData;
+  const liquidityChartDataToUse = filteredChartStats ? liquidityChartDataFiltered : liquidityChartData;
+  const directionChartDataToUse = filteredChartStats ? directionChartDataFiltered : directionChartData;
+  const localHLChartDataToUse = filteredChartStats ? localHLChartDataFiltered : localHLChartData;
+  const slSizeChartDataToUse = filteredChartStats ? slSizeChartDataFiltered : slSizeChartData;
+  const tradeTypesChartDataToUse = filteredChartStats ? tradeTypesChartDataFiltered : tradeTypesChartData;
+  const timeIntervalChartDataToUse = filteredChartStats ? timeIntervalChartDataFiltered : timeIntervalChartData;
+  const mssChartDataToUse = filteredChartStats ? mssChartDataFiltered : mssChartData;
+  const newsChartDataToUse = filteredChartStats ? newsChartDataFiltered : newsChartData;
+  const dayChartDataToUse = filteredChartStats ? dayChartDataFiltered : dayChartData;
+  const marketChartDataToUse = filteredChartStats ? marketChartDataFiltered : marketChartData;
+
+  // Determine loading state for charts
+  // When filtering by non-executed, check nonExecutedTradesLoading
+  // When filters are applied but not non-executed, data is computed synchronously, so isLoading should be false
+  // Otherwise, use the appropriate loading state based on view mode
+  const chartsLoadingState = useMemo(() => {
+    if (executionFilter === 'non-executed') {
+      return nonExecutedTradesLoading;
+    }
+    if (filteredChartStats) {
+      // Filters are applied (executed or market filter), data computed synchronously
+      return false;
+    }
+    // No filters applied, use normal loading state
+    return viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading;
+  }, [executionFilter, nonExecutedTradesLoading, filteredChartStats, viewMode, allTradesLoading, filteredTradesLoading]);
+
+  const monthlyStatsToUse = useMemo(() => {
+    // Use tradesToUse which respects both execution and market filters
+    return computeMonthlyStatsFromTrades(tradesToUse);
+  }, [tradesToUse, computeMonthlyStatsFromTrades]);
 
   // Determine which full monthly stats to use based on view mode (for MonthlyPerformanceChart - wins, losses, winRate, etc.)
   const monthlyPerformanceStatsToUse = useMemo(() => {
     if (viewMode === 'yearly') {
-      // Use monthlyStatsAllTrades from hook for yearly mode
+      // In yearly mode, if filters are applied, use tradesToUse; otherwise use hook data
+      if (executionFilter !== 'all' || selectedMarket !== 'all') {
+        return computeFullMonthlyStatsFromTrades(tradesToUse);
+      }
+      // Use monthlyStatsAllTrades from hook for yearly mode when no filters
       return monthlyStatsAllTrades;
     } else {
-      // Compute from filteredTrades for date range mode
-      return computeFullMonthlyStatsFromTrades(filteredTrades);
+      // In date range mode, use tradesToUse which respects filters
+      return computeFullMonthlyStatsFromTrades(tradesToUse);
     }
-  }, [viewMode, monthlyStatsAllTrades, filteredTrades, computeFullMonthlyStatsFromTrades]);
+  }, [viewMode, monthlyStatsAllTrades, tradesToUse, executionFilter, selectedMarket, computeFullMonthlyStatsFromTrades]);
 
   const totalYearProfit = useMemo(
     () =>
@@ -1318,6 +1878,55 @@ export default function AnalyticsClient(
       ),
     [monthlyStatsToUse]
   );
+
+  // Compute filtered monthlyStats with best/worst month when filters are applied
+  const monthlyStatsToUseForCards = useMemo(() => {
+    if (executionFilter === 'all' && selectedMarket === 'all') {
+      return monthlyStats; // Use hook stats
+    }
+
+    // Compute best and worst month from monthlyPerformanceStatsToUse
+    const monthlyData = monthlyPerformanceStatsToUse;
+    let bestMonth: { month: string; stats: { winRate: number; profit: number } } | null = null;
+    let worstMonth: { month: string; stats: { winRate: number; profit: number } } | null = null;
+    let bestProfit = -Infinity;
+    let worstProfit = Infinity;
+
+    Object.entries(monthlyData).forEach(([month, stats]) => {
+      const profit = stats.wins * (stats.wins / (stats.wins + stats.losses + stats.beWins + stats.beLosses)) * 100 || 0;
+      // Actually, we need to calculate profit from trades, not from stats
+      // Let's use monthlyStatsToUse for profit
+      const monthProfit = monthlyStatsToUse[month]?.profit || 0;
+      
+      if (monthProfit > bestProfit) {
+        bestProfit = monthProfit;
+        bestMonth = {
+          month,
+          stats: {
+            winRate: stats.winRate,
+            profit: monthProfit,
+          },
+        };
+      }
+      if (monthProfit < worstProfit) {
+        worstProfit = monthProfit;
+        worstMonth = {
+          month,
+          stats: {
+            winRate: stats.winRate,
+            profit: monthProfit,
+          },
+        };
+      }
+    });
+
+    return {
+      ...monthlyStats,
+      monthlyData: monthlyPerformanceStatsToUse,
+      bestMonth,
+      worstMonth,
+    };
+  }, [executionFilter, selectedMarket, monthlyStats, monthlyPerformanceStatsToUse, monthlyStatsToUse]);
 
   const updatedBalance =
     ((resolvedAccount as { account_balance?: number } | null)?.account_balance ?? 0) + totalYearProfit;
@@ -1330,14 +1939,28 @@ export default function AnalyticsClient(
   // Get trades for the current calendar month based on view mode
   const calendarMonthTradesToUse = useMemo(() => {
     const tradesSource = viewMode === 'yearly' ? allTrades : filteredTrades;
+    let filteredSource = tradesSource;
+    
+    // Apply execution filter
+    if (executionFilter === 'executed') {
+      filteredSource = tradesSource.filter((t) => t.executed === true);
+    } else if (executionFilter === 'non-executed') {
+      filteredSource = tradesSource.filter((t) => t.executed === false);
+    }
+    
+    // Apply market filter if needed
+    if (selectedMarket !== 'all') {
+      filteredSource = filteredSource.filter((t) => t.market === selectedMarket);
+    }
+    
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
     
-    return tradesSource.filter((trade) => {
+    return filteredSource.filter((trade) => {
       const tradeDate = new Date(trade.trade_date);
       return tradeDate >= monthStart && tradeDate <= monthEnd;
     });
-  }, [viewMode, allTrades, filteredTrades, currentDate]);
+  }, [viewMode, allTrades, filteredTrades, currentDate, executionFilter, selectedMarket]);
 
   const weeklyStats = useMemo(
     () =>
@@ -1357,8 +1980,198 @@ export default function AnalyticsClient(
 
   const isCustomRange = isCustomDateRange(dateRange);
 
-  // Determine which trades to use based on view mode
-  const tradesToUse = viewMode === 'yearly' ? allTrades : filteredTrades;
+  // Compute stats from tradesToUse when filters are applied (to respect execution filter)
+  const filteredStats = useMemo(() => {
+    // If no filters are applied, use hook stats
+    if (executionFilter === 'all' && selectedMarket === 'all') {
+      return stats;
+    }
+
+    // Compute stats from tradesToUse
+    const nonBETrades = tradesToUse.filter((t) => !t.break_even);
+    const beTrades = tradesToUse.filter((t) => t.break_even);
+    
+    const wins = nonBETrades.filter((t) => t.trade_outcome === 'Win').length;
+    const losses = nonBETrades.filter((t) => t.trade_outcome === 'Lose').length;
+    const beWins = beTrades.filter((t) => t.trade_outcome === 'Win').length;
+    const beLosses = beTrades.filter((t) => t.trade_outcome === 'Lose').length;
+    
+    const totalTrades = wins + losses + beWins + beLosses;
+    const totalWins = wins + beWins;
+    const totalLosses = losses + beLosses;
+    
+    const totalProfit = tradesToUse.reduce((sum, t) => sum + (t.calculated_profit || 0), 0);
+    const averageProfit = totalTrades > 0 ? totalProfit / totalTrades : 0;
+    
+    const nonBETotal = wins + losses;
+    const winRate = nonBETotal > 0 ? (wins / nonBETotal) * 100 : 0;
+    const winRateWithBE = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
+    
+    // Calculate streaks
+    let currentStreak = 0;
+    let maxWinningStreak = 0;
+    let maxLosingStreak = 0;
+    let currentWinningStreak = 0;
+    let currentLosingStreak = 0;
+    
+    const sortedTrades = [...tradesToUse].sort((a, b) => 
+      new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime()
+    );
+    
+    sortedTrades.forEach((trade) => {
+      const isWin = trade.trade_outcome === 'Win';
+      if (isWin) {
+        currentWinningStreak++;
+        currentLosingStreak = 0;
+        maxWinningStreak = Math.max(maxWinningStreak, currentWinningStreak);
+      } else {
+        currentLosingStreak++;
+        currentWinningStreak = 0;
+        maxLosingStreak = Math.max(maxLosingStreak, currentLosingStreak);
+      }
+    });
+    
+    const lastTrade = sortedTrades[sortedTrades.length - 1];
+    if (lastTrade) {
+      currentStreak = lastTrade.trade_outcome === 'Win' ? currentWinningStreak : -currentLosingStreak;
+    }
+    
+    // Calculate average days between trades
+    let averageDaysBetweenTrades = 0;
+    if (sortedTrades.length > 1) {
+      const daysBetween: number[] = [];
+      for (let i = 1; i < sortedTrades.length; i++) {
+        const prevDate = new Date(sortedTrades[i - 1].trade_date);
+        const currDate = new Date(sortedTrades[i].trade_date);
+        const diffTime = Math.abs(currDate.getTime() - prevDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        daysBetween.push(diffDays);
+      }
+      averageDaysBetweenTrades = daysBetween.length > 0
+        ? daysBetween.reduce((sum, days) => sum + days, 0) / daysBetween.length
+        : 0;
+    }
+    
+    // Calculate max drawdown
+    let maxDrawdown = 0;
+    let peak = 0;
+    let runningBalance = selection.activeAccount?.account_balance || 0;
+    
+    sortedTrades.forEach((trade) => {
+      runningBalance += trade.calculated_profit || 0;
+      if (runningBalance > peak) {
+        peak = runningBalance;
+      }
+      const drawdown = peak > 0 ? ((peak - runningBalance) / peak) * 100 : 0;
+      maxDrawdown = Math.max(maxDrawdown, drawdown);
+    });
+    
+    // Calculate average P&L percentage
+    const accountBalance = selection.activeAccount?.account_balance || 1;
+    const averagePnLPercentage = accountBalance > 0 ? (totalProfit / accountBalance) * 100 : 0;
+    
+    // Calculate partials stats
+    const partialsTrades = tradesToUse.filter((t) => t.partials_taken);
+    const partialsWins = partialsTrades.filter((t) => t.trade_outcome === 'Win' && !t.break_even).length;
+    const partialsLosses = partialsTrades.filter((t) => t.trade_outcome === 'Lose' && !t.break_even).length;
+    const partialsBEWins = partialsTrades.filter((t) => t.trade_outcome === 'Win' && t.break_even).length;
+    const partialsBELosses = partialsTrades.filter((t) => t.trade_outcome === 'Lose' && t.break_even).length;
+    const totalPartials = partialsWins + partialsLosses + partialsBEWins + partialsBELosses;
+    const partialWinRate = (partialsWins + partialsLosses) > 0 
+      ? (partialsWins / (partialsWins + partialsLosses)) * 100 
+      : 0;
+    const partialWinRateWithBE = totalPartials > 0 
+      ? ((partialsWins + partialsBEWins) / totalPartials) * 100 
+      : 0;
+    
+    return {
+      ...stats, // Keep other stats from hook
+      totalTrades,
+      wins,
+      losses,
+      beWins,
+      beLosses,
+      totalWins,
+      totalLosses,
+      totalProfit,
+      averageProfit,
+      winRate,
+      winRateWithBE,
+      currentStreak,
+      maxWinningStreak,
+      maxLosingStreak,
+      averageDaysBetweenTrades,
+      maxDrawdown,
+      averagePnLPercentage,
+      partialsTaken: totalPartials,
+      partialsWins,
+      partialsLosses,
+      partialsBEWins,
+      partialsBELosses,
+      partialWinRate,
+      partialWinRateWithBE,
+      partialWinningTrades: partialsWins,
+      partialLosingTrades: partialsLosses,
+      beWinPartialTrades: partialsBEWins,
+      beLosingPartialTrades: partialsBELosses,
+    };
+  }, [tradesToUse, executionFilter, selectedMarket, stats, selection.activeAccount?.account_balance]);
+
+  // Use filteredStats when filters are applied, otherwise use hook stats
+  const statsToUse = executionFilter !== 'all' || selectedMarket !== 'all' ? filteredStats : stats;
+
+  // Compute filtered macroStats when filters are applied
+  const macroStatsToUse = useMemo(() => {
+    if (executionFilter === 'all' && selectedMarket === 'all') {
+      return macroStats; // Use hook stats
+    }
+
+    // Compute profit factor from statsToUse
+    const totalWins = statsToUse.totalWins;
+    const totalLosses = statsToUse.totalLosses;
+    const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
+
+    // Compute consistency score (simplified - percentage of profitable months)
+    const monthlyData = monthlyPerformanceStatsToUse;
+    const profitableMonths = Object.values(monthlyData).filter((month) => {
+      const monthProfit = monthlyStatsToUse[Object.keys(monthlyData).find(key => monthlyData[key] === month) || '']?.profit || 0;
+      return monthProfit > 0;
+    }).length;
+    const totalMonths = Object.keys(monthlyData).length;
+    const consistencyScore = totalMonths > 0 ? (profitableMonths / totalMonths) * 100 : 0;
+
+    // Compute Sharpe ratio (simplified - would need returns array for full calculation)
+    // For now, use a simplified version based on profit and drawdown
+    const avgReturn = statsToUse.averagePnLPercentage || 0;
+    const volatility = statsToUse.maxDrawdown || 1; // Use drawdown as proxy for volatility
+    const sharpeWithBE = volatility > 0 ? avgReturn / volatility : 0;
+
+    return {
+      ...macroStats, // Keep other stats from hook
+      profitFactor,
+      consistencyScore,
+      consistencyScoreWithBE: consistencyScore, // Simplified - same as consistencyScore
+      sharpeWithBE,
+    };
+  }, [executionFilter, selectedMarket, macroStats, statsToUse, monthlyPerformanceStatsToUse, monthlyStatsToUse]);
+
+  // Color variables based on statsToUse
+  const profitColor =
+    statsToUse.totalProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
+  const avgProfitColor =
+    statsToUse.averageProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
+  const pnlColor =
+    statsToUse.averagePnLPercentage > 0
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : statsToUse.averagePnLPercentage < 0
+      ? 'text-rose-600 dark:text-rose-400'
+      : 'text-slate-900 dark:text-slate-100';
+  const streakColor =
+    statsToUse.currentStreak > 0
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : statsToUse.currentStreak < 0
+      ? 'text-rose-600 dark:text-rose-400'
+      : 'text-slate-900 dark:text-slate-100';
 
   // Get markets from the trades being used
   const markets = Array.from(new Set(tradesToUse.map((t) => t.market)));
@@ -1434,6 +2247,8 @@ export default function AnalyticsClient(
           selectedMarket={selectedMarket}
           onSelectedMarketChange={setSelectedMarket}
           markets={markets}
+          executionFilter={executionFilter}
+          onExecutionFilterChange={setExecutionFilter}
         />
       )}
 
@@ -1489,18 +2304,18 @@ export default function AnalyticsClient(
       {/* Month Stats Cards - Only show in yearly mode */}
       {viewMode === 'yearly' && (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
-          {monthlyStats.bestMonth && (
+          {monthlyStatsToUseForCards.bestMonth && (
             <MonthPerformanceCard
               title="Best Month"
-              month={monthlyStats.bestMonth.month}
-              year={allTrades.length > 0 ? selectedYear : new Date().getFullYear()}
-              winRate={monthlyStats.bestMonth.stats.winRate}
-              profit={monthlyStats.bestMonth.stats.profit}
+              month={monthlyStatsToUseForCards.bestMonth.month}
+              year={tradesToUse.length > 0 ? selectedYear : new Date().getFullYear()}
+              winRate={monthlyStatsToUseForCards.bestMonth.stats.winRate}
+              profit={monthlyStatsToUseForCards.bestMonth.stats.profit}
               currencySymbol={getCurrencySymbol()}
               profitPercent={
                 resolvedAccount
                   ? ((resolvedAccount as { account_balance?: number }).account_balance ?? 1) > 0
-                    ? (monthlyStats.bestMonth.stats.profit / ((resolvedAccount as { account_balance?: number }).account_balance ?? 1)) * 100
+                    ? (monthlyStatsToUseForCards.bestMonth.stats.profit / ((resolvedAccount as { account_balance?: number }).account_balance ?? 1)) * 100
                     : undefined
                   : undefined
               }
@@ -1509,18 +2324,18 @@ export default function AnalyticsClient(
             />
           )}
 
-          {monthlyStats.worstMonth && (
+          {monthlyStatsToUseForCards.worstMonth && (
             <MonthPerformanceCard
               title="Worst Month"
-              month={monthlyStats.worstMonth.month}
-              year={allTrades.length > 0 ? selectedYear : new Date().getFullYear()}
-              winRate={monthlyStats.worstMonth.stats.winRate}
-              profit={monthlyStats.worstMonth.stats.profit}
+              month={monthlyStatsToUseForCards.worstMonth.month}
+              year={tradesToUse.length > 0 ? selectedYear : new Date().getFullYear()}
+              winRate={monthlyStatsToUseForCards.worstMonth.stats.winRate}
+              profit={monthlyStatsToUseForCards.worstMonth.stats.profit}
               currencySymbol={getCurrencySymbol()}
               profitPercent={
                 resolvedAccount
                   ? ((resolvedAccount as { account_balance?: number }).account_balance ?? 1) > 0
-                    ? (monthlyStats.worstMonth.stats.profit / ((resolvedAccount as { account_balance?: number }).account_balance ?? 1)) * 100
+                    ? (monthlyStatsToUseForCards.worstMonth.stats.profit / ((resolvedAccount as { account_balance?: number }).account_balance ?? 1)) * 100
                     : undefined
                   : undefined
               }
@@ -1564,7 +2379,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStats.profitFactor < 1
+                  macroStatsToUse.profitFactor < 1
                     ? "bg-red-50 border border-red-100"
                     : ""
                 )}
@@ -1577,7 +2392,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStats.profitFactor >= 1 && macroStats.profitFactor < 1.5
+                  macroStatsToUse.profitFactor >= 1 && macroStats.profitFactor < 1.5
                     ? "bg-orange-50 border border-orange-100"
                     : ""
                 )}
@@ -1590,7 +2405,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStats.profitFactor >= 1.5 && macroStats.profitFactor < 2
+                  macroStatsToUse.profitFactor >= 1.5 && macroStats.profitFactor < 2
                     ? "bg-amber-50 border border-amber-100"
                     : ""
                 )}
@@ -1603,7 +2418,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStats.profitFactor >= 2 && macroStats.profitFactor < 3
+                  macroStatsToUse.profitFactor >= 2 && macroStats.profitFactor < 3
                     ? "bg-emerald-50 border border-emerald-100"
                     : ""
                 )}
@@ -1616,7 +2431,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStats.profitFactor >= 3
+                  macroStatsToUse.profitFactor >= 3
                     ? "bg-blue-50 border border-blue-100"
                     : ""
                 )}
@@ -1654,7 +2469,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   'rounded-lg p-1.5 sm:p-2',
-                  macroStats.consistencyScore < 40
+                  macroStatsToUse.consistencyScore < 40
                     ? 'bg-red-50 border border-red-100'
                     : ''
                 )}
@@ -1666,8 +2481,8 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   'rounded-lg p-1.5 sm:p-2',
-                  macroStats.consistencyScore >= 40 &&
-                    macroStats.consistencyScore < 60
+                  macroStatsToUse.consistencyScore >= 40 &&
+                    macroStatsToUse.consistencyScore < 60
                     ? 'bg-orange-50 border border-orange-100'
                     : ''
                 )}
@@ -1679,8 +2494,8 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   'rounded-lg p-1.5 sm:p-2',
-                  macroStats.consistencyScore >= 60 &&
-                    macroStats.consistencyScore < 75
+                  macroStatsToUse.consistencyScore >= 60 &&
+                    macroStatsToUse.consistencyScore < 75
                     ? 'bg-yellow-50 border border-yellow-200'
                     : ''
                 )}
@@ -1692,8 +2507,8 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   'rounded-lg p-1.5 sm:p-2',
-                  macroStats.consistencyScore >= 75 &&
-                    macroStats.consistencyScore < 90
+                  macroStatsToUse.consistencyScore >= 75 &&
+                    macroStatsToUse.consistencyScore < 90
                     ? 'bg-emerald-50 border border-emerald-100'
                     : ''
                 )}
@@ -1705,7 +2520,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   'rounded-lg p-1.5 sm:p-2',
-                  macroStats.consistencyScore >= 90
+                  macroStatsToUse.consistencyScore >= 90
                     ? 'bg-blue-50 border border-blue-100'
                     : ''
                 )}
@@ -1729,7 +2544,7 @@ export default function AnalyticsClient(
             >
               {macroStats.consistencyScore.toFixed(2)}{' '}
               <span className="text-slate-500 text-sm">
-                ({macroStats.consistencyScoreWithBE.toFixed(2)} w/ BE)
+                ({macroStatsToUse.consistencyScoreWithBE.toFixed(2)} w/ BE)
               </span>
             </p>
           }
@@ -1752,9 +2567,9 @@ export default function AnalyticsClient(
           }
           value={
             <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {monthlyStats.monthlyData
+              {monthlyStatsToUseForCards.monthlyData
                 ? (() => {
-                    const totalTrades = Object.values(monthlyStats.monthlyData).reduce(
+                    const totalTrades = Object.values(monthlyStatsToUseForCards.monthlyData).reduce(
                       (sum, month) =>
                         sum +
                         month.wins +
@@ -1763,7 +2578,7 @@ export default function AnalyticsClient(
                         month.beLosses,
                       0
                     );
-                    const monthsCount = Object.keys(monthlyStats.monthlyData).length;
+                    const monthsCount = Object.keys(monthlyStatsToUseForCards.monthlyData).length;
                     const avg =
                       monthsCount > 0 ? totalTrades / monthsCount : 0;
                     const value = isNaN(avg) || !isFinite(avg) ? 0 : avg;
@@ -1790,13 +2605,13 @@ export default function AnalyticsClient(
             </div>
           }
           value={
-            <p className={cn('text-2xl font-bold', !hydrated ? 'text-slate-900 dark:text-slate-100' : monthlyStats.monthlyData && Object.keys(monthlyStats.monthlyData).length > 0 ? (Object.values(monthlyStats.monthlyData).reduce((sum, month) => sum + month.profit, 0) / Object.keys(monthlyStats.monthlyData).length > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400') : 'text-slate-900 dark:text-slate-100')}>
+            <p className={cn('text-2xl font-bold', !hydrated ? 'text-slate-900 dark:text-slate-100' : monthlyStatsToUseForCards.monthlyData && Object.keys(monthlyStatsToUseForCards.monthlyData).length > 0 ? (Object.values(monthlyStatsToUse).reduce((sum, month) => sum + month.profit, 0) / Object.keys(monthlyStatsToUseForCards.monthlyData).length > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400') : 'text-slate-900 dark:text-slate-100')}>
               {!hydrated
                 ? '\u2014'
-                : monthlyStats.monthlyData && Object.keys(monthlyStats.monthlyData).length > 0
+                : monthlyStatsToUseForCards.monthlyData && Object.keys(monthlyStatsToUseForCards.monthlyData).length > 0
                   ? <>
                       <span className="mr-1">{currencySymbol}</span>
-                      {(Object.values(monthlyStats.monthlyData).reduce((sum, month) => sum + month.profit, 0) / Object.keys(monthlyStats.monthlyData).length).toFixed(2)}
+                      {(Object.values(monthlyStatsToUse).reduce((sum, month) => sum + month.profit, 0) / Object.keys(monthlyStatsToUseForCards.monthlyData).length).toFixed(2)}
                     </>
                   : <>
                       <span className="mr-1">{currencySymbol}</span>0
@@ -1818,7 +2633,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStats.sharpeWithBE < 0.2
+                  macroStatsToUse.sharpeWithBE < 0.2
                     ? "bg-orange-50 border border-orange-100"
                     : ""
                 )}
@@ -1830,7 +2645,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStats.sharpeWithBE >= 0.2 && macroStats.sharpeWithBE < 0.5
+                  macroStatsToUse.sharpeWithBE >= 0.2 && macroStatsToUse.sharpeWithBE < 0.5
                     ? "bg-orange-100 border border-orange-200"
                     : ""
                 )}
@@ -1842,7 +2657,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStats.sharpeWithBE >= 0.5 && macroStats.sharpeWithBE < 1
+                  macroStatsToUse.sharpeWithBE >= 0.5 && macroStatsToUse.sharpeWithBE < 1
                     ? "bg-amber-50 border border-amber-100"
                     : ""
                 )}
@@ -1854,7 +2669,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStats.sharpeWithBE >= 1 && macroStats.sharpeWithBE < 2
+                  macroStatsToUse.sharpeWithBE >= 1 && macroStatsToUse.sharpeWithBE < 2
                     ? "bg-emerald-50 border border-emerald-100"
                     : ""
                 )}
@@ -1866,7 +2681,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStats.sharpeWithBE >= 2
+                  macroStatsToUse.sharpeWithBE >= 2
                     ? "bg-blue-50 border border-blue-100"
                     : ""
                 )}
@@ -1881,14 +2696,14 @@ export default function AnalyticsClient(
             <p
               className={cn(
                 'text-2xl font-bold',
-                macroStats.sharpeWithBE > 0.5
+                macroStatsToUse.sharpeWithBE > 0.5
                   ? 'text-emerald-600 dark:text-emerald-400'
-                  : macroStats.sharpeWithBE < 0.49
+                  : macroStatsToUse.sharpeWithBE < 0.49
                   ? 'text-rose-600 dark:text-rose-400'
                   : 'text-slate-900 dark:text-slate-100'
               )}
             >
-              {macroStats.sharpeWithBE.toFixed(2)}{' '}
+              {macroStatsToUse.sharpeWithBE.toFixed(2)}{' '}
               <span className="text-slate-500 text-sm">(incl. BE)</span>
             </p>
           }
@@ -2135,7 +2950,7 @@ export default function AnalyticsClient(
           title="Total Trades"
           value={
             <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {stats.totalTrades}
+              {statsToUse.totalTrades}
             </p>
           }
         />
@@ -2145,9 +2960,9 @@ export default function AnalyticsClient(
           title="Win Rate"
           value={
             <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {stats.winRate.toFixed(2)}%
+              {statsToUse.winRate.toFixed(2)}%
               <span className="text-slate-500 text-sm ml-1">
-                ({stats.winRateWithBE.toFixed(2)}% w/ BE)
+                ({statsToUse.winRateWithBE.toFixed(2)}% w/ BE)
               </span>
             </p>
           }
@@ -2158,7 +2973,7 @@ export default function AnalyticsClient(
           title="Total Profit"
           value={
             <p className={hydrated ? `text-2xl font-bold ${profitColor}` : 'text-2xl font-bold text-slate-900 dark:text-slate-100'}>
-              {hydrated ? `${currencySymbol}${stats.totalProfit.toFixed(2)}` : '\u2014'}
+              {hydrated ? `${currencySymbol}${statsToUse.totalProfit.toFixed(2)}` : '\u2014'}
             </p>
           }
         />
@@ -2168,7 +2983,7 @@ export default function AnalyticsClient(
           title="Average Profit"
           value={
             <p className={hydrated ? `text-2xl font-bold ${avgProfitColor}` : 'text-2xl font-bold text-slate-900 dark:text-slate-100'}>
-              {hydrated ? `${currencySymbol}${stats.averageProfit.toFixed(2)}` : '\u2014'}
+              {hydrated ? `${currencySymbol}${statsToUse.averageProfit.toFixed(2)}` : '\u2014'}
             </p>
           }
         />
@@ -2178,10 +2993,10 @@ export default function AnalyticsClient(
           title="Total Wins"
           value={
             <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              {stats.totalWins}
-              {stats.beWins > 0 && (
+              {statsToUse.totalWins}
+              {statsToUse.beWins > 0 && (
                 <span className="text-sm font-medium text-slate-500 ml-1">
-                  ({stats.beWins} BE)
+                  ({statsToUse.beWins} BE)
                 </span>
               )}
             </p>
@@ -2193,10 +3008,10 @@ export default function AnalyticsClient(
           title="Total Losses"
           value={
             <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">
-              {stats.totalLosses}
-              {stats.beLosses > 0 && (
+              {statsToUse.totalLosses}
+              {statsToUse.beLosses > 0 && (
                 <span className="text-sm font-medium text-slate-500 ml-1">
-                  ({stats.beLosses} BE)
+                  ({statsToUse.beLosses} BE)
                 </span>
               )}
             </p>
@@ -2266,7 +3081,7 @@ export default function AnalyticsClient(
           }
           value={
             <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {stats.maxDrawdown.toFixed(2)}%
+              {statsToUse.maxDrawdown.toFixed(2)}%
             </p>
           }
         />
@@ -2281,7 +3096,7 @@ export default function AnalyticsClient(
           }
           value={
             <p className={`text-2xl font-bold ${pnlColor}`}>
-              {stats.averagePnLPercentage.toFixed(2)}%
+              {statsToUse.averagePnLPercentage.toFixed(2)}%
             </p>
           }
         />
@@ -2296,8 +3111,8 @@ export default function AnalyticsClient(
           }
           value={
             <p className={`text-2xl font-bold ${streakColor}`}>
-              {stats.currentStreak > 0 ? '+' : ''}
-              {stats.currentStreak}
+              {statsToUse.currentStreak > 0 ? '+' : ''}
+              {statsToUse.currentStreak}
             </p>
           }
         />
@@ -2315,13 +3130,13 @@ export default function AnalyticsClient(
               <div>
                 <p className="text-xs text-slate-500">Winning</p>
                 <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                  +{stats.maxWinningStreak}
+                  +{statsToUse.maxWinningStreak}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-slate-500">Losing</p>
                 <p className="text-xl font-bold text-rose-600 dark:text-rose-400">
-                  -{stats.maxLosingStreak}
+                  -{statsToUse.maxLosingStreak}
                 </p>
               </div>
             </div>
@@ -2338,7 +3153,7 @@ export default function AnalyticsClient(
           }
           value={
             <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {stats.averageDaysBetweenTrades} <small className="text-sm text-slate-500">days</small>
+              {statsToUse.averageDaysBetweenTrades.toFixed(1)} <small className="text-sm text-slate-500">days</small>
             </p>
           }
         />
@@ -2349,8 +3164,8 @@ export default function AnalyticsClient(
             <>
               Partial Trades{' '}
               <span className="text-slate-500 font-medium text-xs ml-1">
-                {stats.partialWinRate.toFixed(1)}% (
-                {stats.partialWinRateWithBE.toFixed(1)}% w/ BE)
+                {statsToUse.partialWinRate.toFixed(1)}% (
+                {statsToUse.partialWinRateWithBE.toFixed(1)}% w/ BE)
               </span>
             </>
           }
@@ -2364,18 +3179,18 @@ export default function AnalyticsClient(
               <div>
                 <p className="text-xs text-slate-500">Winning</p>
                 <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {stats.partialWinningTrades}{' '}
+                  {statsToUse.partialWinningTrades}{' '}
                   <span className="text-slate-500 text-sm">
-                    ({stats.beWinPartialTrades} BE)
+                    ({statsToUse.beWinPartialTrades} BE)
                   </span>
                 </p>
               </div>
               <div>
                 <p className="text-xs text-slate-500">Losing</p>
                 <p className="text-xl font-bold text-rose-600 dark:text-rose-400">
-                  {stats.partialLosingTrades}{' '}
+                  {statsToUse.partialLosingTrades}{' '}
                   <span className="text-slate-500 text-sm">
-                    ({stats.beLosingPartialTrades} BE)
+                    ({statsToUse.beLosingPartialTrades} BE)
                   </span>
                 </p>
               </div>
@@ -2417,9 +3232,9 @@ export default function AnalyticsClient(
         <TradeStatsBarCard
           title="Setup Statistics"
           description="Distribution of trades based on trading setup"
-          data={setupChartData}
+          data={setupChartDataToUse}
           mode="winsLossesWinRate"
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          isLoading={chartsLoadingState}
         />
       </div>
       
@@ -2430,16 +3245,16 @@ export default function AnalyticsClient(
         <TradeStatsBarCard
           title="Liquidity Statistics"
           description="Distribution of trades based on market liquidity conditions"
-          data={liquidityChartData}
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          data={liquidityChartDataToUse}
+          isLoading={chartsLoadingState}
         />
 
         {/* Direction Statistics Card */}
         <TradeStatsBarCard
           title="Long/Short Statistics"
           description="Distribution of trades based on direction"
-          data={directionChartData}
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          data={directionChartDataToUse}
+          isLoading={chartsLoadingState}
         />
       </div>
 
@@ -2448,14 +3263,14 @@ export default function AnalyticsClient(
         <TradeStatsBarCard
           title="Local H/L Analysis"
           description="Distribution of trades based on local high/low status"
-          data={localHLChartData}
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          data={localHLChartDataToUse}
+          isLoading={chartsLoadingState}
         />
 
         {/* Risk/Reward Statistics */}
         <RiskRewardStats 
           trades={tradesToUse} 
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          isLoading={chartsLoadingState}
         />
 
         
@@ -2467,18 +3282,18 @@ export default function AnalyticsClient(
         <TradeStatsBarCard
           title="SL Size Statistics"
           description="Distribution of trades based on SL size"
-          data={slSizeChartData}
+          data={slSizeChartDataToUse}
           mode="singleValue"
           valueKey="value"
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          isLoading={chartsLoadingState}
         />
 
         {/* Trade Types Statistics Card */}
         <TradeStatsBarCard
           title="Trade Types Statistics"
           description="Distribution of trades based on trade type"
-          data={tradeTypesChartData}
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          data={tradeTypesChartDataToUse}
+          isLoading={chartsLoadingState}
         />
       </div>
 
@@ -2486,10 +3301,10 @@ export default function AnalyticsClient(
         <TradeStatsBarCard
           title="Time Interval Analysis"
           description="Distribution of trades based on time interval"
-          data={timeIntervalChartData}
+          data={timeIntervalChartDataToUse}
           mode="winsLossesWinRate"
           heightClassName="h-72"
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          isLoading={chartsLoadingState}
         />
       </div>
 
@@ -2498,10 +3313,10 @@ export default function AnalyticsClient(
         <TradeStatsBarCard
           title="Day Statistics"
           description="Distribution of trades based on day of the week"
-          data={dayChartData}
+          data={dayChartDataToUse}
           mode="winsLossesWinRate"
           heightClassName="h-72"
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          isLoading={chartsLoadingState}
         />
       </div>
 
@@ -2511,20 +3326,20 @@ export default function AnalyticsClient(
         <TradeStatsBarCard
           title="MSS Statistics"
           description="Distribution of trades based on MSS"
-          data={mssChartData}
+          data={mssChartDataToUse}
           mode="winsLossesWinRate"
           heightClassName="h-72"
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          isLoading={chartsLoadingState}
         />
 
         {/* News Statistics Card */}
         <TradeStatsBarCard
           title="News Statistics"
           description="Distribution of trades based on news"
-          data={newsChartData}
+          data={newsChartDataToUse}
           mode="winsLossesWinRate"
           heightClassName="h-72"
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          isLoading={chartsLoadingState}
         />
       </div>
 
@@ -2533,10 +3348,10 @@ export default function AnalyticsClient(
         <TradeStatsBarCard
           title="Market Statistics"
           description="Distribution of trades based on market"
-          data={marketChartData}
+          data={marketChartDataToUse}
           mode="winsLossesWinRate"
           heightClassName="h-72"
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          isLoading={chartsLoadingState}
         />
       </div>
 
@@ -2553,7 +3368,7 @@ export default function AnalyticsClient(
           data={getLocalHLBreakEvenChartData(tradesToUse)}
           mode="winsLossesWinRate"
           heightClassName="h-80"
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          isLoading={chartsLoadingState}
         />
 
         {/* 1.4RR Hit Statistics */}
@@ -2565,14 +3380,14 @@ export default function AnalyticsClient(
           description="Average displacement size (points) for each market."
           data={getAverageDisplacementPerMarket(tradesToUse)}
           mode="singleValue"
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          isLoading={chartsLoadingState}
           valueKey="value"
         />
         
         {/* Displacement Size Profitability by Market and Size Points */}
         <DisplacementSizeStats 
           trades={tradesToUse} 
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          isLoading={chartsLoadingState}
         />
       </div>
 
@@ -2584,7 +3399,7 @@ export default function AnalyticsClient(
           data={getPartialsBEChartData(tradesToUse)}
           mode="winsLossesWinRate"  
           heightClassName="h-80"
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          isLoading={chartsLoadingState}
         />
          
          {/* Launch Hour Trades Statistics */}
@@ -2606,24 +3421,24 @@ export default function AnalyticsClient(
         {/* Non Executed Trades Statistics */}
         <NonExecutedTradesCard nonExecutedTrades={nonExecutedTrades} />
 
-        <TradeStatsBarCard
+        {/* <TradeStatsBarCard
           title="Non-Executed Trades Liquidity Statistics"
           description="Distribution of non-executed trades based on trading liquidity"
           data={nonExecutedLiquidityChartData}
           mode="winsLossesWinRate"
           heightClassName="h-72"
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
-        />
+          isLoading={chartsLoadingState}
+        /> */}
       </div>
 
       <div className="space-y-8">
-        <TradeStatsBarCard
+        {/* <TradeStatsBarCard
           title="Non-Executed Trades Setup Statistics"
           description="Distribution of non-executed trades based on trading setup"
           data={nonExecutedChartData}
           mode="winsLossesWinRate"
           heightClassName="h-72"
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+          isLoading={chartsLoadingState}
         />
 
         <TradeStatsBarCard
@@ -2632,25 +3447,25 @@ export default function AnalyticsClient(
           data={nonExecutedMarketChartData}
           mode="winsLossesWinRate"
           heightClassName="h-96"
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
-        />
+          isLoading={chartsLoadingState}
+        /> */}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
-        <TradeStatsBarCard
+        {/* <TradeStatsBarCard
           title="Average Displacement Size (Points)"
           description="Average displacement size (points) for each market."
           data={getAverageDisplacementPerMarket(nonExecutedTrades)}
           mode="singleValue"
           valueKey="value"
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
-        />
+          isLoading={chartsLoadingState}
+        /> */}
         
         {/* Displacement Size Profitability by Market and Size Points */}
-        <DisplacementSizeStats 
+        {/* <DisplacementSizeStats 
           trades={nonExecutedTrades} 
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
-        />
+          isLoading={chartsLoadingState}
+        /> */}
       </div>
     </>
   );
