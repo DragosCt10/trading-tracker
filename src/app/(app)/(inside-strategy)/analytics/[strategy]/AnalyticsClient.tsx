@@ -54,6 +54,9 @@ import { TradeStatDatum, TradeStatsBarCard } from '@/components/dashboard/analyt
 import { LaunchHourTradesCard } from '@/components/dashboard/analytics/LaunchHourTradesCard';
 import { NonExecutedTradesCard } from '@/components/dashboard/analytics/NonExecutedTradesCard';
 import { DisplacementSizeStats } from '@/components/dashboard/analytics/DisplacementSizeStats';
+import { ProfitFactorChart } from '@/components/dashboard/analytics/ProfitFactorChart';
+import { SharpeRatioChart } from '@/components/dashboard/analytics/SharpeRatioChart';
+import { ConsistencyScoreChart } from '@/components/dashboard/analytics/ConsistencyScoreChart';
 import { getAverageDisplacementPerMarket } from '@/utils/getAverageDisplacementPerMarket';
 
 ChartJS.register(
@@ -2927,6 +2930,16 @@ export default function AnalyticsClient(
             </p>
           }
         />
+      </div>
+
+      {/* Performance Indicators Section */}
+      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Performance Indicators</h2>
+      <p className="text-slate-500 dark:text-slate-400 mb-6">Visual representation of key performance metrics with interactive charts.</p>
+
+      <div className="flex flex-col md:grid md:grid-cols-3 gap-4 pb-8 w-full">
+        <ProfitFactorChart profitFactor={macroStatsToUse.profitFactor} />
+        <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE} />
+        <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore} />
       </div>
 
       {openAnalyzeModal && (
