@@ -264,7 +264,7 @@ export function DisplacementSizeStats({ trades, isLoading: externalLoading }: Di
     );
   };
 
-  // --- Custom render X axis tick to left-align range name -----
+  // --- Custom render X axis tick to center range name -----
   const renderXAxisTick = (props: any) => {
     const { x, y, payload } = props;
     return (
@@ -272,7 +272,7 @@ export function DisplacementSizeStats({ trades, isLoading: externalLoading }: Di
         x={x}
         y={y}
         dy={16}
-        textAnchor="start"
+        textAnchor="middle"
         fill={axisTextColor}
         fontSize={12}
       >
@@ -341,16 +341,6 @@ export function DisplacementSizeStats({ trades, isLoading: externalLoading }: Di
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={yAxisTickFormatter}
-                  label={{
-                    value: 'Percentage of trades',
-                    angle: -90,
-                    position: 'middle',
-                    fill: axisTextColor,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    dy: -10,
-                    dx: -50,
-                  }}
                 />
 
                 <ReTooltip
