@@ -6,9 +6,10 @@ import { TradeStatDatum, TradeStatsBarCard } from './TradesStatsBarCard';
 
 interface RRHitStatsProps {
   trades: Trade[];
+  isLoading?: boolean;
 }
 
-export function RRHitStats({ trades }: RRHitStatsProps) {
+export function RRHitStats({ trades, isLoading }: RRHitStatsProps) {
   // Group trades by market and count only losing trades that hit RR1.4
   const marketStats = trades.reduce<Record<string, number>>((acc, trade) => {
     if (trade.trade_outcome === 'Lose' && trade.rr_hit_1_4) {
@@ -36,6 +37,7 @@ export function RRHitStats({ trades }: RRHitStatsProps) {
       valueKey="value"
       valueLabel="Setups:"
       heightClassName="h-80"
+      isLoading={isLoading}
     />
   );
 }
