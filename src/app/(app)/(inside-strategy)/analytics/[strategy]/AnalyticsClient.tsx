@@ -2449,7 +2449,10 @@ export default function AnalyticsClient(
         />
 
         {/* Risk/Reward Statistics */}
-        <RiskRewardStats trades={tradesToUse} />
+        <RiskRewardStats 
+          trades={tradesToUse} 
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+        />
 
         
       </div>
