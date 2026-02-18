@@ -57,34 +57,31 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
   };
 
   const tooltipContent = (
-    <div className="space-y-2 text-slate-700">
-      <div className="font-semibold text-slate-900">
+    <div className="space-y-3">
+      <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
         Profit Factor Interpretation
       </div>
-      <div className={cn("rounded-lg p-1.5 sm:p-2", profitFactor < 1 ? "bg-red-50 border border-red-100" : "")}>
-        <span className="font-medium">🔹 &lt; 1.0</span> — Negative Efficiency
-        <br />
-        Losses outweigh gains.
-      </div>
-      <div className={cn("rounded-lg p-1.5 sm:p-2", profitFactor >= 1 && profitFactor < 1.5 ? "bg-orange-50 border border-orange-100" : "")}>
-        <span className="font-medium">🟠 1.0 – 1.49</span> — Marginal Efficiency
-        <br />
-        Profitable but limited.
-      </div>
-      <div className={cn("rounded-lg p-1.5 sm:p-2", profitFactor >= 1.5 && profitFactor < 2 ? "bg-amber-50 border border-amber-100" : "")}>
-        <span className="font-medium">🟢 1.5 – 1.99</span> — Solid Efficiency
-        <br />
-        Consistent and sustainable edge.
-      </div>
-      <div className={cn("rounded-lg p-1.5 sm:p-2", profitFactor >= 2 && profitFactor < 3 ? "bg-emerald-50 border border-emerald-100" : "")}>
-        <span className="font-medium">🔷 2.0 – 2.99</span> — High Efficiency
-        <br />
-        Strong reward relative to risk.
-      </div>
-      <div className={cn("rounded-lg p-1.5 sm:p-2", profitFactor >= 3 ? "bg-blue-50 border border-blue-100" : "")}>
-        <span className="font-medium">💎 3.0+</span> — Exceptional Efficiency
-        <br />
-        Very high edge — confirm durability.
+      <div className="space-y-2">
+        <div className={cn("rounded-xl p-2.5 transition-all", profitFactor < 1 ? "bg-red-50/80 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/30" : "bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30")}>
+          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🔹 &lt; 1.0</span>
+          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Negative Efficiency — Losses outweigh gains.</div>
+        </div>
+        <div className={cn("rounded-xl p-2.5 transition-all", profitFactor >= 1 && profitFactor < 1.5 ? "bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/50 dark:border-orange-800/30" : "bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30")}>
+          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟠 1.0 – 1.49</span>
+          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Marginal Efficiency — Profitable but limited.</div>
+        </div>
+        <div className={cn("rounded-xl p-2.5 transition-all", profitFactor >= 1.5 && profitFactor < 2 ? "bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30" : "bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30")}>
+          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟢 1.5 – 1.99</span>
+          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Solid Efficiency — Consistent and sustainable edge.</div>
+        </div>
+        <div className={cn("rounded-xl p-2.5 transition-all", profitFactor >= 2 && profitFactor < 3 ? "bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/30" : "bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30")}>
+          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🔷 2.0 – 2.99</span>
+          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">High Efficiency — Strong reward relative to risk.</div>
+        </div>
+        <div className={cn("rounded-xl p-2.5 transition-all", profitFactor >= 3 ? "bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30" : "bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30")}>
+          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">💎 3.0+</span>
+          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Exceptional Efficiency — Very high edge — confirm durability.</div>
+        </div>
       </div>
     </div>
   );
@@ -143,7 +140,7 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
               <TooltipContent
                 side="top"
                 align="center"
-                className="w-72 text-xs sm:text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 p-4"
+                className="w-72 text-xs sm:text-sm backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl text-slate-900 dark:text-slate-100"
                 sideOffset={6}
               >
                 {tooltipContent}
