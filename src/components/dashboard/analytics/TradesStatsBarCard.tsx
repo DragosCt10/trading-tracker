@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -61,8 +61,10 @@ export function TradeStatsBarCard({
 }: TradeStatsBarCardProps) {
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasSeenData, setHasSeenData] = useState(false);
+  const [internalLoading, setInternalLoading] = useState(true);
+  const [settling, setSettling] = useState(false);
+  const prevExternalLoadingRef = useRef<boolean | undefined>(externalLoading);
+  const dataRef = useRef(data);
 
   useEffect(() => {
     setMounted(true);
@@ -82,61 +84,84 @@ export function TradeStatsBarCard({
   }, []);
 
   useEffect(() => {
-    // Track if we've seen data with actual content
-    if (data && data.length > 0) {
-      const hasContent = mode === 'winsLossesWinRate'
-        ? data.some((d) => 
+    // If parent doesn't drive loading, use a small internal minimum duration.
+    if (!mounted || externalLoading !== undefined) return;
+    const timer = setTimeout(() => setInternalLoading(false), 1000);
+    return () => clearTimeout(timer);
+  }, [mounted, externalLoading]);
+
+  // Keep data ref updated
+  dataRef.current = data;
+
+  const dataHasContent =
+    mode === 'winsLossesWinRate'
+      ? (data ?? []).some(
+          (d) =>
             (d.totalTrades ?? 0) > 0 ||
             (d.wins ?? 0) > 0 ||
             (d.losses ?? 0) > 0 ||
             (d.beWins ?? 0) > 0 ||
-            (d.beLosses ?? 0) > 0
-          )
-        : mode === 'singleValue'
-        ? data.some((d) => 
-            d[valueKey] !== undefined &&
-            d[valueKey] !== null &&
-            !isNaN(Number(d[valueKey])) &&
-            isFinite(Number(d[valueKey]))
-          )
+            (d.beLosses ?? 0) > 0,
+        )
+      : mode === 'singleValue'
+        ? (data ?? []).some((d) => {
+            const v = d[valueKey];
+            return v !== undefined && v !== null && isFinite(Number(v));
+          })
         : false;
-      
-      if (hasContent) {
-        setHasSeenData(true);
-      }
-    }
-  }, [data, mode, valueKey]);
 
   useEffect(() => {
-    // Keep loading until external loading is complete and minimum time has passed
-    if (mounted) {
-      // If external loading is provided, use it
-      if (externalLoading !== undefined) {
-        if (externalLoading) {
-          // Still loading externally - keep showing animation
-          setIsLoading(true);
-        } else {
-          // External loading is complete, wait minimum time then stop loading
-          // If we haven't seen data yet, wait a bit longer to allow data to arrive
-          const delay = hasSeenData ? 600 : 1200;
-          const timer = setTimeout(() => {
-            setIsLoading(false);
-          }, delay);
-          return () => clearTimeout(timer);
-        }
-      } else {
-        // No external loading prop - use internal timer
-        // Always wait at least 1000ms to ensure loading shows
-        const timer = setTimeout(() => {
-          setIsLoading(false);
-        }, 1000);
-        return () => clearTimeout(timer);
-      }
-    } else {
-      // Not mounted yet - ensure loading state is true
-      setIsLoading(true);
+    if (!mounted) return;
+    if (externalLoading === undefined) return;
+
+    const prev = prevExternalLoadingRef.current;
+    prevExternalLoadingRef.current = externalLoading;
+
+    // While parent says "loading", always show loader.
+    if (externalLoading === true) {
+      setSettling(false);
+      return;
     }
-  }, [mounted, externalLoading, hasSeenData]);
+
+    // When parent finishes loading, keep loader briefly so derived chart data can materialize
+    // (prevents 1-frame "No trades" flash).
+    if (prev === true && externalLoading === false) {
+      setSettling(true);
+      // Give enough time for derived chart data to recompute (usually happens synchronously but can take a frame or two)
+      const timer = setTimeout(() => {
+        // Check current data state using ref to get latest value
+        const currentData = dataRef.current ?? [];
+        const hasContentNow = mode === 'winsLossesWinRate'
+          ? currentData.some(
+              (d) =>
+                (d.totalTrades ?? 0) > 0 ||
+                (d.wins ?? 0) > 0 ||
+                (d.losses ?? 0) > 0 ||
+                (d.beWins ?? 0) > 0 ||
+                (d.beLosses ?? 0) > 0,
+            )
+          : mode === 'singleValue'
+            ? currentData.some((d) => {
+                const v = d[valueKey];
+                return v !== undefined && v !== null && isFinite(Number(v));
+              })
+            : false;
+        
+        // Only stop settling if data still doesn't have content after the delay
+        // If data has content, the other effect will have already stopped settling
+        if (!hasContentNow) {
+          setSettling(false);
+        }
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [mounted, externalLoading]);
+
+  useEffect(() => {
+    // As soon as data is ready, stop settling immediately.
+    if (!mounted) return;
+    if (dataHasContent) setSettling(false);
+  }, [mounted, dataHasContent]);
 
   // Dynamic colors based on dark mode
   const slate500 = isDark ? '#94a3b8' : '#64748b'; // slate-400 in dark, slate-500 in light
@@ -149,8 +174,12 @@ export function TradeStatsBarCard({
 
   // --- Calculate onlyZero (only when not loading) ---------------------------
   // Don't show "No trades" if we're still loading (either internal or external)
-  // Show loading if: not mounted yet, or internal loading state is true, or external loading is explicitly true
-  const isStillLoading = !mounted || isLoading || externalLoading === true;
+  // Show loading if: not mounted yet, or internal loading state is true, or external loading is explicitly true, or settling
+  const isStillLoading =
+    !mounted ||
+    (externalLoading === undefined
+      ? internalLoading
+      : externalLoading === true || settling);
   const onlyZero = !isStillLoading && (!data || data.length === 0 ||
     (
       mode === 'winsLossesWinRate'
