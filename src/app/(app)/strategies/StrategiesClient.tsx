@@ -404,6 +404,8 @@ export function StrategiesClient() {
               const trades = allStrategyTrades?.[strategy.id] ?? [];
               // Use aggregated stats from trades table (dynamically based on mode)
               const aggregatedStats = allStrategyStats?.[strategy.id];
+              // Show loading state if trades or stats are still loading
+              const isLoading = tradesLoading || statsLoading;
 
               return (
                 <StrategyCard
@@ -414,6 +416,7 @@ export function StrategiesClient() {
                   currencySymbol={currencySymbol}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  isLoading={isLoading}
                 />
               );
             })}
