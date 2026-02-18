@@ -25,6 +25,7 @@ interface DisplacementSizeStatsProps {
 }
 
 const DISPLACEMENT_BUCKETS = [
+  { key: '0-10', label: '0–10', min: 0, max: 10 },
   { key: '10-20', label: '10–20', min: 10, max: 20 },
   { key: '20-30', label: '20–30', min: 20, max: 30 },
   { key: '30-40', label: '30–40', min: 30, max: 40 },
