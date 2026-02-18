@@ -2593,7 +2593,14 @@ export default function AnalyticsClient(
 
 
 
-      <h2 className="text-2xl font-semibold text-slate-800 mt-20">Non-executed Trades</h2>
+      <div className="mt-20">
+        <h2 className="text-2xl font-semibold text-slate-800">
+          Non-executed Trades
+        </h2>
+        <p className="text-base text-slate-500 mt-1">
+          Planned but unexecuted trades overview.
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
         {/* Non Executed Trades Statistics */}
