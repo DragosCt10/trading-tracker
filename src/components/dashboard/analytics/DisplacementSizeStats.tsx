@@ -147,11 +147,14 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
   }) => {
     if (!active || !payload || payload.length === 0) return null;
 
-    // Extract the relevant rows: only those with trades
-    const marketRows = payload
-      .map((entry: any) => {
-        const market = entry.dataKey;
-        const breakdown = entry.payload[`${market}_breakdown`] ?? {};
+    // Get the row data from the first payload entry (all entries share the same payload for the category)
+    const rowData = payload[0]?.payload;
+    if (!rowData) return null;
+
+    // Extract all markets from uniqueMarkets and get their breakdown data
+    const marketRows = uniqueMarkets
+      .map((market: string) => {
+        const breakdown = rowData[`${market}_breakdown`] ?? {};
         if (!breakdown || !breakdown.total || breakdown.total === 0) return null;
         const wins = breakdown.wins ?? 0;
         const losses = breakdown.losses ?? 0;
@@ -222,8 +225,8 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
           Distribution of trades, grouped by displacement size, per market. 
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 flex items-center">
-        <div className="w-full h-full">
+      <CardContent className="flex-1 flex items-center overflow-visible">
+        <div className="w-full h-full overflow-visible">
           {!mounted ? (
             <div
               className="flex items-center justify-center text-slate-400 dark:text-slate-500 h-full text-sm"
@@ -299,6 +302,8 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
                 />
 
                 <ReTooltip
+                  shared={true}
+                  allowEscapeViewBox={{ x: true, y: true }}
                   contentStyle={{ 
                     background: isDark 
                       ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)' 
@@ -318,7 +323,8 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
                   }}
                   wrapperStyle={{ 
                     outline: 'none',
-                    zIndex: 1000
+                    zIndex: 9999,
+                    pointerEvents: 'none'
                   }}
                   cursor={{ 
                     fill: 'transparent', 
