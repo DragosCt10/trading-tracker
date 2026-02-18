@@ -1820,19 +1820,60 @@ export default function AnalyticsClient(
   // Determine loading state for charts
   // When filters are applied, data is computed synchronously, so isLoading should be false
   // Otherwise, use the appropriate loading state based on view mode
+  // Also check if chart data has content - if it does, don't show loading
   const chartsLoadingState = useMemo(() => {
     if (filteredChartStats) {
       // Filters are applied (market filter), data computed synchronously
       return false;
     }
-    // No filters applied, use normal loading state
+    
+    // Check if chart data has content - if it does, data is ready, don't show loading
+    const hasChartData = setupChartDataToUse.length > 0 && 
+                         setupChartDataToUse.some(d => 
+                           (d.wins ?? 0) > 0 || 
+                           (d.losses ?? 0) > 0 || 
+                           (d.beWins ?? 0) > 0 || 
+                           (d.beLosses ?? 0) > 0
+                         );
+    
+    if (hasChartData) {
+      return false;
+    }
+    
+    // No filters applied and no data yet, use normal loading state
     return viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading;
-  }, [filteredChartStats, viewMode, allTradesLoading, filteredTradesLoading]);
+  }, [filteredChartStats, viewMode, allTradesLoading, filteredTradesLoading, setupChartDataToUse]);
 
-  const monthlyStatsToUse = useMemo(() => {
+  // Determine loading state for AccountOverviewCard
+  // When filters are applied, data is computed synchronously, so isLoading should be false
+  // In date range mode with no filters, use monthlyStats from hook, so use filteredTradesLoading
+  // In yearly mode with no filters, use monthlyStatsAllTrades from hook, so use allTradesLoading
+  const accountOverviewLoadingState = useMemo(() => {
+    if (selectedMarket !== 'all') {
+      // Filters are applied (market filter), data computed synchronously from tradesToUse
+      return false;
+    }
+    
+    // No filters applied, use hook data - check loading state based on view mode
+    // In date range mode, use filteredTradesLoading
+    // In yearly mode, use allTradesLoading
+    return viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading;
+  }, [selectedMarket, viewMode, allTradesLoading, filteredTradesLoading]);
+
+  const monthlyStatsToUse: { [month: string]: { profit: number } } = useMemo(() => {
+    // In date range mode with no filters, use hook data (monthlyStats)
+    // Otherwise, compute from tradesToUse (which respects filters)
+    if (viewMode === 'dateRange' && selectedMarket === 'all') {
+      // Extract monthlyData from MonthlyStatsResult and convert to format expected by AccountOverviewCard
+      const monthlyData = monthlyStats.monthlyData || {};
+      return Object.keys(monthlyData).reduce((acc, month) => {
+        acc[month] = { profit: monthlyData[month].profit };
+        return acc;
+      }, {} as { [month: string]: { profit: number } });
+    }
     // Use tradesToUse which respects market filter
     return computeMonthlyStatsFromTrades(tradesToUse);
-  }, [tradesToUse, computeMonthlyStatsFromTrades]);
+  }, [viewMode, selectedMarket, monthlyStats, tradesToUse, computeMonthlyStatsFromTrades]);
 
   // Determine which full monthly stats to use based on view mode (for MonthlyPerformanceChart - wins, losses, winRate, etc.)
   const monthlyPerformanceStatsToUse = useMemo(() => {
@@ -2268,7 +2309,7 @@ export default function AnalyticsClient(
         accountBalance={((selection.activeAccount ?? props?.initialActiveAccount) as { account_balance?: number } | null)?.account_balance || 1}
         months={MONTHS}
         monthlyStatsAllTrades={monthlyStatsToUse}
-        isYearDataLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+        isYearDataLoading={accountOverviewLoadingState}
       />
 
       {/* Month Stats Cards - Only show in yearly mode */}
