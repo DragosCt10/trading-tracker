@@ -71,7 +71,7 @@ export function MonthlyPerformanceChart({
       winRate: 0,
       winRateWithBE: 0,
     };
-    const totalTrades = stats.wins + stats.losses;
+    const totalTrades = stats.wins + stats.losses + stats.beWins + stats.beLosses;
     return {
       month,
       totalTrades,
@@ -83,6 +83,9 @@ export function MonthlyPerformanceChart({
       winRateWithBE: stats.winRateWithBE,
     };
   });
+
+  // Check if there are any trades across all months
+  const hasTrades = chartData.some((d) => d.totalTrades > 0);
 
   if (!mounted) {
     return (
@@ -102,7 +105,7 @@ export function MonthlyPerformanceChart({
     );
   }
 
-  if (!chartData.length) {
+  if (!hasTrades) {
     return (
       <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
