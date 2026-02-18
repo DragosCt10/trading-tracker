@@ -46,7 +46,7 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
   // show all markets with at least 1 matching ratio, show chart for all present ratios
   const eligibleMarkets = Array.from(marketToRatios.keys());
 
-  // --- 2. Build Recharts data (group markets by percentage value) --------
+  // --- 2. Build Recharts data for stacked bar chart --------
 
   // Only consider trades for eligible markets and the chosen ratios
   const filteredTrades = trades.filter(
@@ -56,17 +56,22 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
       DISPLAY_RATIOS.includes(t.risk_reward_ratio_long)
   );
 
-  // For each ratio, group markets by their percentage value
+  // For each ratio, create one row with all markets as separate dataKeys
   const chartData = DISPLAY_RATIOS.map((ratio) => {
-    // Calculate percentage and trade counts for each market
-    const marketData = new Map<string, { 
-      percentage: number; 
-      tradesWithRatio: number; 
+    const row: Record<string, any> = {
+      ratio: ratio.toString(),
+    };
+
+    // Store market details for tooltip
+    const marketDetailsMap = new Map<string, {
+      percentage: number;
+      tradesWithRatio: number;
       totalTrades: number;
       wins: number;
       losses: number;
       winRate: number;
     }>();
+
     eligibleMarkets.forEach((market) => {
       const marketTrades = filteredTrades.filter((t) => t.market === market);
       const tradesWithRatio = marketTrades.filter(
@@ -83,7 +88,11 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
       const totalForWinrate = wins + losses;
       const winRate = totalForWinrate > 0 ? (wins / totalForWinrate) * 100 : 0;
       
-      marketData.set(market, {
+      // Set the market value in the row (for stacked bars)
+      row[market] = Number(percentage.toFixed(1));
+      
+      // Store details for tooltip
+      marketDetailsMap.set(market, {
         percentage: Number(percentage.toFixed(1)),
         tradesWithRatio: tradesWithRatio.length,
         totalTrades: marketTrades.length,
@@ -93,66 +102,14 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
       });
     });
 
-    // Group markets by percentage value
-    const percentageGroups = new Map<number, Array<{ 
-      market: string; 
-      percentage: number; 
-      tradesWithRatio: number; 
-      totalTrades: number;
-      wins: number;
-      losses: number;
-      winRate: number;
-    }>>();
-    marketData.forEach((data, market) => {
-      if (data.percentage > 0) {
-        if (!percentageGroups.has(data.percentage)) {
-          percentageGroups.set(data.percentage, []);
-        }
-        percentageGroups.get(data.percentage)!.push({
-          market,
-          percentage: data.percentage,
-          tradesWithRatio: data.tradesWithRatio,
-          totalTrades: data.totalTrades,
-          wins: data.wins,
-          losses: data.losses,
-          winRate: data.winRate,
-        });
-      }
-    });
+    // Store market details in the row for tooltip access
+    row.marketDetails = Array.from(marketDetailsMap.entries()).map(([market, details]) => ({
+      market,
+      ...details,
+    }));
 
-    // Create rows for each unique percentage value
-    const rows: Array<Record<string, any>> = [];
-    percentageGroups.forEach((marketDetails, percentage) => {
-      rows.push({
-        ratio: ratio.toString(),
-        percentage,
-        markets: marketDetails.map(m => m.market), // Store market names for compatibility
-        marketDetails, // Store full market details with percentages and trade counts
-        marketCount: marketDetails.length,
-      });
-    });
-
-    // If no markets have this ratio, still create a row with 0
-    if (rows.length === 0) {
-      rows.push({
-        ratio: ratio.toString(),
-        percentage: 0,
-        markets: [],
-        marketDetails: [] as Array<{ 
-          market: string; 
-          percentage: number; 
-          tradesWithRatio: number; 
-          totalTrades: number;
-          wins: number;
-          losses: number;
-          winRate: number;
-        }>,
-        marketCount: 0,
-      });
-    }
-
-    return rows;
-  }).flat(); // Flatten to get all rows
+    return row;
+  });
 
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -177,12 +134,11 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
   const slate500 = isDark ? '#94a3b8' : '#64748b'; // slate-400 in dark, slate-500 in light
   const axisTextColor = isDark ? '#cbd5e1' : '#64748b'; // slate-300 in dark, slate-500 in light
 
-  // Generate gradient IDs for each unique percentage value
-  const getGradientId = (ratio: string, percentage: number) => 
-    `rrGradient-${ratio}-${percentage.toString().replace('.', '-')}`;
+  // Generate gradient IDs for each market
+  const getGradientId = (market: string) => `rrGradient-${market.replace(/\s+/g, '-')}`;
   
-  // Use the same gradient as SL Size Statistics (blue to cyan)
-  const singleGradientColor = {
+  // Use the same gradient as SL Size Statistics (blue to cyan) for all markets
+  const gradientColor = {
     start: '#3b82f6', // blue-500
     mid: '#06b6d4',   // cyan-500
     end: '#0ea5e9',   // sky-500
@@ -193,25 +149,37 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
   const CustomTooltip = ({
     active,
     payload,
+    label,
   }: {
     active?: boolean;
     payload?: any[];
+    label?: string;
   }) => {
     if (!active || !payload || payload.length === 0) {
       return null;
     }
-    // d is the hovered bar's row
-    const d = payload[0].payload as (typeof chartData)[number];
+    
+    // Get the ratio from the label
+    const ratio = label;
+    
+    // Find the row data for this ratio
+    const rowData = chartData.find((d) => d.ratio === ratio);
+    
+    if (!rowData || !rowData.marketDetails || rowData.marketDetails.length === 0) {
+      return null;
+    }
 
-    // If no markets for this bar, hide tooltip
-    if (!d.marketDetails || d.marketDetails.length === 0) {
+    // Filter market details to only show markets with non-zero values
+    const activeMarkets = rowData.marketDetails.filter((md: any) => md.percentage > 0);
+
+    if (activeMarkets.length === 0) {
       return null;
     }
 
     return (
       <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
         <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-          Risk/Reward {d.ratio} — {d.percentage.toFixed(1)}%
+          Risk/Reward {ratio}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -219,14 +187,11 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
               <tr className="border-b border-slate-200/60 dark:border-slate-700/60">
                 <th className="text-left py-2 pr-4 font-semibold text-slate-600 dark:text-slate-400">Market</th>
                 <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">%</th>
-                <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">Trades</th>
-                <th className="text-right py-2 px-2 font-semibold text-emerald-600 dark:text-emerald-400">Wins</th>
-                <th className="text-right py-2 px-2 font-semibold text-rose-600 dark:text-rose-400">Losses</th>
-                <th className="text-right py-2 pl-2 font-semibold text-slate-600 dark:text-slate-400">Win Rate</th>
+                <th className="text-right py-2 pl-2 font-semibold text-slate-600 dark:text-slate-400">Trades</th>
               </tr>
             </thead>
             <tbody>
-              {d.marketDetails.map((marketData: { 
+              {activeMarkets.map((marketData: { 
                 market: string; 
                 percentage: number; 
                 tradesWithRatio: number; 
@@ -242,19 +207,8 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
                   <td className="py-2 px-2 text-right font-bold text-slate-900 dark:text-slate-100">
                     {marketData.percentage.toFixed(1)}%
                   </td>
-                  <td className="py-2 px-2 text-right text-slate-600 dark:text-slate-400">
+                  <td className="py-2 pl-2 text-right text-slate-600 dark:text-slate-400">
                     {marketData.tradesWithRatio}/{marketData.totalTrades}
-                  </td>
-                  <td className="py-2 px-2 text-right font-bold text-emerald-600 dark:text-emerald-400">
-                    {marketData.wins}
-                  </td>
-                  <td className="py-2 px-2 text-right font-bold text-rose-600 dark:text-rose-400">
-                    {marketData.losses}
-                  </td>
-                  <td className="py-2 pl-2 text-right">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                      {marketData.winRate.toFixed(1)}%
-                    </span>
                   </td>
                 </tr>
               ))}
@@ -327,18 +281,18 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
                 barCategoryGap="30%"
               >
                 <defs>
-                  {chartData.map((row) => (
+                  {eligibleMarkets.map((market) => (
                     <linearGradient 
-                      key={`${row.ratio}-${row.percentage}`} 
-                      id={getGradientId(row.ratio, row.percentage)} 
+                      key={market} 
+                      id={getGradientId(market)} 
                       x1="0" 
                       y1="0" 
                       x2="0" 
                       y2="1"
                     >
-                      <stop offset="0%" stopColor={singleGradientColor.start} stopOpacity={1} />
-                      <stop offset="50%" stopColor={singleGradientColor.mid} stopOpacity={0.95} />
-                      <stop offset="100%" stopColor={singleGradientColor.end} stopOpacity={0.9} />
+                      <stop offset="0%" stopColor={gradientColor.start} stopOpacity={1} />
+                      <stop offset="50%" stopColor={gradientColor.mid} stopOpacity={0.95} />
+                      <stop offset="100%" stopColor={gradientColor.end} stopOpacity={0.9} />
                     </linearGradient>
                   ))}
                 </defs>
@@ -397,19 +351,51 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
                   content={<CustomTooltip />}
                 />
 
-                <ReBar
-                  dataKey="percentage"
-                  name="Percentage"
-                  barSize={18}
-                  radius={[4, 4, 0, 0]}
-                >
-                  {chartData.map((row, index) => (
-                    <Cell
-                      key={`cell-${row.ratio}-${row.percentage}-${index}`}
-                      fill={`url(#${getGradientId(row.ratio, row.percentage)})`}
-                    />
-                  ))}
-                </ReBar>
+                {eligibleMarkets.map((market, index) => {
+                  // For stacked bars, we need to determine radius based on position
+                  // Since Recharts applies radius per bar component (not per data point),
+                  // we use a function to calculate radius dynamically based on the data
+                  const isFirst = index === 0;
+                  const isLast = index === eligibleMarkets.length - 1;
+                  
+                  // Use Cell component to apply different radius per data point
+                  return (
+                    <ReBar
+                      key={market}
+                      dataKey={market}
+                      name={market}
+                      stackId="a"
+                      fill={`url(#${getGradientId(market)})`}
+                      barSize={18}
+                    >
+                      {chartData.map((row, rowIndex) => {
+                        // Find markets with non-zero values for this ratio
+                        const marketsWithData = eligibleMarkets.filter((m) => (row[m] ?? 0) > 0);
+                        const hasData = (row[market] ?? 0) > 0;
+                        
+                        if (!hasData) {
+                          return <Cell key={`${row.ratio}-${market}`} radius={[0, 0, 0, 0]} />;
+                        }
+                        
+                        // Find position among markets with data for this ratio
+                        const dataIndex = marketsWithData.indexOf(market);
+                        const isFirstInStack = dataIndex === 0;
+                        const isLastInStack = dataIndex === marketsWithData.length - 1;
+                        const isOnlyInStack = marketsWithData.length === 1;
+                        
+                        const radius = isOnlyInStack
+                          ? [4, 4, 4, 4] // Single bar: round all corners
+                          : isFirstInStack
+                          ? [0, 0, 4, 4] // Bottom bar: round bottom corners
+                          : isLastInStack
+                          ? [4, 4, 0, 0] // Top bar: round top corners
+                          : [0, 0, 0, 0]; // Middle bars: no rounding
+                        
+                        return <Cell key={`${row.ratio}-${market}`} radius={radius} />;
+                      })}
+                    </ReBar>
+                  );
+                })}
               </BarChart>
             </ResponsiveContainer>
           )}
