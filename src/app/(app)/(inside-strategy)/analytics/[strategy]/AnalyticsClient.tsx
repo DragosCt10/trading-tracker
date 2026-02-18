@@ -2419,6 +2419,7 @@ export default function AnalyticsClient(
           description="Distribution of trades based on trading setup"
           data={setupChartData}
           mode="winsLossesWinRate"
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
       </div>
       
@@ -2430,6 +2431,7 @@ export default function AnalyticsClient(
           title="Liquidity Statistics"
           description="Distribution of trades based on market liquidity conditions"
           data={liquidityChartData}
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
 
         {/* Direction Statistics Card */}
@@ -2437,6 +2439,7 @@ export default function AnalyticsClient(
           title="Long/Short Statistics"
           description="Distribution of trades based on direction"
           data={directionChartData}
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
       </div>
 
@@ -2446,6 +2449,7 @@ export default function AnalyticsClient(
           title="Local H/L Analysis"
           description="Distribution of trades based on local high/low status"
           data={localHLChartData}
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
 
         {/* Risk/Reward Statistics */}
@@ -2466,6 +2470,7 @@ export default function AnalyticsClient(
           data={slSizeChartData}
           mode="singleValue"
           valueKey="value"
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
 
         {/* Trade Types Statistics Card */}
@@ -2473,6 +2478,7 @@ export default function AnalyticsClient(
           title="Trade Types Statistics"
           description="Distribution of trades based on trade type"
           data={tradeTypesChartData}
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
       </div>
 
@@ -2483,6 +2489,7 @@ export default function AnalyticsClient(
           data={timeIntervalChartData}
           mode="winsLossesWinRate"
           heightClassName="h-72"
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
       </div>
 
@@ -2495,6 +2502,7 @@ export default function AnalyticsClient(
           data={mssChartData}
           mode="winsLossesWinRate"
           heightClassName="h-72"
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
 
         {/* News Statistics Card */}
@@ -2504,6 +2512,7 @@ export default function AnalyticsClient(
           data={newsChartData}
           mode="winsLossesWinRate"
           heightClassName="h-72"
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
       </div>
 
@@ -2516,6 +2525,7 @@ export default function AnalyticsClient(
           data={dayChartData}
           mode="winsLossesWinRate"
           heightClassName="h-72"
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
 
         {/* Market Statistics Card */}
@@ -2525,6 +2535,7 @@ export default function AnalyticsClient(
           data={marketChartData}
           mode="winsLossesWinRate"
           heightClassName="h-72"
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
       </div>
 
@@ -2541,6 +2552,7 @@ export default function AnalyticsClient(
           data={getLocalHLBreakEvenChartData(tradesToUse)}
           mode="winsLossesWinRate"
           heightClassName="h-80"
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
 
         {/* 1.4RR Hit Statistics */}
