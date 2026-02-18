@@ -1861,19 +1861,12 @@ export default function AnalyticsClient(
   }, [selectedMarket, viewMode, allTradesLoading, filteredTradesLoading]);
 
   const monthlyStatsToUse: { [month: string]: { profit: number } } = useMemo(() => {
-    // In date range mode with no filters, use hook data (monthlyStats)
-    // Otherwise, compute from tradesToUse (which respects filters)
-    if (viewMode === 'dateRange' && selectedMarket === 'all') {
-      // Extract monthlyData from MonthlyStatsResult and convert to format expected by AccountOverviewCard
-      const monthlyData = monthlyStats.monthlyData || {};
-      return Object.keys(monthlyData).reduce((acc, month) => {
-        acc[month] = { profit: monthlyData[month].profit };
-        return acc;
-      }, {} as { [month: string]: { profit: number } });
-    }
-    // Use tradesToUse which respects market filter
+    // Always compute from tradesToUse to ensure it reflects the current date range and filters
+    // In yearly mode with no filters, tradesToUse uses allTrades (which is correct)
+    // In date range mode, tradesToUse uses filteredTrades (which respects the date range)
+    // When filters are applied, tradesToUse is already filtered
     return computeMonthlyStatsFromTrades(tradesToUse);
-  }, [viewMode, selectedMarket, monthlyStats, tradesToUse, computeMonthlyStatsFromTrades]);
+  }, [tradesToUse, computeMonthlyStatsFromTrades]);
 
   // Determine which full monthly stats to use based on view mode (for MonthlyPerformanceChart - wins, losses, winRate, etc.)
   const monthlyPerformanceStatsToUse = useMemo(() => {
@@ -1899,12 +1892,16 @@ export default function AnalyticsClient(
     [monthlyStatsToUse]
   );
 
-  // Compute filtered monthlyStats with best/worst month when filters are applied
+  // Compute filtered monthlyStats with best/worst month when filters are applied or in date range mode
+  // In date range mode, always compute from current data to reflect the selected date range
+  // In yearly mode with no filters, use hook stats
   const monthlyStatsToUseForCards = useMemo(() => {
-    if (selectedMarket === 'all') {
+    // In yearly mode with no filters, use hook stats
+    if (viewMode === 'yearly' && selectedMarket === 'all') {
       return monthlyStats; // Use hook stats
     }
 
+    // In date range mode or when filters are applied, compute from current filtered data
     // Compute best and worst month from monthlyPerformanceStatsToUse
     const monthlyData = monthlyPerformanceStatsToUse;
     let bestMonth: { month: string; stats: { winRate: number; profit: number } } | null = null;
@@ -1913,9 +1910,7 @@ export default function AnalyticsClient(
     let worstProfit = Infinity;
 
     Object.entries(monthlyData).forEach(([month, stats]) => {
-      const profit = stats.wins * (stats.wins / (stats.wins + stats.losses + stats.beWins + stats.beLosses)) * 100 || 0;
-      // Actually, we need to calculate profit from trades, not from stats
-      // Let's use monthlyStatsToUse for profit
+      // Use monthlyStatsToUse for profit (computed from current filtered trades)
       const monthProfit = monthlyStatsToUse[month]?.profit || 0;
       
       if (monthProfit > bestProfit) {
@@ -1940,13 +1935,13 @@ export default function AnalyticsClient(
       }
     });
 
+    // Build structure from current filtered data, not hook data
     return {
-      ...monthlyStats,
       monthlyData: monthlyPerformanceStatsToUse,
       bestMonth,
       worstMonth,
     };
-  }, [selectedMarket, monthlyStats, monthlyPerformanceStatsToUse, monthlyStatsToUse]);
+  }, [viewMode, selectedMarket, monthlyStats, monthlyPerformanceStatsToUse, monthlyStatsToUse]);
 
   const updatedBalance =
     ((resolvedAccount as { account_balance?: number } | null)?.account_balance ?? 0) + totalYearProfit;
@@ -1993,10 +1988,12 @@ export default function AnalyticsClient(
 
   const isCustomRange = isCustomDateRange(dateRange);
 
-  // Compute stats from tradesToUse when filters are applied
+  // Compute stats from tradesToUse when filters are applied or in date range mode
+  // In date range mode, always compute from tradesToUse to reflect the selected date range
+  // In yearly mode with no filters, use hook stats
   const filteredStats = useMemo(() => {
-    // If no filters are applied, use hook stats
-    if (selectedMarket === 'all') {
+    // In yearly mode with no filters, use hook stats
+    if (viewMode === 'yearly' && selectedMarket === 'all') {
       return stats;
     }
 
@@ -2097,6 +2094,12 @@ export default function AnalyticsClient(
       ? ((partialsWins + partialsBEWins) / totalPartials) * 100 
       : 0;
     
+    // Override tradeQualityIndex and multipleR
+    // In date range mode, set to 0 when there are no trades (to reflect filtered data)
+    // Otherwise, use hook values (they're computed from the appropriate dataset)
+    const tradeQualityIndex = (viewMode === 'dateRange' && totalTrades === 0) ? 0 : (stats.tradeQualityIndex || 0);
+    const multipleR = (viewMode === 'dateRange' && totalTrades === 0) ? 0 : (stats.multipleR || 0);
+
     return {
       ...stats, // Keep other stats from hook
       totalTrades,
@@ -2127,18 +2130,31 @@ export default function AnalyticsClient(
       partialLosingTrades: partialsLosses,
       beWinPartialTrades: partialsBEWins,
       beLosingPartialTrades: partialsBELosses,
+      tradeQualityIndex,
+      multipleR,
     };
-  }, [tradesToUse, selectedMarket, stats, selection.activeAccount?.account_balance]);
+  }, [viewMode, tradesToUse, selectedMarket, stats, selection.activeAccount?.account_balance]);
 
-  // Use filteredStats when filters are applied, otherwise use hook stats
-  const statsToUse = selectedMarket !== 'all' ? filteredStats : stats;
+  // Use filteredStats when filters are applied or in date range mode
+  // In date range mode, always use filteredStats to reflect the selected date range
+  // In yearly mode with no filters, use hook stats
+  const statsToUse = (viewMode === 'dateRange' || selectedMarket !== 'all') ? filteredStats : stats;
 
-  // Compute filtered macroStats when filters are applied
+  // Compute filtered macroStats when filters are applied or in date range mode
+  // In date range mode, always compute from current data to reflect the selected date range
+  // In yearly mode with no filters, use hook stats
   const macroStatsToUse = useMemo(() => {
-    if (selectedMarket === 'all') {
-      return macroStats; // Use hook stats
+    // In yearly mode with no filters, use hook stats but ensure consistent structure
+    if (viewMode === 'yearly' && selectedMarket === 'all') {
+      return {
+        ...macroStats,
+        nonExecutedTotalTradesCount: nonExecutedTotalTradesCount || 0,
+        yearlyPartialTradesCount: yearlyPartialTradesCount || 0,
+        yearlyPartialsBECount: yearlyPartialsBECount || 0,
+      };
     }
 
+    // In date range mode or when filters are applied, compute from current filtered data
     // Compute profit factor from statsToUse
     const totalWins = statsToUse.totalWins;
     const totalLosses = statsToUse.totalLosses;
@@ -2159,14 +2175,37 @@ export default function AnalyticsClient(
     const volatility = statsToUse.maxDrawdown || 1; // Use drawdown as proxy for volatility
     const sharpeWithBE = volatility > 0 ? avgReturn / volatility : 0;
 
+    // Compute TQI and RR Multiple from statsToUse
+    const tradeQualityIndex = statsToUse.tradeQualityIndex || 0;
+    const multipleR = statsToUse.multipleR || 0;
+
+    // In date range mode, compute non-executed trades count from filtered nonExecutedTrades
+    // In yearly mode, use hook values
+    const nonExecutedCount = viewMode === 'dateRange' 
+      ? (nonExecutedTrades?.length || 0)
+      : (nonExecutedTotalTradesCount || 0);
+    
+    // Compute partial trades count from filtered trades in date range mode
+    const partialTradesCount = viewMode === 'dateRange'
+      ? tradesToUse.filter(t => t.partials_taken).length
+      : (yearlyPartialTradesCount || 0);
+    
+    const partialsBECount = viewMode === 'dateRange'
+      ? tradesToUse.filter(t => t.partials_taken && t.break_even).length
+      : (yearlyPartialsBECount || 0);
+
     return {
-      ...macroStats, // Keep other stats from hook
       profitFactor,
       consistencyScore,
       consistencyScoreWithBE: consistencyScore, // Simplified - same as consistencyScore
       sharpeWithBE,
+      tradeQualityIndex,
+      multipleR,
+      nonExecutedTotalTradesCount: nonExecutedCount,
+      yearlyPartialTradesCount: partialTradesCount,
+      yearlyPartialsBECount: partialsBECount,
     };
-  }, [selectedMarket, macroStats, statsToUse, monthlyPerformanceStatsToUse, monthlyStatsToUse]);
+  }, [viewMode, selectedMarket, statsToUse, monthlyPerformanceStatsToUse, monthlyStatsToUse, nonExecutedTrades, tradesToUse, macroStats, yearlyPartialTradesCount, yearlyPartialsBECount]);
 
   // Color variables based on statsToUse
   const profitColor =
@@ -2403,7 +2442,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStatsToUse.profitFactor >= 1 && macroStats.profitFactor < 1.5
+                  macroStatsToUse.profitFactor >= 1 && macroStatsToUse.profitFactor < 1.5
                     ? "bg-orange-50 border border-orange-100"
                     : ""
                 )}
@@ -2416,7 +2455,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStatsToUse.profitFactor >= 1.5 && macroStats.profitFactor < 2
+                  macroStatsToUse.profitFactor >= 1.5 && macroStatsToUse.profitFactor < 2
                     ? "bg-amber-50 border border-amber-100"
                     : ""
                 )}
@@ -2429,7 +2468,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStatsToUse.profitFactor >= 2 && macroStats.profitFactor < 3
+                  macroStatsToUse.profitFactor >= 2 && macroStatsToUse.profitFactor < 3
                     ? "bg-emerald-50 border border-emerald-100"
                     : ""
                 )}
@@ -2457,14 +2496,14 @@ export default function AnalyticsClient(
             <p
               className={cn(
                 'text-2xl font-bold',
-                macroStats.profitFactor > 1.5
+                macroStatsToUse.profitFactor > 1.5
                   ? 'text-emerald-600 dark:text-emerald-400'
-                  : macroStats.profitFactor < 1.49
+                  : macroStatsToUse.profitFactor < 1.49
                   ? 'text-rose-600 dark:text-rose-400'
                   : 'text-slate-900 dark:text-slate-100'
               )}
             >
-              {macroStats.profitFactor.toFixed(2)}
+              {macroStatsToUse.profitFactor.toFixed(2)}
             </p>
           }
         />
@@ -2546,14 +2585,14 @@ export default function AnalyticsClient(
             <p
               className={cn(
                 'text-2xl font-bold',
-                macroStats.consistencyScore > 60
+                macroStatsToUse.consistencyScore > 60
                   ? 'text-emerald-600 dark:text-emerald-400'
-                  : macroStats.consistencyScore < 59
+                  : macroStatsToUse.consistencyScore < 59
                   ? 'text-rose-600 dark:text-rose-400'
                   : 'text-slate-900 dark:text-slate-100'
               )}
             >
-              {macroStats.consistencyScore.toFixed(2)}{' '}
+              {macroStatsToUse.consistencyScore.toFixed(2)}{' '}
               <span className="text-slate-500 text-sm">
                 ({macroStatsToUse.consistencyScoreWithBE.toFixed(2)} w/ BE)
               </span>
@@ -2561,45 +2600,47 @@ export default function AnalyticsClient(
           }
         />
 
-        {/* Average Monthly Trades */}
-        <StatCard
-          title="Average Monthly Trades"
-          tooltipContent={
-            <div className="space-y-2 text-slate-500">
-              <div className="font-semibold text-slate-800">
-                Monthly Trading Volume
+        {/* Average Monthly Trades - Only show in yearly mode */}
+        {viewMode === 'yearly' && (
+          <StatCard
+            title="Average Monthly Trades"
+            tooltipContent={
+              <div className="space-y-2 text-slate-500">
+                <div className="font-semibold text-slate-800">
+                  Monthly Trading Volume
+                </div>
+                <p>
+                  Average number of trades (including break-even trades) executed per
+                  month in the selected year. This helps track your total trading
+                  frequency and consistency.
+                </p>
               </div>
-              <p>
-                Average number of trades (including break-even trades) executed per
-                month in the selected year. This helps track your total trading
-                frequency and consistency.
+            }
+            value={
+              <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                {monthlyStats.monthlyData
+                  ? (() => {
+                      const totalTrades = Object.values(monthlyStats.monthlyData).reduce(
+                        (sum, month) =>
+                          sum +
+                          month.wins +
+                          month.losses +
+                          month.beWins +
+                          month.beLosses,
+                        0
+                      );
+                      const monthsCount = Object.keys(monthlyStats.monthlyData).length;
+                      const avg =
+                        monthsCount > 0 ? totalTrades / monthsCount : 0;
+                      const value = isNaN(avg) || !isFinite(avg) ? 0 : avg;
+                      return value.toFixed(0);
+                    })()
+                  : '0'}{' '}
+                <span className="text-slate-500 text-sm">(incl. BE)</span>
               </p>
-            </div>
-          }
-          value={
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {monthlyStatsToUseForCards.monthlyData
-                ? (() => {
-                    const totalTrades = Object.values(monthlyStatsToUseForCards.monthlyData).reduce(
-                      (sum, month) =>
-                        sum +
-                        month.wins +
-                        month.losses +
-                        month.beWins +
-                        month.beLosses,
-                      0
-                    );
-                    const monthsCount = Object.keys(monthlyStatsToUseForCards.monthlyData).length;
-                    const avg =
-                      monthsCount > 0 ? totalTrades / monthsCount : 0;
-                    const value = isNaN(avg) || !isFinite(avg) ? 0 : avg;
-                    return value.toFixed(0);
-                  })()
-                : '0'}{' '}
-              <span className="text-slate-500 text-sm">(incl. BE)</span>
-            </p>
-          }
-        />
+            }
+          />
+        )}
 
         {/* Average Monthly Profit */}
         <StatCard
@@ -2720,32 +2761,34 @@ export default function AnalyticsClient(
           }
         />
 
-        {/* Non-Executed Trades */}
-        <StatCard
-          title="Non-Executed Trades"
-          tooltipContent={
-            <div className="space-y-2 text-slate-500">
-              <div className="font-semibold text-slate-900">
-                Non-Executed Trades
+        {/* Non-Executed Trades - Only show in yearly mode */}
+        {viewMode === 'yearly' && (
+          <StatCard
+            title="Non-Executed Trades"
+            tooltipContent={
+              <div className="space-y-2 text-slate-500">
+                <div className="font-semibold text-slate-900">
+                  Non-Executed Trades
+                </div>
+                <p>
+                  Total number of trades that were planned but not executed, including
+                  break-even (BE) trades, in the selected year. This helps track missed
+                  or skipped opportunities.
+                </p>
               </div>
-              <p>
-                Total number of trades that were planned but not executed, including
-                break-even (BE) trades, in the selected year. This helps track missed
-                or skipped opportunities.
+            }
+            value={
+              <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                {typeof props?.initialNonExecutedTotalTradesCount === 'number'
+                  ? props.initialNonExecutedTotalTradesCount
+                  : typeof nonExecutedTotalTradesCount === 'number'
+                    ? nonExecutedTotalTradesCount
+                    : 0}
+                <span className="text-slate-500 text-sm ml-1">(incl. BE)</span>
               </p>
-            </div>
-          }
-          value={
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {typeof props?.initialNonExecutedTotalTradesCount === 'number'
-                ? props.initialNonExecutedTotalTradesCount
-                : typeof nonExecutedTotalTradesCount === 'number'
-                  ? nonExecutedTotalTradesCount
-                  : 0}
-              <span className="text-slate-500 text-sm ml-1">(incl. BE)</span>
-            </p>
-          }
-        />
+            }
+          />
+        )}
 
         {/* Partial Trades */}
         <StatCard
@@ -2788,7 +2831,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStats.tradeQualityIndex < 0.20 ? "bg-orange-50 border border-orange-100" : ""
+                  macroStatsToUse.tradeQualityIndex < 0.20 ? "bg-orange-50 border border-orange-100" : ""
                 )}
               >
                 <span className="font-medium">🔸 &lt; 0.20</span> — Needs Development
@@ -2799,7 +2842,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStats.tradeQualityIndex >= 0.20 && macroStats.tradeQualityIndex < 0.30
+                  macroStatsToUse.tradeQualityIndex >= 0.20 && macroStatsToUse.tradeQualityIndex < 0.30
                     ? "bg-orange-100 border border-orange-200"
                     : ""
                 )}
@@ -2812,7 +2855,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStats.tradeQualityIndex >= 0.30 && macroStats.tradeQualityIndex < 0.40
+                  macroStatsToUse.tradeQualityIndex >= 0.30 && macroStatsToUse.tradeQualityIndex < 0.40
                     ? "bg-amber-50 border border-amber-100"
                     : ""
                 )}
@@ -2825,7 +2868,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStats.tradeQualityIndex >= 0.40 && macroStats.tradeQualityIndex < 0.55
+                  macroStatsToUse.tradeQualityIndex >= 0.40 && macroStatsToUse.tradeQualityIndex < 0.55
                     ? "bg-emerald-50 border border-emerald-100"
                     : ""
                 )}
@@ -2838,7 +2881,7 @@ export default function AnalyticsClient(
               <div
                 className={cn(
                   "rounded-lg p-1.5 sm:p-2",
-                  macroStats.tradeQualityIndex >= 0.55
+                  macroStatsToUse.tradeQualityIndex >= 0.55
                     ? "bg-blue-50 border border-blue-100"
                     : ""
                 )}
@@ -2854,17 +2897,17 @@ export default function AnalyticsClient(
             <p
               className={cn(
                 'text-2xl font-bold',
-                typeof macroStats.tradeQualityIndex === 'number'
-                  ? macroStats.tradeQualityIndex > 0.30
+                typeof macroStatsToUse.tradeQualityIndex === 'number'
+                  ? macroStatsToUse.tradeQualityIndex > 0.30
                     ? 'text-emerald-600 dark:text-emerald-400'
-                    : macroStats.tradeQualityIndex < 0.29
+                    : macroStatsToUse.tradeQualityIndex < 0.29
                     ? 'text-rose-600 dark:text-rose-400'
                     : 'text-slate-900 dark:text-slate-100'
                   : 'text-slate-900 dark:text-slate-100'
               )}
             >
-              {typeof macroStats.tradeQualityIndex === 'number'
-                ? macroStats.tradeQualityIndex.toFixed(2)
+              {typeof macroStatsToUse.tradeQualityIndex === 'number'
+                ? macroStatsToUse.tradeQualityIndex.toFixed(2)
                 : '—'}
             </p>
           }
@@ -2878,8 +2921,8 @@ export default function AnalyticsClient(
                 'text-2xl font-bold text-slate-900 dark:text-slate-100'
               )}
             >
-              {typeof macroStats.multipleR === 'number'
-                ? macroStats.multipleR.toFixed(2)
+              {typeof macroStatsToUse.multipleR === 'number'
+                ? macroStatsToUse.multipleR.toFixed(2)
                 : '—'}
             </p>
           }
