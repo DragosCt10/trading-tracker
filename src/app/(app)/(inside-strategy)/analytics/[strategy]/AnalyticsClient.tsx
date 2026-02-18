@@ -2570,7 +2570,10 @@ export default function AnalyticsClient(
         />
         
         {/* Displacement Size Profitability by Market and Size Points */}
-        <DisplacementSizeStats trades={tradesToUse} />
+        <DisplacementSizeStats 
+          trades={tradesToUse} 
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -2637,7 +2640,10 @@ export default function AnalyticsClient(
         />
         
         {/* Displacement Size Profitability by Market and Size Points */}
-        <DisplacementSizeStats trades={nonExecutedTrades} />
+        <DisplacementSizeStats 
+          trades={nonExecutedTrades} 
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+        />
       </div>
     </>
   );
