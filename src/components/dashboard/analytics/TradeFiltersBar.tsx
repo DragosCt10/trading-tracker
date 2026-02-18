@@ -39,6 +39,10 @@ interface TradeFiltersBarProps {
   selectedMarket: string;
   onSelectedMarketChange: (market: string) => void;
   markets: string[]; // unique list of markets (e.g. from allTrades)
+  
+  /** execution filter dropdown */
+  selectedExecution: 'all' | 'nonExecuted';
+  onSelectedExecutionChange: (execution: 'all' | 'nonExecuted') => void;
 }
 
 export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
@@ -50,6 +54,8 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
   selectedMarket,
   onSelectedMarketChange,
   markets,
+  selectedExecution,
+  onSelectedExecutionChange,
 }) => {
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [tempRange, setTempRange] = React.useState<DateRangeValue>(dateRange);
@@ -252,6 +258,28 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                   {market}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Execution filter */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            Filter by execution:
+          </span>
+          <Select
+            value={selectedExecution}
+            onValueChange={onSelectedExecutionChange}
+          >
+            <SelectTrigger 
+              className="flex w-40 shadow-none border-slate-200/60 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 rounded-xl h-10" 
+              suppressHydrationWarning
+            >
+              <SelectValue placeholder="All Trades" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-white dark:bg-slate-900 shadow-lg backdrop-blur-sm">
+              <SelectItem value="all" className="rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800">All Trades</SelectItem>
+              <SelectItem value="nonExecuted" className="rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800">Non Executed Trades</SelectItem>
             </SelectContent>
           </Select>
         </div>
