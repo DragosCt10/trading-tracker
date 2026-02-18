@@ -399,7 +399,7 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
                         const hasData = (row[market] ?? 0) > 0;
                         
                         if (!hasData) {
-                          return <Cell key={`${row.ratio}-${market}`} radius={[0, 0, 0, 0]} />;
+                          return <Cell key={`${row.ratio}-${market}`} radius={[0, 0, 0, 0] as any} />;
                         }
                         
                         // Find position among markets with data for this ratio
@@ -416,7 +416,7 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
                           ? [4, 4, 0, 0] // Top bar: round top corners
                           : [0, 0, 0, 0]; // Middle bars: no rounding
                         
-                        return <Cell key={`${row.ratio}-${market}`} radius={radius} />;
+                        return <Cell key={`${row.ratio}-${market}`} radius={radius as any} />;
                       })}
                     </ReBar>
                   );
