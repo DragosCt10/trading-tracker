@@ -2318,12 +2318,11 @@ export default function AnalyticsClient(
     }
 
     // Compute consistency score (simplified - percentage of profitable months)
-    const monthlyData = monthlyPerformanceStatsToUse;
-    const profitableMonths = Object.values(monthlyData).filter((month) => {
-      const monthProfit = monthlyStatsToUse[Object.keys(monthlyData).find(key => monthlyData[key] === month) || '']?.profit || 0;
+    const profitableMonths = Object.keys(monthlyStatsToUse).filter((month) => {
+      const monthProfit = monthlyStatsToUse[month]?.profit || 0;
       return monthProfit > 0;
     }).length;
-    const totalMonths = Object.keys(monthlyData).length;
+    const totalMonths = Object.keys(monthlyStatsToUse).length;
     const consistencyScore = totalMonths > 0 ? (profitableMonths / totalMonths) * 100 : 0;
 
     // Compute Sharpe ratio (simplified - would need returns array for full calculation)
