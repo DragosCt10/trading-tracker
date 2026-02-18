@@ -38,6 +38,8 @@ export function DiscoverSkeleton() {
         selectedMarket="all"
         onSelectedMarketChange={() => {}}
         markets={[]}
+        executionFilter="all"
+        onExecutionFilterChange={() => {}}
       />
 
       {/* Skeleton only for trade cards grid */}
