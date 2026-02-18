@@ -51,6 +51,9 @@ export function LaunchHourTradesCard({ filteredTrades }: LaunchHourTradesCardPro
     (t) => t.trade_outcome === 'Lose' && !t.break_even,
   ).length;
 
+  const totalWins = wins + beWins;
+  const totalLosses = losses + beLosses;
+
   const tradesWithoutBE = wins + losses;
   const winRate =
     tradesWithoutBE > 0 ? (wins / tradesWithoutBE) * 100 : 0;
@@ -111,7 +114,7 @@ export function LaunchHourTradesCard({ filteredTrades }: LaunchHourTradesCardPro
               <div className="flex flex-wrap items-center justify-center gap-6">
                 <div className="text-emerald-600 dark:text-emerald-400 font-medium text-lg">
                   Wins:{' '}
-                  <span className="font-bold">{wins}</span>{' '}
+                  <span className="font-bold">{totalWins}</span>{' '}
                   {beWins > 0 && (
                     <span className="text-sm text-slate-500 dark:text-slate-400">
                       ({beWins} BE)
@@ -120,7 +123,7 @@ export function LaunchHourTradesCard({ filteredTrades }: LaunchHourTradesCardPro
                 </div>
                 <div className="text-rose-600 dark:text-rose-400 font-medium text-lg">
                   Losses:{' '}
-                  <span className="font-bold">{losses}</span>{' '}
+                  <span className="font-bold">{totalLosses}</span>{' '}
                   {beLosses > 0 && (
                     <span className="text-sm text-slate-500 dark:text-slate-400">
                       ({beLosses} BE)
