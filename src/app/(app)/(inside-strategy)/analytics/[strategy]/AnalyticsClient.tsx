@@ -1872,19 +1872,10 @@ export default function AnalyticsClient(
   }, [tradesToUse, computeMonthlyStatsFromTrades]);
 
   // Determine which full monthly stats to use based on view mode (for MonthlyPerformanceChart - wins, losses, winRate, etc.)
+  // Always use tradesToUse to ensure data consistency across all cards and charts
   const monthlyPerformanceStatsToUse = useMemo(() => {
-    if (viewMode === 'yearly') {
-      // In yearly mode, if filters are applied, use tradesToUse; otherwise use hook data
-      if (selectedMarket !== 'all') {
-        return computeFullMonthlyStatsFromTrades(tradesToUse);
-      }
-      // Use monthlyStatsAllTrades from hook for yearly mode when no filters
-      return monthlyStatsAllTrades;
-    } else {
-      // In date range mode, use tradesToUse which respects filters
-      return computeFullMonthlyStatsFromTrades(tradesToUse);
-    }
-  }, [viewMode, monthlyStatsAllTrades, tradesToUse, selectedMarket, computeFullMonthlyStatsFromTrades]);
+    return computeFullMonthlyStatsFromTrades(tradesToUse);
+  }, [tradesToUse, computeFullMonthlyStatsFromTrades]);
 
   const totalYearProfit = useMemo(
     () =>
@@ -1895,16 +1886,9 @@ export default function AnalyticsClient(
     [monthlyStatsToUse]
   );
 
-  // Compute filtered monthlyStats with best/worst month when filters are applied or in date range mode
-  // In date range mode, always compute from current data to reflect the selected date range
-  // In yearly mode with no filters, use hook stats
+  // Compute filtered monthlyStats with best/worst month
+  // Always compute from tradesToUse to ensure data consistency across all cards and charts
   const monthlyStatsToUseForCards = useMemo(() => {
-    // In yearly mode with no filters, use hook stats
-    if (viewMode === 'yearly' && selectedMarket === 'all') {
-      return monthlyStats; // Use hook stats
-    }
-
-    // In date range mode or when filters are applied, compute from current filtered data
     // Compute best and worst month from monthlyPerformanceStatsToUse
     const monthlyData = monthlyPerformanceStatsToUse;
     let bestMonth: { month: string; stats: { winRate: number; profit: number } } | null = null;
@@ -1938,13 +1922,13 @@ export default function AnalyticsClient(
       }
     });
 
-    // Build structure from current filtered data, not hook data
+    // Build structure from current filtered data (always from tradesToUse)
     return {
       monthlyData: monthlyPerformanceStatsToUse,
       bestMonth,
       worstMonth,
     };
-  }, [viewMode, selectedMarket, monthlyStats, monthlyPerformanceStatsToUse, monthlyStatsToUse]);
+  }, [monthlyPerformanceStatsToUse, monthlyStatsToUse]);
 
   const updatedBalance =
     ((resolvedAccount as { account_balance?: number } | null)?.account_balance ?? 0) + totalYearProfit;
