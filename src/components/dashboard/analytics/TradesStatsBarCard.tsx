@@ -62,6 +62,7 @@ export function TradeStatsBarCard({
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasSeenData, setHasSeenData] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -81,6 +82,32 @@ export function TradeStatsBarCard({
   }, []);
 
   useEffect(() => {
+    // Track if we've seen data with actual content
+    if (data && data.length > 0) {
+      const hasContent = mode === 'winsLossesWinRate'
+        ? data.some((d) => 
+            (d.totalTrades ?? 0) > 0 ||
+            (d.wins ?? 0) > 0 ||
+            (d.losses ?? 0) > 0 ||
+            (d.beWins ?? 0) > 0 ||
+            (d.beLosses ?? 0) > 0
+          )
+        : mode === 'singleValue'
+        ? data.some((d) => 
+            d[valueKey] !== undefined &&
+            d[valueKey] !== null &&
+            !isNaN(Number(d[valueKey])) &&
+            isFinite(Number(d[valueKey]))
+          )
+        : false;
+      
+      if (hasContent) {
+        setHasSeenData(true);
+      }
+    }
+  }, [data, mode, valueKey]);
+
+  useEffect(() => {
     // Keep loading until external loading is complete and minimum time has passed
     if (mounted) {
       // If external loading is provided, use it
@@ -90,10 +117,11 @@ export function TradeStatsBarCard({
           setIsLoading(true);
         } else {
           // External loading is complete, wait minimum time then stop loading
-          // Always wait at least 600ms to ensure smooth transition
+          // If we haven't seen data yet, wait a bit longer to allow data to arrive
+          const delay = hasSeenData ? 600 : 1200;
           const timer = setTimeout(() => {
             setIsLoading(false);
-          }, 600);
+          }, delay);
           return () => clearTimeout(timer);
         }
       } else {
@@ -108,7 +136,7 @@ export function TradeStatsBarCard({
       // Not mounted yet - ensure loading state is true
       setIsLoading(true);
     }
-  }, [mounted, externalLoading]);
+  }, [mounted, externalLoading, hasSeenData]);
 
   // Dynamic colors based on dark mode
   const slate500 = isDark ? '#94a3b8' : '#64748b'; // slate-400 in dark, slate-500 in light
