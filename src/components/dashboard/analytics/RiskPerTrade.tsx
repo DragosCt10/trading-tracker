@@ -116,15 +116,14 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
 
         <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {visibleRiskLevels.length === 0 ? (
-            <Card
-              className="col-span-full border border-dashed border-slate-200/60 dark:border-slate-700/50 bg-slate-50/40 dark:bg-slate-800/30 p-8 flex flex-col items-center justify-center shadow-none rounded-2xl text-center min-h-[140px]"
-            >
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                No trades for this
-                <br />
-                risk level yet
-              </p>
-            </Card>
+            <div className="col-span-full flex flex-col justify-center items-center w-full min-h-[200px] py-8">
+              <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
+                No trades found
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
+                There are no trades to display for this category yet. Start trading to see your statistics here!
+              </div>
+            </div>
           ) : (
           <>
           {visibleRiskLevels.map(({ key, label, tooltip, stats }) => (
