@@ -16,6 +16,7 @@ import {
   CardDescription,
   CardContent,
 } from '@/components/ui/card';
+import { BouncePulse } from '@/components/ui/bounce-pulse';
 
 // Generic shape for each bar/category
 export interface TradeStatDatum {
@@ -44,6 +45,8 @@ interface TradeStatsBarCardProps {
   valueLabel?: string;
   /** tailwind height for the chart container (default h-80; ignored) */
   heightClassName?: string;
+  /** When true, data is still loading; show loading animation instead of "No trades found" */
+  isLoading?: boolean;
 }
 
 export function TradeStatsBarCard({
@@ -54,8 +57,73 @@ export function TradeStatsBarCard({
   valueKey = 'value',
   valueLabel = 'Value:',
   heightClassName, // ignored for height consistency
+  isLoading: externalLoading,
 }: TradeStatsBarCardProps) {
-  const onlyZero = !data || data.length === 0 ||
+  const [mounted, setMounted] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setMounted(true);
+    // Check for dark mode
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    checkDarkMode();
+    // Watch for changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+    
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    // Keep loading until external loading is complete and minimum time has passed
+    if (mounted) {
+      // If external loading is provided, use it
+      if (externalLoading !== undefined) {
+        if (externalLoading) {
+          // Still loading externally - keep showing animation
+          setIsLoading(true);
+        } else {
+          // External loading is complete, wait minimum time then stop loading
+          // Always wait at least 600ms to ensure smooth transition
+          const timer = setTimeout(() => {
+            setIsLoading(false);
+          }, 600);
+          return () => clearTimeout(timer);
+        }
+      } else {
+        // No external loading prop - use internal timer
+        // Always wait at least 1000ms to ensure loading shows
+        const timer = setTimeout(() => {
+          setIsLoading(false);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    } else {
+      // Not mounted yet - ensure loading state is true
+      setIsLoading(true);
+    }
+  }, [mounted, externalLoading]);
+
+  // Dynamic colors based on dark mode
+  const slate500 = isDark ? '#94a3b8' : '#64748b'; // slate-400 in dark, slate-500 in light
+  const axisTextColor = isDark ? '#cbd5e1' : '#64748b'; // slate-300 in dark, slate-500 in light
+
+  // Helper to sanitize title for use in gradient IDs (remove special characters)
+  const sanitizeTitleForId = (text: string) => {
+    return text.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '-');
+  };
+
+  // --- Calculate onlyZero (only when not loading) ---------------------------
+  // Don't show "No trades" if we're still loading (either internal or external)
+  // Show loading if: not mounted yet, or internal loading state is true, or external loading is explicitly true
+  const isStillLoading = !mounted || isLoading || externalLoading === true;
+  const onlyZero = !isStillLoading && (!data || data.length === 0 ||
     (
       mode === 'winsLossesWinRate'
         ? data.every(
@@ -75,82 +143,11 @@ export function TradeStatsBarCard({
               !isFinite(Number(d[valueKey]))
           )
         : true
-    );
-
-  const [mounted, setMounted] = useState(false);
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    // Check for dark mode
-    const checkDarkMode = () => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    };
-    checkDarkMode();
-    // Watch for changes
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  // Dynamic colors based on dark mode
-  const slate500 = isDark ? '#94a3b8' : '#64748b'; // slate-400 in dark, slate-500 in light
-  const axisTextColor = isDark ? '#cbd5e1' : '#64748b'; // slate-300 in dark, slate-500 in light
-
-  // Helper to sanitize title for use in gradient IDs (remove special characters)
-  const sanitizeTitleForId = (text: string) => {
-    return text.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '-');
-  };
-
-  if (!mounted) {
-    return (
-      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
-        <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            {title}
-          </CardTitle>
-          <CardDescription className="text-base text-slate-500 dark:text-slate-400">
-            {description}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex-1 flex justify-center items-center">
-          <div className="w-full h-full min-h-[180px]" aria-hidden>—</div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (onlyZero) {
-    return (
-      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
-        <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            {title}
-          </CardTitle>
-          <CardDescription className="text-base text-slate-500 dark:text-slate-400">
-            {description}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex-1 flex justify-center items-center">
-          <div className="flex flex-col justify-center items-center w-full h-full">
-            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
-              No trades found
-            </div>
-            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
-              There are no trades to display for this category yet. Start trading to see your statistics here!
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+    ));
 
   // --- Common helpers -------------------------------------------------------
 
-  const withTotals: TradeStatDatum[] = data.map((d) => ({
+  const withTotals: TradeStatDatum[] = (data || []).map((d) => ({
     ...d,
     totalTrades:
       d.totalTrades ?? (((d.wins ?? 0) + (d.losses ?? 0)) || undefined),
@@ -289,7 +286,21 @@ export function TradeStatsBarCard({
 
       <CardContent className="flex-1 flex items-center">
         <div className="w-full h-full">
-          <ResponsiveContainer width="100%" height="100%">
+          {isStillLoading ? (
+            <div className="flex items-center justify-center w-full h-full min-h-[180px]">
+              <BouncePulse size="md" />
+            </div>
+          ) : onlyZero ? (
+            <div className="flex flex-col justify-center items-center w-full h-full">
+              <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
+                No trades found
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
+                There are no trades to display for this category yet. Start trading to see your statistics here!
+              </div>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={withTotals}
               layout="horizontal"
@@ -422,6 +433,7 @@ export function TradeStatsBarCard({
               )}
             </BarChart>
           </ResponsiveContainer>
+          )}
         </div>
       </CardContent>
     </Card>
