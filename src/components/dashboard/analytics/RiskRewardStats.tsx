@@ -8,7 +8,6 @@ import {
   XAxis,
   YAxis,
   Tooltip as ReTooltip,
-  Legend,
 } from 'recharts';
 import {
   Card,
@@ -248,17 +247,6 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
                     dy: -10,
                     dx: -50,
                   }}
-                />
-
-                <Legend
-                  verticalAlign="top"
-                  align="right"
-                  wrapperStyle={{ 
-                    fontSize: 12,
-                    color: isDark ? '#cbd5e1' : '#64748b',
-                    paddingTop: '8px'
-                  }}
-                  iconType="square"
                 />
 
                 <ReTooltip
