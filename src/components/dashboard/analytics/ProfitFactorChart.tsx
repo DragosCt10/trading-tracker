@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Info } from 'lucide-react';
@@ -14,6 +14,9 @@ interface ProfitFactorChartProps {
 export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipActiveRef = React.useRef(false);
+  const prevActiveRef = React.useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -28,6 +31,7 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
     });
     return () => observer.disconnect();
   }, []);
+
 
   // Normalize profit factor to 0-100% for display (scale from 0 to 5.0)
   const normalizedValue = Math.max(0, Math.min(profitFactor, 5.0));
@@ -87,17 +91,20 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
   );
 
   const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload || payload.length === 0) return null;
-    return (
-      <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
-        <div className="text-sm font-bold text-slate-900 dark:text-slate-100">
-          Profit Factor: {profitFactor.toFixed(2)}
-        </div>
-        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-          {percentage.toFixed(1)}% of maximum scale
-        </div>
-      </div>
-    );
+    const isActive = active && payload && payload.length > 0;
+    
+    // Update ref during render (this is safe - refs can be updated during render)
+    tooltipActiveRef.current = isActive;
+    
+    // Schedule state update outside of render using requestAnimationFrame
+    if (isActive !== prevActiveRef.current) {
+      prevActiveRef.current = isActive;
+      requestAnimationFrame(() => {
+        setShowTooltip(isActive);
+      });
+    }
+    
+    return null; // We'll render the tooltip separately
   };
 
   if (!mounted) {
@@ -153,8 +160,25 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="h-48 flex flex-col items-center justify-center relative pt-0 pb-2">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
+        {/* Custom Tooltip positioned above chart */}
+        {showTooltip && (
+          <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="backdrop-blur-xl bg-gradient-to-br from-white/98 via-white/95 to-slate-50/95 dark:from-slate-900/98 dark:via-slate-900/95 dark:to-slate-800/95 border border-slate-200/80 dark:border-slate-700/80 rounded-xl p-3 shadow-xl shadow-slate-900/10 dark:shadow-slate-900/30 ring-1 ring-slate-900/5 dark:ring-slate-100/5">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-blue-500 dark:bg-blue-400 shadow-sm ring-2 ring-blue-200/50 dark:ring-blue-500/30"></div>
+                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  Profit Factor: <span className="text-blue-600 dark:text-blue-400 font-bold">{profitFactor.toFixed(2)}</span>
+                </div>
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 ml-4 font-medium">
+                {percentage.toFixed(1)}% of maximum scale
+              </div>
+            </div>
+          </div>
+        )}
+        <div className="w-full h-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
             <defs>
               <linearGradient id="profitFactorRed" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
@@ -208,9 +232,14 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
                 />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip 
+              content={<CustomTooltip />} 
+              allowEscapeViewBox={{ x: false, y: true }}
+              cursor={false}
+            />
           </PieChart>
         </ResponsiveContainer>
+        </div>
         {/* Scale labels - positioned at chart arc endpoints */}
         <div className="absolute top-[60%] left-4 text-xs font-medium text-slate-500 dark:text-slate-400">
           0
@@ -222,9 +251,6 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
           <div className={cn('text-2xl font-bold', getTextColor())}>
             {profitFactor % 1 === 0 ? profitFactor.toFixed(0) : profitFactor.toFixed(1)}
           </div>
-          {profitFactor >= 5.0 && (
-            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">+</div>
-          )}
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Target: 2+
           </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Info } from 'lucide-react';
@@ -14,6 +14,9 @@ interface SharpeRatioChartProps {
 export function SharpeRatioChart({ sharpeRatio }: SharpeRatioChartProps) {
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipActiveRef = React.useRef(false);
+  const prevActiveRef = React.useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -56,6 +59,22 @@ export function SharpeRatioChart({ sharpeRatio }: SharpeRatioChartProps) {
     return 'text-blue-600 dark:text-blue-400';
   };
 
+  const getTooltipDotColor = () => {
+    if (sharpeRatio < 0.2) return 'bg-orange-500 dark:bg-orange-400 ring-orange-200/50 dark:ring-orange-500/30';
+    if (sharpeRatio < 0.5) return 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30';
+    if (sharpeRatio < 1.0) return 'bg-yellow-500 dark:bg-yellow-400 ring-yellow-200/50 dark:ring-yellow-500/30';
+    if (sharpeRatio < 2.0) return 'bg-emerald-500 dark:bg-emerald-400 ring-emerald-200/50 dark:ring-emerald-500/30';
+    return 'bg-blue-500 dark:bg-blue-400 ring-blue-200/50 dark:ring-blue-500/30';
+  };
+
+  const getTooltipValueColor = () => {
+    if (sharpeRatio < 0.2) return 'text-orange-600 dark:text-orange-400';
+    if (sharpeRatio < 0.5) return 'text-amber-600 dark:text-amber-400';
+    if (sharpeRatio < 1.0) return 'text-yellow-600 dark:text-yellow-400';
+    if (sharpeRatio < 2.0) return 'text-emerald-600 dark:text-emerald-400';
+    return 'text-blue-600 dark:text-blue-400';
+  };
+
   const tooltipContent = (
     <div className="space-y-3">
       <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
@@ -87,17 +106,20 @@ export function SharpeRatioChart({ sharpeRatio }: SharpeRatioChartProps) {
   );
 
   const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload || payload.length === 0) return null;
-    return (
-      <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
-        <div className="text-sm font-bold text-slate-900 dark:text-slate-100">
-          Sharpe Ratio: {sharpeRatio.toFixed(2)}
-        </div>
-        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-          {percentage.toFixed(1)}% of maximum scale
-        </div>
-      </div>
-    );
+    const isActive = active && payload && payload.length > 0;
+    
+    // Update ref during render (this is safe - refs can be updated during render)
+    tooltipActiveRef.current = isActive;
+    
+    // Schedule state update outside of render using requestAnimationFrame
+    if (isActive !== prevActiveRef.current) {
+      prevActiveRef.current = isActive;
+      requestAnimationFrame(() => {
+        setShowTooltip(isActive);
+      });
+    }
+    
+    return null; // We'll render the tooltip separately
   };
 
   if (!mounted) {
@@ -153,8 +175,25 @@ export function SharpeRatioChart({ sharpeRatio }: SharpeRatioChartProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="h-48 flex flex-col items-center justify-center relative pt-0 pb-2">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
+        {/* Custom Tooltip positioned above chart */}
+        {showTooltip && (
+          <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="backdrop-blur-xl bg-gradient-to-br from-white/98 via-white/95 to-slate-50/95 dark:from-slate-900/98 dark:via-slate-900/95 dark:to-slate-800/95 border border-slate-200/80 dark:border-slate-700/80 rounded-xl p-3 shadow-xl shadow-slate-900/10 dark:shadow-slate-900/30 ring-1 ring-slate-900/5 dark:ring-slate-100/5">
+              <div className="flex items-center gap-2">
+                <div className={cn("h-2 w-2 rounded-full shadow-sm ring-2", getTooltipDotColor())}></div>
+                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  Sharpe Ratio: <span className={cn("font-bold", getTooltipValueColor())}>{sharpeRatio.toFixed(2)}</span>
+                </div>
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 ml-4 font-medium">
+                {percentage.toFixed(1)}% of maximum scale
+              </div>
+            </div>
+          </div>
+        )}
+        <div className="w-full h-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
             <defs>
               <linearGradient id="sharpeOrange" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#f97316" stopOpacity={1} />
@@ -208,6 +247,7 @@ export function SharpeRatioChart({ sharpeRatio }: SharpeRatioChartProps) {
             <Tooltip content={<CustomTooltip />} />
           </PieChart>
         </ResponsiveContainer>
+        </div>
         {/* Scale labels - positioned at chart arc endpoints */}
         <div className="absolute top-[60%] left-4 text-xs font-medium text-slate-500 dark:text-slate-400">
           0
@@ -219,9 +259,6 @@ export function SharpeRatioChart({ sharpeRatio }: SharpeRatioChartProps) {
           <div className={cn('text-2xl font-bold', getTextColor())}>
             {sharpeRatio.toFixed(1)}
           </div>
-          {sharpeRatio >= 3.0 && (
-            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">+</div>
-          )}
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Target: 0.5+
           </div>
