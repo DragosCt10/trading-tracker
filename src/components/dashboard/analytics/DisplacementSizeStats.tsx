@@ -8,7 +8,6 @@ import {
   XAxis,
   YAxis,
   Tooltip as ReTooltip,
-  Legend,
 } from 'recharts';
 import {
   Card,
@@ -19,9 +18,11 @@ import {
 } from '@/components/ui/card';
 
 import { Trade } from '@/types/trade';
+import { BouncePulse } from '@/components/ui/bounce-pulse';
 
 interface DisplacementSizeStatsProps {
   trades: Trade[];
+  isLoading?: boolean;
 }
 
 const DISPLACEMENT_BUCKETS = [
@@ -32,7 +33,7 @@ const DISPLACEMENT_BUCKETS = [
   { key: '40+', label: '40+', min: 40, max: Infinity },
 ];
 
-export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
+export function DisplacementSizeStats({ trades, isLoading: externalLoading }: DisplacementSizeStatsProps) {
   // Only consider trades that have a numerical displacement_size and a clear outcome (Win / Lose / BE)
   // Displacement size can be any number (no filtering by 20+)
   const filteredTrades = trades.filter(
@@ -45,6 +46,7 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
 
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
@@ -62,6 +64,31 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    // Keep loading until external loading is complete and minimum time has passed
+    if (mounted) {
+      // If external loading is provided, use it
+      if (externalLoading !== undefined) {
+        if (externalLoading) {
+          // Still loading externally - keep showing animation
+          setIsLoading(true);
+        } else {
+          // External loading is complete, wait minimum time then stop loading
+          const timer = setTimeout(() => {
+            setIsLoading(false);
+          }, 600);
+          return () => clearTimeout(timer);
+        }
+      } else {
+        // No external loading prop - use internal timer
+        const timer = setTimeout(() => {
+          setIsLoading(false);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [mounted, externalLoading]);
+
   // Dynamic colors based on dark mode
   const slate500 = isDark ? '#94a3b8' : '#64748b'; // slate-400 in dark, slate-500 in light
   const axisTextColor = isDark ? '#cbd5e1' : '#64748b'; // slate-300 in dark, slate-500 in light
@@ -71,71 +98,86 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
     new Set(filteredTrades.map((t) => t.market || 'Unknown'))
   ).sort();
 
-  // Chart data: one bar per market per bucket
-  const chartData = DISPLACEMENT_BUCKETS.flatMap((bucket) => {
-    return uniqueMarkets.map((market) => {
-      const bucketMarketTrades = filteredTrades.filter((t) => {
-        const d = t.displacement_size ?? 0;
-        return (
-          d >= bucket.min &&
-          d < bucket.max &&
-          (t.market || 'Unknown') === market
-        );
-      });
-
-      // Count outcomes
-      const wins = bucketMarketTrades.filter((t) => t.trade_outcome === 'Win').length;
-      const losses = bucketMarketTrades.filter((t) => t.trade_outcome === 'Lose').length;
-      // Only count BE trades where t.break_even true
-      const be = bucketMarketTrades.filter((t) => t.break_even).length;
-      const total = bucketMarketTrades.length;
-
-      return {
-        bucketKey: bucket.key,
-        bucketLabel: bucket.label,
-        market,
-        wins,
-        losses,
-        be,
-        total,
-        hasTrades: total > 0,
-        breakdown: { wins, losses, be, total },
-        trades: bucketMarketTrades,
-      };
+  // Build chart data: one row per range/bucket, showing total percentage
+  const chartData = DISPLACEMENT_BUCKETS.map((bucket) => {
+    // Get all trades in this bucket across all markets
+    const tradesInBucket = filteredTrades.filter((t) => {
+      const d = t.displacement_size ?? 0;
+      return d >= bucket.min && d < bucket.max;
     });
-  }).filter((d) => d.hasTrades);
 
-  // Group chartData by bucket for X axis categories
-  const groupedByBucket = DISPLACEMENT_BUCKETS.map((bucket) => {
-    const row: Record<string, any> = { bucketKey: bucket.key, range: bucket.label };
-    uniqueMarkets.forEach((market) => {
-      const found = chartData.find(
-        (d) => d.bucketKey === bucket.key && d.market === market
-      );
-      row[market] = found?.total ?? 0;
-      row[`${market}_breakdown`] = found || { wins: 0, losses: 0, be: 0, total: 0, trades: [] };
-    });
-    return row;
+    const totalTrades = filteredTrades.length;
+    const percentage =
+      totalTrades > 0
+        ? (tradesInBucket.length / totalTrades) * 100
+        : 0;
+
+    // Store market details for tooltip
+    const marketDetails = uniqueMarkets
+      .map((market) => {
+        const marketTrades = filteredTrades.filter((t) => (t.market || 'Unknown') === market);
+        const tradesInBucketForMarket = marketTrades.filter((t) => {
+          const d = t.displacement_size ?? 0;
+          return d >= bucket.min && d < bucket.max;
+        });
+
+        if (tradesInBucketForMarket.length === 0) {
+          return null;
+        }
+
+        const marketPercentage =
+          marketTrades.length > 0
+            ? (tradesInBucketForMarket.length / marketTrades.length) * 100
+            : 0;
+
+        // Calculate wins, losses, and win rate for trades in this bucket for this market
+        const wins = tradesInBucketForMarket.filter((t) => t.trade_outcome === 'Win').length;
+        const losses = tradesInBucketForMarket.filter((t) => t.trade_outcome === 'Lose').length;
+        const totalForWinrate = wins + losses;
+        const winRate = totalForWinrate > 0 ? (wins / totalForWinrate) * 100 : 0;
+
+        return {
+          market,
+          percentage: Number(marketPercentage.toFixed(1)),
+          tradesWithBucket: tradesInBucketForMarket.length,
+          totalTrades: marketTrades.length,
+          wins,
+          losses,
+          winRate: Number(winRate.toFixed(1)),
+        };
+      })
+      .filter(Boolean) as Array<{
+        market: string;
+        percentage: number;
+        tradesWithBucket: number;
+        totalTrades: number;
+        wins: number;
+        losses: number;
+        winRate: number;
+      }>;
+
+    return {
+      range: bucket.label,
+      rangeKey: bucket.key,
+      percentage: Number(percentage.toFixed(1)),
+      totalTradesInBucket: tradesInBucket.length,
+      totalTrades,
+      marketDetails,
+    };
   });
 
-  // Check if there's any actual data to display (chartData is empty if no trades match the buckets)
-  const hasChartData = chartData.length > 0;
-
-  // Generate gradient IDs for each market
-  const getGradientId = (market: string) => `dsGradient-${market.replace(/\s+/g, '-')}`;
+  // Generate gradient ID (single gradient for all bars)
+  const gradientId = 'dsGradient-main';
   
-  // Color palette for markets (will be used in gradients)
-  const marketColors = [
-    { start: '#14b8a6', mid: '#06b6d4', end: '#0d9488' }, // teal-500 to cyan-500 to teal-600
-    { start: '#f59e0b', mid: '#fbbf24', end: '#d97706' }, // amber-500 to amber-400 to amber-600
-    { start: '#3b82f6', mid: '#60a5fa', end: '#2563eb' }, // blue-500 to blue-400 to blue-600
-    { start: '#ec4899', mid: '#f472b6', end: '#db2777' }, // pink-500 to pink-400 to pink-600
-    { start: '#8b5cf6', mid: '#a78bfa', end: '#7c3aed' }, // purple-500 to purple-400 to purple-600
-    { start: '#64748b', mid: '#94a3b8', end: '#475569' }, // slate-500 to slate-400 to slate-600
-    { start: '#ef4444', mid: '#f87171', end: '#dc2626' }, // red-500 to red-400 to red-600
-  ];
+  // Use the same gradient as RiskRewardStats (blue to cyan) for all bars
+  const gradientColor = {
+    start: '#3b82f6', // blue-500
+    mid: '#06b6d4',   // cyan-500
+    end: '#0ea5e9',   // sky-500
+  };
 
-  const yAxisTickFormatter = (value: number) => `${value ?? 0}`;
+  const yAxisTickFormatter = (value: number) =>
+    `${Number(value ?? 0).toFixed(0)}%`;
 
   const CustomTooltip = ({
     active,
@@ -146,100 +188,120 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
     payload?: any[];
     label?: string;
   }) => {
-    if (!active || !payload || payload.length === 0) return null;
+    if (!active || !payload || payload.length === 0) {
+      return null;
+    }
+    
+    // Get the range from the label
+    const range = label;
+    
+    // Find the row data for this range
+    const rowData = chartData.find((d) => d.range === range);
+    
+    if (!rowData || !rowData.marketDetails || rowData.marketDetails.length === 0) {
+      return null;
+    }
 
-    // Get the row data from the first payload entry (all entries share the same payload for the category)
-    const rowData = payload[0]?.payload;
-    if (!rowData) return null;
+    // Filter market details to only show markets with trades in this range
+    const activeMarkets = rowData.marketDetails.filter((md: any) => md.tradesWithBucket > 0);
 
-    // Extract all markets from uniqueMarkets and get their breakdown data
-    const marketRows = uniqueMarkets
-      .map((market: string) => {
-        const breakdown = rowData[`${market}_breakdown`] ?? {};
-        if (!breakdown || !breakdown.total || breakdown.total === 0) return null;
-        const wins = breakdown.wins ?? 0;
-        const losses = breakdown.losses ?? 0;
-        const beWins = breakdown.be ?? 0;
-        const beLosses = 0; // BE losses not tracked separately in this component
-        const totalForWinrate = wins + losses;
-        const winRate = totalForWinrate > 0 ? (wins / totalForWinrate) * 100 : 0;
-        return {
-          market,
-          wins,
-          losses,
-          beWins,
-          beLosses,
-          total: breakdown.total,
-          winRate,
-        };
-      })
-      .filter(Boolean);
-
-    if (!marketRows.length) return null;
+    if (activeMarkets.length === 0) {
+      return null;
+    }
 
     return (
       <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
         <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-          Displacement Size {label ? <span className="text-emerald-600 dark:text-emerald-400">{label}</span> : ''}
+          Displacement Size {range}
         </div>
-        <div className="space-y-2">
-          {marketRows.map((row: any, idx: number) => (
-            <div key={row.market}>
-              {idx > 0 && <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 mb-2" />}
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                {row.market} ({row.total} trade{row.total === 1 ? '' : 's'})
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-baseline justify-between gap-4">
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
-                  <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                    {row.wins} {row.beWins > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({row.beWins} BE)</span>}
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between gap-4">
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
-                  <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
-                    {row.losses} {row.beLosses > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({row.beLosses} BE)</span>}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
-                  <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                    {row.winRate.toFixed(2)}%
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-slate-200/60 dark:border-slate-700/60">
+                <th className="text-left py-2 pr-4 font-semibold text-slate-600 dark:text-slate-400">Market</th>
+                <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">Wins</th>
+                <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">Losses</th>
+                <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">Win Rate</th>
+                <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">%</th>
+                <th className="text-right py-2 pl-2 font-semibold text-slate-600 dark:text-slate-400">Trades</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeMarkets.map((marketData: { 
+                market: string;
+                percentage: number;
+                tradesWithBucket: number;
+                totalTrades: number;
+                wins: number;
+                losses: number;
+                winRate: number;
+              }) => (
+                <tr key={marketData.market} className="border-b border-slate-100/60 dark:border-slate-800/60 last:border-0">
+                  <td className="py-2 pr-4 font-medium text-slate-700 dark:text-slate-300">
+                    {marketData.market}
+                  </td>
+                  <td className="py-2 px-2 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                    {marketData.wins}
+                  </td>
+                  <td className="py-2 px-2 text-right font-bold text-rose-600 dark:text-rose-400">
+                    {marketData.losses}
+                  </td>
+                  <td className="py-2 px-2 text-right font-bold text-amber-600 dark:text-amber-400">
+                    {marketData.winRate.toFixed(1)}%
+                  </td>
+                  <td className="py-2 px-2 text-right font-bold text-slate-900 dark:text-slate-100">
+                    {marketData.percentage.toFixed(1)}%
+                  </td>
+                  <td className="py-2 pl-2 text-right text-slate-600 dark:text-slate-400">
+                    {marketData.tradesWithBucket}/{marketData.totalTrades}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     );
   };
 
+  // --- Custom render X axis tick to left-align range name -----
+  const renderXAxisTick = (props: any) => {
+    const { x, y, payload } = props;
+    return (
+      <text
+        x={x}
+        y={y}
+        dy={16}
+        textAnchor="start"
+        fill={axisTextColor}
+        fontSize={12}
+      >
+        {payload?.value}
+      </text>
+    );
+  };
+
   return (
-    <Card className="relative overflow-visible border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
       <CardHeader className="pb-2 flex-shrink-0">
         <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
           Displacement Size Statistics
         </CardTitle>
         <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-          Distribution of trades, grouped by displacement size, per market. 
+          Distribution of trades based on displacement size ranges
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 flex items-center overflow-visible">
-        <div className="w-full h-full overflow-visible">
-          {!mounted ? (
-            <div
-              className="flex items-center justify-center text-slate-400 dark:text-slate-500 h-full text-sm"
-              style={{ minHeight: 180 }}
-              aria-hidden
-            >
-              —
+
+      <CardContent className="flex-1 flex items-center">
+        <div className="w-full h-full">
+          {!mounted || isLoading ? (
+            <div className="flex items-center justify-center w-full h-full min-h-[180px]">
+              <BouncePulse size="md" />
             </div>
-          ) : !hasAnyQualifyingTrades || !hasChartData ? (
+          ) : !hasAnyQualifyingTrades ? (
             <div className="flex flex-col justify-center items-center w-full h-full">
               <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
-                No trades found
+                No qualifying trades found
               </div>
               <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
                 There are no trades to display for this category yet. Start trading to see your statistics here!
@@ -248,63 +310,50 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={groupedByBucket}
-                margin={{ top: 10, right: 64, left: 70, bottom: 48 }}
+                data={chartData}
+                margin={{ top: 10, right: 24, left: 70, bottom: 48 }}
                 barCategoryGap="30%"
               >
                 <defs>
-                  {uniqueMarkets.map((market, index) => {
-                    const color = marketColors[index % marketColors.length];
-                    return (
-                      <linearGradient key={market} id={getGradientId(market)} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={color.start} stopOpacity={0.9} />
-                        <stop offset="50%" stopColor={color.mid} stopOpacity={0.85} />
-                        <stop offset="100%" stopColor={color.end} stopOpacity={0.8} />
-                      </linearGradient>
-                    );
-                  })}
+                  <linearGradient 
+                    id={gradientId} 
+                    x1="0" 
+                    y1="0" 
+                    x2="0" 
+                    y2="1"
+                  >
+                    <stop offset="0%" stopColor={gradientColor.start} stopOpacity={1} />
+                    <stop offset="50%" stopColor={gradientColor.mid} stopOpacity={0.95} />
+                    <stop offset="100%" stopColor={gradientColor.end} stopOpacity={0.9} />
+                  </linearGradient>
                 </defs>
                 
                 <XAxis
                   dataKey="range"
                   axisLine={false}
                   tickLine={false}
-                  tick={({ x, y, payload }) => (
-                    <text
-                      x={x}
-                      y={y}
-                      dy={16}
-                      textAnchor="start"
-                      fill={axisTextColor}
-                      fontSize={12}
-                    >
-                      {payload?.value}
-                    </text>
-                  )}
+                  tick={renderXAxisTick as any}
                 />
                 <YAxis
                   type="number"
-                  domain={[0, 'dataMax + 2']}
-                  allowDecimals={false}
+                  domain={[0, 100]}
                   tick={{ fill: axisTextColor, fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={yAxisTickFormatter}
                   label={{
-                    value: 'Number of trades',
+                    value: 'Percentage of trades',
                     angle: -90,
                     position: 'middle',
                     fill: axisTextColor,
                     fontSize: 12,
                     fontWeight: 500,
                     dy: -10,
-                    dx: -20,
+                    dx: -50,
                   }}
                 />
 
                 <ReTooltip
-                  shared={true}
-                  allowEscapeViewBox={{ x: true, y: true }}
                   contentStyle={{ 
                     background: isDark 
                       ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)' 
@@ -320,12 +369,11 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
                     boxShadow: isDark
                       ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05)'
                       : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-                    minWidth: '160px'
+                    minWidth: '180px'
                   }}
                   wrapperStyle={{ 
                     outline: 'none',
-                    zIndex: 9999,
-                    pointerEvents: 'none'
+                    zIndex: 1000
                   }}
                   cursor={{ 
                     fill: 'transparent', 
@@ -334,17 +382,12 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
                   content={<CustomTooltip />}
                 />
 
-                {uniqueMarkets.map((market, idx) => (
-                  <ReBar
-                    key={market}
-                    dataKey={market}
-                    name={market}
-                    fill={`url(#${getGradientId(market)})`}
-                    barSize={18}
-                    radius={[4, 4, 0, 0]}
-                    isAnimationActive={false}
-                  />
-                ))}
+                <ReBar
+                  dataKey="percentage"
+                  fill={`url(#${gradientId})`}
+                  barSize={18}
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           )}
