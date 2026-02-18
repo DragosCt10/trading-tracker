@@ -1781,29 +1781,39 @@ export default function AnalyticsClient(
     };
   });
 
-  const liquidityChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.liquidityStats.map((stat) => ({
-    category: `${stat.liquidity}`,
-    wins: stat.wins,
-    losses: stat.losses,
-    beWins: stat.beWins,
-    beLosses: stat.beLosses,
-    winRate: stat.winRate,
-    winRateWithBE: stat.winRateWithBE,
-  }));
+  const liquidityChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.liquidityStats.map((stat) => {
+    const statWithTotal = stat as any;
+    return {
+      category: `${stat.liquidity}`,
+      totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
+      wins: stat.wins,
+      losses: stat.losses,
+      beWins: stat.beWins,
+      beLosses: stat.beLosses,
+      winRate: stat.winRate,
+      winRateWithBE: stat.winRateWithBE,
+    };
+  });
 
   const totalDirectionTradesFiltered = statsToUseForCharts.directionStats.reduce(
-    (sum, stat) => sum + (stat.wins ?? 0) + (stat.losses ?? 0),
+    (sum, stat) => {
+      const statWithTotal = stat as any;
+      const total = statWithTotal.total !== undefined ? statWithTotal.total : ((stat.wins ?? 0) + (stat.losses ?? 0) + (stat.beWins ?? 0) + (stat.beLosses ?? 0));
+      return sum + total;
+    },
     0
   );
 
   const directionChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.directionStats.map((stat) => {
-    const directionTotal = (stat.wins ?? 0) + (stat.losses ?? 0);
+    const statWithTotal = stat as any;
+    const directionTotal = statWithTotal.total !== undefined ? statWithTotal.total : ((stat.wins ?? 0) + (stat.losses ?? 0) + (stat.beWins ?? 0) + (stat.beLosses ?? 0));
     const percentage =
       totalDirectionTradesFiltered > 0
         ? ((directionTotal / totalDirectionTradesFiltered) * 100).toFixed(1)
         : "0.0";
     return {
       category: `${stat.direction} - ${percentage}%`,
+      totalTrades: directionTotal,
       wins: stat.wins,
       losses: stat.losses,
       beWins: stat.beWins,
@@ -1816,6 +1826,9 @@ export default function AnalyticsClient(
   const localHLChartDataFiltered: TradeStatDatum[] = [
     {
       category: `Lichidat`,
+      totalTrades: (statsToUseForCharts.localHLStats.lichidat as any).total !== undefined 
+        ? (statsToUseForCharts.localHLStats.lichidat as any).total 
+        : (statsToUseForCharts.localHLStats.lichidat.wins + statsToUseForCharts.localHLStats.lichidat.losses + statsToUseForCharts.localHLStats.lichidat.winsWithBE + statsToUseForCharts.localHLStats.lichidat.lossesWithBE),
       wins: statsToUseForCharts.localHLStats.lichidat.wins,
       losses: statsToUseForCharts.localHLStats.lichidat.losses,
       beWins: statsToUseForCharts.localHLStats.lichidat.winsWithBE,
@@ -1825,6 +1838,9 @@ export default function AnalyticsClient(
     },
     {
       category: `Nelichidat`,
+      totalTrades: (statsToUseForCharts.localHLStats.nelichidat as any).total !== undefined 
+        ? (statsToUseForCharts.localHLStats.nelichidat as any).total 
+        : (statsToUseForCharts.localHLStats.nelichidat.wins + statsToUseForCharts.localHLStats.nelichidat.losses + statsToUseForCharts.localHLStats.nelichidat.winsWithBE + statsToUseForCharts.localHLStats.nelichidat.lossesWithBE),
       wins: statsToUseForCharts.localHLStats.nelichidat.wins,
       losses: statsToUseForCharts.localHLStats.nelichidat.losses,
       beWins: statsToUseForCharts.localHLStats.nelichidat.winsWithBE,
@@ -1840,21 +1856,29 @@ export default function AnalyticsClient(
   }));
 
   const tradeTypesChartDataFiltered: TradeStatDatum[] = [
-    ...statsToUseForCharts.reentryStats.map((stat) => ({
-      category: `Re-entry`,
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-    })),
-    ...statsToUseForCharts.breakEvenStats.map((stat) => ({
-      category: `Break-even`,
-      wins: stat.wins,
-      losses: stat.losses,
-      winRate: stat.winRate,
-    })),
+    ...statsToUseForCharts.reentryStats.map((stat) => {
+      const statWithTotal = stat as any;
+      return {
+        category: `Re-entry`,
+        totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
+        wins: stat.wins,
+        losses: stat.losses,
+        beWins: stat.beWins,
+        beLosses: stat.beLosses,
+        winRate: stat.winRate,
+        winRateWithBE: stat.winRateWithBE,
+      };
+    }),
+    ...statsToUseForCharts.breakEvenStats.map((stat) => {
+      const statWithTotal = stat as any;
+      return {
+        category: `Break-even`,
+        totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
+        wins: stat.wins,
+        losses: stat.losses,
+        winRate: stat.winRate,
+      };
+    }),
   ];
 
   const timeIntervalChartDataFiltered: TradeStatDatum[] = TIME_INTERVALS.map((interval) => {
@@ -1867,6 +1891,7 @@ export default function AnalyticsClient(
         winRate: 0,
         winRateWithBE: 0,
       };
+    const statWithTotal = stat as any;
     return {
       category: `${interval.label}`,
       wins: stat.wins,
@@ -1875,42 +1900,51 @@ export default function AnalyticsClient(
       beLosses: stat.beLosses,
       winRate: stat.winRate,
       winRateWithBE: stat.winRateWithBE,
-      totalTrades: stat.wins + stat.losses,
+      totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
     };
   });
 
-  const mssChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.mssStats.map((stat) => ({
-    category: stat.mss,
-    wins: stat.wins,
-    losses: stat.losses,
-    beWins: stat.beWins,
-    beLosses: stat.beLosses,
-    winRate: stat.winRate,
-    winRateWithBE: stat.winRateWithBE,
-    totalTrades: stat.wins + stat.losses,
-  }));
+  const mssChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.mssStats.map((stat) => {
+    const statWithTotal = stat as any;
+    return {
+      category: stat.mss,
+      wins: stat.wins,
+      losses: stat.losses,
+      beWins: stat.beWins,
+      beLosses: stat.beLosses,
+      winRate: stat.winRate,
+      winRateWithBE: stat.winRateWithBE,
+      totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
+    };
+  });
 
-  const newsChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.newsStats.map((stat) => ({
-    category: `${stat.news}`,
-    wins: stat.wins,
-    losses: stat.losses,
-    beWins: stat.beWins,
-    beLosses: stat.beLosses,
-    winRate: stat.winRate,
-    winRateWithBE: stat.winRateWithBE,
-    totalTrades: stat.wins + stat.losses,
-  }));
+  const newsChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.newsStats.map((stat) => {
+    const statWithTotal = stat as any;
+    return {
+      category: `${stat.news}`,
+      wins: stat.wins,
+      losses: stat.losses,
+      beWins: stat.beWins,
+      beLosses: stat.beLosses,
+      winRate: stat.winRate,
+      winRateWithBE: stat.winRateWithBE,
+      totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
+    };
+  });
 
-  const dayChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.dayStats.map((stat) => ({
-    category: `${stat.day}`,
-    wins: stat.wins,
-    losses: stat.losses,
-    beWins: stat.beWins,
-    beLosses: stat.beLosses,
-    winRate: stat.winRate,
-    winRateWithBE: stat.winRateWithBE,
-    totalTrades: stat.wins + stat.losses,
-  }));
+  const dayChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.dayStats.map((stat) => {
+    const statWithTotal = stat as any;
+    return {
+      category: `${stat.day}`,
+      wins: stat.wins,
+      losses: stat.losses,
+      beWins: stat.beWins,
+      beLosses: stat.beLosses,
+      winRate: stat.winRate,
+      winRateWithBE: stat.winRateWithBE,
+      totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
+    };
+  });
 
   const marketChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.marketStats.map((stat) => {
     const totalTrades = stat.wins + stat.losses;
