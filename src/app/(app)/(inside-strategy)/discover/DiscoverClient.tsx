@@ -111,6 +111,7 @@ export default function DiscoverClient({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>('month');
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
+  const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'non-executed'>('all');
   const observerTarget = useRef<HTMLDivElement>(null);
 
   // Prevent hydration mismatch
@@ -226,17 +227,26 @@ export default function DiscoverClient({
     setDisplayedCount(ITEMS_PER_LOAD); // Reset displayed count
   };
 
-  // Filter by market (client-side: date-range data is already loaded)
+  // Filter by market and execution status (client-side: date-range data is already loaded)
   const trades = useMemo(() => {
-    const list = filteredTrades || [];
+    let list = filteredTrades || [];
+    
+    // Apply execution filter
+    if (executionFilter === 'executed') {
+      list = list.filter((t) => t.executed === true);
+    } else if (executionFilter === 'non-executed') {
+      list = list.filter((t) => t.executed === false);
+    }
+    
+    // Apply market filter
     if (selectedMarket === 'all') return list;
     return list.filter((t) => t.market === selectedMarket);
-  }, [filteredTrades, selectedMarket]);
+  }, [filteredTrades, selectedMarket, executionFilter]);
 
   // Reset displayed count when filters change
   useEffect(() => {
     setDisplayedCount(ITEMS_PER_LOAD);
-  }, [dateRange, selectedMarket]);
+  }, [dateRange, selectedMarket, executionFilter]);
 
   // Get displayed trades (for infinite scroll)
   const displayedTrades = useMemo(() => {
@@ -317,6 +327,8 @@ export default function DiscoverClient({
         selectedMarket={selectedMarket}
         onSelectedMarketChange={setSelectedMarket}
         markets={markets}
+        executionFilter={executionFilter}
+        onExecutionFilterChange={setExecutionFilter}
       />
 
       {/* Trade Cards Grid */}
