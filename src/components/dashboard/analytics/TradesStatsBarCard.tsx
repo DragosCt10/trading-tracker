@@ -204,11 +204,27 @@ export function TradeStatsBarCard({
 
   // --- Common helpers -------------------------------------------------------
 
-  const withTotals: TradeStatDatum[] = (data || []).map((d) => ({
-    ...d,
-    totalTrades:
-      d.totalTrades ?? (((d.wins ?? 0) + (d.losses ?? 0)) || undefined),
-  }));
+  const withTotals: TradeStatDatum[] = (data || []).map((d) => {
+    const totalTrades = d.totalTrades !== undefined 
+      ? d.totalTrades 
+      : (((d.wins ?? 0) + (d.losses ?? 0) + (d.beWins ?? 0) + (d.beLosses ?? 0)) || undefined);
+    
+    // Combine regular wins/losses with break-even wins/losses for bar display
+    const totalWins = (d.wins ?? 0) + (d.beWins ?? 0);
+    const totalLosses = (d.losses ?? 0) + (d.beLosses ?? 0);
+    
+    // If we have trades but no wins/losses (non-executed trades without outcomes), show a minimal bar
+    const hasTradesButNoOutcomes = totalTrades !== undefined && totalTrades > 0 && 
+      totalWins === 0 && totalLosses === 0;
+    
+    return {
+      ...d, // Preserve original values (wins, losses, beWins, beLosses) for tooltip
+      totalTrades,
+      // Override wins/losses for bar display: combine with break-even, show minimal bar for non-executed trades without outcomes
+      wins: hasTradesButNoOutcomes ? 0.01 : totalWins,
+      losses: totalLosses,
+    };
+  });
 
   const maxWinsLosses =
     mode === 'winsLossesWinRate'
