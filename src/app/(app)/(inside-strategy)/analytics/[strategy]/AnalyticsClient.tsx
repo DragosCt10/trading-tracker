@@ -58,6 +58,7 @@ import { ProfitFactorChart } from '@/components/dashboard/analytics/ProfitFactor
 import { SharpeRatioChart } from '@/components/dashboard/analytics/SharpeRatioChart';
 import { ConsistencyScoreChart } from '@/components/dashboard/analytics/ConsistencyScoreChart';
 import { getAverageDisplacementPerMarket } from '@/utils/getAverageDisplacementPerMarket';
+import { calculateRiskPerTradeStats } from '@/utils/calculateRiskPerTrade';
 
 ChartJS.register(
   CategoryScale,
@@ -392,6 +393,7 @@ export default function AnalyticsClient(
     useState<FilterType>('30days');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
+  const [selectedExecution, setSelectedExecution] = useState<'all' | 'nonExecuted'>('all');
 
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
@@ -1613,26 +1615,52 @@ export default function AnalyticsClient(
   }, []);
 
   // Determine which monthly stats to use based on view mode (for AccountOverviewCard - profit only)
-  // Determine which trades to use based on view mode and market filter
+  // Determine which trades to use based on view mode, market filter, and execution filter
   const tradesToUse = useMemo(() => {
-    // Get base trades based on view mode
-    const baseTrades = viewMode === 'yearly' ? allTrades : filteredTrades;
+    // Get base trades based on view mode and execution filter
+    // When filtering by non-executed trades, use nonExecutedTrades which already contains only non-executed trades
+    let baseTrades: Trade[];
+    if (viewMode === 'dateRange' && selectedExecution === 'nonExecuted') {
+      baseTrades = nonExecutedTrades || [];
+    } else {
+      baseTrades = viewMode === 'yearly' ? allTrades : filteredTrades;
+    }
+    
+    let filtered = baseTrades;
     
     // Apply market filter if needed
     if (selectedMarket !== 'all') {
-      return baseTrades.filter((t) => t.market === selectedMarket);
+      filtered = filtered.filter((t) => t.market === selectedMarket);
     }
     
-    return baseTrades;
-  }, [viewMode, allTrades, filteredTrades, selectedMarket]);
+    return filtered;
+  }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedMarket, selectedExecution]);
 
   // Compute filtered statistics when filters are applied
   const filteredChartStats = useMemo(() => {
-    if (selectedMarket === 'all') {
+    if (selectedMarket === 'all' && selectedExecution === 'all') {
       return null; // Use hook stats
     }
     return computeStatsFromTrades(tradesToUse);
-  }, [tradesToUse, selectedMarket, computeStatsFromTrades]);
+  }, [tradesToUse, selectedMarket, selectedExecution, computeStatsFromTrades]);
+
+  // Compute filtered risk stats when filters are applied
+  // In yearly mode, only compute if market filter is applied (execution filter doesn't apply in yearly mode)
+  // In dateRange mode, compute if either market or execution filter is applied
+  const filteredRiskStats = useMemo(() => {
+    if (viewMode === 'yearly') {
+      // In yearly mode, only apply market filter
+      if (selectedMarket === 'all') {
+        return null; // Use hook stats
+      }
+    } else {
+      // In dateRange mode, check both filters
+      if (selectedMarket === 'all' && selectedExecution === 'all') {
+        return null; // Use hook stats
+      }
+    }
+    return calculateRiskPerTradeStats(tradesToUse);
+  }, [tradesToUse, selectedMarket, selectedExecution, viewMode]);
 
   // Use filtered stats when filters are applied, otherwise use hook stats
   const statsToUseForCharts = filteredChartStats || {
@@ -1852,8 +1880,8 @@ export default function AnalyticsClient(
   // In date range mode with no filters, use monthlyStats from hook, so use filteredTradesLoading
   // In yearly mode with no filters, use monthlyStatsAllTrades from hook, so use allTradesLoading
   const accountOverviewLoadingState = useMemo(() => {
-    if (selectedMarket !== 'all') {
-      // Filters are applied (market filter), data computed synchronously from tradesToUse
+    if (selectedMarket !== 'all' || selectedExecution !== 'all') {
+      // Filters are applied (market or execution filter), data computed synchronously from tradesToUse
       return false;
     }
     
@@ -1861,7 +1889,7 @@ export default function AnalyticsClient(
     // In date range mode, use filteredTradesLoading
     // In yearly mode, use allTradesLoading
     return viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading;
-  }, [selectedMarket, viewMode, allTradesLoading, filteredTradesLoading]);
+  }, [selectedMarket, selectedExecution, viewMode, allTradesLoading, filteredTradesLoading]);
 
   const monthlyStatsToUse: { [month: string]: { profit: number } } = useMemo(() => {
     // Always compute from tradesToUse to ensure it reflects the current date range and filters
@@ -1944,7 +1972,14 @@ export default function AnalyticsClient(
 
   // Get trades for the current calendar month based on view mode
   const calendarMonthTradesToUse = useMemo(() => {
-    const tradesSource = viewMode === 'yearly' ? allTrades : filteredTrades;
+    // When filtering by non-executed trades, use nonExecutedTrades which already contains only non-executed trades
+    let tradesSource: Trade[];
+    if (viewMode === 'dateRange' && selectedExecution === 'nonExecuted') {
+      tradesSource = nonExecutedTrades || [];
+    } else {
+      tradesSource = viewMode === 'yearly' ? allTrades : filteredTrades;
+    }
+    
     let filteredSource = tradesSource;
     
     // Apply market filter if needed
@@ -1959,7 +1994,7 @@ export default function AnalyticsClient(
       const tradeDate = new Date(trade.trade_date);
       return tradeDate >= monthStart && tradeDate <= monthEnd;
     });
-  }, [viewMode, allTrades, filteredTrades, currentDate, selectedMarket]);
+  }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, currentDate, selectedMarket, selectedExecution]);
 
   const weeklyStats = useMemo(
     () =>
@@ -1984,7 +2019,7 @@ export default function AnalyticsClient(
   // In yearly mode with no filters, use hook stats
   const filteredStats = useMemo(() => {
     // In yearly mode with no filters, use hook stats
-    if (viewMode === 'yearly' && selectedMarket === 'all') {
+    if (viewMode === 'yearly' && selectedMarket === 'all' && selectedExecution === 'all') {
       return stats;
     }
 
@@ -1997,7 +2032,8 @@ export default function AnalyticsClient(
     const beWins = beTrades.filter((t) => t.trade_outcome === 'Win').length;
     const beLosses = beTrades.filter((t) => t.trade_outcome === 'Lose').length;
     
-    const totalTrades = wins + losses + beWins + beLosses;
+    // Total trades should include all trades, including non-executed ones
+    const totalTrades = tradesToUse.length;
     const totalWins = wins + beWins;
     const totalLosses = losses + beLosses;
     
@@ -2021,20 +2057,40 @@ export default function AnalyticsClient(
     
     sortedTrades.forEach((trade) => {
       const isWin = trade.trade_outcome === 'Win';
+      const isLoss = trade.trade_outcome === 'Lose';
+      // Only count streaks for executed trades (Win or Lose)
       if (isWin) {
         currentWinningStreak++;
         currentLosingStreak = 0;
         maxWinningStreak = Math.max(maxWinningStreak, currentWinningStreak);
-      } else {
+      } else if (isLoss) {
         currentLosingStreak++;
         currentWinningStreak = 0;
         maxLosingStreak = Math.max(maxLosingStreak, currentLosingStreak);
       }
+      // Non-executed trades don't affect streaks
     });
     
     const lastTrade = sortedTrades[sortedTrades.length - 1];
     if (lastTrade) {
-      currentStreak = lastTrade.trade_outcome === 'Win' ? currentWinningStreak : -currentLosingStreak;
+      const lastTradeOutcome = lastTrade.trade_outcome;
+      if (lastTradeOutcome === 'Win') {
+        currentStreak = currentWinningStreak;
+      } else if (lastTradeOutcome === 'Lose') {
+        currentStreak = -currentLosingStreak;
+      } else {
+        // For non-executed trades, find the last executed trade for streak
+        for (let i = sortedTrades.length - 1; i >= 0; i--) {
+          const trade = sortedTrades[i];
+          if (trade.trade_outcome === 'Win') {
+            currentStreak = currentWinningStreak;
+            break;
+          } else if (trade.trade_outcome === 'Lose') {
+            currentStreak = -currentLosingStreak;
+            break;
+          }
+        }
+      }
     }
     
     // Calculate average days between trades
@@ -2086,10 +2142,11 @@ export default function AnalyticsClient(
       : 0;
     
     // Override tradeQualityIndex and multipleR
-    // In date range mode, set to 0 when there are no trades (to reflect filtered data)
+    // In date range mode or when filters are applied, set to 0 when there are no executed trades (to reflect filtered data)
     // Otherwise, use hook values (they're computed from the appropriate dataset)
-    const tradeQualityIndex = (viewMode === 'dateRange' && totalTrades === 0) ? 0 : (stats.tradeQualityIndex || 0);
-    const multipleR = (viewMode === 'dateRange' && totalTrades === 0) ? 0 : (stats.multipleR || 0);
+    const executedTradesCount = wins + losses + beWins + beLosses;
+    const tradeQualityIndex = ((viewMode === 'dateRange' || selectedMarket !== 'all' || selectedExecution !== 'all') && executedTradesCount === 0) ? 0 : (stats.tradeQualityIndex || 0);
+    const multipleR = ((viewMode === 'dateRange' || selectedMarket !== 'all' || selectedExecution !== 'all') && executedTradesCount === 0) ? 0 : (stats.multipleR || 0);
 
     return {
       ...stats, // Keep other stats from hook
@@ -2124,19 +2181,19 @@ export default function AnalyticsClient(
       tradeQualityIndex,
       multipleR,
     };
-  }, [viewMode, tradesToUse, selectedMarket, stats, selection.activeAccount?.account_balance]);
+  }, [viewMode, tradesToUse, selectedMarket, selectedExecution, stats, selection.activeAccount?.account_balance]);
 
   // Use filteredStats when filters are applied or in date range mode
   // In date range mode, always use filteredStats to reflect the selected date range
   // In yearly mode with no filters, use hook stats
-  const statsToUse = (viewMode === 'dateRange' || selectedMarket !== 'all') ? filteredStats : stats;
+  const statsToUse = (viewMode === 'dateRange' || selectedMarket !== 'all' || selectedExecution !== 'all') ? filteredStats : stats;
 
   // Compute filtered macroStats when filters are applied or in date range mode
   // In date range mode, always compute from current data to reflect the selected date range
   // In yearly mode with no filters, use hook stats
   const macroStatsToUse = useMemo(() => {
     // In yearly mode with no filters, use hook stats but ensure consistent structure
-    if (viewMode === 'yearly' && selectedMarket === 'all') {
+    if (viewMode === 'yearly' && selectedMarket === 'all' && selectedExecution === 'all') {
       return {
         ...macroStats,
         nonExecutedTotalTradesCount: nonExecutedTotalTradesCount || 0,
@@ -2147,9 +2204,37 @@ export default function AnalyticsClient(
 
     // In date range mode or when filters are applied, compute from current filtered data
     // Compute profit factor from statsToUse
+    // Profit factor = Total Gross Profit / Total Gross Loss
+    // For non-executed trades, we calculate based on profit amounts, not win/loss counts
     const totalWins = statsToUse.totalWins;
     const totalLosses = statsToUse.totalLosses;
-    const profitFactor = totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0;
+    
+    // Calculate profit factor from actual profit amounts for more accuracy
+    // Sum of all positive profits (wins) divided by absolute sum of all negative profits (losses)
+    const grossProfit = tradesToUse
+      .filter(t => (t.calculated_profit || 0) > 0)
+      .reduce((sum, t) => sum + (t.calculated_profit || 0), 0);
+    const grossLoss = Math.abs(tradesToUse
+      .filter(t => (t.calculated_profit || 0) < 0)
+      .reduce((sum, t) => sum + (t.calculated_profit || 0), 0));
+    
+    // Use profit-based calculation if we have profit data, otherwise fall back to win/loss count
+    let profitFactor: number;
+    if (grossLoss > 0) {
+      profitFactor = grossProfit / grossLoss;
+    } else if (grossProfit > 0) {
+      // All trades are profitable, but no losses - show a high but finite value
+      profitFactor = grossProfit > 0 ? Math.min(grossProfit, 100) : 0;
+    } else if (totalLosses > 0) {
+      // Fall back to win/loss count if no profit data
+      profitFactor = totalWins / totalLosses;
+    } else if (totalWins > 0) {
+      // All wins, no losses - show a high but finite value instead of Infinity
+      profitFactor = Math.min(totalWins * 2, 100);
+    } else {
+      // No executed trades or no data
+      profitFactor = 0;
+    }
 
     // Compute consistency score (simplified - percentage of profitable months)
     const monthlyData = monthlyPerformanceStatsToUse;
@@ -2196,7 +2281,7 @@ export default function AnalyticsClient(
       yearlyPartialTradesCount: partialTradesCount,
       yearlyPartialsBECount: partialsBECount,
     };
-  }, [viewMode, selectedMarket, statsToUse, monthlyPerformanceStatsToUse, monthlyStatsToUse, nonExecutedTrades, tradesToUse, macroStats, yearlyPartialTradesCount, yearlyPartialsBECount]);
+  }, [viewMode, selectedMarket, selectedExecution, statsToUse, monthlyPerformanceStatsToUse, monthlyStatsToUse, nonExecutedTrades, tradesToUse, macroStats, yearlyPartialTradesCount, yearlyPartialsBECount]);
 
   // Color variables based on statsToUse
   const profitColor =
@@ -2290,6 +2375,8 @@ export default function AnalyticsClient(
           selectedMarket={selectedMarket}
           onSelectedMarketChange={setSelectedMarket}
           markets={markets}
+          selectedExecution={selectedExecution}
+          onSelectedExecutionChange={setSelectedExecution}
         />
       )}
 
@@ -2981,7 +3068,14 @@ export default function AnalyticsClient(
       </div>
 
       {/* Risk Per Trade Card */}
-      <RiskPerTrade className="my-8" allTradesRiskStats={viewMode === 'yearly' ? allTradesRiskStats : riskStats as any} />
+      <RiskPerTrade 
+        className="my-8" 
+        allTradesRiskStats={
+          viewMode === 'yearly' 
+            ? (filteredRiskStats || allTradesRiskStats) as any
+            : (filteredRiskStats || riskStats) as any
+        } 
+      />
 
       {/* Monthly Performance Chart - Show in both modes */}
       <div className="w-full mb-8">
