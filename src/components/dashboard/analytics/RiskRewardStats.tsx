@@ -8,6 +8,7 @@ import {
   XAxis,
   YAxis,
   Tooltip as ReTooltip,
+  Cell,
 } from 'recharts';
 import {
   Card,
@@ -45,7 +46,7 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
   // show all markets with at least 1 matching ratio, show chart for all present ratios
   const eligibleMarkets = Array.from(marketToRatios.keys());
 
-  // --- 2. Build Recharts data (one object per ratio, only for eligible markets) --------
+  // --- 2. Build Recharts data (group markets by percentage value) --------
 
   // Only consider trades for eligible markets and the chosen ratios
   const filteredTrades = trades.filter(
@@ -55,12 +56,19 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
       DISPLAY_RATIOS.includes(t.risk_reward_ratio_long)
   );
 
-  // For each ratio, build a row for the chart
+  // For each ratio, group markets by their percentage value
   const chartData = DISPLAY_RATIOS.map((ratio) => {
-    const row: Record<string, string | number> = { ratio: ratio.toString() };
+    // Calculate percentage and trade counts for each market
+    const marketData = new Map<string, { 
+      percentage: number; 
+      tradesWithRatio: number; 
+      totalTrades: number;
+      wins: number;
+      losses: number;
+      winRate: number;
+    }>();
     eligibleMarkets.forEach((market) => {
       const marketTrades = filteredTrades.filter((t) => t.market === market);
-      // Show percent, with denominator as all eligible trades for this market and ratio set
       const tradesWithRatio = marketTrades.filter(
         (t) => t.risk_reward_ratio_long === ratio
       );
@@ -68,10 +76,83 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
         marketTrades.length > 0
           ? (tradesWithRatio.length / marketTrades.length) * 100
           : 0;
-      row[market] = Number(percentage.toFixed(1));
+      
+      // Calculate wins, losses, and win rate for trades with this ratio
+      const wins = tradesWithRatio.filter((t) => t.trade_outcome === 'Win').length;
+      const losses = tradesWithRatio.filter((t) => t.trade_outcome === 'Lose').length;
+      const totalForWinrate = wins + losses;
+      const winRate = totalForWinrate > 0 ? (wins / totalForWinrate) * 100 : 0;
+      
+      marketData.set(market, {
+        percentage: Number(percentage.toFixed(1)),
+        tradesWithRatio: tradesWithRatio.length,
+        totalTrades: marketTrades.length,
+        wins,
+        losses,
+        winRate: Number(winRate.toFixed(1)),
+      });
     });
-    return row;
-  });
+
+    // Group markets by percentage value
+    const percentageGroups = new Map<number, Array<{ 
+      market: string; 
+      percentage: number; 
+      tradesWithRatio: number; 
+      totalTrades: number;
+      wins: number;
+      losses: number;
+      winRate: number;
+    }>>();
+    marketData.forEach((data, market) => {
+      if (data.percentage > 0) {
+        if (!percentageGroups.has(data.percentage)) {
+          percentageGroups.set(data.percentage, []);
+        }
+        percentageGroups.get(data.percentage)!.push({
+          market,
+          percentage: data.percentage,
+          tradesWithRatio: data.tradesWithRatio,
+          totalTrades: data.totalTrades,
+          wins: data.wins,
+          losses: data.losses,
+          winRate: data.winRate,
+        });
+      }
+    });
+
+    // Create rows for each unique percentage value
+    const rows: Array<Record<string, any>> = [];
+    percentageGroups.forEach((marketDetails, percentage) => {
+      rows.push({
+        ratio: ratio.toString(),
+        percentage,
+        markets: marketDetails.map(m => m.market), // Store market names for compatibility
+        marketDetails, // Store full market details with percentages and trade counts
+        marketCount: marketDetails.length,
+      });
+    });
+
+    // If no markets have this ratio, still create a row with 0
+    if (rows.length === 0) {
+      rows.push({
+        ratio: ratio.toString(),
+        percentage: 0,
+        markets: [],
+        marketDetails: [] as Array<{ 
+          market: string; 
+          percentage: number; 
+          tradesWithRatio: number; 
+          totalTrades: number;
+          wins: number;
+          losses: number;
+          winRate: number;
+        }>,
+        marketCount: 0,
+      });
+    }
+
+    return rows;
+  }).flat(); // Flatten to get all rows
 
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -96,17 +177,16 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
   const slate500 = isDark ? '#94a3b8' : '#64748b'; // slate-400 in dark, slate-500 in light
   const axisTextColor = isDark ? '#cbd5e1' : '#64748b'; // slate-300 in dark, slate-500 in light
 
-  // Generate gradient IDs for each market
-  const getGradientId = (market: string) => `rrGradient-${market.replace(/\s+/g, '-')}`;
+  // Generate gradient IDs for each unique percentage value
+  const getGradientId = (ratio: string, percentage: number) => 
+    `rrGradient-${ratio}-${percentage.toString().replace('.', '-')}`;
   
-  // Color palette for markets (will be used in gradients)
-  const marketColors = [
-    { start: '#14b8a6', mid: '#06b6d4', end: '#0d9488' }, // teal-500 to cyan-500 to teal-600
-    { start: '#3b82f6', mid: '#60a5fa', end: '#2563eb' }, // blue-500 to blue-400 to blue-600
-    { start: '#f59e0b', mid: '#fbbf24', end: '#d97706' }, // amber-500 to amber-400 to amber-600
-    { start: '#ec4899', mid: '#f472b6', end: '#db2777' }, // pink-500 to pink-400 to pink-600
-    { start: '#6366f1', mid: '#818cf8', end: '#4f46e5' }, // indigo-500 to indigo-400 to indigo-600
-  ];
+  // Use the same gradient as SL Size Statistics (blue to cyan)
+  const singleGradientColor = {
+    start: '#3b82f6', // blue-500
+    mid: '#06b6d4',   // cyan-500
+    end: '#0ea5e9',   // sky-500
+  };
 
   // --- 3. Tooltip --------------------------------------------------------
 
@@ -120,31 +200,66 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
     if (!active || !payload || payload.length === 0) {
       return null;
     }
-    // d is the hovered ratio's row
+    // d is the hovered bar's row
     const d = payload[0].payload as (typeof chartData)[number];
 
-    // If no eligible markets at all, hide tooltip
-    if (!eligibleMarkets.length) {
+    // If no markets for this bar, hide tooltip
+    if (!d.marketDetails || d.marketDetails.length === 0) {
       return null;
     }
 
     return (
       <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
         <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-          Risk/Reward {d.ratio}
+          Risk/Reward {d.ratio} — {d.percentage.toFixed(1)}%
         </div>
-        <div className="space-y-2">
-          {eligibleMarkets.map((market) => {
-            const value = d[market] ?? 0;
-            return (
-              <div key={market} className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{market}:</span>
-                <span className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                  {Number(value).toFixed(1)}%
-                </span>
-              </div>
-            );
-          })}
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-slate-200/60 dark:border-slate-700/60">
+                <th className="text-left py-2 pr-4 font-semibold text-slate-600 dark:text-slate-400">Market</th>
+                <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">%</th>
+                <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">Trades</th>
+                <th className="text-right py-2 px-2 font-semibold text-emerald-600 dark:text-emerald-400">Wins</th>
+                <th className="text-right py-2 px-2 font-semibold text-rose-600 dark:text-rose-400">Losses</th>
+                <th className="text-right py-2 pl-2 font-semibold text-slate-600 dark:text-slate-400">Win Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {d.marketDetails.map((marketData: { 
+                market: string; 
+                percentage: number; 
+                tradesWithRatio: number; 
+                totalTrades: number;
+                wins: number;
+                losses: number;
+                winRate: number;
+              }) => (
+                <tr key={marketData.market} className="border-b border-slate-100/60 dark:border-slate-800/60 last:border-0">
+                  <td className="py-2 pr-4 font-medium text-slate-700 dark:text-slate-300">
+                    {marketData.market}
+                  </td>
+                  <td className="py-2 px-2 text-right font-bold text-slate-900 dark:text-slate-100">
+                    {marketData.percentage.toFixed(1)}%
+                  </td>
+                  <td className="py-2 px-2 text-right text-slate-600 dark:text-slate-400">
+                    {marketData.tradesWithRatio}/{marketData.totalTrades}
+                  </td>
+                  <td className="py-2 px-2 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                    {marketData.wins}
+                  </td>
+                  <td className="py-2 px-2 text-right font-bold text-rose-600 dark:text-rose-400">
+                    {marketData.losses}
+                  </td>
+                  <td className="py-2 pl-2 text-right">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                      {marketData.winRate.toFixed(1)}%
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     );
@@ -212,16 +327,20 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
                 barCategoryGap="30%"
               >
                 <defs>
-                  {eligibleMarkets.map((market, index) => {
-                    const color = marketColors[index % marketColors.length];
-                    return (
-                      <linearGradient key={market} id={getGradientId(market)} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={color.start} stopOpacity={0.9} />
-                        <stop offset="50%" stopColor={color.mid} stopOpacity={0.85} />
-                        <stop offset="100%" stopColor={color.end} stopOpacity={0.8} />
-                      </linearGradient>
-                    );
-                  })}
+                  {chartData.map((row) => (
+                    <linearGradient 
+                      key={`${row.ratio}-${row.percentage}`} 
+                      id={getGradientId(row.ratio, row.percentage)} 
+                      x1="0" 
+                      y1="0" 
+                      x2="0" 
+                      y2="1"
+                    >
+                      <stop offset="0%" stopColor={singleGradientColor.start} stopOpacity={1} />
+                      <stop offset="50%" stopColor={singleGradientColor.mid} stopOpacity={0.95} />
+                      <stop offset="100%" stopColor={singleGradientColor.end} stopOpacity={0.9} />
+                    </linearGradient>
+                  ))}
                 </defs>
                 
                 <XAxis
@@ -278,16 +397,19 @@ export function RiskRewardStats({ trades }: RiskRewardStatsProps) {
                   content={<CustomTooltip />}
                 />
 
-                {eligibleMarkets.map((market, index) => (
-                  <ReBar
-                    key={market}
-                    dataKey={market}
-                    name={market}
-                    fill={`url(#${getGradientId(market)})`}
-                    barSize={18}
-                    radius={[4, 4, 0, 0]}
-                  />
-                ))}
+                <ReBar
+                  dataKey="percentage"
+                  name="Percentage"
+                  barSize={18}
+                  radius={[4, 4, 0, 0]}
+                >
+                  {chartData.map((row, index) => (
+                    <Cell
+                      key={`cell-${row.ratio}-${row.percentage}-${index}`}
+                      fill={`url(#${getGradientId(row.ratio, row.percentage)})`}
+                    />
+                  ))}
+                </ReBar>
               </BarChart>
             </ResponsiveContainer>
           )}
