@@ -153,7 +153,7 @@ function AnalyticsSkeleton() {
       </div>
 
       {/* Account Overview card (large chart + balance) */}
-      <Card className="overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-white via-slate-50/30 to-purple-50/20 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none">
+      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
         <div className="relative p-8">
           <div className="flex justify-between items-start mb-8">
             <div className="space-y-3">
@@ -190,14 +190,14 @@ function AnalyticsSkeleton() {
 
       {/* Month stats row: Best Month + Worst Month */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
-        <Card className="flex-1 overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-white via-slate-50/30 to-purple-50/20 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none">
+        <Card className="flex-1 relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-6 space-y-3">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-6 w-40" />
             <Skeleton className="h-4 w-20" />
           </CardContent>
         </Card>
-        <Card className="flex-1 overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-white via-slate-50/30 to-purple-50/20 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none">
+        <Card className="flex-1 relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-6 space-y-3">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-6 w-40" />
@@ -209,7 +209,7 @@ function AnalyticsSkeleton() {
       {/* Stat cards grid: row 1 (Profit Factor, Consistency Score, Average Monthly Trades) + row 2 (Average Monthly Profit, Sharpe Ratio, Non-Executed Trades) */}
       <div className="flex flex-col md:grid md:grid-cols-3 gap-4 pb-8 w-full">
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Card key={i} className="overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-white via-slate-50/30 to-purple-50/20 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none">
+          <Card key={i} className="relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center gap-2">
                 <Skeleton className="h-4 w-28" />
