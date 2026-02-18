@@ -1888,7 +1888,11 @@ export default function AnalyticsClient(
 
   // Compute filtered monthlyStats with best/worst month
   // Always compute from tradesToUse to ensure data consistency across all cards and charts
-  const monthlyStatsToUseForCards = useMemo(() => {
+  const monthlyStatsToUseForCards = useMemo((): {
+    monthlyData: typeof monthlyPerformanceStatsToUse;
+    bestMonth: { month: string; stats: { winRate: number; profit: number } } | null;
+    worstMonth: { month: string; stats: { winRate: number; profit: number } } | null;
+  } => {
     // Compute best and worst month from monthlyPerformanceStatsToUse
     const monthlyData = monthlyPerformanceStatsToUse;
     let bestMonth: { month: string; stats: { winRate: number; profit: number } } | null = null;
@@ -2404,7 +2408,7 @@ export default function AnalyticsClient(
       <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Performance Indicators</h2>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Visual representation of key performance metrics with interactive charts.</p>
 
-      <div className="flex flex-col md:grid md:grid-cols-3 gap-4 pb-8 w-full">
+      <div className="flex flex-col md:grid md:grid-cols-3 gap-4 w-full">
         <ProfitFactorChart profitFactor={macroStatsToUse.profitFactor} />
         <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE} />
         <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore} />
@@ -2711,8 +2715,8 @@ export default function AnalyticsClient(
         {(viewMode === 'dateRange' || viewMode === 'yearly') && (
           <>
             {/* Trading Overview Category */}
-            <div className="col-span-full mt-8 mb-4">
-              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-1">Trading Overview</h3>
+            <div className="col-span-full mt-10 mb-4">
+              <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-1">Trading Overview</h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">Core trading statistics and performance metrics</p>
             </div>
 
@@ -2967,6 +2971,18 @@ export default function AnalyticsClient(
         </div>
       )}
 
+      <div className="my-8 mt-12">
+        <h2 className="text-xl font-semibold text-slate-800 mb-1">
+          Trade Performance Analysis
+        </h2>
+        <p className="text-sm text-slate-500 mb-4">
+          See your trading performance metrics and statistics.
+        </p>
+      </div>
+
+      {/* Risk Per Trade Card */}
+      <RiskPerTrade className="my-8" allTradesRiskStats={viewMode === 'yearly' ? allTradesRiskStats : riskStats as any} />
+
       {/* Monthly Performance Chart - Show in both modes */}
       <div className="w-full mb-8">
         <MonthlyPerformanceChart
@@ -2975,14 +2991,6 @@ export default function AnalyticsClient(
           chartOptions={chartOptions}
         />
       </div>
-
-
-
-      
-
-
-      {/* Risk Per Trade Card */}
-      <RiskPerTrade className="mb-8" allTradesRiskStats={viewMode === 'yearly' ? allTradesRiskStats : riskStats as any} />
 
       <div className="my-8">
         {/* Market Profit Statistics Card */}
