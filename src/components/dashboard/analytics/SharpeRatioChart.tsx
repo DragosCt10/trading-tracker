@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Info } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -106,12 +106,13 @@ export function SharpeRatioChart({ sharpeRatio }: SharpeRatioChartProps) {
   if (!mounted) {
     return (
       <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
-        <CardHeader className="pb-1 pt-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-              Sharpe Ratio
-            </CardTitle>
-          </div>
+        <CardHeader className="pb-2 flex-shrink-0">
+          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+            Sharpe Ratio
+          </CardTitle>
+          <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
+            Risk-adjusted return
+          </CardDescription>
         </CardHeader>
         <CardContent className="h-48 flex items-center justify-center">
           <div className="w-full h-full" aria-hidden>—</div>
@@ -122,36 +123,37 @@ export function SharpeRatioChart({ sharpeRatio }: SharpeRatioChartProps) {
 
   return (
     <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
-      <CardHeader className="pb-1 pt-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-base font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-              Sharpe Ratio
-            </CardTitle>
-            <TooltipProvider>
-              <UITooltip delayDuration={150}>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    tabIndex={0}
-                    className="inline-flex h-4 w-4 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none shrink-0"
-                    aria-label="More info"
-                  >
-                    <Info className="h-3 w-3" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  align="center"
-                  className="w-72 text-xs sm:text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 p-4"
-                  sideOffset={6}
+      <CardHeader className="pb-2 flex-shrink-0">
+        <div className="flex items-center justify-between mb-1">
+          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+            Sharpe Ratio
+          </CardTitle>
+          <TooltipProvider>
+            <UITooltip delayDuration={150}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  tabIndex={0}
+                  className="inline-flex h-4 w-4 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none shrink-0"
+                  aria-label="More info"
                 >
-                  {tooltipContent}
-                </TooltipContent>
-              </UITooltip>
-            </TooltipProvider>
-          </div>
+                  <Info className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                align="center"
+                className="w-72 text-xs sm:text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 p-4"
+                sideOffset={6}
+              >
+                {tooltipContent}
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
         </div>
+        <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
+          Risk-adjusted return
+        </CardDescription>
       </CardHeader>
       <CardContent className="h-48 flex flex-col items-center justify-center relative pt-0 pb-2">
         <ResponsiveContainer width="100%" height="100%">
@@ -209,13 +211,23 @@ export function SharpeRatioChart({ sharpeRatio }: SharpeRatioChartProps) {
             <Tooltip content={<CustomTooltip />} />
           </PieChart>
         </ResponsiveContainer>
+        {/* Scale labels - positioned at chart arc endpoints */}
+        <div className="absolute top-[60%] left-4 text-xs font-medium text-slate-500 dark:text-slate-400">
+          0
+        </div>
+        <div className="absolute top-[60%] right-4 text-xs font-medium text-slate-500 dark:text-slate-400">
+          3.0
+        </div>
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
           <div className={cn('text-2xl font-bold', getTextColor())}>
-            {sharpeRatio.toFixed(2)}
+            {sharpeRatio.toFixed(1)}
           </div>
           {sharpeRatio >= 3.0 && (
             <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">+</div>
           )}
+          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Target: 0.5+
+          </div>
         </div>
       </CardContent>
     </Card>
