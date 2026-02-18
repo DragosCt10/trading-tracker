@@ -247,17 +247,6 @@ function getDaysInMonthForDate(date: Date): Date[] {
   });
 }
 
-function getDayAggregates(trades: Trade[]) {
-  const totalProfit = trades.reduce(
-    (sum, trade) => sum + (trade.calculated_profit || 0),
-    0
-  );
-  return {
-    totalTrades: trades.length,
-    totalProfit,
-  };
-}
-
 function splitMonthIntoFourRanges(date: Date): Date[][] {
   const start = startOfMonth(date);
   const end = endOfMonth(date);
@@ -1118,23 +1107,28 @@ export default function AnalyticsClient(
     const lichidatReentryTrades = filteredTrades.filter(
       (t) => String(t.local_high_low) === 'true' && t.break_even,
     );
-    const wins = lichidatReentryTrades.filter(
+    // All trades in this set are break-even, so wins/losses are BE wins/losses
+    const beWins = lichidatReentryTrades.filter(
       (t) => t.trade_outcome === 'Win',
     ).length;
-    const losses = lichidatReentryTrades.filter(
+    const beLosses = lichidatReentryTrades.filter(
       (t) => t.trade_outcome === 'Lose',
     ).length;
-    const totalTrades = lichidatReentryTrades.length;
-    const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
+    const totalTrades = lichidatReentryTrades.length; // Count all trades including non-executed ones
+    const executedTradesCount = beWins + beLosses;
+    const winRate = executedTradesCount > 0 ? (beWins / executedTradesCount) * 100 : 0;
+    const winRateWithBE = winRate; // Same as winRate since all trades are BE
 
     return [
       {
         category: `Local High/Low + BE`,
-        wins,
-        losses,
+        wins: 0, // No regular wins since all are BE
+        losses: 0, // No regular losses since all are BE
+        beWins,
+        beLosses,
         winRate,
+        winRateWithBE,
         totalTrades,
-        // no BE split here, so we leave beWins/beLosses undefined
       }
     ];
   }
@@ -1146,21 +1140,25 @@ export default function AnalyticsClient(
       (t) => t.break_even && t.partials_taken
     );
 
-    const totalPartialsBE = partialsBETrades.length;
+    const totalPartialsBE = partialsBETrades.length; // Count all trades including non-executed ones
 
-    const wins = partialsBETrades.filter((t) => t.trade_outcome === 'Win').length;
-    const losses = partialsBETrades.filter((t) => t.trade_outcome === 'Lose').length;
-
-    const winRate = totalPartialsBE > 0 ? (wins / totalPartialsBE) * 100 : 0;
+    // All trades in this set are break-even, so wins/losses are BE wins/losses
+    const beWins = partialsBETrades.filter((t) => t.trade_outcome === 'Win').length;
+    const beLosses = partialsBETrades.filter((t) => t.trade_outcome === 'Lose').length;
+    const executedTradesCount = beWins + beLosses;
+    const winRate = executedTradesCount > 0 ? (beWins / executedTradesCount) * 100 : 0;
+    const winRateWithBE = winRate; // Same as winRate since all trades are BE
 
     return [
       {
         category: `Partials + BE`,
-        wins,
-        losses,
+        wins: 0, // No regular wins since all are BE
+        losses: 0, // No regular losses since all are BE
+        beWins,
+        beLosses,
         winRate,
+        winRateWithBE,
         totalTrades: totalPartialsBE,
-        // no BE breakdown here, so we leave beWins/beLosses undefined
       },
     ];
   }
@@ -3376,7 +3374,7 @@ export default function AnalyticsClient(
         />
 
         {/* 1.4RR Hit Statistics */}
-        <RRHitStats trades={tradesToUse} />
+        <RRHitStats trades={tradesToUse} isLoading={chartsLoadingState} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <TradeStatsBarCard
