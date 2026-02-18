@@ -29,8 +29,8 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
     return () => observer.disconnect();
   }, []);
 
-  // Normalize profit factor to 0-100% for display (cap at 5.0 for visual purposes)
-  const normalizedValue = Math.min(profitFactor, 5.0);
+  // Normalize profit factor to 0-100% for display (scale from 0 to 5.0)
+  const normalizedValue = Math.max(0, Math.min(profitFactor, 5.0));
   const percentage = (normalizedValue / 5.0) * 100;
   const remainingPercentage = 100 - percentage;
 
@@ -106,14 +106,14 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
   if (!mounted) {
     return (
       <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-1 pt-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+            <CardTitle className="text-base font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
               Profit Factor
             </CardTitle>
           </div>
         </CardHeader>
-        <CardContent className="h-64 flex items-center justify-center">
+        <CardContent className="h-48 flex items-center justify-center">
           <div className="w-full h-full" aria-hidden>—</div>
         </CardContent>
       </Card>
@@ -122,10 +122,10 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
 
   return (
     <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-1 pt-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+            <CardTitle className="text-base font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
               Profit Factor
             </CardTitle>
             <TooltipProvider>
@@ -153,7 +153,7 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="h-64 flex flex-col items-center justify-center relative">
+      <CardContent className="h-48 flex flex-col items-center justify-center relative pt-0 pb-2">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <defs>
@@ -187,11 +187,11 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
             <Pie
               data={data}
               cx="50%"
-              cy="90%"
+              cy="85%"
               startAngle={180}
               endAngle={0}
-              innerRadius={60}
-              outerRadius={100}
+              innerRadius={45}
+              outerRadius={75}
               paddingAngle={2}
               dataKey="value"
             >
@@ -212,13 +212,13 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
             <Tooltip content={<CustomTooltip />} />
           </PieChart>
         </ResponsiveContainer>
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-center">
-          <div className={cn('text-3xl font-bold mb-1', getTextColor())}>
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
+          <div className={cn('text-2xl font-bold', getTextColor())}>
             {profitFactor.toFixed(2)}
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">
-            {profitFactor >= 5.0 && '+'}
-          </div>
+          {profitFactor >= 5.0 && (
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">+</div>
+          )}
         </div>
       </CardContent>
     </Card>
