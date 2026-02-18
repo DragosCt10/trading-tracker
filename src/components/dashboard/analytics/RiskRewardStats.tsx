@@ -259,7 +259,7 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
         x={x}
         y={y}
         dy={16}
-        textAnchor="start"
+        textAnchor="middle"
         fill={axisTextColor}
         fontSize={12}
       >
