@@ -44,7 +44,7 @@ import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketP
 import RiskPerTrade from '@/components/dashboard/analytics/RiskPerTrade';
 import { StatCard } from '@/components/dashboard/analytics/StatCard';
 import { cn } from '@/lib/utils';
-import { MonthPerformanceCard } from '@/components/dashboard/analytics/MonthPerformanceCard';
+import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
 import { AccountOverviewCard } from '@/components/dashboard/analytics/AccountOverviewCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MonthlyPerformanceChart } from '@/components/dashboard/analytics/MonthlyPerformanceChart';
@@ -2042,53 +2042,6 @@ export default function AnalyticsClient(
     [monthlyStatsToUse]
   );
 
-  // Compute filtered monthlyStats with best/worst month
-  // Always compute from tradesToUse to ensure data consistency across all cards and charts
-  const monthlyStatsToUseForCards = useMemo((): {
-    monthlyData: typeof monthlyPerformanceStatsToUse;
-    bestMonth: { month: string; stats: { winRate: number; profit: number } } | null;
-    worstMonth: { month: string; stats: { winRate: number; profit: number } } | null;
-  } => {
-    // Compute best and worst month from monthlyPerformanceStatsToUse
-    const monthlyData = monthlyPerformanceStatsToUse;
-    let bestMonth: { month: string; stats: { winRate: number; profit: number } } | null = null;
-    let worstMonth: { month: string; stats: { winRate: number; profit: number } } | null = null;
-    let bestProfit = -Infinity;
-    let worstProfit = Infinity;
-
-    Object.entries(monthlyData).forEach(([month, stats]) => {
-      // Use monthlyStatsToUse for profit (computed from current filtered trades)
-      const monthProfit = monthlyStatsToUse[month]?.profit || 0;
-      
-      if (monthProfit > bestProfit) {
-        bestProfit = monthProfit;
-        bestMonth = {
-          month,
-          stats: {
-            winRate: stats.winRate,
-            profit: monthProfit,
-          },
-        };
-      }
-      if (monthProfit < worstProfit) {
-        worstProfit = monthProfit;
-        worstMonth = {
-          month,
-          stats: {
-            winRate: stats.winRate,
-            profit: monthProfit,
-          },
-        };
-      }
-    });
-
-    // Build structure from current filtered data (always from tradesToUse)
-    return {
-      monthlyData: monthlyPerformanceStatsToUse,
-      bestMonth,
-      worstMonth,
-    };
-  }, [monthlyPerformanceStatsToUse, monthlyStatsToUse]);
 
   const updatedBalance =
     ((resolvedAccount as { account_balance?: number } | null)?.account_balance ?? 0) + totalYearProfit;
@@ -2559,47 +2512,13 @@ export default function AnalyticsClient(
 
       {/* Month Stats Cards - Only show in yearly mode */}
       {viewMode === 'yearly' && (
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
-          {monthlyStatsToUseForCards.bestMonth && (
-            <MonthPerformanceCard
-              title="Best Month"
-              month={monthlyStatsToUseForCards.bestMonth.month}
-              year={tradesToUse.length > 0 ? selectedYear : new Date().getFullYear()}
-              winRate={monthlyStatsToUseForCards.bestMonth.stats.winRate}
-              profit={monthlyStatsToUseForCards.bestMonth.stats.profit}
-              currencySymbol={getCurrencySymbol()}
-              profitPercent={
-                resolvedAccount
-                  ? ((resolvedAccount as { account_balance?: number }).account_balance ?? 1) > 0
-                    ? (monthlyStatsToUseForCards.bestMonth.stats.profit / ((resolvedAccount as { account_balance?: number }).account_balance ?? 1)) * 100
-                    : undefined
-                  : undefined
-              }
-              positive
-              className="w-full"
-            />
-          )}
-
-          {monthlyStatsToUseForCards.worstMonth && (
-            <MonthPerformanceCard
-              title="Worst Month"
-              month={monthlyStatsToUseForCards.worstMonth.month}
-              year={tradesToUse.length > 0 ? selectedYear : new Date().getFullYear()}
-              winRate={monthlyStatsToUseForCards.worstMonth.stats.winRate}
-              profit={monthlyStatsToUseForCards.worstMonth.stats.profit}
-              currencySymbol={getCurrencySymbol()}
-              profitPercent={
-                resolvedAccount
-                  ? ((resolvedAccount as { account_balance?: number }).account_balance ?? 1) > 0
-                    ? (monthlyStatsToUseForCards.worstMonth.stats.profit / ((resolvedAccount as { account_balance?: number }).account_balance ?? 1)) * 100
-                    : undefined
-                  : undefined
-              }
-              positive={false}
-              className="w-full"
-            />
-          )}
-        </div>
+        <MonthPerformanceCards
+          trades={tradesToUse}
+          selectedYear={selectedYear}
+          currencySymbol={getCurrencySymbol()}
+          accountBalance={(resolvedAccount as { account_balance?: number } | null)?.account_balance}
+          isLoading={accountOverviewLoadingState}
+        />
       )}
 
       {/* Calendar View - Show in both modes */}
