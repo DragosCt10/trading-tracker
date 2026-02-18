@@ -76,6 +76,8 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
 
     eligibleMarkets.forEach((market) => {
       const marketTrades = filteredTrades.filter((t) => t.market === market);
+      // Get all trades for this market (not filtered by ratio) for total count
+      const allMarketTrades = trades.filter((t) => t.market === market);
       const tradesWithRatio = marketTrades.filter(
         (t) => t.risk_reward_ratio_long === ratio
       );
@@ -97,7 +99,7 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
       marketDetailsMap.set(market, {
         percentage: Number(percentage.toFixed(1)),
         tradesWithRatio: tradesWithRatio.length,
-        totalTrades: marketTrades.length,
+        totalTrades: allMarketTrades.length, // Use all trades for this market, not just filtered ones
         wins,
         losses,
         winRate: Number(winRate.toFixed(1)),
