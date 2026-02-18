@@ -2493,6 +2493,18 @@ export default function AnalyticsClient(
         />
       </div>
 
+      <div className="my-8">
+        {/* Day Statistics Card */}
+        <TradeStatsBarCard
+          title="Day Statistics"
+          description="Distribution of trades based on day of the week"
+          data={dayChartData}
+          mode="winsLossesWinRate"
+          heightClassName="h-72"
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
+        />
+      </div>
+
       {/* MSS and News Statistics Cards Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* MSS Statistics Card */}
@@ -2516,18 +2528,7 @@ export default function AnalyticsClient(
         />
       </div>
 
-      {/* Day and Market Statistics Cards Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Day Statistics Card */}
-        <TradeStatsBarCard
-          title="Day Statistics"
-          description="Distribution of trades based on day of the week"
-          data={dayChartData}
-          mode="winsLossesWinRate"
-          heightClassName="h-72"
-          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
-        />
-
+      <div className="my-8">
         {/* Market Statistics Card */}
         <TradeStatsBarCard
           title="Market Statistics"
