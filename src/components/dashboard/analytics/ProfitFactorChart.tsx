@@ -33,8 +33,12 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
   }, []);
 
 
+  // Handle Infinity and invalid values
+  const isValidProfitFactor = isFinite(profitFactor) && !isNaN(profitFactor);
+  const displayValue = isValidProfitFactor ? profitFactor : 0;
+  
   // Normalize profit factor to 0-100% for display (scale from 0 to 5.0)
-  const normalizedValue = Math.max(0, Math.min(profitFactor, 5.0));
+  const normalizedValue = Math.max(0, Math.min(displayValue, 5.0));
   const percentage = (normalizedValue / 5.0) * 100;
   const remainingPercentage = 100 - percentage;
 
@@ -45,18 +49,20 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
 
   // Determine color based on profit factor value
   const getGradientId = () => {
-    if (profitFactor < 1.0) return 'profitFactorRed';
-    if (profitFactor < 1.5) return 'profitFactorOrange';
-    if (profitFactor < 2.0) return 'profitFactorAmber';
-    if (profitFactor < 3.0) return 'profitFactorEmerald';
+    if (!isValidProfitFactor) return 'profitFactorRed';
+    if (displayValue < 1.0) return 'profitFactorRed';
+    if (displayValue < 1.5) return 'profitFactorOrange';
+    if (displayValue < 2.0) return 'profitFactorAmber';
+    if (displayValue < 3.0) return 'profitFactorEmerald';
     return 'profitFactorBlue';
   };
 
   const getTextColor = () => {
-    if (profitFactor < 1.0) return 'text-rose-600 dark:text-rose-400';
-    if (profitFactor < 1.5) return 'text-orange-600 dark:text-orange-400';
-    if (profitFactor < 2.0) return 'text-amber-600 dark:text-amber-400';
-    if (profitFactor < 3.0) return 'text-emerald-600 dark:text-emerald-400';
+    if (!isValidProfitFactor) return 'text-slate-500 dark:text-slate-400';
+    if (displayValue < 1.0) return 'text-rose-600 dark:text-rose-400';
+    if (displayValue < 1.5) return 'text-orange-600 dark:text-orange-400';
+    if (displayValue < 2.0) return 'text-amber-600 dark:text-amber-400';
+    if (displayValue < 3.0) return 'text-emerald-600 dark:text-emerald-400';
     return 'text-blue-600 dark:text-blue-400';
   };
 
@@ -167,7 +173,9 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-blue-500 dark:bg-blue-400 shadow-sm ring-2 ring-blue-200/50 dark:ring-blue-500/30"></div>
                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Profit Factor: <span className="text-blue-600 dark:text-blue-400 font-bold">{profitFactor.toFixed(2)}</span>
+                  Profit Factor: <span className="text-blue-600 dark:text-blue-400 font-bold">
+                    {isValidProfitFactor ? displayValue.toFixed(2) : 'N/A'}
+                  </span>
                 </div>
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 ml-4 font-medium">
@@ -249,7 +257,9 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
         </div>
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
           <div className={cn('text-2xl font-bold', getTextColor())}>
-            {profitFactor % 1 === 0 ? profitFactor.toFixed(0) : profitFactor.toFixed(1)}
+            {isValidProfitFactor 
+              ? (displayValue % 1 === 0 ? displayValue.toFixed(0) : displayValue.toFixed(1))
+              : 'N/A'}
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Target: 2+
