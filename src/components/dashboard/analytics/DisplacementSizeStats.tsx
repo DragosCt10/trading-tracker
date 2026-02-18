@@ -216,7 +216,7 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
   };
 
   return (
-    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+    <Card className="relative overflow-visible border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
       <CardHeader className="pb-2 flex-shrink-0">
         <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
           Displacement Size Statistics
@@ -248,7 +248,7 @@ export function DisplacementSizeStats({ trades }: DisplacementSizeStatsProps) {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={groupedByBucket}
-                margin={{ top: 10, right: 24, left: 70, bottom: 48 }}
+                margin={{ top: 10, right: 64, left: 70, bottom: 48 }}
                 barCategoryGap="30%"
               >
                 <defs>
