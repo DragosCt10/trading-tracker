@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { BouncePulse } from '@/components/ui/bounce-pulse';
 
 interface StrategyCardProps {
   strategy: Strategy;
@@ -32,6 +33,8 @@ interface StrategyCardProps {
   currencySymbol: string;
   onEdit: (strategy: Strategy) => void;
   onDelete: (strategyId: string) => Promise<void>;
+  /** When true, data is still loading; avoid showing "No trades yet" until false */
+  isLoading?: boolean;
 }
 
 export const StrategyCard: React.FC<StrategyCardProps> = ({
@@ -41,6 +44,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
   currencySymbol,
   onEdit,
   onDelete,
+  isLoading = false,
 }) => {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -152,6 +156,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
   }
 
   const hasTrades = stats.totalTrades > 0;
+  const showNoTradesMessage = !isLoading && !hasTrades;
 
   return (
     <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm">
@@ -211,9 +216,13 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
                 />
               </LineChart>
             </ResponsiveContainer>
-          ) : (
+          ) : showNoTradesMessage ? (
             <div className="w-full h-full flex items-center justify-center bg-slate-100/50 dark:bg-slate-800/30 rounded-lg">
               <p className="text-xs text-slate-400 dark:text-slate-500">No trades yet</p>
+            </div>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center min-h-[128px]" aria-hidden>
+              <BouncePulse size="md" />
             </div>
           )}
         </div>
