@@ -2416,192 +2416,20 @@ export default function AnalyticsClient(
         getDaysInMonth={() => getDaysInMonth}
       />
 
-      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Key Metrics</h2>
-      <p className="text-slate-500 dark:text-slate-400 mb-6">Profit factor, consistency, Sharpe ratio, and other yearly performance indicators.</p>
+      {/* Performance Indicators Section */}
+      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Performance Indicators</h2>
+      <p className="text-slate-500 dark:text-slate-400 mb-6">Visual representation of key performance metrics with interactive charts.</p>
 
       <div className="flex flex-col md:grid md:grid-cols-3 gap-4 pb-8 w-full">
-        {/* Profit Factor */}
-        <StatCard
-          title="Profit Factor"
-          tooltipContent={
-            <div className="space-y-2 text-slate-700">
-              <div className="font-semibold text-slate-900">
-                Profit Factor Interpretation
-              </div>
+        <ProfitFactorChart profitFactor={macroStatsToUse.profitFactor} />
+        <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE} />
+        <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore} />
+      </div>
 
-              <div
-                className={cn(
-                  "rounded-lg p-1.5 sm:p-2",
-                  macroStatsToUse.profitFactor < 1
-                    ? "bg-red-50 border border-red-100"
-                    : ""
-                )}
-              >
-                <span className="font-medium">🔹 &lt; 1.0</span> — Negative Efficiency
-                <br />
-                Losses outweigh gains.
-              </div>
+      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Key Metrics</h2>
+      <p className="text-slate-500 dark:text-slate-400 mb-6">Trading performance indicators and statistics.</p>
 
-              <div
-                className={cn(
-                  "rounded-lg p-1.5 sm:p-2",
-                  macroStatsToUse.profitFactor >= 1 && macroStatsToUse.profitFactor < 1.5
-                    ? "bg-orange-50 border border-orange-100"
-                    : ""
-                )}
-              >
-                <span className="font-medium">🟠 1.0 – 1.49</span> — Marginal Efficiency
-                <br />
-                Profitable but limited.
-              </div>
-
-              <div
-                className={cn(
-                  "rounded-lg p-1.5 sm:p-2",
-                  macroStatsToUse.profitFactor >= 1.5 && macroStatsToUse.profitFactor < 2
-                    ? "bg-amber-50 border border-amber-100"
-                    : ""
-                )}
-              >
-                <span className="font-medium">🟢 1.5 – 1.99</span> — Solid Efficiency
-                <br />
-                Consistent and sustainable edge.
-              </div>
-
-              <div
-                className={cn(
-                  "rounded-lg p-1.5 sm:p-2",
-                  macroStatsToUse.profitFactor >= 2 && macroStatsToUse.profitFactor < 3
-                    ? "bg-emerald-50 border border-emerald-100"
-                    : ""
-                )}
-              >
-                <span className="font-medium">🔷 2.0 – 2.99</span> — High Efficiency
-                <br />
-                Strong reward relative to risk.
-              </div>
-
-              <div
-                className={cn(
-                  "rounded-lg p-1.5 sm:p-2",
-                  macroStatsToUse.profitFactor >= 3
-                    ? "bg-blue-50 border border-blue-100"
-                    : ""
-                )}
-              >
-                <span className="font-medium">💎 3.0+</span> — Exceptional Efficiency
-                <br />
-                Very high edge — confirm durability.
-              </div>
-            </div>
-          }
-          value={
-            <p
-              className={cn(
-                'text-2xl font-bold',
-                macroStatsToUse.profitFactor > 1.5
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : macroStatsToUse.profitFactor < 1.49
-                  ? 'text-rose-600 dark:text-rose-400'
-                  : 'text-slate-900 dark:text-slate-100'
-              )}
-            >
-              {macroStatsToUse.profitFactor.toFixed(2)}
-            </p>
-          }
-        />
-
-        {/* Consistency Score */}
-        <StatCard
-          title="Consistency Score"
-          tooltipContent={
-            <div className="space-y-2 text-slate-800">
-              <div className="font-semibold text-slate-800">
-                Consistency Score Interpretation
-              </div>
-              <div
-                className={cn(
-                  'rounded-lg p-1.5 sm:p-2',
-                  macroStatsToUse.consistencyScore < 40
-                    ? 'bg-red-50 border border-red-100'
-                    : ''
-                )}
-              >
-                <span className="font-medium">🔹 0% – 39%</span> — Low
-                <br />
-                Results are highly variable.
-              </div>
-              <div
-                className={cn(
-                  'rounded-lg p-1.5 sm:p-2',
-                  macroStatsToUse.consistencyScore >= 40 &&
-                    macroStatsToUse.consistencyScore < 60
-                    ? 'bg-orange-50 border border-orange-100'
-                    : ''
-                )}
-              >
-                <span className="font-medium">🟠 40% – 59%</span> — Developing
-                <br />
-                Some patterns, but still unreliable.
-              </div>
-              <div
-                className={cn(
-                  'rounded-lg p-1.5 sm:p-2',
-                  macroStatsToUse.consistencyScore >= 60 &&
-                    macroStatsToUse.consistencyScore < 75
-                    ? 'bg-yellow-50 border border-yellow-200'
-                    : ''
-                )}
-              >
-                <span className="font-medium">🟡 60% – 74%</span> — Moderate
-                <br />
-                Improving, with room to refine.
-              </div>
-              <div
-                className={cn(
-                  'rounded-lg p-1.5 sm:p-2',
-                  macroStatsToUse.consistencyScore >= 75 &&
-                    macroStatsToUse.consistencyScore < 90
-                    ? 'bg-emerald-50 border border-emerald-100'
-                    : ''
-                )}
-              >
-                <span className="font-medium">🟢 75% – 89%</span> — Strong
-                <br />
-                Reliable performance across trades.
-              </div>
-              <div
-                className={cn(
-                  'rounded-lg p-1.5 sm:p-2',
-                  macroStatsToUse.consistencyScore >= 90
-                    ? 'bg-blue-50 border border-blue-100'
-                    : ''
-                )}
-              >
-                <span className="font-medium">💎 90% – 100%</span> — Exceptional
-                <br />
-                Top-tier, highly repeatable results.
-              </div>
-            </div>
-          }
-          value={
-            <p
-              className={cn(
-                'text-2xl font-bold',
-                macroStatsToUse.consistencyScore > 60
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : macroStatsToUse.consistencyScore < 59
-                  ? 'text-rose-600 dark:text-rose-400'
-                  : 'text-slate-900 dark:text-slate-100'
-              )}
-            >
-              {macroStatsToUse.consistencyScore.toFixed(2)}{' '}
-              <span className="text-slate-500 text-sm">
-                ({macroStatsToUse.consistencyScoreWithBE.toFixed(2)} w/ BE)
-              </span>
-            </p>
-          }
-        />
+      <div className="flex flex-col md:grid md:grid-cols-3 gap-4 w-full">
 
         {/* Average Monthly Trades - Only show in yearly mode */}
         {viewMode === 'yearly' && (
@@ -2645,125 +2473,6 @@ export default function AnalyticsClient(
           />
         )}
 
-        {/* Average Monthly Profit */}
-        <StatCard
-          title="Average Monthly Profit"
-          tooltipContent={
-            <div className="space-y-2 text-slate-500">
-              <div className="font-semibold text-slate-800">
-                Monthly Profit Analysis
-              </div>
-              <p>
-                Average profit per month across all trading months in the selected
-                year. This metric helps track consistency of monthly returns.
-              </p>
-            </div>
-          }
-          value={
-            <p className={cn('text-2xl font-bold', !hydrated ? 'text-slate-900 dark:text-slate-100' : monthlyStatsToUseForCards.monthlyData && Object.keys(monthlyStatsToUseForCards.monthlyData).length > 0 ? (Object.values(monthlyStatsToUse).reduce((sum, month) => sum + month.profit, 0) / Object.keys(monthlyStatsToUseForCards.monthlyData).length > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400') : 'text-slate-900 dark:text-slate-100')}>
-              {!hydrated
-                ? '\u2014'
-                : monthlyStatsToUseForCards.monthlyData && Object.keys(monthlyStatsToUseForCards.monthlyData).length > 0
-                  ? <>
-                      <span className="mr-1">{currencySymbol}</span>
-                      {(Object.values(monthlyStatsToUse).reduce((sum, month) => sum + month.profit, 0) / Object.keys(monthlyStatsToUseForCards.monthlyData).length).toFixed(2)}
-                    </>
-                  : <>
-                      <span className="mr-1">{currencySymbol}</span>0
-                    </>
-              }
-            </p>
-          }
-        />
-
-        {/* Sharpe Ratio */}
-        <StatCard
-          title="Sharpe Ratio"
-          tooltipContent={
-            <div className="space-y-2 text-slate-700">
-              <div className="font-semibold text-slate-900">
-                Sharpe Ratio Interpretation
-              </div>
-
-              <div
-                className={cn(
-                  "rounded-lg p-1.5 sm:p-2",
-                  macroStatsToUse.sharpeWithBE < 0.2
-                    ? "bg-orange-50 border border-orange-100"
-                    : ""
-                )}
-              >
-                <span className="font-medium">🔹 &lt; 0.20</span> — High Variability
-                <br />
-                Large swings relative to returns.
-              </div>
-              <div
-                className={cn(
-                  "rounded-lg p-1.5 sm:p-2",
-                  macroStatsToUse.sharpeWithBE >= 0.2 && macroStatsToUse.sharpeWithBE < 0.5
-                    ? "bg-orange-100 border border-orange-200"
-                    : ""
-                )}
-              >
-                <span className="font-medium">🟠 0.20 – 0.49</span> — Developing Stability
-                <br />
-                Profitable but uneven.
-              </div>
-              <div
-                className={cn(
-                  "rounded-lg p-1.5 sm:p-2",
-                  macroStatsToUse.sharpeWithBE >= 0.5 && macroStatsToUse.sharpeWithBE < 1
-                    ? "bg-amber-50 border border-amber-100"
-                    : ""
-                )}
-              >
-                <span className="font-medium">🟡 0.50 – 0.99</span> — Balanced Performance
-                <br />
-                Returns generally outweigh risk.
-              </div>
-              <div
-                className={cn(
-                  "rounded-lg p-1.5 sm:p-2",
-                  macroStatsToUse.sharpeWithBE >= 1 && macroStatsToUse.sharpeWithBE < 2
-                    ? "bg-emerald-50 border border-emerald-100"
-                    : ""
-                )}
-              >
-                <span className="font-medium">🟢 1.0 – 1.99</span> — Strong Efficiency
-                <br />
-                Consistent returns with controlled risk.
-              </div>
-              <div
-                className={cn(
-                  "rounded-lg p-1.5 sm:p-2",
-                  macroStatsToUse.sharpeWithBE >= 2
-                    ? "bg-blue-50 border border-blue-100"
-                    : ""
-                )}
-              >
-                <span className="font-medium">💎 2.0+</span> — Exceptional Efficiency
-                <br />
-                Rare stability and optimized execution.
-              </div>
-            </div>
-          }
-          value={
-            <p
-              className={cn(
-                'text-2xl font-bold',
-                macroStatsToUse.sharpeWithBE > 0.5
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : macroStatsToUse.sharpeWithBE < 0.49
-                  ? 'text-rose-600 dark:text-rose-400'
-                  : 'text-slate-900 dark:text-slate-100'
-              )}
-            >
-              {macroStatsToUse.sharpeWithBE.toFixed(2)}{' '}
-              <span className="text-slate-500 text-sm">(incl. BE)</span>
-            </p>
-          }
-        />
-
         {/* Non-Executed Trades - Only show in yearly mode */}
         {viewMode === 'yearly' && (
           <StatCard
@@ -2793,35 +2502,6 @@ export default function AnalyticsClient(
           />
         )}
 
-        {/* Partial Trades */}
-        <StatCard
-          title="Partial Trades"
-          tooltipContent={
-            <div className="space-y-2 text-slate-500">
-              <div className="font-semibold text-slate-900">
-                Partial Trades
-              </div>
-              <p>
-                Total number of trades in the selected year where a partial exit was
-                taken, including break-even (BE) partials.
-              </p>
-            </div>
-          }
-          value={
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {typeof yearlyPartialTradesCount === 'number'
-                ? yearlyPartialTradesCount
-                : 0}
-              <span className="text-slate-500 text-sm ml-1">
-                ({typeof yearlyPartialsBECount === 'number'
-                  ? yearlyPartialsBECount
-                  : 0}{' '}
-                w/ BE)
-              </span>
-            </p>
-          }
-        />
-        
         {/* TQI (Trade Quality Index) */}
         <StatCard
           title="TQI"
@@ -2930,16 +2610,327 @@ export default function AnalyticsClient(
             </p>
           }
         />
-      </div>
 
-      {/* Performance Indicators Section */}
-      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Performance Indicators</h2>
-      <p className="text-slate-500 dark:text-slate-400 mb-6">Visual representation of key performance metrics with interactive charts.</p>
+        <StatCard
+          title="Max Drawdown"
+          tooltipContent={
+            <div className="space-y-1 text-slate-800 text-xs sm:text-sm">
+              <div className="font-semibold text-slate-800">Drawdown Interpretation</div>
 
-      <div className="flex flex-col md:grid md:grid-cols-3 gap-4 pb-8 w-full">
-        <ProfitFactorChart profitFactor={macroStatsToUse.profitFactor} />
-        <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE} />
-        <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore} />
+              <div
+                className={`rounded-lg p-1.5 sm:p-2 ${
+                  statsToUse.maxDrawdown <= 2 ? 'bg-blue-50 border border-blue-100' : ''
+                }`}
+              >
+                <span className="font-medium">🔹 0% – 2%</span> — Excellent. Very low risk.
+              </div>
+              <div
+                className={`rounded-lg p-1.5 sm:p-2 ${
+                  statsToUse.maxDrawdown > 2 && statsToUse.maxDrawdown <= 5
+                    ? 'bg-emerald-50 border border-emerald-100'
+                    : ''
+                }`}
+              >
+                <span className="font-medium">✅ 2% – 5%</span> — Healthy/Moderate.
+              </div>
+              <div
+                className={`rounded-lg p-1.5 sm:p-2 ${
+                  statsToUse.maxDrawdown > 5 && statsToUse.maxDrawdown <= 10
+                    ? 'bg-amber-50 border border-amber-100'
+                    : ''
+                }`}
+              >
+                <span className="font-medium">⚠️ 5% – 10%</span> — Aggressive but acceptable.
+              </div>
+              <div
+                className={`rounded-lg p-1.5 sm:p-2 ${
+                  statsToUse.maxDrawdown > 10 && statsToUse.maxDrawdown <= 20
+                    ? 'bg-orange-50 border border-orange-100'
+                    : ''
+                }`}
+              >
+                <span className="font-medium">❗ 10% – 20%</span> — High risk.
+              </div>
+              <div
+                className={`rounded-lg p-1.5 sm:p-2 ${
+                  statsToUse.maxDrawdown > 20 ? 'bg-red-50 border border-red-100' : ''
+                }`}
+              >
+                <span className="font-medium">🚫 20%+</span> — Danger zone.
+              </div>
+            </div>
+          }
+          value={
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {statsToUse.maxDrawdown.toFixed(2)}%
+            </p>
+          }
+        />
+
+        <StatCard
+          title="P&L %"
+          tooltipContent={
+            <p className="text-xs sm:text-sm text-slate-500">
+              Average P&amp;L % over starting balance.
+            </p>
+          }
+          value={
+            <p className={`text-2xl font-bold ${pnlColor}`}>
+              {statsToUse.averagePnLPercentage.toFixed(2)}%
+            </p>
+          }
+        />
+
+        {/* Partial Trades - Date Range Mode */}
+        {viewMode === 'dateRange' && (
+          <StatCard
+            title={
+              <>
+                Partial Trades{' '}
+                <span className="text-slate-500 font-medium text-xs ml-1">
+                  {statsToUse.partialWinRate.toFixed(1)}% (
+                  {statsToUse.partialWinRateWithBE.toFixed(1)}% w/ BE)
+                </span>
+              </>
+            }
+            tooltipContent={
+              <p className="text-xs sm:text-sm text-slate-500">
+                Trades where partial profits were taken in the selected period.
+              </p>
+            }
+            value={
+              <div className="flex gap-6 text-center">
+                <div>
+                  <p className="text-xs text-slate-500">Winning</p>
+                  <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                    {statsToUse.partialWinningTrades}{' '}
+                    <span className="text-slate-500 text-sm">
+                      ({statsToUse.beWinPartialTrades} BE)
+                    </span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Losing</p>
+                  <p className="text-xl font-bold text-rose-600 dark:text-rose-400">
+                    {statsToUse.partialLosingTrades}{' '}
+                    <span className="text-slate-500 text-sm">
+                      ({statsToUse.beLosingPartialTrades} BE)
+                    </span>
+                  </p>
+                </div>
+              </div>
+            }
+          />
+        )}
+
+        {/* Trading Overview Category - Show in both yearly and dateRange modes */}
+        {(viewMode === 'dateRange' || viewMode === 'yearly') && (
+          <>
+            {/* Trading Overview Category */}
+            <div className="col-span-full mt-8 mb-4">
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-1">Trading Overview</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Core trading statistics and performance metrics</p>
+            </div>
+
+            {(() => {
+              // Calculate all stats from tradesToUse
+              const nonBETrades = tradesToUse.filter((t) => !t.break_even);
+              const beTrades = tradesToUse.filter((t) => t.break_even);
+              
+              const wins = nonBETrades.filter((t) => t.trade_outcome === 'Win').length;
+              const losses = nonBETrades.filter((t) => t.trade_outcome === 'Lose').length;
+              const beWins = beTrades.filter((t) => t.trade_outcome === 'Win').length;
+              const beLosses = beTrades.filter((t) => t.trade_outcome === 'Lose').length;
+              
+              const totalTrades = tradesToUse.length;
+              const totalWins = wins + beWins;
+              const totalLosses = losses + beLosses;
+              
+              const totalProfit = tradesToUse.reduce((sum, t) => sum + (t.calculated_profit || 0), 0);
+              const averageProfit = totalTrades > 0 ? totalProfit / totalTrades : 0;
+              
+              const nonBETotal = wins + losses;
+              const winRate = nonBETotal > 0 ? (wins / nonBETotal) * 100 : 0;
+              const winRateWithBE = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
+              
+              // Calculate streaks
+              let currentStreak = 0;
+              let maxWinningStreak = 0;
+              let maxLosingStreak = 0;
+              let currentWinningStreak = 0;
+              let currentLosingStreak = 0;
+              
+              const sortedTrades = [...tradesToUse].sort((a, b) => 
+                new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime()
+              );
+              
+              sortedTrades.forEach((trade) => {
+                const isWin = trade.trade_outcome === 'Win';
+                if (isWin) {
+                  currentWinningStreak++;
+                  currentLosingStreak = 0;
+                  maxWinningStreak = Math.max(maxWinningStreak, currentWinningStreak);
+                } else {
+                  currentLosingStreak++;
+                  currentWinningStreak = 0;
+                  maxLosingStreak = Math.max(maxLosingStreak, currentLosingStreak);
+                }
+              });
+              
+              const lastTrade = sortedTrades[sortedTrades.length - 1];
+              if (lastTrade) {
+                currentStreak = lastTrade.trade_outcome === 'Win' ? currentWinningStreak : -currentLosingStreak;
+              }
+              
+              // Calculate average days between trades
+              let averageDaysBetweenTrades = 0;
+              if (sortedTrades.length > 1) {
+                const daysBetween: number[] = [];
+                for (let i = 1; i < sortedTrades.length; i++) {
+                  const prevDate = new Date(sortedTrades[i - 1].trade_date);
+                  const currDate = new Date(sortedTrades[i].trade_date);
+                  const diffTime = Math.abs(currDate.getTime() - prevDate.getTime());
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                  daysBetween.push(diffDays);
+                }
+                averageDaysBetweenTrades = daysBetween.length > 0
+                  ? daysBetween.reduce((sum, days) => sum + days, 0) / daysBetween.length
+                  : 0;
+              }
+              
+              const streakColorValue = currentStreak > 0
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : currentStreak < 0
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-slate-900 dark:text-slate-100';
+
+              return (
+                <>
+                  <StatCard
+                    title="Total Trades"
+                    value={
+                      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                        {totalTrades}
+                      </p>
+                    }
+                  />
+
+                  <StatCard
+                    title="Win Rate"
+                    value={
+                      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                        {winRate.toFixed(2)}%
+                        <span className="text-slate-500 text-sm ml-1">
+                          ({winRateWithBE.toFixed(2)}% w/ BE)
+                        </span>
+                      </p>
+                    }
+                  />
+
+                  <StatCard
+                    title="Total Profit"
+                    value={
+                      <p className={hydrated ? `text-2xl font-bold ${profitColor}` : 'text-2xl font-bold text-slate-900 dark:text-slate-100'}>
+                        {hydrated ? `${currencySymbol}${totalProfit.toFixed(2)}` : '\u2014'}
+                      </p>
+                    }
+                  />
+
+                  <StatCard
+                    title="Average Profit"
+                    value={
+                      <p className={hydrated ? `text-2xl font-bold ${avgProfitColor}` : 'text-2xl font-bold text-slate-900 dark:text-slate-100'}>
+                        {hydrated ? `${currencySymbol}${averageProfit.toFixed(2)}` : '\u2014'}
+                      </p>
+                    }
+                  />
+
+                  <StatCard
+                    title="Total Wins"
+                    value={
+                      <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                        {totalWins}
+                        {beWins > 0 && (
+                          <span className="text-sm font-medium text-slate-500 ml-1">
+                            ({beWins} BE)
+                          </span>
+                        )}
+                      </p>
+                    }
+                  />
+
+                  <StatCard
+                    title="Total Losses"
+                    value={
+                      <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">
+                        {totalLosses}
+                        {beLosses > 0 && (
+                          <span className="text-sm font-medium text-slate-500 ml-1">
+                            ({beLosses} BE)
+                          </span>
+                        )}
+                      </p>
+                    }
+                  />
+
+                  <StatCard
+                    title="Current Streak"
+                    tooltipContent={
+                      <p className="text-xs sm:text-sm text-slate-500">
+                        Current winning (positive) or losing (negative) streak.
+                      </p>
+                    }
+                    value={
+                      <p className={`text-2xl font-bold ${streakColorValue}`}>
+                        {currentStreak > 0 ? '+' : ''}
+                        {currentStreak}
+                      </p>
+                    }
+                  />
+
+                  <StatCard
+                    title="Best Streaks"
+                    tooltipContent={
+                      <p className="text-xs sm:text-sm text-slate-500">
+                        Best winning and losing streaks in the selected period.
+                      </p>
+                    }
+                    value={
+                      <div className="flex gap-6 text-center">
+                        <div>
+                          <p className="text-xs text-slate-500">Winning</p>
+                          <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                            +{maxWinningStreak}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Losing</p>
+                          <p className="text-xl font-bold text-rose-600 dark:text-rose-400">
+                            -{maxLosingStreak}
+                          </p>
+                        </div>
+                      </div>
+                    }
+                  />
+
+                  <StatCard
+                    title="Average Days Between Trades"
+                    tooltipContent={
+                      <p className="text-xs sm:text-sm text-slate-800">
+                        Average number of days between your trades in the selected period.
+                      </p>
+                    }
+                    value={
+                      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                        {averageDaysBetweenTrades.toFixed(1)} <small className="text-sm text-slate-500">days</small>
+                      </p>
+                    }
+                  />
+                </>
+              );
+            })()}
+          </>
+        )}
       </div>
 
       {openAnalyzeModal && (
@@ -3002,280 +2993,6 @@ export default function AnalyticsClient(
       </div>
 
 
-      {/* Date Range Stats Section - Only show when in dateRange mode */}
-      {viewMode === 'dateRange' && (
-        <>
-          <h2 className="text-2xl font-medium text-slate-800 mt-20">Date Range Stats</h2>
-          <p className="text-slate-500 mb-10">Trading performance metrics for your selected date range.</p>
-        </>
-      )}
-
-      {/* Stats and Best/Worst Month Cards Row */}
-      <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Total Trades */}
-        <StatCard
-          title="Total Trades"
-          value={
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {statsToUse.totalTrades}
-            </p>
-          }
-        />
-
-        {/* Win Rate */}
-        <StatCard
-          title="Win Rate"
-          value={
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {statsToUse.winRate.toFixed(2)}%
-              <span className="text-slate-500 text-sm ml-1">
-                ({statsToUse.winRateWithBE.toFixed(2)}% w/ BE)
-              </span>
-            </p>
-          }
-        />
-
-        {/* Total Profit - defer until hydrated to avoid $ vs € mismatch when no accounts (new user) */}
-        <StatCard
-          title="Total Profit"
-          value={
-            <p className={hydrated ? `text-2xl font-bold ${profitColor}` : 'text-2xl font-bold text-slate-900 dark:text-slate-100'}>
-              {hydrated ? `${currencySymbol}${statsToUse.totalProfit.toFixed(2)}` : '\u2014'}
-            </p>
-          }
-        />
-
-        {/* Average Profit - defer until hydrated to avoid $ vs € mismatch when no accounts (new user) */}
-        <StatCard
-          title="Average Profit"
-          value={
-            <p className={hydrated ? `text-2xl font-bold ${avgProfitColor}` : 'text-2xl font-bold text-slate-900 dark:text-slate-100'}>
-              {hydrated ? `${currencySymbol}${statsToUse.averageProfit.toFixed(2)}` : '\u2014'}
-            </p>
-          }
-        />
-
-        {/* Total Wins */}
-        <StatCard
-          title="Total Wins"
-          value={
-            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              {statsToUse.totalWins}
-              {statsToUse.beWins > 0 && (
-                <span className="text-sm font-medium text-slate-500 ml-1">
-                  ({statsToUse.beWins} BE)
-                </span>
-              )}
-            </p>
-          }
-        />
-
-        {/* Total Losses */}
-        <StatCard
-          title="Total Losses"
-          value={
-            <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">
-              {statsToUse.totalLosses}
-              {statsToUse.beLosses > 0 && (
-                <span className="text-sm font-medium text-slate-500 ml-1">
-                  ({statsToUse.beLosses} BE)
-                </span>
-              )}
-            </p>
-          }
-        />
-
-        {/* Max Drawdown */}
-        <StatCard
-          title="Max Drawdown"
-          tooltipContent={
-            <div className="space-y-1 text-slate-800 text-xs sm:text-sm">
-              <div className="font-semibold text-slate-800">
-                Drawdown Interpretation
-              </div>
-
-              <div
-                className={`rounded-lg p-1.5 sm:p-2 ${
-                  stats.maxDrawdown <= 2
-                    ? 'bg-blue-50 border border-blue-100'
-                    : ''
-                }`}
-              >
-                <span className="font-medium">🔹 0% – 2%</span> — Excellent. Very low
-                risk. Usually seen in algo/automated or conservative systems.
-              </div>
-              <div
-                className={`rounded-lg p-1.5 sm:p-2 ${
-                  stats.maxDrawdown > 2 && stats.maxDrawdown <= 5
-                    ? 'bg-emerald-50 border border-emerald-100'
-                    : ''
-                }`}
-              >
-                <span className="font-medium">✅ 2% – 5%</span> — Healthy/Moderate.
-                Most professional strategies fall in this zone.
-              </div>
-              <div
-                className={`rounded-lg p-1.5 sm:p-2 ${
-                  stats.maxDrawdown > 5 && stats.maxDrawdown <= 10
-                    ? 'bg-amber-50 border border-amber-100'
-                    : ''
-                }`}
-              >
-                <span className="font-medium">⚠️ 5% – 10%</span> — Aggressive but
-                acceptable. Common for swing traders and trend followers.
-              </div>
-              <div
-                className={`rounded-lg p-1.5 sm:p-2 ${
-                  stats.maxDrawdown > 10 && stats.maxDrawdown <= 20
-                    ? 'bg-orange-50 border border-orange-100'
-                    : ''
-                }`}
-              >
-                <span className="font-medium">❗ 10% – 20%</span> — High risk.
-                Suitable only for high-volatility strategies.
-              </div>
-              <div
-                className={`rounded-lg p-1.5 sm:p-2 ${
-                  stats.maxDrawdown > 20
-                    ? 'bg-red-50 border border-red-100'
-                    : ''
-                }`}
-              >
-                <span className="font-medium">🚫 20%+</span> — Danger zone. Signals
-                poor risk control or heavy leverage.
-              </div>
-            </div>
-          }
-          value={
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {statsToUse.maxDrawdown.toFixed(2)}%
-            </p>
-          }
-        />
-
-        {/* P&L % */}
-        <StatCard
-          title="P&L %"
-          tooltipContent={
-            <p className="text-xs sm:text-sm text-slate-500">
-              Average P&amp;L % over starting balance.
-            </p>
-          }
-          value={
-            <p className={`text-2xl font-bold ${pnlColor}`}>
-              {statsToUse.averagePnLPercentage.toFixed(2)}%
-            </p>
-          }
-        />
-
-        {/* Current Streak */}
-        <StatCard
-          title="Current Streak"
-          tooltipContent={
-            <p className="text-xs sm:text-sm text-slate-500">
-              Current winning (positive) or losing (negative) streak.
-            </p>
-          }
-          value={
-            <p className={`text-2xl font-bold ${streakColor}`}>
-              {statsToUse.currentStreak > 0 ? '+' : ''}
-              {statsToUse.currentStreak}
-            </p>
-          }
-        />
-
-        {/* Best Streaks */}
-        <StatCard
-          title="Best Streaks"
-          tooltipContent={
-            <p className="text-xs sm:text-sm text-slate-500">
-              Best winning and losing streaks in the selected period.
-            </p>
-          }
-          value={
-            <div className="flex gap-6 text-center">
-              <div>
-                <p className="text-xs text-slate-500">Winning</p>
-                <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                  +{statsToUse.maxWinningStreak}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Losing</p>
-                <p className="text-xl font-bold text-rose-600 dark:text-rose-400">
-                  -{statsToUse.maxLosingStreak}
-                </p>
-              </div>
-            </div>
-          }
-        />
-
-        {/* Average Days Between Trades */}
-        <StatCard
-          title="Average Days Between Trades"
-          tooltipContent={
-            <p className="text-xs sm:text-sm text-slate-800">
-              Average number of days between your trades in the selected period.
-            </p>
-          }
-          value={
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {statsToUse.averageDaysBetweenTrades.toFixed(1)} <small className="text-sm text-slate-500">days</small>
-            </p>
-          }
-        />
-
-        {/* Partial Trades */}
-        <StatCard
-          title={
-            <>
-              Partial Trades{' '}
-              <span className="text-slate-500 font-medium text-xs ml-1">
-                {statsToUse.partialWinRate.toFixed(1)}% (
-                {statsToUse.partialWinRateWithBE.toFixed(1)}% w/ BE)
-              </span>
-            </>
-          }
-          tooltipContent={
-            <p className="text-xs sm:text-sm text-slate-500">
-              Trades where partial profits were taken in the selected period.
-            </p>
-          }
-          value={
-            <div className="flex gap-6 text-center">
-              <div>
-                <p className="text-xs text-slate-500">Winning</p>
-                <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {statsToUse.partialWinningTrades}{' '}
-                  <span className="text-slate-500 text-sm">
-                    ({statsToUse.beWinPartialTrades} BE)
-                  </span>
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Losing</p>
-                <p className="text-xl font-bold text-rose-600 dark:text-rose-400">
-                  {statsToUse.partialLosingTrades}{' '}
-                  <span className="text-slate-500 text-sm">
-                    ({statsToUse.beLosingPartialTrades} BE)
-                  </span>
-                </p>
-              </div>
-            </div>
-          }
-        />
-
-        <StatCard
-          title="RR Multiple"
-          value={
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {typeof stats.multipleR === 'number'
-                ? stats.multipleR.toFixed(2)
-                : '—'}
-            </p>
-          }
-        />
-      </div>
 
       
 
