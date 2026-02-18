@@ -59,6 +59,8 @@ import { SharpeRatioChart } from '@/components/dashboard/analytics/SharpeRatioCh
 import { ConsistencyScoreChart } from '@/components/dashboard/analytics/ConsistencyScoreChart';
 import { getAverageDisplacementPerMarket } from '@/utils/getAverageDisplacementPerMarket';
 import { calculateRiskPerTradeStats } from '@/utils/calculateRiskPerTrade';
+import { calculateMarketStats } from '@/utils/calculateCategoryStats';
+import { calculateEvaluationStats } from '@/utils/calculateEvaluationStats';
 
 ChartJS.register(
   CategoryScale,
@@ -1662,6 +1664,43 @@ export default function AnalyticsClient(
     return calculateRiskPerTradeStats(tradesToUse);
   }, [tradesToUse, selectedMarket, selectedExecution, viewMode]);
 
+  // Compute filtered market stats when filters are applied
+  // In yearly mode, only compute if market filter is applied (execution filter doesn't apply in yearly mode)
+  // In dateRange mode, compute if either market or execution filter is applied
+  const filteredMarketStats = useMemo(() => {
+    if (viewMode === 'yearly') {
+      // In yearly mode, only apply market filter
+      if (selectedMarket === 'all') {
+        return null; // Use hook stats
+      }
+    } else {
+      // In dateRange mode, check both filters
+      if (selectedMarket === 'all' && selectedExecution === 'all') {
+        return null; // Use hook stats
+      }
+    }
+    const accountBalance = selection.activeAccount?.account_balance || 0;
+    return calculateMarketStats(tradesToUse, accountBalance);
+  }, [tradesToUse, selectedMarket, selectedExecution, viewMode, selection.activeAccount?.account_balance]);
+
+  // Compute filtered evaluation stats when filters are applied
+  // In yearly mode, only compute if market filter is applied (execution filter doesn't apply in yearly mode)
+  // In dateRange mode, compute if either market or execution filter is applied
+  const filteredEvaluationStats = useMemo(() => {
+    if (viewMode === 'yearly') {
+      // In yearly mode, only apply market filter
+      if (selectedMarket === 'all') {
+        return null; // Use hook stats
+      }
+    } else {
+      // In dateRange mode, check both filters
+      if (selectedMarket === 'all' && selectedExecution === 'all') {
+        return null; // Use hook stats
+      }
+    }
+    return calculateEvaluationStats(tradesToUse);
+  }, [tradesToUse, selectedMarket, selectedExecution, viewMode]);
+
   // Use filtered stats when filters are applied, otherwise use hook stats
   const statsToUseForCharts = filteredChartStats || {
     setupStats,
@@ -3090,7 +3129,11 @@ export default function AnalyticsClient(
         {/* Market Profit Statistics Card */}
         <MarketProfitStatisticsCard
           trades={tradesToUse}
-          marketStats={viewMode === 'yearly' ? marketAllTradesStats : marketStats}
+          marketStats={
+            viewMode === 'yearly' 
+              ? (filteredMarketStats || marketAllTradesStats) as any
+              : (filteredMarketStats || marketStats) as any
+          }
           chartOptions={chartOptions}
           getCurrencySymbol={getCurrencySymbol}
         />
@@ -3227,7 +3270,7 @@ export default function AnalyticsClient(
 
       <div className="my-8">
         {/* Evaluation Statistics */}
-        <EvaluationStats stats={evaluationStats} />
+        <EvaluationStats stats={filteredEvaluationStats || evaluationStats} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
