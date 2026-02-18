@@ -101,7 +101,7 @@ export function NonExecutedTradesCard({
           </div>
         ) : (
           <div className="w-full text-center">
-            <div className="text-4xl font-medium text-slate-900 dark:text-slate-100 mb-2">
+            <div className="text-4xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
               {totalNonExecuted}
             </div>
             <div className="text-slate-500 dark:text-slate-400 text-sm mb-6">
@@ -132,7 +132,7 @@ export function NonExecutedTradesCard({
 
               <div className="flex flex-col items-center gap-2 mt-2">
                 <div className="font-semibold text-lg text-slate-900 dark:text-slate-100">
-                  <span className="font-medium">
+                  <span className="font-semibold">
                     Winrate:{' '}
                     {tradesWithoutBE > 0
                       ? winRate.toFixed(1)
