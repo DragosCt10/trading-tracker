@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip as ReTooltip, Bar as ReBar, Cell, LabelList } from 'recharts';
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { BouncePulse } from '@/components/ui/bounce-pulse';
 
 interface MonthlyStats {
   [month: string]: {
@@ -136,7 +137,23 @@ export function AccountOverviewCard({
         <CardContent className="h-72 relative p-0">
           <div className="w-full h-full transition-all duration-300 opacity-100">
           {!mounted ? (
-            <div className="w-full h-full min-h-[200px]" aria-hidden />
+            <div className="w-full h-full min-h-[200px] flex items-end justify-center gap-8 px-8" aria-hidden>
+              {[50, 70, 60].map((pct, i) => (
+                <div
+                  key={i}
+                  className="w-16 rounded-t-xl bg-slate-300 dark:bg-slate-700 animate-rise-up"
+                  style={{
+                    height: `${pct}%`,
+                    animationDelay: `${i * 0.2}s`,
+                    transform: 'scaleY(0)',
+                  }}
+                />
+              ))}
+            </div>
+          ) : isYearDataLoading ? (
+            <div className="w-full h-full min-h-[200px] flex items-center justify-center" aria-hidden>
+              <BouncePulse size="md" />
+            </div>
           ) : showNoTradesMessage ? (
             <div className="flex flex-col justify-center items-center w-full h-full">
               <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-100/50 to-slate-50 dark:from-slate-800/50 dark:to-slate-800/30 border border-slate-200 dark:border-slate-700 mb-4">
