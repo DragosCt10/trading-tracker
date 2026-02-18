@@ -8,6 +8,7 @@ import { Trade } from '@/types/trade';
 import type { User } from '@supabase/supabase-js';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BouncePulse } from '@/components/ui/bounce-pulse';
 
 const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 
@@ -170,19 +171,8 @@ function AnalyticsSkeleton() {
             </div>
           </div>
           <CardContent className="h-72 relative p-0">
-            <div className="w-full h-full flex items-end justify-between gap-3 px-2">
-              {CHART_BAR_HEIGHTS.map((pct, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-3">
-                  <Skeleton
-                    className="w-full rounded-t-xl bg-primary/15"
-                    style={{
-                      height: `${pct}%`,
-                      animationDelay: `${i * 0.06}s`,
-                    }}
-                  />
-                  <Skeleton className="h-3 w-9 rounded" />
-                </div>
-              ))}
+            <div className="w-full h-full flex items-center justify-center">
+              <BouncePulse size="md" />
             </div>
           </CardContent>
         </div>
