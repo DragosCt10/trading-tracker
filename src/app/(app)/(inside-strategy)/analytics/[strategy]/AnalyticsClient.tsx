@@ -2564,6 +2564,7 @@ export default function AnalyticsClient(
           description="Average displacement size (points) for each market."
           data={getAverageDisplacementPerMarket(tradesToUse)}
           mode="singleValue"
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
           valueKey="value"
         />
         
@@ -2577,8 +2578,9 @@ export default function AnalyticsClient(
           title="Partials + BE Statistics"
           description="Analysis of trades marked as both Break Even and Partials Taken"
           data={getPartialsBEChartData(tradesToUse)}
-          mode="winsLossesWinRate"
+          mode="winsLossesWinRate"  
           heightClassName="h-80"
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
          
          {/* Launch Hour Trades Statistics */}
@@ -2599,6 +2601,7 @@ export default function AnalyticsClient(
           data={nonExecutedLiquidityChartData}
           mode="winsLossesWinRate"
           heightClassName="h-72"
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
       </div>
 
@@ -2609,6 +2612,7 @@ export default function AnalyticsClient(
           data={nonExecutedChartData}
           mode="winsLossesWinRate"
           heightClassName="h-72"
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
 
         <TradeStatsBarCard
@@ -2617,6 +2621,7 @@ export default function AnalyticsClient(
           data={nonExecutedMarketChartData}
           mode="winsLossesWinRate"
           heightClassName="h-96"
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
       </div>
 
@@ -2627,6 +2632,7 @@ export default function AnalyticsClient(
           data={getAverageDisplacementPerMarket(nonExecutedTrades)}
           mode="singleValue"
           valueKey="value"
+          isLoading={viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading}
         />
         
         {/* Displacement Size Profitability by Market and Size Points */}
