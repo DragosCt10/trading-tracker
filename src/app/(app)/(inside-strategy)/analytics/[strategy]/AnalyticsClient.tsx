@@ -55,7 +55,6 @@ import { TotalProfitStatCard } from '@/components/dashboard/analytics/TotalProfi
 import { AverageProfitStatCard } from '@/components/dashboard/analytics/AverageProfitStatCard';
 import { TotalWinsStatCard } from '@/components/dashboard/analytics/TotalWinsStatCard';
 import { TotalLossesStatCard } from '@/components/dashboard/analytics/TotalLossesStatCard';
-import { cn } from '@/lib/utils';
 import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
 import { 
   AccountOverviewCard,
@@ -78,42 +77,31 @@ import { DateRangeValue, TradeFiltersBar } from '@/components/dashboard/analytic
 import { 
   TradesCalendarCard,
   getDaysInMonthForDate,
-  splitMonthIntoFourRanges,
   buildWeeklyStats,
 } from '@/components/dashboard/analytics/TradesCalendarCard';
 import { TradeStatDatum, TradeStatsBarCard } from '@/components/dashboard/analytics/TradesStatsBarCard';
 import {
   SetupStatisticsCard,
-  calculateSetupStats,
   convertSetupStatsToChartData,
   convertFilteredSetupStatsToChartData,
 } from '@/components/dashboard/analytics/SetupStatisticsCard';
 import {
   LiquidityStatisticsCard,
-  calculateLiquidityStats,
-  convertLiquidityStatsToChartData,
   convertFilteredLiquidityStatsToChartData,
 } from '@/components/dashboard/analytics/LiquidityStatisticsCard';
 import {
   DirectionStatisticsCard,
-  calculateDirectionStats,
-  convertDirectionStatsToChartData,
   convertFilteredDirectionStatsToChartData,
 } from '@/components/dashboard/analytics/DirectionStatisticsCard';
 import {
   LocalHLStatisticsCard,
-  calculateLocalHLStats,
-  convertLocalHLStatsToChartData,
   convertFilteredLocalHLStatsToChartData,
 } from '@/components/dashboard/analytics/LocalHLStatisticsCard';
 import {
   SLSizeStatisticsCard,
-  calculateSLSizeStats,
 } from '@/components/dashboard/analytics/SLSizeStatisticsCard';
 import {
   TradeTypesStatisticsCard,
-  calculateReentryStats,
-  calculateBreakEvenStats,
   type TradeTypesStatisticsCardProps,
 } from '@/components/dashboard/analytics/TradeTypesStatisticsCard';
 import {
@@ -143,11 +131,9 @@ import {
 } from '@/components/dashboard/analytics/PartialsBEStatisticsCard';
 import {
   DisplacementSizeStats,
-  DISPLACEMENT_BUCKETS,
 } from '@/components/dashboard/analytics/DisplacementSizeStats';
 import {
   AverageDisplacementSizeCard,
-  getAverageDisplacementPerMarket,
 } from '@/components/dashboard/analytics/AverageDisplacementSizeCard';
 import { 
   ProfitFactorChart,
@@ -495,11 +481,6 @@ export default function AnalyticsClient(
   }, []);
 
   const setupChartData: TradeStatDatum[] = convertSetupStatsToChartData(setupStats);
-
-  const liquidityChartData: TradeStatDatum[] = convertLiquidityStatsToChartData(liquidityStats);
-  const directionChartData: TradeStatDatum[] = convertDirectionStatsToChartData(directionStats);
-
-  const localHLChartData: TradeStatDatum[] = convertLocalHLStatsToChartData(localHLStats);
 
   const timeIntervalChartData: TradeStatDatum[] = TIME_INTERVALS.map((interval) => {
     const stat =
