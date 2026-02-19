@@ -8,8 +8,8 @@ import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import { TradeFiltersBar, DateRangeValue } from '@/components/dashboard/analytics/TradeFiltersBar';
@@ -312,26 +312,15 @@ export default function DiscoverClient({
     setIsModalOpen(false);
   };
 
-  // No active account
-  // if (!selection.activeAccount && !initialActiveAccount) {
-  //   return (
-  //     <div className="p-8">
-  //       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-sm p-8 text-center">
-  //         <h2 className="text-xl font-semibold text-slate-900 mb-2">No Active Account</h2>
-  //         <p className="text-slate-600 mb-6">
-  //           Please set up and activate an account for {selection.mode} mode to discover trades.
-  //         </p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4">
+    <TooltipProvider>
+      <div className="max-w-7xl mx-auto py-8 px-4">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Discover Trades</h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+          My Trades
+        </h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-1">
           Browse your trading history with visual cards
         </p>
       </div>
@@ -360,18 +349,22 @@ export default function DiscoverClient({
           // Skeleton loader
           <>
             {Array.from({ length: 12 }).map((_, index) => (
-              <Card key={`skeleton-${index}`} className="overflow-hidden">
-                <Skeleton className="aspect-video w-full" />
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <Skeleton className="h-6 w-20" />
+              <Card key={`skeleton-${index}`} className="relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+                {/* Image container with padding */}
+                <div className="p-3">
+                  <Skeleton className="aspect-video w-full rounded-lg" />
+                </div>
+                {/* Content area */}
+                <CardContent className="px-5 pb-5 pt-0">
+                  <div className="flex items-center justify-between mb-4">
+                    <Skeleton className="h-7 w-24" />
                     <Skeleton className="h-6 w-16 rounded-full" />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2.5 mb-5">
+                    <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-4 w-20" />
                   </div>
-                  <Skeleton className="h-4 w-32 mt-3" />
+                  <Skeleton className="h-4 w-36" />
                 </CardContent>
               </Card>
             ))}
@@ -383,78 +376,96 @@ export default function DiscoverClient({
         ) : (
           <>
             {displayedTrades.map((trade) => (
-              <Card key={trade.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                {trade.trade_link ? (
-                  <a
-                    href={trade.trade_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block aspect-video bg-slate-100 relative overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
-                  >
-                    <img
-                      src={trade.trade_link}
-                      alt={`${trade.market} trade`}
-                      className="w-full h-full object-cover scale-105"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23e2e8f0" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%2394a3b8"%3ENo Image%3C/text%3E%3C/svg%3E';
-                      }}
-                    />
-                  </a>
-                ) : (
-                  <div className="aspect-video bg-slate-100 relative overflow-hidden">
-                    <div className="w-full h-full flex items-center justify-center text-slate-400">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={1.5}
-                        stroke="currentColor"
-                        className="w-12 h-12"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
-                        />
-                      </svg>
+              <Card key={trade.id} className="relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm hover:shadow-xl hover:shadow-slate-300/50 dark:hover:shadow-slate-900/50 transition-all duration-300">
+                {/* Image container with padding */}
+                <div className="p-3">
+                  {trade.trade_link ? (
+                    <a
+                      href={trade.trade_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block aspect-video bg-slate-100 dark:bg-slate-700/50 rounded-lg relative overflow-hidden cursor-pointer hover:opacity-95 transition-opacity group"
+                    >
+                      <img
+                        src={trade.trade_link}
+                        alt={`${trade.market} trade`}
+                        className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-300"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23e2e8f0" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%2394a3b8"%3ENo Image%3C/text%3E%3C/svg%3E';
+                        }}
+                      />
+                    </a>
+                  ) : (
+                    <div className="aspect-video bg-slate-100 dark:bg-slate-700/50 rounded-lg relative overflow-hidden">
+                      <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                          className="w-12 h-12"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+                          />
+                        </svg>
+                      </div>
                     </div>
-                  </div>
-                )}
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-slate-900">{trade.market}</h3>
-                    <div className="flex items-center gap-2">
+                  )}
+                </div>
+                {/* Content area with improved spacing */}
+                <CardContent className="px-5 pb-5 pt-0">
+                  {/* Header row */}
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                      {trade.market}
+                    </h3>
+                    <div className="flex items-center gap-1">
                       <Badge
-                        className={`shadow-none ${
+                        className={`shadow-none border-none outline-none ring-0 ${
                           trade.trade_outcome === 'Win'
-                            ? 'bg-emerald-100 hover:bg-emerald-100 text-green-600'
-                            : 'bg-red-100 hover:bg-red-100 text-red-600'
+                            ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white'
+                            : 'bg-gradient-to-br from-rose-500 to-rose-300 text-white'
                         }`}
                       >
                         {trade.trade_outcome}
                       </Badge>
-                      {!trade.executed && (
-                        <Badge className="bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-none border-none outline-none ring-0 flex items-center justify-center p-1 h-5 w-5 rounded-full">
-                          <X className="h-3 w-3" />
-                        </Badge>
-                      )}
                       {trade.break_even && (
-                        <Badge className="bg-slate-200 hover:bg-slate-200 text-slate-600 shadow-none text-xs">
+                        <Badge className="shadow-none border-none outline-none ring-0 bg-gradient-to-br from-slate-400 to-slate-600 text-white">
                           BE
                         </Badge>
                       )}
+                      {!trade.executed && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge className="shadow-none border-none outline-none ring-0 bg-gradient-to-br from-amber-400 to-orange-500 text-white cursor-pointer">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-4">
+                                <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                              </svg>
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 shadow-xl">
+                            <div className="text-slate-600 dark:text-slate-300">Not executed trade</div>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                     </div>
                   </div>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex items-center text-slate-600">
+                  {/* Date and time info */}
+                  <div className="space-y-2.5 mb-5">
+                    <div className="flex items-center text-slate-600 dark:text-slate-400 text-sm">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
-                        strokeWidth={1.5}
+                        strokeWidth={2}
                         stroke="currentColor"
-                        className="w-4 h-4 mr-2"
+                        className="w-4 h-4 mr-2.5 text-slate-500 dark:text-slate-400"
                       >
                         <path
                           strokeLinecap="round"
@@ -462,16 +473,16 @@ export default function DiscoverClient({
                           d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
                         />
                       </svg>
-                      {trade.trade_date}
+                      <span className="font-medium">{trade.trade_date}</span>
                     </div>
-                    <div className="flex items-center text-slate-600">
+                    <div className="flex items-center text-slate-600 dark:text-slate-400 text-sm">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
-                        strokeWidth={1.5}
+                        strokeWidth={2}
                         stroke="currentColor"
-                        className="w-4 h-4 mr-2"
+                        className="w-4 h-4 mr-2.5 text-slate-500 dark:text-slate-400"
                       >
                         <path
                           strokeLinecap="round"
@@ -479,15 +490,16 @@ export default function DiscoverClient({
                           d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
                         />
                       </svg>
-                      {trade.trade_time.substring(0, 5)}
+                      <span className="font-medium">{trade.trade_time.substring(0, 5)}</span>
                     </div>
                   </div>
+                  {/* View details link */}
                   <button
                     onClick={() => openModal(trade)}
-                    className="mt-3 inline-flex items-center text-sm text-slate-700 hover:text-slate-900 underline cursor-pointer"
+                    className="inline-flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline underline-offset-4 decoration-slate-300 dark:decoration-slate-600 hover:decoration-slate-500 dark:hover:decoration-slate-400 transition-colors cursor-pointer group"
                   >
-                    View Trade Details
-                    <ArrowRight className="w-4 h-4 ml-1" />
+                    Trade Details
+                    <ArrowRight className="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </CardContent>
               </Card>
@@ -527,6 +539,7 @@ export default function DiscoverClient({
           }}
         />
       )}
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
