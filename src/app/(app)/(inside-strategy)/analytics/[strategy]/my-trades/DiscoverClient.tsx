@@ -8,6 +8,7 @@ import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
@@ -176,6 +177,7 @@ export default function DiscoverClient({
         mode: selection.mode,
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
+        includeNonExecuted: true, // Include non-executed trades so they can be filtered client-side
       });
     },
     initialData: isInitialContext ? initialFilteredTrades : undefined,
@@ -210,6 +212,7 @@ export default function DiscoverClient({
         mode: selection.mode,
         startDate: `${currentYear}-01-01`,
         endDate: `${currentYear}-12-31`,
+        includeNonExecuted: true, // Include non-executed trades for markets list
       });
     },
     initialData: isInitialModeAndAccount ? initialAllTrades : undefined,
@@ -242,10 +245,12 @@ export default function DiscoverClient({
     let list = filteredTrades || [];
     
     // Apply execution filter
+    // Note: executed can be boolean | null, so non-executed includes false, null, and undefined
     if (executionFilter === 'executed') {
       list = list.filter((t) => t.executed === true);
     } else if (executionFilter === 'non-executed') {
-      list = list.filter((t) => t.executed === false);
+      // Non-executed includes both false and null/undefined values
+      list = list.filter((t) => !t.executed);
     }
     
     // Apply market filter
@@ -421,6 +426,11 @@ export default function DiscoverClient({
                       >
                         {trade.trade_outcome}
                       </Badge>
+                      {!trade.executed && (
+                        <Badge className="bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-none border-none outline-none ring-0 flex items-center justify-center p-1 h-5 w-5 rounded-full">
+                          <X className="h-3 w-3" />
+                        </Badge>
+                      )}
                       {trade.break_even && (
                         <Badge className="bg-slate-200 hover:bg-slate-200 text-slate-600 shadow-none text-xs">
                           BE
