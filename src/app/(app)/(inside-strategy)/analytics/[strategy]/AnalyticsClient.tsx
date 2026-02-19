@@ -97,7 +97,7 @@ import {
 } from '@/components/dashboard/analytics/ConsistencyScoreChart';
 import { getAverageDisplacementPerMarket } from '@/utils/getAverageDisplacementPerMarket';
 import { calculateRiskPerTradeStats } from '@/utils/calculateRiskPerTrade';
-import { calculateMarketStats } from '@/utils/calculateCategoryStats';
+import { calculateMarketStats } from '@/components/dashboard/analytics/MarketProfitStats';
 import { calculateEvaluationStats } from '@/utils/calculateEvaluationStats';
 
 ChartJS.register(
