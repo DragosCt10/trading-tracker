@@ -246,8 +246,14 @@
   color: #ffffff !important; /* white text for unselected dates */
 }
 
+.dark .rdrDay .rdrDayNumber,
 .dark .rdrDay .rdrDayNumber span {
   color: #ffffff !important; /* white text for all day numbers */
+}
+
+.dark .rdrDay:not(.rdrDayPassive):not(.rdrDaySelected):not(.rdrDayInRange) .rdrDayNumber span {
+  color: #ffffff !important; /* ensure unselected dates are white */
+  opacity: 1 !important; /* full opacity for current month dates */
 }
 
 .dark .rdrDay.rdrDayPassive {
@@ -255,6 +261,7 @@
   opacity: 0.4 !important; /* reduced opacity for past month days */
 }
 
+.dark .rdrDay.rdrDayPassive .rdrDayNumber,
 .dark .rdrDay.rdrDayPassive .rdrDayNumber span {
   color: #ffffff !important; /* white text for passive days */
   opacity: 0.4 !important; /* reduced opacity for past month days */
