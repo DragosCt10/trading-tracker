@@ -114,9 +114,13 @@ export default function DiscoverClient({
   const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'non-executed'>('all');
   
   // Map executionFilter to TradeFiltersBar's selectedExecution format
-  const selectedExecution: 'all' | 'nonExecuted' = executionFilter === 'non-executed' ? 'nonExecuted' : 'all';
-  const handleExecutionChange = (execution: 'all' | 'nonExecuted') => {
-    setExecutionFilter(execution === 'nonExecuted' ? 'non-executed' : 'all');
+  // TradeFiltersBar only supports 'executed' | 'nonExecuted', so map 'all' to 'executed'
+  const selectedExecution = useMemo<'executed' | 'nonExecuted'>(() => {
+    return executionFilter === 'non-executed' ? 'nonExecuted' : 'executed';
+  }, [executionFilter]);
+  
+  const handleExecutionChange = (execution: 'executed' | 'nonExecuted') => {
+    setExecutionFilter(execution === 'nonExecuted' ? 'non-executed' : 'executed');
   };
   const observerTarget = useRef<HTMLDivElement>(null);
 
