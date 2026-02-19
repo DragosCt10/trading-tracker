@@ -4,7 +4,7 @@ import DiscoverData from './DiscoverData';
 
 export const dynamic = 'force-dynamic';
 
-export default async function DiscoverPage() {
+export default async function MyTradesPage() {
   const { user } = await getCachedUserSession();
   if (!user) redirect('/login');
   return <DiscoverData user={user} />;

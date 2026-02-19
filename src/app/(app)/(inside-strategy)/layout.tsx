@@ -47,7 +47,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
   }, [currentStrategySlug]);
 
   // Note: localStorage cleanup happens in Navbar.tsx handleSignOut() on logout
-  // The strategy slug persists across inside-strategy route navigation (analytics/trades/discover)
+  // The strategy slug persists across inside-strategy route navigation (analytics/manage-trades/my-trades)
   // which is intentional - it allows users to return to their last viewed analytics page
 
   // Get the analytics URL with the strategy slug
@@ -57,11 +57,11 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
   }, [currentStrategySlug, savedStrategySlug]);
 
   const isActive = (path: string) => {
-    if (path === '/trades') {
-      return pathname.startsWith('/trades');
+    if (path === '/manage-trades') {
+      return pathname.startsWith('/manage-trades');
     }
-    if (path === '/discover') {
-      return pathname.startsWith('/discover');
+    if (path === '/my-trades') {
+      return pathname.startsWith('/my-trades');
     }
     if (path === '/analytics') {
       return pathname.startsWith('/analytics');
@@ -84,7 +84,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
 
       {/* Floating Left Bar - Centered Middle */}
       <div className="fixed left-4 top-1/2 -translate-y-1/2 z-40 hidden lg:block group">
-        <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden transition-all duration-300 w-20 hover:w-48">
+        <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden transition-all duration-300 w-20 hover:w-52">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5" />
           <div className="relative flex flex-col gap-2 p-3">
             <Button
@@ -102,11 +102,11 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
               variant="ghost"
               asChild
               size="sm"
-              className={cn(navButtonClass(isActive('/trades')), 'w-full h-auto min-h-[64px] !p-0')}
+              className={cn(navButtonClass(isActive('/manage-trades')), 'w-full h-auto min-h-[64px] !p-0')}
             >
-              <Link href="/trades" className="block w-full h-full relative min-h-[40px]">
+              <Link href="/manage-trades" className="block w-full h-full relative min-h-[40px]">
                 <FileText className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
-                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">My Trades</span>
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Manage Trades</span>
               </Link>
             </Button>
             <Button
@@ -125,11 +125,11 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
               variant="ghost"
               asChild
               size="sm"
-              className={cn(navButtonClass(isActive('/discover')), 'w-full h-auto min-h-[64px] !p-0')}
+              className={cn(navButtonClass(isActive('/my-trades')), 'w-full h-auto min-h-[64px] !p-0')}
             >
-              <Link href="/discover" className="block w-full h-full relative min-h-[40px]">
+              <Link href="/my-trades" className="block w-full h-full relative min-h-[40px]">
                 <Sparkles className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
-                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Discover</span>
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">My Trades</span>
               </Link>
             </Button>
           </div>
