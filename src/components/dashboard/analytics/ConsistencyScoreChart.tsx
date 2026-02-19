@@ -129,7 +129,7 @@ export function ConsistencyScoreChart({ consistencyScore }: ConsistencyScoreChar
             Consistency Score
           </CardTitle>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-            Monthly profitability rate
+            Profitability rate
           </CardDescription>
         </CardHeader>
         <CardContent className="h-48 flex items-center justify-center">
@@ -161,10 +161,11 @@ export function ConsistencyScoreChart({ consistencyScore }: ConsistencyScoreChar
               <TooltipContent
                 side="top"
                 align="center"
-                className="w-72 text-xs sm:text-sm backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl text-slate-900 dark:text-slate-100"
+                className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
                 sideOffset={6}
               >
-                {tooltipContent}
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5 rounded-2xl" />
+                <div className="relative">{tooltipContent}</div>
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
@@ -177,7 +178,9 @@ export function ConsistencyScoreChart({ consistencyScore }: ConsistencyScoreChar
         {/* Custom Tooltip positioned above chart */}
         {showTooltip && (
           <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="backdrop-blur-xl bg-gradient-to-br from-white/98 via-white/95 to-slate-50/95 dark:from-slate-900/98 dark:via-slate-900/95 dark:to-slate-800/95 border border-slate-200/80 dark:border-slate-700/80 rounded-xl p-3 shadow-xl shadow-slate-900/10 dark:shadow-slate-900/30 ring-1 ring-slate-900/5 dark:ring-slate-100/5">
+            <div className="relative overflow-hidden rounded-xl p-3 border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40">
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5 rounded-xl" />
+              <div className="relative flex flex-col">
               <div className="flex items-center gap-2">
                 <div className={cn("h-2 w-2 rounded-full shadow-sm ring-2", getTooltipDotColor())}></div>
                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -186,6 +189,7 @@ export function ConsistencyScoreChart({ consistencyScore }: ConsistencyScoreChar
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 ml-4 font-medium">
                 Percentage of profitable months
+              </div>
               </div>
             </div>
           </div>
