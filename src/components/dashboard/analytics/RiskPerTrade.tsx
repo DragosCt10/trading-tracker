@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
 
-type RiskStats = {
+export type RiskStats = {
   total: number;
   wins: number;
   losses: number;
@@ -25,10 +25,14 @@ type RiskStats = {
 };
 
 /** Key is e.g. risk025, risk03, risk1. Backend can add more. */
-type RiskAnalysis = Record<string, RiskStats>;
+export type RiskAnalysis = Record<string, RiskStats>;
 
-/** Parse risk key (e.g. risk025, risk03, risk1) to percentage for label and sort. */
-function parseRiskKey(key: string): number | null {
+/**
+ * Parse risk key (e.g. risk025, risk03, risk1) to percentage for label and sort.
+ * @param key - The risk key string (e.g., "risk025", "risk03", "risk1")
+ * @returns The parsed percentage number or null if invalid
+ */
+export function parseRiskKey(key: string): number | null {
   const match = key.match(/^risk(.+)$/i);
   if (!match) return null;
   const suffix = match[1];
