@@ -2387,8 +2387,8 @@ export default function AnalyticsClient(
   return (
     <> 
       {/* View Mode Toggle */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-6 my-10">
-        <div className="mt-10">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-6 mb-10">
+        <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
             {viewMode === 'yearly' ? 'Year in Review' : 'Date Range Analytics'}
           </h1>
