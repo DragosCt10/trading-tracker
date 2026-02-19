@@ -27,7 +27,7 @@ interface RiskRewardStatsProps {
 }
 
 // Only ratios we care about
-const DISPLAY_RATIOS = [2, 2.5, 3];
+export const DISPLAY_RATIOS = [2, 2.5, 3] as const;
 
 export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewardStatsProps) {
   // --- 1. Find all unique markets with at least one trade with a qualifying ratio -----
