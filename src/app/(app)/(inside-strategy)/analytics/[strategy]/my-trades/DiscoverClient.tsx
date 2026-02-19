@@ -314,7 +314,7 @@ export default function DiscoverClient({
 
   return (
     <TooltipProvider>
-      <div className="max-w-7xl mx-auto py-8 px-4">
+      <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
