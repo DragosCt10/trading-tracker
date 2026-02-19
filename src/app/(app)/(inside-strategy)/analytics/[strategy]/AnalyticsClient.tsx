@@ -58,7 +58,12 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MonthlyPerformanceChart } from '@/components/dashboard/analytics/MonthlyPerformanceChart';
 import { DateRangeValue, TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
-import { TradesCalendarCard } from '@/components/dashboard/analytics/TradesCalendarCard';
+import { 
+  TradesCalendarCard,
+  getDaysInMonthForDate,
+  splitMonthIntoFourRanges,
+  buildWeeklyStats,
+} from '@/components/dashboard/analytics/TradesCalendarCard';
 import { TradeStatDatum, TradeStatsBarCard } from '@/components/dashboard/analytics/TradesStatsBarCard';
 import { LaunchHourTradesCard } from '@/components/dashboard/analytics/LaunchHourTradesCard';
 import { NonExecutedTradesCard } from '@/components/dashboard/analytics/NonExecutedTradesCard';
@@ -212,93 +217,6 @@ function isCustomDateRange(range: DateRangeState): boolean {
 }
 
 
-function getDaysInMonthForDate(date: Date): Date[] {
-  return eachDayOfInterval({
-    start: startOfMonth(date),
-    end: endOfMonth(date),
-  });
-}
-
-function splitMonthIntoFourRanges(date: Date): Date[][] {
-  const start = startOfMonth(date);
-  const end = endOfMonth(date);
-  const daysInMonth = eachDayOfInterval({ start, end });
-  const totalDays = daysInMonth.length;
-
-  const ranges: Date[][] = [];
-  const baseSize = Math.floor(totalDays / 4);
-  let remainder = totalDays % 4;
-  let currentIndex = 0;
-
-  for (let i = 0; i < 4; i++) {
-    const size = baseSize + (remainder > 0 ? 1 : 0);
-    remainder = Math.max(0, remainder - 1);
-    ranges.push(daysInMonth.slice(currentIndex, currentIndex + size));
-    currentIndex += size;
-  }
-
-  return ranges;
-}
-
-function buildWeeklyStats(
-  currentDate: Date,
-  calendarMonthTrades: Trade[],
-  selectedMarket: string,
-  accountBalance: number
-) {
-  const weekRanges = splitMonthIntoFourRanges(currentDate);
-
-  return weekRanges.map((days, idx) => {
-    const trades = days.flatMap((day) =>
-      calendarMonthTrades.filter(
-        (trade) =>
-          format(new Date(trade.trade_date), 'yyyy-MM-dd') ===
-          format(day, 'yyyy-MM-dd')
-      )
-    );
-
-    const filteredTrades =
-      selectedMarket === 'all'
-        ? trades
-        : trades.filter((t) => t.market === selectedMarket);
-
-    const nonBETrades = filteredTrades.filter((t) => !t.break_even);
-    const beTrades = filteredTrades.filter((t) => t.break_even);
-
-    const totalProfit = nonBETrades.reduce(
-      (sum, trade) => sum + (trade.calculated_profit || 0),
-      0
-    );
-
-    const wins = nonBETrades.filter(
-      (t) => t.trade_outcome === 'Win'
-    ).length;
-
-    const losses = nonBETrades.filter(
-      (t) => t.trade_outcome === 'Lose'
-    ).length;
-
-    const beCount = beTrades.length;
-
-    const weekLabel = `${format(days[0], 'd MMM')} - ${format(
-      days[days.length - 1],
-      'd MMM'
-    )}`;
-
-    const pnlPercent =
-      accountBalance > 0 ? (totalProfit / accountBalance) * 100 : 0;
-
-    return {
-      totalProfit,
-      wins,
-      losses,
-      beCount,
-      weekLabel,
-      pnlPercent,
-      index: idx,
-    };
-  });
-}
 
 /* ---------------------------------------------------------
  * Props from server (AnalyticsData)
