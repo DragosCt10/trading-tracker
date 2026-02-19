@@ -139,12 +139,12 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                   onFocus={() => setShowDatePicker(true)}
                   onClick={() => setShowDatePicker(true)}
                   placeholder="Select date range"
-                  className="w-full cursor-pointer shadow-none border-slate-200/60 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 rounded-xl h-10"
+                  className="w-full cursor-pointer shadow-none border-slate-200/60 dark:border-slate-700/50 bg-white dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-800 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 rounded-xl h-10 text-slate-700 dark:text-slate-200"
                 />
                 <button
                   type="button"
                   onClick={() => setShowDatePicker((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
                 >
                   <Calendar className="h-4 w-4" />
                 </button>
@@ -153,7 +153,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
               {showDatePicker && (
                 <div
                   ref={pickerRef}
-                  className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:bg-slate-800/30 shadow-2xl shadow-slate-900/30 dark:shadow-black/60 backdrop-blur-sm [&_.rdrCalendarWrapper]:bg-transparent [&_.rdrDateDisplayItem]:cursor-pointer [&_.rdrDateDisplayItem]:rounded-full [&_.rdrDateDisplayItem]:border [&_.rdrDateDisplayItem]:border-slate-300/50 [&_.rdrDateDisplayItem]:bg-transparent [&_.rdrDateDisplayItem]:text-black [&_.rdrDateDisplayItem]:shadow-none [&_.rdrDateDisplayItem]:hover:bg-purple-50/30 [&_.rdrDateDisplayItem]:hover:text-purple-600 [&_.rdrDateDisplayItem]:dark:border-slate-600/50 [&_.rdrDateDisplayItem]:dark:text-slate-200 [&_.rdrDateDisplayItem]:dark:hover:bg-purple-900/20 [&_.rdrDateDisplayItem]:dark:hover:text-purple-300 [&_.rdrDateDisplayItem]:font-medium [&_.rdrDateDisplayItem]:transition-colors [&_.rdrDateDisplayItem]:duration-200 [&_.rdrDateDisplayItem]:px-3 [&_.rdrDateDisplayItem]:py-1.5 [&_.rdrDateDisplayItem]:text-sm [&_input]:cursor-pointer [&_input]:rounded-full [&_input]:border [&_input]:border-slate-300/50 [&_input]:bg-transparent [&_input]:text-black [&_input]:shadow-none [&_input]:hover:bg-purple-50/30 [&_input]:hover:text-purple-600 [&_input]:dark:border-slate-600/50 [&_input]:dark:text-slate-200 [&_input]:dark:hover:bg-purple-900/20 [&_input]:dark:hover:text-purple-300 [&_input]:font-medium [&_input]:transition-colors [&_input]:duration-200 [&_input]:px-3 [&_input]:py-1.5 [&_input]:text-sm [&_.rdrCalendarWrapper]:dark:bg-transparent [&_.rdrMonthPicker]:dark:text-slate-200 [&_.rdrYearPicker]:dark:text-slate-200 [&_.rdrWeekDay]:dark:text-slate-400 [&_.rdrDay]:dark:text-slate-200 [&_.rdrDay.rdrDayToday]:dark:text-purple-400 [&_.rdrDay.rdrDayToday]:dark:border-purple-400 [&_.rdrDay.rdrDayPassive]:dark:text-slate-600 [&_.rdrDay.rdrDayDisabled]:dark:text-slate-700 [&_.rdrDay.rdrDayInRange]:dark:bg-purple-900/30 [&_.rdrDay.rdrDayInRange]:dark:text-purple-200 [&_.rdrDay.rdrDayStartEdge]:dark:bg-purple-600 [&_.rdrDay.rdrDayStartEdge]:dark:text-white [&_.rdrDay.rdrDayEndEdge]:dark:bg-purple-600 [&_.rdrDay.rdrDayEndEdge]:dark:text-white [&_.rdrDay.rdrDaySelected]:dark:bg-purple-600 [&_.rdrDay.rdrDaySelected]:dark:text-white [&_.rdrDay.rdrDayHovered]:dark:bg-purple-800/40 [&_.rdrDay.rdrDayHovered]:dark:text-purple-100"
+                  className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm"
                 >
                   <DateRange
                     ranges={[
@@ -174,20 +174,20 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                       });
                     }}
                     moveRangeOnFirstSelection={false}
-                    editableDateInputs
+                    editableDateInputs={false}
                     maxDate={new Date()}
                     showMonthAndYearPickers
-                    rangeColors={['#8b5cf6']} // violet-500
+                    rangeColors={['#a855f7']} // purple-500 for gradient
                     direction="vertical"
                   />
 
-                  <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/70 via-white/50 to-slate-50/70 dark:bg-slate-800/30 backdrop-blur-sm px-4 py-3">
+                  <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800 px-4 py-3">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={handleCancel}
-                      className="cursor-pointer rounded-xl px-4 py-2 text-sm transition-colors duration-200 relative overflow-hidden group border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium"
+                      className="cursor-pointer rounded-xl px-4 py-2 text-sm transition-colors duration-200 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium"
                     >
                       Cancel
                     </Button>
@@ -195,10 +195,9 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                       type="button"
                       size="sm"
                       onClick={handleApply}
-                      className="cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 relative overflow-hidden group border-0 bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white shadow-md shadow-purple-500/30 dark:shadow-purple-500/20"
+                      className="cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 border-0 bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white shadow-md shadow-purple-500/30"
                     >
-                      <span className="relative z-10">Apply</span>
-                      <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                      Apply
                     </Button>
                   </div>
                 </div>
