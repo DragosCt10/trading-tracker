@@ -47,6 +47,7 @@ import { StatCard } from '@/components/dashboard/analytics/StatCard';
 import { AverageMonthlyTradesCard } from '@/components/dashboard/analytics/AverageMonthlyTradesCard';
 import { NonExecutedTradesStatCard } from '@/components/dashboard/analytics/NonExecutedTradesStatCard';
 import { TQIStatCard } from '@/components/dashboard/analytics/TQIStatCard';
+import { RRMultipleStatCard } from '@/components/dashboard/analytics/RRMultipleStatCard';
 import { cn } from '@/lib/utils';
 import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
 import { 
@@ -2521,20 +2522,7 @@ export default function AnalyticsClient(
         {/* TQI (Trade Quality Index) */}
         <TQIStatCard tradeQualityIndex={macroStatsToUse.tradeQualityIndex} />
 
-        <StatCard
-          title="RR Multiple"
-          value={
-            <p
-              className={cn(
-                'text-2xl font-bold text-slate-900 dark:text-slate-100'
-              )}
-            >
-              {typeof macroStatsToUse.multipleR === 'number'
-                ? macroStatsToUse.multipleR.toFixed(2)
-                : '—'}
-            </p>
-          }
-        />
+        <RRMultipleStatCard multipleR={macroStatsToUse.multipleR} />
 
         <StatCard
           title="Max Drawdown"
