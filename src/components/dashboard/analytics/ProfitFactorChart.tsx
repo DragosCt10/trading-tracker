@@ -72,11 +72,11 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
         Profit Factor Interpretation
       </div>
         <div className="space-y-2">
-        <div className={cn("rounded-xl p-2.5 transition-all", profitFactor < 1 ? "bg-red-50/80 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/30" : "bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30")}>
+        <div className={cn("rounded-xl p-2.5 transition-all", profitFactor < 1 ? "bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/50 dark:border-orange-800/30" : "bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30")}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🔹 &lt; 1.0</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Negative Efficiency — Losses outweigh gains.</div>
         </div>
-        <div className={cn("rounded-xl p-2.5 transition-all", profitFactor >= 1 && profitFactor < 1.5 ? "bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/50 dark:border-orange-800/30" : "bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30")}>
+        <div className={cn("rounded-xl p-2.5 transition-all", profitFactor >= 1 && profitFactor < 1.5 ? "bg-orange-100/80 dark:bg-orange-950/40 border border-orange-200/50 dark:border-orange-800/30" : "bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30")}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟠 1.0 – 1.49</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Marginal Efficiency — Profitable but limited.</div>
         </div>
