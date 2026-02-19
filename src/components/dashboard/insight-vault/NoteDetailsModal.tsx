@@ -287,7 +287,7 @@ export default function NoteDetailsModal({
                     onChange={(e) =>
                       setEditedNote({ ...editedNote, title: e.target.value })
                     }
-                    className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100 focus:outline-none"
+                    className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none"
                   />
                 </div>
 
@@ -296,7 +296,7 @@ export default function NoteDetailsModal({
                   <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Strategies (Optional)
                   </Label>
-                  <div className="border border-slate-200/70 dark:border-slate-800/70 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-900/30 max-h-48 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:dark:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
+                  <div className="border border-slate-200/60 dark:border-slate-600 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm max-h-48 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:dark:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
                     {strategies.length === 0 ? (
                       <p className="text-sm text-slate-500 dark:text-slate-400">No strategies available</p>
                     ) : (
@@ -378,7 +378,7 @@ export default function NoteDetailsModal({
                       </button>
                     </div>
                   </div>
-                  <div className="border border-slate-200/70 dark:border-slate-800/70 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-900/30">
+                  <div className="border border-slate-200/60 dark:border-slate-600 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm">
                     {isPreview ? (
                       <div className="min-h-[400px] p-4 prose prose-slate dark:prose-invert max-w-none break-words [overflow-wrap:anywhere] [&_a]:underline [&_a]:text-purple-600 dark:[&_a]:text-purple-400 [&_a]:decoration-purple-500/50 hover:[&_a]:decoration-purple-500 [&_*]:break-words [&_*]:[overflow-wrap:anywhere]">
                         <ReactMarkdown 
