@@ -7,6 +7,28 @@ import { Info } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
+/* ---------------------------------------------------------
+ * Constants & helpers
+ * ------------------------------------------------------ */
+
+interface MonthlyStats {
+  [month: string]: {
+    profit: number;
+  };
+}
+
+/**
+ * Calculate consistency score (simplified - percentage of profitable months)
+ */
+export function calculateConsistencyScore(monthlyStats: MonthlyStats): number {
+  const profitableMonths = Object.keys(monthlyStats).filter((month) => {
+    const monthProfit = monthlyStats[month]?.profit || 0;
+    return monthProfit > 0;
+  }).length;
+  const totalMonths = Object.keys(monthlyStats).length;
+  return totalMonths > 0 ? (profitableMonths / totalMonths) * 100 : 0;
+}
+
 interface ConsistencyScoreChartProps {
   consistencyScore: number;
 }
