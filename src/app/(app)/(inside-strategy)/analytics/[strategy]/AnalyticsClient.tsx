@@ -46,7 +46,15 @@ import RiskPerTrade from '@/components/dashboard/analytics/RiskPerTrade';
 import { StatCard } from '@/components/dashboard/analytics/StatCard';
 import { cn } from '@/lib/utils';
 import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
-import { AccountOverviewCard } from '@/components/dashboard/analytics/AccountOverviewCard';
+import { 
+  AccountOverviewCard,
+  MONTHS,
+  CURRENCY_SYMBOLS,
+  getCurrencySymbolFromAccount,
+  computeMonthlyStatsFromTrades,
+  calculateTotalYearProfit,
+  calculateUpdatedBalance,
+} from '@/components/dashboard/analytics/AccountOverviewCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MonthlyPerformanceChart } from '@/components/dashboard/analytics/MonthlyPerformanceChart';
 import { DateRangeValue, TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
@@ -114,40 +122,12 @@ const chartOptions = {
   },
 };
 
-const CURRENCY_SYMBOLS = {
-  USD: '$',
-  EUR: '€',
-  GBP: '£',
-  JPY: '¥',
-  AUD: 'A$',
-  CAD: 'C$',
-  CHF: 'CHF',
-  CNY: '¥',
-  HKD: 'HK$',
-  NZD: 'NZ$',
-} as const;
-
 const TIME_INTERVALS = [
   { label: '< 10 a.m', start: '00:00', end: '09:59' },
   { label: '10 a.m - 12 p.m', start: '10:00', end: '11:59' },
   { label: '12 p.m - 16 p.m', start: '12:00', end: '16:59' },
   { label: '17 p.m - 21 p.m', start: '17:00', end: '20:59' },
 ] as const;
-
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
 
 type DateRangeState = {
   startDate: string; // yyyy-MM-dd
@@ -231,15 +211,6 @@ function isCustomDateRange(range: DateRangeState): boolean {
   );
 }
 
-function getCurrencySymbolFromAccount(
-  account?: { currency?: string | null }
-): string {
-  if (!account?.currency) return '$';
-  return (
-    CURRENCY_SYMBOLS[account.currency as keyof typeof CURRENCY_SYMBOLS] ??
-    account.currency
-  );
-}
 
 function getDaysInMonthForDate(date: Date): Date[] {
   return eachDayOfInterval({
@@ -1669,26 +1640,6 @@ export default function AnalyticsClient(
     };
   }, []);
 
-  // Compute monthly stats from trades array (for AccountOverviewCard - profit only)
-  const computeMonthlyStatsFromTrades = useMemo(() => {
-    return (trades: Trade[]): { [key: string]: { profit: number } } => {
-      const monthlyData: { [key: string]: { profit: number } } = {};
-      
-      trades.forEach((trade) => {
-        const tradeDate = new Date(trade.trade_date);
-        const monthName = MONTHS[tradeDate.getMonth()];
-        const profit = trade.calculated_profit || 0;
-        
-        if (!monthlyData[monthName]) {
-          monthlyData[monthName] = { profit: 0 };
-        }
-        
-        monthlyData[monthName].profit += profit;
-      });
-      
-      return monthlyData;
-    };
-  }, []);
 
   // Compute full monthly stats from trades array (for MonthlyPerformanceChart - wins, losses, winRate, etc.)
   const computeFullMonthlyStatsFromTrades = useMemo(() => {
@@ -2109,13 +2060,14 @@ export default function AnalyticsClient(
     return viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading;
   }, [selectedMarket, selectedExecution, viewMode, allTradesLoading, filteredTradesLoading]);
 
+  // Determine which monthly stats to use based on view mode (for AccountOverviewCard - profit only)
+  // Always compute from tradesToUse to ensure it reflects the current date range and filters
+  // In yearly mode with no filters, tradesToUse uses allTrades (which is correct)
+  // In date range mode, tradesToUse uses filteredTrades (which respects the date range)
+  // When filters are applied, tradesToUse is already filtered
   const monthlyStatsToUse: { [month: string]: { profit: number } } = useMemo(() => {
-    // Always compute from tradesToUse to ensure it reflects the current date range and filters
-    // In yearly mode with no filters, tradesToUse uses allTrades (which is correct)
-    // In date range mode, tradesToUse uses filteredTrades (which respects the date range)
-    // When filters are applied, tradesToUse is already filtered
     return computeMonthlyStatsFromTrades(tradesToUse);
-  }, [tradesToUse, computeMonthlyStatsFromTrades]);
+  }, [tradesToUse]);
 
   // Determine which full monthly stats to use based on view mode (for MonthlyPerformanceChart - wins, losses, winRate, etc.)
   // Always use tradesToUse to ensure data consistency across all cards and charts
@@ -2124,17 +2076,17 @@ export default function AnalyticsClient(
   }, [tradesToUse, computeFullMonthlyStatsFromTrades]);
 
   const totalYearProfit = useMemo(
-    () =>
-      Object.values(monthlyStatsToUse).reduce(
-        (sum, s) => sum + (s.profit || 0),
-        0
-      ),
+    () => calculateTotalYearProfit(monthlyStatsToUse),
     [monthlyStatsToUse]
   );
 
-
-  const updatedBalance =
-    ((resolvedAccount as { account_balance?: number } | null)?.account_balance ?? 0) + totalYearProfit;
+  const updatedBalance = useMemo(
+    () => calculateUpdatedBalance(
+      (resolvedAccount as { account_balance?: number } | null)?.account_balance,
+      totalYearProfit
+    ),
+    [resolvedAccount, totalYearProfit]
+  );
 
   const getDaysInMonth = useMemo(
     () => getDaysInMonthForDate(currentDate),
