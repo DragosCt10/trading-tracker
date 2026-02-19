@@ -114,6 +114,18 @@ import {
   calculateBreakEvenStats,
   type TradeTypesStatisticsCardProps,
 } from '@/components/dashboard/analytics/TradeTypesStatisticsCard';
+import {
+  DayStatisticsCard,
+  type DayStatisticsCardProps,
+} from '@/components/dashboard/analytics/DayStatisticsCard';
+import {
+  MSSStatisticsCard,
+  type MSSStatisticsCardProps,
+} from '@/components/dashboard/analytics/MSSStatisticsCard';
+import {
+  NewsStatisticsCard,
+  type NewsStatisticsCardProps,
+} from '@/components/dashboard/analytics/NewsStatisticsCard';
 import { LaunchHourTradesCard } from '@/components/dashboard/analytics/LaunchHourTradesCard';
 import { NonExecutedTradesCard } from '@/components/dashboard/analytics/NonExecutedTradesCard';
 import { DisplacementSizeStats } from '@/components/dashboard/analytics/DisplacementSizeStats';
@@ -968,50 +980,6 @@ export default function AnalyticsClient(
     };
   });
 
-  const mssChartData: TradeStatDatum[] = mssStats.map((stat) => {
-    const totalTrades = stat.wins + stat.losses;
-
-    return {
-      category: stat.mss,              
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-      totalTrades,
-    };
-  });
-
-  const newsChartData: TradeStatDatum[] = newsStats.map((stat) => {
-    const totalTrades = stat.wins + stat.losses;
-
-    return {
-      category: `${stat.news}`,
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-      totalTrades,
-    };
-  });
-
-  const dayChartData: TradeStatDatum[] = dayStats.map((stat) => {
-    const totalTrades = stat.wins + stat.losses;
-
-    return {
-      category: `${stat.day}`,
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-      totalTrades,
-    };
-  });
 
   // Use correct market stats based on view mode
   const marketStatsToUse = viewMode === 'yearly' ? marketAllTradesStats : marketStats;
@@ -1681,47 +1649,6 @@ export default function AnalyticsClient(
     };
   });
 
-  const mssChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.mssStats.map((stat) => {
-    const statWithTotal = stat as any;
-    return {
-      category: stat.mss,
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-      totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
-    };
-  });
-
-  const newsChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.newsStats.map((stat) => {
-    const statWithTotal = stat as any;
-    return {
-      category: `${stat.news}`,
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-      totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
-    };
-  });
-
-  const dayChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.dayStats.map((stat) => {
-    const statWithTotal = stat as any;
-    return {
-      category: `${stat.day}`,
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-      totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
-    };
-  });
 
   const marketChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.marketStats.map((stat) => {
     const totalTrades = stat.wins + stat.losses;
@@ -1741,9 +1668,6 @@ export default function AnalyticsClient(
   // Use filtered chart data when filters are applied, otherwise use original
   const setupChartDataToUse = filteredChartStats ? setupChartDataFiltered : setupChartData;
   const timeIntervalChartDataToUse = filteredChartStats ? timeIntervalChartDataFiltered : timeIntervalChartData;
-  const mssChartDataToUse = filteredChartStats ? mssChartDataFiltered : mssChartData;
-  const newsChartDataToUse = filteredChartStats ? newsChartDataFiltered : newsChartData;
-  const dayChartDataToUse = filteredChartStats ? dayChartDataFiltered : dayChartData;
   const marketChartDataToUse = filteredChartStats ? marketChartDataFiltered : marketChartData;
 
   // Determine loading state for charts
@@ -2705,36 +2629,27 @@ export default function AnalyticsClient(
 
       <div className="my-8">
         {/* Day Statistics Card */}
-        <TradeStatsBarCard
-          title="Day Statistics"
-          description="Distribution of trades based on day of the week"
-          data={dayChartDataToUse}
-          mode="winsLossesWinRate"
-          heightClassName="h-72"
+        <DayStatisticsCard
+          dayStats={filteredChartStats ? (statsToUseForCharts.dayStats as DayStatisticsCardProps['dayStats']) : dayStats}
           isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
         />
       </div>
 
       {/* MSS and News Statistics Cards Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* MSS Statistics Card */}
-        <TradeStatsBarCard
-          title="MSS Statistics"
-          description="Distribution of trades based on MSS"
-          data={mssChartDataToUse}
-          mode="winsLossesWinRate"
-          heightClassName="h-72"
+        <MSSStatisticsCard
+          mssStats={filteredChartStats ? (statsToUseForCharts.mssStats as MSSStatisticsCardProps['mssStats']) : mssStats}
           isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
         />
 
         {/* News Statistics Card */}
-        <TradeStatsBarCard
-          title="News Statistics"
-          description="Distribution of trades based on news"
-          data={newsChartDataToUse}
-          mode="winsLossesWinRate"
-          heightClassName="h-72"
+        <NewsStatisticsCard
+          newsStats={filteredChartStats ? (statsToUseForCharts.newsStats as NewsStatisticsCardProps['newsStats']) : newsStats}
           isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
         />
       </div>
 
@@ -2815,53 +2730,7 @@ export default function AnalyticsClient(
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
         {/* Non Executed Trades Statistics */}
         <NonExecutedTradesCard nonExecutedTrades={nonExecutedTrades} />
-
-        {/* <TradeStatsBarCard
-          title="Non-Executed Trades Liquidity Statistics"
-          description="Distribution of non-executed trades based on trading liquidity"
-          data={nonExecutedLiquidityChartData}
-          mode="winsLossesWinRate"
-          heightClassName="h-72"
-          isLoading={chartsLoadingState}
-        /> */}
-      </div>
-
-      <div className="space-y-8">
-        {/* <TradeStatsBarCard
-          title="Non-Executed Trades Setup Statistics"
-          description="Distribution of non-executed trades based on trading setup"
-          data={nonExecutedChartData}
-          mode="winsLossesWinRate"
-          heightClassName="h-72"
-          isLoading={chartsLoadingState}
-        />
-
-        <TradeStatsBarCard
-          title="Non-Executed Trades Market Statistics"
-          description="Distribution of non-executed trades based on market"
-          data={nonExecutedMarketChartData}
-          mode="winsLossesWinRate"
-          heightClassName="h-96"
-          isLoading={chartsLoadingState}
-        /> */}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
-        {/* <TradeStatsBarCard
-          title="Average Displacement Size (Points)"
-          description="Average displacement size (points) for each market."
-          data={getAverageDisplacementPerMarket(nonExecutedTrades)}
-          mode="singleValue"
-          valueKey="value"
-          isLoading={chartsLoadingState}
-        /> */}
-        
-        {/* Displacement Size Profitability by Market and Size Points */}
-        {/* <DisplacementSizeStats 
-          trades={nonExecutedTrades} 
-          isLoading={chartsLoadingState}
-        /> */}
-      </div>
+      </div>  
     </>
   );
 }
