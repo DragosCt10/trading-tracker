@@ -83,7 +83,7 @@ export default function LoginPage() {
       {/* Theme toggle button */}
       <button
         onClick={toggleTheme}
-        className="absolute top-6 right-4 z-50 p-3 rounded-xl bg-slate-100/50 border-slate-300 dark:bg-slate-700/50 backdrop-blur-md border dark:border-slate-700/50 dark:border-slate-600/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+        className="absolute top-6 right-4 z-50 p-3 rounded-xl bg-slate-100/50 border-slate-300 dark:bg-slate-700/50 backdrop-blur-md border dark:border-slate-500 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
         aria-label="Toggle theme"
       >
         {!mounted ? (
@@ -104,8 +104,8 @@ export default function LoginPage() {
       {/* Main content - Full page card */}
       <div className="relative z-10 w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-1000 outline-none border-0">
         
-        {/* Top accent line - hidden in dark mode */}
-        <div className="absolute -top-20 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50 dark:opacity-0" />
+        {/* Top accent line */}
+        <div className="absolute -top-20 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-50 dark:via-purple-400 dark:opacity-70" />
         
         {/* Content container */}
         <div className="relative outline-none border-0">
