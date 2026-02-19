@@ -127,7 +127,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
         {/* Date range input + picker */}
         <div className="flex items-center gap-4">
           <div className="w-72">
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+            <label className="block text-sm font-semibold text-slate-500 dark:text-slate-300 mb-1.5">
               Period of Analysis:
             </label>
             <div className="relative w-full">
@@ -234,7 +234,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
 
         {/* Period filters */}
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          <span className="text-sm font-semibold text-slate-500 dark:text-slate-300">
             Filter by period:
           </span>
           <div className="flex flex-wrap gap-2">
@@ -266,7 +266,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
 
         {/* Market filter */}
         <div className="ml-auto flex items-center gap-3">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          <span className="text-sm font-semibold text-slate-500 dark:text-slate-300">
             Filter by market:
           </span>
           <Select
@@ -292,7 +292,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
 
         {/* Execution filter */}
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          <span className="text-sm font-semibold text-slate-500 dark:text-slate-300">
             Filter by execution:
           </span>
           <Select
