@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -20,20 +20,21 @@ import {
 import { Trade } from '@/types/trade';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 
-interface DisplacementSizeStatsProps {
+export interface DisplacementSizeStatsProps {
   trades: Trade[];
   isLoading?: boolean;
 }
 
-const DISPLACEMENT_BUCKETS = [
+export const DISPLACEMENT_BUCKETS = [
   { key: '0-10', label: '0–10', min: 0, max: 10 },
   { key: '10-20', label: '10–20', min: 10, max: 20 },
   { key: '20-30', label: '20–30', min: 20, max: 30 },
   { key: '30-40', label: '30–40', min: 30, max: 40 },
   { key: '40+', label: '40+', min: 40, max: Infinity },
-];
+] as const;
 
-export function DisplacementSizeStats({ trades, isLoading: externalLoading }: DisplacementSizeStatsProps) {
+export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React.memo(
+  function DisplacementSizeStats({ trades, isLoading: externalLoading }) {
   // Only consider trades that have a numerical displacement_size and a clear outcome (Win / Lose / BE)
   // Displacement size can be any number (no filtering by 20+)
   const filteredTrades = trades.filter(
@@ -385,4 +386,5 @@ export function DisplacementSizeStats({ trades, isLoading: externalLoading }: Di
       </CardContent>
     </Card>
   );
-}
+  }
+);
