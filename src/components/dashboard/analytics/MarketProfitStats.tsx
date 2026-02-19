@@ -19,6 +19,8 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { Trade } from '@/types/trade';
+import { calculateMarketStats as calculateMarketStatsUtil } from '@/utils/calculateCategoryStats';
+import type { MarketStats } from '@/types/dashboard';
 
 export interface MarketStat {
   market: string;
@@ -31,6 +33,16 @@ export interface MarketStat {
   beWins: number;
   beLosses: number;
   profitTaken: boolean;
+}
+
+/**
+ * Calculate market statistics from trades array
+ * @param trades - Array of trades to compute stats from
+ * @param accountBalance - Account balance for P&L percentage calculation
+ * @returns Array of market statistics
+ */
+export function calculateMarketStats(trades: Trade[], accountBalance: number): MarketStats[] {
+  return calculateMarketStatsUtil(trades, accountBalance);
 }
 
 interface MarketProfitStatisticsCardProps {
