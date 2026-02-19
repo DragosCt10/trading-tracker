@@ -44,6 +44,7 @@ import { RRHitStats } from '@/components/dashboard/analytics/RRHitStats';
 import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketProfitStats';
 import RiskPerTrade from '@/components/dashboard/analytics/RiskPerTrade';
 import { StatCard } from '@/components/dashboard/analytics/StatCard';
+import { AverageMonthlyTradesCard } from '@/components/dashboard/analytics/AverageMonthlyTradesCard';
 import { cn } from '@/lib/utils';
 import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
 import { 
@@ -2504,44 +2505,7 @@ export default function AnalyticsClient(
 
         {/* Average Monthly Trades - Only show in yearly mode */}
         {viewMode === 'yearly' && (
-          <StatCard
-            title="Average Monthly Trades"
-            tooltipContent={
-              <div className="space-y-2 text-slate-500">
-                <div className="font-semibold text-slate-800">
-                  Monthly Trading Volume
-                </div>
-                <p>
-                  Average number of trades (including break-even trades) executed per
-                  month in the selected year. This helps track your total trading
-                  frequency and consistency.
-                </p>
-              </div>
-            }
-            value={
-              <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                {monthlyStats.monthlyData
-                  ? (() => {
-                      const totalTrades = Object.values(monthlyStats.monthlyData).reduce(
-                        (sum, month) =>
-                          sum +
-                          month.wins +
-                          month.losses +
-                          month.beWins +
-                          month.beLosses,
-                        0
-                      );
-                      const monthsCount = Object.keys(monthlyStats.monthlyData).length;
-                      const avg =
-                        monthsCount > 0 ? totalTrades / monthsCount : 0;
-                      const value = isNaN(avg) || !isFinite(avg) ? 0 : avg;
-                      return value.toFixed(0);
-                    })()
-                  : '0'}{' '}
-                <span className="text-slate-500 text-sm">(incl. BE)</span>
-              </p>
-            }
-          />
+          <AverageMonthlyTradesCard monthlyStats={monthlyStats} />
         )}
 
         {/* Non-Executed Trades - Only show in yearly mode */}
