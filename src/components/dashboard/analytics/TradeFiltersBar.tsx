@@ -122,11 +122,14 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
   const displayRange = `${dateRange.startDate} ~ ${dateRange.endDate}`;
 
   return (
-    <Card className="mb-8 z-1 relative border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70  dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+    <Card className="mb-8 z-1 relative border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
       <div className="flex flex-wrap items-center justify-between gap-6 p-6">
         {/* Date range input + picker */}
         <div className="flex items-center gap-4">
           <div className="w-72">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Period of Analysis:
+            </label>
             <div className="relative w-full">
               <div className="relative">
                 <Input
@@ -150,7 +153,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
               {showDatePicker && (
                 <div
                   ref={pickerRef}
-                  className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-2xl shadow-slate-900/30 dark:shadow-black/60 backdrop-blur-sm [&_.rdrCalendarWrapper]:bg-transparent [&_.rdrDateDisplayItem]:cursor-pointer [&_.rdrDateDisplayItem]:rounded-full [&_.rdrDateDisplayItem]:border [&_.rdrDateDisplayItem]:border-slate-300/50 [&_.rdrDateDisplayItem]:bg-transparent [&_.rdrDateDisplayItem]:text-black [&_.rdrDateDisplayItem]:shadow-none [&_.rdrDateDisplayItem]:hover:bg-purple-50/30 [&_.rdrDateDisplayItem]:hover:text-purple-600 [&_.rdrDateDisplayItem]:dark:border-slate-600/50 [&_.rdrDateDisplayItem]:dark:text-slate-200 [&_.rdrDateDisplayItem]:dark:hover:bg-purple-900/20 [&_.rdrDateDisplayItem]:dark:hover:text-purple-300 [&_.rdrDateDisplayItem]:font-medium [&_.rdrDateDisplayItem]:transition-colors [&_.rdrDateDisplayItem]:duration-200 [&_.rdrDateDisplayItem]:px-3 [&_.rdrDateDisplayItem]:py-1.5 [&_.rdrDateDisplayItem]:text-sm [&_input]:cursor-pointer [&_input]:rounded-full [&_input]:border [&_input]:border-slate-300/50 [&_input]:bg-transparent [&_input]:text-black [&_input]:shadow-none [&_input]:hover:bg-purple-50/30 [&_input]:hover:text-purple-600 [&_input]:dark:border-slate-600/50 [&_input]:dark:text-slate-200 [&_input]:dark:hover:bg-purple-900/20 [&_input]:dark:hover:text-purple-300 [&_input]:font-medium [&_input]:transition-colors [&_input]:duration-200 [&_input]:px-3 [&_input]:py-1.5 [&_input]:text-sm"
+                  className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:bg-slate-800/30 shadow-2xl shadow-slate-900/30 dark:shadow-black/60 backdrop-blur-sm [&_.rdrCalendarWrapper]:bg-transparent [&_.rdrDateDisplayItem]:cursor-pointer [&_.rdrDateDisplayItem]:rounded-full [&_.rdrDateDisplayItem]:border [&_.rdrDateDisplayItem]:border-slate-300/50 [&_.rdrDateDisplayItem]:bg-transparent [&_.rdrDateDisplayItem]:text-black [&_.rdrDateDisplayItem]:shadow-none [&_.rdrDateDisplayItem]:hover:bg-purple-50/30 [&_.rdrDateDisplayItem]:hover:text-purple-600 [&_.rdrDateDisplayItem]:dark:border-slate-600/50 [&_.rdrDateDisplayItem]:dark:text-slate-200 [&_.rdrDateDisplayItem]:dark:hover:bg-purple-900/20 [&_.rdrDateDisplayItem]:dark:hover:text-purple-300 [&_.rdrDateDisplayItem]:font-medium [&_.rdrDateDisplayItem]:transition-colors [&_.rdrDateDisplayItem]:duration-200 [&_.rdrDateDisplayItem]:px-3 [&_.rdrDateDisplayItem]:py-1.5 [&_.rdrDateDisplayItem]:text-sm [&_input]:cursor-pointer [&_input]:rounded-full [&_input]:border [&_input]:border-slate-300/50 [&_input]:bg-transparent [&_input]:text-black [&_input]:shadow-none [&_input]:hover:bg-purple-50/30 [&_input]:hover:text-purple-600 [&_input]:dark:border-slate-600/50 [&_input]:dark:text-slate-200 [&_input]:dark:hover:bg-purple-900/20 [&_input]:dark:hover:text-purple-300 [&_input]:font-medium [&_input]:transition-colors [&_input]:duration-200 [&_input]:px-3 [&_input]:py-1.5 [&_input]:text-sm [&_.rdrCalendarWrapper]:dark:bg-transparent [&_.rdrMonthPicker]:dark:text-slate-200 [&_.rdrYearPicker]:dark:text-slate-200 [&_.rdrWeekDay]:dark:text-slate-400 [&_.rdrDay]:dark:text-slate-200 [&_.rdrDay.rdrDayToday]:dark:text-purple-400 [&_.rdrDay.rdrDayToday]:dark:border-purple-400 [&_.rdrDay.rdrDayPassive]:dark:text-slate-600 [&_.rdrDay.rdrDayDisabled]:dark:text-slate-700 [&_.rdrDay.rdrDayInRange]:dark:bg-purple-900/30 [&_.rdrDay.rdrDayInRange]:dark:text-purple-200 [&_.rdrDay.rdrDayStartEdge]:dark:bg-purple-600 [&_.rdrDay.rdrDayStartEdge]:dark:text-white [&_.rdrDay.rdrDayEndEdge]:dark:bg-purple-600 [&_.rdrDay.rdrDayEndEdge]:dark:text-white [&_.rdrDay.rdrDaySelected]:dark:bg-purple-600 [&_.rdrDay.rdrDaySelected]:dark:text-white [&_.rdrDay.rdrDayHovered]:dark:bg-purple-800/40 [&_.rdrDay.rdrDayHovered]:dark:text-purple-100"
                 >
                   <DateRange
                     ranges={[
@@ -178,7 +181,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                     direction="vertical"
                   />
 
-                  <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br bg-slate-50/70 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 backdrop-blur-sm px-4 py-3">
+                  <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/70 via-white/50 to-slate-50/70 dark:bg-slate-800/30 backdrop-blur-sm px-4 py-3">
                     <Button
                       type="button"
                       variant="outline"
