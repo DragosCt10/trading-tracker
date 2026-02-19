@@ -185,6 +185,18 @@
   -moz-appearance: none !important;
 }
 
+.rdrDayDisabled {
+  background-color: rgba(148, 163, 184, 0.1) !important; /* slate-400/10 - subtle gray background for light mode */
+  color: #94a3b8 !important; /* slate-400 - muted text color */
+  cursor: not-allowed !important;
+}
+
+.rdrDayDisabled .rdrDayNumber,
+.rdrDayDisabled .rdrDayNumber span {
+  color: #94a3b8 !important; /* slate-400 - muted text color */
+  opacity: 0.5 !important;
+}
+
 .rdrDayDisabled .rdrInRange,
 .rdrDayDisabled .rdrStartEdge,
 .rdrDayDisabled .rdrEndEdge,
@@ -192,8 +204,33 @@
 .rdrDayDisabled .rdrDayStartPreview,
 .rdrDayDisabled .rdrDayInPreview,
 .rdrDayDisabled .rdrDayEndPreview {
-  opacity: 0.5;
+  opacity: 0.3 !important;
   filter: none !important;
+  background-color: rgba(148, 163, 184, 0.1) !important; /* subtle background */
+}
+
+/* Dark mode styles for disabled days */
+.dark .rdrDayDisabled {
+  background-color: rgba(51, 65, 85, 0.3) !important; /* slate-700/30 - darker background for dark mode */
+  color: #64748b !important; /* slate-500 - muted text color for dark mode */
+}
+
+.dark .rdrDayDisabled .rdrDayNumber,
+.dark .rdrDayDisabled .rdrDayNumber span {
+  color: #64748b !important; /* slate-500 - muted text color */
+  opacity: 0.5 !important;
+}
+
+.dark .rdrDayDisabled .rdrInRange,
+.dark .rdrDayDisabled .rdrStartEdge,
+.dark .rdrDayDisabled .rdrEndEdge,
+.dark .rdrDayDisabled .rdrSelected,
+.dark .rdrDayDisabled .rdrDayStartPreview,
+.dark .rdrDayDisabled .rdrDayInPreview,
+.dark .rdrDayDisabled .rdrDayEndPreview {
+  opacity: 0.3 !important;
+  filter: none !important;
+  background-color: rgba(51, 65, 85, 0.3) !important; /* darker background for dark mode */
 }
 
 /* Dark mode styles for date range picker */
