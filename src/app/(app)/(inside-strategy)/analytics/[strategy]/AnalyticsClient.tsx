@@ -906,13 +906,8 @@ export default function AnalyticsClient(
 
   // update calendar for dateRange mode after filtered trades are available
   useEffect(() => {
-    if (viewMode === 'dateRange') {
+    if (viewMode === 'dateRange' && !filteredTradesLoading) {
       const filterKey = `${viewMode}-${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${selectedExecution}`;
-      
-      // Skip if filters haven't changed
-      if (lastFilterKeyRef.current === filterKey) {
-        return;
-      }
       
       const filteredTradesForCalendar = getFilteredTradesForCalendar();
       const startDateObj = new Date(dateRange.startDate);
@@ -921,8 +916,6 @@ export default function AnalyticsClient(
       // In date range mode: find the first month with filtered trades within the date range
       const startYear = startDateObj.getFullYear();
       const startMonth = startDateObj.getMonth();
-      const endYear = endDateObj.getFullYear();
-      const endMonth = endDateObj.getMonth();
       
       // Get months that have filtered trades within the date range
       const monthsWithTrades = new Map<string, { year: number; month: number }>();
@@ -940,12 +933,15 @@ export default function AnalyticsClient(
         }
       });
       
-      // Check if current month has filtered trades
+      // Check if current month has filtered trades and is within date range
       const currentMonthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
       const currentMonthHasTrades = monthsWithTrades.has(currentMonthKey);
+      const filtersChanged = lastFilterKeyRef.current !== filterKey;
       
-      // Only update if current month doesn't have filtered trades
-      if (!currentMonthHasTrades) {
+      // Reset calendar if:
+      // 1. Filters have changed (date range, market, or execution filter)
+      // 2. Current month doesn't have trades in the filtered date range
+      if (filtersChanged || !currentMonthHasTrades) {
         // Find the first month with filtered trades, or use start date if no trades
         let targetYear = startYear;
         let targetMonth = startMonth;
@@ -973,7 +969,7 @@ export default function AnalyticsClient(
       lastFilterKeyRef.current = filterKey;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode, dateRange.startDate, dateRange.endDate, selectedMarket, selectedExecution]);
+  }, [viewMode, dateRange.startDate, dateRange.endDate, selectedMarket, selectedExecution, filteredTrades, filteredTradesLoading]);
 
   // streaming analysis listener
   useEffect(() => {
@@ -2632,6 +2628,7 @@ export default function AnalyticsClient(
         See your trades and activity by calendar day and week.
       </p>
       <TradesCalendarCard
+        key={`${viewMode}-${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${selectedExecution}`}
         currentDate={currentDate}
         onMonthNavigate={handleMonthNavigation}
         canNavigateMonth={canNavigateMonth}
