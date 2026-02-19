@@ -4,6 +4,7 @@ import type { AccountRow } from '@/lib/server/accounts';
 import { useQueryClient } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 import Navbar from '@/components/navigation/Navbar';
+import Footer from '@/components/shared/Footer';
 
 export type InitialUserDetails = { user: { id: string } | null; session: object | null };
 
@@ -37,9 +38,10 @@ export default function AppLayout({
 
   return (
     <>
-      <div className="mt-48 max-w-(--breakpoint-xl) mx-auto">
+      <div className="mt-48 max-w-(--breakpoint-xl) mx-auto flex min-h-screen flex-col">
         <Navbar />
-        {children}
+        <div className="flex-1">{children}</div>
+        <Footer />
       </div>
     </>
   );
