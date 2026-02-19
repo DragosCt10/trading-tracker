@@ -137,7 +137,12 @@ import {
 import {
   EvaluationStats,
 } from '@/components/dashboard/analytics/EvaluationStats';
-import { LaunchHourTradesCard } from '@/components/dashboard/analytics/LaunchHourTradesCard';
+import {
+  LaunchHourTradesCard,
+} from '@/components/dashboard/analytics/LaunchHourTradesCard';
+import {
+  PartialsBEStatisticsCard,
+} from '@/components/dashboard/analytics/PartialsBEStatisticsCard';
 import { NonExecutedTradesCard } from '@/components/dashboard/analytics/NonExecutedTradesCard';
 import {
   DisplacementSizeStats,
@@ -1000,36 +1005,6 @@ export default function AnalyticsClient(
 
   // Use correct market stats based on view mode
   const marketStatsToUse = viewMode === 'yearly' ? marketAllTradesStats : marketStats;
-
-  // Helper for trades with both Break Even and Partials Taken
-  function getPartialsBEChartData(filteredTrades: any[]): TradeStatDatum[] {
-    // Trades that are both Break Even and have Partials Taken
-    const partialsBETrades = filteredTrades.filter(
-      (t) => t.break_even && t.partials_taken
-    );
-
-    const totalPartialsBE = partialsBETrades.length; // Count all trades including non-executed ones
-
-    // All trades in this set are break-even, so wins/losses are BE wins/losses
-    const beWins = partialsBETrades.filter((t) => t.trade_outcome === 'Win').length;
-    const beLosses = partialsBETrades.filter((t) => t.trade_outcome === 'Lose').length;
-    const executedTradesCount = beWins + beLosses;
-    const winRate = executedTradesCount > 0 ? (beWins / executedTradesCount) * 100 : 0;
-    const winRateWithBE = winRate; // Same as winRate since all trades are BE
-
-    return [
-      {
-        category: `Partials + BE`,
-        wins: 0, // No regular wins since all are BE
-        losses: 0, // No regular losses since all are BE
-        beWins,
-        beLosses,
-        winRate,
-        winRateWithBE,
-        totalTrades: totalPartialsBE,
-      },
-    ];
-  }
 
   const nonExecutedChartData: TradeStatDatum[] = nonExecutedSetupStats.map((stat) => {
     const totalTrades = stat.wins + stat.losses;
@@ -2648,17 +2623,10 @@ export default function AnalyticsClient(
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Partials + BE Statistics */}
-        <TradeStatsBarCard
-          title="Partials + BE Statistics"
-          description="Analysis of trades marked as both Break Even and Partials Taken"
-          data={getPartialsBEChartData(tradesToUse)}
-          mode="winsLossesWinRate"  
-          heightClassName="h-80"
-          isLoading={chartsLoadingState}
-        />
+        <PartialsBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
          
          {/* Launch Hour Trades Statistics */}
-        <LaunchHourTradesCard filteredTrades={tradesToUse} />
+        <LaunchHourTradesCard filteredTrades={tradesToUse} isLoading={chartsLoadingState} />
       </div>
 
 
