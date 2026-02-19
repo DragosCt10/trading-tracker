@@ -80,6 +80,12 @@ import {
   buildWeeklyStats,
 } from '@/components/dashboard/analytics/TradesCalendarCard';
 import { TradeStatDatum, TradeStatsBarCard } from '@/components/dashboard/analytics/TradesStatsBarCard';
+import {
+  SetupStatisticsCard,
+  calculateSetupStats,
+  convertSetupStatsToChartData,
+  convertFilteredSetupStatsToChartData,
+} from '@/components/dashboard/analytics/SetupStatisticsCard';
 import { LaunchHourTradesCard } from '@/components/dashboard/analytics/LaunchHourTradesCard';
 import { NonExecutedTradesCard } from '@/components/dashboard/analytics/NonExecutedTradesCard';
 import { DisplacementSizeStats } from '@/components/dashboard/analytics/DisplacementSizeStats';
@@ -902,15 +908,7 @@ export default function AnalyticsClient(
     };
   }, []);
 
-  const setupChartData: TradeStatDatum[] = setupStats.map((stat) => ({
-    category: `${stat.setup}`,
-    wins: stat.wins,
-    losses: stat.losses,
-    beWins: stat.beWins,
-    beLosses: stat.beLosses,
-    winRate: stat.winRate,
-    winRateWithBE: stat.winRateWithBE,
-  }));
+  const setupChartData: TradeStatDatum[] = convertSetupStatsToChartData(setupStats);
 
   const liquidityChartData: TradeStatDatum[] = liquidityStats.map((stat) => ({
     category: `${stat.liquidity}`,
@@ -1699,19 +1697,7 @@ export default function AnalyticsClient(
   };
 
   // Recompute chart data arrays using filtered stats when filters are applied
-  const setupChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.setupStats.map((stat) => {
-    const statWithTotal = stat as any;
-    return {
-      category: `${stat.setup}`,
-      totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-    };
-  });
+  const setupChartDataFiltered: TradeStatDatum[] = convertFilteredSetupStatsToChartData(statsToUseForCharts.setupStats);
 
   const liquidityChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.liquidityStats.map((stat) => {
     const statWithTotal = stat as any;
@@ -2785,12 +2771,10 @@ export default function AnalyticsClient(
 
       <div className="my-8">
         {/* Setup Statistics Card */}
-        <TradeStatsBarCard
-          title="Setup Statistics"
-          description="Distribution of trades based on trading setup"
-          data={setupChartDataToUse}
-          mode="winsLossesWinRate"
+        <SetupStatisticsCard
+          setupStats={filteredChartStats ? statsToUseForCharts.setupStats : setupStats}
           isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
         />
       </div>
       
