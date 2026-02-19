@@ -41,8 +41,10 @@ interface TradeFiltersBarProps {
   markets: string[]; // unique list of markets (e.g. from allTrades)
   
   /** execution filter dropdown */
-  selectedExecution: 'executed' | 'nonExecuted';
-  onSelectedExecutionChange: (execution: 'executed' | 'nonExecuted') => void;
+  selectedExecution: 'all' | 'executed' | 'nonExecuted';
+  onSelectedExecutionChange: (execution: 'all' | 'executed' | 'nonExecuted') => void;
+  /** Show "All Trades" option in execution filter (for my-trades page) */
+  showAllTradesOption?: boolean;
 }
 
 export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
@@ -56,6 +58,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
   markets,
   selectedExecution,
   onSelectedExecutionChange,
+  showAllTradesOption = false,
 }) => {
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [tempRange, setTempRange] = React.useState<DateRangeValue>(dateRange);
@@ -301,9 +304,12 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
               className="flex w-40 shadow-none border-slate-200/60 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 rounded-xl h-10" 
               suppressHydrationWarning
             >
-              <SelectValue placeholder="Executed Trades" />
+              <SelectValue placeholder={showAllTradesOption ? "All Trades" : "Executed Trades"} />
             </SelectTrigger>
             <SelectContent className="rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-white dark:bg-slate-900 shadow-lg backdrop-blur-sm">
+              {showAllTradesOption && (
+                <SelectItem value="all" className="rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800">All Trades</SelectItem>
+              )}
               <SelectItem value="executed" className="rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800">Executed Trades</SelectItem>
               <SelectItem value="nonExecuted" className="rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800">Non Executed Trades</SelectItem>
             </SelectContent>
