@@ -139,7 +139,14 @@ import {
 } from '@/components/dashboard/analytics/EvaluationStats';
 import { LaunchHourTradesCard } from '@/components/dashboard/analytics/LaunchHourTradesCard';
 import { NonExecutedTradesCard } from '@/components/dashboard/analytics/NonExecutedTradesCard';
-import { DisplacementSizeStats } from '@/components/dashboard/analytics/DisplacementSizeStats';
+import {
+  DisplacementSizeStats,
+  DISPLACEMENT_BUCKETS,
+} from '@/components/dashboard/analytics/DisplacementSizeStats';
+import {
+  AverageDisplacementSizeCard,
+  getAverageDisplacementPerMarket,
+} from '@/components/dashboard/analytics/AverageDisplacementSizeCard';
 import { 
   ProfitFactorChart,
   calculateProfitFactor,
@@ -152,7 +159,6 @@ import {
   ConsistencyScoreChart,
   calculateConsistencyScore,
 } from '@/components/dashboard/analytics/ConsistencyScoreChart';
-import { getAverageDisplacementPerMarket } from '@/utils/getAverageDisplacementPerMarket';
 import { calculateRiskPerTradeStats } from '@/utils/calculateRiskPerTrade';
 import { calculateMarketStats } from '@/components/dashboard/analytics/MarketProfitStats';
 import { calculateEvaluationStats } from '@/utils/calculateEvaluationStats';
@@ -2628,13 +2634,9 @@ export default function AnalyticsClient(
         <RRHitStats trades={tradesToUse} isLoading={chartsLoadingState} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <TradeStatsBarCard
-          title="Average Displacement Size (Points)"
-          description="Average displacement size (points) for each market."
-          data={getAverageDisplacementPerMarket(tradesToUse)}
-          mode="singleValue"
+        <AverageDisplacementSizeCard 
+          trades={tradesToUse} 
           isLoading={chartsLoadingState}
-          valueKey="value"
         />
         
         {/* Displacement Size Profitability by Market and Size Points */}
