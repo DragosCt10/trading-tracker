@@ -408,7 +408,7 @@ export default function TradesClient({
 
   return (
     <TooltipProvider>
-      <div className="max-w-(--breakpoint-xl) mx-auto">
+      <div className="max-w-7xl mx-auto">
           {/* Header Section */}
           <div className="mb-8">
             <div className="flex justify-between items-center">
@@ -430,114 +430,56 @@ export default function TradesClient({
             </div>
           </div>
 
-          {/* Filters Section */}
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <label htmlFor="market-filter" className="text-sm font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">Market:</label>
-              <Select value={selectedMarket} onValueChange={setSelectedMarket}>
-                <SelectTrigger
-                  id="market-filter"
-                  className="w-full sm:w-48 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
-                >
-                  <SelectValue placeholder="Market" />
-                </SelectTrigger>
-                <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
-                  <SelectItem value="all">All Markets</SelectItem>
-                  {uniqueMarkets.map(market => (
-                    <SelectItem key={market} value={market}>{market}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Filters Section - Reorganized for better UX */}
+          <div className="mb-6 space-y-4">
+            {/* Row 1: Primary Filters - Market and Sort */}
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <label htmlFor="market-filter" className="text-sm font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap shrink-0">Market:</label>
+                <Select value={selectedMarket} onValueChange={setSelectedMarket}>
+                  <SelectTrigger
+                    id="market-filter"
+                    className="w-full sm:w-48 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
+                  >
+                    <SelectValue placeholder="Market" />
+                  </SelectTrigger>
+                  <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                    <SelectItem value="all">All Markets</SelectItem>
+                    {uniqueMarkets.map(market => (
+                      <SelectItem key={market} value={market}>{market}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2 flex-1 min-w-0 sm:justify-end">
+                <label htmlFor="sort-by" className="text-sm font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap shrink-0">Sort by:</label>
+                <Select value={sortConfig.field} onValueChange={value => {
+                  const field = value as 'trade_date' | 'market' | 'outcome';
+                  setSortConfig(prev => ({
+                    field,
+                    direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+                  }));
+                }}>
+                  <SelectTrigger id="sort-by" className="w-full sm:w-48 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                    <SelectItem value="trade_date">Date</SelectItem>
+                    <SelectItem value="market">Market</SelectItem>
+                    <SelectItem value="outcome">Outcome</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="flex items-center w-full sm:w-auto">
-              <Checkbox
-                id="non-executed-checkbox"
-                checked={showNonExecuted}
-                onCheckedChange={checked => setShowNonExecuted(!!checked)}
-                className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
-              />
-              <Label
-                htmlFor="non-executed-checkbox"
-                className="cursor-pointer text-slate-700 dark:text-slate-300 text-sm flex items-center font-normal ml-2"
-              >
-                Show only non-executed trades
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="ml-1 cursor-pointer">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="w-64 max-w-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-xl">
-                    <div className="text-slate-600 dark:text-slate-300">
-                      This filter shows trades marked as "not executed" due to reasons such as emotions, discipline errors, or other factors. These trades are <span className="font-semibold">not</span> included in your statistics.
-                    </div>
-                    
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-            </div>
-
-            <div className="flex items-center w-full sm:w-auto sm:ml-4">
-              <Checkbox
-                id="partial-trades-checkbox"
-                checked={showPartialTrades}
-                onCheckedChange={checked => setShowPartialTrades(!!checked)}
-                className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
-              />
-              <Label
-                htmlFor="partial-trades-checkbox"
-                className="cursor-pointer text-slate-700 dark:text-slate-300 text-sm flex items-center font-normal ml-2"
-              >
-                Show only partial trades
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="ml-1 cursor-pointer">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="w-64 max-w-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-xl">
-                    <div className="text-slate-600 dark:text-slate-300">
-                      This filter shows trades where partial profits were taken during the trade execution.
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-            </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <label htmlFor="sort-by" className="text-sm font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">Sort by:</label>
-              <Select value={sortConfig.field} onValueChange={value => {
-                const field = value as 'trade_date' | 'market' | 'outcome';
-                setSortConfig(prev => ({
-                  field,
-                  direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
-                }));
-              }}>
-                <SelectTrigger id="sort-by" className="w-full sm:w-48 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
-                  <SelectItem value="trade_date">Date</SelectItem>
-                  <SelectItem value="market">Market</SelectItem>
-                  <SelectItem value="outcome">Outcome</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Filters Card */}
-          <div className="mb-6 flex flex-col gap-4">
-            <div className="flex flex-col gap-4 w-full md:flex-row md:items-end">
-              <div className="w-full md:flex-1">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            {/* Row 2: Date Range and Quick Filters */}
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-end justify-between">
+              <div className="w-full md:max-w-xs sm:max-w-sm">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   Date Range
                 </label>
-                <div className="relative w-full max-w-xs sm:w-72">
+                <div className="relative w-full">
                   <Input
                     ref={inputRef}
                     placeholder="Select date range"
@@ -651,11 +593,11 @@ export default function TradesClient({
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3 mt-2 md:mt-0">
-                <span className="text-sm font-medium text-slate-500 dark:text-slate-300 whitespace-nowrap">
-                  Filter by:
-                </span>
-                <div className="flex flex-wrap gap-2 items-center">
+              <div className="w-full md:w-auto md:ml-auto">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  Quick Filters
+                </label>
+                <div className="flex flex-wrap gap-2">
                   {(['year', '15days', '30days', 'month'] as const).map((filterType) => {
                     const isActive = activeFilter === filterType && !isCustomDateRange();
                     const labels: Record<Exclude<FilterType, null>, string> = {
@@ -683,18 +625,79 @@ export default function TradesClient({
               </div>
             </div>
 
-            {exporting && (
-              <div className="w-5/12 mx-auto mt-4 relative z-10">
-                <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Exporting {paginatedTotalCount} trades ...({Math.round(exportProgress)}%)</div>
-                <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-purple-500 to-violet-600 transition-all duration-300"
-                    style={{ width: `${exportProgress}%` }}
-                  ></div>
-                </div>
+            {/* Row 3: Checkbox Filters */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+              <div className="flex items-center">
+                <Checkbox
+                  id="non-executed-checkbox"
+                  checked={showNonExecuted}
+                  onCheckedChange={checked => setShowNonExecuted(!!checked)}
+                  className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
+                />
+                <Label
+                  htmlFor="non-executed-checkbox"
+                  className="cursor-pointer text-slate-700 dark:text-slate-300 text-sm flex items-center font-normal ml-2"
+                >
+                  Show only non-executed trades
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="ml-1 cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="w-64 max-w-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-xl">
+                      <div className="text-slate-600 dark:text-slate-300">
+                        This filter shows trades marked as "not executed" due to reasons such as emotions, discipline errors, or other factors. These trades are <span className="font-semibold">not</span> included in your statistics.
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
               </div>
-            )}
+
+              <div className="flex items-center">
+                <Checkbox
+                  id="partial-trades-checkbox"
+                  checked={showPartialTrades}
+                  onCheckedChange={checked => setShowPartialTrades(!!checked)}
+                  className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
+                />
+                <Label
+                  htmlFor="partial-trades-checkbox"
+                  className="cursor-pointer text-slate-700 dark:text-slate-300 text-sm flex items-center font-normal ml-2"
+                >
+                  Show only partial trades
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="ml-1 cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="w-64 max-w-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-xl">
+                    <div className="text-slate-600 dark:text-slate-300">
+                      This filter shows trades where partial profits were taken during the trade execution.
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
+              </div>
+            </div>
           </div>
+
+          {exporting && (
+            <div className="w-5/12 mx-auto mb-6 relative z-10">
+              <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Exporting {paginatedTotalCount} trades ...({Math.round(exportProgress)}%)</div>
+              <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-purple-500 to-violet-600 transition-all duration-300"
+                  style={{ width: `${exportProgress}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
 
           {/* Trades Table Card - same design as analytics page cards */}
           <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
