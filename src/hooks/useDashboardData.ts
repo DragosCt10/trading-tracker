@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Trade } from '@/types/trade';
 import { AccountSettings } from '@/types/account-settings';
 import { useUserDetails } from './useUserDetails';
@@ -207,8 +207,9 @@ export function useDashboardData({
   }, [viewMode, selectedYear, dateRange]);
 
   // Query for non-executed trades
+  // OPTIMIZATION: In yearly mode, disable this query and derive from allTrades instead
   const {
-    data: nonExecutedTradesData = [],
+    data: nonExecutedTradesFromQuery = [],
     isFetching: nonExecutedTradesLoading,
   } = useQuery<Trade[]>({
     queryKey: [
@@ -239,6 +240,7 @@ export function useDashboardData({
       }
     },
     enabled:
+      viewMode !== 'yearly' && // OPTIMIZATION: Disable in yearly mode - derive from allTrades instead
       !!session?.user?.id &&
       !!activeAccount?.id &&
       !!effectiveDateRange.startDate &&
@@ -248,6 +250,16 @@ export function useDashboardData({
     gcTime: 5 * 60_000,
   });
 
+  // OPTIMIZATION: In yearly mode, derive non-executed trades from allTrades instead of making a network call
+  const nonExecutedTradesData = useMemo(() => {
+    if (viewMode === 'yearly') {
+      // Derive from allTrades - eliminates duplicate network call
+      return allTrades.filter(trade => trade.executed === false);
+    }
+    // In dateRange mode, use the query result
+    return nonExecutedTradesFromQuery;
+  }, [viewMode, allTrades, nonExecutedTradesFromQuery]);
+
   // Derive non-executed trades count from allTrades (eliminates duplicate query)
   // Since allTrades already contains all trades for the year, we can filter and count
   const nonExecutedTotalTradesCount = useMemo(() => {
@@ -255,15 +267,19 @@ export function useDashboardData({
     return allTrades.filter(trade => trade.executed === false).length;
   }, [allTrades]);
   
-  // Use allTradesLoading for the loading state since we derive from allTrades
-  const nonExecutedTotalTradesLoading = allTradesLoading;
+  // OPTIMIZATION: In yearly mode, use allTradesLoading since we derive from allTrades
+  // In dateRange mode, use the query loading state
+  const nonExecutedTotalTradesLoading = viewMode === 'yearly' 
+    ? allTradesLoading 
+    : nonExecutedTradesLoading;
 
 
   // Query for filtered trades based on viewMode:
-  // - In yearly mode: fetch all trades for the selected year
+  // - In yearly mode: reuse allTrades (no separate network call)
   // - In dateRange mode: fetch trades for the selected date range
+  // OPTIMIZATION: In yearly mode, disable this query and reuse allTrades instead
   const {
-    data: filteredTrades = [],
+    data: filteredTradesFromQuery = [],
     isFetching: filteredTradesLoading,
   } = useQuery<Trade[]>({
     queryKey: [
@@ -292,10 +308,26 @@ export function useDashboardData({
         return [];
       }
     },
-    enabled: !!session?.user?.id && !!activeAccount?.id && !!effectiveDateRange.startDate && !!effectiveDateRange.endDate,
+    enabled: 
+      viewMode !== 'yearly' && // OPTIMIZATION: Disable in yearly mode - reuse allTrades instead
+      !!session?.user?.id && 
+      !!activeAccount?.id && 
+      !!effectiveDateRange.startDate && 
+      !!effectiveDateRange.endDate,
     staleTime: 2 * 60 * 1000, // 2 minutes - reduces refetches while keeping data fresh
     gcTime: 5 * 60_000,
   });
+
+  // OPTIMIZATION: In yearly mode, reuse allTrades instead of making a separate network call
+  // Use JSON.stringify for stable comparison to prevent infinite loops
+  const filteredTrades = useMemo(() => {
+    if (viewMode === 'yearly') {
+      // Reuse allTrades - eliminates duplicate network call
+      return allTrades;
+    }
+    // In dateRange mode, use the query result
+    return filteredTradesFromQuery;
+  }, [viewMode, allTrades, filteredTradesFromQuery]);
   
 
   const calendarMonthTrades = useMemo(() => {
@@ -354,20 +386,47 @@ export function useDashboardData({
     return filteredTrades.filter(trade => trade.market === selectedMarket);
   }, [filteredTrades, selectedMarket]);
 
+  // Create a stable key for filteredTradesByMarket to prevent infinite loops
+  // Use length and first/last trade IDs to detect actual data changes
+  const filteredTradesKey = useMemo(() => {
+    if (filteredTradesByMarket.length === 0) return 'empty';
+    const firstId = filteredTradesByMarket[0]?.id;
+    const lastId = filteredTradesByMarket[filteredTradesByMarket.length - 1]?.id;
+    return `${filteredTradesByMarket.length}-${firstId}-${lastId}`;
+  }, [filteredTradesByMarket]);
+
+  // Use refs to track previous key and current trades to prevent infinite loops
+  const prevFilteredTradesKeyRef = useRef<string>('');
+  const filteredTradesByMarketRef = useRef<Trade[]>(filteredTradesByMarket);
+  
+  // Update ref whenever filteredTradesByMarket changes (but don't trigger effects)
+  useEffect(() => {
+    filteredTradesByMarketRef.current = filteredTradesByMarket;
+  }, [filteredTradesByMarket]);
+
   // Calculate main stats when filtered trades change
   useEffect(() => {
-    if (filteredTradesByMarket.length > 0 && activeAccount?.account_balance != null) {
-      const { winRate, winRateWithBE } = calculateWinRates(filteredTradesByMarket);
+    // Skip if the key hasn't actually changed (prevents infinite loops)
+    if (filteredTradesKey === prevFilteredTradesKeyRef.current) {
+      return;
+    }
+    prevFilteredTradesKeyRef.current = filteredTradesKey;
+
+    // Use the ref value to avoid dependency on array reference
+    const trades = filteredTradesByMarketRef.current;
+    
+    if (trades.length > 0 && activeAccount?.account_balance != null) {
+      const { winRate, winRateWithBE } = calculateWinRates(trades);
       const { totalProfit, averageProfit, averagePnLPercentage, maxDrawdown } = calculateProfit(
-        filteredTradesByMarket,
+        trades,
         activeAccount.account_balance
       );
-      const { totalTrades, totalWins, totalLosses, beWins, beLosses } = calculateTradeCounts(filteredTradesByMarket); 
-      const evaluationStats = calculateEvaluationStats(filteredTradesByMarket);
-      const { currentStreak, maxWinningStreak, maxLosingStreak } = calculateStreaks(filteredTradesByMarket);
-      const averageDaysBetweenTrades = calculateAverageDaysBetweenTrades(filteredTradesByMarket);
-      const tradeQualityIndex = calculateTradeQualityIndex(filteredTradesByMarket);
-      const multipleR = calculateRRStats(filteredTradesByMarket);
+      const { totalTrades, totalWins, totalLosses, beWins, beLosses } = calculateTradeCounts(trades); 
+      const evaluationStats = calculateEvaluationStats(trades);
+      const { currentStreak, maxWinningStreak, maxLosingStreak } = calculateStreaks(trades);
+      const averageDaysBetweenTrades = calculateAverageDaysBetweenTrades(trades);
+      const tradeQualityIndex = calculateTradeQualityIndex(trades);
+      const multipleR = calculateRRStats(trades);
       const { 
         partialWinningTrades, 
         partialLosingTrades, 
@@ -377,7 +436,7 @@ export function useDashboardData({
         partialWinRateWithBE, 
         totalPartialTradesCount, 
         totalPartialsBECount 
-      } = calculatePartialTradesStats(filteredTradesByMarket);
+      } = calculatePartialTradesStats(trades);
       setEvaluationStats(evaluationStats);
 
       setStats(prev => ({ 
@@ -442,10 +501,27 @@ export function useDashboardData({
       setStats(clearedStats);
       setEvaluationStats([]);
     }
-  }, [filteredTradesByMarket, activeAccount?.account_balance]);
+  }, [filteredTradesKey, activeAccount?.account_balance]);
+
+  // Create a stable key for nonExecutedTradesData to prevent infinite loops
+  const nonExecutedTradesKey = useMemo(() => {
+    if (!nonExecutedTradesData || nonExecutedTradesData.length === 0) return 'empty';
+    const firstId = nonExecutedTradesData[0]?.id;
+    const lastId = nonExecutedTradesData[nonExecutedTradesData.length - 1]?.id;
+    return `${nonExecutedTradesData.length}-${firstId}-${lastId}`;
+  }, [nonExecutedTradesData]);
+
+  // Use ref to track previous key and prevent infinite loops
+  const prevNonExecutedTradesKeyRef = useRef<string>('');
 
   // Calculate non-executed setup stats when nonExecutedTradesData changes
   useEffect(() => {
+    // Skip if the key hasn't actually changed (prevents infinite loops)
+    if (nonExecutedTradesKey === prevNonExecutedTradesKeyRef.current) {
+      return;
+    }
+    prevNonExecutedTradesKeyRef.current = nonExecutedTradesKey;
+
     // Reset stats if no account balance
     if (!activeAccount?.account_balance) {
       setNonExecutedSetupStats([]);
@@ -454,38 +530,34 @@ export function useDashboardData({
       return;
     }
 
-    // Calculate stats if we have trades
-    if (nonExecutedTradesData?.length > 0) {
-      setNonExecutedSetupStats(calculateSetupStats(nonExecutedTradesData));
-      setNonExecutedLiquidityStats(calculateLiquidityStats(nonExecutedTradesData));
-      setNonExecutedMarketStats(calculateMarketStats(nonExecutedTradesData, activeAccount.account_balance));
+      // Calculate stats if we have trades - use ref to avoid dependency on array reference
+    const nonExecutedTrades = nonExecutedTradesData;
+    if (nonExecutedTrades?.length > 0) {
+      setNonExecutedSetupStats(calculateSetupStats(nonExecutedTrades));
+      setNonExecutedLiquidityStats(calculateLiquidityStats(nonExecutedTrades));
+      setNonExecutedMarketStats(calculateMarketStats(nonExecutedTrades, activeAccount.account_balance));
     } else {
       setNonExecutedSetupStats([]);
       setNonExecutedLiquidityStats([]);
       setNonExecutedMarketStats([]);
     }
-  }, [nonExecutedTradesData?.length, activeAccount?.account_balance]);
+  }, [nonExecutedTradesKey, activeAccount?.account_balance]);
+
+  // Use ref to track previous category stats key and prevent infinite loops
+  const prevCategoryStatsKeyRef = useRef<string>('');
 
   // Calculate category stats when filtered trades change
   useEffect(() => {
-    if (filteredTradesByMarket.length > 0 && activeAccount?.account_balance != null) {
-      setLiquidityStats(calculateLiquidityStats(filteredTradesByMarket)); 
-      setSetupStats(calculateSetupStats(filteredTradesByMarket));
-      setDirectionStats(calculateDirectionStats(filteredTradesByMarket));
-      setLocalHLStats(calculateLocalHLStats(filteredTradesByMarket));
-      setIntervalStats(calculateIntervalStats(filteredTradesByMarket, TIME_INTERVALS));
-      setSlSizeStats(calculateSLSizeStats(filteredTradesByMarket)); 
-      setReentryStats(calculateReentryStats(filteredTradesByMarket));
-      setBreakEvenStats(calculateBreakEvenStats(filteredTradesByMarket));
-      setMssStats(calculateMssStats(filteredTradesByMarket));
-      setNewsStats(calculateNewsStats(filteredTradesByMarket));
-      setDayStats(calculateDayStats(filteredTradesByMarket));
-      setMarketStats(calculateMarketStats(filteredTradesByMarket, activeAccount.account_balance));
-      
-      // Calculate risk stats for filtered trades
-      const riskAnalysis = calculateRiskPerTradeStats(filteredTradesByMarket);
-      setRiskStats(riskAnalysis);
-    } else {
+    // Skip if the key hasn't actually changed (prevents infinite loops)
+    if (filteredTradesKey === prevCategoryStatsKeyRef.current) {
+      return;
+    }
+    prevCategoryStatsKeyRef.current = filteredTradesKey;
+
+    // Use the ref value to avoid dependency on array reference
+    const trades = filteredTradesByMarketRef.current;
+    
+    if (trades.length === 0 || activeAccount?.account_balance == null) {
       // Clear all derived category datasets when empty
       const emptyLocalHL: LocalHLStats = {
         lichidat: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0 },
@@ -504,16 +576,36 @@ export function useDashboardData({
       setDayStats([]);
       setMarketStats([]);
       setRiskStats(null);
+      return;
     }
-  }, [filteredTradesByMarket, activeAccount?.account_balance]);
+
+    // Calculate all category stats in one pass
+    setLiquidityStats(calculateLiquidityStats(trades));
+    setSetupStats(calculateSetupStats(trades));
+    setDirectionStats(calculateDirectionStats(trades));
+    setLocalHLStats(calculateLocalHLStats(trades));
+    setIntervalStats(calculateIntervalStats(trades, TIME_INTERVALS));
+    setSlSizeStats(calculateSLSizeStats(trades));
+    setReentryStats(calculateReentryStats(trades));
+    setBreakEvenStats(calculateBreakEvenStats(trades));
+    setMssStats(calculateMssStats(trades));
+    setNewsStats(calculateNewsStats(trades));
+    setDayStats(calculateDayStats(trades));
+    setMarketStats(calculateMarketStats(trades, activeAccount.account_balance));
+    setRiskStats(calculateRiskPerTradeStats(trades));
+  }, [filteredTradesKey, activeAccount?.account_balance]);
 
   return {
     calendarMonthTrades,
     allTrades,
     filteredTrades: filteredTradesByMarket,
-    filteredTradesLoading,
+    // OPTIMIZATION: In yearly mode, filteredTradesLoading is false since we reuse allTrades
+    filteredTradesLoading: viewMode === 'yearly' ? false : filteredTradesLoading,
     allTradesLoading,
-    isLoadingTrades: allTradesLoading || filteredTradesLoading || nonExecutedTradesLoading,
+    // OPTIMIZATION: In yearly mode, only check allTradesLoading since filteredTrades and nonExecutedTrades are derived
+    isLoadingTrades: viewMode === 'yearly' 
+      ? allTradesLoading 
+      : (allTradesLoading || filteredTradesLoading || nonExecutedTradesLoading),
     stats,
     monthlyStats,
     monthlyStatsAllTrades,
@@ -537,8 +629,9 @@ export function useDashboardData({
     evaluationStats,
     nonExecutedTrades: nonExecutedTradesData,
     nonExecutedTotalTradesCount,
-    nonExecutedTotalTradesLoading, // Derived from allTradesLoading
-    nonExecutedTradesLoading,
+    nonExecutedTotalTradesLoading, // OPTIMIZATION: In yearly mode, uses allTradesLoading; in dateRange mode, uses query loading
+    // OPTIMIZATION: In yearly mode, nonExecutedTradesLoading is false since we derive from allTrades
+    nonExecutedTradesLoading: viewMode === 'yearly' ? false : nonExecutedTradesLoading,
     yearlyPartialTradesCount,
     yearlyPartialsBECount,
     riskStats,
