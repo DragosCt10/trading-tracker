@@ -142,7 +142,6 @@ import { chartOptions } from '@/utils/chartConfig';
 import { TIME_INTERVALS } from '@/constants/analytics';
 import {
   type DateRangeState,
-  type FilterType,
   createInitialDateRange,
   isCustomDateRange,
 } from '@/utils/dateRangeHelpers';
@@ -162,8 +161,6 @@ ChartJS.register(
   Tooltip,
   Legend
 );
-
-
 
 /* ---------------------------------------------------------
  * Props from server (AnalyticsData)
@@ -221,15 +218,11 @@ export default function AnalyticsClient(
     resetFilterOnModeSwitch,
     handleFilter,
   } = useDateRangeManagement(initialRange);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
   const [selectedExecution, setSelectedExecution] = useState<'all' | 'executed' | 'nonExecuted'>('executed');
 
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
-
-  const inputRef = useRef<HTMLInputElement>(null);
-  const pickerRef = useRef<HTMLDivElement>(null);
 
   const { data: userData, isLoading: userLoading } = useUserDetails();
   const { selection, setSelection, actionBarloading } = useActionBarSelection();
@@ -265,12 +258,15 @@ export default function AnalyticsClient(
   // Store strategyId from props
   const strategyId = props?.initialStrategyId ?? null;
 
-  // Hydrate React Query cache synchronously so useDashboardData sees server data on first paint (avoids hydration when e.g. no subaccounts)
-  const uid = props?.initialUserId;
-  const acc = props?.initialActiveAccount;
-  const dr = props?.initialDateRange;
-  const yr = props?.initialSelectedYear;
-  if (uid && acc?.id && dr) {
+  // Helper function to hydrate React Query cache
+  const hydrateQueryCache = useCallback(() => {
+    const uid = props?.initialUserId;
+    const acc = props?.initialActiveAccount;
+    const dr = props?.initialDateRange;
+    const yr = props?.initialSelectedYear;
+    
+    if (!uid || !acc?.id || !dr) return;
+    
     const mode = props?.initialMode ?? 'live';
     const year = yr ?? new Date().getFullYear();
     // Default to 'yearly' for initial hydration since that's the default viewMode
@@ -281,50 +277,27 @@ export default function AnalyticsClient(
     
     const queryKeyAllTrades = ['allTrades', mode, acc.id, uid, year, strategyId];
     const queryKeyFilteredTrades = ['filteredTrades', mode, acc.id, uid, initialViewMode, effectiveStartDate, effectiveEndDate, strategyId];
+    
+    // Only hydrate if data doesn't already exist (for synchronous hydration)
     if (queryClient.getQueryData(queryKeyAllTrades) === undefined) {
-      queryClient.setQueryData(
-        queryKeyFilteredTrades,
-        props?.initialFilteredTrades ?? []
-      );
-      queryClient.setQueryData(
-        queryKeyAllTrades,
-        props?.initialAllTrades ?? []
-      );
+      queryClient.setQueryData(queryKeyFilteredTrades, props?.initialFilteredTrades ?? []);
+      queryClient.setQueryData(queryKeyAllTrades, props?.initialAllTrades ?? []);
       queryClient.setQueryData(
         ['nonExecutedTrades', mode, acc.id, uid, initialViewMode, effectiveStartDate, effectiveEndDate, strategyId],
         props?.initialNonExecutedTrades ?? []
       );
       // Note: nonExecutedTotalTradesCount is now derived from allTrades, no need to hydrate separately
     }
-  }
+  }, [props, queryClient, strategyId]);
+
+  // Hydrate React Query cache synchronously so useDashboardData sees server data on first paint (avoids hydration when e.g. no subaccounts)
+  hydrateQueryCache();
 
   // Also hydrate in useEffect for client navigations / fallback
   useEffect(() => {
-    if (!uid || !acc?.id || !dr) return;
-    const mode = props?.initialMode ?? 'live';
-    const year = yr ?? new Date().getFullYear();
-    // Default to 'yearly' for initial hydration since that's the default viewMode
-    const initialViewMode: 'yearly' | 'dateRange' = 'yearly';
-    // For yearly mode, use year boundaries; for dateRange mode, use dr
-    const effectiveStartDate = initialViewMode === 'yearly' ? `${year}-01-01` : dr.startDate;
-    const effectiveEndDate = initialViewMode === 'yearly' ? `${year}-12-31` : dr.endDate;
-    
-    const queryKeyAllTrades = ['allTrades', mode, acc.id, uid, year, strategyId];
-    const queryKeyFilteredTrades = ['filteredTrades', mode, acc.id, uid, initialViewMode, effectiveStartDate, effectiveEndDate, strategyId];
-    queryClient.setQueryData(
-      queryKeyFilteredTrades,
-      props?.initialFilteredTrades ?? []
-    );
-    queryClient.setQueryData(
-      queryKeyAllTrades,
-      props?.initialAllTrades ?? []
-    );
-    queryClient.setQueryData(
-      ['nonExecutedTrades', mode, acc.id, uid, initialViewMode, effectiveStartDate, effectiveEndDate, strategyId],
-      props?.initialNonExecutedTrades ?? []
-    );
-    // Note: nonExecutedTotalTradesCount is now derived from allTrades, no need to hydrate separately
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount with server initial data
+    hydrateQueryCache();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount with server initial data
+  }, []);
 
   const currencySymbol = getCurrencySymbolFromAccount(
     (selection.activeAccount ?? props?.initialActiveAccount) as
@@ -357,37 +330,11 @@ export default function AnalyticsClient(
     resetFilterOnModeSwitch(viewMode);
   }, [viewMode, resetFilterOnModeSwitch]);
 
-  // close date picker on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        pickerRef.current &&
-        !pickerRef.current.contains(event.target as Node) &&
-        inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
-      ) {
-        setShowDatePicker(false);
-      }
-    }
-
-    if (showDatePicker) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showDatePicker]);
-
   const {
-    calendarMonthTrades,
     allTrades,
     filteredTrades,
     filteredTradesLoading,
     allTradesLoading,
-    isLoadingTrades,
     stats,
     monthlyStats,
     monthlyStatsAllTrades,
@@ -429,7 +376,6 @@ export default function AnalyticsClient(
 
   // Calendar navigation logic
   const {
-    getFilteredTradesForCalendar,
     canNavigateMonth,
     handleMonthNavigation,
   } = useCalendarNavigation({
@@ -454,7 +400,6 @@ export default function AnalyticsClient(
       router.replace('/login');
     }
   }, [userLoading, userData, router]);
-
 
   // streaming analysis listener
   useEffect(() => {
@@ -597,8 +542,6 @@ export default function AnalyticsClient(
       totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
     };
   });
-
-
 
   // Use filtered chart data when filters are applied, otherwise use original
   const setupChartDataToUse = filteredChartStats ? setupChartDataFiltered : setupChartData;
@@ -933,14 +876,6 @@ export default function AnalyticsClient(
     });
   }, [viewMode, selectedMarket, tradesToUse, statsToUse, monthlyStatsToUse, nonExecutedTrades, nonExecutedTotalTradesCount, yearlyPartialTradesCount, yearlyPartialsBECount, macroStats]);
 
-  // Color variables based on statsToUse
-  const streakColor =
-    statsToUse.currentStreak > 0
-      ? 'text-emerald-600 dark:text-emerald-400'
-      : statsToUse.currentStreak < 0
-      ? 'text-rose-600 dark:text-rose-400'
-      : 'text-slate-900 dark:text-slate-100';
-
   // Get markets from the trades being used
   const markets = Array.from(new Set(tradesToUse.map((t) => t.market)));
 
@@ -1173,7 +1108,6 @@ export default function AnalyticsClient(
           getCurrencySymbol={getCurrencySymbol}
         />
       </div>
-      
 
       <div className="my-8">
         {/* Setup Statistics Card */}
@@ -1215,8 +1149,6 @@ export default function AnalyticsClient(
           trades={tradesToUse} 
           isLoading={chartsLoadingState}
         />
-
-        
       </div>
 
       {/* SL Size and Trade Types Statistics Row */}
