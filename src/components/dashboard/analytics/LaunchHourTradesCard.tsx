@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trade } from '@/types/trade';
 import {
   Card,
@@ -10,31 +10,18 @@ import {
   CardContent,
 } from '@/components/ui/card';
 
-interface LaunchHourTradesCardProps {
+export interface LaunchHourTradesCardProps {
   filteredTrades: Trade[];
+  isLoading?: boolean;
 }
 
-export function LaunchHourTradesCard({ filteredTrades }: LaunchHourTradesCardProps) {
-  const [mounted, setMounted] = useState(false);
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    // Check for dark mode
-    const checkDarkMode = () => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    };
-    checkDarkMode();
-    // Watch for changes
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  const launchHourTrades = filteredTrades.filter((t) => t.launch_hour);
+/**
+ * Calculate launch hour trades statistics from trades array
+ * @param trades - Array of trades to compute stats from
+ * @returns Object containing launch hour trade statistics
+ */
+export function calculateLaunchHourStats(trades: Trade[]) {
+  const launchHourTrades = trades.filter((t) => t.launch_hour);
   const totalLaunchHour = launchHourTrades.length;
 
   const beWins = launchHourTrades.filter(
@@ -61,6 +48,57 @@ export function LaunchHourTradesCard({ filteredTrades }: LaunchHourTradesCardPro
   const totalWithBE = wins + losses + beWins + beLosses;
   const winRateWithBE =
     totalWithBE > 0 ? ((wins + beWins) / totalWithBE) * 100 : 0;
+
+  return {
+    totalLaunchHour,
+    wins,
+    losses,
+    beWins,
+    beLosses,
+    totalWins,
+    totalLosses,
+    tradesWithoutBE,
+    winRate,
+    totalWithBE,
+    winRateWithBE,
+  };
+}
+
+export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.memo(
+  function LaunchHourTradesCard({ filteredTrades, isLoading }) {
+  const [mounted, setMounted] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Check for dark mode
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    checkDarkMode();
+    // Watch for changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+    const stats = calculateLaunchHourStats(filteredTrades);
+    const {
+      totalLaunchHour,
+      wins,
+      losses,
+      beWins,
+      beLosses,
+      totalWins,
+      totalLosses,
+      tradesWithoutBE,
+      winRate,
+      totalWithBE,
+      winRateWithBE,
+    } = stats;
 
   if (!mounted) {
     return (
@@ -156,4 +194,5 @@ export function LaunchHourTradesCard({ filteredTrades }: LaunchHourTradesCardPro
       </CardContent>
     </Card>
   );
-}
+  }
+);
