@@ -7,7 +7,6 @@ import NotesModal from '@/components/NotesModal';
 import { useQuery } from '@tanstack/react-query';
 import { format, endOfMonth, startOfMonth, startOfYear, endOfYear, subDays } from 'date-fns';
 import { DateRange } from 'react-date-range';
-import AppLayout from '@/components/shared/layout/AppLayout';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQueryClient } from '@tanstack/react-query';
@@ -410,27 +409,24 @@ export default function TradesClient({
   // optional: handle error
   if (allTradesError) {
     return (
-      <AppLayout>
-        <div className="p-8">
-          <Card className="group relative max-w-2xl mx-auto overflow-hidden border-red-200/60 dark:border-red-700/50 bg-gradient-to-br from-white via-red-50/30 to-rose-50/20 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-red-200/50 dark:shadow-none backdrop-blur-sm transition-all duration-500 hover:shadow-xl hover:shadow-red-200/60 dark:hover:border-red-600/50 p-8 text-center">
-            {/* Ambient glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-rose-500/5 dark:from-red-500/10 dark:to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-            
-            <div className="relative">
-              <div className="text-red-600 dark:text-red-400 font-semibold">
-                Failed to load trades: {(allTradesError as Error).message}
-              </div>
+      <div className="p-8">
+        <Card className="group relative max-w-2xl mx-auto overflow-hidden border-red-200/60 dark:border-red-700/50 bg-gradient-to-br from-white via-red-50/30 to-rose-50/20 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-red-200/50 dark:shadow-none backdrop-blur-sm transition-all duration-500 hover:shadow-xl hover:shadow-red-200/60 dark:hover:border-red-600/50 p-8 text-center">
+          {/* Ambient glow effect */}
+          <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-rose-500/5 dark:from-red-500/10 dark:to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          
+          <div className="relative">
+            <div className="text-red-600 dark:text-red-400 font-semibold">
+              Failed to load trades: {(allTradesError as Error).message}
             </div>
-          </Card>
-        </div>
-      </AppLayout>
+          </div>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <AppLayout>
-      <TooltipProvider>
-        <div className="max-w-(--breakpoint-xl) mx-auto py-8">
+    <TooltipProvider>
+      <div className="max-w-(--breakpoint-xl) mx-auto py-8">
           {/* Header Section */}
           <div className="mb-8">
             <div className="flex justify-between items-center">
@@ -970,6 +966,5 @@ export default function TradesClient({
           />
         </div>
       </TooltipProvider>
-    </AppLayout>
   );
 }
