@@ -511,8 +511,14 @@ export function useDashboardData({
     return `${nonExecutedTradesData.length}-${firstId}-${lastId}`;
   }, [nonExecutedTradesData]);
 
-  // Use ref to track previous key and prevent infinite loops
+  // Use refs to track previous key and current trades to prevent infinite loops
   const prevNonExecutedTradesKeyRef = useRef<string>('');
+  const nonExecutedTradesDataRef = useRef<Trade[]>(nonExecutedTradesData);
+  
+  // Update ref whenever nonExecutedTradesData changes (but don't trigger effects)
+  useEffect(() => {
+    nonExecutedTradesDataRef.current = nonExecutedTradesData;
+  }, [nonExecutedTradesData]);
 
   // Calculate non-executed setup stats when nonExecutedTradesData changes
   useEffect(() => {
@@ -530,8 +536,8 @@ export function useDashboardData({
       return;
     }
 
-      // Calculate stats if we have trades - use ref to avoid dependency on array reference
-    const nonExecutedTrades = nonExecutedTradesData;
+    // Use the ref value to avoid dependency on array reference
+    const nonExecutedTrades = nonExecutedTradesDataRef.current;
     if (nonExecutedTrades?.length > 0) {
       setNonExecutedSetupStats(calculateSetupStats(nonExecutedTrades));
       setNonExecutedLiquidityStats(calculateLiquidityStats(nonExecutedTrades));
