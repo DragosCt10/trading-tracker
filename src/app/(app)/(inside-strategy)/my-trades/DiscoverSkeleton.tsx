@@ -38,7 +38,7 @@ export function DiscoverSkeleton() {
         selectedMarket="all"
         onSelectedMarketChange={() => {}}
         markets={[]}
-        selectedExecution="all"
+        selectedExecution="executed"
         onSelectedExecutionChange={() => {}}
       />
 
