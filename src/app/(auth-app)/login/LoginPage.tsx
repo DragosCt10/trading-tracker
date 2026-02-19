@@ -125,7 +125,7 @@ export default function LoginPage() {
                 Welcome Back
               </h1>
               <p className="text-sm text-slate-600 dark:text-slate-400 font-medium animate-in fade-in slide-in-from-top-2 duration-700 delay-300">
-                Sign in to access your trading journal
+                Unlock your trading analytics & insights
               </p>
             </div>
           </div>
