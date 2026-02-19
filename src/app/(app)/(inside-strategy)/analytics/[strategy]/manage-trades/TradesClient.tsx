@@ -444,7 +444,7 @@ export default function TradesClient({
                   >
                     <SelectValue placeholder="Market" />
                   </SelectTrigger>
-                  <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                  <SelectContent>
                     <SelectItem value="all">All Markets</SelectItem>
                     {uniqueMarkets.map(market => (
                       <SelectItem key={market} value={market}>{market}</SelectItem>
@@ -465,7 +465,7 @@ export default function TradesClient({
                   <SelectTrigger id="sort-by" className="w-full sm:w-48 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
-                  <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                  <SelectContent>
                     <SelectItem value="trade_date">Date</SelectItem>
                     <SelectItem value="market">Market</SelectItem>
                     <SelectItem value="outcome">Outcome</SelectItem>
