@@ -153,31 +153,31 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
               {showDatePicker && (
                 <div
                   ref={pickerRef}
-                  className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60"
+                  className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50 dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60"
                 >
-                  {/* Gradient orbs background */}
-                  <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
+                  {/* Gradient orbs background - dark mode only */}
+                  <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl hidden dark:block">
                     <div
-                      className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/8 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse"
+                      className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/10 rounded-full blur-3xl animate-pulse"
                       style={{ animationDuration: '8s' }}
                     />
                     <div
-                      className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/8 dark:bg-violet-500/10 rounded-full blur-3xl animate-pulse"
+                      className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/10 rounded-full blur-3xl animate-pulse"
                       style={{ animationDuration: '10s', animationDelay: '2s' }}
                     />
                   </div>
 
-                  {/* Noise texture overlay */}
+                  {/* Noise texture overlay - dark mode only */}
                   <div
-                    className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl"
+                    className="absolute inset-0 opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl hidden dark:block"
                     style={{
                       backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
                       backgroundRepeat: 'repeat',
                     }}
                   />
 
-                  {/* Top accent line */}
-                  <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60" />
+                  {/* Top accent line - dark mode only */}
+                  <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60 hidden dark:block" />
 
                   <div className="relative">
                     <DateRange
@@ -206,7 +206,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                     direction="vertical"
                     />
 
-                    <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] px-4 py-3">
+                    <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-slate-50 dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] px-4 py-3">
                     <Button
                       type="button"
                       variant="outline"
