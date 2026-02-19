@@ -435,8 +435,14 @@ export default function AnalyticsClient(
   if (uid && acc?.id && dr) {
     const mode = props?.initialMode ?? 'live';
     const year = yr ?? new Date().getFullYear();
+    // Default to 'yearly' for initial hydration since that's the default viewMode
+    const initialViewMode: 'yearly' | 'dateRange' = 'yearly';
+    // For yearly mode, use year boundaries; for dateRange mode, use dr
+    const effectiveStartDate = initialViewMode === 'yearly' ? `${year}-01-01` : dr.startDate;
+    const effectiveEndDate = initialViewMode === 'yearly' ? `${year}-12-31` : dr.endDate;
+    
     const queryKeyAllTrades = ['allTrades', mode, acc.id, uid, year, strategyId];
-    const queryKeyFilteredTrades = ['filteredTrades', mode, acc.id, uid, dr.startDate, dr.endDate, strategyId];
+    const queryKeyFilteredTrades = ['filteredTrades', mode, acc.id, uid, initialViewMode, effectiveStartDate, effectiveEndDate, strategyId];
     if (queryClient.getQueryData(queryKeyAllTrades) === undefined) {
       queryClient.setQueryData(
         queryKeyFilteredTrades,
@@ -447,7 +453,7 @@ export default function AnalyticsClient(
         props?.initialAllTrades ?? []
       );
       queryClient.setQueryData(
-        ['nonExecutedTrades', mode, acc.id, uid, dr.startDate, dr.endDate, strategyId],
+        ['nonExecutedTrades', mode, acc.id, uid, initialViewMode, effectiveStartDate, effectiveEndDate, strategyId],
         props?.initialNonExecutedTrades ?? []
       );
       // Note: nonExecutedTotalTradesCount is now derived from allTrades, no need to hydrate separately
@@ -459,8 +465,14 @@ export default function AnalyticsClient(
     if (!uid || !acc?.id || !dr) return;
     const mode = props?.initialMode ?? 'live';
     const year = yr ?? new Date().getFullYear();
+    // Default to 'yearly' for initial hydration since that's the default viewMode
+    const initialViewMode: 'yearly' | 'dateRange' = 'yearly';
+    // For yearly mode, use year boundaries; for dateRange mode, use dr
+    const effectiveStartDate = initialViewMode === 'yearly' ? `${year}-01-01` : dr.startDate;
+    const effectiveEndDate = initialViewMode === 'yearly' ? `${year}-12-31` : dr.endDate;
+    
     const queryKeyAllTrades = ['allTrades', mode, acc.id, uid, year, strategyId];
-    const queryKeyFilteredTrades = ['filteredTrades', mode, acc.id, uid, dr.startDate, dr.endDate, strategyId];
+    const queryKeyFilteredTrades = ['filteredTrades', mode, acc.id, uid, initialViewMode, effectiveStartDate, effectiveEndDate, strategyId];
     queryClient.setQueryData(
       queryKeyFilteredTrades,
       props?.initialFilteredTrades ?? []
@@ -470,7 +482,7 @@ export default function AnalyticsClient(
       props?.initialAllTrades ?? []
     );
     queryClient.setQueryData(
-      ['nonExecutedTrades', mode, acc.id, uid, dr.startDate, dr.endDate, strategyId],
+      ['nonExecutedTrades', mode, acc.id, uid, initialViewMode, effectiveStartDate, effectiveEndDate, strategyId],
       props?.initialNonExecutedTrades ?? []
     );
     // Note: nonExecutedTotalTradesCount is now derived from allTrades, no need to hydrate separately
@@ -807,6 +819,7 @@ export default function AnalyticsClient(
     selectedYear,
     selectedMarket,
     strategyId,
+    viewMode,
   });
 
   // session check
