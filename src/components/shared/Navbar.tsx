@@ -8,7 +8,7 @@ import {
   X,
   LogOut,
   Target,
-  BookOpen,
+  Sparkles,
   Home,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
@@ -159,7 +159,7 @@ export default function Navbar() {
                   className={navButtonClass(isActive('/insight-vault'))}
                 >
                   <Link href="/insight-vault">
-                    <BookOpen className="h-4 w-4" />
+                    <Sparkles className="h-4 w-4" />
                     <span>Insight Vault</span>
                   </Link>
                 </Button>
@@ -300,7 +300,7 @@ export default function Navbar() {
                   className={cn('w-full justify-start', navButtonClass(isActive('/insight-vault')))}
                 >
                   <Link href="/insight-vault" onClick={() => setMobileMenuOpen(false)}>
-                    <BookOpen className="h-4 w-4" />
+                    <Sparkles className="h-4 w-4" />
                     Insight Vault
                   </Link>
                 </Button>
