@@ -406,24 +406,6 @@ export default function TradesClient({
   };
 
 
-  // optional: handle error
-  if (allTradesError) {
-    return (
-      <div className="p-8">
-        <Card className="group relative max-w-2xl mx-auto overflow-hidden border-red-200/60 dark:border-red-700/50 bg-gradient-to-br from-white via-red-50/30 to-rose-50/20 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-red-200/50 dark:shadow-none backdrop-blur-sm transition-all duration-500 hover:shadow-xl hover:shadow-red-200/60 dark:hover:border-red-600/50 p-8 text-center">
-          {/* Ambient glow effect */}
-          <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-rose-500/5 dark:from-red-500/10 dark:to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          
-          <div className="relative">
-            <div className="text-red-600 dark:text-red-400 font-semibold">
-              Failed to load trades: {(allTradesError as Error).message}
-            </div>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <TooltipProvider>
       <div className="max-w-(--breakpoint-xl) mx-auto py-8">
@@ -732,7 +714,17 @@ export default function TradesClient({
                   </tr>
                 </thead>
                 <tbody className="bg-transparent divide-y divide-slate-200/30 dark:divide-slate-700/30">
-                  {allTradesLoading && allTrades.length === 0 ? (
+                  {allTradesError ? (
+                    <tr>
+                      <td colSpan={11} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center">
+                          <p className="text-red-600 dark:text-red-400 text-sm font-semibold">
+                            Failed to load trades: {(allTradesError as Error).message}
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : allTradesLoading && allTrades.length === 0 ? (
                     // Skeleton rows
                     Array.from({ length: 6 }).map((_, index) => (
                       <tr key={`skeleton-${index}`}>
