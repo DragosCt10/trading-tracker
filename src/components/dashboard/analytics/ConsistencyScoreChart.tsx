@@ -84,7 +84,7 @@ export function ConsistencyScoreChart({ consistencyScore }: ConsistencyScoreChar
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🔹 0% – 39%</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Low — Results are highly variable.</div>
         </div>
-        <div className={cn('rounded-xl p-2.5 transition-all', consistencyScore >= 40 && consistencyScore < 60 ? 'bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/50 dark:border-orange-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
+        <div className={cn('rounded-xl p-2.5 transition-all', consistencyScore >= 40 && consistencyScore < 60 ? 'bg-orange-100/80 dark:bg-orange-950/40 border border-orange-200/50 dark:border-orange-800/30' : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30')}>
           <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🟠 40% – 59%</span>
           <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Developing — Some patterns, but still unreliable.</div>
         </div>
