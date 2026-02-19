@@ -153,7 +153,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
               {showDatePicker && (
                 <div
                   ref={pickerRef}
-                  className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50 dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60"
+                  className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50 dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-lg shadow-slate-300/30 dark:shadow-slate-900/30"
                 >
                   {/* Gradient orbs background - dark mode only */}
                   <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl hidden dark:block">
