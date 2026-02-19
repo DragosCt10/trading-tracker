@@ -68,9 +68,18 @@ import { TradeStatDatum, TradeStatsBarCard } from '@/components/dashboard/analyt
 import { LaunchHourTradesCard } from '@/components/dashboard/analytics/LaunchHourTradesCard';
 import { NonExecutedTradesCard } from '@/components/dashboard/analytics/NonExecutedTradesCard';
 import { DisplacementSizeStats } from '@/components/dashboard/analytics/DisplacementSizeStats';
-import { ProfitFactorChart } from '@/components/dashboard/analytics/ProfitFactorChart';
-import { SharpeRatioChart } from '@/components/dashboard/analytics/SharpeRatioChart';
-import { ConsistencyScoreChart } from '@/components/dashboard/analytics/ConsistencyScoreChart';
+import { 
+  ProfitFactorChart,
+  calculateProfitFactor,
+} from '@/components/dashboard/analytics/ProfitFactorChart';
+import { 
+  SharpeRatioChart,
+  calculateSharpeRatio,
+} from '@/components/dashboard/analytics/SharpeRatioChart';
+import { 
+  ConsistencyScoreChart,
+  calculateConsistencyScore,
+} from '@/components/dashboard/analytics/ConsistencyScoreChart';
 import { getAverageDisplacementPerMarket } from '@/utils/getAverageDisplacementPerMarket';
 import { calculateRiskPerTradeStats } from '@/utils/calculateRiskPerTrade';
 import { calculateMarketStats } from '@/utils/calculateCategoryStats';
@@ -2259,46 +2268,15 @@ export default function AnalyticsClient(
     const totalWins = statsToUse.totalWins;
     const totalLosses = statsToUse.totalLosses;
     
-    // Calculate profit factor from actual profit amounts for more accuracy
-    // Sum of all positive profits (wins) divided by absolute sum of all negative profits (losses)
-    const grossProfit = tradesToUse
-      .filter(t => (t.calculated_profit || 0) > 0)
-      .reduce((sum, t) => sum + (t.calculated_profit || 0), 0);
-    const grossLoss = Math.abs(tradesToUse
-      .filter(t => (t.calculated_profit || 0) < 0)
-      .reduce((sum, t) => sum + (t.calculated_profit || 0), 0));
-    
-    // Use profit-based calculation if we have profit data, otherwise fall back to win/loss count
-    let profitFactor: number;
-    if (grossLoss > 0) {
-      profitFactor = grossProfit / grossLoss;
-    } else if (grossProfit > 0) {
-      // All trades are profitable, but no losses - show a high but finite value
-      profitFactor = grossProfit > 0 ? Math.min(grossProfit, 100) : 0;
-    } else if (totalLosses > 0) {
-      // Fall back to win/loss count if no profit data
-      profitFactor = totalWins / totalLosses;
-    } else if (totalWins > 0) {
-      // All wins, no losses - show a high but finite value instead of Infinity
-      profitFactor = Math.min(totalWins * 2, 100);
-    } else {
-      // No executed trades or no data
-      profitFactor = 0;
-    }
+    const profitFactor = calculateProfitFactor(tradesToUse, totalWins, totalLosses);
 
-    // Compute consistency score (simplified - percentage of profitable months)
-    const profitableMonths = Object.keys(monthlyStatsToUse).filter((month) => {
-      const monthProfit = monthlyStatsToUse[month]?.profit || 0;
-      return monthProfit > 0;
-    }).length;
-    const totalMonths = Object.keys(monthlyStatsToUse).length;
-    const consistencyScore = totalMonths > 0 ? (profitableMonths / totalMonths) * 100 : 0;
+    const consistencyScore = calculateConsistencyScore(monthlyStatsToUse);
 
     // Compute Sharpe ratio (simplified - would need returns array for full calculation)
     // For now, use a simplified version based on profit and drawdown
     const avgReturn = statsToUse.averagePnLPercentage || 0;
     const volatility = statsToUse.maxDrawdown || 1; // Use drawdown as proxy for volatility
-    const sharpeWithBE = volatility > 0 ? avgReturn / volatility : 0;
+    const sharpeWithBE = calculateSharpeRatio(avgReturn, volatility);
 
     // Compute TQI and RR Multiple from statsToUse
     const tradeQualityIndex = statsToUse.tradeQualityIndex || 0;
