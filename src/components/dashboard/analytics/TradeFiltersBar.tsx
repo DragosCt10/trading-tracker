@@ -142,14 +142,15 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                   onFocus={() => setShowDatePicker(true)}
                   onClick={() => setShowDatePicker(true)}
                   placeholder="Select date range"
-                  className="w-full cursor-pointer shadow-none border-slate-200/60 dark:border-slate-700/50 bg-white dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-800 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 rounded-xl h-10 text-slate-700 dark:text-slate-200"
+                  className="w-full cursor-pointer h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
                 />
                 <button
                   type="button"
                   onClick={() => setShowDatePicker((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer p-1.5 rounded-lg hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20"
+                  aria-label="Open date picker"
                 >
-                  <Calendar className="h-4 w-4" />
+                  <Calendar className="h-5 w-5 text-slate-500 dark:text-slate-400" />
                 </button>
               </div>
 
@@ -275,7 +276,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
             onValueChange={onSelectedMarketChange}
           >
             <SelectTrigger 
-              className="flex w-40 shadow-none border-slate-200/60 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 rounded-xl h-10" 
+              className="flex w-40 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100" 
               suppressHydrationWarning
             >
               <SelectValue placeholder="All Markets" />
@@ -301,7 +302,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
             onValueChange={onSelectedExecutionChange}
           >
             <SelectTrigger 
-              className="flex w-40 shadow-none border-slate-200/60 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 rounded-xl h-10" 
+              className="flex w-40 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100" 
               suppressHydrationWarning
             >
               <SelectValue placeholder={showAllTradesOption ? "All Trades" : "Executed Trades"} />
