@@ -37,16 +37,17 @@ async function DiscoverDataFetcher({ user }: { user: User }) {
   let initialAllTrades: Trade[] = [];
 
   try {
-    // Fetch filtered trades for the current month
+    // Fetch filtered trades for the current month (include non-executed trades)
     initialFilteredTrades = await getFilteredTrades({
       userId: user.id,
       accountId: activeAccount.id,
       mode: 'live',
       startDate: initialDateRange.startDate,
       endDate: initialDateRange.endDate,
+      includeNonExecuted: true, // Include non-executed trades so they can be filtered client-side
     });
 
-    // Fetch all trades for the current year to get markets list
+    // Fetch all trades for the current year to get markets list (include non-executed trades)
     const currentYear = today.getFullYear();
     initialAllTrades = await getFilteredTrades({
       userId: user.id,
@@ -54,6 +55,7 @@ async function DiscoverDataFetcher({ user }: { user: User }) {
       mode: 'live',
       startDate: `${currentYear}-01-01`,
       endDate: `${currentYear}-12-31`,
+      includeNonExecuted: true, // Include non-executed trades for markets list
     });
   } catch (error) {
     console.error('Error fetching initial trades:', error);
