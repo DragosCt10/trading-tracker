@@ -53,6 +53,9 @@ import { PNLPercentageStatCard } from '@/components/dashboard/analytics/PNLPerce
 import { TotalTradesStatCard } from '@/components/dashboard/analytics/TotalTradesStatCard';
 import { WinRateStatCard } from '@/components/dashboard/analytics/WinRateStatCard';
 import { TotalProfitStatCard } from '@/components/dashboard/analytics/TotalProfitStatCard';
+import { AverageProfitStatCard } from '@/components/dashboard/analytics/AverageProfitStatCard';
+import { TotalWinsStatCard } from '@/components/dashboard/analytics/TotalWinsStatCard';
+import { TotalLossesStatCard } from '@/components/dashboard/analytics/TotalLossesStatCard';
 import { cn } from '@/lib/utils';
 import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
 import { 
@@ -2320,8 +2323,6 @@ export default function AnalyticsClient(
   }, [viewMode, selectedMarket, selectedExecution, statsToUse, monthlyPerformanceStatsToUse, monthlyStatsToUse, nonExecutedTrades, tradesToUse, macroStats, yearlyPartialTradesCount, yearlyPartialsBECount]);
 
   // Color variables based on statsToUse
-  const avgProfitColor =
-    statsToUse.averageProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
   const streakColor =
     statsToUse.currentStreak > 0
       ? 'text-emerald-600 dark:text-emerald-400'
@@ -2660,42 +2661,15 @@ export default function AnalyticsClient(
                     hydrated={hydrated}
                   />
 
-                  <StatCard
-                    title="Average Profit"
-                    value={
-                      <p className={hydrated ? `text-2xl font-bold ${avgProfitColor}` : 'text-2xl font-bold text-slate-900 dark:text-slate-100'}>
-                        {hydrated ? `${currencySymbol}${averageProfit.toFixed(2)}` : '\u2014'}
-                      </p>
-                    }
+                  <AverageProfitStatCard
+                    averageProfit={averageProfit}
+                    currencySymbol={currencySymbol}
+                    hydrated={hydrated}
                   />
 
-                  <StatCard
-                    title="Total Wins"
-                    value={
-                      <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                        {totalWins}
-                        {beWins > 0 && (
-                          <span className="text-sm font-medium text-slate-500 ml-1">
-                            ({beWins} BE)
-                          </span>
-                        )}
-                      </p>
-                    }
-                  />
+                  <TotalWinsStatCard totalWins={totalWins} beWins={beWins} />
 
-                  <StatCard
-                    title="Total Losses"
-                    value={
-                      <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">
-                        {totalLosses}
-                        {beLosses > 0 && (
-                          <span className="text-sm font-medium text-slate-500 ml-1">
-                            ({beLosses} BE)
-                          </span>
-                        )}
-                      </p>
-                    }
-                  />
+                  <TotalLossesStatCard totalLosses={totalLosses} beLosses={beLosses} />
 
                   <StatCard
                     title="Current Streak"
