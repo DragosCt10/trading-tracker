@@ -450,10 +450,7 @@ export default function AnalyticsClient(
         ['nonExecutedTrades', mode, acc.id, uid, dr.startDate, dr.endDate, strategyId],
         props?.initialNonExecutedTrades ?? []
       );
-      queryClient.setQueryData(
-        ['nonExecutedTotalTradesCount', mode, acc.id, uid, year, strategyId],
-        props?.initialNonExecutedTotalTradesCount ?? 0
-      );
+      // Note: nonExecutedTotalTradesCount is now derived from allTrades, no need to hydrate separately
     }
   }
 
@@ -476,10 +473,7 @@ export default function AnalyticsClient(
       ['nonExecutedTrades', mode, acc.id, uid, dr.startDate, dr.endDate, strategyId],
       props?.initialNonExecutedTrades ?? []
     );
-    queryClient.setQueryData(
-      ['nonExecutedTotalTradesCount', mode, acc.id, uid, year, strategyId],
-      props?.initialNonExecutedTotalTradesCount ?? 0
-    );
+    // Note: nonExecutedTotalTradesCount is now derived from allTrades, no need to hydrate separately
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount with server initial data
 
   const currencySymbol = getCurrencySymbolFromAccount(
