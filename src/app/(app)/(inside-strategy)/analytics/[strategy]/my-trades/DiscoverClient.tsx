@@ -115,13 +115,20 @@ export default function DiscoverClient({
   const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'non-executed'>('all');
   
   // Map executionFilter to TradeFiltersBar's selectedExecution format
-  // TradeFiltersBar only supports 'executed' | 'nonExecuted', so map 'all' to 'executed'
-  const selectedExecution = useMemo<'executed' | 'nonExecuted'>(() => {
-    return executionFilter === 'non-executed' ? 'nonExecuted' : 'executed';
+  const selectedExecution = useMemo<'all' | 'executed' | 'nonExecuted'>(() => {
+    if (executionFilter === 'non-executed') return 'nonExecuted';
+    if (executionFilter === 'executed') return 'executed';
+    return 'all';
   }, [executionFilter]);
   
-  const handleExecutionChange = (execution: 'executed' | 'nonExecuted') => {
-    setExecutionFilter(execution === 'nonExecuted' ? 'non-executed' : 'executed');
+  const handleExecutionChange = (execution: 'all' | 'executed' | 'nonExecuted') => {
+    if (execution === 'all') {
+      setExecutionFilter('all');
+    } else if (execution === 'nonExecuted') {
+      setExecutionFilter('non-executed');
+    } else {
+      setExecutionFilter('executed');
+    }
   };
   const observerTarget = useRef<HTMLDivElement>(null);
 
@@ -344,6 +351,7 @@ export default function DiscoverClient({
         markets={markets}
         selectedExecution={selectedExecution}
         onSelectedExecutionChange={handleExecutionChange}
+        showAllTradesOption={true}
       />
 
       {/* Trade Cards Grid */}
