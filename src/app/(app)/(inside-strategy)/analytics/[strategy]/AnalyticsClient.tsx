@@ -151,19 +151,13 @@ import {
 } from '@/components/dashboard/analytics/AverageDisplacementSizeCard';
 import { 
   ProfitFactorChart,
-  calculateProfitFactor,
 } from '@/components/dashboard/analytics/ProfitFactorChart';
 import { 
   SharpeRatioChart,
-  calculateSharpeRatio,
 } from '@/components/dashboard/analytics/SharpeRatioChart';
 import { 
   ConsistencyScoreChart,
-  calculateConsistencyScore,
 } from '@/components/dashboard/analytics/ConsistencyScoreChart';
-import { calculateRiskPerTradeStats } from '@/utils/calculateRiskPerTrade';
-import { calculateMarketStats } from '@/components/dashboard/analytics/MarketProfitStats';
-import { calculateEvaluationStats } from '@/utils/calculateEvaluationStats';
 import { chartOptions } from '@/utils/chartConfig';
 import { TIME_INTERVALS } from '@/constants/analytics';
 import {
@@ -172,9 +166,10 @@ import {
   createInitialDateRange,
   isCustomDateRange,
 } from '@/utils/dateRangeHelpers';
-import { computeStatsFromTrades } from '@/utils/computeStatsFromTrades';
 import { useDateRangeManagement } from '@/hooks/useDateRangeManagement';
 import { useCalendarNavigation } from '@/hooks/useCalendarNavigation';
+import { useFilteredStats } from '@/hooks/useFilteredStats';
+import { calculateFilteredMacroStats } from '@/utils/calculateFilteredMacroStats';
 
 ChartJS.register(
   CategoryScale,
@@ -569,91 +564,33 @@ export default function AnalyticsClient(
   }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedMarket, selectedExecution]);
 
   // Compute filtered statistics when filters are applied
-  const filteredChartStats = useMemo(() => {
-    // In yearly mode, execution filter doesn't apply, so only check market filter
-    // In dateRange mode, if execution is nonExecuted, filter is applied
-    if (viewMode === 'yearly') {
-      if (selectedMarket === 'all') {
-        return null; // Use hook stats
-      }
-    } else {
-      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) {
-        return null; // Use hook stats (executed/all is default, so no filter applied)
-      }
-    }
-    return computeStatsFromTrades(tradesToUse);
-  }, [tradesToUse, selectedMarket, selectedExecution, viewMode]);
-
-  // Compute filtered risk stats when filters are applied
-  // In yearly mode, only compute if market filter is applied (execution filter doesn't apply in yearly mode)
-  // In dateRange mode, compute if either market or execution filter is applied
-  const filteredRiskStats = useMemo(() => {
-    if (viewMode === 'yearly') {
-      // In yearly mode, only apply market filter
-      if (selectedMarket === 'all') {
-        return null; // Use hook stats
-      }
-    } else {
-      // In dateRange mode, check both filters
-      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) {
-        return null; // Use hook stats (executed/all is default, so no filter applied)
-      }
-    }
-    return calculateRiskPerTradeStats(tradesToUse);
-  }, [tradesToUse, selectedMarket, selectedExecution, viewMode]);
-
-  // Compute filtered market stats when filters are applied
-  // In yearly mode, only compute if market filter is applied (execution filter doesn't apply in yearly mode)
-  // In dateRange mode, compute if either market or execution filter is applied
-  const filteredMarketStats = useMemo(() => {
-    if (viewMode === 'yearly') {
-      // In yearly mode, only apply market filter
-      if (selectedMarket === 'all') {
-        return null; // Use hook stats
-      }
-    } else {
-      // In dateRange mode, check both filters
-      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) {
-        return null; // Use hook stats (executed/all is default, so no filter applied)
-      }
-    }
-    const accountBalance = selection.activeAccount?.account_balance || 0;
-    return calculateMarketStats(tradesToUse, accountBalance);
-  }, [tradesToUse, selectedMarket, selectedExecution, viewMode, selection.activeAccount?.account_balance]);
-
-  // Compute filtered evaluation stats when filters are applied
-  // In yearly mode, only compute if market filter is applied (execution filter doesn't apply in yearly mode)
-  // In dateRange mode, compute if either market or execution filter is applied
-  const filteredEvaluationStats = useMemo(() => {
-    if (viewMode === 'yearly') {
-      // In yearly mode, only apply market filter
-      if (selectedMarket === 'all') {
-        return null; // Use hook stats
-      }
-    } else {
-      // In dateRange mode, check both filters
-      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) {
-        return null; // Use hook stats (executed/all is default, so no filter applied)
-      }
-    }
-    return calculateEvaluationStats(tradesToUse);
-  }, [tradesToUse, selectedMarket, selectedExecution, viewMode]);
-
-  // Use filtered stats when filters are applied, otherwise use hook stats
-  const statsToUseForCharts = filteredChartStats || {
-    setupStats,
-    liquidityStats,
-    directionStats,
-    localHLStats,
-    slSizeStats,
-    reentryStats,
-    breakEvenStats,
-    intervalStats,
-    mssStats,
-    newsStats,
-    dayStats,
-    marketStats: viewMode === 'yearly' ? marketAllTradesStats : marketStats,
-  };
+  const {
+    filteredChartStats,
+    filteredRiskStats,
+    filteredMarketStats,
+    filteredEvaluationStats,
+    statsToUseForCharts,
+  } = useFilteredStats({
+    viewMode,
+    selectedMarket,
+    selectedExecution,
+    tradesToUse,
+    accountBalance: selection.activeAccount?.account_balance || 0,
+    hookStats: {
+      setupStats,
+      liquidityStats,
+      directionStats,
+      localHLStats,
+      slSizeStats,
+      reentryStats,
+      breakEvenStats,
+      intervalStats,
+      mssStats,
+      newsStats,
+      dayStats,
+      marketStats: viewMode === 'yearly' ? marketAllTradesStats : marketStats,
+    },
+  });
 
   // Recompute chart data arrays using filtered stats when filters are applied
   const setupChartDataFiltered: TradeStatDatum[] = convertFilteredSetupStatsToChartData(statsToUseForCharts.setupStats);
@@ -1007,65 +944,19 @@ export default function AnalyticsClient(
   // In date range mode, always compute from current data to reflect the selected date range
   // In yearly mode with no filters, use hook stats
   const macroStatsToUse = useMemo(() => {
-    // In yearly mode with no filters, use hook stats but ensure consistent structure
-    // Execution filter doesn't apply in yearly mode, so only check market filter
-    if (viewMode === 'yearly' && selectedMarket === 'all') {
-      return {
-        ...macroStats,
-        nonExecutedTotalTradesCount: nonExecutedTotalTradesCount || 0,
-        yearlyPartialTradesCount: yearlyPartialTradesCount || 0,
-        yearlyPartialsBECount: yearlyPartialsBECount || 0,
-      };
-    }
-
-    // In date range mode or when filters are applied, compute from current filtered data
-    // Compute profit factor from statsToUse
-    // Profit factor = Total Gross Profit / Total Gross Loss
-    // For non-executed trades, we calculate based on profit amounts, not win/loss counts
-    const totalWins = statsToUse.totalWins;
-    const totalLosses = statsToUse.totalLosses;
-    
-    const profitFactor = calculateProfitFactor(tradesToUse, totalWins, totalLosses);
-
-    const consistencyScore = calculateConsistencyScore(monthlyStatsToUse);
-
-    // Compute Sharpe ratio (simplified - would need returns array for full calculation)
-    // For now, use a simplified version based on profit and drawdown
-    const avgReturn = statsToUse.averagePnLPercentage || 0;
-    const volatility = statsToUse.maxDrawdown || 1; // Use drawdown as proxy for volatility
-    const sharpeWithBE = calculateSharpeRatio(avgReturn, volatility);
-
-    // Compute TQI and RR Multiple from statsToUse
-    const tradeQualityIndex = statsToUse.tradeQualityIndex || 0;
-    const multipleR = statsToUse.multipleR || 0;
-
-    // In date range mode, compute non-executed trades count from filtered nonExecutedTrades
-    // In yearly mode, use hook values
-    const nonExecutedCount = viewMode === 'dateRange' 
-      ? (nonExecutedTrades?.length || 0)
-      : (nonExecutedTotalTradesCount || 0);
-    
-    // Compute partial trades count from filtered trades in date range mode
-    const partialTradesCount = viewMode === 'dateRange'
-      ? tradesToUse.filter(t => t.partials_taken).length
-      : (yearlyPartialTradesCount || 0);
-    
-    const partialsBECount = viewMode === 'dateRange'
-      ? tradesToUse.filter(t => t.partials_taken && t.break_even).length
-      : (yearlyPartialsBECount || 0);
-
-    return {
-      profitFactor,
-      consistencyScore,
-      consistencyScoreWithBE: consistencyScore, // Simplified - same as consistencyScore
-      sharpeWithBE,
-      tradeQualityIndex,
-      multipleR,
-      nonExecutedTotalTradesCount: nonExecutedCount,
-      yearlyPartialTradesCount: partialTradesCount,
-      yearlyPartialsBECount: partialsBECount,
-    };
-  }, [viewMode, selectedMarket, selectedExecution, statsToUse, monthlyPerformanceStatsToUse, monthlyStatsToUse, nonExecutedTrades, tradesToUse, macroStats, yearlyPartialTradesCount, yearlyPartialsBECount]);
+    return calculateFilteredMacroStats({
+      viewMode,
+      selectedMarket,
+      tradesToUse,
+      statsToUse,
+      monthlyStatsToUse,
+      nonExecutedTrades,
+      nonExecutedTotalTradesCount,
+      yearlyPartialTradesCount,
+      yearlyPartialsBECount,
+      macroStats,
+    });
+  }, [viewMode, selectedMarket, tradesToUse, statsToUse, monthlyStatsToUse, nonExecutedTrades, nonExecutedTotalTradesCount, yearlyPartialTradesCount, yearlyPartialsBECount, macroStats]);
 
   // Color variables based on statsToUse
   const streakColor =
@@ -1173,9 +1064,9 @@ export default function AnalyticsClient(
       <p className="text-slate-500 dark:text-slate-400 mb-6">Visual representation of key performance metrics with interactive charts.</p>
 
       <div className="flex flex-col md:grid md:grid-cols-3 gap-4 w-full">
-        <ProfitFactorChart profitFactor={macroStatsToUse.profitFactor} />
-        <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE} />
-        <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore} />
+        <ProfitFactorChart profitFactor={macroStatsToUse.profitFactor ?? 0} />
+        <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} />
+        <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} />
       </div>
 
       <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Key Metrics</h2>
