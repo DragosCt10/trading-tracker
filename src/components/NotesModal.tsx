@@ -44,9 +44,9 @@ export default function NotesModal({ isOpen, onClose, notes }: NotesModalProps) 
         {/* Top accent line */}
         <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60" />
 
-        {/* Scrollable content wrapper */}
-        <div className="relative overflow-y-auto flex-1 px-6 py-5">
-          <AlertDialogHeader className="space-y-1.5 mb-4">
+        {/* Fixed Header */}
+        <div className="relative px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
+          <AlertDialogHeader className="space-y-1.5">
             <div className="flex items-center justify-between">
               <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50">
@@ -54,22 +54,22 @@ export default function NotesModal({ isOpen, onClose, notes }: NotesModalProps) 
                 </div>
                 <span>Trade Notes</span>
               </AlertDialogTitle>
-              <Button
-                size="icon"
-                variant="ghost"
+              <button
                 onClick={onClose}
-                className="cursor-pointer rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors duration-200"
-                tabIndex={0}
-                aria-label="Close"
+                className="cursor-pointer rounded-sm ring-offset-background transition-all hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none h-8 w-8 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-black dark:hover:text-white"
               >
-                <X className="w-5 h-5" />
-              </Button>
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+              </button>
             </div>
             <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
               View notes and additional information for this trade.
             </AlertDialogDescription>
           </AlertDialogHeader>
+        </div>
 
+        {/* Scrollable content wrapper */}
+        <div className="relative overflow-y-auto flex-1 px-6 py-5">
           <div className="pt-2 pb-4">
             {notes ? (
               <div className="rounded-lg bg-transparent border border-slate-300 dark:border-slate-700 p-4">
