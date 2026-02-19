@@ -71,8 +71,6 @@ export default function Navbar() {
           }
         }
         keysToRemove.forEach(key => localStorage.removeItem(key));
-        // Clear analytics strategy slug
-        localStorage.removeItem('last-analytics-strategy');
       }
       
       await supabase.auth.signOut();
