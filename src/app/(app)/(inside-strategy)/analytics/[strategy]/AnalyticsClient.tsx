@@ -384,7 +384,7 @@ export default function AnalyticsClient(
     useState<FilterType>('30days');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
-  const [selectedExecution, setSelectedExecution] = useState<'all' | 'nonExecuted'>('all');
+  const [selectedExecution, setSelectedExecution] = useState<'executed' | 'nonExecuted'>('executed');
 
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
@@ -1670,13 +1670,17 @@ export default function AnalyticsClient(
   // Determine which monthly stats to use based on view mode (for AccountOverviewCard - profit only)
   // Determine which trades to use based on view mode, market filter, and execution filter
   const tradesToUse = useMemo(() => {
-    // Get base trades based on view mode and execution filter
-    // When filtering by non-executed trades, use nonExecutedTrades which already contains only non-executed trades
-    let baseTrades: Trade[];
-    if (viewMode === 'dateRange' && selectedExecution === 'nonExecuted') {
-      baseTrades = nonExecutedTrades || [];
-    } else {
-      baseTrades = viewMode === 'yearly' ? allTrades : filteredTrades;
+    // Get base trades based on view mode
+    let baseTrades: Trade[] = viewMode === 'yearly' ? allTrades : filteredTrades;
+    
+    // Apply execution filter in dateRange mode
+    if (viewMode === 'dateRange') {
+      if (selectedExecution === 'nonExecuted') {
+        baseTrades = nonExecutedTrades || [];
+      } else if (selectedExecution === 'executed') {
+        // Filter to only executed trades
+        baseTrades = baseTrades.filter((t) => t.executed === true);
+      }
     }
     
     let filtered = baseTrades;
@@ -1691,11 +1695,19 @@ export default function AnalyticsClient(
 
   // Compute filtered statistics when filters are applied
   const filteredChartStats = useMemo(() => {
-    if (selectedMarket === 'all' && selectedExecution === 'all') {
-      return null; // Use hook stats
+    // In yearly mode, execution filter doesn't apply, so only check market filter
+    // In dateRange mode, if execution is nonExecuted, filter is applied
+    if (viewMode === 'yearly') {
+      if (selectedMarket === 'all') {
+        return null; // Use hook stats
+      }
+    } else {
+      if (selectedMarket === 'all' && selectedExecution === 'executed') {
+        return null; // Use hook stats (executed is default, so no filter applied)
+      }
     }
     return computeStatsFromTrades(tradesToUse);
-  }, [tradesToUse, selectedMarket, selectedExecution, computeStatsFromTrades]);
+  }, [tradesToUse, selectedMarket, selectedExecution, viewMode, computeStatsFromTrades]);
 
   // Compute filtered risk stats when filters are applied
   // In yearly mode, only compute if market filter is applied (execution filter doesn't apply in yearly mode)
@@ -1708,8 +1720,8 @@ export default function AnalyticsClient(
       }
     } else {
       // In dateRange mode, check both filters
-      if (selectedMarket === 'all' && selectedExecution === 'all') {
-        return null; // Use hook stats
+      if (selectedMarket === 'all' && selectedExecution === 'executed') {
+        return null; // Use hook stats (executed is default, so no filter applied)
       }
     }
     return calculateRiskPerTradeStats(tradesToUse);
@@ -1726,8 +1738,8 @@ export default function AnalyticsClient(
       }
     } else {
       // In dateRange mode, check both filters
-      if (selectedMarket === 'all' && selectedExecution === 'all') {
-        return null; // Use hook stats
+      if (selectedMarket === 'all' && selectedExecution === 'executed') {
+        return null; // Use hook stats (executed is default, so no filter applied)
       }
     }
     const accountBalance = selection.activeAccount?.account_balance || 0;
@@ -1745,8 +1757,8 @@ export default function AnalyticsClient(
       }
     } else {
       // In dateRange mode, check both filters
-      if (selectedMarket === 'all' && selectedExecution === 'all') {
-        return null; // Use hook stats
+      if (selectedMarket === 'all' && selectedExecution === 'executed') {
+        return null; // Use hook stats (executed is default, so no filter applied)
       }
     }
     return calculateEvaluationStats(tradesToUse);
@@ -2008,9 +2020,17 @@ export default function AnalyticsClient(
   // In date range mode with no filters, use monthlyStats from hook, so use filteredTradesLoading
   // In yearly mode with no filters, use monthlyStatsAllTrades from hook, so use allTradesLoading
   const accountOverviewLoadingState = useMemo(() => {
-    if (selectedMarket !== 'all' || selectedExecution !== 'all') {
-      // Filters are applied (market or execution filter), data computed synchronously from tradesToUse
-      return false;
+    // In yearly mode, execution filter doesn't apply, so only check market filter
+    // In dateRange mode, if execution is nonExecuted, filter is applied
+    if (viewMode === 'yearly') {
+      if (selectedMarket !== 'all') {
+        return false; // Market filter applied
+      }
+    } else {
+      if (selectedMarket !== 'all' || selectedExecution === 'nonExecuted') {
+        // Filters are applied (market or execution filter), data computed synchronously from tradesToUse
+        return false;
+      }
     }
     
     // No filters applied, use hook data - check loading state based on view mode
@@ -2053,12 +2073,17 @@ export default function AnalyticsClient(
 
   // Get trades for the current calendar month based on view mode
   const calendarMonthTradesToUse = useMemo(() => {
-    // When filtering by non-executed trades, use nonExecutedTrades which already contains only non-executed trades
-    let tradesSource: Trade[];
-    if (viewMode === 'dateRange' && selectedExecution === 'nonExecuted') {
-      tradesSource = nonExecutedTrades || [];
-    } else {
-      tradesSource = viewMode === 'yearly' ? allTrades : filteredTrades;
+    // Get base trades based on view mode
+    let tradesSource: Trade[] = viewMode === 'yearly' ? allTrades : filteredTrades;
+    
+    // Apply execution filter in dateRange mode
+    if (viewMode === 'dateRange') {
+      if (selectedExecution === 'nonExecuted') {
+        tradesSource = nonExecutedTrades || [];
+      } else if (selectedExecution === 'executed') {
+        // Filter to only executed trades
+        tradesSource = tradesSource.filter((t) => t.executed === true);
+      }
     }
     
     let filteredSource = tradesSource;
@@ -2099,8 +2124,8 @@ export default function AnalyticsClient(
   // In date range mode, always compute from tradesToUse to reflect the selected date range
   // In yearly mode with no filters, use hook stats
   const filteredStats = useMemo(() => {
-    // In yearly mode with no filters, use hook stats
-    if (viewMode === 'yearly' && selectedMarket === 'all' && selectedExecution === 'all') {
+    // In yearly mode with no filters, use hook stats (execution filter doesn't apply in yearly mode)
+    if (viewMode === 'yearly' && selectedMarket === 'all') {
       return stats;
     }
 
@@ -2226,8 +2251,9 @@ export default function AnalyticsClient(
     // In date range mode or when filters are applied, set to 0 when there are no executed trades (to reflect filtered data)
     // Otherwise, use hook values (they're computed from the appropriate dataset)
     const executedTradesCount = wins + losses + beWins + beLosses;
-    const tradeQualityIndex = ((viewMode === 'dateRange' || selectedMarket !== 'all' || selectedExecution !== 'all') && executedTradesCount === 0) ? 0 : (stats.tradeQualityIndex || 0);
-    const multipleR = ((viewMode === 'dateRange' || selectedMarket !== 'all' || selectedExecution !== 'all') && executedTradesCount === 0) ? 0 : (stats.multipleR || 0);
+    const isFiltered = viewMode === 'dateRange' || selectedMarket !== 'all' || selectedExecution === 'nonExecuted';
+    const tradeQualityIndex = (isFiltered && executedTradesCount === 0) ? 0 : (stats.tradeQualityIndex || 0);
+    const multipleR = (isFiltered && executedTradesCount === 0) ? 0 : (stats.multipleR || 0);
 
     return {
       ...stats, // Keep other stats from hook
@@ -2267,14 +2293,16 @@ export default function AnalyticsClient(
   // Use filteredStats when filters are applied or in date range mode
   // In date range mode, always use filteredStats to reflect the selected date range
   // In yearly mode with no filters, use hook stats
-  const statsToUse = (viewMode === 'dateRange' || selectedMarket !== 'all' || selectedExecution !== 'all') ? filteredStats : stats;
+  const isFiltered = viewMode === 'dateRange' || selectedMarket !== 'all' || selectedExecution === 'nonExecuted';
+  const statsToUse = isFiltered ? filteredStats : stats;
 
   // Compute filtered macroStats when filters are applied or in date range mode
   // In date range mode, always compute from current data to reflect the selected date range
   // In yearly mode with no filters, use hook stats
   const macroStatsToUse = useMemo(() => {
     // In yearly mode with no filters, use hook stats but ensure consistent structure
-    if (viewMode === 'yearly' && selectedMarket === 'all' && selectedExecution === 'all') {
+    // Execution filter doesn't apply in yearly mode, so only check market filter
+    if (viewMode === 'yearly' && selectedMarket === 'all') {
       return {
         ...macroStats,
         nonExecutedTotalTradesCount: nonExecutedTotalTradesCount || 0,
