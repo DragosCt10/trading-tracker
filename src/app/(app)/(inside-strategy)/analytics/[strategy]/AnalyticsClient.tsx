@@ -143,7 +143,6 @@ import {
 import {
   PartialsBEStatisticsCard,
 } from '@/components/dashboard/analytics/PartialsBEStatisticsCard';
-import { NonExecutedTradesCard } from '@/components/dashboard/analytics/NonExecutedTradesCard';
 import {
   DisplacementSizeStats,
   DISPLACEMENT_BUCKETS,
@@ -575,9 +574,7 @@ export default function AnalyticsClient(
     monthlyStatsAllTrades,
     localHLStats,
     setupStats,
-    nonExecutedSetupStats,
     liquidityStats,
-    nonExecutedLiquidityStats,
     directionStats,
     reentryStats,
     breakEvenStats,
@@ -586,14 +583,12 @@ export default function AnalyticsClient(
     newsStats,
     dayStats,
     marketStats,
-    nonExecutedMarketStats,
     marketAllTradesStats,
     slSizeStats,
     macroStats,
     evaluationStats,
     nonExecutedTrades,
     nonExecutedTotalTradesCount,
-    nonExecutedTradesLoading,
     yearlyPartialTradesCount,
     yearlyPartialsBECount,
     allTradesRiskStats,
@@ -1005,51 +1000,6 @@ export default function AnalyticsClient(
 
   // Use correct market stats based on view mode
   const marketStatsToUse = viewMode === 'yearly' ? marketAllTradesStats : marketStats;
-
-  const nonExecutedChartData: TradeStatDatum[] = nonExecutedSetupStats.map((stat) => {
-    const totalTrades = stat.wins + stat.losses;
-
-    return {
-      category: `${stat.setup}`,
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-      totalTrades,
-    };
-  });
-
-  const nonExecutedLiquidityChartData: TradeStatDatum[] = nonExecutedLiquidityStats.map((stat) => {
-    const totalTrades = stat.wins + stat.losses;
-
-    return {
-      category: `${stat.liquidity}`,
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-      totalTrades,
-    };
-  });
-
-  const nonExecutedMarketChartData: TradeStatDatum[] = nonExecutedMarketStats.map((stat) => {
-    const totalTrades = stat.wins + stat.losses;
-
-    return {
-      category: `${stat.market}`,
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-      totalTrades,
-    };
-  });
 
   
 
@@ -2631,19 +2581,6 @@ export default function AnalyticsClient(
 
 
 
-      <div className="mt-20">
-        <h2 className="text-2xl font-semibold text-slate-800">
-          Non-executed Trades
-        </h2>
-        <p className="text-base text-slate-500 mt-1">
-          Planned but unexecuted trades overview.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
-        {/* Non Executed Trades Statistics */}
-        <NonExecutedTradesCard nonExecutedTrades={nonExecutedTrades} />
-      </div>  
     </>
   );
 }
