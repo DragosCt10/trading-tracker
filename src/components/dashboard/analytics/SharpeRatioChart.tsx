@@ -11,7 +11,7 @@ interface SharpeRatioChartProps {
   sharpeRatio: number;
 }
 
-export function SharpeRatioChart({ sharpeRatio }: SharpeRatioChartProps) {
+export const SharpeRatioChart = React.memo(function SharpeRatioChart({ sharpeRatio }: SharpeRatioChartProps) {
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -270,4 +270,4 @@ export function SharpeRatioChart({ sharpeRatio }: SharpeRatioChartProps) {
       </CardContent>
     </Card>
   );
-}
+});
