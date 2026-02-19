@@ -11,7 +11,7 @@ interface ProfitFactorChartProps {
   profitFactor: number;
 }
 
-export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
+export const ProfitFactorChart = React.memo(function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -272,4 +272,4 @@ export function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
       </CardContent>
     </Card>
   );
-}
+});
