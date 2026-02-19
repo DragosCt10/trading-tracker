@@ -49,6 +49,7 @@ import { NonExecutedTradesStatCard } from '@/components/dashboard/analytics/NonE
 import { TQIStatCard } from '@/components/dashboard/analytics/TQIStatCard';
 import { RRMultipleStatCard } from '@/components/dashboard/analytics/RRMultipleStatCard';
 import { MaxDrawdownStatCard } from '@/components/dashboard/analytics/MaxDrawdownStatCard';
+import { PNLPercentageStatCard } from '@/components/dashboard/analytics/PNLPercentageStatCard';
 import { cn } from '@/lib/utils';
 import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
 import { 
@@ -2320,12 +2321,6 @@ export default function AnalyticsClient(
     statsToUse.totalProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
   const avgProfitColor =
     statsToUse.averageProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
-  const pnlColor =
-    statsToUse.averagePnLPercentage > 0
-      ? 'text-emerald-600 dark:text-emerald-400'
-      : statsToUse.averagePnLPercentage < 0
-      ? 'text-rose-600 dark:text-rose-400'
-      : 'text-slate-900 dark:text-slate-100';
   const streakColor =
     statsToUse.currentStreak > 0
       ? 'text-emerald-600 dark:text-emerald-400'
@@ -2527,19 +2522,7 @@ export default function AnalyticsClient(
 
         <MaxDrawdownStatCard maxDrawdown={statsToUse.maxDrawdown} />
 
-        <StatCard
-          title="P&L %"
-          tooltipContent={
-            <p className="text-xs sm:text-sm text-slate-500">
-              Average P&amp;L % over starting balance.
-            </p>
-          }
-          value={
-            <p className={`text-2xl font-bold ${pnlColor}`}>
-              {statsToUse.averagePnLPercentage.toFixed(2)}%
-            </p>
-          }
-        />
+        <PNLPercentageStatCard averagePnLPercentage={statsToUse.averagePnLPercentage} />
 
         {/* Partial Trades - Date Range Mode */}
         {viewMode === 'dateRange' && (
