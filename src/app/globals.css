@@ -113,7 +113,7 @@
 
 .rdrDateDisplayWrapper {
   background: transparent !important;
-  padding: 0 !important; /* add vertical and horizontal spacing */
+  padding: 1rem 0.5rem !important; /* add vertical and horizontal spacing */
 }
 
 .rdrCalendarWrapper {
@@ -165,8 +165,12 @@
   color: #1e293b !important;
 }
 
+.rdrMonthAndYearPickers select {
+  background-color: transparent !important;
+}
+
 .rdrMonthAndYearPickers select:hover {
-  background-color: #f1f5f9 !important; /* slate-100 */
+  background-color: transparent !important;
 }
 
 .rdrDayDisabled .rdrInRange,
@@ -178,6 +182,71 @@
 .rdrDayDisabled .rdrDayEndPreview {
   opacity: 0.5;
   filter: none !important;
+}
+
+/* Dark mode styles for date range picker */
+.dark .rdrDateDisplayItem input,
+.dark .rdrDateDisplayItemActive input {
+  color: #e2e8f0 !important; /* slate-200 - light text for dark background */
+}
+
+.dark .rdrDateDisplayItem {
+  color: #cbd5e1 !important; /* slate-300 - better contrast */
+  border-color: rgba(148, 163, 184, 0.3) !important; /* lighter border */
+}
+
+.dark .rdrDateDisplayItem:hover {
+  color: #a78bfa !important; /* violet-400 - lighter purple */
+  border-color: rgba(167, 139, 250, 0.5) !important;
+}
+
+.dark .rdrDateDisplayItemActive {
+  color: #a78bfa !important; /* violet-400 */
+  border-color: #a855f7 !important; /* purple-500 */
+}
+
+.dark .rdrWeekDays .rdrWeekDay {
+  color: #cbd5e1 !important; /* slate-300 - better contrast for week day headers */
+}
+
+.dark .rdrMonthAndYearPickers select {
+  color: #e2e8f0 !important; /* slate-200 - light text for month/year */
+  background-color: transparent !important;
+}
+
+.dark .rdrMonthAndYearPickers select:hover {
+  background-color: transparent !important;
+}
+
+.dark .rdrDay {
+  color: #ffffff !important; /* white text for unselected dates */
+}
+
+.dark .rdrDay .rdrDayNumber span {
+  color: #ffffff !important; /* white text for all day numbers */
+}
+
+.dark .rdrDay.rdrDayPassive {
+  color: #ffffff !important; /* white text for dates outside current month */
+  opacity: 0.4 !important; /* reduced opacity for past month days */
+}
+
+.dark .rdrDay.rdrDayPassive .rdrDayNumber span {
+  color: #ffffff !important; /* white text for passive days */
+  opacity: 0.4 !important; /* reduced opacity for past month days */
+}
+
+.dark .rdrDay.rdrDaySelected .rdrDayNumber span {
+  color: #ffffff !important; /* white text on selected dates */
+}
+
+.dark .rdrDay.rdrDayInRange .rdrDayNumber span {
+  color: #ffffff !important; /* white text in range */
+}
+
+.dark .rdrDay.rdrDayStartRange .rdrDayNumber span,
+.dark .rdrDay.rdrDayEndRange .rdrDayNumber span {
+  color: #ffffff !important; /* white text on start/end dates */
 }
 
 @theme inline {
