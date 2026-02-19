@@ -68,6 +68,7 @@ export function useDashboardData({
   selectedYear,
   selectedMarket,
   strategyId,
+  viewMode,
 }: {
   session: any;
   dateRange: { startDate: string; endDate: string };
@@ -80,6 +81,7 @@ export function useDashboardData({
   selectedYear: number;
   selectedMarket: string;
   strategyId?: string | null;
+  viewMode?: 'yearly' | 'dateRange';
 }) {
   const [stats, setStats] = useState<Stats>({
     totalTrades: 0,
@@ -191,6 +193,19 @@ export function useDashboardData({
     gcTime: 5 * 60_000,
   });
 
+  // Determine the date range to use for filtered trades based on viewMode
+  const effectiveDateRange = useMemo(() => {
+    if (viewMode === 'yearly') {
+      // In yearly mode, use the full year boundaries
+      return {
+        startDate: `${selectedYear}-01-01`,
+        endDate: `${selectedYear}-12-31`,
+      };
+    }
+    // In dateRange mode, use the provided dateRange
+    return dateRange;
+  }, [viewMode, selectedYear, dateRange]);
+
   // Query for non-executed trades
   const {
     data: nonExecutedTradesData = [],
@@ -201,8 +216,9 @@ export function useDashboardData({
       mode,
       activeAccount?.id,
       session?.user?.id,
-      dateRange.startDate,
-      dateRange.endDate,
+      viewMode,
+      effectiveDateRange.startDate,
+      effectiveDateRange.endDate,
       strategyId,
     ],
     queryFn: async () => {
@@ -212,8 +228,8 @@ export function useDashboardData({
           userId: session.user.id,
           accountId: activeAccount.id,
           mode,
-          startDate: dateRange.startDate,
-          endDate: dateRange.endDate,
+          startDate: effectiveDateRange.startDate,
+          endDate: effectiveDateRange.endDate,
           onlyNonExecuted: true,
           strategyId,
         });
@@ -225,8 +241,8 @@ export function useDashboardData({
     enabled:
       !!session?.user?.id &&
       !!activeAccount?.id &&
-      !!dateRange.startDate &&
-      !!dateRange.endDate &&
+      !!effectiveDateRange.startDate &&
+      !!effectiveDateRange.endDate &&
       !!mode,
     staleTime: 2 * 60 * 1000, // 2 minutes - reduces refetches while keeping data fresh
     gcTime: 5 * 60_000,
@@ -243,7 +259,9 @@ export function useDashboardData({
   const nonExecutedTotalTradesLoading = allTradesLoading;
 
 
-  // Query for filtered trades based on date range (independent of year selection)
+  // Query for filtered trades based on viewMode:
+  // - In yearly mode: fetch all trades for the selected year
+  // - In dateRange mode: fetch trades for the selected date range
   const {
     data: filteredTrades = [],
     isFetching: filteredTradesLoading,
@@ -253,8 +271,9 @@ export function useDashboardData({
       mode,
       activeAccount?.id,
       session?.user?.id,
-      dateRange.startDate,
-      dateRange.endDate,
+      viewMode,
+      effectiveDateRange.startDate,
+      effectiveDateRange.endDate,
       strategyId,
     ],
     queryFn: async () => {
@@ -264,8 +283,8 @@ export function useDashboardData({
           userId: session.user.id,
           accountId: activeAccount.id,
           mode,
-          startDate: dateRange.startDate,
-          endDate: dateRange.endDate,
+          startDate: effectiveDateRange.startDate,
+          endDate: effectiveDateRange.endDate,
           strategyId,
         });
       } catch (error) {
@@ -273,7 +292,7 @@ export function useDashboardData({
         return [];
       }
     },
-    enabled: !!session?.user?.id && !!activeAccount?.id && !!dateRange.startDate && !!dateRange.endDate,
+    enabled: !!session?.user?.id && !!activeAccount?.id && !!effectiveDateRange.startDate && !!effectiveDateRange.endDate,
     staleTime: 2 * 60 * 1000, // 2 minutes - reduces refetches while keeping data fresh
     gcTime: 5 * 60_000,
   });
