@@ -363,7 +363,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   type="text"
                   value={trade.liquidity_taken}
                   onChange={(e) => updateTrade('liquidity_taken', e.target.value)}
-                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
+                  className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
                   placeholder="e.g., Buy side liquidity"
                 />
               </div>
@@ -377,7 +377,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   type="text"
                   value={trade.trade_link}
                   onChange={(e) => updateTrade('trade_link', e.target.value)}
-                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
+                  className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
                   placeholder="Chart link or reference"
                 />
               </div>
@@ -396,7 +396,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   type="date"
                   value={trade.trade_date}
                   onChange={(e) => updateTrade('trade_date', e.target.value)}
-                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
+                  className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
                   required
                 />
               </div>
@@ -410,7 +410,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   type="time"
                   value={trade.trade_time}
                   onChange={(e) => updateTrade('trade_time', e.target.value)}
-                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
+                  className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
                 />
               </div>
             </div>
@@ -422,7 +422,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               <div className="space-y-1.5">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Market *</Label>
                 <Select value={trade.market} onValueChange={(v) => updateTrade('market', v)}>
-                  <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300">
+                  <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
                     <SelectValue placeholder="Select Market" />
                   </SelectTrigger>
                   <SelectContent>
@@ -436,7 +436,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               <div className="space-y-1.5">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Setup Type *</Label>
                 <Select value={trade.setup_type} onValueChange={(v) => updateTrade('setup_type', v)}>
-                  <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300">
+                  <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
                     <SelectValue placeholder="Select Setup" />
                   </SelectTrigger>
                   <SelectContent>
@@ -453,7 +453,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               <div className="space-y-1.5">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Direction</Label>
                 <Select value={trade.direction} onValueChange={(v) => updateTrade('direction', v as 'Long' | 'Short')}>
-                  <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300">
+                  <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -466,7 +466,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               <div className="space-y-1.5">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Trade Outcome</Label>
                 <Select value={trade.trade_outcome} onValueChange={(v) => updateTrade('trade_outcome', v as 'Win' | 'Lose')}>
-                  <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300">
+                  <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -482,7 +482,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               <div className="space-y-1.5">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Liquidity *</Label>
                 <Select value={trade.liquidity} onValueChange={(v) => updateTrade('liquidity', v)}>
-                  <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300">
+                  <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
                     <SelectValue placeholder="Select Liquidity" />
                   </SelectTrigger>
                   <SelectContent>
@@ -496,7 +496,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               <div className="space-y-1.5">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">MSS *</Label>
                 <Select value={trade.mss} onValueChange={(v) => updateTrade('mss', v)}>
-                  <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300">
+                  <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
                     <SelectValue placeholder="Select MSS" />
                   </SelectTrigger>
                   <SelectContent>
@@ -520,7 +520,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   inputMode="decimal"
                   value={String(trade.risk_per_trade ?? '')}
                   onChange={(e) => updateTrade('risk_per_trade', parseFloat(e.target.value) || 0)}
-                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
+                  className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
                   required
                 />
               </div>
@@ -533,7 +533,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   inputMode="decimal"
                   value={String(trade.risk_reward_ratio ?? '')}
                   onChange={(e) => updateTrade('risk_reward_ratio', parseFloat(e.target.value) || 0)}
-                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
+                  className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
                   required
                 />
               </div>
@@ -546,7 +546,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   inputMode="decimal"
                   value={String(trade.risk_reward_ratio_long ?? '')}
                   onChange={(e) => updateTrade('risk_reward_ratio_long', parseFloat(e.target.value) || 0)}
-                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
+                  className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
                   placeholder="Potential RR"
                 />
               </div>
@@ -559,7 +559,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   inputMode="decimal"
                   value={String(trade.sl_size ?? '')}
                   onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
-                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
+                  className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
                   required
                 />
               </div>
@@ -572,7 +572,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   inputMode="decimal"
                   value={String(trade.displacement_size ?? '')}
                   onChange={(e) => updateTrade('displacement_size', parseFloat(e.target.value) || 0)}
-                  className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300"
+                  className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
                   placeholder="Displacement"
                 />
               </div>
@@ -606,7 +606,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   </TooltipProvider>
                 </div>
                 <Select value={trade.evaluation} onValueChange={(v) => updateTrade('evaluation', v)}>
-                  <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300">
+                  <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
                     <SelectValue placeholder="Select Grade" />
                   </SelectTrigger>
                   <SelectContent>
@@ -619,7 +619,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             </div>
 
             {/* P&L Display */}
-            <div className="p-5 rounded-xl bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-300 dark:border-slate-700 shadow-sm">
+            <div className="p-5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/60 dark:border-slate-600 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">Calculated P&L:</span>
                 <div className="flex items-center gap-3">
@@ -748,7 +748,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 ref={notesRef}
                 defaultValue={trade.notes}
                 onBlur={(e) => updateTrade('notes', e.target.value)}
-                className="min-h-[200px] shadow-sm bg-slate-100/50 dark:bg-slate-900/30 rounded-xl border border-slate-200/70 dark:border-slate-800/70 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600"
+                className="min-h-[200px] shadow-sm bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100"
                 placeholder="Add your trade notes here..."
               />
             </div>
