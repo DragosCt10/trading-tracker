@@ -10,8 +10,8 @@ import 'react-date-range/dist/theme/default.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'TI Tracker',
-  description: 'Track your trading performance and journal your trades',
+  title: 'QuantifyX',
+  description: 'Built for traders, by traders. Track performance and journal your trades.',
 };
 
 export default function RootLayout({
