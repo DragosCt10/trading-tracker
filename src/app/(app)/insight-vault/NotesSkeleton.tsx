@@ -10,22 +10,49 @@ export function NotesSkeleton() {
         <Skeleton className="h-4 w-64" />
       </div>
 
-      {/* Cards Grid Skeleton */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <Card key={`skeleton-${index}`} className="overflow-hidden">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <Skeleton className="h-6 w-32" />
-                <Skeleton className="h-5 w-5 rounded-full" />
+      {/* Cards Grid Skeleton - matches NotesClient grid layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <Card
+            key={`skeleton-${index}`}
+            className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm"
+          >
+            <CardContent className="p-6 flex flex-col h-full">
+              {/* Title section - matches NoteCard title + pin structure */}
+              <div className="flex items-start justify-between mb-4">
+                <Skeleton className="h-6 w-full flex-1 pr-2" />
+                {/* Optional pin icon skeleton - randomly show some */}
+                {index % 3 === 0 && (
+                  <Skeleton className="h-4 w-4 flex-shrink-0 rounded" />
+                )}
               </div>
-              <Skeleton className="h-4 w-full mb-2" />
-              <Skeleton className="h-4 w-3/4 mb-4" />
-              <div className="flex items-center gap-2 mb-3">
-                <Skeleton className="h-4 w-16" />
+              
+              {/* Preview text section - matches NoteCard preview (line-clamp-3) */}
+              <div className="mb-4 flex-1 space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+              
+              {/* Strategy and date section - matches NoteCard structure */}
+              <div className="space-y-2 mb-4">
+                {/* Strategy label + badges */}
+                <div className="flex items-start gap-2 flex-wrap">
+                  <Skeleton className="h-3 w-16 mt-0.5" />
+                  <div className="flex flex-wrap gap-1.5">
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </div>
+                </div>
+                {/* Date */}
+                <Skeleton className="h-3 w-24" />
+              </div>
+              
+              {/* View Details button - matches NoteCard button with arrow */}
+              <div className="inline-flex items-center mt-auto gap-1">
                 <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-4 rounded" />
               </div>
-              <Skeleton className="h-4 w-24" />
             </CardContent>
           </Card>
         ))}
