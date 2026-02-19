@@ -267,11 +267,13 @@ export const MonthPerformanceCards: React.FC<MonthPerformanceCardsProps> = ({
     return computeFullMonthlyStatsFromTrades(trades);
   }, [trades, computeFullMonthlyStatsFromTrades]);
 
+  type MonthWithStats = { month: string; stats: { winRate: number; profit: number } } | null;
+
   // Compute best and worst month from monthlyPerformanceStatsToUse
-  const { bestMonth, worstMonth } = useMemo(() => {
+  const { bestMonth, worstMonth } = useMemo((): { bestMonth: MonthWithStats; worstMonth: MonthWithStats } => {
     const monthlyData = monthlyPerformanceStatsToUse;
-    let bestMonth: { month: string; stats: { winRate: number; profit: number } } | null = null;
-    let worstMonth: { month: string; stats: { winRate: number; profit: number } } | null = null;
+    let bestMonth: MonthWithStats = null;
+    let worstMonth: MonthWithStats = null;
     let bestProfit = -Infinity;
     let worstProfit = Infinity;
 
