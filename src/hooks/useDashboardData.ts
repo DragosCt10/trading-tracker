@@ -232,43 +232,15 @@ export function useDashboardData({
     gcTime: 5 * 60_000,
   });
 
-  // Query to count all non-executed trades from the current year
-  const {
-    data: nonExecutedTotalTradesCount = 0,
-    isFetching: nonExecutedTotalTradesLoading,
-  } = useQuery<number>({
-    queryKey: [
-      'nonExecutedTotalTradesCount',
-      mode,
-      activeAccount?.id,
-      session?.user?.id,
-      selectedYear,
-      strategyId,
-    ],
-    queryFn: async () => {
-      if (!session?.user?.id || !activeAccount?.id) return 0;
-      const startOfYear = `${selectedYear}-01-01`;
-      const endOfYear = `${selectedYear}-12-31`;
-      try {
-        const trades = await getFilteredTrades({
-          userId: session.user.id,
-          accountId: activeAccount.id,
-          mode,
-          startDate: startOfYear,
-          endDate: endOfYear,
-          onlyNonExecuted: true,
-          strategyId,
-        });
-        return trades.length;
-      } catch (error) {
-        console.error('Error counting non-executed trades:', error);
-        return 0;
-      }
-    },
-    enabled: !!session?.user?.id && !!activeAccount?.id && !!selectedYear && !!mode,
-    staleTime: 2 * 60 * 1000, // 2 minutes - reduces refetches while keeping data fresh
-    gcTime: 5 * 60_000,
-  });
+  // Derive non-executed trades count from allTrades (eliminates duplicate query)
+  // Since allTrades already contains all trades for the year, we can filter and count
+  const nonExecutedTotalTradesCount = useMemo(() => {
+    if (!allTrades || allTrades.length === 0) return 0;
+    return allTrades.filter(trade => trade.executed === false).length;
+  }, [allTrades]);
+  
+  // Use allTradesLoading for the loading state since we derive from allTrades
+  const nonExecutedTotalTradesLoading = allTradesLoading;
 
 
   // Query for filtered trades based on date range (independent of year selection)
@@ -555,6 +527,7 @@ export function useDashboardData({
     evaluationStats,
     nonExecutedTrades: nonExecutedTradesData,
     nonExecutedTotalTradesCount,
+    nonExecutedTotalTradesLoading, // Derived from allTradesLoading
     nonExecutedTradesLoading,
     yearlyPartialTradesCount,
     yearlyPartialsBECount,
