@@ -2576,16 +2576,15 @@ export default function AnalyticsClient(
             <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(Number(value))}>
               <SelectTrigger
                 suppressHydrationWarning
-                className="w-28 h-10 rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-white dark:bg-slate-900/80 shadow-sm hover:bg-slate-50/80 dark:hover:bg-slate-800/80 text-slate-900 dark:text-slate-100 font-medium focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200"
+                className="w-28 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
               >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-white dark:bg-slate-900 shadow-lg">
+              <SelectContent>
                 {[selectedYear - 1, selectedYear, selectedYear + 1].map((year) => (
                   <SelectItem
                     key={year}
                     value={String(year)}
-                    className="rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800 focus:text-slate-900 dark:focus:text-slate-100"
                   >
                     {year}
                   </SelectItem>
