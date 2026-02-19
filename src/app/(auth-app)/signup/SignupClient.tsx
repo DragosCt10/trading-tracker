@@ -262,7 +262,7 @@ export default function SignupClient() {
 
           {/* Footer text */}
           <p className="mt-8 text-center text-xs text-slate-500 dark:text-slate-500 animate-in fade-in duration-700 delay-1200">
-            Join TI Tracker and build a disciplined trading routine
+            Join QuantifyX and build a disciplined trading routine
           </p>
         </div>
       </div>
