@@ -6,6 +6,51 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Info } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { Trade } from '@/types/trade';
+
+/* ---------------------------------------------------------
+ * Constants & helpers
+ * ------------------------------------------------------ */
+
+/**
+ * Calculate profit factor from trades
+ * Profit factor = Total Gross Profit / Total Gross Loss
+ * Falls back to win/loss count if profit data is not available
+ */
+export function calculateProfitFactor(
+  trades: Trade[],
+  totalWins: number,
+  totalLosses: number
+): number {
+  // Calculate profit factor from actual profit amounts for more accuracy
+  // Sum of all positive profits (wins) divided by absolute sum of all negative profits (losses)
+  const grossProfit = trades
+    .filter(t => (t.calculated_profit || 0) > 0)
+    .reduce((sum, t) => sum + (t.calculated_profit || 0), 0);
+  const grossLoss = Math.abs(trades
+    .filter(t => (t.calculated_profit || 0) < 0)
+    .reduce((sum, t) => sum + (t.calculated_profit || 0), 0));
+  
+  // Use profit-based calculation if we have profit data, otherwise fall back to win/loss count
+  let profitFactor: number;
+  if (grossLoss > 0) {
+    profitFactor = grossProfit / grossLoss;
+  } else if (grossProfit > 0) {
+    // All trades are profitable, but no losses - show a high but finite value
+    profitFactor = grossProfit > 0 ? Math.min(grossProfit, 100) : 0;
+  } else if (totalLosses > 0) {
+    // Fall back to win/loss count if no profit data
+    profitFactor = totalWins / totalLosses;
+  } else if (totalWins > 0) {
+    // All wins, no losses - show a high but finite value instead of Infinity
+    profitFactor = Math.min(totalWins * 2, 100);
+  } else {
+    // No executed trades or no data
+    profitFactor = 0;
+  }
+  
+  return profitFactor;
+}
 
 interface ProfitFactorChartProps {
   profitFactor: number;
