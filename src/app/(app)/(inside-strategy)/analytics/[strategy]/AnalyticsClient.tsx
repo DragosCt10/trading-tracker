@@ -50,6 +50,9 @@ import { TQIStatCard } from '@/components/dashboard/analytics/TQIStatCard';
 import { RRMultipleStatCard } from '@/components/dashboard/analytics/RRMultipleStatCard';
 import { MaxDrawdownStatCard } from '@/components/dashboard/analytics/MaxDrawdownStatCard';
 import { PNLPercentageStatCard } from '@/components/dashboard/analytics/PNLPercentageStatCard';
+import { TotalTradesStatCard } from '@/components/dashboard/analytics/TotalTradesStatCard';
+import { WinRateStatCard } from '@/components/dashboard/analytics/WinRateStatCard';
+import { TotalProfitStatCard } from '@/components/dashboard/analytics/TotalProfitStatCard';
 import { cn } from '@/lib/utils';
 import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
 import { 
@@ -2317,8 +2320,6 @@ export default function AnalyticsClient(
   }, [viewMode, selectedMarket, selectedExecution, statsToUse, monthlyPerformanceStatsToUse, monthlyStatsToUse, nonExecutedTrades, tradesToUse, macroStats, yearlyPartialTradesCount, yearlyPartialsBECount]);
 
   // Color variables based on statsToUse
-  const profitColor =
-    statsToUse.totalProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
   const avgProfitColor =
     statsToUse.averageProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
   const streakColor =
@@ -2649,34 +2650,14 @@ export default function AnalyticsClient(
 
               return (
                 <>
-                  <StatCard
-                    title="Total Trades"
-                    value={
-                      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                        {totalTrades}
-                      </p>
-                    }
-                  />
+                  <TotalTradesStatCard totalTrades={totalTrades} />
 
-                  <StatCard
-                    title="Win Rate"
-                    value={
-                      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                        {winRate.toFixed(2)}%
-                        <span className="text-slate-500 text-sm ml-1">
-                          ({winRateWithBE.toFixed(2)}% w/ BE)
-                        </span>
-                      </p>
-                    }
-                  />
+                  <WinRateStatCard winRate={winRate} winRateWithBE={winRateWithBE} />
 
-                  <StatCard
-                    title="Total Profit"
-                    value={
-                      <p className={hydrated ? `text-2xl font-bold ${profitColor}` : 'text-2xl font-bold text-slate-900 dark:text-slate-100'}>
-                        {hydrated ? `${currencySymbol}${totalProfit.toFixed(2)}` : '\u2014'}
-                      </p>
-                    }
+                  <TotalProfitStatCard
+                    totalProfit={totalProfit}
+                    currencySymbol={currencySymbol}
+                    hydrated={hydrated}
                   />
 
                   <StatCard
