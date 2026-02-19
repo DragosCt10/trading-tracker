@@ -39,7 +39,6 @@ import {
   ArcElement,
 } from 'chart.js';
 import { RiskRewardStats } from '@/components/dashboard/analytics/RiskRewardStats';
-import { EvaluationStats } from '@/components/dashboard/analytics/EvaluationStats';
 import { RRHitStats } from '@/components/dashboard/analytics/RRHitStats';
 import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketProfitStats';
 import RiskPerTrade from '@/components/dashboard/analytics/RiskPerTrade';
@@ -126,6 +125,13 @@ import {
   NewsStatisticsCard,
   type NewsStatisticsCardProps,
 } from '@/components/dashboard/analytics/NewsStatisticsCard';
+import {
+  MarketStatisticsCard,
+  type MarketStatisticsCardProps,
+} from '@/components/dashboard/analytics/MarketStatisticsCard';
+import {
+  EvaluationStats,
+} from '@/components/dashboard/analytics/EvaluationStats';
 import { LaunchHourTradesCard } from '@/components/dashboard/analytics/LaunchHourTradesCard';
 import { NonExecutedTradesCard } from '@/components/dashboard/analytics/NonExecutedTradesCard';
 import { DisplacementSizeStats } from '@/components/dashboard/analytics/DisplacementSizeStats';
@@ -983,24 +989,6 @@ export default function AnalyticsClient(
 
   // Use correct market stats based on view mode
   const marketStatsToUse = viewMode === 'yearly' ? marketAllTradesStats : marketStats;
-  
-  const marketChartData: TradeStatDatum[] = marketStatsToUse.map((stat) => {
-    const totalTrades = stat.wins + stat.losses;
-    // keep behavior similar to your original chart: compute rate from wins/total
-    const computedWinRate =
-      totalTrades > 0 ? (stat.wins / totalTrades) * 100 : 0;
-
-    return {
-      category: `${stat.market}`,
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: computedWinRate,
-      winRateWithBE: stat.winRateWithBE ?? stat.winRate,
-      totalTrades,
-    };
-  });
 
   // Like marketChartData, but for Local High/Low + Break Even trades
   function getLocalHLBreakEvenChartData(filteredTrades: any[]): TradeStatDatum[] {
@@ -1650,25 +1638,10 @@ export default function AnalyticsClient(
   });
 
 
-  const marketChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.marketStats.map((stat) => {
-    const totalTrades = stat.wins + stat.losses;
-    const computedWinRate = totalTrades > 0 ? (stat.wins / totalTrades) * 100 : 0;
-    return {
-      category: `${stat.market}`,
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: computedWinRate,
-      winRateWithBE: stat.winRateWithBE ?? stat.winRate,
-      totalTrades,
-    };
-  });
 
   // Use filtered chart data when filters are applied, otherwise use original
   const setupChartDataToUse = filteredChartStats ? setupChartDataFiltered : setupChartData;
   const timeIntervalChartDataToUse = filteredChartStats ? timeIntervalChartDataFiltered : timeIntervalChartData;
-  const marketChartDataToUse = filteredChartStats ? marketChartDataFiltered : marketChartData;
 
   // Determine loading state for charts
   // When filters are applied, data is computed synchronously, so isLoading should be false
@@ -2655,19 +2628,23 @@ export default function AnalyticsClient(
 
       <div className="my-8">
         {/* Market Statistics Card */}
-        <TradeStatsBarCard
-          title="Market Statistics"
-          description="Distribution of trades based on market"
-          data={marketChartDataToUse}
-          mode="winsLossesWinRate"
-          heightClassName="h-72"
+        <MarketStatisticsCard
+          marketStats={
+            filteredChartStats
+              ? (statsToUseForCharts.marketStats as MarketStatisticsCardProps['marketStats'])
+              : marketStatsToUse
+          }
           isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
         />
       </div>
 
       <div className="my-8">
         {/* Evaluation Statistics */}
-        <EvaluationStats stats={filteredEvaluationStats || evaluationStats} />
+        <EvaluationStats
+          stats={filteredEvaluationStats || evaluationStats}
+          isLoading={chartsLoadingState}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
