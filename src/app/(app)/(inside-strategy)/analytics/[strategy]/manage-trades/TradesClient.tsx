@@ -431,8 +431,10 @@ export default function TradesClient({
           <div className="mb-8">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">Trades</h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                  Manage Trades
+                </h1>
+                <p className="text-slate-500 dark:text-slate-400 mt-1">
                   Viewing trades for {selection.mode} mode
                 </p>
               </div>
@@ -666,7 +668,7 @@ export default function TradesClient({
                 </div>
               </div>
               <div className="flex items-center gap-3 mt-2 md:mt-0">
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-300 whitespace-nowrap">
                   Filter by:
                 </span>
                 <div className="flex flex-wrap gap-2 items-center">
@@ -710,9 +712,8 @@ export default function TradesClient({
             )}
           </div>
 
-          {/* Trades Table Card - same bg as AccountOverviewCard */}
-          <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm transition-all duration-500">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-violet-500/5 dark:from-purple-500/10 dark:to-violet-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" aria-hidden />
+          {/* Trades Table Card - same design as analytics page cards */}
+          <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
             <div className="relative overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200/30 dark:divide-slate-700/30">
                 <thead className="bg-transparent border-b border-slate-300 dark:border-slate-700">
@@ -894,9 +895,9 @@ export default function TradesClient({
                             e.preventDefault();
                             openModal(trade);
                           }}
-                          className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 underline font-medium transition-colors"
+                          className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline font-medium transition-colors"
                         >
-                          View Details
+                          Trade Details
                         </a>
                       </td>
                     </tr>
