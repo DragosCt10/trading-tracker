@@ -26,10 +26,10 @@ export function TradesSkeleton() {
           <div className="mb-8">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                   Trades
                 </h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                <p className="text-slate-500 dark:text-slate-400 mt-1">
                   Viewing trades for live mode
                 </p>
               </div>
