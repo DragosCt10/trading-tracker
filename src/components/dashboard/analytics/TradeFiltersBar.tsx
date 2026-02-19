@@ -204,7 +204,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                     direction="vertical"
                     />
 
-                    <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-slate-50 dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] px-4 py-3">
+                    <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-transparent dark:bg-transparent px-4 py-3">
                     <Button
                       type="button"
                       variant="outline"
