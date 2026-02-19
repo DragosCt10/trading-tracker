@@ -11,7 +11,7 @@ interface ConsistencyScoreChartProps {
   consistencyScore: number;
 }
 
-export function ConsistencyScoreChart({ consistencyScore }: ConsistencyScoreChartProps) {
+export const ConsistencyScoreChart = React.memo(function ConsistencyScoreChart({ consistencyScore }: ConsistencyScoreChartProps) {
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -269,4 +269,4 @@ export function ConsistencyScoreChart({ consistencyScore }: ConsistencyScoreChar
       </CardContent>
     </Card>
   );
-}
+});
