@@ -483,7 +483,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
   return (
     <AlertDialog open={isOpen}>
-      <AlertDialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-2xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl">
+      <AlertDialogContent className="max-w-6xl max-h-[90vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl p-0 flex flex-col overflow-hidden">
         {/* Gradient orbs background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
           <div
@@ -508,31 +508,33 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         {/* Top accent line */}
         <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60" />
 
-        <div className="relative">
-          <div className="absolute top-3 right-3 z-10">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="rounded-full hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 cursor-pointer"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-              <span className="sr-only">Close</span>
-            </Button>
-          </div>
-          
-          <AlertDialogHeader className="mb-6">
-            <AlertDialogTitle className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-              Trade Details
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm text-slate-600 dark:text-slate-400">
+        {/* Fixed Header */}
+        <div className="relative px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
+          <AlertDialogHeader className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <AlertDialogTitle className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                Trade Details
+              </AlertDialogTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="h-8 w-8 p-0 cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </Button>
+            </div>
+            <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
               {editedTrade?.market} {editedTrade?.direction} • {editedTrade?.trade_date} {editedTrade?.trade_time}
             </AlertDialogDescription>
           </AlertDialogHeader>
+        </div>
 
+        {/* Scrollable content */}
+        <div className="relative overflow-y-auto flex-1 px-6 py-5">
           <div className="space-y-6">
             {error && (
               <div className="rounded-lg bg-red-500/10 backdrop-blur-sm p-3 border border-red-500/20">
