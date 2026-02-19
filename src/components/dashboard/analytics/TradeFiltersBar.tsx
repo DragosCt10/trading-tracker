@@ -158,12 +158,10 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                   {/* Gradient orbs background - dark mode only */}
                   <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl hidden dark:block">
                     <div
-                      className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/10 rounded-full blur-3xl animate-pulse"
-                      style={{ animationDuration: '8s' }}
+                      className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/10 rounded-full blur-3xl"
                     />
                     <div
-                      className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/10 rounded-full blur-3xl animate-pulse"
-                      style={{ animationDuration: '10s', animationDelay: '2s' }}
+                      className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/10 rounded-full blur-3xl"
                     />
                   </div>
 
