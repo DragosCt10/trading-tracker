@@ -52,10 +52,11 @@ export const StatCard: React.FC<StatCardProps> = ({
                     <TooltipContent
                       side="top"
                       align="center"
-                      className="w-72 text-xs sm:text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 p-4"
+                      className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
                       sideOffset={6}
                     >
-                      {tooltipContent}
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5 rounded-2xl" />
+                      <div className="relative">{tooltipContent}</div>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -87,10 +88,11 @@ export const StatCard: React.FC<StatCardProps> = ({
                         <TooltipContent
                           side="top"
                           align="center"
-                          className="w-72 text-xs sm:text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 p-4"
+                          className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
                           sideOffset={6}
                         >
-                          {tooltipContent}
+                          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5 rounded-2xl" />
+                          <div className="relative">{tooltipContent}</div>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
