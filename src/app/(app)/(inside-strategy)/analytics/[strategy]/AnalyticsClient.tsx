@@ -385,7 +385,7 @@ export default function AnalyticsClient(
     useState<FilterType>('30days');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
-  const [selectedExecution, setSelectedExecution] = useState<'executed' | 'nonExecuted'>('executed');
+  const [selectedExecution, setSelectedExecution] = useState<'all' | 'executed' | 'nonExecuted'>('executed');
 
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
@@ -645,6 +645,7 @@ export default function AnalyticsClient(
         // Filter to only executed trades
         baseTrades = baseTrades.filter((t) => t.executed === true);
       }
+      // If 'all', don't filter (show all trades) - though this shouldn't happen on analytics page
     }
     
     // Apply market filter if needed
@@ -1752,6 +1753,7 @@ export default function AnalyticsClient(
         // Filter to only executed trades
         baseTrades = baseTrades.filter((t) => t.executed === true);
       }
+      // If 'all', don't filter (show all trades) - though this shouldn't happen on analytics page
     }
     
     let filtered = baseTrades;
@@ -1773,8 +1775,8 @@ export default function AnalyticsClient(
         return null; // Use hook stats
       }
     } else {
-      if (selectedMarket === 'all' && selectedExecution === 'executed') {
-        return null; // Use hook stats (executed is default, so no filter applied)
+      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) {
+        return null; // Use hook stats (executed/all is default, so no filter applied)
       }
     }
     return computeStatsFromTrades(tradesToUse);
@@ -1791,8 +1793,8 @@ export default function AnalyticsClient(
       }
     } else {
       // In dateRange mode, check both filters
-      if (selectedMarket === 'all' && selectedExecution === 'executed') {
-        return null; // Use hook stats (executed is default, so no filter applied)
+      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) {
+        return null; // Use hook stats (executed/all is default, so no filter applied)
       }
     }
     return calculateRiskPerTradeStats(tradesToUse);
@@ -1809,8 +1811,8 @@ export default function AnalyticsClient(
       }
     } else {
       // In dateRange mode, check both filters
-      if (selectedMarket === 'all' && selectedExecution === 'executed') {
-        return null; // Use hook stats (executed is default, so no filter applied)
+      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) {
+        return null; // Use hook stats (executed/all is default, so no filter applied)
       }
     }
     const accountBalance = selection.activeAccount?.account_balance || 0;
@@ -1828,8 +1830,8 @@ export default function AnalyticsClient(
       }
     } else {
       // In dateRange mode, check both filters
-      if (selectedMarket === 'all' && selectedExecution === 'executed') {
-        return null; // Use hook stats (executed is default, so no filter applied)
+      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) {
+        return null; // Use hook stats (executed/all is default, so no filter applied)
       }
     }
     return calculateEvaluationStats(tradesToUse);
@@ -2098,8 +2100,9 @@ export default function AnalyticsClient(
         return false; // Market filter applied
       }
     } else {
-      if (selectedMarket !== 'all' || selectedExecution === 'nonExecuted') {
+      if (selectedMarket !== 'all' || selectedExecution === 'nonExecuted' || selectedExecution === 'all') {
         // Filters are applied (market or execution filter), data computed synchronously from tradesToUse
+        // Note: 'all' is treated as a filter here since it means showing all trades (not just executed)
         return false;
       }
     }
@@ -2155,6 +2158,7 @@ export default function AnalyticsClient(
         // Filter to only executed trades
         tradesSource = tradesSource.filter((t) => t.executed === true);
       }
+      // If 'all', don't filter (show all trades) - though this shouldn't happen on analytics page
     }
     
     let filteredSource = tradesSource;
@@ -2322,7 +2326,7 @@ export default function AnalyticsClient(
     // In date range mode or when filters are applied, set to 0 when there are no executed trades (to reflect filtered data)
     // Otherwise, use hook values (they're computed from the appropriate dataset)
     const executedTradesCount = wins + losses + beWins + beLosses;
-    const isFiltered = viewMode === 'dateRange' || selectedMarket !== 'all' || selectedExecution === 'nonExecuted';
+    const isFiltered = viewMode === 'dateRange' || selectedMarket !== 'all' || selectedExecution === 'nonExecuted' || selectedExecution === 'all';
     const tradeQualityIndex = (isFiltered && executedTradesCount === 0) ? 0 : (stats.tradeQualityIndex || 0);
     const multipleR = (isFiltered && executedTradesCount === 0) ? 0 : (stats.multipleR || 0);
 
@@ -2555,7 +2559,10 @@ export default function AnalyticsClient(
           onSelectedMarketChange={setSelectedMarket}
           markets={markets}
           selectedExecution={selectedExecution}
-          onSelectedExecutionChange={setSelectedExecution}
+          onSelectedExecutionChange={(execution) => {
+            // Analytics page doesn't support 'all' option, so map it to 'executed'
+            setSelectedExecution(execution === 'all' ? 'executed' : execution);
+          }}
         />
       )}
 
