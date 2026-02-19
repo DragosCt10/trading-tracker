@@ -49,12 +49,6 @@ import { TQIStatCard } from '@/components/dashboard/analytics/TQIStatCard';
 import { RRMultipleStatCard } from '@/components/dashboard/analytics/RRMultipleStatCard';
 import { MaxDrawdownStatCard } from '@/components/dashboard/analytics/MaxDrawdownStatCard';
 import { PNLPercentageStatCard } from '@/components/dashboard/analytics/PNLPercentageStatCard';
-import { TotalTradesStatCard } from '@/components/dashboard/analytics/TotalTradesStatCard';
-import { WinRateStatCard } from '@/components/dashboard/analytics/WinRateStatCard';
-import { TotalProfitStatCard } from '@/components/dashboard/analytics/TotalProfitStatCard';
-import { AverageProfitStatCard } from '@/components/dashboard/analytics/AverageProfitStatCard';
-import { TotalWinsStatCard } from '@/components/dashboard/analytics/TotalWinsStatCard';
-import { TotalLossesStatCard } from '@/components/dashboard/analytics/TotalLossesStatCard';
 import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
 import { 
   AccountOverviewCard,
