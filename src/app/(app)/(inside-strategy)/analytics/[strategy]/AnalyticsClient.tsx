@@ -8,13 +8,8 @@ import {
   useCallback,
 } from 'react';
 import {
-  format,
   startOfMonth,
   endOfMonth,
-  eachDayOfInterval,
-  subDays,
-  startOfYear,
-  endOfYear,
 } from 'date-fns';
 import { useRouter } from 'next/navigation';
 
@@ -172,11 +167,11 @@ import {
   type DateRangeState,
   type FilterType,
   createInitialDateRange,
-  createCalendarRangeFromEnd,
-  buildPresetRange,
   isCustomDateRange,
 } from '@/utils/dateRangeHelpers';
 import { computeStatsFromTrades } from '@/utils/computeStatsFromTrades';
+import { useDateRangeManagement } from '@/hooks/useDateRangeManagement';
+import { useCalendarNavigation } from '@/hooks/useCalendarNavigation';
 
 ChartJS.register(
   CategoryScale,
@@ -225,27 +220,29 @@ export default function AnalyticsClient(
   const initialRange = props?.initialDateRange ?? defaultInitialRange;
   const initialYear = props?.initialSelectedYear ?? defaultSelectedYear;
 
-  const [currentDate, setCurrentDate] = useState(
-    () => new Date(initialRange.endDate)
-  );
   const [analysisResults, setAnalysisResults] = useState<string | null>(null);
   const [openAnalyzeModal, setOpenAnalyzeModal] = useState(false);
-
-  const [selectedYear, setSelectedYear] = useState(initialYear);
 
   // view mode: 'yearly' or 'dateRange'
   const [viewMode, setViewMode] = useState<'yearly' | 'dateRange'>('yearly');
 
-  // date range + calendar state
-  const [dateRange, setDateRange] = useState<DateRangeState>(initialRange);
-
-  const [calendarDateRange, setCalendarDateRange] =
-    useState<DateRangeState>(
-      () => createCalendarRangeFromEnd(new Date(initialRange.endDate))
-    );
-
-  const [activeFilter, setActiveFilter] =
-    useState<FilterType>('30days');
+  // date range + calendar state management
+  const {
+    dateRange,
+    setDateRange,
+    calendarDateRange,
+    setCalendarDateRange,
+    currentDate,
+    setCurrentDate,
+    selectedYear,
+    setSelectedYear,
+    activeFilter,
+    setActiveFilter,
+    updateCalendarFromDateRange,
+    updateDateRangeForYearlyMode,
+    resetFilterOnModeSwitch,
+    handleFilter,
+  } = useDateRangeManagement(initialRange);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
   const [selectedExecution, setSelectedExecution] = useState<'all' | 'executed' | 'nonExecuted'>('executed');
@@ -255,8 +252,6 @@ export default function AnalyticsClient(
 
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
-  const prevViewModeRef = useRef<'yearly' | 'dateRange'>(viewMode);
-  const lastFilterKeyRef = useRef<string>('');
 
   const { data: userData, isLoading: userLoading } = useUserDetails();
   const { selection, setSelection, actionBarloading } = useActionBarSelection();
@@ -371,43 +366,18 @@ export default function AnalyticsClient(
   
   // update calendar when main date range changes (without allTrades dependency - handled separately)
   useEffect(() => {
-    const endDateObj = new Date(dateRange.endDate);
-    
-    if (viewMode === 'dateRange') {
-      // In date range mode: temporarily use the end date
-      // Will be updated to first month with trades in the effect below after allTrades is available
-      setCurrentDate(endDateObj);
-      setSelectedYear(endDateObj.getFullYear());
-      setCalendarDateRange(createCalendarRangeFromEnd(endDateObj));
-    }
-    // Yearly mode calendar initialization is handled in a separate effect after allTrades is available
-  }, [dateRange, viewMode]);
+    updateCalendarFromDateRange(viewMode);
+  }, [dateRange, viewMode, updateCalendarFromDateRange]);
 
   // update dateRange when switching to yearly mode or when selectedYear changes
   useEffect(() => {
-    if (viewMode === 'yearly') {
-      const yearStart = format(startOfYear(new Date(selectedYear, 0, 1)), 'yyyy-MM-dd');
-      const yearEnd = format(endOfYear(new Date(selectedYear, 11, 31)), 'yyyy-MM-dd');
-      setDateRange({ startDate: yearStart, endDate: yearEnd });
-    }
-  }, [viewMode, selectedYear]);
+    updateDateRangeForYearlyMode(viewMode);
+  }, [viewMode, selectedYear, updateDateRangeForYearlyMode]);
 
   // reset filter to '30days' when switching back to dateRange mode from yearly mode
   useEffect(() => {
-    // Only reset if switching FROM yearly TO dateRange
-    if (viewMode === 'dateRange' && prevViewModeRef.current === 'yearly') {
-      // Reset activeFilter to '30days' and set dateRange to default "Last 30 Days"
-      setActiveFilter('30days');
-      const today = new Date();
-      const { dateRange: defaultRange, calendarRange, currentDate } =
-        buildPresetRange('30days', today);
-      setDateRange(defaultRange);
-      setCurrentDate(currentDate);
-      setCalendarDateRange(calendarRange);
-    }
-    // Update the ref to track current viewMode for next comparison
-    prevViewModeRef.current = viewMode;
-  }, [viewMode]);
+    resetFilterOnModeSwitch(viewMode);
+  }, [viewMode, resetFilterOnModeSwitch]);
 
   // close date picker on outside click
   useEffect(() => {
@@ -432,18 +402,6 @@ export default function AnalyticsClient(
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showDatePicker]);
-
-  const handleFilter = useCallback((type: FilterType) => {
-    const today = new Date();
-    setActiveFilter(type);
-
-    const { dateRange: nextRange, calendarRange, currentDate } =
-      buildPresetRange(type, today);
-
-    setDateRange(nextRange);
-    setCurrentDate(currentDate);
-    setCalendarDateRange(calendarRange);
-  }, []);
 
   const {
     calendarMonthTrades,
@@ -491,222 +449,26 @@ export default function AnalyticsClient(
     viewMode,
   });
 
-  // Helper function to get filtered trades for calendar navigation (respects execution and market filters)
-  const getFilteredTradesForCalendar = useCallback(() => {
-    // Get base trades based on view mode
-    let baseTrades: Trade[] = viewMode === 'yearly' ? allTrades : filteredTrades;
-    
-    // Apply execution filter in dateRange mode
-    if (viewMode === 'dateRange') {
-      if (selectedExecution === 'nonExecuted') {
-        baseTrades = nonExecutedTrades || [];
-      } else if (selectedExecution === 'executed') {
-        // Filter to only executed trades
-        baseTrades = baseTrades.filter((t) => t.executed === true);
-      }
-      // If 'all', don't filter (show all trades) - though this shouldn't happen on analytics page
-    }
-    
-    // Apply market filter if needed
-    if (selectedMarket !== 'all') {
-      baseTrades = baseTrades.filter((t) => t.market === selectedMarket);
-    }
-    
-    return baseTrades;
-  }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedMarket, selectedExecution]);
-
-  // Memoize callbacks that depend on allTrades (must be after useDashboardData)
-  const canNavigateMonth = useCallback((direction: 'prev' | 'next') => {
-    const currentMonth = currentDate.getMonth();
-    const currentYear = currentDate.getFullYear();
-    const startDate = new Date(dateRange.startDate);
-    const endDate = new Date(dateRange.endDate);
-    const startMonth = startDate.getMonth();
-    const startYear = startDate.getFullYear();
-    const endMonth = endDate.getMonth();
-    const endYear = endDate.getFullYear();
-
-    if (viewMode === 'dateRange') {
-      // In date range mode: only allow navigation within the selected date range AND to months with filtered trades
-      // Get months that have filtered trades within the date range
-      const tradesToCheck = getFilteredTradesForCalendar();
-      const monthsWithTrades = new Map<string, boolean>(); // key: "year-month", value: has trades
-      
-      tradesToCheck.forEach((trade) => {
-        const tradeDate = new Date(trade.trade_date);
-        const tradeYear = tradeDate.getFullYear();
-        const tradeMonth = tradeDate.getMonth();
-        
-        // Check if trade is within date range
-        if (tradeDate >= startDate && tradeDate <= endDate) {
-          const key = `${tradeYear}-${tradeMonth}`;
-          monthsWithTrades.set(key, true);
-        }
-      });
-
-      if (direction === 'prev') {
-        // Can go back if there's a previous month with trades within the date range
-        // Check months from current month backwards to start date
-        for (let y = currentYear; y >= startYear; y--) {
-          const startM = y === currentYear ? currentMonth - 1 : 11;
-          const endM = y === startYear ? startMonth : 0;
-          
-          for (let m = startM; m >= endM; m--) {
-            const key = `${y}-${m}`;
-            if (monthsWithTrades.has(key)) return true;
-          }
-        }
-        return false;
-      } else {
-        // Can go forward if there's a next month with trades within the date range
-        // Check months from current month forwards to end date
-        for (let y = currentYear; y <= endYear; y++) {
-          const startM = y === currentYear ? currentMonth + 1 : 0;
-          const endM = y === endYear ? endMonth : 11;
-          
-          for (let m = startM; m <= endM; m++) {
-            const key = `${y}-${m}`;
-            if (monthsWithTrades.has(key)) return true;
-          }
-        }
-        return false;
-      }
-    } else {
-      // In yearly mode: allow navigation within the selected year, but only to months with filtered trades
-      if (currentYear !== selectedYear) return false;
-
-      // Get months that have filtered trades in the selected year
-      const tradesToCheck = getFilteredTradesForCalendar();
-      const monthsWithTrades = new Set<number>();
-      tradesToCheck.forEach((trade) => {
-        const tradeDate = new Date(trade.trade_date);
-        if (tradeDate.getFullYear() === selectedYear) {
-          monthsWithTrades.add(tradeDate.getMonth());
-        }
-      });
-
-      if (direction === 'prev') {
-        // Find the previous month with trades
-        for (let m = currentMonth - 1; m >= 0; m--) {
-          if (monthsWithTrades.has(m)) return true;
-        }
-        return false;
-      } else {
-        // Find the next month with trades
-        for (let m = currentMonth + 1; m <= 11; m++) {
-          if (monthsWithTrades.has(m)) return true;
-        }
-        return false;
-      }
-    }
-  }, [currentDate, dateRange, viewMode, selectedYear, getFilteredTradesForCalendar]);
-
-  const handleMonthNavigation = useCallback((direction: 'prev' | 'next') => {
-    if (!canNavigateMonth(direction)) return;
-
-    const newDate = new Date(currentDate);
-    let month = newDate.getMonth();
-    const year = newDate.getFullYear();
-
-    if (viewMode === 'yearly') {
-      // In yearly mode: navigate to the next/previous month that has filtered trades
-      const tradesToCheck = getFilteredTradesForCalendar();
-      const monthsWithTrades = new Set<number>();
-      tradesToCheck.forEach((trade) => {
-        const tradeDate = new Date(trade.trade_date);
-        if (tradeDate.getFullYear() === selectedYear) {
-          monthsWithTrades.add(tradeDate.getMonth());
-        }
-      });
-
-      if (direction === 'prev') {
-        // Find the previous month with trades
-        for (let m = month - 1; m >= 0; m--) {
-          if (monthsWithTrades.has(m)) {
-            month = m;
-            break;
-          }
-        }
-      } else {
-        // Find the next month with trades
-        for (let m = month + 1; m <= 11; m++) {
-          if (monthsWithTrades.has(m)) {
-            month = m;
-            break;
-          }
-        }
-      }
-    } else {
-      // In date range mode: navigate to the next/previous month that has filtered trades within the date range
-      const startDate = new Date(dateRange.startDate);
-      const endDate = new Date(dateRange.endDate);
-      const startMonth = startDate.getMonth();
-      const startYear = startDate.getFullYear();
-      const endMonth = endDate.getMonth();
-      const endYear = endDate.getFullYear();
-      
-      const tradesToCheck = getFilteredTradesForCalendar();
-      const monthsWithTrades = new Map<string, number>(); // key: "year-month", value: month number
-      
-      tradesToCheck.forEach((trade) => {
-        const tradeDate = new Date(trade.trade_date);
-        const tradeYear = tradeDate.getFullYear();
-        const tradeMonth = tradeDate.getMonth();
-        
-        // Check if trade is within date range
-        if (tradeDate >= startDate && tradeDate <= endDate) {
-          const key = `${tradeYear}-${tradeMonth}`;
-          monthsWithTrades.set(key, tradeMonth);
-        }
-      });
-
-      if (direction === 'prev') {
-        // Find the previous month with trades
-        let found = false;
-        for (let y = year; y >= startYear && !found; y--) {
-          const startM = y === year ? month - 1 : 11;
-          const endM = y === startYear ? startMonth : 0;
-          
-          for (let m = startM; m >= endM; m--) {
-            const key = `${y}-${m}`;
-            if (monthsWithTrades.has(key)) {
-              month = m;
-              newDate.setFullYear(y);
-              found = true;
-              break;
-            }
-          }
-        }
-      } else {
-        // Find the next month with trades
-        let found = false;
-        for (let y = year; y <= endYear && !found; y++) {
-          const startM = y === year ? month + 1 : 0;
-          const endM = y === endYear ? endMonth : 11;
-          
-          for (let m = startM; m <= endM; m++) {
-            const key = `${y}-${m}`;
-            if (monthsWithTrades.has(key)) {
-              month = m;
-              newDate.setFullYear(y);
-              found = true;
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    const targetDate = new Date(year, month, 1);
-    const monthStart = startOfMonth(targetDate);
-    const monthEnd = endOfMonth(targetDate);
-
-    setCurrentDate(targetDate);
-    setCalendarDateRange({
-      startDate: format(monthStart, 'yyyy-MM-dd'),
-      endDate: format(monthEnd, 'yyyy-MM-dd'),
-    });
-  }, [canNavigateMonth, currentDate, viewMode, selectedYear, getFilteredTradesForCalendar, dateRange]);
+  // Calendar navigation logic
+  const {
+    getFilteredTradesForCalendar,
+    canNavigateMonth,
+    handleMonthNavigation,
+  } = useCalendarNavigation({
+    viewMode,
+    dateRange,
+    currentDate,
+    selectedYear,
+    selectedMarket,
+    selectedExecution,
+    allTrades,
+    filteredTrades,
+    nonExecutedTrades,
+    filteredTradesLoading,
+    setCurrentDate,
+    setCalendarDateRange,
+    setSelectedYear,
+  });
 
   // session check
   useEffect(() => {
@@ -715,120 +477,6 @@ export default function AnalyticsClient(
     }
   }, [userLoading, userData, router]);
 
-  // update calendar for yearly mode after filtered trades are available
-  useEffect(() => {
-    if (viewMode === 'yearly') {
-      const filterKey = `${viewMode}-${selectedYear}-${selectedMarket}-${selectedExecution}`;
-      
-      // Skip if filters haven't changed
-      if (lastFilterKeyRef.current === filterKey) {
-        return;
-      }
-      
-      const filteredTradesForCalendar = getFilteredTradesForCalendar();
-      // In yearly mode: set to the first month with filtered trades, or January if no trades
-      const monthsWithTrades = new Set<number>();
-      filteredTradesForCalendar.forEach((trade) => {
-        const tradeDate = new Date(trade.trade_date);
-        if (tradeDate.getFullYear() === selectedYear) {
-          monthsWithTrades.add(tradeDate.getMonth());
-        }
-      });
-
-      // Check if current month has filtered trades
-      const currentMonthHasTrades = currentDate.getFullYear() === selectedYear && 
-                                     monthsWithTrades.has(currentDate.getMonth());
-      
-      // Only update if current month doesn't have filtered trades
-      if (!currentMonthHasTrades) {
-        let targetMonth = 0; // Default to January
-        if (monthsWithTrades.size > 0) {
-          // Find the first month with filtered trades
-          for (let m = 0; m <= 11; m++) {
-            if (monthsWithTrades.has(m)) {
-              targetMonth = m;
-              break;
-            }
-          }
-        }
-        
-        const targetDate = new Date(selectedYear, targetMonth, 1);
-        setCurrentDate(targetDate);
-        setCalendarDateRange(createCalendarRangeFromEnd(targetDate));
-      }
-      
-      // Update ref
-      lastFilterKeyRef.current = filterKey;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode, selectedYear, selectedMarket, selectedExecution]);
-
-  // update calendar for dateRange mode after filtered trades are available
-  useEffect(() => {
-    if (viewMode === 'dateRange' && !filteredTradesLoading) {
-      const filterKey = `${viewMode}-${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${selectedExecution}`;
-      
-      const filteredTradesForCalendar = getFilteredTradesForCalendar();
-      const startDateObj = new Date(dateRange.startDate);
-      const endDateObj = new Date(dateRange.endDate);
-      
-      // In date range mode: find the first month with filtered trades within the date range
-      const startYear = startDateObj.getFullYear();
-      const startMonth = startDateObj.getMonth();
-      
-      // Get months that have filtered trades within the date range
-      const monthsWithTrades = new Map<string, { year: number; month: number }>();
-      filteredTradesForCalendar.forEach((trade) => {
-        const tradeDate = new Date(trade.trade_date);
-        const tradeYear = tradeDate.getFullYear();
-        const tradeMonth = tradeDate.getMonth();
-        
-        // Check if trade is within date range
-        if (tradeDate >= startDateObj && tradeDate <= endDateObj) {
-          const key = `${tradeYear}-${tradeMonth}`;
-          if (!monthsWithTrades.has(key)) {
-            monthsWithTrades.set(key, { year: tradeYear, month: tradeMonth });
-          }
-        }
-      });
-      
-      // Check if current month has filtered trades and is within date range
-      const currentMonthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
-      const currentMonthHasTrades = monthsWithTrades.has(currentMonthKey);
-      const filtersChanged = lastFilterKeyRef.current !== filterKey;
-      
-      // Reset calendar if:
-      // 1. Filters have changed (date range, market, or execution filter)
-      // 2. Current month doesn't have trades in the filtered date range
-      if (filtersChanged || !currentMonthHasTrades) {
-        // Find the first month with filtered trades, or use start date if no trades
-        let targetYear = startYear;
-        let targetMonth = startMonth;
-        
-        if (monthsWithTrades.size > 0) {
-          // Find the earliest month with filtered trades
-          let earliestDate = endDateObj;
-          monthsWithTrades.forEach(({ year, month }) => {
-            const monthDate = new Date(year, month, 1);
-            if (monthDate < earliestDate) {
-              earliestDate = monthDate;
-              targetYear = year;
-              targetMonth = month;
-            }
-          });
-        }
-        
-        const targetDate = new Date(targetYear, targetMonth, 1);
-        setCurrentDate(targetDate);
-        setSelectedYear(targetYear);
-        setCalendarDateRange(createCalendarRangeFromEnd(targetDate));
-      }
-      
-      // Update ref
-      lastFilterKeyRef.current = filterKey;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode, dateRange.startDate, dateRange.endDate, selectedMarket, selectedExecution, filteredTrades, filteredTradesLoading]);
 
   // streaming analysis listener
   useEffect(() => {
