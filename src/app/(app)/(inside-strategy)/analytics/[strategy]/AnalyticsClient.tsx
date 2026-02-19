@@ -98,6 +98,12 @@ import {
   convertDirectionStatsToChartData,
   convertFilteredDirectionStatsToChartData,
 } from '@/components/dashboard/analytics/DirectionStatisticsCard';
+import {
+  LocalHLStatisticsCard,
+  calculateLocalHLStats,
+  convertLocalHLStatsToChartData,
+  convertFilteredLocalHLStatsToChartData,
+} from '@/components/dashboard/analytics/LocalHLStatisticsCard';
 import { LaunchHourTradesCard } from '@/components/dashboard/analytics/LaunchHourTradesCard';
 import { NonExecutedTradesCard } from '@/components/dashboard/analytics/NonExecutedTradesCard';
 import { DisplacementSizeStats } from '@/components/dashboard/analytics/DisplacementSizeStats';
@@ -925,26 +931,7 @@ export default function AnalyticsClient(
   const liquidityChartData: TradeStatDatum[] = convertLiquidityStatsToChartData(liquidityStats);
   const directionChartData: TradeStatDatum[] = convertDirectionStatsToChartData(directionStats);
 
-  const localHLChartData: TradeStatDatum[] = [
-    {
-      category: `Lichidat`,
-      wins: localHLStats.lichidat.wins,
-      losses: localHLStats.lichidat.losses,
-      beWins: localHLStats.lichidat.winsWithBE,
-      beLosses: localHLStats.lichidat.lossesWithBE,
-      winRate: localHLStats.lichidat.winRate,
-      winRateWithBE: localHLStats.lichidat.winRateWithBE,
-    },
-    {
-      category: `Nelichidat`,
-      wins: localHLStats.nelichidat.wins,
-      losses: localHLStats.nelichidat.losses,
-      beWins: localHLStats.nelichidat.winsWithBE,
-      beLosses: localHLStats.nelichidat.lossesWithBE,
-      winRate: localHLStats.nelichidat.winRate,
-      winRateWithBE: localHLStats.nelichidat.winRateWithBE,
-    },
-  ];
+  const localHLChartData: TradeStatDatum[] = convertLocalHLStatsToChartData(localHLStats);
 
   const slSizeChartData: TradeStatDatum[] = slSizeStats.map((stat) => ({
     category: stat.market,
@@ -1683,32 +1670,7 @@ export default function AnalyticsClient(
   const liquidityChartDataFiltered: TradeStatDatum[] = convertFilteredLiquidityStatsToChartData(statsToUseForCharts.liquidityStats);
   const directionChartDataFiltered: TradeStatDatum[] = convertFilteredDirectionStatsToChartData(statsToUseForCharts.directionStats);
 
-  const localHLChartDataFiltered: TradeStatDatum[] = [
-    {
-      category: `Lichidat`,
-      totalTrades: (statsToUseForCharts.localHLStats.lichidat as any).total !== undefined 
-        ? (statsToUseForCharts.localHLStats.lichidat as any).total 
-        : (statsToUseForCharts.localHLStats.lichidat.wins + statsToUseForCharts.localHLStats.lichidat.losses + statsToUseForCharts.localHLStats.lichidat.winsWithBE + statsToUseForCharts.localHLStats.lichidat.lossesWithBE),
-      wins: statsToUseForCharts.localHLStats.lichidat.wins,
-      losses: statsToUseForCharts.localHLStats.lichidat.losses,
-      beWins: statsToUseForCharts.localHLStats.lichidat.winsWithBE,
-      beLosses: statsToUseForCharts.localHLStats.lichidat.lossesWithBE,
-      winRate: statsToUseForCharts.localHLStats.lichidat.winRate,
-      winRateWithBE: statsToUseForCharts.localHLStats.lichidat.winRateWithBE,
-    },
-    {
-      category: `Nelichidat`,
-      totalTrades: (statsToUseForCharts.localHLStats.nelichidat as any).total !== undefined 
-        ? (statsToUseForCharts.localHLStats.nelichidat as any).total 
-        : (statsToUseForCharts.localHLStats.nelichidat.wins + statsToUseForCharts.localHLStats.nelichidat.losses + statsToUseForCharts.localHLStats.nelichidat.winsWithBE + statsToUseForCharts.localHLStats.nelichidat.lossesWithBE),
-      wins: statsToUseForCharts.localHLStats.nelichidat.wins,
-      losses: statsToUseForCharts.localHLStats.nelichidat.losses,
-      beWins: statsToUseForCharts.localHLStats.nelichidat.winsWithBE,
-      beLosses: statsToUseForCharts.localHLStats.nelichidat.lossesWithBE,
-      winRate: statsToUseForCharts.localHLStats.nelichidat.winRate,
-      winRateWithBE: statsToUseForCharts.localHLStats.nelichidat.winRateWithBE,
-    },
-  ];
+  const localHLChartDataFiltered: TradeStatDatum[] = convertFilteredLocalHLStatsToChartData(statsToUseForCharts.localHLStats);
 
   const slSizeChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.slSizeStats.map((stat) => ({
     category: stat.market,
@@ -1823,7 +1785,6 @@ export default function AnalyticsClient(
 
   // Use filtered chart data when filters are applied, otherwise use original
   const setupChartDataToUse = filteredChartStats ? setupChartDataFiltered : setupChartData;
-  const localHLChartDataToUse = filteredChartStats ? localHLChartDataFiltered : localHLChartData;
   const slSizeChartDataToUse = filteredChartStats ? slSizeChartDataFiltered : slSizeChartData;
   const tradeTypesChartDataToUse = filteredChartStats ? tradeTypesChartDataFiltered : tradeTypesChartData;
   const timeIntervalChartDataToUse = filteredChartStats ? timeIntervalChartDataFiltered : timeIntervalChartData;
@@ -2738,11 +2699,10 @@ export default function AnalyticsClient(
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
         {/* Local H/L Analysis Card */}
-        <TradeStatsBarCard
-          title="Local H/L Analysis"
-          description="Distribution of trades based on local high/low status"
-          data={localHLChartDataToUse}
+        <LocalHLStatisticsCard
+          localHLStats={filteredChartStats ? statsToUseForCharts.localHLStats : localHLStats}
           isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
         />
 
         {/* Risk/Reward Statistics */}
