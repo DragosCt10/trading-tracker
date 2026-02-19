@@ -118,7 +118,7 @@ export default function Navbar() {
             >
               <Logo width={35} height={35} />
               <span className="hidden sm:inline text-sm font-semibold tracking-tight">
-                TI Tracker
+                QuantifyX
               </span>
             </Link>
 
