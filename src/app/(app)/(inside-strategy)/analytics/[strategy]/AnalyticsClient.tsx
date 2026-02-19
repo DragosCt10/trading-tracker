@@ -68,7 +68,10 @@ import {
   calculateUpdatedBalance,
 } from '@/components/dashboard/analytics/AccountOverviewCard';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MonthlyPerformanceChart } from '@/components/dashboard/analytics/MonthlyPerformanceChart';
+import {
+  MonthlyPerformanceChart,
+  computeFullMonthlyStatsFromTrades,
+} from '@/components/dashboard/analytics/MonthlyPerformanceChart';
 import { DateRangeValue, TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { 
   TradesCalendarCard,
@@ -1580,50 +1583,6 @@ export default function AnalyticsClient(
   }, []);
 
 
-  // Compute full monthly stats from trades array (for MonthlyPerformanceChart - wins, losses, winRate, etc.)
-  const computeFullMonthlyStatsFromTrades = useMemo(() => {
-    return (trades: Trade[]): { [key: string]: { wins: number; losses: number; beWins: number; beLosses: number; winRate: number; winRateWithBE: number } } => {
-      const monthlyData: { [key: string]: { wins: number; losses: number; beWins: number; beLosses: number; winRate: number; winRateWithBE: number } } = {};
-      
-      trades.forEach((trade) => {
-        const tradeDate = new Date(trade.trade_date);
-        const monthName = MONTHS[tradeDate.getMonth()];
-        
-        if (!monthlyData[monthName]) {
-          monthlyData[monthName] = { wins: 0, losses: 0, beWins: 0, beLosses: 0, winRate: 0, winRateWithBE: 0 };
-        }
-        
-        const isBreakEven = trade.break_even;
-        const outcome = trade.trade_outcome;
-        
-        if (isBreakEven) {
-          if (outcome === 'Win') {
-            monthlyData[monthName].beWins += 1;
-          } else if (outcome === 'Lose') {
-            monthlyData[monthName].beLosses += 1;
-          }
-        } else {
-          if (outcome === 'Win') {
-            monthlyData[monthName].wins += 1;
-          } else if (outcome === 'Lose') {
-            monthlyData[monthName].losses += 1;
-          }
-        }
-      });
-      
-      // Calculate win rates for each month
-      Object.keys(monthlyData).forEach((month) => {
-        const stats = monthlyData[month];
-        const nonBETrades = stats.wins + stats.losses;
-        const allTrades = nonBETrades + stats.beWins + stats.beLosses;
-        
-        stats.winRate = nonBETrades > 0 ? (stats.wins / nonBETrades) * 100 : 0;
-        stats.winRateWithBE = allTrades > 0 ? ((stats.wins + stats.beWins) / allTrades) * 100 : 0;
-      });
-      
-      return monthlyData;
-    };
-  }, []);
 
   // Determine which monthly stats to use based on view mode (for AccountOverviewCard - profit only)
   // Determine which trades to use based on view mode, market filter, and execution filter
@@ -2012,7 +1971,7 @@ export default function AnalyticsClient(
   // Always use tradesToUse to ensure data consistency across all cards and charts
   const monthlyPerformanceStatsToUse = useMemo(() => {
     return computeFullMonthlyStatsFromTrades(tradesToUse);
-  }, [tradesToUse, computeFullMonthlyStatsFromTrades]);
+  }, [tradesToUse]);
 
   const totalYearProfit = useMemo(
     () => calculateTotalYearProfit(monthlyStatsToUse),
