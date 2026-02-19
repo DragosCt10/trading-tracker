@@ -1,0 +1,104 @@
+import { Trade } from '@/types/trade';
+
+export interface TradingOverviewStats {
+  totalTrades: number;
+  totalWins: number;
+  totalLosses: number;
+  wins: number;
+  losses: number;
+  beWins: number;
+  beLosses: number;
+  totalProfit: number;
+  averageProfit: number;
+  winRate: number;
+  winRateWithBE: number;
+  currentStreak: number;
+  maxWinningStreak: number;
+  maxLosingStreak: number;
+  averageDaysBetweenTrades: number;
+}
+
+export function calculateTradingOverviewStats(trades: Trade[]): TradingOverviewStats {
+  // Calculate all stats from trades
+  const nonBETrades = trades.filter((t) => !t.break_even);
+  const beTrades = trades.filter((t) => t.break_even);
+  
+  const wins = nonBETrades.filter((t) => t.trade_outcome === 'Win').length;
+  const losses = nonBETrades.filter((t) => t.trade_outcome === 'Lose').length;
+  const beWins = beTrades.filter((t) => t.trade_outcome === 'Win').length;
+  const beLosses = beTrades.filter((t) => t.trade_outcome === 'Lose').length;
+  
+  const totalTrades = trades.length;
+  const totalWins = wins + beWins;
+  const totalLosses = losses + beLosses;
+  
+  const totalProfit = trades.reduce((sum, t) => sum + (t.calculated_profit || 0), 0);
+  const averageProfit = totalTrades > 0 ? totalProfit / totalTrades : 0;
+  
+  const nonBETotal = wins + losses;
+  const winRate = nonBETotal > 0 ? (wins / nonBETotal) * 100 : 0;
+  const winRateWithBE = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
+  
+  // Calculate streaks
+  let currentStreak = 0;
+  let maxWinningStreak = 0;
+  let maxLosingStreak = 0;
+  let currentWinningStreak = 0;
+  let currentLosingStreak = 0;
+  
+  const sortedTrades = [...trades].sort((a, b) => 
+    new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime()
+  );
+  
+  sortedTrades.forEach((trade) => {
+    const isWin = trade.trade_outcome === 'Win';
+    if (isWin) {
+      currentWinningStreak++;
+      currentLosingStreak = 0;
+      maxWinningStreak = Math.max(maxWinningStreak, currentWinningStreak);
+    } else {
+      currentLosingStreak++;
+      currentWinningStreak = 0;
+      maxLosingStreak = Math.max(maxLosingStreak, currentLosingStreak);
+    }
+  });
+  
+  const lastTrade = sortedTrades[sortedTrades.length - 1];
+  if (lastTrade) {
+    currentStreak = lastTrade.trade_outcome === 'Win' ? currentWinningStreak : -currentLosingStreak;
+  }
+  
+  // Calculate average days between trades
+  let averageDaysBetweenTrades = 0;
+  if (sortedTrades.length > 1) {
+    const daysBetween: number[] = [];
+    for (let i = 1; i < sortedTrades.length; i++) {
+      const prevDate = new Date(sortedTrades[i - 1].trade_date);
+      const currDate = new Date(sortedTrades[i].trade_date);
+      const diffTime = Math.abs(currDate.getTime() - prevDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      daysBetween.push(diffDays);
+    }
+    averageDaysBetweenTrades = daysBetween.length > 0
+      ? daysBetween.reduce((sum, days) => sum + days, 0) / daysBetween.length
+      : 0;
+  }
+
+  return {
+    totalTrades,
+    totalWins,
+    totalLosses,
+    wins,
+    losses,
+    beWins,
+    beLosses,
+    totalProfit,
+    averageProfit,
+    winRate,
+    winRateWithBE,
+    currentStreak,
+    maxWinningStreak,
+    maxLosingStreak,
+    averageDaysBetweenTrades,
+  };
+}
