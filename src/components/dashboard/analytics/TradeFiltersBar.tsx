@@ -179,7 +179,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                   {/* Top accent line - dark mode only */}
                   <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60 hidden dark:block" />
 
-                  <div className="relative p-4">
+                  <div className="relative p-2">
                     <DateRange
                     ranges={[
                       {
