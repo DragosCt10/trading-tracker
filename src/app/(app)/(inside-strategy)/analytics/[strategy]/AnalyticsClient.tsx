@@ -104,6 +104,16 @@ import {
   convertLocalHLStatsToChartData,
   convertFilteredLocalHLStatsToChartData,
 } from '@/components/dashboard/analytics/LocalHLStatisticsCard';
+import {
+  SLSizeStatisticsCard,
+  calculateSLSizeStats,
+} from '@/components/dashboard/analytics/SLSizeStatisticsCard';
+import {
+  TradeTypesStatisticsCard,
+  calculateReentryStats,
+  calculateBreakEvenStats,
+  type TradeTypesStatisticsCardProps,
+} from '@/components/dashboard/analytics/TradeTypesStatisticsCard';
 import { LaunchHourTradesCard } from '@/components/dashboard/analytics/LaunchHourTradesCard';
 import { NonExecutedTradesCard } from '@/components/dashboard/analytics/NonExecutedTradesCard';
 import { DisplacementSizeStats } from '@/components/dashboard/analytics/DisplacementSizeStats';
@@ -933,30 +943,6 @@ export default function AnalyticsClient(
 
   const localHLChartData: TradeStatDatum[] = convertLocalHLStatsToChartData(localHLStats);
 
-  const slSizeChartData: TradeStatDatum[] = slSizeStats.map((stat) => ({
-    category: stat.market,
-    value: stat.averageSlSize,
-  }));
-
-  const tradeTypesChartData: TradeStatDatum[] = [
-    ...reentryStats.map((stat) => ({
-      category: `Re-entry`,
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-    })),
-    ...breakEvenStats.map((stat) => ({
-      category: `Break-even`,
-      wins: stat.wins,
-      losses: stat.losses,
-      // typically no BE expansion here
-      winRate: stat.winRate,
-    })),
-  ];
-
   const timeIntervalChartData: TradeStatDatum[] = TIME_INTERVALS.map((interval) => {
     const stat =
       intervalStats.find((s) => s.label === interval.label) ?? {
@@ -1672,37 +1658,6 @@ export default function AnalyticsClient(
 
   const localHLChartDataFiltered: TradeStatDatum[] = convertFilteredLocalHLStatsToChartData(statsToUseForCharts.localHLStats);
 
-  const slSizeChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.slSizeStats.map((stat) => ({
-    category: stat.market,
-    value: stat.averageSlSize,
-  }));
-
-  const tradeTypesChartDataFiltered: TradeStatDatum[] = [
-    ...statsToUseForCharts.reentryStats.map((stat) => {
-      const statWithTotal = stat as any;
-      return {
-        category: `Re-entry`,
-        totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
-        wins: stat.wins,
-        losses: stat.losses,
-        beWins: stat.beWins,
-        beLosses: stat.beLosses,
-        winRate: stat.winRate,
-        winRateWithBE: stat.winRateWithBE,
-      };
-    }),
-    ...statsToUseForCharts.breakEvenStats.map((stat) => {
-      const statWithTotal = stat as any;
-      return {
-        category: `Break-even`,
-        totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
-        wins: stat.wins,
-        losses: stat.losses,
-        winRate: stat.winRate,
-      };
-    }),
-  ];
-
   const timeIntervalChartDataFiltered: TradeStatDatum[] = TIME_INTERVALS.map((interval) => {
     const stat =
       statsToUseForCharts.intervalStats.find((s) => s.label === interval.label) ?? {
@@ -1785,8 +1740,6 @@ export default function AnalyticsClient(
 
   // Use filtered chart data when filters are applied, otherwise use original
   const setupChartDataToUse = filteredChartStats ? setupChartDataFiltered : setupChartData;
-  const slSizeChartDataToUse = filteredChartStats ? slSizeChartDataFiltered : slSizeChartData;
-  const tradeTypesChartDataToUse = filteredChartStats ? tradeTypesChartDataFiltered : tradeTypesChartData;
   const timeIntervalChartDataToUse = filteredChartStats ? timeIntervalChartDataFiltered : timeIntervalChartData;
   const mssChartDataToUse = filteredChartStats ? mssChartDataFiltered : mssChartData;
   const newsChartDataToUse = filteredChartStats ? newsChartDataFiltered : newsChartData;
@@ -2717,21 +2670,25 @@ export default function AnalyticsClient(
       {/* SL Size and Trade Types Statistics Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* SL Size Statistics Card */}
-        <TradeStatsBarCard
-          title="SL Size Statistics"
-          description="Distribution of trades based on SL size"
-          data={slSizeChartDataToUse}
-          mode="singleValue"
-          valueKey="value"
+        <SLSizeStatisticsCard
+          slSizeStats={filteredChartStats ? statsToUseForCharts.slSizeStats : slSizeStats}
           isLoading={chartsLoadingState}
         />
 
         {/* Trade Types Statistics Card */}
-        <TradeStatsBarCard
-          title="Trade Types Statistics"
-          description="Distribution of trades based on trade type"
-          data={tradeTypesChartDataToUse}
+        <TradeTypesStatisticsCard
+          reentryStats={
+            filteredChartStats
+              ? (statsToUseForCharts.reentryStats as TradeTypesStatisticsCardProps['reentryStats'])
+              : reentryStats
+          }
+          breakEvenStats={
+            filteredChartStats
+              ? (statsToUseForCharts.breakEvenStats as TradeTypesStatisticsCardProps['breakEvenStats'])
+              : breakEvenStats
+          }
           isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
         />
       </div>
 
