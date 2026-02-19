@@ -4,7 +4,7 @@ import { ReactNode, useState, useEffect, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { FileText, PlusCircle, Sparkles, BarChart3 } from 'lucide-react';
+import { FileText, PlusCircle, TrendingUp, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -112,7 +112,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
               className={cn(navButtonClass(isActive('/my-trades')), 'w-full h-auto min-h-[64px] !p-0')}
             >
               <Link href={myTradesUrl} className="block w-full h-full relative min-h-[40px]">
-                <Sparkles className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
+                <TrendingUp className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">My Trades</span>
               </Link>
             </Button>
