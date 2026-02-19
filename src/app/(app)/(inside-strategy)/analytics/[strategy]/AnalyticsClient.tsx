@@ -86,6 +86,18 @@ import {
   convertSetupStatsToChartData,
   convertFilteredSetupStatsToChartData,
 } from '@/components/dashboard/analytics/SetupStatisticsCard';
+import {
+  LiquidityStatisticsCard,
+  calculateLiquidityStats,
+  convertLiquidityStatsToChartData,
+  convertFilteredLiquidityStatsToChartData,
+} from '@/components/dashboard/analytics/LiquidityStatisticsCard';
+import {
+  DirectionStatisticsCard,
+  calculateDirectionStats,
+  convertDirectionStatsToChartData,
+  convertFilteredDirectionStatsToChartData,
+} from '@/components/dashboard/analytics/DirectionStatisticsCard';
 import { LaunchHourTradesCard } from '@/components/dashboard/analytics/LaunchHourTradesCard';
 import { NonExecutedTradesCard } from '@/components/dashboard/analytics/NonExecutedTradesCard';
 import { DisplacementSizeStats } from '@/components/dashboard/analytics/DisplacementSizeStats';
@@ -910,39 +922,8 @@ export default function AnalyticsClient(
 
   const setupChartData: TradeStatDatum[] = convertSetupStatsToChartData(setupStats);
 
-  const liquidityChartData: TradeStatDatum[] = liquidityStats.map((stat) => ({
-    category: `${stat.liquidity}`,
-    wins: stat.wins,
-    losses: stat.losses,
-    beWins: stat.beWins,
-    beLosses: stat.beLosses,
-    winRate: stat.winRate,
-    winRateWithBE: stat.winRateWithBE,
-  }));
-
-  // First, compute total trades for all directionStats (sum of wins+losses for each direction)
-  const totalDirectionTrades = directionStats.reduce(
-    (sum, stat) => sum + (stat.wins ?? 0) + (stat.losses ?? 0),
-    0
-  );
-
-  const directionChartData: TradeStatDatum[] = directionStats.map((stat) => {
-    const directionTotal = (stat.wins ?? 0) + (stat.losses ?? 0);
-    const percentage =
-      totalDirectionTrades > 0
-        ? ((directionTotal / totalDirectionTrades) * 100).toFixed(1)
-        : "0.0";
-    // category like: "Long (25, 62.5%)"
-    return {
-      category: `${stat.direction} - ${percentage}%`,
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-    };
-  });
+  const liquidityChartData: TradeStatDatum[] = convertLiquidityStatsToChartData(liquidityStats);
+  const directionChartData: TradeStatDatum[] = convertDirectionStatsToChartData(directionStats);
 
   const localHLChartData: TradeStatDatum[] = [
     {
@@ -1699,47 +1680,8 @@ export default function AnalyticsClient(
   // Recompute chart data arrays using filtered stats when filters are applied
   const setupChartDataFiltered: TradeStatDatum[] = convertFilteredSetupStatsToChartData(statsToUseForCharts.setupStats);
 
-  const liquidityChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.liquidityStats.map((stat) => {
-    const statWithTotal = stat as any;
-    return {
-      category: `${stat.liquidity}`,
-      totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-    };
-  });
-
-  const totalDirectionTradesFiltered = statsToUseForCharts.directionStats.reduce(
-    (sum, stat) => {
-      const statWithTotal = stat as any;
-      const total = statWithTotal.total !== undefined ? statWithTotal.total : ((stat.wins ?? 0) + (stat.losses ?? 0) + (stat.beWins ?? 0) + (stat.beLosses ?? 0));
-      return sum + total;
-    },
-    0
-  );
-
-  const directionChartDataFiltered: TradeStatDatum[] = statsToUseForCharts.directionStats.map((stat) => {
-    const statWithTotal = stat as any;
-    const directionTotal = statWithTotal.total !== undefined ? statWithTotal.total : ((stat.wins ?? 0) + (stat.losses ?? 0) + (stat.beWins ?? 0) + (stat.beLosses ?? 0));
-    const percentage =
-      totalDirectionTradesFiltered > 0
-        ? ((directionTotal / totalDirectionTradesFiltered) * 100).toFixed(1)
-        : "0.0";
-    return {
-      category: `${stat.direction} - ${percentage}%`,
-      totalTrades: directionTotal,
-      wins: stat.wins,
-      losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-    };
-  });
+  const liquidityChartDataFiltered: TradeStatDatum[] = convertFilteredLiquidityStatsToChartData(statsToUseForCharts.liquidityStats);
+  const directionChartDataFiltered: TradeStatDatum[] = convertFilteredDirectionStatsToChartData(statsToUseForCharts.directionStats);
 
   const localHLChartDataFiltered: TradeStatDatum[] = [
     {
@@ -1881,8 +1823,6 @@ export default function AnalyticsClient(
 
   // Use filtered chart data when filters are applied, otherwise use original
   const setupChartDataToUse = filteredChartStats ? setupChartDataFiltered : setupChartData;
-  const liquidityChartDataToUse = filteredChartStats ? liquidityChartDataFiltered : liquidityChartData;
-  const directionChartDataToUse = filteredChartStats ? directionChartDataFiltered : directionChartData;
   const localHLChartDataToUse = filteredChartStats ? localHLChartDataFiltered : localHLChartData;
   const slSizeChartDataToUse = filteredChartStats ? slSizeChartDataFiltered : slSizeChartData;
   const tradeTypesChartDataToUse = filteredChartStats ? tradeTypesChartDataFiltered : tradeTypesChartData;
@@ -2782,19 +2722,17 @@ export default function AnalyticsClient(
       {/* Statistics Cards Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
         {/* Liquidity Statistics Card */}
-        <TradeStatsBarCard
-          title="Liquidity Statistics"
-          description="Distribution of trades based on market liquidity conditions"
-          data={liquidityChartDataToUse}
+        <LiquidityStatisticsCard
+          liquidityStats={filteredChartStats ? statsToUseForCharts.liquidityStats : liquidityStats}
           isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
         />
 
         {/* Direction Statistics Card */}
-        <TradeStatsBarCard
-          title="Long/Short Statistics"
-          description="Distribution of trades based on direction"
-          data={directionChartDataToUse}
+        <DirectionStatisticsCard
+          directionStats={filteredChartStats ? statsToUseForCharts.directionStats : directionStats}
           isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
         />
       </div>
 
