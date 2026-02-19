@@ -7,6 +7,7 @@ import NotesModal from '@/components/NotesModal';
 import { useQuery } from '@tanstack/react-query';
 import { format, endOfMonth, startOfMonth, startOfYear, endOfYear, subDays } from 'date-fns';
 import { DateRange } from 'react-date-range';
+import { Calendar } from 'lucide-react';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQueryClient } from '@tanstack/react-query';
@@ -498,96 +499,112 @@ export default function TradesClient({
                   />
                   <button
                     type="button"
+                    onClick={() => setShowDatePicker((v) => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer p-1.5 rounded-lg hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20"
-                    onClick={() => setShowDatePicker(v => !v)}
                     aria-label="Open date picker"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2}
-                      stroke="currentColor"
-                      className="w-5 h-5 text-slate-500 dark:text-slate-400"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z"
-                      />
-                    </svg>
+                    <Calendar className="h-5 w-5 text-slate-500 dark:text-slate-400" />
                   </button>
                   {showDatePicker && (
                     <div
                       ref={pickerRef}
-                      className="absolute shadow-xl rounded-xl z-50 mt-2 left-0 date-range-popup bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700"
+                      className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50 dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-lg shadow-slate-300/30 dark:shadow-slate-900/30"
                     >
-                      <DateRange
-                        ranges={[
-                          {
-                            startDate: new Date(tempRange.startDate),
-                            endDate: new Date(tempRange.endDate),
-                            key: 'selection',
-                          },
-                        ]}
-                        onChange={ranges => {
-                          const { startDate, endDate } = ranges.selection;
-                          setTempRange({
-                            startDate: format(startDate as Date, 'yyyy-MM-dd'),
-                            endDate: format(endDate as Date, 'yyyy-MM-dd'),
-                          });
+                      {/* Gradient orbs background - dark mode only */}
+                      <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl hidden dark:block">
+                        <div
+                          className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/10 rounded-full blur-3xl"
+                        />
+                        <div
+                          className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/10 rounded-full blur-3xl"
+                        />
+                      </div>
+
+                      {/* Noise texture overlay - dark mode only */}
+                      <div
+                        className="absolute inset-0 opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl hidden dark:block"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                          backgroundRepeat: 'repeat',
                         }}
-                        moveRangeOnFirstSelection={false}
-                        editableDateInputs
-                        maxDate={new Date()}
-                        showMonthAndYearPickers
-                        rangeColors={['#334155']}
-                        direction="vertical"
                       />
 
-                      <div className="flex justify-end gap-2 p-2 bg-white dark:bg-slate-900">
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setTempRange({ ...dateRange });
-                            setShowDatePicker(false);
-                          }}
-                          className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setDateRange({ ...tempRange });
-                            // Check if the selected range matches a preset, otherwise reset filter
-                            const today = new Date();
-                            const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
-                            const yearStart = fmt(startOfYear(today));
-                            const yearEnd = fmt(endOfYear(today));
-                            const last15Start = fmt(subDays(today, 14));
-                            const last30Start = fmt(subDays(today, 29));
-                            const monthStart = fmt(startOfMonth(today));
-                            const monthEnd = fmt(endOfMonth(today));
+                      {/* Top accent line - dark mode only */}
+                      <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60 hidden dark:block" />
 
-                            if (tempRange.startDate === yearStart && tempRange.endDate === yearEnd) {
-                              setActiveFilter('year');
-                            } else if (tempRange.startDate === last15Start && tempRange.endDate === fmt(today)) {
-                              setActiveFilter('15days');
-                            } else if (tempRange.startDate === last30Start && tempRange.endDate === fmt(today)) {
-                              setActiveFilter('30days');
-                            } else if (tempRange.startDate === monthStart && tempRange.endDate === monthEnd) {
-                              setActiveFilter('month');
-                            } else {
-                              setActiveFilter(null);
-                            }
-                            setCurrentPage(1);
-                            setShowDatePicker(false);
+                      <div className="relative p-2">
+                        <DateRange
+                          ranges={[
+                            {
+                              startDate: new Date(tempRange.startDate),
+                              endDate: new Date(tempRange.endDate),
+                              key: 'selection',
+                            },
+                          ]}
+                          onChange={ranges => {
+                            const { startDate, endDate } = ranges.selection;
+                            const safeStart = startDate || new Date();
+                            const safeEnd = endDate || safeStart;
+                            setTempRange({
+                              startDate: format(safeStart, 'yyyy-MM-dd'),
+                              endDate: format(safeEnd, 'yyyy-MM-dd'),
+                            });
                           }}
-                          className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0"
-                        >
-                          <span className="relative z-10">Apply</span>
-                          <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-                        </Button>
+                          moveRangeOnFirstSelection={false}
+                          editableDateInputs={false}
+                          maxDate={new Date()}
+                          showMonthAndYearPickers
+                          rangeColors={['#a855f7']} // purple-500 for gradient
+                          direction="vertical"
+                        />
+
+                        <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-transparent dark:bg-transparent px-4 py-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setTempRange({ ...dateRange });
+                              setShowDatePicker(false);
+                            }}
+                            className="cursor-pointer rounded-xl px-4 py-2 text-sm transition-colors duration-200 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => {
+                              setDateRange({ ...tempRange });
+                              // Check if the selected range matches a preset, otherwise reset filter
+                              const today = new Date();
+                              const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
+                              const yearStart = fmt(startOfYear(today));
+                              const yearEnd = fmt(endOfYear(today));
+                              const last15Start = fmt(subDays(today, 14));
+                              const last30Start = fmt(subDays(today, 29));
+                              const monthStart = fmt(startOfMonth(today));
+                              const monthEnd = fmt(endOfMonth(today));
+
+                              if (tempRange.startDate === yearStart && tempRange.endDate === yearEnd) {
+                                setActiveFilter('year');
+                              } else if (tempRange.startDate === last15Start && tempRange.endDate === fmt(today)) {
+                                setActiveFilter('15days');
+                              } else if (tempRange.startDate === last30Start && tempRange.endDate === fmt(today)) {
+                                setActiveFilter('30days');
+                              } else if (tempRange.startDate === monthStart && tempRange.endDate === monthEnd) {
+                                setActiveFilter('month');
+                              } else {
+                                setActiveFilter(null);
+                              }
+                              setCurrentPage(1);
+                              setShowDatePicker(false);
+                            }}
+                            className="cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 border-0 bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white shadow-md shadow-purple-500/30"
+                          >
+                            Apply
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )}
