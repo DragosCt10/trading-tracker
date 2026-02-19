@@ -3,8 +3,8 @@
 import type { AccountRow } from '@/lib/server/accounts';
 import { useQueryClient } from '@tanstack/react-query';
 import { ReactNode } from 'react';
-import Navbar from '@/components/navigation/Navbar';
-import Footer from '@/components/shared/Footer';
+import Navbar from '@/components/shared/Navbar';
+import { Footer } from '@/components/shared/Footer';
 
 export type InitialUserDetails = { user: { id: string } | null; session: object | null };
 

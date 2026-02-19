@@ -71,7 +71,7 @@ export function Footer() {
     <footer
       role="contentinfo"
       className={cn(
-        "w-full mt-40 bg-transparent",
+        "w-full mt-32 bg-transparent",
         "border-t border-slate-200 dark:border-slate-700/80"
       )}
     >
