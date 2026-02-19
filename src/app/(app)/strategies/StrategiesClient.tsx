@@ -362,42 +362,45 @@ export function StrategiesClient() {
       {/* Strategies Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {strategiesLoading ? (
-          // Skeleton loader
-          <Card
-            className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm"
-          >
-                <div className="relative p-6 flex flex-col h-full">
-                  {/* Strategy Name Skeleton */}
-                  <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4 w-3/4 animate-pulse" />
+          // Skeleton loaders (3 cards)
+          Array.from({ length: 3 }).map((_, i) => (
+            <Card
+              key={i}
+              className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm"
+            >
+              <div className="relative p-6 flex flex-col h-full">
+                {/* Strategy Name Skeleton */}
+                <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4 w-3/4 animate-pulse" />
 
-                  {/* Graph Skeleton */}
-                  <div className="h-32 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4 animate-pulse" />
+                {/* Graph Skeleton */}
+                <div className="h-32 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4 animate-pulse" />
 
-                  {/* Metrics Skeleton */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="space-y-2">
-                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-16 animate-pulse" />
-                      <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-12 animate-pulse" />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-12 animate-pulse" />
-                      <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-16 animate-pulse" />
-                    </div>
+                {/* Metrics Skeleton */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="space-y-2">
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-16 animate-pulse" />
+                    <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-12 animate-pulse" />
                   </div>
-
-                  {/* Total Trades Skeleton */}
-                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-32 mb-4 animate-pulse" />
-
-                  {/* Buttons Skeleton */}
-                  <div className="flex items-center justify-between gap-2 mt-auto pt-4 border-t border-slate-200/60 dark:border-slate-700/50">
-                    <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded-xl flex-1 animate-pulse" />
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-20 bg-slate-200 dark:bg-slate-700 rounded-xl animate-pulse" />
-                      <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded-xl animate-pulse" />
-                    </div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-12 animate-pulse" />
+                    <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-16 animate-pulse" />
                   </div>
                 </div>
-              </Card>
+
+                {/* Total Trades Skeleton */}
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-32 mb-4 animate-pulse" />
+
+                {/* Buttons Skeleton */}
+                <div className="flex items-center justify-between gap-2 mt-auto pt-4 border-t border-slate-200/60 dark:border-slate-700/50">
+                  <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded-xl flex-1 animate-pulse" />
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-20 bg-slate-200 dark:bg-slate-700 rounded-xl animate-pulse" />
+                    <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded-xl animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))
         ) : (
           <>
             {strategies.map((strategy) => {
