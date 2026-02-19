@@ -249,6 +249,45 @@
   color: #ffffff !important; /* white text on start/end dates */
 }
 
+/* Dark mode styles for navigation arrows - only background, preserve arrow structure */
+.dark .rdrNextPrevButton {
+  background-color: rgba(51, 65, 85, 0.5) !important;
+}
+
+.dark .rdrNextPrevButton:hover {
+  background-color: rgba(71, 85, 105, 0.7) !important;
+}
+
+/* Make arrow icons white - react-date-range uses border triangles */
+/* Target navigation buttons container and style arrows based on position */
+.dark .rdrMonthAndYearPickers {
+  /* Container styles if needed */
+}
+
+/* First button (previous/left arrow) - right border creates left-pointing triangle */
+.dark .rdrMonthAndYearPickers button:first-of-type i,
+.dark .rdrNextPrevButton:first-of-type i {
+  border-left-color: transparent !important;
+  border-right-color: #ffffff !important;
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+}
+
+/* Last button (next/right arrow) - left border creates right-pointing triangle */
+.dark .rdrMonthAndYearPickers button:last-of-type i,
+.dark .rdrNextPrevButton:last-of-type i {
+  border-left-color: #ffffff !important;
+  border-right-color: transparent !important;
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+}
+
+/* Fallback: ensure all arrow icons have transparent top/bottom */
+.dark .rdrNextPrevButton i {
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
