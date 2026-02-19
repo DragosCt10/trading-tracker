@@ -113,23 +113,38 @@
 
 .rdrDateDisplayWrapper {
   background: transparent !important;
+  padding: 0 !important; /* add vertical and horizontal spacing */
 }
 
 .rdrCalendarWrapper {
   background: transparent !important;
 }
 
+.rdrDateDisplay {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.rdrWeekDays .rdrWeekDay {
+  color: #64748b !important; /* slate-500 */
+}
+
 .rdrDateDisplayItem {
   color: #64748b !important; /* slate-500 */
-  border-radius: 9999px !important; /* rounded-full */
+  border-radius: 0.5rem !important; /* rounded-lg */
   border: 1px solid rgba(148, 163, 184, 0.5) !important; /* slate-400/50 */
   background-color: transparent !important;
-  padding: 0.375rem 0.75rem !important; /* smaller padding */
+  padding: 0.5rem 1rem !important; /* increased padding for more space */
   font-weight: 500 !important;
   font-size: 0.875rem !important; /* text-sm */
   transition: all 0.2s !important;
   box-shadow: none !important;
   color: #a855f7 !important;
+  margin: 0 0.5rem !important; /* add horizontal spacing between date inputs */
+}
+
+.rdrDays {
+  font-size: 0.875rem !important; /* text-sm */
 }
 
 .rdrDateDisplayItem:hover {
