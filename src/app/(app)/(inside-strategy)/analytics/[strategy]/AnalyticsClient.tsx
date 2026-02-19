@@ -45,6 +45,7 @@ import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketP
 import RiskPerTrade from '@/components/dashboard/analytics/RiskPerTrade';
 import { StatCard } from '@/components/dashboard/analytics/StatCard';
 import { AverageMonthlyTradesCard } from '@/components/dashboard/analytics/AverageMonthlyTradesCard';
+import { NonExecutedTradesStatCard } from '@/components/dashboard/analytics/NonExecutedTradesStatCard';
 import { cn } from '@/lib/utils';
 import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
 import { 
@@ -2510,30 +2511,9 @@ export default function AnalyticsClient(
 
         {/* Non-Executed Trades - Only show in yearly mode */}
         {viewMode === 'yearly' && (
-          <StatCard
-            title="Non-Executed Trades"
-            tooltipContent={
-              <div className="space-y-2 text-slate-500">
-                <div className="font-semibold text-slate-900">
-                  Non-Executed Trades
-                </div>
-                <p>
-                  Total number of trades that were planned but not executed, including
-                  break-even (BE) trades, in the selected year. This helps track missed
-                  or skipped opportunities.
-                </p>
-              </div>
-            }
-            value={
-              <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                {typeof props?.initialNonExecutedTotalTradesCount === 'number'
-                  ? props.initialNonExecutedTotalTradesCount
-                  : typeof nonExecutedTotalTradesCount === 'number'
-                    ? nonExecutedTotalTradesCount
-                    : 0}
-                <span className="text-slate-500 text-sm ml-1">(incl. BE)</span>
-              </p>
-            }
+          <NonExecutedTradesStatCard
+            initialNonExecutedTotalTradesCount={props?.initialNonExecutedTotalTradesCount}
+            nonExecutedTotalTradesCount={nonExecutedTotalTradesCount}
           />
         )}
 
