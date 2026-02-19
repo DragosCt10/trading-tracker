@@ -281,10 +281,10 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
             >
               <SelectValue placeholder="All Markets" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-white dark:bg-slate-900 shadow-lg backdrop-blur-sm">
-              <SelectItem value="all" className="rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800">All Markets</SelectItem>
+            <SelectContent>
+              <SelectItem value="all">All Markets</SelectItem>
               {markets.map((market) => (
-                <SelectItem key={market} value={market} className="rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800">
+                <SelectItem key={market} value={market}>
                   {market}
                 </SelectItem>
               ))}
@@ -307,12 +307,12 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
             >
               <SelectValue placeholder={showAllTradesOption ? "All Trades" : "Executed Trades"} />
             </SelectTrigger>
-            <SelectContent className="rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-white dark:bg-slate-900 shadow-lg backdrop-blur-sm">
+            <SelectContent>
               {showAllTradesOption && (
-                <SelectItem value="all" className="rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800">All Trades</SelectItem>
+                <SelectItem value="all">All Trades</SelectItem>
               )}
-              <SelectItem value="executed" className="rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800">Executed Trades</SelectItem>
-              <SelectItem value="nonExecuted" className="rounded-lg focus:bg-slate-100 dark:focus:bg-slate-800">Non Executed Trades</SelectItem>
+              <SelectItem value="executed">Executed Trades</SelectItem>
+              <SelectItem value="nonExecuted">Non Executed Trades</SelectItem>
             </SelectContent>
           </Select>
         </div>
