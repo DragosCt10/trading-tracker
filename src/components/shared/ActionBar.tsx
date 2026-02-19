@@ -120,7 +120,8 @@ export default function ActionBar({ initialData }: ActionBarProps) {
         // refresh queries
         const keysToNukeStartsWith = [
           'allTrades', 'filteredTrades',
-          'nonExecutedTrades', 'nonExecutedTotalTradesCount',
+          'nonExecutedTrades',
+          // Note: nonExecutedTotalTradesCount is now derived from allTrades, no need to invalidate separately
         ];
         queryClient.removeQueries({
           predicate: q => keysToNukeStartsWith.includes((q.queryKey?.[0] as string) ?? ''),
