@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useMemo,
+  useCallback,
 } from 'react';
 import {
   format,
@@ -494,7 +495,7 @@ export default function AnalyticsClient(
       | undefined
   );
 
-  const getCurrencySymbol = () => {
+  const getCurrencySymbol = useCallback(() => {
     const account = selection.activeAccount ?? props?.initialActiveAccount;
     if (!account?.currency) return '$';
     return (
@@ -502,9 +503,136 @@ export default function AnalyticsClient(
         account.currency as keyof typeof CURRENCY_SYMBOLS
       ] || account.currency
     );
-  };
+  }, [selection.activeAccount, props?.initialActiveAccount]);
+  
+  // update calendar when main date range changes (without allTrades dependency - handled separately)
+  useEffect(() => {
+    const endDateObj = new Date(dateRange.endDate);
+    
+    if (viewMode === 'dateRange') {
+      // In date range mode: temporarily use the end date
+      // Will be updated to first month with trades in the effect below after allTrades is available
+      setCurrentDate(endDateObj);
+      setSelectedYear(endDateObj.getFullYear());
+      setCalendarDateRange(createCalendarRangeFromEnd(endDateObj));
+    }
+    // Yearly mode calendar initialization is handled in a separate effect after allTrades is available
+  }, [dateRange, viewMode]);
 
-  const canNavigateMonth = (direction: 'prev' | 'next') => {
+  // update dateRange when switching to yearly mode or when selectedYear changes
+  useEffect(() => {
+    if (viewMode === 'yearly') {
+      const yearStart = fmt(startOfYear(new Date(selectedYear, 0, 1)));
+      const yearEnd = fmt(endOfYear(new Date(selectedYear, 11, 31)));
+      setDateRange({ startDate: yearStart, endDate: yearEnd });
+    }
+  }, [viewMode, selectedYear]);
+
+  // reset filter to '30days' when switching back to dateRange mode from yearly mode
+  useEffect(() => {
+    // Only reset if switching FROM yearly TO dateRange
+    if (viewMode === 'dateRange' && prevViewModeRef.current === 'yearly') {
+      // Reset activeFilter to '30days' and set dateRange to default "Last 30 Days"
+      setActiveFilter('30days');
+      const today = new Date();
+      const { dateRange: defaultRange, calendarRange, currentDate } =
+        buildPresetRange('30days', today);
+      setDateRange(defaultRange);
+      setCurrentDate(currentDate);
+      setCalendarDateRange(calendarRange);
+    }
+    // Update the ref to track current viewMode for next comparison
+    prevViewModeRef.current = viewMode;
+  }, [viewMode]);
+
+  // close date picker on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowDatePicker(false);
+      }
+    }
+
+    if (showDatePicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDatePicker]);
+
+  const handleFilter = useCallback((type: FilterType) => {
+    const today = new Date();
+    setActiveFilter(type);
+
+    const { dateRange: nextRange, calendarRange, currentDate } =
+      buildPresetRange(type, today);
+
+    setDateRange(nextRange);
+    setCurrentDate(currentDate);
+    setCalendarDateRange(calendarRange);
+  }, []);
+
+  const {
+    calendarMonthTrades,
+    allTrades,
+    filteredTrades,
+    filteredTradesLoading,
+    allTradesLoading,
+    isLoadingTrades,
+    stats,
+    monthlyStats,
+    monthlyStatsAllTrades,
+    localHLStats,
+    setupStats,
+    nonExecutedSetupStats,
+    liquidityStats,
+    nonExecutedLiquidityStats,
+    directionStats,
+    reentryStats,
+    breakEvenStats,
+    intervalStats,
+    mssStats,
+    newsStats,
+    dayStats,
+    marketStats,
+    nonExecutedMarketStats,
+    marketAllTradesStats,
+    slSizeStats,
+    macroStats,
+    evaluationStats,
+    nonExecutedTrades,
+    nonExecutedTotalTradesCount,
+    nonExecutedTradesLoading,
+    yearlyPartialTradesCount,
+    yearlyPartialsBECount,
+    allTradesRiskStats,
+    riskStats,
+  } = useDashboardData({
+    session: userData?.session,
+    dateRange,
+    mode: selection.mode,
+    activeAccount: (resolvedAccount ?? null) as AccountSettings | null,
+    contextLoading: actionBarloading,
+    isSessionLoading: userLoading,
+    currentDate,
+    calendarDateRange,
+    selectedYear,
+    selectedMarket,
+    strategyId,
+    viewMode,
+  });
+
+  // Memoize callbacks that depend on allTrades (must be after useDashboardData)
+  const canNavigateMonth = useCallback((direction: 'prev' | 'next') => {
     const currentMonth = currentDate.getMonth();
     const currentYear = currentDate.getFullYear();
     const startDate = new Date(dateRange.startDate);
@@ -587,9 +715,9 @@ export default function AnalyticsClient(
         return false;
       }
     }
-  };
+  }, [currentDate, dateRange, viewMode, selectedYear, allTrades]);
 
-  const handleMonthNavigation = (direction: 'prev' | 'next') => {
+  const handleMonthNavigation = useCallback((direction: 'prev' | 'next') => {
     if (!canNavigateMonth(direction)) return;
 
     const newDate = new Date(currentDate);
@@ -694,133 +822,7 @@ export default function AnalyticsClient(
       startDate: format(monthStart, 'yyyy-MM-dd'),
       endDate: format(monthEnd, 'yyyy-MM-dd'),
     });
-  };
-  
-  // update calendar when main date range changes (without allTrades dependency - handled separately)
-  useEffect(() => {
-    const endDateObj = new Date(dateRange.endDate);
-    
-    if (viewMode === 'dateRange') {
-      // In date range mode: temporarily use the end date
-      // Will be updated to first month with trades in the effect below after allTrades is available
-      setCurrentDate(endDateObj);
-      setSelectedYear(endDateObj.getFullYear());
-      setCalendarDateRange(createCalendarRangeFromEnd(endDateObj));
-    }
-    // Yearly mode calendar initialization is handled in a separate effect after allTrades is available
-  }, [dateRange, viewMode]);
-
-  // update dateRange when switching to yearly mode or when selectedYear changes
-  useEffect(() => {
-    if (viewMode === 'yearly') {
-      const yearStart = fmt(startOfYear(new Date(selectedYear, 0, 1)));
-      const yearEnd = fmt(endOfYear(new Date(selectedYear, 11, 31)));
-      setDateRange({ startDate: yearStart, endDate: yearEnd });
-    }
-  }, [viewMode, selectedYear]);
-
-  // reset filter to '30days' when switching back to dateRange mode from yearly mode
-  useEffect(() => {
-    // Only reset if switching FROM yearly TO dateRange
-    if (viewMode === 'dateRange' && prevViewModeRef.current === 'yearly') {
-      // Reset activeFilter to '30days' and set dateRange to default "Last 30 Days"
-      setActiveFilter('30days');
-      const today = new Date();
-      const { dateRange: defaultRange, calendarRange, currentDate } =
-        buildPresetRange('30days', today);
-      setDateRange(defaultRange);
-      setCurrentDate(currentDate);
-      setCalendarDateRange(calendarRange);
-    }
-    // Update the ref to track current viewMode for next comparison
-    prevViewModeRef.current = viewMode;
-  }, [viewMode]);
-
-  // close date picker on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        pickerRef.current &&
-        !pickerRef.current.contains(event.target as Node) &&
-        inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
-      ) {
-        setShowDatePicker(false);
-      }
-    }
-
-    if (showDatePicker) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showDatePicker]);
-
-  const handleFilter = (type: FilterType) => {
-    const today = new Date();
-    setActiveFilter(type);
-
-    const { dateRange: nextRange, calendarRange, currentDate } =
-      buildPresetRange(type, today);
-
-    setDateRange(nextRange);
-    setCurrentDate(currentDate);
-    setCalendarDateRange(calendarRange);
-  };
-
-  const {
-    calendarMonthTrades,
-    allTrades,
-    filteredTrades,
-    filteredTradesLoading,
-    allTradesLoading,
-    isLoadingTrades,
-    stats,
-    monthlyStats,
-    monthlyStatsAllTrades,
-    localHLStats,
-    setupStats,
-    nonExecutedSetupStats,
-    liquidityStats,
-    nonExecutedLiquidityStats,
-    directionStats,
-    reentryStats,
-    breakEvenStats,
-    intervalStats,
-    mssStats,
-    newsStats,
-    dayStats,
-    marketStats,
-    nonExecutedMarketStats,
-    marketAllTradesStats,
-    slSizeStats,
-    macroStats,
-    evaluationStats,
-    nonExecutedTrades,
-    nonExecutedTotalTradesCount,
-    nonExecutedTradesLoading,
-    yearlyPartialTradesCount,
-    yearlyPartialsBECount,
-    allTradesRiskStats,
-    riskStats,
-  } = useDashboardData({
-    session: userData?.session,
-    dateRange,
-    mode: selection.mode,
-    activeAccount: (resolvedAccount ?? null) as AccountSettings | null,
-    contextLoading: actionBarloading,
-    isSessionLoading: userLoading,
-    currentDate,
-    calendarDateRange,
-    selectedYear,
-    selectedMarket,
-    strategyId,
-    viewMode,
-  });
+  }, [canNavigateMonth, currentDate, viewMode, selectedYear, allTrades, dateRange]);
 
   // session check
   useEffect(() => {
