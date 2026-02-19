@@ -14,7 +14,7 @@ interface StatCardProps {
   align?: 'left' | 'center';
 }
 
-export const StatCard: React.FC<StatCardProps> = ({
+export const StatCard: React.FC<StatCardProps> = React.memo(({
   title,
   value,
   tooltipContent,
@@ -105,4 +105,4 @@ export const StatCard: React.FC<StatCardProps> = ({
       </div>
     </Card>
   );
-};
+});
