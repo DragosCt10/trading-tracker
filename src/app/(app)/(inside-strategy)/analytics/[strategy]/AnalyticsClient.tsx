@@ -39,7 +39,12 @@ import {
   ArcElement,
 } from 'chart.js';
 import { RiskRewardStats } from '@/components/dashboard/analytics/RiskRewardStats';
-import { RRHitStats } from '@/components/dashboard/analytics/RRHitStats';
+import {
+  RRHitStats,
+} from '@/components/dashboard/analytics/RRHitStats';
+import {
+  LocalHLBEStatisticsCard,
+} from '@/components/dashboard/analytics/LocalHLBEStatisticsCard';
 import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketProfitStats';
 import RiskPerTrade from '@/components/dashboard/analytics/RiskPerTrade';
 import { StatCard } from '@/components/dashboard/analytics/StatCard';
@@ -989,38 +994,6 @@ export default function AnalyticsClient(
 
   // Use correct market stats based on view mode
   const marketStatsToUse = viewMode === 'yearly' ? marketAllTradesStats : marketStats;
-
-  // Like marketChartData, but for Local High/Low + Break Even trades
-  function getLocalHLBreakEvenChartData(filteredTrades: any[]): TradeStatDatum[] {
-    // trades that are both Local H/L and Break Even
-    const lichidatReentryTrades = filteredTrades.filter(
-      (t) => String(t.local_high_low) === 'true' && t.break_even,
-    );
-    // All trades in this set are break-even, so wins/losses are BE wins/losses
-    const beWins = lichidatReentryTrades.filter(
-      (t) => t.trade_outcome === 'Win',
-    ).length;
-    const beLosses = lichidatReentryTrades.filter(
-      (t) => t.trade_outcome === 'Lose',
-    ).length;
-    const totalTrades = lichidatReentryTrades.length; // Count all trades including non-executed ones
-    const executedTradesCount = beWins + beLosses;
-    const winRate = executedTradesCount > 0 ? (beWins / executedTradesCount) * 100 : 0;
-    const winRateWithBE = winRate; // Same as winRate since all trades are BE
-
-    return [
-      {
-        category: `Local High/Low + BE`,
-        wins: 0, // No regular wins since all are BE
-        losses: 0, // No regular losses since all are BE
-        beWins,
-        beLosses,
-        winRate,
-        winRateWithBE,
-        totalTrades,
-      }
-    ];
-  }
 
   // Helper for trades with both Break Even and Partials Taken
   function getPartialsBEChartData(filteredTrades: any[]): TradeStatDatum[] {
@@ -2649,14 +2622,7 @@ export default function AnalyticsClient(
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* Local H/L + BE Statistics */}
-        <TradeStatsBarCard
-          title="Local H/L + BE Statistics"
-          description="Analysis of trades marked as both Local High/Low and Break Even"
-          data={getLocalHLBreakEvenChartData(tradesToUse)}
-          mode="winsLossesWinRate"
-          heightClassName="h-80"
-          isLoading={chartsLoadingState}
-        />
+        <LocalHLBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
 
         {/* 1.4RR Hit Statistics */}
         <RRHitStats trades={tradesToUse} isLoading={chartsLoadingState} />
