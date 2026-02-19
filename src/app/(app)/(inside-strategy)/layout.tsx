@@ -20,51 +20,35 @@ interface InsideStrategyLayoutProps {
 export default function InsideStrategyLayout({ children }: InsideStrategyLayoutProps) {
   const pathname = usePathname();
   const [newTradeModalOpen, setNewTradeModalOpen] = useState(false);
-  const [savedStrategySlug, setSavedStrategySlug] = useState<string | null>(null);
 
-  // Extract strategy slug from analytics route: /analytics/[strategy]
+  // Extract strategy slug from routes: /analytics/[strategy] or /analytics/[strategy]/manage-trades or /analytics/[strategy]/my-trades
   const currentStrategySlug = useMemo(() => {
-    const match = pathname.match(/^\/analytics\/(.+)$/);
+    const match = pathname.match(/^\/analytics\/([^/]+)/);
     return match ? decodeURIComponent(match[1]) : null;
   }, [pathname]);
 
-  // Save strategy slug when on analytics page, persist in localStorage
-  useEffect(() => {
-    if (currentStrategySlug) {
-      setSavedStrategySlug(currentStrategySlug);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('last-analytics-strategy', currentStrategySlug);
-      }
-    } else {
-      // If not on analytics page, try to restore from localStorage
-      if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('last-analytics-strategy');
-        if (saved) {
-          setSavedStrategySlug(saved);
-        }
-      }
-    }
+  // Get URLs with the strategy slug
+  const analyticsUrl = useMemo(() => {
+    return currentStrategySlug ? `/analytics/${encodeURIComponent(currentStrategySlug)}` : '/analytics';
   }, [currentStrategySlug]);
 
-  // Note: localStorage cleanup happens in Navbar.tsx handleSignOut() on logout
-  // The strategy slug persists across inside-strategy route navigation (analytics/manage-trades/my-trades)
-  // which is intentional - it allows users to return to their last viewed analytics page
+  const manageTradesUrl = useMemo(() => {
+    return currentStrategySlug ? `/analytics/${encodeURIComponent(currentStrategySlug)}/manage-trades` : '/analytics';
+  }, [currentStrategySlug]);
 
-  // Get the analytics URL with the strategy slug
-  const analyticsUrl = useMemo(() => {
-    const slug = currentStrategySlug || savedStrategySlug;
-    return slug ? `/analytics/${encodeURIComponent(slug)}` : '/analytics';
-  }, [currentStrategySlug, savedStrategySlug]);
+  const myTradesUrl = useMemo(() => {
+    return currentStrategySlug ? `/analytics/${encodeURIComponent(currentStrategySlug)}/my-trades` : '/analytics';
+  }, [currentStrategySlug]);
 
   const isActive = (path: string) => {
     if (path === '/manage-trades') {
-      return pathname.startsWith('/manage-trades');
+      return pathname.includes('/manage-trades');
     }
     if (path === '/my-trades') {
-      return pathname.startsWith('/my-trades');
+      return pathname.includes('/my-trades');
     }
     if (path === '/analytics') {
-      return pathname.startsWith('/analytics');
+      return pathname.startsWith('/analytics') && !pathname.includes('/manage-trades') && !pathname.includes('/my-trades');
     }
     return pathname === path;
   };
@@ -104,7 +88,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
               size="sm"
               className={cn(navButtonClass(isActive('/manage-trades')), 'w-full h-auto min-h-[64px] !p-0')}
             >
-              <Link href="/manage-trades" className="block w-full h-full relative min-h-[40px]">
+              <Link href={manageTradesUrl} className="block w-full h-full relative min-h-[40px]">
                 <FileText className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Manage Trades</span>
               </Link>
@@ -127,7 +111,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
               size="sm"
               className={cn(navButtonClass(isActive('/my-trades')), 'w-full h-auto min-h-[64px] !p-0')}
             >
-              <Link href="/my-trades" className="block w-full h-full relative min-h-[40px]">
+              <Link href={myTradesUrl} className="block w-full h-full relative min-h-[40px]">
                 <Sparkles className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">My Trades</span>
               </Link>
