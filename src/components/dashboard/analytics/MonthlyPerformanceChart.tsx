@@ -16,8 +16,10 @@ import {
   CardDescription,
   CardContent,
 } from '@/components/ui/card';
+import { Trade } from '@/types/trade';
+import { MONTHS } from '@/components/dashboard/analytics/AccountOverviewCard';
 
-interface MonthlyStatsAllTrades {
+export interface MonthlyStatsAllTrades {
   [month: string]: {
     wins: number;
     losses: number;
@@ -26,6 +28,55 @@ interface MonthlyStatsAllTrades {
     winRate: number;
     winRateWithBE: number;
   };
+}
+
+/**
+ * Compute full monthly stats from trades array (wins, losses, winRate, etc.)
+ * @param trades - Array of trades to compute stats from
+ * @returns Object with monthly statistics keyed by month name
+ */
+export function computeFullMonthlyStatsFromTrades(
+  trades: Trade[]
+): MonthlyStatsAllTrades {
+  const monthlyData: MonthlyStatsAllTrades = {};
+  
+  trades.forEach((trade) => {
+    const tradeDate = new Date(trade.trade_date);
+    const monthName = MONTHS[tradeDate.getMonth()];
+    
+    if (!monthlyData[monthName]) {
+      monthlyData[monthName] = { wins: 0, losses: 0, beWins: 0, beLosses: 0, winRate: 0, winRateWithBE: 0 };
+    }
+    
+    const isBreakEven = trade.break_even;
+    const outcome = trade.trade_outcome;
+    
+    if (isBreakEven) {
+      if (outcome === 'Win') {
+        monthlyData[monthName].beWins += 1;
+      } else if (outcome === 'Lose') {
+        monthlyData[monthName].beLosses += 1;
+      }
+    } else {
+      if (outcome === 'Win') {
+        monthlyData[monthName].wins += 1;
+      } else if (outcome === 'Lose') {
+        monthlyData[monthName].losses += 1;
+      }
+    }
+  });
+  
+  // Calculate win rates for each month
+  Object.keys(monthlyData).forEach((month) => {
+    const stats = monthlyData[month];
+    const nonBETrades = stats.wins + stats.losses;
+    const allTrades = nonBETrades + stats.beWins + stats.beLosses;
+    
+    stats.winRate = nonBETrades > 0 ? (stats.wins / nonBETrades) * 100 : 0;
+    stats.winRateWithBE = allTrades > 0 ? ((stats.wins + stats.beWins) / allTrades) * 100 : 0;
+  });
+  
+  return monthlyData;
 }
 
 interface MonthlyPerformanceChartProps {
