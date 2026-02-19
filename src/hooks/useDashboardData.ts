@@ -187,7 +187,7 @@ export function useDashboardData({
       }
     },
     enabled: !!session?.user?.id && !!activeAccount?.id && !!selectedYear && !!mode,
-    staleTime: 0,
+    staleTime: 2 * 60 * 1000, // 2 minutes - reduces refetches while keeping data fresh
     gcTime: 5 * 60_000,
   });
 
@@ -228,7 +228,7 @@ export function useDashboardData({
       !!dateRange.startDate &&
       !!dateRange.endDate &&
       !!mode,
-    staleTime: 0,
+    staleTime: 2 * 60 * 1000, // 2 minutes - reduces refetches while keeping data fresh
     gcTime: 5 * 60_000,
   });
 
@@ -266,7 +266,7 @@ export function useDashboardData({
       }
     },
     enabled: !!session?.user?.id && !!activeAccount?.id && !!selectedYear && !!mode,
-    staleTime: 0,
+    staleTime: 2 * 60 * 1000, // 2 minutes - reduces refetches while keeping data fresh
     gcTime: 5 * 60_000,
   });
 
@@ -302,7 +302,7 @@ export function useDashboardData({
       }
     },
     enabled: !!session?.user?.id && !!activeAccount?.id && !!dateRange.startDate && !!dateRange.endDate,
-    staleTime: 0,
+    staleTime: 2 * 60 * 1000, // 2 minutes - reduces refetches while keeping data fresh
     gcTime: 5 * 60_000,
   });
   
