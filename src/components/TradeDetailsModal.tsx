@@ -168,11 +168,6 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     if (!editedTrade || !editedTrade.id) return;
     setError(null);
 
-    if (!editedTrade.strategy_id || editedTrade.strategy_id === '__required__') {
-      setError('Please select a strategy');
-      return;
-    }
-
     setIsSaving(true);
     setProgressDialog({ open: true, status: 'loading', message: 'Please wait while we save your trade data...', title: 'Update' });
 
@@ -565,34 +560,14 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 Trade Details
               </AlertDialogTitle>
               <div className="flex items-center gap-3">
-                {/* Strategy to the right of title, near X */}
+                {/* Strategy name (read-only in view and edit) */}
                 <div className="max-w-[200px]">
-                  {!isEditing ? (
-                    <div className="text-right">
-                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Strategy</span>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate" title={strategies.find((s) => s.id === editedTrade?.strategy_id)?.name ?? '—'}>
-                        {strategies.find((s) => s.id === editedTrade?.strategy_id)?.name ?? '—'}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="text-right">
-                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Strategy</span>
-                      <Select
-                        value={editedTrade?.strategy_id ?? '__required__'}
-                        onValueChange={(v) => handleInputChange('strategy_id', v === '__required__' ? null : v)}
-                      >
-                        <SelectTrigger className={`${selectTriggerClass} h-9 text-sm mt-1`}>
-                          <SelectValue placeholder="Select strategy" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__required__">Select strategy</SelectItem>
-                          {strategies.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+                  <div className="text-right">
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Strategy</span>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate" title={strategies.find((s) => s.id === editedTrade?.strategy_id)?.name ?? '—'}>
+                      {strategies.find((s) => s.id === editedTrade?.strategy_id)?.name ?? '—'}
+                    </p>
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
