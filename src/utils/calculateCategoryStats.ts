@@ -57,15 +57,19 @@ function isTimeInInterval(time: string, start: string, end: string): boolean {
 
 /**
  * Build stats for a single labeled group of trades.
+ * Processes all trades passed (tradesToUse already handles filtering).
+ * Only counts trades with Win/Lose outcomes for statistics.
  */
 function processGroup(label: string, trades: Trade[]): GroupStats {
-  const total = trades.length;
+  // Only count trades with Win/Lose outcomes (same as convertLocalHLStatsToChartData)
+  const tradesWithOutcomes = trades.filter(t => t.trade_outcome === 'Win' || t.trade_outcome === 'Lose');
+  const total = tradesWithOutcomes.length;
 
-  // Raw counts
-  const wins      = trades.filter(t => t.trade_outcome === 'Win').length;
-  const losses    = trades.filter(t => t.trade_outcome === 'Lose').length;
-  const beWins    = trades.filter(t => t.trade_outcome === 'Win'  && t.break_even).length;
-  const beLosses  = trades.filter(t => t.trade_outcome === 'Lose' && t.break_even).length;
+  // Raw counts (only from trades with Win/Lose outcomes)
+  const wins      = tradesWithOutcomes.filter(t => t.trade_outcome === 'Win').length;
+  const losses    = tradesWithOutcomes.filter(t => t.trade_outcome === 'Lose').length;
+  const beWins    = tradesWithOutcomes.filter(t => t.trade_outcome === 'Win'  && t.break_even).length;
+  const beLosses  = tradesWithOutcomes.filter(t => t.trade_outcome === 'Lose' && t.break_even).length;
 
   // Non-BE counts for ex-BE win rate
   const nonBEWins   = wins - beWins;
@@ -97,6 +101,7 @@ function processGroup(label: string, trades: Trade[]): GroupStats {
 
 /**
  * Generic grouping by a string key extractor.
+ * Processes all trades passed (tradesToUse already handles filtering).
  */
 export function calculateGroupedStats(
   trades: Trade[],
@@ -231,9 +236,15 @@ export function calculateLocalHLStats(trades: Trade[]): LocalHLStats {
   // ← if no trades at all, immediately return the zero‐stats
   if (trades.length === 0) return ZERO;
 
+  // Filter to only trades with Win/Lose outcomes BEFORE grouping
+  // This ensures we only count trades that will be included in the stats
+  const tradesWithOutcomes = trades.filter(t => t.trade_outcome === 'Win' || t.trade_outcome === 'Lose');
+  
+  // Use the same logic as computeStatsFromTrades for consistency
+  // String(trade.local_high_low) === 'true' means lichidat
   const groups = calculateGroupedStats(
-    trades,
-    t => (t.local_high_low ? 'lichidat' : 'nelichidat')
+    tradesWithOutcomes,
+    t => (String(t.local_high_low) === 'true' ? 'lichidat' : 'nelichidat')
   );
 
   return groups.reduce<LocalHLStats>((acc, g) => {
@@ -327,6 +338,7 @@ export function calculateMarketStats(trades: Trade[], accountBalance: number): M
 
 /**
  * Trade type stats: re-entry and break-even separate.
+ * Processes all trades passed (tradesToUse already handles filtering).
  */
 export function calculateReentryStats(trades: Trade[]): TradeTypeStats[] {
   if (trades.length === 0) return [];
