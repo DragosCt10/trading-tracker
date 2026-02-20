@@ -58,20 +58,17 @@ function isTimeInInterval(time: string, start: string, end: string): boolean {
 /**
  * Build stats for a single labeled group of trades.
  * Processes all trades passed (tradesToUse already handles filtering).
- * Counts ALL trades for total, but only counts Win/Lose outcomes for wins/losses stats.
+ * All trades have Win/Lose outcomes, so we count all trades for total and wins/losses.
  */
 function processGroup(label: string, trades: Trade[]): GroupStats {
-  // Count ALL trades (including non-executed) for total
+  // Count ALL trades (all trades have outcomes, executed or not)
   const total = trades.length;
-  
-  // Only count trades with Win/Lose outcomes for wins/losses stats
-  const tradesWithOutcomes = trades.filter(t => t.trade_outcome === 'Win' || t.trade_outcome === 'Lose');
 
-  // Raw counts (only from trades with Win/Lose outcomes)
-  const wins      = tradesWithOutcomes.filter(t => t.trade_outcome === 'Win').length;
-  const losses    = tradesWithOutcomes.filter(t => t.trade_outcome === 'Lose').length;
-  const beWins    = tradesWithOutcomes.filter(t => t.trade_outcome === 'Win'  && t.break_even).length;
-  const beLosses  = tradesWithOutcomes.filter(t => t.trade_outcome === 'Lose' && t.break_even).length;
+  // All trades have Win/Lose outcomes, so count directly from all trades
+  const wins      = trades.filter(t => t.trade_outcome === 'Win').length;
+  const losses    = trades.filter(t => t.trade_outcome === 'Lose').length;
+  const beWins    = trades.filter(t => t.trade_outcome === 'Win'  && t.break_even).length;
+  const beLosses  = trades.filter(t => t.trade_outcome === 'Lose' && t.break_even).length;
 
   // Non-BE counts for ex-BE win rate
   const nonBEWins   = wins - beWins;
