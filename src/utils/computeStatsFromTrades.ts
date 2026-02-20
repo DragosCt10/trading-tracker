@@ -27,6 +27,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
   // Market stats
   const marketMap = new Map<string, { total: number; wins: number; losses: number; beWins: number; beLosses: number }>();
 
+  // Process all trades passed (tradesToUse already handles filtering)
   trades.forEach((trade) => {
     const isWin = trade.trade_outcome === 'Win';
     const isLoss = trade.trade_outcome === 'Lose';
@@ -40,12 +41,12 @@ export function computeStatsFromTrades(trades: Trade[]) {
     const day = trade.day_of_week || 'Unknown';
     const slSize = trade.sl_size || 0;
 
-    // Setup stats - count all trades including non-executed ones
+    // Setup stats
     if (!setupMap.has(setup)) {
       setupMap.set(setup, { total: 0, wins: 0, losses: 0, beWins: 0, beLosses: 0 });
     }
     const setupStat = setupMap.get(setup)!;
-    setupStat.total++; // Count all trades, including non-executed ones
+    setupStat.total++;
     if (isBE) {
       if (isWin) setupStat.beWins++;
       else if (isLoss) setupStat.beLosses++;
@@ -54,12 +55,12 @@ export function computeStatsFromTrades(trades: Trade[]) {
       else if (isLoss) setupStat.losses++;
     }
 
-    // Liquidity stats - count all trades including non-executed ones
+    // Liquidity stats
     if (!liquidityMap.has(liquidity)) {
       liquidityMap.set(liquidity, { total: 0, wins: 0, losses: 0, beWins: 0, beLosses: 0 });
     }
     const liquidityStat = liquidityMap.get(liquidity)!;
-    liquidityStat.total++; // Count all trades
+    liquidityStat.total++;
     if (isBE) {
       if (isWin) liquidityStat.beWins++;
       else if (isLoss) liquidityStat.beLosses++;
@@ -68,12 +69,12 @@ export function computeStatsFromTrades(trades: Trade[]) {
       else if (isLoss) liquidityStat.losses++;
     }
 
-    // Direction stats - count all trades including non-executed ones
+    // Direction stats
     if (!directionMap.has(direction)) {
       directionMap.set(direction, { total: 0, wins: 0, losses: 0, beWins: 0, beLosses: 0 });
     }
     const directionStat = directionMap.get(direction)!;
-    directionStat.total++; // Count all trades
+    directionStat.total++;
     if (isBE) {
       if (isWin) directionStat.beWins++;
       else if (isLoss) directionStat.beLosses++;
@@ -82,10 +83,10 @@ export function computeStatsFromTrades(trades: Trade[]) {
       else if (isLoss) directionStat.losses++;
     }
 
-    // Local H/L stats - count all trades including non-executed ones
+    // Local H/L stats
     const isLichidat = String(trade.local_high_low) === 'true';
     if (isLichidat) {
-      localHLStats.lichidat.total++; // Count all trades
+      localHLStats.lichidat.total++;
       if (isBE) {
         if (isWin) localHLStats.lichidat.winsWithBE++;
         else if (isLoss) localHLStats.lichidat.lossesWithBE++;
@@ -94,7 +95,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
         else if (isLoss) localHLStats.lichidat.losses++;
       }
     } else {
-      localHLStats.nelichidat.total++; // Count all trades
+      localHLStats.nelichidat.total++;
       if (isBE) {
         if (isWin) localHLStats.nelichidat.winsWithBE++;
         else if (isLoss) localHLStats.nelichidat.lossesWithBE++;
@@ -112,9 +113,9 @@ export function computeStatsFromTrades(trades: Trade[]) {
     slSizeStat.total++;
     slSizeStat.sum += slSize;
 
-    // Reentry stats - count all reentry trades including non-executed ones
+    // Reentry stats
     if (trade.reentry) {
-      reentryStats.total++; // Count all reentry trades
+      reentryStats.total++;
       if (isBE) {
         if (isWin) reentryStats.beWins++;
         else if (isLoss) reentryStats.beLosses++;
@@ -124,15 +125,15 @@ export function computeStatsFromTrades(trades: Trade[]) {
       }
     }
 
-    // Break-even stats - count all trades (BE and non-BE)
+    // Break-even stats
     // For BE trades, count them
     if (isBE) {
-      breakEvenStats.total++; // Count all BE trades
+      breakEvenStats.total++;
       if (isWin) breakEvenStats.beWins++;
       else if (isLoss) breakEvenStats.beLosses++;
     } else {
-      // For non-BE trades, also count them (including non-executed)
-      breakEvenStats.total++; // Count all non-BE trades
+      // For non-BE trades, also count them
+      breakEvenStats.total++;
       if (isWin) breakEvenStats.wins++;
       else if (isLoss) breakEvenStats.losses++;
       // Non-executed trades are counted in total but don't increment wins/losses
@@ -150,12 +151,12 @@ export function computeStatsFromTrades(trades: Trade[]) {
     else if (totalMinutes < 1320) intervalLabel = '17 p.m - 21 p.m'; // 17:00 - 20:59
     else intervalLabel = '< 10 a.m'; // 21:00 - 23:59 falls into next day's early morning
 
-    // Interval stats - count all trades including non-executed ones
+    // Interval stats
     if (!intervalMap.has(intervalLabel)) {
       intervalMap.set(intervalLabel, { total: 0, wins: 0, losses: 0, beWins: 0, beLosses: 0 });
     }
     const intervalStat = intervalMap.get(intervalLabel)!;
-    intervalStat.total++; // Count all trades
+    intervalStat.total++;
     if (isBE) {
       if (isWin) intervalStat.beWins++;
       else if (isLoss) intervalStat.beLosses++;
@@ -164,12 +165,12 @@ export function computeStatsFromTrades(trades: Trade[]) {
       else if (isLoss) intervalStat.losses++;
     }
 
-    // MSS stats - count all trades including non-executed ones
+    // MSS stats
     if (!mssMap.has(mss)) {
       mssMap.set(mss, { total: 0, wins: 0, losses: 0, beWins: 0, beLosses: 0 });
     }
     const mssStat = mssMap.get(mss)!;
-    mssStat.total++; // Count all trades
+    mssStat.total++;
     if (isBE) {
       if (isWin) mssStat.beWins++;
       else if (isLoss) mssStat.beLosses++;
@@ -178,12 +179,12 @@ export function computeStatsFromTrades(trades: Trade[]) {
       else if (isLoss) mssStat.losses++;
     }
 
-    // News stats - count all trades including non-executed ones
+    // News stats
     if (!newsMap.has(news)) {
       newsMap.set(news, { total: 0, wins: 0, losses: 0, beWins: 0, beLosses: 0 });
     }
     const newsStat = newsMap.get(news)!;
-    newsStat.total++; // Count all trades
+    newsStat.total++;
     if (isBE) {
       if (isWin) newsStat.beWins++;
       else if (isLoss) newsStat.beLosses++;
@@ -192,12 +193,12 @@ export function computeStatsFromTrades(trades: Trade[]) {
       else if (isLoss) newsStat.losses++;
     }
 
-    // Day stats - count all trades including non-executed ones
+    // Day stats
     if (!dayMap.has(day)) {
       dayMap.set(day, { total: 0, wins: 0, losses: 0, beWins: 0, beLosses: 0 });
     }
     const dayStat = dayMap.get(day)!;
-    dayStat.total++; // Count all trades
+    dayStat.total++;
     if (isBE) {
       if (isWin) dayStat.beWins++;
       else if (isLoss) dayStat.beLosses++;
@@ -206,12 +207,12 @@ export function computeStatsFromTrades(trades: Trade[]) {
       else if (isLoss) dayStat.losses++;
     }
 
-    // Market stats - count all trades including non-executed ones
+    // Market stats
     if (!marketMap.has(market)) {
       marketMap.set(market, { total: 0, wins: 0, losses: 0, beWins: 0, beLosses: 0 });
     }
     const marketStat = marketMap.get(market)!;
-    marketStat.total++; // Count all trades
+    marketStat.total++;
     if (isBE) {
       if (isWin) marketStat.beWins++;
       else if (isLoss) marketStat.beLosses++;
