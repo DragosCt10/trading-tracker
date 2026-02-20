@@ -1,7 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StatCard } from '@/components/dashboard/analytics/StatCard';
+import { Trade } from '@/types/trade';
+import { calculateRRStats } from '@/utils/calculateRMultiple';
 
 /* ---------------------------------------------------------
  * Constants & helpers
@@ -18,11 +20,15 @@ export function formatRRMultipleValue(multipleR: number | null | undefined): str
 }
 
 interface RRMultipleStatCardProps {
-  multipleR: number | null | undefined;
+  tradesToUse: Trade[];
 }
 
 export const RRMultipleStatCard: React.FC<RRMultipleStatCardProps> = React.memo(
-  function RRMultipleStatCard({ multipleR }) {
+  function RRMultipleStatCard({ tradesToUse }) {
+    const multipleR = useMemo(() => {
+      return calculateRRStats(tradesToUse);
+    }, [tradesToUse]);
+
     return (
       <StatCard
         title="RR Multiple"
