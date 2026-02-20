@@ -43,10 +43,11 @@ import {
 import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketProfitStats';
 import RiskPerTrade from '@/components/dashboard/analytics/RiskPerTrade';
 import { StatCard } from '@/components/dashboard/analytics/StatCard';
-import { AverageMonthlyTradesCard } from '@/components/dashboard/analytics/AverageMonthlyTradesCard';
-import { NonExecutedTradesStatCard } from '@/components/dashboard/analytics/NonExecutedTradesStatCard';
+import { ExecutedNonExecutedTradesCard } from '@/components/dashboard/analytics/ExecutedNonExecutedTradesCard';
+import { AverageMonthlyTradesChartCard } from '@/components/dashboard/analytics/AverageMonthlyTradesChartCard';
 import { RRMultipleStatCard } from '@/components/dashboard/analytics/RRMultipleStatCard';
 import { PNLPercentageStatCard } from '@/components/dashboard/analytics/PNLPercentageStatCard';
+import { PartialTradesChartCard } from '@/components/dashboard/analytics/PartialTradesChartCard';
 import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
 import { 
   AccountOverviewCard,
@@ -351,7 +352,6 @@ export default function StrategyClient(
     allTradesLoading,
     stats,
     monthlyStats,
-    monthlyStatsAllTrades,
     localHLStats,
     setupStats,
     liquidityStats,
@@ -1075,63 +1075,71 @@ export default function StrategyClient(
       <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Key Metrics</h2>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Trading performance indicators and statistics.</p>
 
-      <div className="flex flex-col md:grid md:grid-cols-3 gap-4 w-full">
-
-        {/* Average Monthly Trades - Only show in yearly mode */}
-        {viewMode === 'yearly' && (
-          <AverageMonthlyTradesCard monthlyStats={monthlyStats} />
-        )}
-
-        {/* Non-Executed Trades - Only show in yearly mode */}
-        {viewMode === 'yearly' && (
-          <NonExecutedTradesStatCard
-            initialNonExecutedTotalTradesCount={props?.initialNonExecutedTotalTradesCount}
-            nonExecutedTotalTradesCount={nonExecutedTotalTradesCount}
-          />
-        )}
-
-
-        {/* Partial Trades - Show in both yearly and dateRange modes */}
+      {/* Partial Trades Chart and Executed/Non-Executed Trades Chart - 2 columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Partial Trades Chart - Show in both yearly and dateRange modes */}
         {(viewMode === 'dateRange' || viewMode === 'yearly') && (
-          <StatCard
-            title={
-              <>
-                Partial Trades{' '}
-                <span className="text-slate-500 font-medium text-xs ml-1">
-                  {statsToUse.partialWinRate.toFixed(1)}% (
-                  {statsToUse.partialWinRateWithBE.toFixed(1)}% w/ BE)
-                </span>
-              </>
-            }
-            tooltipContent={
-              <p className="text-xs sm:text-sm text-slate-500">
-                Trades where partial profits were taken in the selected period.
-              </p>
-            }
-            value={
-              <div className="flex gap-6 text-center">
-                <div>
-                  <p className="text-xs text-slate-500">Winning</p>
-                  <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                    {statsToUse.partialWinningTrades}{' '}
-                    <span className="text-slate-500 text-sm">
-                      ({statsToUse.beWinPartialTrades} BE)
-                    </span>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500">Losing</p>
-                  <p className="text-xl font-bold text-rose-600 dark:text-rose-400">
-                    {statsToUse.partialLosingTrades}{' '}
-                    <span className="text-slate-500 text-sm">
-                      ({statsToUse.beLosingPartialTrades} BE)
-                    </span>
-                  </p>
-                </div>
-              </div>
-            }
+          <PartialTradesChartCard
+            totalPartials={statsToUse.partialsTaken}
+            partialWinningTrades={statsToUse.partialWinningTrades}
+            partialLosingTrades={statsToUse.partialLosingTrades}
+            beWinPartialTrades={statsToUse.beWinPartialTrades}
+            beLosingPartialTrades={statsToUse.beLosingPartialTrades}
+            partialWinRate={statsToUse.partialWinRate}
+            partialWinRateWithBE={statsToUse.partialWinRateWithBE}
+            isLoading={chartsLoadingState}
           />
         )}
+
+        {/* Executed & Non-Executed Trades Chart - Show in both yearly and dateRange modes */}
+        {(viewMode === 'dateRange' || viewMode === 'yearly') && (() => {
+          // Calculate total executed trades
+          let totalExecutedTrades = 0;
+          if (viewMode === 'yearly') {
+            // For yearly mode, calculate from monthlyStats
+            if (monthlyStats?.monthlyData) {
+              totalExecutedTrades = Object.values(monthlyStats.monthlyData).reduce(
+                (sum, month) => sum + month.wins + month.losses + month.beWins + month.beLosses,
+                0
+              );
+            }
+          } else {
+            // For dateRange mode, count executed trades from tradesToUse
+            totalExecutedTrades = tradesToUse.filter((t) => t.executed === true).length;
+          }
+
+          return (
+            <ExecutedNonExecutedTradesCard
+              totalExecutedTrades={totalExecutedTrades}
+              initialNonExecutedTotalTradesCount={props?.initialNonExecutedTotalTradesCount}
+              nonExecutedTotalTradesCount={nonExecutedTotalTradesCount}
+              isLoading={chartsLoadingState}
+            />
+          );
+        })()}
+      </div>
+
+      {/* Direction Statistics and Average Monthly Trades Charts - 2 columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Direction Statistics Card - Show in both yearly and dateRange modes */}
+        {(viewMode === 'dateRange' || viewMode === 'yearly') && (
+          <DirectionStatisticsCard
+            directionStats={filteredChartStats ? statsToUseForCharts.directionStats : directionStatsFromTradesToUse}
+            isLoading={chartsLoadingState}
+            includeTotalTrades={filteredChartStats !== null}
+          />
+        )}
+
+        {/* Average Monthly Trades Chart - Only show in yearly mode */}
+        {viewMode === 'yearly' && (
+          <AverageMonthlyTradesChartCard
+            monthlyStats={monthlyStats}
+            isLoading={accountOverviewLoadingState}
+          />
+        )}
+      </div>
+
+      <div className="flex flex-col md:grid md:grid-cols-3 gap-4 w-full">
 
         {/* Trading Overview Category - Show in both yearly and dateRange modes */}
         {(viewMode === 'dateRange' || viewMode === 'yearly') && (
@@ -1210,13 +1218,6 @@ export default function StrategyClient(
         {/* Liquidity Statistics Card */}
         <LiquidityStatisticsCard
           liquidityStats={filteredChartStats ? statsToUseForCharts.liquidityStats : liquidityStatsFromTradesToUse}
-          isLoading={chartsLoadingState}
-          includeTotalTrades={filteredChartStats !== null}
-        />
-
-        {/* Direction Statistics Card */}
-        <DirectionStatisticsCard
-          directionStats={filteredChartStats ? statsToUseForCharts.directionStats : directionStatsFromTradesToUse}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
