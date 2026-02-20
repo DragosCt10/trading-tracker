@@ -71,8 +71,33 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   }, [error]);
 
   // Helper: invalidate and refetch ALL queries (same as NewTradeModal – ensures list, analytics, discover all update)
+  // When strategy_id changes, remove and invalidate queries for all strategies so navigation to other strategy pages gets fresh data
   const invalidateAndRefetchTradeQueries = async () => {
+    // Set a flag in sessionStorage to prevent stale initialData hydration on next navigation
+    // This ensures that when navigating to a strategy page, it will fetch fresh data instead of using stale initialData
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
+    }
+    
+    // Remove all trade-related queries entirely (forces fresh fetch when navigating)
+    // This ensures that when navigating to any strategy page, queries will be refetched from server
+    // Remove by exact query key patterns to catch all variations (different strategyIds, modes, etc.)
+    queryClient.removeQueries({ predicate: (query) => {
+      const key = query.queryKey;
+      if (!Array.isArray(key)) return false;
+      const firstKey = key[0];
+      return (
+        firstKey === 'allTrades' ||
+        firstKey === 'filteredTrades' ||
+        firstKey === 'nonExecutedTrades' ||
+        firstKey === 'discoverTrades' ||
+        firstKey === 'all-strategy-trades' ||
+        firstKey === 'all-strategy-stats'
+      );
+    }});
+    // Also invalidate all queries to catch any other trade-related data
     await queryClient.invalidateQueries();
+    // Refetch only active queries (current page) - other pages will refetch when navigated to
     await queryClient.refetchQueries({ type: 'active' });
   };
 
