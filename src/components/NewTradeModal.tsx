@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { createTrade } from '@/lib/server/trades';
 import { Trade } from '@/types/trade';
 import { useQueryClient } from '@tanstack/react-query';
@@ -84,11 +85,15 @@ interface NewTradeModalProps {
 }
 
 export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTradeModalProps) {
+  const params = useParams();
   const { selection } = useActionBarSelection();
   const { data: userData } = useUserDetails();
   const userId = userData?.user?.id;
   const { strategies } = useStrategies({ userId });
   const queryClient = useQueryClient();
+  
+  // Get strategy slug from URL params
+  const strategySlug = params?.strategy as string | undefined;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -156,6 +161,19 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     }
     return initialTradeState;
   });
+
+  // Automatically set strategy_id from URL slug when modal opens or slug/strategies change
+  useEffect(() => {
+    if (isOpen && strategySlug && strategies.length > 0) {
+      // Decode the strategy slug (URL-encoded)
+      const decodedSlug = decodeURIComponent(strategySlug);
+      // Find strategy by slug
+      const strategy = strategies.find((s) => s.slug === decodedSlug);
+      if (strategy && trade.strategy_id !== strategy.id) {
+        setTrade((prev) => ({ ...prev, strategy_id: strategy.id }));
+      }
+    }
+  }, [isOpen, strategySlug, strategies, trade.strategy_id]);
 
   const notesRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -286,8 +304,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       return;
     }
 
-    if (!trade.strategy_id || trade.strategy_id === '__required__') {
-      setError('Please select a strategy');
+    if (!trade.strategy_id) {
+      setError('Strategy not found. Please navigate to a valid strategy page.');
       return;
     }
 
@@ -511,25 +529,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            {/* Strategy Section - required; __required__ is placeholder (Select.Item cannot have value="") */}
-            <div className="space-y-1.5">
-              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Strategy *</Label>
-              <Select 
-                value={trade.strategy_id ?? '__required__'} 
-                onValueChange={(v) => updateTrade('strategy_id', v === '__required__' ? null : v)}
-              >
-                <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
-                  <SelectValue placeholder="Select Strategy" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__required__">Select strategy</SelectItem>
-                  {strategies.map((strategy) => (
-                    <SelectItem key={strategy.id} value={strategy.id}>{strategy.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Direction & Outcome */}
