@@ -58,12 +58,14 @@ function isTimeInInterval(time: string, start: string, end: string): boolean {
 /**
  * Build stats for a single labeled group of trades.
  * Processes all trades passed (tradesToUse already handles filtering).
- * Only counts trades with Win/Lose outcomes for statistics.
+ * Counts ALL trades for total, but only counts Win/Lose outcomes for wins/losses stats.
  */
 function processGroup(label: string, trades: Trade[]): GroupStats {
-  // Only count trades with Win/Lose outcomes (same as convertLocalHLStatsToChartData)
+  // Count ALL trades (including non-executed) for total
+  const total = trades.length;
+  
+  // Only count trades with Win/Lose outcomes for wins/losses stats
   const tradesWithOutcomes = trades.filter(t => t.trade_outcome === 'Win' || t.trade_outcome === 'Lose');
-  const total = tradesWithOutcomes.length;
 
   // Raw counts (only from trades with Win/Lose outcomes)
   const wins      = tradesWithOutcomes.filter(t => t.trade_outcome === 'Win').length;
@@ -229,21 +231,18 @@ export function calculateDirectionStats(trades: Trade[]): DirectionStats[] {
 }
 export function calculateLocalHLStats(trades: Trade[]): LocalHLStats {
   const ZERO: LocalHLStats = {
-    lichidat:   { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0 },
-    nelichidat: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0 },
+    lichidat:   { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0, total: 0 },
+    nelichidat: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0, total: 0 },
   };
 
   // ← if no trades at all, immediately return the zero‐stats
   if (trades.length === 0) return ZERO;
 
-  // Filter to only trades with Win/Lose outcomes BEFORE grouping
-  // This ensures we only count trades that will be included in the stats
-  const tradesWithOutcomes = trades.filter(t => t.trade_outcome === 'Win' || t.trade_outcome === 'Lose');
-  
+  // Group ALL trades (including non-executed) - processGroup will handle counting correctly
   // Use the same logic as computeStatsFromTrades for consistency
   // String(trade.local_high_low) === 'true' means lichidat
   const groups = calculateGroupedStats(
-    tradesWithOutcomes,
+    trades,
     t => (String(t.local_high_low) === 'true' ? 'lichidat' : 'nelichidat')
   );
 
@@ -255,6 +254,7 @@ export function calculateLocalHLStats(trades: Trade[]): LocalHLStats {
       winsWithBE:     g.beWins,
       lossesWithBE:   g.beLosses,
       winRateWithBE:  g.winRateWithBE,
+      total:          g.total,
     };
     return acc;
   }, { ...ZERO });
