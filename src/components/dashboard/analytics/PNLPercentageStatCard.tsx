@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StatCard } from '@/components/dashboard/analytics/StatCard';
 import { cn } from '@/lib/utils';
+import { Trade } from '@/types/trade';
 
 /* ---------------------------------------------------------
  * Constants & helpers
@@ -35,11 +36,25 @@ export function formatPNLPercentageValue(averagePnLPercentage: number | null | u
 }
 
 interface PNLPercentageStatCardProps {
-  averagePnLPercentage: number | null | undefined;
+  tradesToUse: Trade[];
+  accountBalance: number | null | undefined;
 }
 
 export const PNLPercentageStatCard: React.FC<PNLPercentageStatCardProps> = React.memo(
-  function PNLPercentageStatCard({ averagePnLPercentage }) {
+  function PNLPercentageStatCard({ tradesToUse, accountBalance }) {
+    // Calculate average P&L percentage from trades
+    const averagePnLPercentage = useMemo(() => {
+      // Check if all trades are non-executed (when execution filter is "nonExecuted")
+      const allTradesAreNonExecuted = tradesToUse.length > 0 && tradesToUse.every(t => t.executed === false);
+      // Use tradesToUse directly if all are non-executed, otherwise filter to executed trades
+      const tradesForProfit = allTradesAreNonExecuted 
+        ? tradesToUse 
+        : tradesToUse.filter(t => t.executed === true);
+      const totalProfit = tradesForProfit.reduce((sum, t) => sum + (t.calculated_profit || 0), 0);
+      const balance = accountBalance || 1;
+      return balance > 0 ? (totalProfit / balance) * 100 : 0;
+    }, [tradesToUse, accountBalance]);
+
     return (
       <StatCard
         title="P&L %"
