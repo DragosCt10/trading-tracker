@@ -6,32 +6,54 @@ export interface StreakStats {
   maxLosingStreak: number;
 }
 
-export function calculateStreaks(trades: Trade[]): StreakStats {
+export interface StreakOptions {
+  /** If true, break-even trades are not counted in streaks (default: false) */
+  excludeBreakEven?: boolean;
+  /** If true, sort by date+time; if false, sort by date only (default: false) */
+  sortByTime?: boolean;
+  /** If true, trades that are not Win or Lose count as loss for streak (default: false) */
+  countNonOutcomeAsLoss?: boolean;
+}
+
+/**
+ * Shared streak calculation used by dashboard, overview stats, and filtered strategy stats.
+ * Options control whether BE trades count, sort order, and how non-outcome trades are treated.
+ */
+export function calculateStreaksFromTrades(
+  trades: Trade[],
+  options: StreakOptions = {}
+): StreakStats {
+  const {
+    excludeBreakEven = false,
+    sortByTime = false,
+    countNonOutcomeAsLoss = false,
+  } = options;
+
   if (!trades.length) {
     return {
       currentStreak: 0,
       maxWinningStreak: 0,
-      maxLosingStreak: 0
+      maxLosingStreak: 0,
     };
   }
 
-  // Sort trades by date in ascending order to calculate streaks chronologically
   const sortedTrades = [...trades].sort((a, b) => {
-    // Combine date and time for full chronological sort
-    const aDateTime = new Date(`${a.trade_date}T${a.trade_time || '00:00:00'}`);
-    const bDateTime = new Date(`${b.trade_date}T${b.trade_time || '00:00:00'}`);
-    return aDateTime.getTime() - bDateTime.getTime();
+    if (sortByTime) {
+      const aDateTime = new Date(`${a.trade_date}T${a.trade_time || '00:00:00'}`);
+      const bDateTime = new Date(`${b.trade_date}T${b.trade_time || '00:00:00'}`);
+      return aDateTime.getTime() - bDateTime.getTime();
+    }
+    return new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime();
   });
 
-  let currentStreak = 0;
   let maxWinningStreak = 0;
   let maxLosingStreak = 0;
   let currentWinningStreak = 0;
   let currentLosingStreak = 0;
+  let lastCountedOutcome: 'Win' | 'Lose' | null = null;
 
   sortedTrades.forEach((trade) => {
-    // Skip BE trades
-    if (trade.break_even) {
+    if (excludeBreakEven && trade.break_even) {
       return;
     }
 
@@ -39,21 +61,42 @@ export function calculateStreaks(trades: Trade[]): StreakStats {
     const isLoss = trade.trade_outcome === 'Lose';
 
     if (isWin) {
-      currentStreak = currentStreak >= 0 ? currentStreak + 1 : 1;
       currentWinningStreak++;
       currentLosingStreak = 0;
       maxWinningStreak = Math.max(maxWinningStreak, currentWinningStreak);
+      lastCountedOutcome = 'Win';
     } else if (isLoss) {
-      currentStreak = currentStreak <= 0 ? currentStreak - 1 : -1;
       currentLosingStreak++;
       currentWinningStreak = 0;
       maxLosingStreak = Math.max(maxLosingStreak, currentLosingStreak);
+      lastCountedOutcome = 'Lose';
+    } else if (countNonOutcomeAsLoss) {
+      currentLosingStreak++;
+      currentWinningStreak = 0;
+      maxLosingStreak = Math.max(maxLosingStreak, currentLosingStreak);
+      lastCountedOutcome = 'Lose';
     }
   });
+
+  let currentStreak = 0;
+  if (lastCountedOutcome === 'Win') {
+    currentStreak = currentWinningStreak;
+  } else if (lastCountedOutcome === 'Lose') {
+    currentStreak = -currentLosingStreak;
+  }
 
   return {
     currentStreak,
     maxWinningStreak,
-    maxLosingStreak
+    maxLosingStreak,
   };
+}
+
+/** Dashboard use: exclude BE, sort by date+time, only Win/Lose count. */
+export function calculateStreaks(trades: Trade[]): StreakStats {
+  return calculateStreaksFromTrades(trades, {
+    excludeBreakEven: true,
+    sortByTime: true,
+    countNonOutcomeAsLoss: false,
+  });
 }
