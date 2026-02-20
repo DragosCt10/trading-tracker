@@ -1,4 +1,5 @@
 import { Trade } from '@/types/trade';
+import { calculateStreaksFromTrades } from '@/utils/calculateStreaks';
 
 export interface TradingOverviewStats {
   totalTrades: number;
@@ -39,36 +40,17 @@ export function calculateTradingOverviewStats(trades: Trade[]): TradingOverviewS
   const winRate = nonBETotal > 0 ? (wins / nonBETotal) * 100 : 0;
   const winRateWithBE = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
   
-  // Calculate streaks
-  let currentStreak = 0;
-  let maxWinningStreak = 0;
-  let maxLosingStreak = 0;
-  let currentWinningStreak = 0;
-  let currentLosingStreak = 0;
+  // Streaks: include BE, sort by date only, count non-Win as loss (matches original behavior)
+  const { currentStreak, maxWinningStreak, maxLosingStreak } = calculateStreaksFromTrades(trades, {
+    excludeBreakEven: false,
+    sortByTime: false,
+    countNonOutcomeAsLoss: true,
+  });
   
+  // Calculate average days between trades
   const sortedTrades = [...trades].sort((a, b) => 
     new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime()
   );
-  
-  sortedTrades.forEach((trade) => {
-    const isWin = trade.trade_outcome === 'Win';
-    if (isWin) {
-      currentWinningStreak++;
-      currentLosingStreak = 0;
-      maxWinningStreak = Math.max(maxWinningStreak, currentWinningStreak);
-    } else {
-      currentLosingStreak++;
-      currentWinningStreak = 0;
-      maxLosingStreak = Math.max(maxLosingStreak, currentLosingStreak);
-    }
-  });
-  
-  const lastTrade = sortedTrades[sortedTrades.length - 1];
-  if (lastTrade) {
-    currentStreak = lastTrade.trade_outcome === 'Win' ? currentWinningStreak : -currentLosingStreak;
-  }
-  
-  // Calculate average days between trades
   let averageDaysBetweenTrades = 0;
   if (sortedTrades.length > 1) {
     const daysBetween: number[] = [];
