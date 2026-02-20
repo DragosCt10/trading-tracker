@@ -92,6 +92,7 @@ interface MyTradesClientProps {
   initialDateRange: DateRangeState;
   initialMode: 'live' | 'backtesting' | 'demo';
   initialActiveAccount: AccountRow | null;
+  initialStrategyId: string;
 }
 
 export default function MyTradesClient({
@@ -101,6 +102,7 @@ export default function MyTradesClient({
   initialDateRange,
   initialMode,
   initialActiveAccount,
+  initialStrategyId,
 }: MyTradesClientProps) {
   const today = new Date();
 
@@ -175,6 +177,7 @@ export default function MyTradesClient({
       userId,
       dateRange.startDate,
       dateRange.endDate,
+      initialStrategyId,
     ],
     queryFn: async () => {
       if (!userId || !activeAccount?.id) return [];
@@ -184,7 +187,8 @@ export default function MyTradesClient({
         mode: selection.mode,
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
-        includeNonExecuted: true, // Include non-executed trades so they can be filtered client-side
+        includeNonExecuted: true,
+        strategyId: initialStrategyId,
       });
     },
     initialData: isInitialContext ? initialFilteredTrades : undefined,
@@ -209,6 +213,7 @@ export default function MyTradesClient({
       activeAccount?.id,
       userId,
       selectedYear,
+      initialStrategyId,
     ],
     queryFn: async () => {
       if (!userId || !activeAccount?.id) return [];
@@ -219,7 +224,8 @@ export default function MyTradesClient({
         mode: selection.mode,
         startDate: `${currentYear}-01-01`,
         endDate: `${currentYear}-12-31`,
-        includeNonExecuted: true, // Include non-executed trades for markets list
+        includeNonExecuted: true,
+        strategyId: initialStrategyId,
       });
     },
     initialData: isInitialModeAndAccount ? initialAllTrades : undefined,
