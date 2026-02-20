@@ -294,8 +294,12 @@ export default function StrategyClient(
     const queryKeyAllTrades = ['allTrades', mode, acc.id, uid, year, strategyId];
     const queryKeyFilteredTrades = ['filteredTrades', mode, acc.id, uid, initialViewMode, effectiveStartDate, effectiveEndDate, strategyId];
     
-    // Only hydrate if data doesn't already exist (for synchronous hydration)
-    if (queryClient.getQueryData(queryKeyAllTrades) === undefined) {
+    // Only hydrate if data doesn't already exist AND we haven't recently invalidated trade data
+    // This prevents stale initialData from being used after a trade's strategy_id changes
+    const wasInvalidated = typeof window !== 'undefined' && sessionStorage.getItem('trade-data-invalidated');
+    const shouldSkipHydration = wasInvalidated && (Date.now() - parseInt(wasInvalidated, 10)) < 30000; // Skip hydration for 30 seconds after invalidation
+    
+    if (queryClient.getQueryData(queryKeyAllTrades) === undefined && !shouldSkipHydration) {
       queryClient.setQueryData(queryKeyFilteredTrades, props?.initialFilteredTrades ?? []);
       queryClient.setQueryData(queryKeyAllTrades, props?.initialAllTrades ?? []);
       queryClient.setQueryData(
@@ -303,6 +307,11 @@ export default function StrategyClient(
         props?.initialNonExecutedTrades ?? []
       );
       // Note: nonExecutedTotalTradesCount is now derived from allTrades, no need to hydrate separately
+    }
+    
+    // Clear the invalidation flag after hydration check
+    if (shouldSkipHydration && typeof window !== 'undefined') {
+      sessionStorage.removeItem('trade-data-invalidated');
     }
   }, [props, queryClient, strategyId]);
 
