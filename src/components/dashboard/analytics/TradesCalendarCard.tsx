@@ -10,6 +10,25 @@ import { Button } from '@/components/ui/button';
 import { Trade } from '@/types/trade';
 import { cn } from '@/lib/utils';
 
+/**
+ * Parse trade_date string to a local Date object, avoiding timezone issues
+ * Handles both ISO strings and date-only strings (YYYY-MM-DD)
+ */
+function parseTradeDate(tradeDate: string | Date): Date {
+  if (tradeDate instanceof Date) {
+    return tradeDate;
+  }
+  
+  // If it's a date-only string (YYYY-MM-DD), parse it as local date
+  if (typeof tradeDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(tradeDate)) {
+    const [year, month, day] = tradeDate.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+  
+  // For ISO strings with time, parse normally
+  return new Date(tradeDate);
+}
+
 /* ---------------------------------------------------------
  * Constants & helpers
  * ------------------------------------------------------ */
@@ -54,7 +73,7 @@ export function buildWeeklyStats(
     const trades = days.flatMap((day) =>
       calendarMonthTrades.filter(
         (trade) =>
-          format(new Date(trade.trade_date), 'yyyy-MM-dd') ===
+          format(parseTradeDate(trade.trade_date), 'yyyy-MM-dd') ===
           format(day, 'yyyy-MM-dd')
       )
     );
@@ -291,11 +310,12 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
 
               // All trades on this day
               const dayTrades = calendarMonthTrades.filter((trade) => {
-                const tradeDate = new Date(trade.trade_date);
-                return (
-                  format(tradeDate, 'yyyy-MM-dd') ===
-                  format(date, 'yyyy-MM-dd')
-                );
+                const tradeDate = parseTradeDate(trade.trade_date);
+                const tradeDateStr = format(tradeDate, 'yyyy-MM-dd');
+                const dateStr = format(date, 'yyyy-MM-dd');
+                const matches = tradeDateStr === dateStr;
+                
+                return matches;
               });
 
               const filteredDayTrades =
