@@ -38,7 +38,7 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
   trades.forEach((t) => {
     if (
       typeof t.risk_reward_ratio_long === "number" &&
-      DISPLAY_RATIOS.includes(t.risk_reward_ratio_long)
+      (DISPLAY_RATIOS as readonly number[]).includes(t.risk_reward_ratio_long)
     ) {
       if (!marketToRatios.has(t.market)) marketToRatios.set(t.market, new Set());
       marketToRatios.get(t.market)!.add(t.risk_reward_ratio_long);
@@ -55,7 +55,7 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
     (t) =>
       eligibleMarkets.includes(t.market) &&
       typeof t.risk_reward_ratio_long === "number" &&
-      DISPLAY_RATIOS.includes(t.risk_reward_ratio_long)
+      (DISPLAY_RATIOS as readonly number[]).includes(t.risk_reward_ratio_long)
   );
 
   // For each ratio, create one row with all markets as separate dataKeys
