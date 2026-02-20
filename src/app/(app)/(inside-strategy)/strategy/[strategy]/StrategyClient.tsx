@@ -10,6 +10,7 @@ import {
 import {
   startOfMonth,
   endOfMonth,
+  format,
 } from 'date-fns';
 import { useRouter } from 'next/navigation';
 
@@ -408,6 +409,7 @@ export default function StrategyClient(
     setSelectedYear,
   });
 
+
   // session check
   useEffect(() => {
     if (!userLoading && !userData?.session) {
@@ -695,11 +697,27 @@ export default function StrategyClient(
     
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
+    const monthStartStr = format(monthStart, 'yyyy-MM-dd');
+    const monthEndStr = format(monthEnd, 'yyyy-MM-dd');
     
-    return filteredSource.filter((trade) => {
-      const tradeDate = new Date(trade.trade_date);
-      return tradeDate >= monthStart && tradeDate <= monthEnd;
+    const result = filteredSource.filter((trade) => {
+      // Parse trade_date to avoid timezone issues
+      // If it's a date-only string (YYYY-MM-DD), parse as local date
+      let tradeDate: Date;
+      if (typeof trade.trade_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(trade.trade_date)) {
+        const [year, month, day] = trade.trade_date.split('-').map(Number);
+        tradeDate = new Date(year, month - 1, day);
+      } else {
+        tradeDate = new Date(trade.trade_date);
+      }
+      // Compare dates at day level to avoid time component issues
+      const tradeDateStr = format(tradeDate, 'yyyy-MM-dd');
+      const inRange = tradeDateStr >= monthStartStr && tradeDateStr <= monthEndStr;
+      
+      return inRange;
     });
+    
+    return result;
   }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, currentDate, selectedMarket, selectedExecution]);
 
   const weeklyStats = useMemo(
