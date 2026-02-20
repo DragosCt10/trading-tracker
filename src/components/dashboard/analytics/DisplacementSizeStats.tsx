@@ -37,11 +37,22 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
   function DisplacementSizeStats({ trades, isLoading: externalLoading }) {
   // Only consider trades that have a numerical displacement_size and a clear outcome (Win / Lose / BE)
   // Displacement size can be any number (no filtering by 20+)
+  // Note: All trades have Win/Lose outcomes, so we filter by displacement_size only
   const filteredTrades = trades.filter(
     (t) =>
       typeof t.displacement_size === 'number' &&
       (t.trade_outcome === 'Win' || t.trade_outcome === 'Lose' || t.trade_outcome === 'BE')
   );
+
+  // Get all trades per market for total counts (not filtered by displacement_size)
+  const allTradesPerMarket = new Map<string, Trade[]>();
+  trades.forEach((t) => {
+    const market = t.market || 'Unknown';
+    if (!allTradesPerMarket.has(market)) {
+      allTradesPerMarket.set(market, []);
+    }
+    allTradesPerMarket.get(market)!.push(t);
+  });
 
   const hasAnyQualifyingTrades = filteredTrades.length > 0;
 
@@ -107,7 +118,8 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
       return d >= bucket.min && d < bucket.max;
     });
 
-    const totalTrades = filteredTrades.length;
+    // Use all trades (not filtered) for total count
+    const totalTrades = trades.length;
     const percentage =
       totalTrades > 0
         ? (tradesInBucket.length / totalTrades) * 100
@@ -117,6 +129,7 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
     const marketDetails = uniqueMarkets
       .map((market) => {
         const marketTrades = filteredTrades.filter((t) => (t.market || 'Unknown') === market);
+        const allMarketTrades = allTradesPerMarket.get(market) || [];
         const tradesInBucketForMarket = marketTrades.filter((t) => {
           const d = t.displacement_size ?? 0;
           return d >= bucket.min && d < bucket.max;
@@ -127,8 +140,8 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
         }
 
         const marketPercentage =
-          marketTrades.length > 0
-            ? (tradesInBucketForMarket.length / marketTrades.length) * 100
+          allMarketTrades.length > 0
+            ? (tradesInBucketForMarket.length / allMarketTrades.length) * 100
             : 0;
 
         // Calculate wins, losses, and win rate for trades in this bucket for this market
@@ -141,7 +154,7 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
           market,
           percentage: Number(marketPercentage.toFixed(1)),
           tradesWithBucket: tradesInBucketForMarket.length,
-          totalTrades: marketTrades.length,
+          totalTrades: allMarketTrades.length, // Use all trades for this market, not just filtered ones
           wins,
           losses,
           winRate: Number(winRate.toFixed(1)),
