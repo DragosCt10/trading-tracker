@@ -33,26 +33,16 @@ export function convertDirectionStatsToChartData(
   includeTotalTrades: boolean = false
 ): TradeStatDatum[] {
   // Calculate total trades for percentage calculation
-  const totalDirectionTrades = includeTotalTrades
-    ? directionStats.reduce((sum, stat) => {
-        const statWithTotal = stat as any;
-        const total = statWithTotal.total !== undefined 
-          ? statWithTotal.total 
-          : ((stat.wins ?? 0) + (stat.losses ?? 0) + (stat.beWins ?? 0) + (stat.beLosses ?? 0));
-        return sum + total;
-      }, 0)
-    : directionStats.reduce(
-        (sum, stat) => sum + (stat.wins ?? 0) + (stat.losses ?? 0),
-        0
-      );
+  // Always use wins + losses (beWins and beLosses are already included in wins/losses)
+  // This ensures accurate percentage calculation without double-counting
+  const totalDirectionTrades = directionStats.reduce(
+    (sum, stat) => sum + (stat.wins ?? 0) + (stat.losses ?? 0),
+    0
+  );
 
   return directionStats.map((stat) => {
-    const statWithTotal = stat as any;
-    const directionTotal = includeTotalTrades
-      ? (statWithTotal.total !== undefined 
-          ? statWithTotal.total 
-          : ((stat.wins ?? 0) + (stat.losses ?? 0) + (stat.beWins ?? 0) + (stat.beLosses ?? 0)))
-      : ((stat.wins ?? 0) + (stat.losses ?? 0));
+    // Calculate total from executed trades only (beWins and beLosses are already included in wins/losses)
+    const directionTotal = (stat.wins ?? 0) + (stat.losses ?? 0);
     
     const percentage =
       totalDirectionTrades > 0
@@ -69,9 +59,9 @@ export function convertDirectionStatsToChartData(
       winRateWithBE: stat.winRateWithBE,
     };
 
-    if (includeTotalTrades) {
-      baseData.totalTrades = directionTotal;
-    }
+    // Always set totalTrades from executed trades only (beWins and beLosses are already included in wins/losses)
+    // This ensures the count shown in parentheses matches the actual number of trades
+    baseData.totalTrades = (stat.wins ?? 0) + (stat.losses ?? 0);
 
     return baseData;
   });
