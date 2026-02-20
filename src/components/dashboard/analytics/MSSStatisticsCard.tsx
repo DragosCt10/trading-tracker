@@ -40,10 +40,9 @@ export function convertMssStatsToChartData(
 ): TradeStatDatum[] {
   return mssStats.map((stat) => {
     const statWithTotal = stat as any;
+    // Always calculate from executed trades only, not stat.total which includes non-executed trades
     const totalTrades = includeTotalTrades
-      ? (statWithTotal.total !== undefined
-          ? statWithTotal.total
-          : (stat.wins + stat.losses + stat.beWins + stat.beLosses))
+      ? (stat.wins + stat.losses + stat.beWins + stat.beLosses)
       : (stat.wins + stat.losses);
 
     return {
