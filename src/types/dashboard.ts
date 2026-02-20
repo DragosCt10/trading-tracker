@@ -92,6 +92,7 @@ export interface LocalHLStats {
     winsWithBE: number;
     lossesWithBE: number;
     winRateWithBE: number;
+    total: number;
   }
 }
 
