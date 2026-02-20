@@ -47,7 +47,7 @@ function formatTradeTimeForDisplay(value: string | Date | unknown): string {
 
 type DateRangeState = { startDate: string; endDate: string };
 
-interface TradesClientProps {
+interface ManageTradesClientProps {
   initialUserId: string;
   initialTrades: Trade[];
   initialDateRange: DateRangeState;
@@ -55,13 +55,13 @@ interface TradesClientProps {
   initialActiveAccount: AccountRow | null;
 }
 
-export default function TradesClient({
+export default function ManageTradesClient({
   initialUserId,
   initialTrades,
   initialDateRange,
   initialMode,
   initialActiveAccount,
-}: TradesClientProps) {
+}: ManageTradesClientProps) {
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);

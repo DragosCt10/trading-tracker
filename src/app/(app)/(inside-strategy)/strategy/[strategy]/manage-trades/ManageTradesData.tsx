@@ -2,9 +2,9 @@ import { Suspense } from 'react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { getActiveAccountForMode } from '@/lib/server/accounts';
-import TradesClient from './TradesClient';
+import ManageTradesClient from './ManageTradesClient';
 import { Trade } from '@/types/trade';
-import { TradesSkeleton } from './TradesSkeleton';
+import { ManageTradesSkeleton } from './ManageTradesSkeleton';
 import type { User } from '@supabase/supabase-js';
 
 const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
@@ -20,7 +20,7 @@ async function TradesDataFetcher({ user }: { user: User }) {
 
   if (!activeAccount) {
     return (
-      <TradesClient
+      <ManageTradesClient
         initialUserId={user.id}
         initialTrades={[]}
         initialDateRange={initialDateRange}
@@ -45,7 +45,7 @@ async function TradesDataFetcher({ user }: { user: User }) {
   }
 
   return (
-    <TradesClient
+    <ManageTradesClient
       initialUserId={user.id}
       initialTrades={initialTrades}
       initialDateRange={initialDateRange}
@@ -55,13 +55,13 @@ async function TradesDataFetcher({ user }: { user: User }) {
   );
 }
 
-interface TradesDataProps {
+interface ManageTradesDataProps {
   user: User;
 }
 
-export default function TradesData({ user }: TradesDataProps) {
+export default function ManageTradesData({ user }: ManageTradesDataProps) {
   return (
-    <Suspense fallback={<TradesSkeleton />}>
+    <Suspense fallback={<ManageTradesSkeleton />}>
       <TradesDataFetcher user={user} />
     </Suspense>
   );

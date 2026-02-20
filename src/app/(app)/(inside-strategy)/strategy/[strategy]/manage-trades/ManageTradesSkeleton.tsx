@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 
-export function TradesSkeleton() {
+export function ManageTradesSkeleton() {
   const today = new Date();
   const monthStart = fmt(startOfMonth(today));
   const monthEnd = fmt(endOfMonth(today));
