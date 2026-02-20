@@ -64,9 +64,8 @@ export function convertTradeTypesStatsToChartData(
     };
 
     if (includeTotalTrades) {
-      baseData.totalTrades = statWithTotal.total !== undefined
-        ? statWithTotal.total
-        : (stat.wins + stat.losses + stat.beWins + stat.beLosses);
+      // Always calculate from executed trades only, not stat.total which includes non-executed trades
+      baseData.totalTrades = (stat.wins + stat.losses + stat.beWins + stat.beLosses);
     }
 
     return baseData;
@@ -83,9 +82,8 @@ export function convertTradeTypesStatsToChartData(
     };
 
     if (includeTotalTrades) {
-      baseData.totalTrades = statWithTotal.total !== undefined
-        ? statWithTotal.total
-        : (stat.wins + stat.losses + stat.beWins + stat.beLosses);
+      // Always calculate from executed trades only, not stat.total which includes non-executed trades
+      baseData.totalTrades = (stat.wins + stat.losses + stat.beWins + stat.beLosses);
     }
 
     return baseData;
