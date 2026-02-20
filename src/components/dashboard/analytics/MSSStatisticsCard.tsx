@@ -47,7 +47,7 @@ export function convertMssStatsToChartData(
       : (stat.wins + stat.losses);
 
     return {
-      category: stat.mss,
+      category: stat.mss ?? '',
       wins: stat.wins,
       losses: stat.losses,
       beWins: stat.beWins,
