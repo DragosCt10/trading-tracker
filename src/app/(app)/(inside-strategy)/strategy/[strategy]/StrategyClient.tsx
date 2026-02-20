@@ -147,6 +147,11 @@ import {
 } from '@/components/dashboard/analytics/ConsistencyScoreChart';
 import { chartOptions } from '@/utils/chartConfig';
 import { TIME_INTERVALS } from '@/constants/analytics';
+import { 
+  calculateLiquidityStats,
+  calculateDirectionStats,
+  calculateLocalHLStats,
+} from '@/utils/calculateCategoryStats';
 import {
   type DateRangeState,
   createInitialDateRange,
@@ -489,6 +494,19 @@ export default function StrategyClient(
     
     return filtered;
   }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedMarket, selectedExecution]);
+
+  // Always calculate liquidity, direction, and localHL stats from tradesToUse to ensure consistency
+  const liquidityStatsFromTradesToUse = useMemo(() => {
+    return calculateLiquidityStats(tradesToUse);
+  }, [tradesToUse]);
+
+  const directionStatsFromTradesToUse = useMemo(() => {
+    return calculateDirectionStats(tradesToUse);
+  }, [tradesToUse]);
+
+  const localHLStatsFromTradesToUse = useMemo(() => {
+    return calculateLocalHLStats(tradesToUse);
+  }, [tradesToUse]);
 
   // Compute filtered statistics when filters are applied
   const {
@@ -1183,14 +1201,14 @@ export default function StrategyClient(
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
         {/* Liquidity Statistics Card */}
         <LiquidityStatisticsCard
-          liquidityStats={filteredChartStats ? statsToUseForCharts.liquidityStats : liquidityStats}
+          liquidityStats={filteredChartStats ? statsToUseForCharts.liquidityStats : liquidityStatsFromTradesToUse}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
 
         {/* Direction Statistics Card */}
         <DirectionStatisticsCard
-          directionStats={filteredChartStats ? statsToUseForCharts.directionStats : directionStats}
+          directionStats={filteredChartStats ? statsToUseForCharts.directionStats : directionStatsFromTradesToUse}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
@@ -1199,7 +1217,7 @@ export default function StrategyClient(
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
         {/* Local H/L Analysis Card */}
         <LocalHLStatisticsCard
-          localHLStats={filteredChartStats ? statsToUseForCharts.localHLStats : localHLStats}
+          localHLStats={filteredChartStats ? statsToUseForCharts.localHLStats : localHLStatsFromTradesToUse}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
