@@ -33,7 +33,6 @@ export function convertSetupStatsToChartData(
   includeTotalTrades: boolean = false
 ): TradeStatDatum[] {
   return setupStats.map((stat) => {
-    const statWithTotal = stat as any;
     const baseData: TradeStatDatum = {
       category: `${stat.setup}`,
       wins: stat.wins,
@@ -42,13 +41,10 @@ export function convertSetupStatsToChartData(
       beLosses: stat.beLosses,
       winRate: stat.winRate,
       winRateWithBE: stat.winRateWithBE,
+      // Always set totalTrades from executed trades only (beWins and beLosses are already included in wins/losses)
+      // This ensures the count shown in parentheses matches the actual number of trades
+      totalTrades: (stat.wins + stat.losses),
     };
-
-    if (includeTotalTrades) {
-      baseData.totalTrades = statWithTotal.total !== undefined 
-        ? statWithTotal.total 
-        : (stat.wins + stat.losses + stat.beWins + stat.beLosses);
-    }
 
     return baseData;
   });
