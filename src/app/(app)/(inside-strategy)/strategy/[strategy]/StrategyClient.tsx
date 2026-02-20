@@ -151,6 +151,7 @@ import {
   calculateLiquidityStats,
   calculateDirectionStats,
   calculateLocalHLStats,
+  calculateSetupStats,
 } from '@/utils/calculateCategoryStats';
 import {
   type DateRangeState,
@@ -495,7 +496,11 @@ export default function StrategyClient(
     return filtered;
   }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedMarket, selectedExecution]);
 
-  // Always calculate liquidity, direction, and localHL stats from tradesToUse to ensure consistency
+  // Always calculate setup, liquidity, direction, and localHL stats from tradesToUse to ensure consistency
+  const setupStatsFromTradesToUse = useMemo(() => {
+    return calculateSetupStats(tradesToUse);
+  }, [tradesToUse]);
+
   const liquidityStatsFromTradesToUse = useMemo(() => {
     return calculateLiquidityStats(tradesToUse);
   }, [tradesToUse]);
@@ -1190,7 +1195,7 @@ export default function StrategyClient(
       <div className="my-8">
         {/* Setup Statistics Card */}
         <SetupStatisticsCard
-          setupStats={filteredChartStats ? statsToUseForCharts.setupStats : setupStats}
+          setupStats={filteredChartStats ? statsToUseForCharts.setupStats : setupStatsFromTradesToUse}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
