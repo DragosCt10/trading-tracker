@@ -165,7 +165,22 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
   // Helper function to invalidate and refetch ALL queries (ensures analytics updates)
   const invalidateAndRefetchTradeQueries = async () => {
-    // Invalidate ALL queries to ensure analytics charts and stats update immediately
+    // Remove all trade-related queries entirely (forces fresh fetch when navigating)
+    // This ensures that when navigating to any strategy page, queries will be refetched from server
+    queryClient.removeQueries({ predicate: (query) => {
+      const key = query.queryKey;
+      if (!Array.isArray(key)) return false;
+      const firstKey = key[0];
+      return (
+        firstKey === 'allTrades' ||
+        firstKey === 'filteredTrades' ||
+        firstKey === 'nonExecutedTrades' ||
+        firstKey === 'discoverTrades' ||
+        firstKey === 'all-strategy-trades' ||
+        firstKey === 'all-strategy-stats'
+      );
+    }});
+    // Also invalidate all queries to catch any other trade-related data
     await queryClient.invalidateQueries();
     // Refetch all active queries (currently mounted components)
     await queryClient.refetchQueries({ type: 'active' });
