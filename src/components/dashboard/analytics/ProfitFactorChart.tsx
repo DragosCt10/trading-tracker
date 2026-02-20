@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Info } from 'lucide-react';
@@ -53,10 +53,18 @@ export function calculateProfitFactor(
 }
 
 interface ProfitFactorChartProps {
-  profitFactor: number;
+  tradesToUse: Trade[];
+  totalWins?: number;
+  totalLosses?: number;
 }
 
-export const ProfitFactorChart = React.memo(function ProfitFactorChart({ profitFactor }: ProfitFactorChartProps) {
+export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesToUse, totalWins, totalLosses }: ProfitFactorChartProps) {
+  // Calculate profit factor from trades
+  const wins = totalWins ?? tradesToUse.filter(t => t.trade_outcome === 'Win').length;
+  const losses = totalLosses ?? tradesToUse.filter(t => t.trade_outcome === 'Lose').length;
+  const profitFactor = useMemo(() => {
+    return calculateProfitFactor(tradesToUse, wins, losses);
+  }, [tradesToUse, wins, losses]);
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
