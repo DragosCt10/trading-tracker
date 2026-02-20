@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Card, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown } from 'lucide-react';
@@ -47,6 +47,11 @@ export const MonthPerformanceCard: React.FC<MonthPerformanceCardProps> = ({
   className,
 }) => {
   const TrendIcon = positive ? TrendingUp : TrendingDown;
+  // Avoid hydration mismatch: server and parent may pass different data on first paint
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <Card
@@ -84,7 +89,7 @@ export const MonthPerformanceCard: React.FC<MonthPerformanceCardProps> = ({
                 )}
               >
                 <TrendIcon className="w-4 h-4 shrink-0" />
-                {winRate.toFixed(1)}%
+                {mounted ? `${winRate.toFixed(1)}%` : '—%'}
               </div>
             </div>
 
@@ -99,9 +104,15 @@ export const MonthPerformanceCard: React.FC<MonthPerformanceCardProps> = ({
                   positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                 )}
               >
-                {positive && profit >= 0 ? '+' : ''}
-                {currencySymbol}
-                {profit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {mounted ? (
+                  <>
+                    {positive && profit >= 0 ? '+' : ''}
+                    {currencySymbol}
+                    {profit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </>
+                ) : (
+                  `${currencySymbol}—`
+                )}
               </div>
               {profitPercent != null && (
                 <div
@@ -110,8 +121,7 @@ export const MonthPerformanceCard: React.FC<MonthPerformanceCardProps> = ({
                     positive ? 'text-emerald-600/90 dark:text-emerald-400/90' : 'text-rose-600/90 dark:text-rose-400/90'
                   )}
                 >
-                  {profitPercent >= 0 ? '+' : ''}
-                  {profitPercent.toFixed(2)}%
+                  {mounted ? `${profitPercent >= 0 ? '+' : ''}${profitPercent.toFixed(2)}%` : '—%'}
                 </div>
               )}
             </div>
