@@ -409,13 +409,24 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 </div>
                 <span>Add New Trade</span>
               </AlertDialogTitle>
-              <button
-                onClick={onClose}
-                className="cursor-pointer rounded-sm ring-offset-background transition-all hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none h-8 w-8 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-black dark:hover:text-white"
-              >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
-              </button>
+              <div className="flex items-center gap-3">
+                {/* Strategy name (from URL slug) */}
+                <div className="max-w-[200px]">
+                  <div className="text-right">
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Strategy</span>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate" title={strategies.find((s) => s.id === trade.strategy_id)?.name ?? '—'}>
+                      {strategies.find((s) => s.id === trade.strategy_id)?.name ?? '—'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="cursor-pointer rounded-sm ring-offset-background transition-all hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none h-8 w-8 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-black dark:hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </button>
+              </div>
             </div>
             <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
               Adding trade for <span className="font-medium text-slate-900 dark:text-slate-50">{selection.mode}</span> mode
