@@ -1118,28 +1118,17 @@ export default function StrategyClient(
           />
         )}
 
-        {/* Executed & Non-Executed Trades Chart - Show in both yearly and dateRange modes */}
+        {/* Executed & Non-Executed Trades Chart - Use same trade universe as Direction/Long-Short card */}
         {(viewMode === 'dateRange' || viewMode === 'yearly') && (() => {
-          // Calculate total executed trades
-          let totalExecutedTrades = 0;
-          if (viewMode === 'yearly') {
-            // For yearly mode, calculate from monthlyStats
-            if (monthlyStats?.monthlyData) {
-              totalExecutedTrades = Object.values(monthlyStats.monthlyData).reduce(
-                (sum, month) => sum + month.wins + month.losses + month.beWins + month.beLosses,
-                0
-              );
-            }
-          } else {
-            // For dateRange mode, count executed trades from tradesToUse
-            totalExecutedTrades = tradesToUse.filter((t) => t.executed === true).length;
-          }
+          // Always derive from tradesToUse so total matches Long/Short and other filtered cards
+          const totalExecutedTrades = tradesToUse.filter((t) => t.executed === true).length;
+          const nonExecutedFromTradesToUse = tradesToUse.filter((t) => t.executed !== true).length;
 
           return (
             <ExecutedNonExecutedTradesCard
               totalExecutedTrades={totalExecutedTrades}
               initialNonExecutedTotalTradesCount={props?.initialNonExecutedTotalTradesCount}
-              nonExecutedTotalTradesCount={nonExecutedTotalTradesCount}
+              nonExecutedTotalTradesCount={nonExecutedFromTradesToUse}
               isLoading={chartsLoadingState}
             />
           );
