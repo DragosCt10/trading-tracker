@@ -21,34 +21,34 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
   const pathname = usePathname();
   const [newTradeModalOpen, setNewTradeModalOpen] = useState(false);
 
-  // Extract strategy slug from routes: /analytics/[strategy] or /analytics/[strategy]/manage-trades or /analytics/[strategy]/my-trades
+  // Extract strategy slug from routes: /strategy/[strategy] or /strategy/[strategy]/manage-trades or /strategy/[strategy]/my-trades
   const currentStrategySlug = useMemo(() => {
-    const match = pathname.match(/^\/analytics\/([^/]+)/);
+    const match = pathname.match(/^\/(?:analytics|strategy)\/([^/]+)/);
     return match ? decodeURIComponent(match[1]) : null;
   }, [pathname]);
 
   // Get URLs with the strategy slug
   const analyticsUrl = useMemo(() => {
-    return currentStrategySlug ? `/analytics/${encodeURIComponent(currentStrategySlug)}` : '/analytics';
+    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}` : '/strategies';
   }, [currentStrategySlug]);
 
   const manageTradesUrl = useMemo(() => {
-    return currentStrategySlug ? `/analytics/${encodeURIComponent(currentStrategySlug)}/manage-trades` : '/analytics';
+    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}/manage-trades` : '/strategies';
   }, [currentStrategySlug]);
 
   const myTradesUrl = useMemo(() => {
-    return currentStrategySlug ? `/analytics/${encodeURIComponent(currentStrategySlug)}/my-trades` : '/analytics';
+    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}/my-trades` : '/strategies';
   }, [currentStrategySlug]);
 
   const isActive = (path: string) => {
     if (path === '/manage-trades') {
-      return pathname.includes('/manage-trades');
+      return pathname.includes('/manage-trades') && (pathname.startsWith('/strategy') || pathname.startsWith('/analytics'));
     }
     if (path === '/my-trades') {
-      return pathname.includes('/my-trades');
+      return pathname.includes('/my-trades') && (pathname.startsWith('/strategy') || pathname.startsWith('/analytics'));
     }
     if (path === '/analytics') {
-      return pathname.startsWith('/analytics') && !pathname.includes('/manage-trades') && !pathname.includes('/my-trades');
+      return pathname.startsWith('/strategy') && !pathname.includes('/manage-trades') && !pathname.includes('/my-trades');
     }
     return pathname === path;
   };

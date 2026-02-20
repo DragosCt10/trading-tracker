@@ -144,7 +144,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
   };
 
   const handleAnalytics = () => {
-    router.push(`/analytics/${strategy.slug}`);
+    router.push(`/strategy/${strategy.slug}`);
   };
 
   if (!mounted) {
