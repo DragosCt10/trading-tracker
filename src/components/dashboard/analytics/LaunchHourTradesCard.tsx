@@ -255,8 +255,8 @@ export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.m
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={70}
+                    innerRadius={65}
+                    outerRadius={85}
                     paddingAngle={5}
                     cornerRadius={5}
                     dataKey="value"
@@ -304,7 +304,11 @@ export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.m
               </ResponsiveContainer>
               {/* Center content - positioned in the middle of the pie chart */}
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none z-10">
-                <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+                <div className={`font-bold text-slate-900 dark:text-slate-100 ${
+                  totalLaunchHour >= 1000 ? 'text-2xl' : 
+                  totalLaunchHour >= 100 ? 'text-2xl' : 
+                  'text-3xl'
+                }`}>
                   {totalLaunchHour}
                 </div>
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1.5">
