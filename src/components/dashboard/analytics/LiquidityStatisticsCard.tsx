@@ -43,9 +43,9 @@ export function convertLiquidityStatsToChartData(
       winRateWithBE: stat.winRateWithBE,
     };
 
-    // Always set totalTrades from executed trades only (beWins and beLosses are already included in wins/losses)
-    // This ensures the count shown in parentheses matches the actual number of trades
-    baseData.totalTrades = (stat.wins + stat.losses);
+    // Use total from stats which includes all trades (including non-executed)
+    // This ensures the count shown in parentheses matches the actual number of trades in tradesToUse
+    baseData.totalTrades = stat.total ?? (stat.wins + stat.losses);
 
     return baseData;
   });
