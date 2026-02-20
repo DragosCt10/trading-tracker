@@ -131,6 +131,7 @@ export interface Stats {
   averageProfit: number;
   intervalStats: Record<string, IntervalStats>;
   maxDrawdown: number;
+  averageDrawdown: number;
   averagePnLPercentage: number;
   evaluationStats: EvaluationStats[];
   winRateWithBE: number;
