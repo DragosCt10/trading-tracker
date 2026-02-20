@@ -6,21 +6,8 @@ import { Card, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Trade } from '@/types/trade';
-
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
+import { computeMonthlyStatsFromTrades } from '@/components/dashboard/analytics/AccountOverviewCard';
+import { computeFullMonthlyStatsFromTrades } from '@/components/dashboard/analytics/MonthlyPerformanceChart';
 
 interface MonthPerformanceCardProps {
   title: string;           // "Best Month" / "Worst Month"
@@ -203,79 +190,15 @@ export const MonthPerformanceCards: React.FC<MonthPerformanceCardsProps> = ({
   className,
   isLoading = false,
 }) => {
-  // Compute monthly stats from trades array (for profit only)
-  const computeMonthlyStatsFromTrades = useMemo(() => {
-    return (trades: Trade[]): { [key: string]: { profit: number } } => {
-      const monthlyData: { [key: string]: { profit: number } } = {};
-      
-      trades.forEach((trade) => {
-        const tradeDate = new Date(trade.trade_date);
-        const monthName = MONTHS[tradeDate.getMonth()];
-        const profit = trade.calculated_profit || 0;
-        
-        if (!monthlyData[monthName]) {
-          monthlyData[monthName] = { profit: 0 };
-        }
-        
-        monthlyData[monthName].profit += profit;
-      });
-      
-      return monthlyData;
-    };
-  }, []);
+  const monthlyStatsToUse = useMemo(
+    () => computeMonthlyStatsFromTrades(trades),
+    [trades]
+  );
 
-  // Compute full monthly stats from trades array (for wins, losses, winRate, etc.)
-  const computeFullMonthlyStatsFromTrades = useMemo(() => {
-    return (trades: Trade[]): { [key: string]: { wins: number; losses: number; beWins: number; beLosses: number; winRate: number; winRateWithBE: number } } => {
-      const monthlyData: { [key: string]: { wins: number; losses: number; beWins: number; beLosses: number; winRate: number; winRateWithBE: number } } = {};
-      
-      trades.forEach((trade) => {
-        const tradeDate = new Date(trade.trade_date);
-        const monthName = MONTHS[tradeDate.getMonth()];
-        
-        if (!monthlyData[monthName]) {
-          monthlyData[monthName] = { wins: 0, losses: 0, beWins: 0, beLosses: 0, winRate: 0, winRateWithBE: 0 };
-        }
-        
-        const isBreakEven = trade.break_even;
-        const outcome = trade.trade_outcome;
-        
-        if (isBreakEven) {
-          if (outcome === 'Win') {
-            monthlyData[monthName].beWins += 1;
-          } else if (outcome === 'Lose') {
-            monthlyData[monthName].beLosses += 1;
-          }
-        } else {
-          if (outcome === 'Win') {
-            monthlyData[monthName].wins += 1;
-          } else if (outcome === 'Lose') {
-            monthlyData[monthName].losses += 1;
-          }
-        }
-      });
-      
-      // Calculate win rates for each month
-      Object.keys(monthlyData).forEach((month) => {
-        const stats = monthlyData[month];
-        const nonBETrades = stats.wins + stats.losses;
-        const allTrades = nonBETrades + stats.beWins + stats.beLosses;
-        
-        stats.winRate = nonBETrades > 0 ? (stats.wins / nonBETrades) * 100 : 0;
-        stats.winRateWithBE = allTrades > 0 ? ((stats.wins + stats.beWins) / allTrades) * 100 : 0;
-      });
-      
-      return monthlyData;
-    };
-  }, []);
-
-  const monthlyStatsToUse = useMemo(() => {
-    return computeMonthlyStatsFromTrades(trades);
-  }, [trades, computeMonthlyStatsFromTrades]);
-
-  const monthlyPerformanceStatsToUse = useMemo(() => {
-    return computeFullMonthlyStatsFromTrades(trades);
-  }, [trades, computeFullMonthlyStatsFromTrades]);
+  const monthlyPerformanceStatsToUse = useMemo(
+    () => computeFullMonthlyStatsFromTrades(trades),
+    [trades]
+  );
 
   type MonthWithStats = { month: string; stats: { winRate: number; profit: number } } | null;
 
