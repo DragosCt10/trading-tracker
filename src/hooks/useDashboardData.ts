@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Trade } from '@/types/trade';
 import { AccountSettings } from '@/types/account-settings';
-import { useUserDetails } from './useUserDetails';
 import { useQuery } from '@tanstack/react-query';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { calculateMonthlyStats } from '@/utils/calculateMonthlyState';
@@ -126,7 +125,8 @@ export function useDashboardData({
       winRate: 0,
       winsWithBE: 0,
       lossesWithBE: 0,
-      winRateWithBE: 0
+      winRateWithBE: 0,
+      total: 0
     },
     nelichidat: {
       wins: 0,
@@ -134,7 +134,8 @@ export function useDashboardData({
       winRate: 0,
       winsWithBE: 0,
       lossesWithBE: 0,
-      winRateWithBE: 0
+      winRateWithBE: 0,
+      total: 0
     }
   });
   const [setupStats, setSetupStats] = useState<SetupStats[]>([]);
@@ -166,17 +167,21 @@ export function useDashboardData({
   const [evaluationStats, setEvaluationStats] = useState<EvaluationStats[]>([]);
   const [intervalStats, setIntervalStats] = useState<IntervalStats[]>([]);
   // Query for all trades in the selected year (only used for monthly stats)
+  const queryEnabled = !!session?.user?.id && !!activeAccount?.id && !!selectedYear && !!mode;
+
   const {
     data: allTrades = [],
     isFetching: allTradesLoading,
   } = useQuery<Trade[]>({
     queryKey: ['allTrades', mode, activeAccount?.id, session?.user?.id, selectedYear, strategyId],
     queryFn: async () => {
-      if (!session?.user?.id || !activeAccount?.id) return [];
+      if (!session?.user?.id || !activeAccount?.id) {
+        return [];
+      }
       const startDate = `${selectedYear}-01-01`;
       const endDate = `${selectedYear}-12-31`;
       try {
-        return await getFilteredTrades({
+        const trades = await getFilteredTrades({
           userId: session.user.id,
           accountId: activeAccount.id,
           mode,
@@ -184,12 +189,13 @@ export function useDashboardData({
           endDate,
           strategyId,
         });
+        return trades;
       } catch (err) {
-        console.error('Error fetching allTrades:', err);
+        console.error('[useDashboardData] Error fetching allTrades:', err);
         return [];
       }
     },
-    enabled: !!session?.user?.id && !!activeAccount?.id && !!selectedYear && !!mode,
+    enabled: queryEnabled,
     staleTime: 2 * 60 * 1000, // 2 minutes - reduces refetches while keeping data fresh
     gcTime: 5 * 60_000,
   });
@@ -569,8 +575,24 @@ export function useDashboardData({
     if (trades.length === 0 || activeAccount?.account_balance == null) {
       // Clear all derived category datasets when empty
       const emptyLocalHL: LocalHLStats = {
-        lichidat: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0 },
-        nelichidat: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0 },
+        lichidat: { 
+          wins: 0, 
+          losses: 0, 
+          winRate: 0, 
+          winsWithBE: 0, 
+          lossesWithBE: 0, 
+          winRateWithBE: 0, 
+          total: 0 
+        },
+        nelichidat: { 
+          wins: 0, 
+          losses: 0, 
+          winRate: 0, 
+          winsWithBE: 0, 
+          lossesWithBE: 0, 
+          winRateWithBE: 0, 
+          total: 0 
+        },
       };
       setLiquidityStats([]);
       setSetupStats([]);
