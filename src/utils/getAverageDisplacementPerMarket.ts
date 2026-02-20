@@ -4,7 +4,14 @@ import { Trade } from '@/types/trade';
 export function getAverageDisplacementPerMarket(
   filteredTrades: Trade[],
 ): TradeStatDatum[] {
-  // group by market
+  // Count all trades per market (for totalTrades)
+  const allTradesPerMarket = new Map<string, number>();
+  filteredTrades.forEach((t) => {
+    const market = t.market || 'Unknown';
+    allTradesPerMarket.set(market, (allTradesPerMarket.get(market) || 0) + 1);
+  });
+
+  // group by market for calculating averages (only trades with valid displacement_size)
   const marketMap = new Map<
     string,
     { sum: number; count: number }
@@ -31,7 +38,7 @@ export function getAverageDisplacementPerMarket(
       const avg = count > 0 ? sum / count : 0;
       return {
         category: market,
-        totalTrades: count,
+        totalTrades: allTradesPerMarket.get(market) || 0, // Use all trades for this market, not just those with displacement_size
         value: Number(avg.toFixed(2)), // this is what TradeStatsBarCard will plot in singleValue mode
       };
     },
