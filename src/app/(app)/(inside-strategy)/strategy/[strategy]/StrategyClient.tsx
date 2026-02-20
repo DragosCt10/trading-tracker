@@ -1090,12 +1090,9 @@ export default function StrategyClient(
           />
         )}
 
-        <RRMultipleStatCard tradesToUse={tradesToUse} />
 
-        <PNLPercentageStatCard tradesToUse={tradesToUse} accountBalance={selection.activeAccount?.account_balance} />
-
-        {/* Partial Trades - Date Range Mode */}
-        {viewMode === 'dateRange' && (
+        {/* Partial Trades - Show in both yearly and dateRange modes */}
+        {(viewMode === 'dateRange' || viewMode === 'yearly') && (
           <StatCard
             title={
               <>
@@ -1142,6 +1139,7 @@ export default function StrategyClient(
             trades={tradesToUse}
             currencySymbol={currencySymbol}
             hydrated={hydrated}
+            accountBalance={selection.activeAccount?.account_balance}
           />
         )}
       </div>
