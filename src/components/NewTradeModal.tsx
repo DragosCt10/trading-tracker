@@ -165,9 +165,18 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
   // Helper function to invalidate and refetch ALL queries (ensures analytics updates)
   const invalidateAndRefetchTradeQueries = async () => {
-    // Remove all trade-related queries entirely (forces fresh fetch when navigating)
-    // This ensures that when navigating to any strategy page, queries will be refetched from server
-    queryClient.removeQueries({ predicate: (query) => {
+    // Signal strategy page to skip re-hydrating from stale initialData (so calendar/list show new trade)
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
+    }
+    
+    // Get current context for explicit refetch
+    const mode = selection.mode;
+    const accountId = selection.activeAccount?.id;
+    const strategyId = trade.strategy_id;
+    
+    // Invalidate all trade-related queries (marks as stale but keeps them so refetch works)
+    await queryClient.invalidateQueries({ predicate: (query) => {
       const key = query.queryKey;
       if (!Array.isArray(key)) return false;
       const firstKey = key[0];
@@ -180,9 +189,39 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         firstKey === 'all-strategy-stats'
       );
     }});
-    // Also invalidate all queries to catch any other trade-related data
-    await queryClient.invalidateQueries();
-    // Refetch all active queries (currently mounted components)
+    
+    // Explicitly refetch queries for the current strategy (ensures calendar updates immediately)
+    // This is critical: we refetch BEFORE any removeQueries so the queries still exist
+    if (accountId && userId && strategyId) {
+      await queryClient.refetchQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey;
+          if (!Array.isArray(key)) return false;
+          const firstKey = key[0];
+          // Match trade queries for current strategy
+          if (firstKey === 'allTrades' || firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') {
+            // Check if query matches current mode, account, user, and strategy
+            // allTrades: ['allTrades', mode, accountId, userId, year, strategyId] - strategyId at index 5
+            // filteredTrades: ['filteredTrades', mode, accountId, userId, viewMode, startDate, endDate, strategyId] - strategyId at index 7
+            // nonExecutedTrades: same structure as filteredTrades - strategyId at index 7
+            const matchesMode = key[1] === mode;
+            const matchesAccount = key[2] === accountId;
+            const matchesUser = key[3] === userId;
+            // Strategy ID is at index 5 for allTrades, index 7 for filteredTrades/nonExecutedTrades
+            let matchesStrategy = false;
+            if (firstKey === 'allTrades' && key.length > 5) {
+              matchesStrategy = key[5] === strategyId;
+            } else if ((firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') && key.length > 7) {
+              matchesStrategy = key[7] === strategyId;
+            }
+            return matchesMode && matchesAccount && matchesUser && matchesStrategy;
+          }
+          return false;
+        }
+      });
+    }
+    
+    // Also refetch any other active queries to catch edge cases
     await queryClient.refetchQueries({ type: 'active' });
   };
 
