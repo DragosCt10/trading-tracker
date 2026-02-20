@@ -9,7 +9,13 @@ import type { User } from '@supabase/supabase-js';
 
 const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 
-async function MyTradesDataFetcher({ user }: { user: User }) {
+async function MyTradesDataFetcher({
+  user,
+  initialStrategyId,
+}: {
+  user: User;
+  initialStrategyId: string;
+}) {
   const today = new Date();
   const initialDateRange = {
     startDate: fmt(startOfMonth(today)),
@@ -28,11 +34,12 @@ async function MyTradesDataFetcher({ user }: { user: User }) {
         initialDateRange={initialDateRange}
         initialMode="live"
         initialActiveAccount={null}
+        initialStrategyId={initialStrategyId}
       />
     );
   }
 
-  // Fetch initial trades server-side
+  // Fetch initial trades server-side (filtered by strategy)
   let initialFilteredTrades: Trade[] = [];
   let initialAllTrades: Trade[] = [];
 
@@ -44,7 +51,8 @@ async function MyTradesDataFetcher({ user }: { user: User }) {
       mode: 'live',
       startDate: initialDateRange.startDate,
       endDate: initialDateRange.endDate,
-      includeNonExecuted: true, // Include non-executed trades so they can be filtered client-side
+      includeNonExecuted: true,
+      strategyId: initialStrategyId,
     });
 
     // Fetch all trades for the current year to get markets list (include non-executed trades)
@@ -55,7 +63,8 @@ async function MyTradesDataFetcher({ user }: { user: User }) {
       mode: 'live',
       startDate: `${currentYear}-01-01`,
       endDate: `${currentYear}-12-31`,
-      includeNonExecuted: true, // Include non-executed trades for markets list
+      includeNonExecuted: true,
+      strategyId: initialStrategyId,
     });
   } catch (error) {
     console.error('Error fetching initial trades:', error);
@@ -70,18 +79,20 @@ async function MyTradesDataFetcher({ user }: { user: User }) {
       initialDateRange={initialDateRange}
       initialMode="live"
       initialActiveAccount={activeAccount}
+      initialStrategyId={initialStrategyId}
     />
   );
 }
 
 interface MyTradesDataProps {
   user: User;
+  initialStrategyId: string;
 }
 
-export default function MyTradesData({ user }: MyTradesDataProps) {
+export default function MyTradesData({ user, initialStrategyId }: MyTradesDataProps) {
   return (
     <Suspense fallback={<MyTradesSkeleton />}>
-      <MyTradesDataFetcher user={user} />
+      <MyTradesDataFetcher user={user} initialStrategyId={initialStrategyId} />
     </Suspense>
   );
 }
