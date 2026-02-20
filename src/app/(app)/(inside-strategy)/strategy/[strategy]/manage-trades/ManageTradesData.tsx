@@ -9,7 +9,13 @@ import type { User } from '@supabase/supabase-js';
 
 const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 
-async function TradesDataFetcher({ user }: { user: User }) {
+async function TradesDataFetcher({
+  user,
+  initialStrategyId,
+}: {
+  user: User;
+  initialStrategyId: string;
+}) {
   const today = new Date();
   const initialDateRange = {
     startDate: fmt(startOfMonth(today)),
@@ -26,6 +32,7 @@ async function TradesDataFetcher({ user }: { user: User }) {
         initialDateRange={initialDateRange}
         initialMode="live"
         initialActiveAccount={null}
+        initialStrategyId={initialStrategyId}
       />
     );
   }
@@ -39,6 +46,7 @@ async function TradesDataFetcher({ user }: { user: User }) {
       startDate: initialDateRange.startDate,
       endDate: initialDateRange.endDate,
       includeNonExecuted: true,
+      strategyId: initialStrategyId,
     });
   } catch (error) {
     console.error('Error fetching initial trades:', error);
@@ -51,18 +59,20 @@ async function TradesDataFetcher({ user }: { user: User }) {
       initialDateRange={initialDateRange}
       initialMode="live"
       initialActiveAccount={activeAccount}
+      initialStrategyId={initialStrategyId}
     />
   );
 }
 
 interface ManageTradesDataProps {
   user: User;
+  initialStrategyId: string;
 }
 
-export default function ManageTradesData({ user }: ManageTradesDataProps) {
+export default function ManageTradesData({ user, initialStrategyId }: ManageTradesDataProps) {
   return (
     <Suspense fallback={<ManageTradesSkeleton />}>
-      <TradesDataFetcher user={user} />
+      <TradesDataFetcher user={user} initialStrategyId={initialStrategyId} />
     </Suspense>
   );
 }
