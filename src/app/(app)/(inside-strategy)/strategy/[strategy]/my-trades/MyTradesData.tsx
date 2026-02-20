@@ -2,14 +2,14 @@ import { Suspense } from 'react';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { getActiveAccountForMode } from '@/lib/server/accounts';
-import DiscoverClient from './DiscoverClient';
+import MyTradesClient from './MyTradesClient';
 import { Trade } from '@/types/trade';
-import { DiscoverSkeleton } from './DiscoverSkeleton';
+import { MyTradesSkeleton } from './MyTradesSkeleton';
 import type { User } from '@supabase/supabase-js';
 
 const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 
-async function DiscoverDataFetcher({ user }: { user: User }) {
+async function MyTradesDataFetcher({ user }: { user: User }) {
   const today = new Date();
   const initialDateRange = {
     startDate: fmt(startOfMonth(today)),
@@ -21,7 +21,7 @@ async function DiscoverDataFetcher({ user }: { user: User }) {
   // If no account, return empty data - client will handle "No Active Account" UI
   if (!activeAccount) {
     return (
-      <DiscoverClient
+      <MyTradesClient
         initialUserId={user.id}
         initialFilteredTrades={[]}
         initialAllTrades={[]}
@@ -63,7 +63,7 @@ async function DiscoverDataFetcher({ user }: { user: User }) {
   }
 
   return (
-    <DiscoverClient
+    <MyTradesClient
       initialUserId={user.id}
       initialFilteredTrades={initialFilteredTrades}
       initialAllTrades={initialAllTrades}
@@ -74,14 +74,14 @@ async function DiscoverDataFetcher({ user }: { user: User }) {
   );
 }
 
-interface DiscoverDataProps {
+interface MyTradesDataProps {
   user: User;
 }
 
-export default function DiscoverData({ user }: DiscoverDataProps) {
+export default function MyTradesData({ user }: MyTradesDataProps) {
   return (
-    <Suspense fallback={<DiscoverSkeleton />}>
-      <DiscoverDataFetcher user={user} />
+    <Suspense fallback={<MyTradesSkeleton />}>
+      <MyTradesDataFetcher user={user} />
     </Suspense>
   );
 }

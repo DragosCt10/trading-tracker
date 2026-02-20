@@ -84,7 +84,7 @@ function isCustomDateRange(range: DateRangeState): boolean {
   );
 }
 
-interface DiscoverClientProps {
+interface MyTradesClientProps {
   /** User id from server (fallback when useUserDetails cache not yet hydrated) */
   initialUserId: string;
   initialFilteredTrades: Trade[];
@@ -94,14 +94,14 @@ interface DiscoverClientProps {
   initialActiveAccount: AccountRow | null;
 }
 
-export default function DiscoverClient({
+export default function MyTradesClient({
   initialUserId,
   initialFilteredTrades,
   initialAllTrades,
   initialDateRange,
   initialMode,
   initialActiveAccount,
-}: DiscoverClientProps) {
+}: MyTradesClientProps) {
   const today = new Date();
 
   const [dateRange, setDateRange] = useState<DateRangeState>(initialDateRange);

@@ -15,7 +15,7 @@ function getDefaultDateRange() {
   };
 }
 
-export function DiscoverSkeleton() {
+export function MyTradesSkeleton() {
   const defaultDateRange = getDefaultDateRange();
 
   return (
@@ -23,7 +23,7 @@ export function DiscoverSkeleton() {
       {/* Header - real content */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-          Discover Trades
+          My Trades
         </h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1">
           Browse your trading history with visual cards
