@@ -163,10 +163,10 @@ ChartJS.register(
 );
 
 /* ---------------------------------------------------------
- * Props from server (AnalyticsData)
+ * Props from server (StrategyData)
  * ------------------------------------------------------ */
 
-export type AnalyticsClientInitialProps = {
+export type StrategyClientInitialProps = {
   initialUserId: string;
   initialFilteredTrades: Trade[];
   initialAllTrades: Trade[];
@@ -186,8 +186,8 @@ const defaultSelectedYear = new Date().getFullYear();
  * Dashboard component
  * ------------------------------------------------------ */
 
-export default function AnalyticsClient(
-  props?: Partial<AnalyticsClientInitialProps>
+export default function StrategyClient(
+  props?: Partial<StrategyClientInitialProps>
 ) {
   const router = useRouter();
   const queryClient = useQueryClient();

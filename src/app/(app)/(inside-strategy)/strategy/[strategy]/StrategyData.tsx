@@ -3,7 +3,7 @@ import { format, subDays } from 'date-fns';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { getActiveAccountForMode } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
-import AnalyticsClient from './AnalyticsClient';
+import StrategyClient from './StrategyClient';
 import { Trade } from '@/types/trade';
 import type { User } from '@supabase/supabase-js';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,7 +19,7 @@ function createInitialDateRange(today = new Date()) {
   };
 }
 
-async function AnalyticsDataFetcher({ user, strategySlug }: { user: User; strategySlug: string }) {
+async function StrategyDataFetcher({ user, strategySlug }: { user: User; strategySlug: string }) {
   const today = new Date();
   const initialDateRange = createInitialDateRange(today);
   const initialSelectedYear = today.getFullYear();
@@ -33,7 +33,7 @@ async function AnalyticsDataFetcher({ user, strategySlug }: { user: User; strate
     if (!strategy) {
       // Strategy not found - return empty state
       return (
-        <AnalyticsClient
+        <StrategyClient
           initialUserId={user.id}
           initialFilteredTrades={[]}
           initialAllTrades={[]}
@@ -54,7 +54,7 @@ async function AnalyticsDataFetcher({ user, strategySlug }: { user: User; strate
 
   if (!activeAccount) {
     return (
-      <AnalyticsClient
+      <StrategyClient
         initialUserId={user.id}
         initialFilteredTrades={[]}
         initialAllTrades={[]}
@@ -122,7 +122,7 @@ async function AnalyticsDataFetcher({ user, strategySlug }: { user: User; strate
   }
 
   return (
-    <AnalyticsClient
+    <StrategyClient
       initialUserId={user.id}
       initialFilteredTrades={initialFilteredTrades}
       initialAllTrades={initialAllTrades}
@@ -137,9 +137,7 @@ async function AnalyticsDataFetcher({ user, strategySlug }: { user: User; strate
   );
 }
 
-const CHART_BAR_HEIGHTS = [45, 65, 50, 70, 55, 60, 48, 72, 58, 63, 52, 68];
-
-function AnalyticsSkeleton() {
+function StrategySkeleton() {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Header: Yearly Stats + year dropdown */}
@@ -214,15 +212,15 @@ function AnalyticsSkeleton() {
   );
 }
 
-interface AnalyticsDataProps {
+interface StrategyDataProps {
   user: User;
   strategySlug: string;
 }
 
-export default function AnalyticsData({ user, strategySlug }: AnalyticsDataProps) {
+export default function StrategyData({ user, strategySlug }: StrategyDataProps) {
   return (
-    <Suspense fallback={<AnalyticsSkeleton />}>
-      <AnalyticsDataFetcher user={user} strategySlug={strategySlug} />
+    <Suspense fallback={<StrategySkeleton />}>
+      <StrategyDataFetcher user={user} strategySlug={strategySlug} />
     </Suspense>
   );
 }
