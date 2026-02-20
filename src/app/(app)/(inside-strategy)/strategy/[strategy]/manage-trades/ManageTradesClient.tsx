@@ -193,6 +193,10 @@ export default function ManageTradesClient({
     dateRange.startDate === initialDateRange.startDate &&
     dateRange.endDate === initialDateRange.endDate;
 
+  // Check if trade data was recently invalidated (to skip stale initialData)
+  const wasInvalidated = typeof window !== 'undefined' && sessionStorage.getItem('trade-data-invalidated');
+  const shouldSkipInitialData = wasInvalidated && (Date.now() - parseInt(wasInvalidated, 10)) < 30000; // Skip initialData for 30 seconds after invalidation
+
   const {
     data: rawTrades,
     isLoading: allTradesLoading,
@@ -219,13 +223,20 @@ export default function ManageTradesClient({
         strategyId: initialStrategyId,
       });
     },
-    initialData: isInitialContext ? initialTrades : undefined,
+    initialData: isInitialContext && !shouldSkipInitialData ? initialTrades : undefined,
     enabled: !!userId && !!activeAccount?.id,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
   });
 
-  const allTradesData = rawTrades ?? (isInitialContext ? initialTrades : []);
+  // Clear invalidation flag after checking (if it was set)
+  useEffect(() => {
+    if (shouldSkipInitialData && typeof window !== 'undefined') {
+      sessionStorage.removeItem('trade-data-invalidated');
+    }
+  }, [shouldSkipInitialData]);
+
+  const allTradesData = rawTrades ?? (isInitialContext && !shouldSkipInitialData ? initialTrades : []);
 
   // Market options
   const tradesForMarketDropdown = allTradesData || [];
