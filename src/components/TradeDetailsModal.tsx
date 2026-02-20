@@ -1,11 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Trade } from '@/types/trade';
 import { deleteTrade, updateTrade } from '@/lib/server/trades';
 import { useQueryClient } from '@tanstack/react-query';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
+import { useUserDetails } from '@/hooks/useUserDetails';
+import { useStrategies } from '@/hooks/useStrategies';
 import { AlertCircle, Loader2 } from 'lucide-react';
+
+// Shared input/select styles to match NewTradeModal
+const inputClass = 'h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100';
+const selectTriggerClass = 'h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100';
+const labelClass = 'block text-sm font-semibold text-slate-700 dark:text-slate-300';
 
 // shadcn UI components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +46,9 @@ interface TradeDetailsModalProps {
 
 export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdated }: TradeDetailsModalProps) {
   const { selection } = useActionBarSelection();
+  const { data: userData } = useUserDetails();
+  const userId = userData?.user?.id;
+  const { strategies } = useStrategies({ userId });
   const [isEditing, setIsEditing] = useState(false);
   const [editedTrade, setEditedTrade] = useState<Trade | null>(trade);
   const [isSaving, setIsSaving] = useState(false);
@@ -52,6 +62,13 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     title: 'Update' | 'Delete';
   }>({ open: false, status: 'loading', message: '', title: 'Update' });
   const queryClient = useQueryClient();
+
+  // Auto-dismiss error after 5 seconds
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(null), 5000);
+    return () => clearTimeout(t);
+  }, [error]);
 
   // Helper: invalidate and refetch ALL queries (same as NewTradeModal – ensures list, analytics, discover all update)
   const invalidateAndRefetchTradeQueries = async () => {
@@ -125,6 +142,12 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const handleSave = async () => {
     if (!editedTrade || !editedTrade.id) return;
     setError(null);
+
+    if (!editedTrade.strategy_id || editedTrade.strategy_id === '__required__') {
+      setError('Please select a strategy');
+      return;
+    }
+
     setIsSaving(true);
     setProgressDialog({ open: true, status: 'loading', message: 'Please wait while we save your trade data...', title: 'Update' });
 
@@ -160,6 +183,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         partials_taken: editedTrade.partials_taken,
         executed: editedTrade.executed,
         launch_hour: editedTrade.launch_hour,
+        strategy_id: editedTrade.strategy_id,
       };
 
       const { error: updateError } = await updateTrade(editedTrade.id, tradingMode, updateData);
@@ -316,17 +340,17 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     }
 
     // For P&L percentage, make it read-only
-    if (field === 'pnl_percentage') {
+      if (field === 'pnl_percentage') {
       const numValue = typeof value === 'number' && !isNaN(value) ? value : 0;
       const displayValue = numValue.toFixed(2);
       return (
         <div>
-          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+          <label className={`${labelClass} mb-2`}>{label}</label>
           <Input
             type="text"
             value={`${displayValue}%`}
             readOnly
-            className="h-12 bg-slate-200/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 cursor-not-allowed transition-all duration-300"
+            className={`${inputClass} bg-slate-200/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 cursor-not-allowed`}
           />
         </div>
       );
@@ -340,7 +364,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         const num = value != null && !isNaN(Number(value)) ? Number(value) : null;
         return (
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+            <label className={`${labelClass} mb-2`}>{label}</label>
             <Input
               type="number"
               step="any"
@@ -350,19 +374,19 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 const val = e.target.value;
                 handleInputChange(field, val === '' ? '' : parseFloat(val));
               }}
-              className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+              className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
             />
           </div>
         );
       } else {
         return (
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+            <label className={`${labelClass} mb-2`}>{label}</label>
             <Input
               type="text"
               value={`${displayValue}%`}
               readOnly
-              className="h-12 bg-slate-200/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 cursor-not-allowed transition-all duration-300"
+              className={`${inputClass} bg-slate-200/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 cursor-not-allowed`}
             />
           </div>
         );
@@ -374,7 +398,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       const num = value != null && !isNaN(Number(value)) ? Number(value) : null;
       return (
         <div>
-          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+          <label className={`${labelClass} mb-2`}>{label}</label>
           <Input
             type="number"
             step="any"
@@ -383,7 +407,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               const val = e.target.value;
               handleInputChange(field, val === '' ? '' : parseFloat(val));
             }}
-            className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+            className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
             disabled={!isEditing}
             readOnly={!isEditing}
           />
@@ -396,7 +420,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         const numVal = value != null && !isNaN(Number(value)) ? Number(value) : null;
         return (
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+            <label className={`${labelClass} mb-2`}>{label}</label>
             <Input
               type="number"
               step="any"
@@ -405,19 +429,19 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 const val = e.target.value;
                 handleInputChange(field, val === '' ? '' : parseFloat(val));
               }}
-              className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+              className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
             />
           </div>
         );
       case 'select':
         return (
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+            <label className={`${labelClass} mb-2`}>{label}</label>
             <Select
               value={value != null ? String(value) : ''}
               onValueChange={(val) => handleInputChange(field, val)}
             >
-              <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
+              <SelectTrigger className={selectTriggerClass}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
@@ -433,12 +457,12 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       case 'boolean':
         return (
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+            <label className={`${labelClass} mb-2`}>{label}</label>
             <Select
               value={value ? 'true' : 'false'}
               onValueChange={(val) => handleInputChange(field, val === 'true')}
             >
-              <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
+              <SelectTrigger className={selectTriggerClass}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
@@ -451,12 +475,12 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       case 'outcome':
         return (
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+            <label className={`${labelClass} mb-2`}>{label}</label>
             <Select
               value={value != null ? String(value) : ''}
               onValueChange={(val) => handleInputChange(field, val)}
             >
-              <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
+              <SelectTrigger className={selectTriggerClass}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
@@ -469,12 +493,12 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       default:
         return (
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">{label}</label>
+            <label className={`${labelClass} mb-2`}>{label}</label>
             <Input
               type="text"
               value={value != null ? String(value) : ''}
               onChange={(e) => handleInputChange(field, e.target.value)}
-              className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+              className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
             />
           </div>
         );
@@ -511,21 +535,52 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         {/* Fixed Header */}
         <div className="relative px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
           <AlertDialogHeader className="space-y-1.5">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <AlertDialogTitle className="text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
                 Trade Details
               </AlertDialogTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="h-8 w-8 p-0 cursor-pointer"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </Button>
+              <div className="flex items-center gap-3">
+                {/* Strategy to the right of title, near X */}
+                <div className="max-w-[200px]">
+                  {!isEditing ? (
+                    <div className="text-right">
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Strategy</span>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate" title={strategies.find((s) => s.id === editedTrade?.strategy_id)?.name ?? '—'}>
+                        {strategies.find((s) => s.id === editedTrade?.strategy_id)?.name ?? '—'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-right">
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Strategy</span>
+                      <Select
+                        value={editedTrade?.strategy_id ?? '__required__'}
+                        onValueChange={(v) => handleInputChange('strategy_id', v === '__required__' ? null : v)}
+                      >
+                        <SelectTrigger className={`${selectTriggerClass} h-9 text-sm mt-1`}>
+                          <SelectValue placeholder="Select strategy" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__required__">Select strategy</SelectItem>
+                          {strategies.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  className="h-8 w-8 p-0 cursor-pointer flex-shrink-0"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </Button>
+              </div>
             </div>
             <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
               {editedTrade?.market} {editedTrade?.direction} • {editedTrade?.trade_date} {editedTrade?.trade_time}
@@ -536,12 +591,6 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         {/* Scrollable content */}
         <div className="relative overflow-y-auto flex-1 px-6 py-5">
           <div className="space-y-6">
-            {error && (
-              <div className="rounded-lg bg-red-500/10 backdrop-blur-sm p-3 border border-red-500/20">
-                <p className="text-sm text-red-500 dark:text-red-400 font-medium">{error}</p>
-              </div>
-            )}
-
             {/* Trade Outcome Card - Prominent Display */}
             <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -555,7 +604,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                         value={editedTrade?.trade_outcome ?? ''}
                         onValueChange={(val) => handleInputChange('trade_outcome', val)}
                       >
-                        <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                        <SelectTrigger className={selectTriggerClass}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
@@ -590,7 +639,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                         value={editedTrade?.evaluation ?? ''}
                         onValueChange={(val) => handleInputChange('evaluation', val)}
                       >
-                        <SelectTrigger className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                        <SelectTrigger className={selectTriggerClass}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
@@ -761,22 +810,22 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               ) : (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">Trade Chart URL</label>
+                    <label className={`${labelClass} mb-2`}>Trade Chart URL</label>
                     <Input
                       type="text"
                       value={editedTrade?.trade_link ?? ''}
                       onChange={(e) => handleInputChange('trade_link', e.target.value)}
-                      className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                      className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
                       placeholder="https://..."
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">Liquidity Taken URL</label>
+                    <label className={`${labelClass} mb-2`}>Liquidity Taken URL</label>
                     <Input
                       type="text"
                       value={editedTrade?.liquidity_taken ?? ''}
                       onChange={(e) => handleInputChange('liquidity_taken', e.target.value)}
-                      className="h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                      className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
                       placeholder="https://..."
                     />
                   </div>
@@ -795,7 +844,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               <textarea
                 value={editedTrade?.notes ?? ''}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
-                className="w-full bg-transparent border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-3 text-sm focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 placeholder:text-slate-400 dark:placeholder:text-slate-600 resize-none"
+                className="w-full min-h-[200px] bg-transparent rounded-xl placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100 px-3 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 focus:ring-inset"
                 rows={8}
                 disabled={!isEditing}
                 readOnly={!isEditing}
@@ -887,6 +936,12 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 )}
               </AlertDialogContent>
             </AlertDialog>
+
+            {error && (
+              <div className="rounded-lg bg-red-500/10 backdrop-blur-sm p-3 border border-red-500/20">
+                <p className="text-sm text-red-500 dark:text-red-400 font-medium">{error}</p>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex justify-end gap-3 pt-2">
