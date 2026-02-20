@@ -53,6 +53,7 @@ interface ManageTradesClientProps {
   initialDateRange: DateRangeState;
   initialMode: 'live' | 'backtesting' | 'demo';
   initialActiveAccount: AccountRow | null;
+  initialStrategyId: string;
 }
 
 export default function ManageTradesClient({
@@ -61,6 +62,7 @@ export default function ManageTradesClient({
   initialDateRange,
   initialMode,
   initialActiveAccount,
+  initialStrategyId,
 }: ManageTradesClientProps) {
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -203,6 +205,7 @@ export default function ManageTradesClient({
       userId,
       dateRange.startDate,
       dateRange.endDate,
+      initialStrategyId,
     ],
     queryFn: async () => {
       if (!userId || !activeAccount?.id) return [];
@@ -213,6 +216,7 @@ export default function ManageTradesClient({
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
         includeNonExecuted: true,
+        strategyId: initialStrategyId,
       });
     },
     initialData: isInitialContext ? initialTrades : undefined,
