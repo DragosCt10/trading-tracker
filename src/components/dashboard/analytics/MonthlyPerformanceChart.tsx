@@ -32,6 +32,7 @@ export interface MonthlyStatsAllTrades {
 
 /**
  * Compute full monthly stats from trades array (wins, losses, winRate, etc.)
+ * Processes all trades passed (tradesToUse already handles filtering)
  * @param trades - Array of trades to compute stats from
  * @returns Object with monthly statistics keyed by month name
  */
@@ -40,7 +41,11 @@ export function computeFullMonthlyStatsFromTrades(
 ): MonthlyStatsAllTrades {
   const monthlyData: MonthlyStatsAllTrades = {};
   
+  // Process all trades passed (tradesToUse already handles filtering)
   trades.forEach((trade) => {
+    
+    const outcome = trade.trade_outcome;
+    
     const tradeDate = new Date(trade.trade_date);
     const monthName = MONTHS[tradeDate.getMonth()];
     
@@ -49,7 +54,6 @@ export function computeFullMonthlyStatsFromTrades(
     }
     
     const isBreakEven = trade.break_even;
-    const outcome = trade.trade_outcome;
     
     if (isBreakEven) {
       if (outcome === 'Win') {
