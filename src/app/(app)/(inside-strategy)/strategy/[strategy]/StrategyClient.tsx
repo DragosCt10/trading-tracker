@@ -152,6 +152,7 @@ import {
   calculateDirectionStats,
   calculateLocalHLStats,
   calculateSetupStats,
+  calculateSLSizeStats,
 } from '@/utils/calculateCategoryStats';
 import {
   type DateRangeState,
@@ -511,6 +512,10 @@ export default function StrategyClient(
 
   const localHLStatsFromTradesToUse = useMemo(() => {
     return calculateLocalHLStats(tradesToUse);
+  }, [tradesToUse]);
+
+  const slSizeStatsFromTradesToUse = useMemo(() => {
+    return calculateSLSizeStats(tradesToUse);
   }, [tradesToUse]);
 
   // Compute filtered statistics when filters are applied
@@ -1238,7 +1243,7 @@ export default function StrategyClient(
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* SL Size Statistics Card */}
         <SLSizeStatisticsCard
-          slSizeStats={filteredChartStats ? statsToUseForCharts.slSizeStats : slSizeStats}
+          slSizeStats={filteredChartStats ? statsToUseForCharts.slSizeStats : slSizeStatsFromTradesToUse}
           isLoading={chartsLoadingState}
         />
 
