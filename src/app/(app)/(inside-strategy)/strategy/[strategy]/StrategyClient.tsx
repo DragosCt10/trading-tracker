@@ -165,6 +165,7 @@ import { useDateRangeManagement } from '@/hooks/useDateRangeManagement';
 import { useCalendarNavigation } from '@/hooks/useCalendarNavigation';
 import { useFilteredStats } from '@/hooks/useFilteredStats';
 import { calculateFilteredMacroStats } from '@/utils/calculateFilteredMacroStats';
+import { calculateStreaksFromTrades } from '@/utils/calculateStreaks';
 
 ChartJS.register(
   CategoryScale,
@@ -787,57 +788,17 @@ export default function StrategyClient(
     const winRate = nonBETotal > 0 ? (wins / nonBETotal) * 100 : 0;
     const winRateWithBE = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
     
-    // Calculate streaks
-    let currentStreak = 0;
-    let maxWinningStreak = 0;
-    let maxLosingStreak = 0;
-    let currentWinningStreak = 0;
-    let currentLosingStreak = 0;
+    // Streaks: include BE, sort by date only, only Win/Lose count (non-executed skipped; last trade walk-back handled in helper)
+    const { currentStreak, maxWinningStreak, maxLosingStreak } = calculateStreaksFromTrades(tradesForProfitCalculations, {
+      excludeBreakEven: false,
+      sortByTime: false,
+      countNonOutcomeAsLoss: false,
+    });
     
-    // Sort trades by date for drawdown calculation
-    // When execution filter is "nonExecuted", use tradesToUse directly
-    // Otherwise, use only executed trades
+    // Sort trades by date for drawdown and average days calculation
     const sortedTrades = [...tradesForProfitCalculations].sort((a, b) => 
       new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime()
     );
-    
-    sortedTrades.forEach((trade) => {
-      const isWin = trade.trade_outcome === 'Win';
-      const isLoss = trade.trade_outcome === 'Lose';
-      // Only count streaks for executed trades (Win or Lose)
-      if (isWin) {
-        currentWinningStreak++;
-        currentLosingStreak = 0;
-        maxWinningStreak = Math.max(maxWinningStreak, currentWinningStreak);
-      } else if (isLoss) {
-        currentLosingStreak++;
-        currentWinningStreak = 0;
-        maxLosingStreak = Math.max(maxLosingStreak, currentLosingStreak);
-      }
-      // Non-executed trades don't affect streaks
-    });
-    
-    const lastTrade = sortedTrades[sortedTrades.length - 1];
-    if (lastTrade) {
-      const lastTradeOutcome = lastTrade.trade_outcome;
-      if (lastTradeOutcome === 'Win') {
-        currentStreak = currentWinningStreak;
-      } else if (lastTradeOutcome === 'Lose') {
-        currentStreak = -currentLosingStreak;
-      } else {
-        // For non-executed trades, find the last executed trade for streak
-        for (let i = sortedTrades.length - 1; i >= 0; i--) {
-          const trade = sortedTrades[i];
-          if (trade.trade_outcome === 'Win') {
-            currentStreak = currentWinningStreak;
-            break;
-          } else if (trade.trade_outcome === 'Lose') {
-            currentStreak = -currentLosingStreak;
-            break;
-          }
-        }
-      }
-    }
     
     // Calculate average days between trades
     let averageDaysBetweenTrades = 0;
