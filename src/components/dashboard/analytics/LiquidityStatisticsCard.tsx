@@ -33,7 +33,6 @@ export function convertLiquidityStatsToChartData(
   includeTotalTrades: boolean = false
 ): TradeStatDatum[] {
   return liquidityStats.map((stat) => {
-    const statWithTotal = stat as any;
     const baseData: TradeStatDatum = {
       category: `${stat.liquidity}`,
       wins: stat.wins,
@@ -44,11 +43,9 @@ export function convertLiquidityStatsToChartData(
       winRateWithBE: stat.winRateWithBE,
     };
 
-    if (includeTotalTrades) {
-      baseData.totalTrades = statWithTotal.total !== undefined 
-        ? statWithTotal.total 
-        : (stat.wins + stat.losses + stat.beWins + stat.beLosses);
-    }
+    // Always set totalTrades from executed trades only (beWins and beLosses are already included in wins/losses)
+    // This ensures the count shown in parentheses matches the actual number of trades
+    baseData.totalTrades = (stat.wins + stat.losses);
 
     return baseData;
   });
