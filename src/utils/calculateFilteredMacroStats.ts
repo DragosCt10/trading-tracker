@@ -53,26 +53,28 @@ export function calculateFilteredMacroStats({
   yearlyPartialsBECount,
   macroStats,
 }: CalculateFilteredMacroStatsParams): MacroStats {
-  // In yearly mode with no filters, use hook stats but ensure consistent structure
-  // Execution filter doesn't apply in yearly mode, so only check market filter
-  if (viewMode === 'yearly' && selectedMarket === 'all') {
-    return {
-      ...macroStats,
-      nonExecutedTotalTradesCount: nonExecutedTotalTradesCount || 0,
-      yearlyPartialTradesCount: yearlyPartialTradesCount || 0,
-      yearlyPartialsBECount: yearlyPartialsBECount || 0,
-    };
-  }
-
-  // In date range mode or when filters are applied, compute from current filtered data
-  // Compute profit factor from statsToUse
+  // Always compute from tradesToUse to ensure consistency between yearly and date range modes
+  // The hook's macroStats might use different calculation logic or include/exclude non-executed trades differently
+  // By always recalculating from tradesToUse, we ensure the same trades produce the same results
+  
+  // When tradesToUse contains non-executed trades (e.g., when execution filter is "nonExecuted"),
+  // use tradesToUse directly for calculations. Otherwise, filter to executed trades only.
+  // Check if all trades are non-executed (when execution filter is "nonExecuted")
+  const allTradesAreNonExecuted = tradesToUse.length > 0 && tradesToUse.every(t => t.executed === false);
+  const tradesForCalculations = allTradesAreNonExecuted 
+    ? tradesToUse 
+    : tradesToUse.filter(t => t.executed === true);
+  
+  // Compute profit factor from tradesForCalculations
   // Profit factor = Total Gross Profit / Total Gross Loss
-  // For non-executed trades, we calculate based on profit amounts, not win/loss counts
   const totalWins = statsToUse.totalWins;
   const totalLosses = statsToUse.totalLosses;
   
-  const profitFactor = calculateProfitFactor(tradesToUse, totalWins, totalLosses);
+  const profitFactor = calculateProfitFactor(tradesForCalculations, totalWins, totalLosses);
 
+  // Calculate consistency score from monthly stats
+  // monthlyStatsToUse includes all trades from tradesToUse (non-executed trades will have 0 profit)
+  // Consistency score = percentage of profitable months
   const consistencyScore = calculateConsistencyScore(monthlyStatsToUse);
 
   // Compute Sharpe ratio (simplified - would need returns array for full calculation)
