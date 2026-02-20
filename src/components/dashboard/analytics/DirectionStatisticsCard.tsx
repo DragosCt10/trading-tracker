@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { cn } from '@/lib/utils';
-import { calculateDirectionStats as calculateDirectionStatsUtil } from '@/utils/calculateCategoryStats';
 import type { DirectionStats } from '@/types/dashboard';
 import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
 
@@ -21,15 +20,6 @@ export interface DirectionStatisticsCardProps {
   isLoading?: boolean;
   /** If true, includes totalTrades in chart data (for filtered stats) */
   includeTotalTrades?: boolean;
-}
-
-/**
- * Calculate direction statistics from trades array
- * @param trades - Array of trades to compute stats from
- * @returns Array of direction statistics
- */
-export function calculateDirectionStats(trades: Trade[]): DirectionStats[] {
-  return calculateDirectionStatsUtil(trades);
 }
 
 /**
