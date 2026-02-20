@@ -164,6 +164,10 @@ export default function MyTradesClient({
     dateRange.startDate === initialDateRange.startDate &&
     dateRange.endDate === initialDateRange.endDate;
 
+  // Check if trade data was recently invalidated (to skip stale initialData)
+  const wasInvalidated = typeof window !== 'undefined' && sessionStorage.getItem('trade-data-invalidated');
+  const shouldSkipInitialData = wasInvalidated && (Date.now() - parseInt(wasInvalidated, 10)) < 30000; // Skip initialData for 30 seconds after invalidation
+
   // Server query when date range, mode, or account change (queryKey includes all of them)
   const {
     data: rawFilteredTrades,
@@ -191,7 +195,7 @@ export default function MyTradesClient({
         strategyId: initialStrategyId,
       });
     },
-    initialData: isInitialContext ? initialFilteredTrades : undefined,
+    initialData: isInitialContext && !shouldSkipInitialData ? initialFilteredTrades : undefined,
     placeholderData: undefined,
     enabled: !!userId && !!activeAccount?.id,
     staleTime: 2 * 60 * 1000,
@@ -199,7 +203,7 @@ export default function MyTradesClient({
   });
 
   // Use initial data only when mode/account/date range still match initial; otherwise show skeleton until fetch completes
-  const filteredTrades = rawFilteredTrades ?? (isInitialContext ? initialFilteredTrades : []);
+  const filteredTrades = rawFilteredTrades ?? (isInitialContext && !shouldSkipInitialData ? initialFilteredTrades : []);
 
   // Fetch all trades for markets list (server query; refetch when mode/account/year changes)
   const isInitialModeAndAccount =
@@ -228,12 +232,20 @@ export default function MyTradesClient({
         strategyId: initialStrategyId,
       });
     },
-    initialData: isInitialModeAndAccount ? initialAllTrades : undefined,
+    initialData: isInitialModeAndAccount && !shouldSkipInitialData ? initialAllTrades : undefined,
     enabled: !!userId && !!activeAccount?.id,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
-  const allTrades = rawAllTrades ?? (isInitialModeAndAccount ? initialAllTrades : []);
+  
+  // Clear invalidation flag after checking (if it was set)
+  useEffect(() => {
+    if (shouldSkipInitialData && typeof window !== 'undefined') {
+      sessionStorage.removeItem('trade-data-invalidated');
+    }
+  }, [shouldSkipInitialData]);
+  
+  const allTrades = rawAllTrades ?? (isInitialModeAndAccount && !shouldSkipInitialData ? initialAllTrades : []);
 
   // Extract unique markets from all trades
   const markets = useMemo(() => {
