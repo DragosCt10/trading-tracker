@@ -40,9 +40,9 @@ export function convertLocalHLStatsToChartData(
     beLosses: localHLStats.lichidat.lossesWithBE,
     winRate: localHLStats.lichidat.winRate,
     winRateWithBE: localHLStats.lichidat.winRateWithBE,
-    // totalTrades should be wins + losses (beWins and beLosses are already included in wins/losses)
-    // This ensures the count shown in parentheses matches the actual number of trades
-    totalTrades: (localHLStats.lichidat.wins + localHLStats.lichidat.losses),
+    // Use total from stats which includes all trades (including non-executed)
+    // This ensures the count shown in parentheses matches the actual number of trades in tradesToUse
+    totalTrades: localHLStats.lichidat.total ?? (localHLStats.lichidat.wins + localHLStats.lichidat.losses),
   };
 
   const nelichidatData: TradeStatDatum = {
@@ -53,9 +53,9 @@ export function convertLocalHLStatsToChartData(
     beLosses: localHLStats.nelichidat.lossesWithBE,
     winRate: localHLStats.nelichidat.winRate,
     winRateWithBE: localHLStats.nelichidat.winRateWithBE,
-    // totalTrades should be wins + losses (beWins and beLosses are already included in wins/losses)
-    // This ensures the count shown in parentheses matches the actual number of trades
-    totalTrades: (localHLStats.nelichidat.wins + localHLStats.nelichidat.losses),
+    // Use total from stats which includes all trades (including non-executed)
+    // This ensures the count shown in parentheses matches the actual number of trades in tradesToUse
+    totalTrades: localHLStats.nelichidat.total ?? (localHLStats.nelichidat.wins + localHLStats.nelichidat.losses),
   };
 
   return [lichidatData, nelichidatData];
