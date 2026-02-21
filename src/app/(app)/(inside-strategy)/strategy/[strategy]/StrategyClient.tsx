@@ -1140,6 +1140,8 @@ export default function StrategyClient(
         />
       </div>
 
+      <hr className="col-span-full my-10 border-t border-slate-200 dark:border-slate-700" />
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
         {/* Potential Risk/Reward Ratio Statistics */}
         <RiskRewardStats
