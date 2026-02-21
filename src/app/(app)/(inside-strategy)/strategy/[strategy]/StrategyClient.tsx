@@ -1171,6 +1171,8 @@ export default function StrategyClient(
         />
       </div>
 
+      <hr className="col-span-full my-10 border-t border-slate-200 dark:border-slate-700" />
+
       <div className="my-8">
         {/* Market Profit Statistics Card */}
         <MarketProfitStatisticsCard
