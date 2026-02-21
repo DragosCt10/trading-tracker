@@ -843,10 +843,10 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 <div className="flex items-center gap-3">
                   <Badge 
                     variant={pnlPercentage >= 0 ? 'default' : 'destructive'} 
-                    className={`text-sm font-bold px-2.5 py-1 ${
+                    className={`text-sm font-bold px-2.5 py-1 focus:ring-0 focus-visible:ring-0 hover:ring-0 ${
                       pnlPercentage >= 0 
-                        ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' 
-                        : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-500/10 hover:dark:bg-emerald-500/20' 
+                        : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800 hover:bg-rose-500/10 hover:dark:bg-rose-500/20'
                     }`}
                   >
                     {pnlPercentage >= 0 ? '+' : ''}{pnlPercentage.toFixed(2)}%
@@ -930,24 +930,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   onCheckedChange={(checked) => updateTrade('executed', checked ? false : true)}
                   className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
                 />
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="not-executed" className="text-sm font-normal cursor-pointer">Not Executed</Label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 cursor-help text-slate-500 dark:text-slate-400" />
-                      </TooltipTrigger>
-                      <TooltipContent className="w-72">
-                        <div className="text-xs">
-                          <div className="mb-1 font-semibold">Not Counted in Stats</div>
-                          <div className="rounded border bg-yellow-50 dark:bg-yellow-900/20 p-2">
-                            This trade is marked as &quot;not executed&quot; and will <span className="font-semibold">not</span> be included in your statistics.
-                          </div>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
+                <Label htmlFor="not-executed" className="text-sm font-normal cursor-pointer">Not Executed</Label>
               </div>
             </div>
 
