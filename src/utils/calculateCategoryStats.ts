@@ -70,16 +70,16 @@ function processGroup(label: string, trades: Trade[]): GroupStats {
   const beWins    = trades.filter(t => t.trade_outcome === 'Win'  && t.break_even).length;
   const beLosses  = trades.filter(t => t.trade_outcome === 'Lose' && t.break_even).length;
 
-  // Non-BE counts for ex-BE win rate
+  // Non-BE counts
   const nonBEWins   = wins - beWins;
   const nonBELosses = losses - beLosses;
-  const denomExBE   = nonBEWins + nonBELosses;
-  const winRate     = denomExBE > 0
-    ? (nonBEWins / denomExBE) * 100
+  const beCount     = beWins + beLosses;
+  // Win Rate: non-BE wins / (non-BE wins + all losses) so BE losses count (1 win + 1 BE loss → 50%)
+  const denomWinRate = nonBEWins + nonBELosses + beLosses;
+  const winRate     = denomWinRate > 0
+    ? (nonBEWins / denomWinRate) * 100
     : 0;
-
-  // Include BE trades in denominator for win rate with BE
-  const beCount       = beWins + beLosses;
+  // Win Rate (w/ BE): include BE trades in denominator
   const denomWithBE   = nonBEWins + nonBELosses + beCount;
   const winRateWithBE = denomWithBE > 0
     ? (nonBEWins / denomWithBE) * 100
