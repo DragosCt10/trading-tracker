@@ -74,6 +74,22 @@ function getQuarter(dateStr: string): string {
 }
 
 const NOTES_TEMPLATE = `📈 Setup:
+(Describe the technical or fundamental setup – why did you enter the trade? What pattern, indicator or logic did you follow?)
+
+✅ Positives:
+(What did you do well? What went according to plan? Was there discipline, patience, good timing?)
+
+❌ Negatives:
+(What didn't work? Did you enter too early/late? Did you ignore something? Overtrading? FOMO?)
+
+🧠 Emotions:
+(What did you feel during the trade? Confidence? Fear? Impatience? Calm? Were you emotionally influenced?)
+
+🎯 Lessons learned:
+(What can you improve? What will you do differently next time?)`;
+
+/** Old Romanian template – used to migrate saved drafts to the new English template */
+const NOTES_TEMPLATE_LEGACY_RO = `📈 Setup:
 (Descrie setup-ul tehnic sau fundamental – de ce ai intrat în trade? Ce pattern, indicator sau logică ai urmat?)
 
 ✅ Plusuri:
@@ -157,6 +173,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         try {
           const parsed = JSON.parse(saved);
           const dateStr = parsed.trade_date || new Date().toISOString().split('T')[0];
+          // Migrate notes from old Romanian template to English
+          const notes = parsed.notes === NOTES_TEMPLATE_LEGACY_RO ? NOTES_TEMPLATE : (parsed.notes ?? initialTradeState.notes);
           return {
             ...initialTradeState,
             ...parsed,
@@ -165,6 +183,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               parsed.day_of_week ||
               WEEKDAY_MAP[new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' })],
             quarter: parsed.quarter || getQuarter(dateStr),
+            notes,
           };
         } catch { }
       }
