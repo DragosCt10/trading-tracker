@@ -156,6 +156,43 @@ export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.mem
     const yAxisTickFormatter = (value: number) =>
       Number(value ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
+    const leftAxisLabel = (props: { viewBox?: { x?: number; y?: number; width?: number; height?: number } }) => {
+      const vb = props.viewBox ?? {};
+      const x = (vb.x ?? 0) + 6;
+      const y = (vb.y ?? 0) + (vb.height ?? 0) / 2;
+      return (
+        <text
+          x={x}
+          y={y}
+          textAnchor="middle"
+          fill={axisTextColor}
+          fontSize={12}
+          fontWeight={500}
+          transform={`rotate(-90, ${x}, ${y})`}
+        >
+          Wins / Losses
+        </text>
+      );
+    };
+    const rightAxisLabel = (props: { viewBox?: { x?: number; y?: number; width?: number; height?: number } }) => {
+      const vb = props.viewBox ?? {};
+      const x = (vb.x ?? 0) + (vb.width ?? 0) + 8;
+      const y = (vb.y ?? 0) + (vb.height ?? 0) / 2;
+      return (
+        <text
+          x={x}
+          y={y}
+          textAnchor="middle"
+          fill={axisTextColor}
+          fontSize={12}
+          fontWeight={500}
+          transform={`rotate(90, ${x}, ${y})`}
+        >
+          Win Rate
+        </text>
+      );
+    };
+
     if (!mounted || isLoading) {
       return (
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
@@ -257,6 +294,7 @@ export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.mem
                   domain={[0, Math.ceil(maxTotal * 1.15)]}
                   width={56}
                   tickMargin={8}
+                  label={leftAxisLabel}
                 />
                 <YAxis
                   yAxisId="right"
@@ -269,6 +307,7 @@ export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.mem
                   domain={[0, 100]}
                   width={56}
                   tickMargin={8}
+                  label={rightAxisLabel}
                 />
                 <ReTooltip
                   contentStyle={{
