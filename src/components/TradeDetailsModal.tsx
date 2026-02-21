@@ -120,6 +120,20 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
   const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+  // Potential Risk:Reward Ratio (RR Long) – same options as NewTradeModal: 1 to 10 step 0.5, plus 10+
+  const POTENTIAL_RR_OPTIONS: { value: number; label: string }[] = [
+    ...Array.from({ length: 19 }, (_, i) => {
+      const v = 1 + i * 0.5;
+      return { value: v, label: String(v) };
+    }),
+    { value: 10.5, label: '10+' },
+  ];
+  const formatPotentialRR = (val: number | undefined | null): string => {
+    if (val == null || Number.isNaN(Number(val))) return '—';
+    const n = Number(val);
+    return n === 10.5 ? '10+' : String(n);
+  };
+
   if (!isOpen || !trade) return null;
 
   // Update editedTrade when trade changes
@@ -150,12 +164,17 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         ? (Number(newRisk) * riskRewardRatio)
         : -Number(newRisk);
 
-      setEditedTrade({
+      // When outcome becomes Lose, set Potential R:R to 0 (read-only)
+      const nextState = {
         ...editedTrade,
         [field]: value,
         calculated_profit: calculatedProfit,
         pnl_percentage: pnlPercentage
-      });
+      };
+      if (field === 'trade_outcome' && value === 'Lose') {
+        nextState.risk_reward_ratio_long = 0;
+      }
+      setEditedTrade(nextState);
     } else {
       setEditedTrade({
         ...editedTrade,
@@ -187,7 +206,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         risk_per_trade: editedTrade.risk_per_trade,
         trade_outcome: editedTrade.trade_outcome,
         risk_reward_ratio: editedTrade.risk_reward_ratio,
-        risk_reward_ratio_long: editedTrade.risk_reward_ratio_long,
+        risk_reward_ratio_long: editedTrade.trade_outcome === 'Lose' ? 0 : editedTrade.risk_reward_ratio_long,
         trade_link: editedTrade.trade_link,
         liquidity_taken: editedTrade.liquidity_taken,
         mss: editedTrade.mss,
@@ -323,6 +342,14 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       }
       if (type === 'number') {
         const displayValue = typeof value === 'number' ? value.toFixed(2) : value;
+        if (field === 'risk_reward_ratio_long') {
+          return (
+            <div>
+              <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
+              <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">{formatPotentialRR(value as number)}</dd>
+            </div>
+          );
+        }
         if (field === 'pnl_percentage' || field === 'risk_per_trade' || field === 'displacement_size') {
           return (
             <div>
@@ -342,14 +369,13 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               </dd>
             </div>
           );
-        } else {
-          return (
-            <div>
-              <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
-              <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">{displayValue}</dd>
-            </div>
-          );
         }
+        return (
+          <div>
+            <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
+            <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">{displayValue}</dd>
+          </div>
+        );
       }
       return (
         <div>
@@ -411,6 +437,44 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
           </div>
         );
       }
+    }
+
+    // Potential Risk:Reward Ratio (RR Long) – select 1, 1.5, … 10, 10+; read-only when outcome is Lose
+    if (field === 'risk_reward_ratio_long') {
+      if (editedTrade.trade_outcome === 'Lose') {
+        return (
+          <div>
+            <label className={`${labelClass} mb-2`}>{label}</label>
+            <Input
+              type="text"
+              value="0"
+              readOnly
+              className={`${inputClass} bg-slate-200/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 cursor-not-allowed`}
+            />
+          </div>
+        );
+      }
+      const currentValue = editedTrade.risk_reward_ratio_long != null ? String(editedTrade.risk_reward_ratio_long) : '';
+      return (
+        <div>
+          <label className={`${labelClass} mb-2`}>{label}</label>
+          <Select
+            value={currentValue}
+            onValueChange={(v) => handleInputChange('risk_reward_ratio_long', v === '' ? undefined : Number(v))}
+          >
+            <SelectTrigger className={selectTriggerClass}>
+              <SelectValue placeholder="Potential RR (1 – 10 or 10+)" />
+            </SelectTrigger>
+            <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+              {POTENTIAL_RR_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={String(opt.value)}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
     }
 
     // For Displacement Size, handle as number (normalize so no leading zeros)
