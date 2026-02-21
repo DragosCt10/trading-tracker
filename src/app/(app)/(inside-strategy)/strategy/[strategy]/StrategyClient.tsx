@@ -361,8 +361,6 @@ export default function StrategyClient(
     setupStats,
     liquidityStats,
     directionStats,
-    reentryStats,
-    breakEvenStats,
     intervalStats,
     mssStats,
     newsStats,
@@ -551,8 +549,8 @@ export default function StrategyClient(
       directionStats,
       localHLStats,
       slSizeStats,
-      reentryStats,
-      breakEvenStats,
+      reentryStats: reentryStatsFromTradesToUse,
+      breakEvenStats: breakEvenStatsFromTradesToUse,
       intervalStats,
       mssStats,
       newsStats,
@@ -563,11 +561,6 @@ export default function StrategyClient(
 
   // Recompute chart data arrays using filtered stats when filters are applied
   const setupChartDataFiltered: TradeStatDatum[] = convertFilteredSetupStatsToChartData(statsToUseForCharts.setupStats);
-
-  const liquidityChartDataFiltered: TradeStatDatum[] = convertFilteredLiquidityStatsToChartData(statsToUseForCharts.liquidityStats);
-  const directionChartDataFiltered: TradeStatDatum[] = convertFilteredDirectionStatsToChartData(statsToUseForCharts.directionStats);
-
-  const localHLChartDataFiltered: TradeStatDatum[] = convertFilteredLocalHLStatsToChartData(statsToUseForCharts.localHLStats);
 
   const timeIntervalChartDataFiltered: TradeStatDatum[] = TIME_INTERVALS.map((interval) => {
     const stat =
@@ -1161,16 +1154,8 @@ export default function StrategyClient(
         />
         {/* Trade Types Statistics Card */}
         <TradeTypesStatisticsCard
-          reentryStats={
-            filteredChartStats
-              ? (statsToUseForCharts.reentryStats as TradeTypesStatisticsCardProps['reentryStats'])
-              : reentryStatsFromTradesToUse
-          }
-          breakEvenStats={
-            filteredChartStats
-              ? (statsToUseForCharts.breakEvenStats as TradeTypesStatisticsCardProps['breakEvenStats'])
-              : breakEvenStatsFromTradesToUse
-          }
+          reentryStats={statsToUseForCharts.reentryStats as TradeTypesStatisticsCardProps['reentryStats']}
+          breakEvenStats={statsToUseForCharts.breakEvenStats as TradeTypesStatisticsCardProps['breakEvenStats']}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
