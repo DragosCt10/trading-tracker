@@ -72,12 +72,12 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
       }
     }, [mounted, externalLoading]);
 
-    // Calculate non-BE partial wins and losses
+    // Non-BE partial wins/losses (for pie segments); total wins/losses include BE for display
     const wins = partialWinningTrades - beWinPartialTrades;
     const losses = partialLosingTrades - beLosingPartialTrades;
     const totalBE = beWinPartialTrades + beLosingPartialTrades;
-    const totalWins = partialWinningTrades;
-    const totalLosses = partialLosingTrades;
+    const totalWins = partialWinningTrades + beWinPartialTrades;
+    const totalLosses = partialLosingTrades + beLosingPartialTrades;
 
     // Prepare pie chart data
     const totalForChart = wins + losses + totalBE;
@@ -113,17 +113,46 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
       const percentage = totalForChart > 0 ? (data.value / totalForChart) * 100 : 0;
 
       return (
-        <div className={cn("relative overflow-hidden rounded-xl p-3 border shadow-lg shadow-slate-900/5 dark:shadow-black/40 backdrop-blur-xl", colors.bg)}>
+        <div className={cn("relative overflow-hidden rounded-xl p-4 border shadow-lg shadow-slate-900/5 dark:shadow-black/40 backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border-slate-200/60 dark:border-slate-700/60", colors.bg)}>
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5 rounded-xl" />
-          <div className="relative flex flex-col">
+          <div className="relative flex flex-col gap-3">
             <div className="flex items-center gap-2">
-              <div className={cn("h-2 w-2 rounded-full shadow-sm ring-2", colors.dot)}></div>
-              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                {data.name}: <span className={cn("font-bold", colors.text)}>{data.value}</span>
+              <div className={cn("h-2 w-2 rounded-full shadow-sm ring-2", colors.dot)} />
+              <div className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                {data.name} - {percentage.toFixed(1)}% ({data.value} {data.value === 1 ? 'TRADE' : 'TRADES'})
               </div>
             </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 ml-4 font-medium">
-              {percentage.toFixed(1)}% of total
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
+                <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                  {totalWins}
+                  {beWinPartialTrades > 0 && (
+                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">({beWinPartialTrades} BE)</span>
+                  )}
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
+                <span className="text-base font-bold text-rose-600 dark:text-rose-400">
+                  {totalLosses}
+                  {beLosingPartialTrades > 0 && (
+                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">({beLosingPartialTrades} BE)</span>
+                  )}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                  {partialWinRate.toFixed(2)}%
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-4 pt-1">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate (w/ BE):</span>
+                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                  {partialWinRateWithBE.toFixed(2)}%
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -275,7 +304,7 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
               </div>
             </div>
           </div>
-          {/* Stats labels - positioned below the pie chart */}
+          {/* Stats labels - Wins, Losses, BE (win rate in tooltip like Long/Short) */}
           <div className="w-full px-4 pt-4 mt-2">
             <div className="flex items-center justify-center gap-8">
               <div className="flex flex-col items-center">
@@ -291,7 +320,7 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
                   )}
                 </div>
               </div>
-              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
+              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
               <div className="flex flex-col items-center">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                   Losses
@@ -305,25 +334,14 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
                   )}
                 </div>
               </div>
-              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
+              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
               <div className="flex flex-col items-center">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  Winrate
+                  BE
                 </div>
-                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {partialWinRate.toFixed(1)}%
+                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                  {totalBE}
                 </div>
-                <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Simple</div>
-              </div>
-              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
-              <div className="flex flex-col items-center">
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  Winrate
-                </div>
-                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {partialWinRateWithBE.toFixed(1)}%
-                </div>
-                <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">w/ BE</div>
               </div>
             </div>
           </div>
