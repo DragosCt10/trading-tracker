@@ -15,6 +15,7 @@ import { AverageMonthlyTradesCard } from './AverageMonthlyTradesCard';
 import { PartialTradesChartCard } from './PartialTradesChartCard';
 import { ExecutedNonExecutedTradesCard } from './ExecutedNonExecutedTradesCard';
 import { DirectionStatisticsCard } from './DirectionStatisticsCard';
+import RiskPerTrade, { type RiskAnalysis } from './RiskPerTrade';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
 
 interface MonthlyStatsForCard {
@@ -58,9 +59,11 @@ interface TradingOverviewStatsProps {
   showTitle?: boolean;
   /** When provided, renders Partial Trades, Executed/Non-Executed, and Long/Short cards. */
   partialRowProps?: CoreStatsPartialRowProps | null;
+  /** When provided, renders RiskPerTrade card below the three chart cards (with a separator above). */
+  allTradesRiskStats?: RiskAnalysis | null;
 }
 
-export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps }: TradingOverviewStatsProps) {
+export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps, allTradesRiskStats }: TradingOverviewStatsProps) {
   const stats = useMemo(() => calculateTradingOverviewStats(trades), [trades]);
   const totalExecutedTrades = useMemo(() => trades.filter((t) => t.executed === true).length, [trades]);
   const nonExecutedTotalTradesCount = useMemo(() => trades.filter((t) => t.executed !== true).length, [trades]);
@@ -101,6 +104,8 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
           <AverageMonthlyTradesCard monthlyStats={monthlyStats} />
         )}
       </div>
+
+      <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
 
       {/* Total Trades Chart and Streak Statistics - 2 columns */}
       <div className="col-span-full grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -143,6 +148,15 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
             isLoading={partialRowProps.chartsLoadingState}
           />
         </div>
+      )}
+
+      {allTradesRiskStats !== undefined && (
+        <>
+          <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
+          <div className="col-span-full">
+            <RiskPerTrade className="my-0" allTradesRiskStats={allTradesRiskStats} />
+          </div>
+        </>
       )}
     </>
   );
