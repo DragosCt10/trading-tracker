@@ -67,7 +67,7 @@ import {
   getDaysInMonthForDate,
   buildWeeklyStats,
 } from '@/components/dashboard/analytics/TradesCalendarCard';
-import { TradeStatDatum, TradeStatsBarCard } from '@/components/dashboard/analytics/TradesStatsBarCard';
+import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
 import {
   SetupStatisticsCard,
   convertSetupStatsToChartData,
@@ -105,6 +105,7 @@ import {
   MarketStatisticsCard,
   type MarketStatisticsCardProps,
 } from '@/components/dashboard/analytics/MarketStatisticsCard';
+import { TimeIntervalStatisticsCard } from '@/components/dashboard/analytics/TimeIntervalStatisticsCard';
 import {
   EvaluationStats,
 } from '@/components/dashboard/analytics/EvaluationStats';
@@ -1136,12 +1137,8 @@ export default function StrategyClient(
       </div>
 
       <div className="my-8">
-        <TradeStatsBarCard
-          title="Time Interval Analysis"
-          description="Distribution of trades based on time interval"
+        <TimeIntervalStatisticsCard
           data={timeIntervalChartDataToUse}
-          mode="winsLossesWinRate"
-          heightClassName="h-72"
           isLoading={chartsLoadingState}
         />
       </div>
