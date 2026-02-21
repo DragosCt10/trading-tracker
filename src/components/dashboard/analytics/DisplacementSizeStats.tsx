@@ -315,7 +315,7 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
           ) : !hasAnyQualifyingTrades ? (
             <div className="flex flex-col justify-center items-center w-full h-full">
               <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
-                No qualifying trades found
+                No trades found
               </div>
               <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
                 There are no trades to display for this category yet. Start trading to see your statistics here!
