@@ -468,12 +468,6 @@ export default function StrategyClient(
   // Use correct market stats based on view mode
   const marketStatsToUse = viewMode === 'yearly' ? marketAllTradesStats : marketStats;
 
-  
-
-
-
-
-
   // Determine which monthly stats to use based on view mode (for AccountOverviewCard - profit only)
   // Determine which trades to use based on view mode, market filter, and execution filter
   const tradesToUse = useMemo(() => {
