@@ -1205,9 +1205,9 @@ export default function StrategyClient(
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
-        {/* Local H/L Analysis Card */}
+        {/* Local H/L Analysis Card - always uses same trades as Core stats row (Long/Short, Partial, Executed/Non-Executed) */}
         <LocalHLStatisticsCard
-          localHLStats={filteredChartStats ? statsToUseForCharts.localHLStats : localHLStatsFromTradesToUse}
+          localHLStats={localHLStatsFromTradesToUse}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
