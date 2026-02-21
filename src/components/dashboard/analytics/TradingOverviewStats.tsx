@@ -10,6 +10,7 @@ import { TotalTradesChartCard } from './TotalTradesChartCard';
 import { RRMultipleStatCard } from './RRMultipleStatCard';
 import { PNLPercentageStatCard } from './PNLPercentageStatCard';
 import { AverageDaysBetweenTradesCard } from './AverageDaysBetweenTradesCard';
+import { AverageMonthlyTradesCard } from './AverageMonthlyTradesCard';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
 
 interface MonthlyStatsForCard {
@@ -59,8 +60,8 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
         hydrated={hydrated}
       />
 
-      {/* Key metrics: RR Multiple, P&L %, and Average Days Between Trades - 3 cards on a single row */}
-      <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Key metrics: RR Multiple, P&L %, Average Days Between Trades; in year mode also Average Monthly Trades */}
+      <div className={`col-span-full grid grid-cols-1 gap-4 ${viewMode === 'yearly' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
         <RRMultipleStatCard tradesToUse={trades} />
         <PNLPercentageStatCard tradesToUse={trades} accountBalance={accountBalance} />
         <AverageDaysBetweenTradesCard
@@ -68,6 +69,9 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
           viewMode={viewMode}
           monthlyStats={monthlyStats ?? undefined}
         />
+        {viewMode === 'yearly' && monthlyStats?.monthlyData && (
+          <AverageMonthlyTradesCard monthlyStats={monthlyStats} />
+        )}
       </div>
 
       {/* Total Trades Chart and Streak Statistics - 2 columns */}
