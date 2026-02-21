@@ -1184,7 +1184,7 @@ export default function StrategyClient(
       </div>
       
 
-      {/* Statistics Cards Row */}
+      {/* Liquidity Statistics & Local H/L Analysis Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
         {/* Liquidity Statistics Card */}
         <LiquidityStatisticsCard
@@ -1192,9 +1192,6 @@ export default function StrategyClient(
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
         {/* Local H/L Analysis Card */}
         <LocalHLStatisticsCard
           localHLStats={filteredChartStats ? statsToUseForCharts.localHLStats : localHLStatsFromTradesToUse}
