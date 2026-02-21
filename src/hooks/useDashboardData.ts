@@ -110,7 +110,7 @@ export function useDashboardData({
   });
   const [monthlyStatsAllTrades, setMonthlyStatsAllTrades] = useState<Record<string, MonthlyStats>>({});
   const [localHLStats, setLocalHLStats] = useState<LocalHLStats>({
-    lichidat: {
+    liquidated: {
       wins: 0,
       losses: 0,
       winRate: 0,
@@ -119,7 +119,7 @@ export function useDashboardData({
       winRateWithBE: 0,
       total: 0
     },
-    nelichidat: {
+    notLiquidated: {
       wins: 0,
       losses: 0,
       winRate: 0,
@@ -564,7 +564,7 @@ export function useDashboardData({
     if (trades.length === 0 || activeAccount?.account_balance == null) {
       // Clear all derived category datasets when empty
       const emptyLocalHL: LocalHLStats = {
-        lichidat: { 
+        liquidated: { 
           wins: 0, 
           losses: 0, 
           winRate: 0, 
@@ -573,7 +573,7 @@ export function useDashboardData({
           winRateWithBE: 0, 
           total: 0 
         },
-        nelichidat: { 
+        notLiquidated: { 
           wins: 0, 
           losses: 0, 
           winRate: 0, 
