@@ -7,6 +7,7 @@ import {
   ComposedChart,
   Bar as ReBar,
   Area,
+  Line,
   XAxis,
   YAxis,
   Tooltip as ReTooltip,
@@ -175,6 +176,25 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
       );
     };
 
+    const rightAxisLabel = (props: { viewBox?: { x?: number; y?: number; width?: number; height?: number } }) => {
+      const vb = props.viewBox ?? {};
+      const x = (vb.x ?? 0) + (vb.width ?? 0) + 8;
+      const y = (vb.y ?? 0) + (vb.height ?? 0) / 2;
+      return (
+        <text
+          x={x}
+          y={y}
+          textAnchor="middle"
+          fill={axisTextColor}
+          fontSize={12}
+          fontWeight={500}
+          transform={`rotate(90, ${x}, ${y})`}
+        >
+          Win Rate
+        </text>
+      );
+    };
+
     if (!mounted || isLoading) {
       return (
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
@@ -231,7 +251,7 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={withTotals}
-                margin={{ top: 30, right: 20, left: 56, bottom: 10 }}
+                margin={{ top: 30, right: 56, left: 56, bottom: 10 }}
               >
                 <defs>
                   <linearGradient id="liquidityStatsTotalArea" x1="0" y1="0" x2="0" y2="1">
@@ -247,11 +267,6 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
                     <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
                     <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
                     <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
-                  </linearGradient>
-                  <linearGradient id="liquidityStatsWinRateBar" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor="#d97706" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#f59e0b" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.9} />
                   </linearGradient>
                 </defs>
                 <XAxis
@@ -282,9 +297,14 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
                   yAxisId="right"
                   orientation="right"
                   type="number"
-                  hide
+                  tick={{ fill: axisTextColor, fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `${v}%`}
                   domain={[0, 100]}
-                  width={0}
+                  width={56}
+                  tickMargin={8}
+                  label={rightAxisLabel}
                 />
                 <ReTooltip
                   contentStyle={{
@@ -316,7 +336,16 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
                 />
                 <ReBar dataKey="wins" name="Wins" fill="url(#liquidityStatsWinsBar)" radius={[4, 4, 0, 0]} barSize={20} yAxisId="left" />
                 <ReBar dataKey="losses" name="Losses" fill="url(#liquidityStatsLossesBar)" radius={[4, 4, 0, 0]} barSize={20} yAxisId="left" />
-                <ReBar dataKey="winRate" name="Win Rate" fill="url(#liquidityStatsWinRateBar)" radius={[4, 4, 0, 0]} barSize={14} yAxisId="right" />
+                <Line
+                  type="monotone"
+                  dataKey="winRate"
+                  name="Win Rate"
+                  yAxisId="right"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: '#f59e0b', strokeWidth: 0 }}
+                />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
