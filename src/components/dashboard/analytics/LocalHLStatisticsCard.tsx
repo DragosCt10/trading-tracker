@@ -242,7 +242,7 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
               Local H/L Stats
             </CardTitle>
             <CardDescription className="text-base text-slate-500 dark:text-slate-400">
-              Distribution of trades based on local high/low status
+              trades based on local high/low status
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex justify-center items-center">
@@ -260,7 +260,7 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
               Local H/L Stats
             </CardTitle>
             <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-              Distribution of trades based on local high/low status
+              Trades based on local high/low status
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col items-center justify-center">
@@ -289,7 +289,7 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
             Local H/L Stats
           </CardTitle>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-            Distribution of trades based on local high/low status
+            Trades based on local high/low status
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col items-center justify-center relative pt-2 pb-4">
