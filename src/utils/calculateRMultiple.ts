@@ -1,6 +1,13 @@
 import { Trade } from "@/types/trade";
 
-export function calculateRRStats(trades: Trade[]): number {
+/** Minimal shape needed for RR calculation (shared by client Trade and server row) */
+export interface RRStatsTrade {
+  break_even: boolean | null;
+  trade_outcome: string;
+  risk_reward_ratio: number | null;
+}
+
+export function calculateRRStats(trades: RRStatsTrade[]): number {
   return trades.reduce((sum, trade) => {
     const rr =
       typeof trade.risk_reward_ratio === "number" && !isNaN(trade.risk_reward_ratio)
