@@ -50,6 +50,16 @@ const SETUP_OPTIONS = [
 const LIQUIDITY_OPTIONS = ['Major Liquidity', 'Low Liquidity', 'Local Liquidity', 'HOD', 'LOD'];
 const MSS_OPTIONS = ['Normal', 'Aggressive'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
+
+// Potential Risk:Reward Ratio: 1 to 10 in 0.5 steps, plus 10+
+const POTENTIAL_RR_OPTIONS: { value: number; label: string }[] = [
+  ...Array.from({ length: 19 }, (_, i) => {
+    const v = 1 + i * 0.5;
+    return { value: v, label: String(v) };
+  }),
+  { value: 10.5, label: '10+' },
+];
+
 const WEEKDAY_MAP: Record<string, string> = {
   Monday: 'Monday', Tuesday: 'Tuesday', Wednesday: 'Wednesday', Thursday: 'Thursday',
   Friday: 'Friday', Saturday: 'Saturday', Sunday: 'Sunday',
@@ -254,6 +264,13 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       return prev.day_of_week === next.day_of_week && prev.quarter === next.quarter ? prev : next;
     });
   }, [trade.trade_date]);
+
+  // When outcome is Lose, set Potential R:R to 0 (not editable)
+  useEffect(() => {
+    if (trade.trade_outcome === 'Lose' && trade.risk_reward_ratio_long !== 0) {
+      setTrade((prev) => ({ ...prev, risk_reward_ratio_long: 0 as any }));
+    }
+  }, [trade.trade_outcome, trade.risk_reward_ratio_long]);
 
   // -------- Derived calculations --------
   const accountBalance = selection.activeAccount?.account_balance ?? 0;
@@ -634,15 +651,30 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
               <div className="space-y-1.5">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Potential Risk:Reward Ratio</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  inputMode="decimal"
-                  value={String(trade.risk_reward_ratio_long ?? '')}
-                  onChange={(e) => updateTrade('risk_reward_ratio_long', parseFloat(e.target.value) || 0)}
-                  className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
-                  placeholder="Potential RR"
-                />
+                {trade.trade_outcome === 'Lose' ? (
+                  <Input
+                    type="text"
+                    value="0"
+                    readOnly
+                    className="h-12 rounded-full bg-slate-200/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 cursor-not-allowed"
+                  />
+                ) : (
+                  <Select
+                    value={trade.risk_reward_ratio_long != null ? String(trade.risk_reward_ratio_long) : ''}
+                    onValueChange={(v) => updateTrade('risk_reward_ratio_long', v === '' ? undefined as any : Number(v))}
+                  >
+                    <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
+                      <SelectValue placeholder="Potential RR (1 – 10 or 10+)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {POTENTIAL_RR_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={String(opt.value)}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="space-y-1.5">
