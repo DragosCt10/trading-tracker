@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
-  BarChart,
+  ComposedChart,
   Bar as ReBar,
+  Line,
+  Area,
   XAxis,
   YAxis,
   Tooltip as ReTooltip,
@@ -113,9 +115,7 @@ export function MonthlyPerformanceChart({
     return () => observer.disconnect();
   }, []);
 
-  // Dynamic colors based on dark mode
-  const slate500 = isDark ? '#94a3b8' : '#64748b'; // slate-400 in dark, slate-500 in light
-  const axisTextColor = isDark ? '#cbd5e1' : '#64748b'; // slate-300 in dark, slate-500 in light
+  const axisTextColor = isDark ? '#cbd5e1' : '#64748b';
 
   const chartData = months.map((month) => {
     const stats = monthlyStatsAllTrades[month] || {
@@ -185,10 +185,10 @@ export function MonthlyPerformanceChart({
     );
   }
 
-  // Calculate the max of wins or losses (show on Y axis)
-  const maxWinsLosses = Math.max(
-    ...chartData.map((d) => Math.max(d.wins, d.losses)),
-    1 // fallback in case of empty data
+  const maxTotal = Math.max(
+    ...chartData.map((d) => d.wins + d.losses),
+    ...chartData.map((d) => d.totalTrades),
+    1
   );
 
   const CustomTooltip = ({
@@ -237,27 +237,7 @@ export function MonthlyPerformanceChart({
     );
   };
 
-  const renderXAxisTick = (props: any) => {
-    const { x, y, payload } = props;
-    const index = payload?.index;
-    const d = chartData[index];
-    if (!d) return null;
-
-    return (
-      <text
-        x={x}
-        y={y}
-        dy={16}
-        textAnchor="middle"
-        fill={axisTextColor}
-        fontSize={12}
-      >
-        {d.month} ({d.totalTrades})
-      </text>
-    );
-  };
-
-  // Explicit Y axis tick formatter for wins/losses (integer counts, no %)
+  // Y axis tick formatter for wins/losses (integer counts)
   const yAxisTickFormatter = (value: number) =>
     Number(value ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
@@ -273,126 +253,127 @@ export function MonthlyPerformanceChart({
       </CardHeader>
 
       <CardContent className="flex-1 flex items-center">
-        <div className="w-full h-full">
+        <div className="w-full h-full min-h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart
+            <ComposedChart
               data={chartData}
-              layout="horizontal"
-              margin={{ top: 10, right: 24, left: 16, bottom: 48 }}
-              barCategoryGap="30%"
+              margin={{ top: 12, right: 44, left: 12, bottom: 48 }}
             >
               <defs>
-                {/* Modern wins gradient - emerald to teal (same as profit in AccountOverviewCard) */}
-                <linearGradient id="winsGradient" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="composedTotalArea" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={isDark ? '#64748b' : '#94a3b8'} stopOpacity={0.2} />
+                  <stop offset="100%" stopColor={isDark ? '#64748b' : '#94a3b8'} stopOpacity={0.02} />
+                </linearGradient>
+                {/* Wins gradient – same as SetupStatisticsCard / TradesStatsBarCard */}
+                <linearGradient id="composedWinsBar" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
                   <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
                   <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
                 </linearGradient>
-                {/* Modern losses gradient - rose to red (same as loss in AccountOverviewCard) */}
-                <linearGradient id="lossesGradient" x1="0" y1="1" x2="0" y2="0">
+                {/* Losses gradient – same as SetupStatisticsCard / TradesStatsBarCard */}
+                <linearGradient id="composedLossesBar" x1="0" y1="1" x2="0" y2="0">
                   <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
                   <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
                   <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
                 </linearGradient>
-                {/* Win rate gradient - amber to orange */}
-                <linearGradient id="winRateGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
-                  <stop offset="50%" stopColor="#f97316" stopOpacity={0.95} />
-                  <stop offset="100%" stopColor="#ea580c" stopOpacity={0.9} />
-                </linearGradient>
               </defs>
-              
-              {/* X axis: months and trade counts */}
+
               <XAxis
                 dataKey="month"
                 type="category"
                 axisLine={false}
                 tickLine={false}
-                tick={renderXAxisTick as (props: any) => React.ReactElement<SVGElement>}
+                tick={{ fill: axisTextColor, fontSize: 11 }}
+                tickFormatter={(_: string, i: number) => {
+                  const d = chartData[i];
+                  return d ? `${d.month} (${d.totalTrades})` : '';
+                }}
               />
-              {/* Y axis: numeric (wins/losses only, label is win/loss not %/winrate) */}
               <YAxis
+                yAxisId="left"
                 type="number"
                 tick={{ fill: axisTextColor, fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={yAxisTickFormatter}
-                // Explicitly set Y axis domain to wins/losses max instead of win rate 0–100
-                domain={[0, Math.ceil(maxWinsLosses * 1.12)]}
+                domain={[0, Math.ceil(maxTotal * 1.15)]}
+                width={28}
                 label={{
                   value: 'Wins / Losses',
                   angle: -90,
-                  position: 'middle',
+                  position: 'insideLeft',
                   fill: axisTextColor,
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: 500,
-                  dy: -10,
+                }}
+              />
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                type="number"
+                tick={{ fill: axisTextColor, fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v) => `${v}%`}
+                domain={[0, 100]}
+                width={36}
+                label={{
+                  value: 'Win Rate',
+                  angle: 90,
+                  position: 'insideRight',
+                  fill: axisTextColor,
+                  fontSize: 12,
+                  fontWeight: 500,
                 }}
               />
 
               <ReTooltip
-                contentStyle={{ 
-                  background: isDark 
-                    ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)' 
+                contentStyle={{
+                  background: isDark
+                    ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)'
                     : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
                   backdropFilter: 'blur(16px)',
-                  border: isDark 
-                    ? '1px solid rgba(51, 65, 85, 0.6)' 
-                    : '1px solid rgba(148, 163, 184, 0.2)', 
-                  borderRadius: '16px', 
-                  padding: '14px 18px', 
-                  color: isDark ? '#e2e8f0' : '#1e293b', 
+                  border: isDark
+                    ? '1px solid rgba(51, 65, 85, 0.6)'
+                    : '1px solid rgba(148, 163, 184, 0.2)',
+                  borderRadius: '16px',
+                  padding: '14px 18px',
+                  color: isDark ? '#e2e8f0' : '#1e293b',
                   fontSize: 14,
                   boxShadow: isDark
                     ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05)'
                     : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-                  minWidth: '160px'
+                  minWidth: '160px',
                 }}
-                wrapperStyle={{ 
-                  outline: 'none',
-                  zIndex: 1000
-                }}
-                cursor={{ 
-                  fill: 'transparent', 
-                  radius: 8,
-                }}
+                wrapperStyle={{ outline: 'none', zIndex: 1000 }}
+                cursor={{ stroke: isDark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.4)', strokeWidth: 1 }}
                 content={<CustomTooltip />}
               />
 
-              {/* Wins */}
-              <ReBar
-                dataKey="wins"
-                name="Wins"
-                fill="url(#winsGradient)"
-                radius={[4, 4, 0, 0]}
-                barSize={18}
+              {/* Area: total trades (wins + losses) – soft background */}
+              <Area
+                type="monotone"
+                dataKey="totalTrades"
+                name="Total"
+                yAxisId="left"
+                fill="url(#composedTotalArea)"
+                stroke="none"
               />
-
-              {/* Losses */}
-              <ReBar
-                dataKey="losses"
-                name="Losses"
-                fill="url(#lossesGradient)"
-                radius={[4, 4, 0, 0]}
-                barSize={18}
-              />
-
-              {/* Win Rate as bar (0–100) */}
-              <ReBar
+              {/* Bars: wins & losses */}
+              <ReBar dataKey="wins" name="Wins" fill="url(#composedWinsBar)" radius={[4, 4, 0, 0]} barSize={20} yAxisId="left" />
+              <ReBar dataKey="losses" name="Losses" fill="url(#composedLossesBar)" radius={[4, 4, 0, 0]} barSize={20} yAxisId="left" />
+              {/* Line: win rate % */}
+              <Line
+                type="monotone"
                 dataKey="winRate"
                 name="Win Rate"
-                fill="url(#winRateGradient)"
-                radius={[4, 4, 0, 0]}
-                barSize={18}
-                yAxisId={1} // Place Win Rate on a secondary axis (not visible)
+                yAxisId="right"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                dot={false}
+                activeDot={false}
               />
-              {/* Hide secondary Y axis so winRate doesn't affect autoscaling */}
-              <YAxis
-                yAxisId={1}
-                hide={true}
-                domain={[0, 100]}
-              />
-            </BarChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
