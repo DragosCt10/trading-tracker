@@ -1140,10 +1140,39 @@ export default function StrategyClient(
         />
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+        {/* Potential Risk/Reward Ratio Statistics */}
+        <RiskRewardStats
+          trades={tradesToUse}
+          isLoading={chartsLoadingState}
+        />
+        {/* SL Size Statistics Card */}
+        <SLSizeStatisticsCard
+          slSizeStats={filteredChartStats ? statsToUseForCharts.slSizeStats : slSizeStatsFromTradesToUse}
+          isLoading={chartsLoadingState}
+        />
+      </div>
+
       <div className="my-8">
         <TimeIntervalStatisticsCard
           data={timeIntervalChartDataToUse}
           isLoading={chartsLoadingState}
+        />
+      </div>
+
+      {/* Day Statistics & News Statistics Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
+        {/* Day Statistics Card */}
+        <DayStatisticsCard
+          dayStats={filteredChartStats ? (statsToUseForCharts.dayStats as DayStatisticsCardProps['dayStats']) : dayStats}
+          isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
+        />
+        {/* News Statistics Card */}
+        <NewsStatisticsCard
+          newsStats={filteredChartStats ? (statsToUseForCharts.newsStats as NewsStatisticsCardProps['newsStats']) : newsStats}
+          isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
         />
       </div>
 
@@ -1158,19 +1187,6 @@ export default function StrategyClient(
           }
           chartOptions={chartOptions}
           getCurrencySymbol={getCurrencySymbol}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
-        {/* Potential Risk/Reward Ratio Statistics */}
-        <RiskRewardStats
-          trades={tradesToUse}
-          isLoading={chartsLoadingState}
-        />
-        {/* SL Size Statistics Card */}
-        <SLSizeStatisticsCard
-          slSizeStats={filteredChartStats ? statsToUseForCharts.slSizeStats : slSizeStatsFromTradesToUse}
-          isLoading={chartsLoadingState}
         />
       </div>
 
@@ -1201,26 +1217,9 @@ export default function StrategyClient(
       </div>
 
       <div className="my-8">
-        {/* Day Statistics Card */}
-        <DayStatisticsCard
-          dayStats={filteredChartStats ? (statsToUseForCharts.dayStats as DayStatisticsCardProps['dayStats']) : dayStats}
-          isLoading={chartsLoadingState}
-          includeTotalTrades={filteredChartStats !== null}
-        />
-      </div>
-
-      {/* MSS and News Statistics Cards Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* MSS Statistics Card */}
         <MSSStatisticsCard
           mssStats={filteredChartStats ? (statsToUseForCharts.mssStats as MSSStatisticsCardProps['mssStats']) : mssStats}
-          isLoading={chartsLoadingState}
-          includeTotalTrades={filteredChartStats !== null}
-        />
-
-        {/* News Statistics Card */}
-        <NewsStatisticsCard
-          newsStats={filteredChartStats ? (statsToUseForCharts.newsStats as NewsStatisticsCardProps['newsStats']) : newsStats}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
