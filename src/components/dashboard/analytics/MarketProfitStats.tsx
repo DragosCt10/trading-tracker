@@ -286,7 +286,7 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
             <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={chartDataWithScaled}
-              margin={{ top: 30, right: 56, left: 5, bottom: 10 }}
+              margin={{ top: 30, right: 18, left: 5, bottom: 10 }}
             >
               <defs>
                 <linearGradient id="marketProfitTotalArea" x1="0" y1="0" x2="0" y2="1">
@@ -323,12 +323,9 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                tick={{ fill: axisTextColor, fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(v) => `${v}%`}
+                hide
                 domain={[0, 100]}
-                width={48}
+                width={0}
               />
               <ReTooltip
                 contentStyle={{ 
