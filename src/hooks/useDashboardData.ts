@@ -19,8 +19,6 @@ import {
   calculateLocalHLStats,
   calculateIntervalStats,
   calculateSLSizeStats,
-  calculateReentryStats,
-  calculateBreakEvenStats,
   calculateMssStats,
   calculateNewsStats,
   calculateDayStats,
@@ -41,8 +39,8 @@ import {
   RiskAnalysis,
   SetupStats, 
   SLSizeStats, 
-  Stats, 
-  TradeTypeStats } from '@/types/dashboard';
+  Stats,
+} from '@/types/dashboard';
 import { calculateEvaluationStats } from '@/utils/calculateEvaluationStats';
 import { calculateTradeQualityIndex } from '@/utils/calculateTradeQualityIndex';
 import { calculateRRStats } from '@/utils/calculateRMultiple';
@@ -143,8 +141,6 @@ export function useDashboardData({
   const [liquidityStats, setLiquidityStats] = useState<LiquidityStats[]>([]);
   const [nonExecutedLiquidityStats, setNonExecutedLiquidityStats] = useState<LiquidityStats[]>([]);
   const [directionStats, setDirectionStats] = useState<DirectionStats[]>([]);
-  const [reentryStats, setReentryStats] = useState<TradeTypeStats[]>([]);
-  const [breakEvenStats, setBreakEvenStats] = useState<TradeTypeStats[]>([]);
   const [mssStats, setMssStats] = useState<MssStats[]>([]);
   const [newsStats, setNewsStats] = useState<NewsStats[]>([]);
   const [dayStats, setDayStats] = useState<DayStats[]>([]);
@@ -600,8 +596,6 @@ export function useDashboardData({
       setLocalHLStats(emptyLocalHL);
       setIntervalStats([]);
       setSlSizeStats([]);
-      setReentryStats([]);
-      setBreakEvenStats([]);
       setMssStats([]);
       setNewsStats([]);
       setDayStats([]);
@@ -617,8 +611,6 @@ export function useDashboardData({
     setLocalHLStats(calculateLocalHLStats(trades));
     setIntervalStats(calculateIntervalStats(trades, TIME_INTERVALS));
     setSlSizeStats(calculateSLSizeStats(trades));
-    setReentryStats(calculateReentryStats(trades));
-    setBreakEvenStats(calculateBreakEvenStats(trades));
     setMssStats(calculateMssStats(trades));
     setNewsStats(calculateNewsStats(trades));
     setDayStats(calculateDayStats(trades));
@@ -646,8 +638,6 @@ export function useDashboardData({
     liquidityStats,
     nonExecutedLiquidityStats,
     directionStats,
-    reentryStats,
-    breakEvenStats,
     intervalStats,
     mssStats,
     newsStats,
