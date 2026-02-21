@@ -118,8 +118,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   const { strategies } = useStrategies({ userId });
   const queryClient = useQueryClient();
   
-  // Get strategy slug from URL params
+  // Get strategy slug from URL params – institutional-only fields shown only for trading-institutional
   const strategySlug = params?.strategy as string | undefined;
+  const isTradingInstitutional = strategySlug === 'trading-institutional';
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -335,8 +336,12 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     e.preventDefault();
     setError(null);
 
-    if (!trade.market || !trade.setup_type || !trade.liquidity || !trade.mss || !trade.sl_size) {
-      setError('Please fill in all required fields');
+    if (!trade.market || !trade.trade_time) {
+      setError('Please fill in all required fields (including Trade Time).');
+      return;
+    }
+    if (isTradingInstitutional && (!trade.setup_type || !trade.liquidity || !trade.mss || !trade.sl_size)) {
+      setError('Please fill in all required fields (Setup Type, Liquidity, MSS, SL Size).');
       return;
     }
 
@@ -483,20 +488,22 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
             {/* Links & Info Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="liquidity-taken" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Liquidity Taken
-                </Label>
-                <Input
-                  id="liquidity-taken"
-                  type="text"
-                  value={trade.liquidity_taken}
-                  onChange={(e) => updateTrade('liquidity_taken', e.target.value)}
-                  className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
-                  placeholder="e.g., Buy side liquidity"
-                />
-              </div>
+            <div className={`grid gap-4 ${isTradingInstitutional ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+              {isTradingInstitutional && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="liquidity-taken" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Liquidity Taken
+                  </Label>
+                  <Input
+                    id="liquidity-taken"
+                    type="text"
+                    value={trade.liquidity_taken}
+                    onChange={(e) => updateTrade('liquidity_taken', e.target.value)}
+                    className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
+                    placeholder="e.g., Buy side liquidity"
+                  />
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <Label htmlFor="trade-link" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -533,7 +540,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
               <div className="space-y-1.5">
                 <Label htmlFor="trade-time" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Trade Time
+                  Trade Time *
                 </Label>
                 <Input
                   id="trade-time"
@@ -541,6 +548,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   value={trade.trade_time}
                   onChange={(e) => updateTrade('trade_time', e.target.value)}
                   className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
+                  required
                 />
               </div>
             </div>
@@ -548,7 +556,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             <Separator />
 
             {/* Market & Setup Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className={`grid gap-4 ${isTradingInstitutional ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
               <div className="space-y-1.5">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Market *</Label>
                 <Select value={trade.market} onValueChange={(v) => updateTrade('market', v)}>
@@ -563,19 +571,21 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Setup Type *</Label>
-                <Select value={trade.setup_type} onValueChange={(v) => updateTrade('setup_type', v)}>
-                  <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
-                    <SelectValue placeholder="Select Setup" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SETUP_OPTIONS.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {isTradingInstitutional && (
+                <div className="space-y-1.5">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Setup Type *</Label>
+                  <Select value={trade.setup_type} onValueChange={(v) => updateTrade('setup_type', v)}>
+                    <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
+                      <SelectValue placeholder="Select Setup" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SETUP_OPTIONS.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {/* Direction & Outcome */}
@@ -607,36 +617,37 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               </div>
             </div>
 
-            {/* Liquidity & MSS */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Liquidity *</Label>
-                <Select value={trade.liquidity} onValueChange={(v) => updateTrade('liquidity', v)}>
-                  <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
-                    <SelectValue placeholder="Select Liquidity" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LIQUIDITY_OPTIONS.map((l) => (
-                      <SelectItem key={l} value={l}>{l}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {isTradingInstitutional && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Liquidity *</Label>
+                  <Select value={trade.liquidity} onValueChange={(v) => updateTrade('liquidity', v)}>
+                    <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
+                      <SelectValue placeholder="Select Liquidity" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LIQUIDITY_OPTIONS.map((l) => (
+                        <SelectItem key={l} value={l}>{l}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="space-y-1.5">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">MSS *</Label>
-                <Select value={trade.mss} onValueChange={(v) => updateTrade('mss', v)}>
-                  <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
-                    <SelectValue placeholder="Select MSS" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MSS_OPTIONS.map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-1.5">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">MSS *</Label>
+                  <Select value={trade.mss} onValueChange={(v) => updateTrade('mss', v)}>
+                    <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
+                      <SelectValue placeholder="Select MSS" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MSS_OPTIONS.map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Risk Management Section */}
             <Separator />
@@ -697,7 +708,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               </div>
 
               <div className="space-y-1.5">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">SL Size *</Label>
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  SL Size {isTradingInstitutional ? '*' : ''}
+                </Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -705,22 +718,24 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   value={String(trade.sl_size ?? '')}
                   onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
                   className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
-                  required
+                  required={isTradingInstitutional}
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Displacement Size (Points)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  inputMode="decimal"
-                  value={String(trade.displacement_size ?? '')}
-                  onChange={(e) => updateTrade('displacement_size', parseFloat(e.target.value) || 0)}
-                  className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
-                  placeholder="Displacement"
-                />
-              </div>
+              {isTradingInstitutional && (
+                <div className="space-y-1.5">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Displacement Size (Points)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={String(trade.displacement_size ?? '')}
+                    onChange={(e) => updateTrade('displacement_size', parseFloat(e.target.value) || 0)}
+                    className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
+                    placeholder="Displacement"
+                  />
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
@@ -827,25 +842,17 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 <Label htmlFor="local-high-low" className="text-sm font-normal cursor-pointer">Local High/Low</Label>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="rr-hit-1-4"
-                  checked={trade.rr_hit_1_4}
-                  onCheckedChange={(checked) => updateTrade('rr_hit_1_4', checked as boolean)}
-                  className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
-                />
-                <Label htmlFor="rr-hit-1-4" className="text-sm font-normal cursor-pointer">1.4RR Hit</Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="launch-hour"
-                  checked={trade.launch_hour}
-                  onCheckedChange={(checked) => updateTrade('launch_hour', checked as boolean)}
-                  className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
-                />
-                <Label htmlFor="launch-hour" className="text-sm font-normal cursor-pointer">LH</Label>
-              </div>
+              {isTradingInstitutional && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="launch-hour"
+                    checked={trade.launch_hour}
+                    onCheckedChange={(checked) => updateTrade('launch_hour', checked as boolean)}
+                    className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
+                  />
+                  <Label htmlFor="launch-hour" className="text-sm font-normal cursor-pointer">LH</Label>
+                </div>
+              )}
 
               <div className="flex items-center space-x-2">
                 <Checkbox
