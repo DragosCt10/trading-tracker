@@ -1,5 +1,6 @@
 import { Trade } from '@/types/trade';
 import { TIME_INTERVALS } from '@/constants/analytics';
+import { isLocalHighLowLiquidated } from '@/utils/calculateCategoryStats';
 
 export function computeStatsFromTrades(trades: Trade[]) {
   // Setup stats - add total field to track all trades including non-executed
@@ -9,7 +10,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
   // Direction stats
   const directionMap = new Map<string, { total: number; wins: number; losses: number; beWins: number; beLosses: number }>();
   // Local H/L stats
-  const localHLStats = { lichidat: { wins: 0, losses: 0, winsWithBE: 0, lossesWithBE: 0, total: 0 }, nelichidat: { wins: 0, losses: 0, winsWithBE: 0, lossesWithBE: 0, total: 0 } };
+  const localHLStats = { liquidated: { wins: 0, losses: 0, winsWithBE: 0, lossesWithBE: 0, total: 0 }, notLiquidated: { wins: 0, losses: 0, winsWithBE: 0, lossesWithBE: 0, total: 0 } };
   // SL Size stats
   const slSizeMap = new Map<string, { total: number; sum: number }>();
   // Reentry stats
@@ -83,25 +84,25 @@ export function computeStatsFromTrades(trades: Trade[]) {
       else if (isLoss) directionStat.losses++;
     }
 
-    // Local H/L stats
-    const isLichidat = String(trade.local_high_low) === 'true';
-    if (isLichidat) {
-      localHLStats.lichidat.total++;
+    // Local H/L stats - same categorization as calculateLocalHLStats (boolean/string/number from API)
+    const isLiquidated = isLocalHighLowLiquidated(trade.local_high_low);
+    if (isLiquidated) {
+      localHLStats.liquidated.total++;
       if (isBE) {
-        if (isWin) localHLStats.lichidat.winsWithBE++;
-        else if (isLoss) localHLStats.lichidat.lossesWithBE++;
+        if (isWin) localHLStats.liquidated.winsWithBE++;
+        else if (isLoss) localHLStats.liquidated.lossesWithBE++;
       } else {
-        if (isWin) localHLStats.lichidat.wins++;
-        else if (isLoss) localHLStats.lichidat.losses++;
+        if (isWin) localHLStats.liquidated.wins++;
+        else if (isLoss) localHLStats.liquidated.losses++;
       }
     } else {
-      localHLStats.nelichidat.total++;
+      localHLStats.notLiquidated.total++;
       if (isBE) {
-        if (isWin) localHLStats.nelichidat.winsWithBE++;
-        else if (isLoss) localHLStats.nelichidat.lossesWithBE++;
+        if (isWin) localHLStats.notLiquidated.winsWithBE++;
+        else if (isLoss) localHLStats.notLiquidated.lossesWithBE++;
       } else {
-        if (isWin) localHLStats.nelichidat.wins++;
-        else if (isLoss) localHLStats.nelichidat.losses++;
+        if (isWin) localHLStats.notLiquidated.wins++;
+        else if (isLoss) localHLStats.notLiquidated.losses++;
       }
     }
 
@@ -342,42 +343,42 @@ export function computeStatsFromTrades(trades: Trade[]) {
   }));
 
   // Calculate local H/L win rates
-  const lichidatTotal = localHLStats.lichidat.wins + localHLStats.lichidat.losses;
-  const nelichidatTotal = localHLStats.nelichidat.wins + localHLStats.nelichidat.losses;
-  const lichidatTotalWithBE = lichidatTotal + localHLStats.lichidat.winsWithBE + localHLStats.lichidat.lossesWithBE;
-  const nelichidatTotalWithBE = nelichidatTotal + localHLStats.nelichidat.winsWithBE + localHLStats.nelichidat.lossesWithBE;
+  const liquidatedTotal = localHLStats.liquidated.wins + localHLStats.liquidated.losses;
+  const notLiquidatedTotal = localHLStats.notLiquidated.wins + localHLStats.notLiquidated.losses;
+  const liquidatedTotalWithBE = liquidatedTotal + localHLStats.liquidated.winsWithBE + localHLStats.liquidated.lossesWithBE;
+  const notLiquidatedTotalWithBE = notLiquidatedTotal + localHLStats.notLiquidated.winsWithBE + localHLStats.notLiquidated.lossesWithBE;
 
   const localHLStatsComputed = {
-    lichidat: {
-      ...localHLStats.lichidat,
-      wins: localHLStats.lichidat.wins,
-      losses: localHLStats.lichidat.losses,
+    liquidated: {
+      ...localHLStats.liquidated,
+      wins: localHLStats.liquidated.wins,
+      losses: localHLStats.liquidated.losses,
       winRate: winRateWithAllLosses(
-        localHLStats.lichidat.wins,
-        localHLStats.lichidat.losses,
-        localHLStats.lichidat.lossesWithBE
+        localHLStats.liquidated.wins,
+        localHLStats.liquidated.losses,
+        localHLStats.liquidated.lossesWithBE
       ),
       winRateWithBE: calculateWinRateWithBE(
-        localHLStats.lichidat.wins,
-        localHLStats.lichidat.losses,
-        localHLStats.lichidat.winsWithBE,
-        localHLStats.lichidat.lossesWithBE
+        localHLStats.liquidated.wins,
+        localHLStats.liquidated.losses,
+        localHLStats.liquidated.winsWithBE,
+        localHLStats.liquidated.lossesWithBE
       ),
     },
-    nelichidat: {
-      ...localHLStats.nelichidat,
-      wins: localHLStats.nelichidat.wins,
-      losses: localHLStats.nelichidat.losses,
+    notLiquidated: {
+      ...localHLStats.notLiquidated,
+      wins: localHLStats.notLiquidated.wins,
+      losses: localHLStats.notLiquidated.losses,
       winRate: winRateWithAllLosses(
-        localHLStats.nelichidat.wins,
-        localHLStats.nelichidat.losses,
-        localHLStats.nelichidat.lossesWithBE
+        localHLStats.notLiquidated.wins,
+        localHLStats.notLiquidated.losses,
+        localHLStats.notLiquidated.lossesWithBE
       ),
       winRateWithBE: calculateWinRateWithBE(
-        localHLStats.nelichidat.wins,
-        localHLStats.nelichidat.losses,
-        localHLStats.nelichidat.winsWithBE,
-        localHLStats.nelichidat.lossesWithBE
+        localHLStats.notLiquidated.wins,
+        localHLStats.notLiquidated.losses,
+        localHLStats.notLiquidated.winsWithBE,
+        localHLStats.notLiquidated.lossesWithBE
       ),
     },
   };
