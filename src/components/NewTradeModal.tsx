@@ -757,28 +757,34 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                     className="h-12 rounded-full bg-slate-200/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 cursor-not-allowed"
                   />
                 ) : (
-                  <Select
-                    value={trade.risk_reward_ratio_long != null ? String(trade.risk_reward_ratio_long) : '__placeholder__'}
-                    onValueChange={(v) => updateTrade('risk_reward_ratio_long', v === '__placeholder__' ? undefined as any : Number(v))}
-                  >
-                    <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
-                      {trade.risk_reward_ratio_long != null ? (
-                        <SelectValue />
-                      ) : (
-                        <span className="text-slate-400 dark:text-slate-500">Select ratio (1 – 10 or 10+)</span>
-                      )}
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__placeholder__" disabled className="text-slate-400 dark:text-slate-500">
+                  <div className="relative">
+                    {trade.risk_reward_ratio_long == null && (
+                      <span
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none text-sm"
+                        aria-hidden
+                      >
                         Select ratio (1 – 10 or 10+)
-                      </SelectItem>
-                      {POTENTIAL_RR_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={String(opt.value)}>
-                          {opt.label}
+                      </span>
+                    )}
+                    <Select
+                      value={trade.risk_reward_ratio_long != null ? String(trade.risk_reward_ratio_long) : '__placeholder__'}
+                      onValueChange={(v) => updateTrade('risk_reward_ratio_long', v === '__placeholder__' ? undefined as any : Number(v))}
+                    >
+                      <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__placeholder__" className="text-slate-400 dark:text-slate-500">
+                          Select ratio (1 – 10 or 10+)
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        {POTENTIAL_RR_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={String(opt.value)}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
               </div>
 
