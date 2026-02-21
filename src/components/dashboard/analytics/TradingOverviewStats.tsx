@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Trade } from '@/types/trade';
 import type { DirectionStats } from '@/types/dashboard';
 import { WinRateStatCard } from './WinRateStatCard';
@@ -15,6 +15,10 @@ import { AverageMonthlyTradesCard } from './AverageMonthlyTradesCard';
 import { PartialTradesChartCard } from './PartialTradesChartCard';
 import { ExecutedNonExecutedTradesCard } from './ExecutedNonExecutedTradesCard';
 import { DirectionStatisticsCard } from './DirectionStatisticsCard';
+import { EvaluationStats } from './EvaluationStats';
+import { TradeTypesStatisticsCard } from './TradeTypesStatisticsCard';
+import type { TradeTypesStatisticsCardProps } from './TradeTypesStatisticsCard';
+import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
 import RiskPerTrade, { type RiskAnalysis } from './RiskPerTrade';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
 
@@ -61,9 +65,17 @@ interface TradingOverviewStatsProps {
   partialRowProps?: CoreStatsPartialRowProps | null;
   /** When provided, renders RiskPerTrade card below the three chart cards (with a separator above). */
   allTradesRiskStats?: RiskAnalysis | null;
+  /** When provided, renders Evaluation + Trade Types row above the RiskPerTrade card. */
+  aboveRiskPerTradeRow?: {
+    evaluationStats: EvaluationStat[];
+    reentryStats: TradeTypesStatisticsCardProps['reentryStats'];
+    breakEvenStats: TradeTypesStatisticsCardProps['breakEvenStats'];
+    chartsLoadingState?: boolean;
+    includeTotalTrades: boolean;
+  } | null;
 }
 
-export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps, allTradesRiskStats }: TradingOverviewStatsProps) {
+export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps, allTradesRiskStats, aboveRiskPerTradeRow }: TradingOverviewStatsProps) {
   const stats = useMemo(() => calculateTradingOverviewStats(trades), [trades]);
   const totalExecutedTrades = useMemo(() => trades.filter((t) => t.executed === true).length, [trades]);
   const nonExecutedTotalTradesCount = useMemo(() => trades.filter((t) => t.executed !== true).length, [trades]);
@@ -150,11 +162,28 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
         </div>
       )}
 
+      {aboveRiskPerTradeRow && (
+        <>
+        <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
+        <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-6">
+          <EvaluationStats
+            stats={aboveRiskPerTradeRow.evaluationStats}
+            isLoading={aboveRiskPerTradeRow.chartsLoadingState}
+          />
+          <TradeTypesStatisticsCard
+            reentryStats={aboveRiskPerTradeRow.reentryStats}
+            breakEvenStats={aboveRiskPerTradeRow.breakEvenStats}
+            isLoading={aboveRiskPerTradeRow.chartsLoadingState}
+            includeTotalTrades={aboveRiskPerTradeRow.includeTotalTrades}
+          />
+        </div>
+        </>
+      )}
+
       {allTradesRiskStats !== undefined && (
         <>
-          <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
           <div className="col-span-full">
-            <RiskPerTrade className="my-0" allTradesRiskStats={allTradesRiskStats} />
+            <RiskPerTrade className="mt-2" allTradesRiskStats={allTradesRiskStats} />
           </div>
         </>
       )}
