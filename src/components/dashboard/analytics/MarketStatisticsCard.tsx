@@ -43,9 +43,8 @@ export function convertMarketStatsToChartData(
   includeTotalTrades: boolean = false
 ): TradeStatDatum[] {
   return marketStats.map((stat) => {
-    const totalTrades = includeTotalTrades
-      ? (stat.wins + stat.losses + stat.beWins + stat.beLosses)
-      : (stat.wins + stat.losses);
+    // Use source total (same as Market Profit Stats: actual trade count) so tooltip total matches
+    const totalTrades = stat.total ?? (stat.wins + stat.losses);
     const computedWinRate = totalTrades > 0 ? (stat.wins / totalTrades) * 100 : 0;
     return {
       category: `${stat.market}`,
@@ -82,16 +81,15 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
     }, []);
 
     const chartDataRaw = convertMarketStatsToChartData(marketStats, includeTotalTrades);
+    // Keep wins/losses as in source (same as Market Profit Stats); total = stat.total (actual trade count)
     const withTotals: TradeStatDatum[] = chartDataRaw.map((d) => {
-      const totalTrades = d.totalTrades ?? (d.wins ?? 0) + (d.losses ?? 0) + (d.beWins ?? 0) + (d.beLosses ?? 0);
-      const totalWins = (d.wins ?? 0) + (d.beWins ?? 0);
-      const totalLosses = (d.losses ?? 0) + (d.beLosses ?? 0);
-      const hasTradesButNoOutcomes = totalTrades > 0 && totalWins === 0 && totalLosses === 0;
+      const totalTrades = d.totalTrades ?? (d.wins ?? 0) + (d.losses ?? 0);
+      const hasTradesButNoOutcomes = totalTrades > 0 && (d.wins ?? 0) === 0 && (d.losses ?? 0) === 0;
       return {
         ...d,
         totalTrades,
-        wins: hasTradesButNoOutcomes ? 0.01 : totalWins,
-        losses: totalLosses,
+        wins: hasTradesButNoOutcomes ? 0.01 : (d.wins ?? 0),
+        losses: d.losses ?? 0,
       };
     });
 
