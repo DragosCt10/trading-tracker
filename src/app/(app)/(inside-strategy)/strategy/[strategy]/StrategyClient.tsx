@@ -1172,10 +1172,15 @@ export default function StrategyClient(
         />
       </div>
 
-      {/* Days Stats - full width */}
-      <div className="my-8">
+      {/* Day Stats (wider) & News Stats (narrower) - same height */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-6 my-8 items-stretch">
         <DayStatisticsCard
           dayStats={filteredChartStats ? (statsToUseForCharts.dayStats as DayStatisticsCardProps['dayStats']) : dayStats}
+          isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
+        />
+        <NewsStatisticsCard
+          newsStats={newsStatsFromTradesToUse}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
@@ -1207,8 +1212,8 @@ export default function StrategyClient(
       </div>
       
 
-      {/* Liquidity Stats & Local H/L Analysis Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-6 my-8">
+      {/* Liquidity Stats (wider) & Local H/L Analysis (narrower) - same height */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-6 my-8 items-stretch">
         {/* Liquidity Stats Card */}
         <LiquidityStatisticsCard
           liquidityStats={filteredChartStats ? statsToUseForCharts.liquidityStats : liquidityStatsFromTradesToUse}
@@ -1223,18 +1228,14 @@ export default function StrategyClient(
         />
       </div>
 
-      {/* MSS & News Stats Row - same trades as Core stats (Long/Short, Partial, Executed/Non-Executed) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
+      {/* MSS Stats & Launch Hour Trades - 50/50 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8 items-stretch">
         <MSSStatisticsCard
           mssStats={mssStatsFromTradesToUse}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
-        <NewsStatisticsCard
-          newsStats={newsStatsFromTradesToUse}
-          isLoading={chartsLoadingState}
-          includeTotalTrades={filteredChartStats !== null}
-        />
+        <LaunchHourTradesCard filteredTrades={tradesToUse} isLoading={chartsLoadingState} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -1257,12 +1258,9 @@ export default function StrategyClient(
         />
       </div>
 
+      {/* Partials & BE Stats - 50% width */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Partials &  BE Stats */}
         <PartialsBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
-         
-         {/* Launch Hour Trades Statistics */}
-        <LaunchHourTradesCard filteredTrades={tradesToUse} isLoading={chartsLoadingState} />
       </div>
     </>
   );
