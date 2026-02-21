@@ -118,9 +118,14 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
         />
       </div>
 
-      {/* Partial Trades, Executed/Non-Executed, Long/Short */}
+      {/* Long/Short (left), Partial Trades (middle), Executed/Non-Executed (right) */}
       {partialRowProps && (
-        <div className="col-span-full grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 [&>*]:min-h-[340px]">
+        <div className="col-span-full grid grid-cols-1 lg:grid-cols-3 gap-6 [&>*]:min-h-[340px]">
+          <DirectionStatisticsCard
+            directionStats={partialRowProps.directionStats}
+            isLoading={partialRowProps.chartsLoadingState}
+            includeTotalTrades={partialRowProps.includeTotalTradesForDirection}
+          />
           <PartialTradesChartCard
             totalPartials={partialRowProps.partialStats.totalPartials}
             partialWinningTrades={partialRowProps.partialStats.partialWinningTrades}
@@ -136,11 +141,6 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
             initialNonExecutedTotalTradesCount={partialRowProps.initialNonExecutedTotalTradesCount}
             nonExecutedTotalTradesCount={nonExecutedTotalTradesCount}
             isLoading={partialRowProps.chartsLoadingState}
-          />
-          <DirectionStatisticsCard
-            directionStats={partialRowProps.directionStats}
-            isLoading={partialRowProps.chartsLoadingState}
-            includeTotalTrades={partialRowProps.includeTotalTradesForDirection}
           />
         </div>
       )}
