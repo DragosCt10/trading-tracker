@@ -142,7 +142,8 @@ export const TradeTypesStatisticsCard: React.FC<TradeTypesStatisticsCardProps> =
       const losses = rows.reduce((s, d) => s + (d.losses ?? 0), 0);
       const beWins = rows.reduce((s, d) => s + (d.beWins ?? 0), 0);
       const beLosses = rows.reduce((s, d) => s + (d.beLosses ?? 0), 0);
-      const total = wins + losses + beWins + beLosses;
+      // Total trades = wins + losses (BE counts are subsets, not extra)
+      const total = wins + losses;
       const nonBE = wins - beWins + (losses - beLosses);
       const winRate = nonBE > 0 ? (((wins - beWins) / nonBE) * 100) : 0;
       const winRateWithBE = total > 0 ? (wins / total) * 100 : 0;
@@ -154,8 +155,8 @@ export const TradeTypesStatisticsCard: React.FC<TradeTypesStatisticsCardProps> =
     const totalTrades = reentryAgg.total + breakEvenAgg.total;
 
     const pieData: PieDatum[] = [
-      { name: 'Re-entry', value: reentryAgg.total, percentage: totalTrades > 0 ? (reentryAgg.total / totalTrades) * 100 : 0, color: 'blue', ...reentryAgg },
-      { name: 'Break-even', value: breakEvenAgg.total, percentage: totalTrades > 0 ? (breakEvenAgg.total / totalTrades) * 100 : 0, color: 'purple', ...breakEvenAgg },
+      { ...reentryAgg, name: 'Re-entry', value: reentryAgg.total, percentage: totalTrades > 0 ? (reentryAgg.total / totalTrades) * 100 : 0, color: 'blue' as const },
+      { ...breakEvenAgg, name: 'Break-even', value: breakEvenAgg.total, percentage: totalTrades > 0 ? (breakEvenAgg.total / totalTrades) * 100 : 0, color: 'purple' as const },
     ].filter((item) => item.value > 0);
 
     const reentryCount = pieData.find((d) => d.name === 'Re-entry')?.value ?? 0;
