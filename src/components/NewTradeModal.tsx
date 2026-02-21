@@ -32,7 +32,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Loader2, Info, AlertCircle, X } from 'lucide-react';
+import { Loader2, Info, AlertCircle, X, Calendar, Clock } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -535,28 +535,34 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 <Label htmlFor="trade-date" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Trade Date *
                 </Label>
-                <Input
-                  id="trade-date"
-                  type="date"
-                  value={trade.trade_date}
-                  onChange={(e) => updateTrade('trade_date', e.target.value)}
-                  className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="trade-date"
+                    type="date"
+                    value={trade.trade_date}
+                    onChange={(e) => updateTrade('trade_date', e.target.value)}
+                    className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100 pr-12 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-12 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    required
+                  />
+                  <Calendar className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-slate-500 shrink-0" strokeWidth={1.75} />
+                </div>
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="trade-time" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Trade Time *
                 </Label>
-                <Input
-                  id="trade-time"
-                  type="time"
-                  value={trade.trade_time}
-                  onChange={(e) => updateTrade('trade_time', e.target.value)}
-                  className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    id="trade-time"
+                    type="time"
+                    value={trade.trade_time}
+                    onChange={(e) => updateTrade('trade_time', e.target.value)}
+                    className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100 pr-12 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-12 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    required
+                  />
+                  <Clock className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-slate-500 shrink-0" strokeWidth={1.75} />
+                </div>
               </div>
             </div>
 
