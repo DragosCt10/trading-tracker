@@ -4,6 +4,7 @@ import { cache } from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { Trade } from '@/types/trade';
 import { getAccountsForMode } from '@/lib/server/accounts';
+import { calculateRRStats } from '@/utils/calculateRMultiple';
 import { isValidMarket, normalizeMarket } from '@/utils/validateMarket';
 
 /**
@@ -299,6 +300,7 @@ export async function getStrategyStatsFromTrades({
   totalTrades: number;
   winRate: number;
   avgRR: number;
+  totalRR: number;
 } | null> {
   const supabase = await createClient();
 
@@ -355,10 +357,11 @@ export async function getStrategyStatsFromTrades({
         totalTrades: 0,
         winRate: 0,
         avgRR: 0,
+        totalRR: 0,
       };
     }
 
-    // Calculate winrate (excluding break-even trades)
+    // Calculate winrate (excluding break-even trades) and RR Multiple via shared util
     let nonBEWins = 0;
     let nonBELosses = 0;
     const validRRs: number[] = [];
@@ -371,7 +374,6 @@ export async function getStrategyStatsFromTrades({
           nonBELosses++;
         }
       }
-      
       if (trade.risk_reward_ratio != null && trade.risk_reward_ratio > 0) {
         validRRs.push(trade.risk_reward_ratio);
       }
@@ -380,14 +382,14 @@ export async function getStrategyStatsFromTrades({
     const totalTrades = allStats.length;
     const denomExBE = nonBEWins + nonBELosses;
     const winRate = denomExBE > 0 ? (nonBEWins / denomExBE) * 100 : 0;
-    const avgRR = validRRs.length > 0
-      ? validRRs.reduce((sum, rr) => sum + rr, 0) / validRRs.length
-      : 0;
+    const avgRR = validRRs.length > 0 ? validRRs.reduce((a, b) => a + b, 0) / validRRs.length : 0;
+    const totalRR = calculateRRStats(allStats);
 
     return {
       totalTrades,
       winRate,
       avgRR,
+      totalRR,
     };
   } catch (error) {
     console.error('Error in getStrategyStatsFromTrades:', error);
