@@ -4,6 +4,7 @@ import { cache } from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { Trade } from '@/types/trade';
 import { getAccountsForMode } from '@/lib/server/accounts';
+import { isValidMarket, normalizeMarket } from '@/utils/validateMarket';
 
 /**
  * Maps Supabase trade data to Trade type
@@ -186,9 +187,14 @@ export async function createTrade(params: {
     return { error: { message: 'Account not found or access denied' } };
   }
 
+  if (!isValidMarket(params.trade.market)) {
+    return { error: { message: 'Invalid market. Use a short code (e.g. DAX, US30, EURUSD).' } };
+  }
+
   const tableName = `${params.mode}_trades`;
   const row = {
     ...params.trade,
+    market: normalizeMarket(params.trade.market),
     user_id: user.id,
     account_id: params.account_id,
     calculated_profit: params.calculated_profit,
@@ -221,10 +227,18 @@ export async function updateTrade(
     return { error: { message: 'Unauthorized' } };
   }
 
+  if (updateData.market !== undefined && !isValidMarket(updateData.market)) {
+    return { error: { message: 'Invalid market. Use a short code (e.g. DAX, US30, EURUSD).' } };
+  }
+  const payload = { ...updateData } as Record<string, unknown>;
+  if (updateData.market !== undefined) {
+    payload.market = normalizeMarket(updateData.market);
+  }
+
   const tableName = `${mode}_trades`;
   const { error } = await supabase
     .from(tableName)
-    .update(updateData as any)
+    .update(payload as any)
     .eq('id', tradeId)
     .eq('user_id', user.id);
 
