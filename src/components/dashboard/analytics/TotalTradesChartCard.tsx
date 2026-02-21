@@ -269,7 +269,7 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
               </div>
             </div>
           </div>
-          {/* Win rate labels - positioned below the pie chart */}
+          {/* Wins / Losses / BE labels - positioned below the pie chart */}
           <div className="w-full px-4 pt-4 mt-2">
             <div className="flex items-center justify-center gap-8">
               <div className="flex flex-col items-center">
@@ -285,7 +285,7 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
                   )}
                 </div>
               </div>
-              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
+              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
               <div className="flex flex-col items-center">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                   Losses
@@ -297,6 +297,15 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
                       ({beLosses} BE)
                     </span>
                   )}
+                </div>
+              </div>
+              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+              <div className="flex flex-col items-center">
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                  BE
+                </div>
+                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                  {totalBE}
                 </div>
               </div>
             </div>
