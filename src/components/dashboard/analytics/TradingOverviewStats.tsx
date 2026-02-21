@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { Trade } from '@/types/trade';
+import type { DirectionStats } from '@/types/dashboard';
 import { WinRateStatCard } from './WinRateStatCard';
 import { TotalProfitStatCard } from './TotalProfitStatCard';
 import { AverageProfitStatCard } from './AverageProfitStatCard';
@@ -11,6 +12,9 @@ import { RRMultipleStatCard } from './RRMultipleStatCard';
 import { PNLPercentageStatCard } from './PNLPercentageStatCard';
 import { AverageDaysBetweenTradesCard } from './AverageDaysBetweenTradesCard';
 import { AverageMonthlyTradesCard } from './AverageMonthlyTradesCard';
+import { PartialTradesChartCard } from './PartialTradesChartCard';
+import { ExecutedNonExecutedTradesCard } from './ExecutedNonExecutedTradesCard';
+import { DirectionStatisticsCard } from './DirectionStatisticsCard';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
 
 interface MonthlyStatsForCard {
@@ -26,6 +30,23 @@ interface MonthlyStatsForCard {
   };
 }
 
+/** Props for the Partial Trades / Executed–Non-Executed / Direction row (optional). */
+export interface CoreStatsPartialRowProps {
+  partialStats: {
+    totalPartials: number;
+    partialWinningTrades: number;
+    partialLosingTrades: number;
+    beWinPartialTrades: number;
+    beLosingPartialTrades: number;
+    partialWinRate: number;
+    partialWinRateWithBE: number;
+  };
+  initialNonExecutedTotalTradesCount?: number | null;
+  directionStats: DirectionStats[];
+  includeTotalTradesForDirection: boolean;
+  chartsLoadingState?: boolean;
+}
+
 interface TradingOverviewStatsProps {
   trades: Trade[];
   currencySymbol: string;
@@ -33,18 +54,25 @@ interface TradingOverviewStatsProps {
   accountBalance?: number | null | undefined;
   viewMode?: 'yearly' | 'dateRange';
   monthlyStats?: MonthlyStatsForCard | null;
+  /** When false, the section title and description are not rendered (e.g. when a parent provides them). */
+  showTitle?: boolean;
+  /** When provided, renders Partial Trades, Executed/Non-Executed, and Long/Short cards. */
+  partialRowProps?: CoreStatsPartialRowProps | null;
 }
 
-export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, viewMode = 'yearly', monthlyStats }: TradingOverviewStatsProps) {
+export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps }: TradingOverviewStatsProps) {
   const stats = useMemo(() => calculateTradingOverviewStats(trades), [trades]);
+  const totalExecutedTrades = useMemo(() => trades.filter((t) => t.executed === true).length, [trades]);
+  const nonExecutedTotalTradesCount = useMemo(() => trades.filter((t) => t.executed !== true).length, [trades]);
 
   return (
     <>
-      {/* Trading Overview Category */}
-      <div className="col-span-full mt-10 mb-4">
-        <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-1">Trading Overview</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Core trading statistics and performance metrics</p>
-      </div>
+      {showTitle && (
+        <>
+          <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-10 mb-2">Core statistics</h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">Trading statistics and performance metrics.</p>
+        </>
+      )}
 
       <WinRateStatCard winRate={stats.winRate} winRateWithBE={stats.winRateWithBE} />
 
@@ -89,6 +117,33 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
           maxLosingStreak={stats.maxLosingStreak}
         />
       </div>
+
+      {/* Partial Trades, Executed/Non-Executed, Long/Short */}
+      {partialRowProps && (
+        <div className="col-span-full grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 [&>*]:min-h-[340px]">
+          <PartialTradesChartCard
+            totalPartials={partialRowProps.partialStats.totalPartials}
+            partialWinningTrades={partialRowProps.partialStats.partialWinningTrades}
+            partialLosingTrades={partialRowProps.partialStats.partialLosingTrades}
+            beWinPartialTrades={partialRowProps.partialStats.beWinPartialTrades}
+            beLosingPartialTrades={partialRowProps.partialStats.beLosingPartialTrades}
+            partialWinRate={partialRowProps.partialStats.partialWinRate}
+            partialWinRateWithBE={partialRowProps.partialStats.partialWinRateWithBE}
+            isLoading={partialRowProps.chartsLoadingState}
+          />
+          <ExecutedNonExecutedTradesCard
+            totalExecutedTrades={totalExecutedTrades}
+            initialNonExecutedTotalTradesCount={partialRowProps.initialNonExecutedTotalTradesCount}
+            nonExecutedTotalTradesCount={nonExecutedTotalTradesCount}
+            isLoading={partialRowProps.chartsLoadingState}
+          />
+          <DirectionStatisticsCard
+            directionStats={partialRowProps.directionStats}
+            isLoading={partialRowProps.chartsLoadingState}
+            includeTotalTrades={partialRowProps.includeTotalTradesForDirection}
+          />
+        </div>
+      )}
     </>
   );
 }
