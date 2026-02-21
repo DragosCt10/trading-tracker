@@ -7,6 +7,7 @@ import {
   ComposedChart,
   Bar as ReBar,
   Area,
+  Line,
   XAxis,
   YAxis,
   Tooltip as ReTooltip,
@@ -174,6 +175,7 @@ export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.mem
         </text>
       );
     };
+
     const rightAxisLabel = (props: { viewBox?: { x?: number; y?: number; width?: number; height?: number } }) => {
       const vb = props.viewBox ?? {};
       const x = (vb.x ?? 0) + (vb.width ?? 0) + 8;
@@ -266,11 +268,6 @@ export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.mem
                     <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
                     <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
                   </linearGradient>
-                  <linearGradient id="setupStatsWinRateBar" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor="#d97706" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#f59e0b" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.9} />
-                  </linearGradient>
                 </defs>
                 <XAxis
                   dataKey="category"
@@ -339,7 +336,16 @@ export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.mem
                 />
                 <ReBar dataKey="wins" name="Wins" fill="url(#setupStatsWinsBar)" radius={[4, 4, 0, 0]} barSize={20} yAxisId="left" />
                 <ReBar dataKey="losses" name="Losses" fill="url(#setupStatsLossesBar)" radius={[4, 4, 0, 0]} barSize={20} yAxisId="left" />
-                <ReBar dataKey="winRate" name="Win Rate" fill="url(#setupStatsWinRateBar)" radius={[4, 4, 0, 0]} barSize={14} yAxisId="right" />
+                <Line
+                  type="monotone"
+                  dataKey="winRate"
+                  name="Win Rate"
+                  yAxisId="right"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: '#f59e0b', strokeWidth: 0 }}
+                />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
