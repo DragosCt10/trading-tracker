@@ -256,14 +256,26 @@ export function useCalendarNavigation({
   // update calendar for yearly mode after filtered trades are available
   useEffect(() => {
     if (viewMode === 'yearly') {
-      const filterKey = `${viewMode}-${selectedYear}-${selectedMarket}-${selectedExecution}`;
-      
-      // Skip if filters haven't changed
-      if (lastFilterKeyRef.current === filterKey) {
+      const filteredTradesForCalendar = getFilteredTradesForCalendar();
+      const tradesInSelectedYear = filteredTradesForCalendar.filter(
+        (t) => new Date(t.trade_date).getFullYear() === selectedYear
+      );
+      // Include trades count so we re-run when the selected year's data loads (e.g. after year change)
+      const filterKey = `${viewMode}-${selectedYear}-${selectedMarket}-${selectedExecution}-${tradesInSelectedYear.length}`;
+      const calendarYearMatchesSelection = currentDate.getFullYear() === selectedYear;
+
+      // Skip only if filters and data haven't changed AND calendar is already showing a valid month for this year.
+      const currentMonthHasTradesInData =
+        calendarYearMatchesSelection &&
+        tradesInSelectedYear.some((t) => new Date(t.trade_date).getMonth() === currentDate.getMonth());
+      if (
+        lastFilterKeyRef.current === filterKey &&
+        calendarYearMatchesSelection &&
+        (tradesInSelectedYear.length === 0 || currentMonthHasTradesInData)
+      ) {
         return;
       }
-      
-      const filteredTradesForCalendar = getFilteredTradesForCalendar();
+
       // In yearly mode: set to the first month with filtered trades, or January if no trades
       const monthsWithTrades = new Set<number>();
       filteredTradesForCalendar.forEach((trade) => {
@@ -273,15 +285,11 @@ export function useCalendarNavigation({
         }
       });
 
-      // Check if current month has filtered trades
-      const currentMonthHasTrades = currentDate.getFullYear() === selectedYear && 
-                                     monthsWithTrades.has(currentDate.getMonth());
-      
-      // Only update if current month doesn't have filtered trades
+      const currentMonthHasTrades = currentDate.getFullYear() === selectedYear && monthsWithTrades.has(currentDate.getMonth());
+
       if (!currentMonthHasTrades) {
-        let targetMonth = 0; // Default to January
+        let targetMonth = 0;
         if (monthsWithTrades.size > 0) {
-          // Find the first month with filtered trades
           for (let m = 0; m <= 11; m++) {
             if (monthsWithTrades.has(m)) {
               targetMonth = m;
@@ -289,17 +297,14 @@ export function useCalendarNavigation({
             }
           }
         }
-        
         const targetDate = new Date(selectedYear, targetMonth, 1);
         setCurrentDate(targetDate);
         setCalendarDateRange(createCalendarRangeFromEnd(targetDate));
       }
-      
-      // Update ref
+
       lastFilterKeyRef.current = filterKey;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode, selectedYear, selectedMarket, selectedExecution]);
+  }, [viewMode, selectedYear, selectedMarket, selectedExecution, allTrades, currentDate, getFilteredTradesForCalendar]);
 
   // update calendar for dateRange mode after filtered trades are available
   useEffect(() => {
