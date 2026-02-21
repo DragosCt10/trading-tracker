@@ -1208,7 +1208,7 @@ export default function StrategyClient(
       
 
       {/* Liquidity Stats & Local H/L Analysis Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-6 my-8">
         {/* Liquidity Stats Card */}
         <LiquidityStatisticsCard
           liquidityStats={filteredChartStats ? statsToUseForCharts.liquidityStats : liquidityStatsFromTradesToUse}
