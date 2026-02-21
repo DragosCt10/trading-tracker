@@ -24,6 +24,20 @@ import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarC
 import { calculateLiquidityStats as calculateLiquidityStatsUtil } from '@/utils/calculateCategoryStats';
 import type { LiquidityStats } from '@/types/dashboard';
 
+/** Short display labels for liquidity categories on the chart */
+const LIQUIDITY_DISPLAY_LABELS: Record<string, string> = {
+  'Local Liquidity': 'Local Liq.',
+  'Major Liquidity': 'Major Liq.',
+  'Low Liquidity': 'Low Liq.',
+  'LOD': 'LOD',
+  'HOD': 'HOD',
+  'Unknown': 'Unknown',
+};
+
+function getLiquidityDisplayLabel(category: string): string {
+  return LIQUIDITY_DISPLAY_LABELS[category] ?? category;
+}
+
 export interface LiquidityStatisticsCardProps {
   liquidityStats: LiquidityStats[];
   isLoading?: boolean;
@@ -37,20 +51,19 @@ export function calculateLiquidityStats(trades: Trade[]): LiquidityStats[] {
 
 export function convertLiquidityStatsToChartData(
   liquidityStats: LiquidityStats[],
-  includeTotalTrades: boolean = false
+  _includeTotalTrades: boolean = false
 ): TradeStatDatum[] {
   return liquidityStats.map((stat) => {
-    const totalTrades = includeTotalTrades
-      ? (stat.total ?? stat.wins + stat.losses + stat.beWins + stat.beLosses)
-      : (stat.wins + stat.losses);
+    // Always use stat.total so X-axis label (N) and scale match other cards (same tradesToUse)
+    const totalTrades = stat.total ?? (stat.wins + stat.losses + stat.beWins + stat.beLosses);
     return {
       category: `${stat.liquidity}`,
       wins: stat.wins,
       losses: stat.losses,
       beWins: stat.beWins,
       beLosses: stat.beLosses,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
+      winRate: stat.winRate ?? 0,
+      winRateWithBE: stat.winRateWithBE ?? 0,
       totalTrades,
     };
   });
@@ -88,6 +101,8 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
         totalTrades,
         wins: hasTradesButNoOutcomes ? 0.01 : totalWins,
         losses: totalLosses,
+        // Ensure winRate is always a number so the Line chart doesn't misdraw (e.g. connect from wrong point)
+        winRate: typeof d.winRate === 'number' && !Number.isNaN(d.winRate) ? d.winRate : 0,
       };
     });
 
@@ -120,7 +135,7 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
       return (
         <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-            {d.category} {typeof totalTrades === 'number' ? `(${totalTrades} trade${totalTrades === 1 ? '' : 's'})` : ''}
+            {getLiquidityDisplayLabel(d.category)} {typeof totalTrades === 'number' ? `(${totalTrades} trade${totalTrades === 1 ? '' : 's'})` : ''}
           </div>
           <div className="space-y-2">
             <div className="flex items-baseline justify-between gap-4">
@@ -277,7 +292,7 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
                   tick={{ fill: axisTextColor, fontSize: 11 }}
                   tickFormatter={(_: string, i: number) => {
                     const d = withTotals[i];
-                    return d ? `${d.category} (${d.totalTrades ?? 0})` : '';
+                    return d ? `${getLiquidityDisplayLabel(d.category)} (${d.totalTrades ?? 0})` : '';
                   }}
                   height={38}
                 />
@@ -344,6 +359,7 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
                   stroke="#f59e0b"
                   strokeWidth={2}
                   dot={false}
+                  connectNulls={false}
                   activeDot={{ r: 4, fill: '#f59e0b', strokeWidth: 0 }}
                 />
               </ComposedChart>
