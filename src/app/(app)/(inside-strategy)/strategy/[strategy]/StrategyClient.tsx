@@ -1149,6 +1149,19 @@ export default function StrategyClient(
         />
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+        {/* Potential Risk/Reward Ratio Statistics */}
+        <RiskRewardStats
+          trades={tradesToUse}
+          isLoading={chartsLoadingState}
+        />
+        {/* SL Size Statistics Card */}
+        <SLSizeStatisticsCard
+          slSizeStats={filteredChartStats ? statsToUseForCharts.slSizeStats : slSizeStatsFromTradesToUse}
+          isLoading={chartsLoadingState}
+        />
+      </div>
+
       <div className="my-8">
         {/* Setup Statistics Card */}
         <SetupStatisticsCard
@@ -1176,22 +1189,9 @@ export default function StrategyClient(
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
-
-        {/* Risk/Reward Statistics */}
-        <RiskRewardStats 
-          trades={tradesToUse} 
-          isLoading={chartsLoadingState}
-        />
       </div>
 
-      {/* SL Size and Trade Types Statistics Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* SL Size Statistics Card */}
-        <SLSizeStatisticsCard
-          slSizeStats={filteredChartStats ? statsToUseForCharts.slSizeStats : slSizeStatsFromTradesToUse}
-          isLoading={chartsLoadingState}
-        />
-
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
         {/* Trade Types Statistics Card */}
         <TradeTypesStatisticsCard
           reentryStats={
