@@ -115,10 +115,10 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     'SLG+3G',
     'SLG+3CG'
   ];
-  const LIQUIDITY_OPTIONS = ['Liq. Majora', 'Liq. Minora', 'Liq. Locala', 'HOD', 'LOD'];
+  const LIQUIDITY_OPTIONS = ['Major Liquidity', 'Low Liquidity', 'Local Liquidity', 'HOD', 'LOD'];
   const MSS_OPTIONS = ['Normal', 'Agresiv'];
   const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
-  const DAY_OF_WEEK_OPTIONS = ['Luni', 'Marti', 'Miercuri', 'Joi', 'Vineri'];
+  const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   if (!isOpen || !trade) return null;
 
