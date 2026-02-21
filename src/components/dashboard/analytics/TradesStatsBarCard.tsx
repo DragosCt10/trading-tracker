@@ -357,8 +357,8 @@ export function TradeStatsBarCard({
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="flex-1 flex items-center">
-        <div className="w-full h-full">
+      <CardContent className="flex-1 flex items-center w-full min-w-0">
+        <div className="w-full h-full min-w-0">
           {isStillLoading ? (
             <div className="flex items-center justify-center w-full h-full min-h-[180px]">
               <BouncePulse size="md" />
@@ -377,8 +377,8 @@ export function TradeStatsBarCard({
             <BarChart
               data={withTotals}
               layout="horizontal"
-              margin={{ top: 10, right: 24, left: 16, bottom: 48 }}
-              barCategoryGap="30%"
+              margin={{ top: 10, right: 16, left: 16, bottom: 48 }}
+              barCategoryGap="20%"
             >
               <defs>
                 {/* Modern wins gradient - emerald to teal (same as MonthlyPerformanceChart) */}
