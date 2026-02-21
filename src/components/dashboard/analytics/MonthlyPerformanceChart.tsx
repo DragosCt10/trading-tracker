@@ -144,7 +144,7 @@ export function MonthlyPerformanceChart({
 
   if (!mounted) {
     return (
-      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[360px] flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Monthly Performance
@@ -162,7 +162,7 @@ export function MonthlyPerformanceChart({
 
   if (!hasTrades) {
     return (
-      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[360px] flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Monthly Performance
@@ -241,10 +241,10 @@ export function MonthlyPerformanceChart({
   const yAxisTickFormatter = (value: number) =>
     Number(value ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
-  // Custom Y-axis labels: vertically centered, no overlap with tick numbers
+  // Custom Y-axis labels: vertically centered, left/right of tick area to avoid overlap (match Market Profit Statistics)
   const leftAxisLabel = (props: { viewBox?: { x?: number; y?: number; width?: number; height?: number } }) => {
     const vb = props.viewBox ?? {};
-    const x = (vb.x ?? 0) + 12;
+    const x = (vb.x ?? 0) + 6;
     const y = (vb.y ?? 0) + (vb.height ?? 0) / 2;
     return (
       <text
@@ -262,7 +262,7 @@ export function MonthlyPerformanceChart({
   };
   const rightAxisLabel = (props: { viewBox?: { x?: number; y?: number; width?: number; height?: number } }) => {
     const vb = props.viewBox ?? {};
-    const x = (vb.x ?? 0) + (vb.width ?? 0);
+    const x = (vb.x ?? 0) + (vb.width ?? 0) - 6;
     const y = (vb.y ?? 0) + (vb.height ?? 0) / 2;
     return (
       <text
@@ -280,7 +280,7 @@ export function MonthlyPerformanceChart({
   };
 
   return (
-    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[360px] flex flex-col">
       <CardHeader className="pb-2 flex-shrink-0">
         <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
           Monthly Performance
@@ -290,12 +290,12 @@ export function MonthlyPerformanceChart({
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="flex-1 flex items-center pb-3">
-        <div className="w-full h-full">
+      <CardContent className="flex-1 flex items-end mt-1">
+        <div className="w-full h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={chartData}
-              margin={{ top: 12, right: 52, left: 52, bottom: 24 }}
+              margin={{ top: 30, right: 56, left: 56, bottom: 10 }}
             >
               <defs>
                 <linearGradient id="composedTotalArea" x1="0" y1="0" x2="0" y2="1">
@@ -326,6 +326,7 @@ export function MonthlyPerformanceChart({
                   const d = chartData[i];
                   return d ? `${d.month} (${d.totalTrades})` : '';
                 }}
+                height={38}
               />
               <YAxis
                 yAxisId="left"
@@ -335,7 +336,8 @@ export function MonthlyPerformanceChart({
                 tickLine={false}
                 tickFormatter={yAxisTickFormatter}
                 domain={[0, Math.ceil(maxTotal * 1.15)]}
-                width={52}
+                width={56}
+                tickMargin={8}
                 label={leftAxisLabel}
               />
               <YAxis
@@ -347,7 +349,8 @@ export function MonthlyPerformanceChart({
                 tickLine={false}
                 tickFormatter={(v) => `${v}%`}
                 domain={[0, 100]}
-                width={52}
+                width={56}
+                tickMargin={8}
                 label={rightAxisLabel}
               />
 
