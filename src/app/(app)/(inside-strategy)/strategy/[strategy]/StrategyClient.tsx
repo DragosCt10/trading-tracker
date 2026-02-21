@@ -1036,7 +1036,7 @@ export default function StrategyClient(
         getDaysInMonth={() => getDaysInMonth}
       />
 
-      {/* Core statistics: title + description, then core stats, then Partial/Executed/Direction cards */}
+      {/* Core statistics: title + description, then core stats, then Partial/Executed/Direction cards, then Evaluation + Trade Types above RiskPerTrade */}
       <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Core statistics</h2>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Trading statistics and performance metrics.</p>
 
@@ -1064,6 +1064,13 @@ export default function StrategyClient(
               directionStats: filteredChartStats ? statsToUseForCharts.directionStats : directionStatsFromTradesToUse,
               includeTotalTradesForDirection: filteredChartStats !== null,
               chartsLoadingState: chartsLoadingState,
+            }}
+            aboveRiskPerTradeRow={{
+              evaluationStats: filteredEvaluationStats || evaluationStats,
+              reentryStats: statsToUseForCharts.reentryStats as TradeTypesStatisticsCardProps['reentryStats'],
+              breakEvenStats: statsToUseForCharts.breakEvenStats as TradeTypesStatisticsCardProps['breakEvenStats'],
+              chartsLoadingState: chartsLoadingState,
+              includeTotalTrades: filteredChartStats !== null,
             }}
             allTradesRiskStats={
               (viewMode === 'yearly'
@@ -1137,21 +1144,6 @@ export default function StrategyClient(
         <TimeIntervalStatisticsCard
           data={timeIntervalChartDataToUse}
           isLoading={chartsLoadingState}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
-        {/* Evaluation Statistics */}
-        <EvaluationStats
-          stats={filteredEvaluationStats || evaluationStats}
-          isLoading={chartsLoadingState}
-        />
-        {/* Trade Types Statistics Card */}
-        <TradeTypesStatisticsCard
-          reentryStats={statsToUseForCharts.reentryStats as TradeTypesStatisticsCardProps['reentryStats']}
-          breakEvenStats={statsToUseForCharts.breakEvenStats as TradeTypesStatisticsCardProps['breakEvenStats']}
-          isLoading={chartsLoadingState}
-          includeTotalTrades={filteredChartStats !== null}
         />
       </div>
 
