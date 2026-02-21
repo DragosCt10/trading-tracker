@@ -18,8 +18,8 @@ import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarC
 
 /** English labels for local H/L categories (trading-related) */
 export const LOCAL_HL_LABELS = {
-  lichidat: 'Liquidated',
-  nelichidat: 'Not liquidated',
+  liquidated: 'Liquidated',
+  notLiquidated: 'Not liquidated',
 } as const;
 
 export interface LocalHLStatisticsCardProps {
@@ -32,7 +32,7 @@ export interface LocalHLStatisticsCardProps {
 /**
  * Calculate local H/L statistics from trades array
  * @param trades - Array of trades to compute stats from
- * @returns LocalHLStats object with lichidat and nelichidat stats
+ * @returns LocalHLStats object with liquidated and notLiquidated stats
  */
 export function calculateLocalHLStats(trades: Trade[]): LocalHLStats {
   return calculateLocalHLStatsUtil(trades);
@@ -56,7 +56,7 @@ const LOCAL_HL_COLORS: PieColor[] = ['teal', 'amber'];
 
 /**
  * Convert local H/L stats to chart data format (English labels)
- * @param localHLStats - LocalHLStats object with lichidat and nelichidat stats
+ * @param localHLStats - LocalHLStats object with liquidated and notLiquidated stats
  * @param includeTotalTrades - If true, includes totalTrades in the result (for filtered stats)
  * @returns Array of TradeStatDatum for chart display
  */
@@ -64,29 +64,29 @@ export function convertLocalHLStatsToChartData(
   localHLStats: LocalHLStats,
   includeTotalTrades: boolean = false
 ): TradeStatDatum[] {
-  const lichidatData: TradeStatDatum = {
-    category: LOCAL_HL_LABELS.lichidat,
-    wins: localHLStats.lichidat.wins,
-    losses: localHLStats.lichidat.losses,
-    beWins: localHLStats.lichidat.winsWithBE,
-    beLosses: localHLStats.lichidat.lossesWithBE,
-    winRate: localHLStats.lichidat.winRate,
-    winRateWithBE: localHLStats.lichidat.winRateWithBE,
-    totalTrades: localHLStats.lichidat.total ?? (localHLStats.lichidat.wins + localHLStats.lichidat.losses + (localHLStats.lichidat.winsWithBE ?? 0) + (localHLStats.lichidat.lossesWithBE ?? 0)),
+  const liquidatedData: TradeStatDatum = {
+    category: LOCAL_HL_LABELS.liquidated,
+    wins: localHLStats.liquidated.wins,
+    losses: localHLStats.liquidated.losses,
+    beWins: localHLStats.liquidated.winsWithBE,
+    beLosses: localHLStats.liquidated.lossesWithBE,
+    winRate: localHLStats.liquidated.winRate,
+    winRateWithBE: localHLStats.liquidated.winRateWithBE,
+    totalTrades: localHLStats.liquidated.total ?? (localHLStats.liquidated.wins + localHLStats.liquidated.losses + (localHLStats.liquidated.winsWithBE ?? 0) + (localHLStats.liquidated.lossesWithBE ?? 0)),
   };
 
-  const nelichidatData: TradeStatDatum = {
-    category: LOCAL_HL_LABELS.nelichidat,
-    wins: localHLStats.nelichidat.wins,
-    losses: localHLStats.nelichidat.losses,
-    beWins: localHLStats.nelichidat.winsWithBE,
-    beLosses: localHLStats.nelichidat.lossesWithBE,
-    winRate: localHLStats.nelichidat.winRate,
-    winRateWithBE: localHLStats.nelichidat.winRateWithBE,
-    totalTrades: localHLStats.nelichidat.total ?? (localHLStats.nelichidat.wins + localHLStats.nelichidat.losses + (localHLStats.nelichidat.winsWithBE ?? 0) + (localHLStats.nelichidat.lossesWithBE ?? 0)),
+  const notLiquidatedData: TradeStatDatum = {
+    category: LOCAL_HL_LABELS.notLiquidated,
+    wins: localHLStats.notLiquidated.wins,
+    losses: localHLStats.notLiquidated.losses,
+    beWins: localHLStats.notLiquidated.winsWithBE,
+    beLosses: localHLStats.notLiquidated.lossesWithBE,
+    winRate: localHLStats.notLiquidated.winRate,
+    winRateWithBE: localHLStats.notLiquidated.winRateWithBE,
+    totalTrades: localHLStats.notLiquidated.total ?? (localHLStats.notLiquidated.wins + localHLStats.notLiquidated.losses + (localHLStats.notLiquidated.winsWithBE ?? 0) + (localHLStats.notLiquidated.lossesWithBE ?? 0)),
   };
 
-  return [lichidatData, nelichidatData];
+  return [liquidatedData, notLiquidatedData];
 }
 
 /**
@@ -131,8 +131,8 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
     }, [mounted, externalLoading]);
 
     const statsList = [
-      { key: 'lichidat' as const, stat: localHLStats.lichidat, label: LOCAL_HL_LABELS.lichidat },
-      { key: 'nelichidat' as const, stat: localHLStats.nelichidat, label: LOCAL_HL_LABELS.nelichidat },
+      { key: 'liquidated' as const, stat: localHLStats.liquidated, label: LOCAL_HL_LABELS.liquidated },
+      { key: 'notLiquidated' as const, stat: localHLStats.notLiquidated, label: LOCAL_HL_LABELS.notLiquidated },
     ];
 
     const totalTrades = statsList.reduce(
@@ -159,8 +159,8 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
     const pieData = pieDataRaw.filter((item) => item.value > 0);
 
     const legendItems: { name: string; value: number; color: PieColor }[] = [
-      { name: LOCAL_HL_LABELS.lichidat, value: pieDataRaw[0]?.value ?? 0, color: 'teal' },
-      { name: LOCAL_HL_LABELS.nelichidat, value: pieDataRaw[1]?.value ?? 0, color: 'amber' },
+      { name: LOCAL_HL_LABELS.liquidated, value: pieDataRaw[0]?.value ?? 0, color: 'teal' },
+      { name: LOCAL_HL_LABELS.notLiquidated, value: pieDataRaw[1]?.value ?? 0, color: 'amber' },
     ];
 
     const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: { payload: PieDatum }[] }) => {
