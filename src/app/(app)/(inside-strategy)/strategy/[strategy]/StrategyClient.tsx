@@ -1146,6 +1146,29 @@ export default function StrategyClient(
         />
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+        {/* Evaluation Statistics */}
+        <EvaluationStats
+          stats={filteredEvaluationStats || evaluationStats}
+          isLoading={chartsLoadingState}
+        />
+        {/* Trade Types Statistics Card */}
+        <TradeTypesStatisticsCard
+          reentryStats={
+            filteredChartStats
+              ? (statsToUseForCharts.reentryStats as TradeTypesStatisticsCardProps['reentryStats'])
+              : reentryStats
+          }
+          breakEvenStats={
+            filteredChartStats
+              ? (statsToUseForCharts.breakEvenStats as TradeTypesStatisticsCardProps['breakEvenStats'])
+              : breakEvenStats
+          }
+          isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
+        />
+      </div>
+
       <div className="my-8">
         {/* Market Profit Statistics Card */}
         <MarketProfitStatisticsCard
@@ -1202,24 +1225,6 @@ export default function StrategyClient(
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
-        {/* Trade Types Statistics Card */}
-        <TradeTypesStatisticsCard
-          reentryStats={
-            filteredChartStats
-              ? (statsToUseForCharts.reentryStats as TradeTypesStatisticsCardProps['reentryStats'])
-              : reentryStats
-          }
-          breakEvenStats={
-            filteredChartStats
-              ? (statsToUseForCharts.breakEvenStats as TradeTypesStatisticsCardProps['breakEvenStats'])
-              : breakEvenStats
-          }
-          isLoading={chartsLoadingState}
-          includeTotalTrades={filteredChartStats !== null}
-        />
-      </div>
-
       <div className="my-8">
         {/* Day Statistics Card */}
         <DayStatisticsCard
@@ -1243,14 +1248,6 @@ export default function StrategyClient(
           newsStats={filteredChartStats ? (statsToUseForCharts.newsStats as NewsStatisticsCardProps['newsStats']) : newsStats}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
-        />
-      </div>
-
-      <div className="my-8">
-        {/* Evaluation Statistics */}
-        <EvaluationStats
-          stats={filteredEvaluationStats || evaluationStats}
-          isLoading={chartsLoadingState}
         />
       </div>
 
