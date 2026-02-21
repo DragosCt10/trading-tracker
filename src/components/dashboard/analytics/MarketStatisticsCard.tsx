@@ -6,7 +6,6 @@ import {
   ResponsiveContainer,
   ComposedChart,
   Bar as ReBar,
-  Line,
   Area,
   XAxis,
   YAxis,
@@ -218,7 +217,7 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={withTotals}
-                margin={{ top: 30, right: 56, left: 56, bottom: 10 }}
+                margin={{ top: 30, right: 20, left: 56, bottom: 10 }}
               >
                 <defs>
                   <linearGradient id="marketStatsTotalArea" x1="0" y1="0" x2="0" y2="1">
@@ -259,18 +258,6 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
                   width={56}
                   tickMargin={8}
                 />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  type="number"
-                  tick={{ fill: axisTextColor, fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `${v}%`}
-                  domain={[0, 100]}
-                  width={56}
-                  tickMargin={8}
-                />
                 <ReTooltip
                   contentStyle={{
                     background: isDark
@@ -301,16 +288,6 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
                 />
                 <ReBar dataKey="wins" name="Wins" fill="url(#marketStatsWinsBar)" radius={[4, 4, 0, 0]} barSize={20} yAxisId="left" />
                 <ReBar dataKey="losses" name="Losses" fill="url(#marketStatsLossesBar)" radius={[4, 4, 0, 0]} barSize={20} yAxisId="left" />
-                <Line
-                  type="monotone"
-                  dataKey="winRate"
-                  name="Win Rate"
-                  yAxisId="right"
-                  stroke="#f59e0b"
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={false}
-                />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
