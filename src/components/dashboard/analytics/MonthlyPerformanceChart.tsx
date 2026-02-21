@@ -262,7 +262,7 @@ export function MonthlyPerformanceChart({
   };
   const rightAxisLabel = (props: { viewBox?: { x?: number; y?: number; width?: number; height?: number } }) => {
     const vb = props.viewBox ?? {};
-    const x = (vb.x ?? 0) + (vb.width ?? 0) - 6;
+    const x = (vb.x ?? 0) + (vb.width ?? 0);
     const y = (vb.y ?? 0) + (vb.height ?? 0) / 2;
     return (
       <text
