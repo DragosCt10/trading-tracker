@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { Trade } from '@/types/trade';
 import { deleteTrade, updateTrade } from '@/lib/server/trades';
 import { useQueryClient } from '@tanstack/react-query';
@@ -45,6 +46,9 @@ interface TradeDetailsModalProps {
 }
 
 export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdated }: TradeDetailsModalProps) {
+  const params = useParams();
+  const strategySlug = (params?.strategy as string | undefined) ?? '';
+  const isTradingInstitutional = strategySlug === 'trading-institutional';
   const { selection } = useActionBarSelection();
   const { data: userData } = useUserDetails();
   const userId = userData?.user?.id;
@@ -739,7 +743,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   </div>
                   <div className="space-y-3">
                     {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
-                    {renderField('Setup Type', 'setup_type', 'select', SETUP_OPTIONS)}
+                    {isTradingInstitutional && renderField('Setup Type', 'setup_type', 'select', SETUP_OPTIONS)}
                   </div>
                 </div>
               </div>
@@ -761,10 +765,12 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     {renderField('RR (Long)', 'risk_reward_ratio_long', 'number')}
                     {renderField('SL Size', 'sl_size', 'number')}
                   </div>
-                  <div className="space-y-3">
-                    {renderField('Displacement', 'displacement_size', 'number')}
-                    {renderField('Liquidity', 'liquidity', 'select', LIQUIDITY_OPTIONS)}
-                  </div>
+                  {isTradingInstitutional && (
+                    <div className="space-y-3">
+                      {renderField('Displacement', 'displacement_size', 'number')}
+                      {renderField('Liquidity', 'liquidity', 'select', LIQUIDITY_OPTIONS)}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -782,7 +788,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 <div>
                   <h4 className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-3">Execution</h4>
                   <div className="space-y-3">
-                    {renderField('MSS', 'mss', 'select', MSS_OPTIONS)}
+                    {isTradingInstitutional && renderField('MSS', 'mss', 'select', MSS_OPTIONS)}
                     {renderField('Break Even', 'break_even', 'boolean')}
                     {renderField('Re-entry', 'reentry', 'boolean')}
                   </div>
@@ -794,7 +800,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   <div className="space-y-3">
                     {renderField('News Related', 'news_related', 'boolean')}
                     {renderField('Local High/Low', 'local_high_low', 'boolean')}
-                    {renderField('Launch Hour', 'launch_hour', 'boolean')}
+                    {isTradingInstitutional && renderField('Launch Hour', 'launch_hour', 'boolean')}
                   </div>
                 </div>
 
@@ -802,7 +808,6 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 <div>
                   <h4 className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-3">Performance</h4>
                   <div className="space-y-3">
-                    {renderField('1.4RR Hit', 'rr_hit_1_4', 'boolean')}
                     {renderField('Partials', 'partials_taken', 'boolean')}
                     {renderField('Executed', 'executed', 'boolean')}
                   </div>
@@ -846,30 +851,31 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     )}
                   </div>
 
-                  {/* Liquidity Taken Image */}
-                  <div>
-                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Liquidity Taken</label>
-                    {editedTrade?.liquidity_taken ? (
-                      <a href={editedTrade.liquidity_taken} target="_blank" rel="noopener noreferrer" className="block group">
-                        <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 hover:border-purple-500 dark:hover:border-purple-400 transition-all duration-300">
-                          <img 
-                            src={editedTrade.liquidity_taken} 
-                            alt="Liquidity Taken" 
-                            className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
-                            <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
+                  {isTradingInstitutional && (
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Liquidity Taken</label>
+                      {editedTrade?.liquidity_taken ? (
+                        <a href={editedTrade.liquidity_taken} target="_blank" rel="noopener noreferrer" className="block group">
+                          <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 hover:border-purple-500 dark:hover:border-purple-400 transition-all duration-300">
+                            <img 
+                              src={editedTrade.liquidity_taken} 
+                              alt="Liquidity Taken" 
+                              className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+                              <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </div>
                           </div>
+                        </a>
+                      ) : (
+                        <div className="flex items-center justify-center h-64 rounded-lg bg-slate-200/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700">
+                          <span className="text-sm text-slate-500 dark:text-slate-400">No image</span>
                         </div>
-                      </a>
-                    ) : (
-                      <div className="flex items-center justify-center h-64 rounded-lg bg-slate-200/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700">
-                        <span className="text-sm text-slate-500 dark:text-slate-400">No image</span>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -883,16 +889,18 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                       placeholder="https://..."
                     />
                   </div>
-                  <div>
-                    <label className={`${labelClass} mb-2`}>Liquidity Taken URL</label>
-                    <Input
-                      type="text"
-                      value={editedTrade?.liquidity_taken ?? ''}
-                      onChange={(e) => handleInputChange('liquidity_taken', e.target.value)}
-                      className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
-                      placeholder="https://..."
-                    />
-                  </div>
+                  {isTradingInstitutional && (
+                    <div>
+                      <label className={`${labelClass} mb-2`}>Liquidity Taken URL</label>
+                      <Input
+                        type="text"
+                        value={editedTrade?.liquidity_taken ?? ''}
+                        onChange={(e) => handleInputChange('liquidity_taken', e.target.value)}
+                        className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+                        placeholder="https://..."
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
