@@ -37,6 +37,8 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarket';
+import { MarketCombobox } from '@/components/MarketCombobox';
 
 interface TradeDetailsModalProps {
   trade: Trade | null;
@@ -105,7 +107,6 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     await queryClient.refetchQueries({ type: 'active' });
   };
 
-  const MARKET_OPTIONS = ['DAX', 'US30', 'UK100', 'US100', 'EURUSD', 'GBPUSD'];
   const SETUP_OPTIONS = [
     'OG',
     'TG',
@@ -191,6 +192,12 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     if (!editedTrade || !editedTrade.id) return;
     setError(null);
 
+    const marketError = getMarketValidationError(editedTrade.market);
+    if (marketError) {
+      setError(marketError);
+      return;
+    }
+
     setIsSaving(true);
     setProgressDialog({ open: true, status: 'loading', message: 'Please wait while we save your trade data...', title: 'Update' });
 
@@ -201,7 +208,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         trade_time: editedTrade.trade_time,
         day_of_week: editedTrade.day_of_week || '',
         quarter: editedTrade.quarter || '',
-        market: editedTrade.market,
+        market: normalizeMarket(editedTrade.market),
         direction: editedTrade.direction,
         setup_type: editedTrade.setup_type,
         liquidity: editedTrade.liquidity,
@@ -320,7 +327,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const renderField = (
     label: string,
     field: keyof Trade,
-    type: 'text' | 'number' | 'select' | 'boolean' | 'outcome' = 'text',
+    type: 'text' | 'number' | 'select' | 'boolean' | 'outcome' | 'market' = 'text',
     options?: string[]
   ) => {
     if (!editedTrade) return null;
@@ -504,6 +511,24 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     }
 
     switch (type) {
+      case 'market':
+        return (
+          <div>
+            <label className={`${labelClass} mb-2`}>{label}</label>
+            <MarketCombobox
+              value={value != null ? String(value) : ''}
+              onChange={(v) => handleInputChange(field, v)}
+              onBlur={() => {
+                if (editedTrade.market) {
+                  const normalized = normalizeMarket(editedTrade.market);
+                  if (normalized !== editedTrade.market) handleInputChange(field, normalized);
+                }
+              }}
+              placeholder="Search or type market (e.g. EURUSD, EUR/USD)"
+              className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+            />
+          </div>
+        );
       case 'number':
         const numVal = value != null && !isNaN(Number(value)) ? Number(value) : null;
         return (
@@ -739,7 +764,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   </div>
                   <div className="space-y-3">
                     {renderField('Day', 'day_of_week', 'select', DAY_OF_WEEK_OPTIONS)}
-                    {renderField('Market', 'market', 'select', MARKET_OPTIONS)}
+                    {renderField('Market', 'market', 'market')}
                   </div>
                   <div className="space-y-3">
                     {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
