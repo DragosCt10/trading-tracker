@@ -1136,6 +1136,17 @@ export default function StrategyClient(
       </div>
 
       <div className="my-8">
+        <TradeStatsBarCard
+          title="Time Interval Analysis"
+          description="Distribution of trades based on time interval"
+          data={timeIntervalChartDataToUse}
+          mode="winsLossesWinRate"
+          heightClassName="h-72"
+          isLoading={chartsLoadingState}
+        />
+      </div>
+
+      <div className="my-8">
         {/* Market Profit Statistics Card */}
         <MarketProfitStatisticsCard
           trades={tradesToUse}
@@ -1206,17 +1217,6 @@ export default function StrategyClient(
           }
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
-        />
-      </div>
-
-      <div className="my-8">
-        <TradeStatsBarCard
-          title="Time Interval Analysis"
-          description="Distribution of trades based on time interval"
-          data={timeIntervalChartDataToUse}
-          mode="winsLossesWinRate"
-          heightClassName="h-72"
-          isLoading={chartsLoadingState}
         />
       </div>
 
