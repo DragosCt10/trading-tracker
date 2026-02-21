@@ -3,6 +3,7 @@
 import React from 'react';
 import { Trade } from '@/types/trade';
 import { TradeStatsBarCard, TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
+import { isLocalHighLowLiquidated } from '@/utils/calculateCategoryStats';
 
 export interface LocalHLBEStatisticsCardProps {
   trades: Trade[];
@@ -16,18 +17,18 @@ export interface LocalHLBEStatisticsCardProps {
  * @returns Array of TradeStatDatum for chart display (single item)
  */
 export function getLocalHLBreakEvenChartData(trades: Trade[]): TradeStatDatum[] {
-  // trades that are both Local H/L and Break Even
-  const lichidatReentryTrades = trades.filter(
-    (t) => String(t.local_high_low) === 'true' && t.break_even,
+  // trades that are both Local H/L (liquidated) and Break Even
+  const liquidatedBETrades = trades.filter(
+    (t) => isLocalHighLowLiquidated(t.local_high_low) && t.break_even,
   );
   // All trades in this set are break-even, so wins/losses are BE wins/losses
-  const beWins = lichidatReentryTrades.filter(
+  const beWins = liquidatedBETrades.filter(
     (t) => t.trade_outcome === 'Win',
   ).length;
-  const beLosses = lichidatReentryTrades.filter(
+  const beLosses = liquidatedBETrades.filter(
     (t) => t.trade_outcome === 'Lose',
   ).length;
-  const totalTrades = lichidatReentryTrades.length; // Count all trades including non-executed ones
+  const totalTrades = liquidatedBETrades.length; // Count all trades including non-executed ones
   const executedTradesCount = beWins + beLosses;
   const winRate = executedTradesCount > 0 ? (beWins / executedTradesCount) * 100 : 0;
   const winRateWithBE = winRate; // Same as winRate since all trades are BE
