@@ -140,11 +140,12 @@ export function calculateIntervalStats(
     const nonBEWins   = wins  - beWins;
     const nonBELosses = losses - beLosses;
     const beCount     = beWins + beLosses;
-    const denomExBE   = nonBEWins + nonBELosses;
-    const denomWithBE = nonBEWins + nonBELosses + beCount;
+    // Win Rate: non-BE wins / (non-BE wins + all losses) so BE losses count in denominator (1 win + 1 BE loss → 50%)
+    const denomWinRate = nonBEWins + nonBELosses + beLosses;
+    const denomWithBE  = nonBEWins + nonBELosses + beCount;
 
-    const winRate       = denomExBE   > 0 ? (nonBEWins   / denomExBE  ) * 100 : 0;
-    const winRateWithBE = denomWithBE > 0 ? (nonBEWins   / denomWithBE) * 100 : 0;
+    const winRate       = denomWinRate > 0 ? (nonBEWins / denomWinRate) * 100 : 0;
+    const winRateWithBE = denomWithBE   > 0 ? (nonBEWins / denomWithBE  ) * 100 : 0;
 
     return {
       label,
