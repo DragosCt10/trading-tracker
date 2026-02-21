@@ -36,9 +36,6 @@ import {
 } from 'chart.js';
 import { RiskRewardStats } from '@/components/dashboard/analytics/RiskRewardStats';
 import {
-  RRHitStats,
-} from '@/components/dashboard/analytics/RRHitStats';
-import {
   LocalHLBEStatisticsCard,
 } from '@/components/dashboard/analytics/LocalHLBEStatisticsCard';
 import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketProfitStats';
@@ -1242,8 +1239,8 @@ export default function StrategyClient(
         {/* Local H/L & BE Stats */}
         <LocalHLBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
 
-        {/* 1.4RR Hit Statistics */}
-        <RRHitStats trades={tradesToUse} isLoading={chartsLoadingState} />
+        {/* Partials & BE Stats */}
+        <PartialsBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <AverageDisplacementSizeCard 
@@ -1256,11 +1253,6 @@ export default function StrategyClient(
           trades={tradesToUse} 
           isLoading={chartsLoadingState}
         />
-      </div>
-
-      {/* Partials & BE Stats - 50% width */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <PartialsBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
       </div>
     </>
   );
