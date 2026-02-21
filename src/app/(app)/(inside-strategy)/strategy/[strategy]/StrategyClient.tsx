@@ -43,8 +43,6 @@ import {
 } from '@/components/dashboard/analytics/LocalHLBEStatisticsCard';
 import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketProfitStats';
 import RiskPerTrade from '@/components/dashboard/analytics/RiskPerTrade';
-import { ExecutedNonExecutedTradesCard } from '@/components/dashboard/analytics/ExecutedNonExecutedTradesCard';
-import { PartialTradesChartCard } from '@/components/dashboard/analytics/PartialTradesChartCard';
 import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
 import { 
   AccountOverviewCard,
@@ -79,10 +77,7 @@ import {
   LiquidityStatisticsCard,
   convertFilteredLiquidityStatsToChartData,
 } from '@/components/dashboard/analytics/LiquidityStatisticsCard';
-import {
-  DirectionStatisticsCard,
-  convertFilteredDirectionStatsToChartData,
-} from '@/components/dashboard/analytics/DirectionStatisticsCard';
+import { convertFilteredDirectionStatsToChartData } from '@/components/dashboard/analytics/DirectionStatisticsCard';
 import {
   LocalHLStatisticsCard,
   convertFilteredLocalHLStatsToChartData,
@@ -1061,45 +1056,12 @@ export default function StrategyClient(
         <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} />
       </div>
 
-      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Key Metrics</h2>
-      <p className="text-slate-500 dark:text-slate-400 mb-6">Trading performance indicators and statistics.</p>
+      {/* Core statistics: title + description, then core stats, then Partial/Executed/Direction cards */}
+      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Core statistics</h2>
+      <p className="text-slate-500 dark:text-slate-400 mb-6">Trading statistics and performance metrics.</p>
 
-      {/* Key Metrics: Partial Trades, Executed/Non-Executed, Long/Short - 3 cards on a single row */}
       {(viewMode === 'dateRange' || viewMode === 'yearly') && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 [&>*]:min-h-[340px]">
-          <PartialTradesChartCard
-            totalPartials={statsToUse.partialsTaken}
-            partialWinningTrades={statsToUse.partialWinningTrades}
-            partialLosingTrades={statsToUse.partialLosingTrades}
-            beWinPartialTrades={statsToUse.beWinPartialTrades}
-            beLosingPartialTrades={statsToUse.beLosingPartialTrades}
-            partialWinRate={statsToUse.partialWinRate}
-            partialWinRateWithBE={statsToUse.partialWinRateWithBE}
-            isLoading={chartsLoadingState}
-          />
-          {(() => {
-            const totalExecutedTrades = tradesToUse.filter((t) => t.executed === true).length;
-            const nonExecutedFromTradesToUse = tradesToUse.filter((t) => t.executed !== true).length;
-            return (
-              <ExecutedNonExecutedTradesCard
-                totalExecutedTrades={totalExecutedTrades}
-                initialNonExecutedTotalTradesCount={props?.initialNonExecutedTotalTradesCount}
-                nonExecutedTotalTradesCount={nonExecutedFromTradesToUse}
-                isLoading={chartsLoadingState}
-              />
-            );
-          })()}
-          <DirectionStatisticsCard
-            directionStats={filteredChartStats ? statsToUseForCharts.directionStats : directionStatsFromTradesToUse}
-            isLoading={chartsLoadingState}
-            includeTotalTrades={filteredChartStats !== null}
-          />
-        </div>
-      )}
-
-      {/* Key Metrics: 3 cards on a single row (RR Multiple, P&L %, Average Days Between Trades with days + monthly in yearly) */}
-      <div className="flex flex-col md:grid md:grid-cols-3 gap-4 w-full">
-        {(viewMode === 'dateRange' || viewMode === 'yearly') && (
+        <div className="flex flex-col md:grid md:grid-cols-3 gap-4 w-full">
           <TradingOverviewStats
             trades={tradesToUse}
             currencySymbol={currencySymbol}
@@ -1107,9 +1069,25 @@ export default function StrategyClient(
             accountBalance={selection.activeAccount?.account_balance}
             viewMode={viewMode}
             monthlyStats={viewMode === 'yearly' ? monthlyStats : undefined}
+            showTitle={false}
+            partialRowProps={{
+              partialStats: {
+                totalPartials: statsToUse.partialsTaken,
+                partialWinningTrades: statsToUse.partialWinningTrades,
+                partialLosingTrades: statsToUse.partialLosingTrades,
+                beWinPartialTrades: statsToUse.beWinPartialTrades,
+                beLosingPartialTrades: statsToUse.beLosingPartialTrades,
+                partialWinRate: statsToUse.partialWinRate,
+                partialWinRateWithBE: statsToUse.partialWinRateWithBE,
+              },
+              initialNonExecutedTotalTradesCount: props?.initialNonExecutedTotalTradesCount,
+              directionStats: filteredChartStats ? statsToUseForCharts.directionStats : directionStatsFromTradesToUse,
+              includeTotalTradesForDirection: filteredChartStats !== null,
+              chartsLoadingState: chartsLoadingState,
+            }}
           />
-        )}
-      </div>
+        </div>
+      )}
 
       <AnalysisModal
         isOpen={openAnalyzeModal}
