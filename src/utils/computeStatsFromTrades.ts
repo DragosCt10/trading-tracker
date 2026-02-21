@@ -236,6 +236,11 @@ export function computeStatsFromTrades(trades: Trade[]) {
     const total = wins + losses + beWins + beLosses;
     return total > 0 ? ((wins + beWins) / total) * 100 : 0;
   };
+  // Win Rate: non-BE wins / (non-BE wins + all losses) so BE losses count (1 win + 1 BE loss → 50%)
+  const winRateWithAllLosses = (w: number, l: number, beL: number) => {
+    const denom = w + l + beL;
+    return denom > 0 ? (w / denom) * 100 : 0;
+  };
 
   // Convert maps to arrays with win rates
   const setupStatsArray = Array.from(setupMap.entries()).map(([setup, stat]) => ({
@@ -245,7 +250,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
     losses: stat.losses,
     beWins: stat.beWins,
     beLosses: stat.beLosses,
-    winRate: calculateWinRate(stat.wins, stat.losses),
+    winRate: winRateWithAllLosses(stat.wins, stat.losses, stat.beLosses),
     winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
   }));
 
@@ -256,7 +261,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
     losses: stat.losses,
     beWins: stat.beWins,
     beLosses: stat.beLosses,
-    winRate: calculateWinRate(stat.wins, stat.losses),
+    winRate: winRateWithAllLosses(stat.wins, stat.losses, stat.beLosses),
     winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
   }));
 
@@ -267,7 +272,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
     losses: stat.losses,
     beWins: stat.beWins,
     beLosses: stat.beLosses,
-    winRate: calculateWinRate(stat.wins, stat.losses),
+    winRate: winRateWithAllLosses(stat.wins, stat.losses, stat.beLosses),
     winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
   }));
 
@@ -299,7 +304,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
     losses: stat.losses,
     beWins: stat.beWins,
     beLosses: stat.beLosses,
-    winRate: calculateWinRate(stat.wins, stat.losses),
+    winRate: winRateWithAllLosses(stat.wins, stat.losses, stat.beLosses),
     winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
   }));
 
@@ -310,7 +315,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
     losses: stat.losses,
     beWins: stat.beWins,
     beLosses: stat.beLosses,
-    winRate: calculateWinRate(stat.wins, stat.losses),
+    winRate: winRateWithAllLosses(stat.wins, stat.losses, stat.beLosses),
     winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
   }));
 
@@ -321,7 +326,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
     losses: stat.losses,
     beWins: stat.beWins,
     beLosses: stat.beLosses,
-    winRate: calculateWinRate(stat.wins, stat.losses),
+    winRate: winRateWithAllLosses(stat.wins, stat.losses, stat.beLosses),
     winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
   }));
 
@@ -332,7 +337,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
     losses: stat.losses,
     beWins: stat.beWins,
     beLosses: stat.beLosses,
-    winRate: calculateWinRate(stat.wins, stat.losses),
+    winRate: winRateWithAllLosses(stat.wins, stat.losses, stat.beLosses),
     winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
   }));
 
@@ -347,7 +352,11 @@ export function computeStatsFromTrades(trades: Trade[]) {
       ...localHLStats.lichidat,
       wins: localHLStats.lichidat.wins,
       losses: localHLStats.lichidat.losses,
-      winRate: calculateWinRate(localHLStats.lichidat.wins, localHLStats.lichidat.losses),
+      winRate: winRateWithAllLosses(
+        localHLStats.lichidat.wins,
+        localHLStats.lichidat.losses,
+        localHLStats.lichidat.lossesWithBE
+      ),
       winRateWithBE: calculateWinRateWithBE(
         localHLStats.lichidat.wins,
         localHLStats.lichidat.losses,
@@ -359,7 +368,11 @@ export function computeStatsFromTrades(trades: Trade[]) {
       ...localHLStats.nelichidat,
       wins: localHLStats.nelichidat.wins,
       losses: localHLStats.nelichidat.losses,
-      winRate: calculateWinRate(localHLStats.nelichidat.wins, localHLStats.nelichidat.losses),
+      winRate: winRateWithAllLosses(
+        localHLStats.nelichidat.wins,
+        localHLStats.nelichidat.losses,
+        localHLStats.nelichidat.lossesWithBE
+      ),
       winRateWithBE: calculateWinRateWithBE(
         localHLStats.nelichidat.wins,
         localHLStats.nelichidat.losses,
