@@ -502,11 +502,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         {/* Scrollable content wrapper */}
         <div className="relative overflow-y-auto flex-1 px-6 py-5">
 
-          <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <form onSubmit={handleSubmit} className="space-y-5 mt-0">
             {/* Links & Info Section */}
-            <div className={`grid gap-4 ${isTradingInstitutional ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+            <div className={`grid gap-5 ${isTradingInstitutional ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
               {isTradingInstitutional && (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <Label htmlFor="liquidity-taken" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Liquidity Taken
                   </Label>
@@ -521,7 +521,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 </div>
               )}
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <Label htmlFor="trade-link" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Trade Link
                 </Label>
@@ -539,8 +539,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             <Separator />
 
             {/* Date & Time Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="space-y-2">
                 <Label htmlFor="trade-date" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Trade Date *
                 </Label>
@@ -557,7 +557,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <Label htmlFor="trade-time" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Trade Time *
                 </Label>
@@ -578,8 +578,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             <Separator />
 
             {/* Market & Setup Section (institutional: Market | Setup; non-institutional: Market | Evaluation) */}
-            <div className={`grid gap-4 ${isTradingInstitutional ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2'}`}>
-              <div className="space-y-1.5">
+            <div className={`grid gap-5 ${isTradingInstitutional ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2'}`}>
+              <div className="space-y-2">
                 <Label htmlFor="market" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Market *</Label>
                 <MarketCombobox
                   id="market"
@@ -596,7 +596,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               </div>
 
               {isTradingInstitutional ? (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Setup Type *</Label>
                   <Select value={trade.setup_type} onValueChange={(v) => updateTrade('setup_type', v)}>
                     <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
@@ -610,7 +610,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   </Select>
                 </div>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Evaluation Grade</Label>
                     <TooltipProvider>
@@ -620,7 +620,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                         </TooltipTrigger>
                         <TooltipContent className="w-64 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-xl shadow-slate-200/40 dark:shadow-slate-950/50 p-3">
                           <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2.5">Grade guide</p>
-                          <ul className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
+                          <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
                             <li className="flex items-center gap-2.5">
                               <span className="w-6 h-6 rounded-md bg-blue-500/15 dark:bg-blue-400/20 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400 shrink-0">A+</span>
                               <span>Perfect execution</span>
@@ -657,8 +657,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             </div>
 
             {/* Direction & Outcome */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="space-y-2">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Direction</Label>
                 <Select value={trade.direction} onValueChange={(v) => updateTrade('direction', v as 'Long' | 'Short')}>
                   <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
@@ -671,7 +671,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Trade Outcome</Label>
                 <Select value={trade.trade_outcome} onValueChange={(v) => updateTrade('trade_outcome', v as 'Win' | 'Lose')}>
                   <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
@@ -686,8 +686,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             </div>
 
             {isTradingInstitutional && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
                   <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Liquidity *</Label>
                   <Select value={trade.liquidity} onValueChange={(v) => updateTrade('liquidity', v)}>
                     <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
@@ -701,7 +701,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   </Select>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">MSS *</Label>
                   <Select value={trade.mss} onValueChange={(v) => updateTrade('mss', v)}>
                     <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
@@ -720,8 +720,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             {/* Risk Management Section */}
             <Separator />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="space-y-2">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Risk per Trade (%) *</Label>
                 <Input
                   type="number"
@@ -734,7 +734,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Risk:Reward Ratio *</Label>
                 <Input
                   type="number"
@@ -747,7 +747,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Potential Risk:Reward Ratio</Label>
                 {trade.trade_outcome === 'Lose' ? (
                   <Input
@@ -788,7 +788,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 )}
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   SL Size {isTradingInstitutional ? '*' : ''}
                 </Label>
@@ -804,7 +804,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               </div>
 
               {isTradingInstitutional && (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Displacement Size (Points)</Label>
                   <Input
                     type="number"
@@ -819,7 +819,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               )}
 
               {isTradingInstitutional && (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Evaluation Grade</Label>
                     <TooltipProvider>
@@ -829,7 +829,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                         </TooltipTrigger>
                         <TooltipContent className="w-64 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-xl shadow-slate-200/40 dark:shadow-slate-950/50 p-3">
                           <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2.5">Grade guide</p>
-                          <ul className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
+                          <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
                             <li className="flex items-center gap-2.5">
                               <span className="w-6 h-6 rounded-md bg-blue-500/15 dark:bg-blue-400/20 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400 shrink-0">A+</span>
                               <span>Perfect execution</span>
@@ -888,7 +888,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             </div>
 
             {/* Additional Options - Checkboxes */}
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-5">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="break-even"
@@ -952,7 +952,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               </div>
 
               {/* Not Executed (inverted logic) */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center space-x-2">
                 <Checkbox
                   id="not-executed"
                   checked={trade.executed === false}
@@ -964,7 +964,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             </div>
 
             {/* Notes Section */}
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Notes</Label>
               <Textarea
                 ref={notesRef}
@@ -985,7 +985,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             )}
 
             {/* Action Buttons */}
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex justify-end gap-3 pt-5">
               <Button
                 type="button"
                 variant="outline"
