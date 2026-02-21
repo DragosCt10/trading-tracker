@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
-  BarChart,
+  ComposedChart,
   XAxis,
   YAxis,
   Tooltip as ReTooltip,
   Bar as ReBar,
+  Area,
   Cell,
   LabelList,
 } from 'recharts';
@@ -18,6 +19,7 @@ import {
   CardDescription,
   CardContent,
 } from '@/components/ui/card';
+import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { Trade } from '@/types/trade';
 import { calculateMarketStats as calculateMarketStatsUtil } from '@/utils/calculateCategoryStats';
 import type { MarketStats } from '@/types/dashboard';
@@ -50,24 +52,23 @@ interface MarketProfitStatisticsCardProps {
   chartOptions: any; // kept for API compatibility, not used
   getCurrencySymbol: () => string;
   trades: Trade[];
+  isLoading?: boolean;
 }
 
 const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
   marketStats,
   getCurrencySymbol,
   trades,
+  isLoading: externalLoading,
 }) => {
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
-    // Check for dark mode
-    const checkDarkMode = () => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    };
+    const checkDarkMode = () => setIsDark(document.documentElement.classList.contains('dark'));
     checkDarkMode();
-    // Watch for changes
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, {
       attributes: true,
@@ -75,6 +76,22 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
     });
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      if (externalLoading !== undefined) {
+        if (externalLoading) {
+          setIsLoading(true);
+        } else {
+          const timer = setTimeout(() => setIsLoading(false), 600);
+          return () => clearTimeout(timer);
+        }
+      } else {
+        const timer = setTimeout(() => setIsLoading(false), 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [mounted, externalLoading]);
 
   // Dynamic colors based on dark mode
   const axisTextColor = isDark ? '#cbd5e1' : '#64748b'; // slate-300 in dark, slate-500 in light
@@ -85,9 +102,15 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
     profitPercent: stat.pnlPercentage ? Number(stat.pnlPercentage.toFixed(2)) : 0,
   }));
 
-  if (!mounted) {
+  const maxTradeCount = Math.max(...chartData.map((d) => d.tradeCount), 1);
+  const chartDataWithScaled = chartData.map((d) => ({
+    ...d,
+    tradeCountScaled: maxTradeCount > 0 ? (d.tradeCount / maxTradeCount) * 100 : 0,
+  }));
+
+  if (!mounted || isLoading) {
     return (
-      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[360px] flex flex-col">
+      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Market Profit Statistics
@@ -97,7 +120,7 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-1 flex justify-center items-center">
-          <div className="w-full h-full min-h-[180px]" aria-hidden>—</div>
+          <BouncePulse size="md" />
         </CardContent>
       </Card>
     );
@@ -105,16 +128,16 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
 
   if (!marketStats || marketStats.length === 0) {
     return (
-      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[360px] flex flex-col">
+      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Market Profit Statistics
           </CardTitle>
-          <CardDescription className="text-base text-slate-500 dark:text-slate-400">
+          <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Profit and P&amp;L percentage by market
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 flex justify-center items-center">
+        <CardContent className="flex-1 flex flex-col items-center justify-center">
           <div className="flex flex-col justify-center items-center w-full h-full">
             <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
               No trades found
@@ -241,8 +264,14 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
     );
   };
 
+  const totalProfit = chartData.reduce((sum, d) => sum + d.profit, 0);
+  const bestMarket = chartData.length > 0
+    ? chartData.reduce((best, d) => (d.profit > best.profit ? d : best), chartData[0])
+    : null;
+  const currencySymbol = getCurrencySymbol();
+
   return (
-    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[360px] flex flex-col">
+    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
       <CardHeader className="pb-2 flex-shrink-0">
         <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
           Market Profit Statistics
@@ -251,22 +280,24 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
           Profit and P&amp;L percentage by market
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 flex items-end mt-1">
-        <div className="w-full h-[250px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              margin={{ top: 30, right: 18, left: 5, bottom: 10 }}
-              barCategoryGap="25%"
+      <CardContent className="flex-1 flex flex-col items-center justify-center relative pt-2 pb-4">
+        <div className="flex-1 w-full flex items-center justify-center min-h-0 relative px-4">
+          <div className="w-full h-full relative">
+            <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart
+              data={chartDataWithScaled}
+              margin={{ top: 30, right: 56, left: 5, bottom: 10 }}
             >
               <defs>
-                {/* Modern profit gradient - emerald to teal (same as MonthlyPerformanceChart) */}
+                <linearGradient id="marketProfitTotalArea" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={isDark ? '#64748b' : '#94a3b8'} stopOpacity={0.2} />
+                  <stop offset="100%" stopColor={isDark ? '#64748b' : '#94a3b8'} stopOpacity={0.02} />
+                </linearGradient>
                 <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
                   <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
                   <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
                 </linearGradient>
-                {/* Modern loss gradient - rose to red (same as MonthlyPerformanceChart) */}
                 <linearGradient id="lossGradient" x1="0" y1="1" x2="0" y2="0">
                   <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
                   <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
@@ -275,18 +306,29 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
               </defs>
               <XAxis
                 dataKey="market"
-                tick={(props: any) => renderXAxisTick(props) ?? <></>} 
+                tick={(props: any) => renderXAxisTick(props) ?? <></>}
                 axisLine={false}
                 tickLine={false}
                 interval={0}
                 height={38}
               />
               <YAxis
+                yAxisId="left"
                 tick={{ fill: axisTextColor, fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={yAxisTickFormatter}
                 width={60}
+              />
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                tick={{ fill: axisTextColor, fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v) => `${v}%`}
+                domain={[0, 100]}
+                width={48}
               />
               <ReTooltip
                 contentStyle={{ 
@@ -310,20 +352,65 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
                   outline: 'none',
                   zIndex: 1000
                 }}
-                cursor={{ 
-                  fill: 'transparent', 
-                  radius: 8,
-                }}
+                cursor={{ stroke: isDark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.4)', strokeWidth: 1 }}
                 content={<CustomTooltip />}
               />
-              <ReBar dataKey="profit" radius={[7, 7, 7, 7]} barSize={32}>
-                {chartData.map((stat) => (
+              <Area
+                type="monotone"
+                dataKey="tradeCountScaled"
+                name="Trades"
+                yAxisId="right"
+                fill="url(#marketProfitTotalArea)"
+                stroke="none"
+              />
+              <ReBar dataKey="profit" yAxisId="left" radius={[7, 7, 7, 7]} barSize={32}>
+                {chartDataWithScaled.map((stat) => (
                   <Cell key={stat.market} fill={getBarColor(stat.profit)} />
                 ))}
                 <LabelList dataKey="profit" content={renderBarLabel} />
               </ReBar>
-            </BarChart>
-          </ResponsiveContainer>
+            </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        {/* Stats summary below chart */}
+        <div className="w-full px-4 pt-4 mt-2">
+          <div className="flex items-center justify-center gap-8">
+            <div className="flex flex-col items-center">
+              <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                Total Profit
+              </div>
+              <div className={`text-lg font-bold ${
+                totalProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+              }`}>
+                {currencySymbol}
+                {totalProfit.toFixed(2)}
+              </div>
+            </div>
+            <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+            <div className="flex flex-col items-center">
+              <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                Best Market
+              </div>
+              <div className="text-lg font-bold text-slate-700 dark:text-slate-200 truncate max-w-[120px]" title={bestMarket?.market}>
+                {bestMarket?.market ?? '—'}
+              </div>
+              <div className={`text-xs font-semibold ${
+                (bestMarket?.profit ?? 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+              }`}>
+                {bestMarket != null ? `${currencySymbol}${bestMarket.profit.toFixed(2)}` : ''}
+              </div>
+            </div>
+            <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+            <div className="flex flex-col items-center">
+              <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                Markets
+              </div>
+              <div className="text-lg font-bold text-slate-700 dark:text-slate-200">
+                {marketStats.length}
+              </div>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
