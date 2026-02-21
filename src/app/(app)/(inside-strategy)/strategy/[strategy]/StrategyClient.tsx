@@ -1043,17 +1043,22 @@ export default function StrategyClient(
         getDaysInMonth={() => getDaysInMonth}
       />
 
-      {/* Performance Indicators Section */}
-      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Performance Indicators</h2>
-      <p className="text-slate-500 dark:text-slate-400 mb-6">Visual representation of key performance metrics with interactive charts.</p>
-
+      {/* Performance ratios */}
+      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Performance ratios</h2>
+      <p className="text-slate-500 dark:text-slate-400 mb-6">Return and risk-adjusted metrics.</p>
       <div className="flex flex-col md:grid md:grid-cols-3 gap-4 w-full">
         <ProfitFactorChart tradesToUse={tradesToUse} totalWins={statsToUse.totalWins} totalLosses={statsToUse.totalLosses} />
         <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} />
+        <TQIChart tradesToUse={tradesToUse} />
+      </div>
+
+      {/* Consistency & drawdown */}
+      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Consistency & drawdown</h2>
+      <p className="text-slate-500 dark:text-slate-400 mb-6">Consistency and capital preservation metrics.</p>
+      <div className="flex flex-col md:grid md:grid-cols-3 gap-4 w-full">
         <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} />
         <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} />
         <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} />
-        <TQIChart tradesToUse={tradesToUse} />
       </div>
 
       <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Key Metrics</h2>
