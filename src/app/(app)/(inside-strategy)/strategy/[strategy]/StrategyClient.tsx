@@ -1152,6 +1152,20 @@ export default function StrategyClient(
         />
       </div>
 
+      <div className="my-8">
+        {/* Market Profit Stats Card */}
+        <MarketProfitStatisticsCard
+          trades={tradesToUse}
+          marketStats={
+            viewMode === 'yearly'
+              ? (filteredMarketStats || marketAllTradesStats) as any
+              : (filteredMarketStats || marketStats) as any
+          }
+          chartOptions={chartOptions}
+          getCurrencySymbol={getCurrencySymbol}
+        />
+      </div>
+
       <hr className="col-span-full my-10 border-t border-slate-200 dark:border-slate-700" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
@@ -1185,22 +1199,6 @@ export default function StrategyClient(
           newsStats={newsStatsFromTradesToUse}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
-        />
-      </div>
-
-      <hr className="col-span-full my-10 border-t border-slate-200 dark:border-slate-700" />
-
-      <div className="my-8">
-        {/* Market Profit Stats Card */}
-        <MarketProfitStatisticsCard
-          trades={tradesToUse}
-          marketStats={
-            viewMode === 'yearly' 
-              ? (filteredMarketStats || marketAllTradesStats) as any
-              : (filteredMarketStats || marketStats) as any
-          }
-          chartOptions={chartOptions}
-          getCurrencySymbol={getCurrencySymbol}
         />
       </div>
 
