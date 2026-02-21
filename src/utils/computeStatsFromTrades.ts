@@ -276,16 +276,21 @@ export function computeStatsFromTrades(trades: Trade[]) {
     averageSlSize: stat.total > 0 ? stat.sum / stat.total : 0,
   }));
 
-  const intervalStatsArray = Array.from(intervalMap.entries()).map(([label, stat]) => ({
-    label,
-    total: stat.total,
-    wins: stat.wins,
-    losses: stat.losses,
-    beWins: stat.beWins,
-    beLosses: stat.beLosses,
-    winRate: calculateWinRate(stat.wins, stat.losses),
-    winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
-  }));
+  // Win Rate for intervals: non-BE wins / (non-BE wins + all losses) so BE losses count (1 win + 1 BE loss → 50%)
+  const intervalWinRateDenom = (w: number, l: number, beL: number) => w + l + beL;
+  const intervalStatsArray = Array.from(intervalMap.entries()).map(([label, stat]) => {
+    const denom = intervalWinRateDenom(stat.wins, stat.losses, stat.beLosses);
+    return {
+      label,
+      total: stat.total,
+      wins: stat.wins,
+      losses: stat.losses,
+      beWins: stat.beWins,
+      beLosses: stat.beLosses,
+      winRate: denom > 0 ? (stat.wins / denom) * 100 : 0,
+      winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+    };
+  });
 
   const mssStatsArray = Array.from(mssMap.entries()).map(([mss, stat]) => ({
     mss,
