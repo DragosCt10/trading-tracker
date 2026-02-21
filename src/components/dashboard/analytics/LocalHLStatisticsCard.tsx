@@ -135,14 +135,14 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
       { key: 'notLiquidated' as const, stat: localHLStats.notLiquidated, label: LOCAL_HL_LABELS.notLiquidated },
     ];
 
+    // Use stat.total so total matches Executed & Non-Executed card (every trade in the same tradesToUse)
     const totalTrades = statsList.reduce(
-      (sum, { stat }) =>
-        sum + (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.winsWithBE ?? 0) + (stat.lossesWithBE ?? 0),
+      (sum, { stat }) => sum + (stat.total ?? 0),
       0
     );
 
     const pieDataRaw: PieDatum[] = statsList.map(({ stat, label }, index) => {
-      const value = (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.winsWithBE ?? 0) + (stat.lossesWithBE ?? 0);
+      const value = stat.total ?? 0;
       return {
         name: label,
         value,
