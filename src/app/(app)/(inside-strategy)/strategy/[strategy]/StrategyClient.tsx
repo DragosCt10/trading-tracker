@@ -12,7 +12,7 @@ import {
   endOfMonth,
   format,
 } from 'date-fns';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 
 import { Trade } from '@/types/trade';
 import type { AccountSettings } from '@/types/account-settings';
@@ -267,6 +267,11 @@ export default function StrategyClient(
 
   // Store strategyId from props
   const strategyId = props?.initialStrategyId ?? null;
+
+  // Strategy slug from URL – cards below Market Profit Stats are only for trading-institutional
+  const params = useParams();
+  const strategySlug = (params?.strategy as string | undefined) ?? '';
+  const isTradingInstitutional = strategySlug === 'trading-institutional';
 
   // Helper function to hydrate React Query cache
   const hydrateQueryCache = useCallback(() => {
@@ -1199,61 +1204,64 @@ export default function StrategyClient(
         />
       </div>
 
-      <div className="my-8">
-        {/* Setup Stats Card */}
-        <SetupStatisticsCard
-          setupStats={filteredChartStats ? statsToUseForCharts.setupStats : setupStatsFromTradesToUse}
-          isLoading={chartsLoadingState}
-          includeTotalTrades={filteredChartStats !== null}
-        />
-      </div>
-      
+      {isTradingInstitutional && (
+        <>
+          <div className="my-8">
+            {/* Setup Stats Card */}
+            <SetupStatisticsCard
+              setupStats={filteredChartStats ? statsToUseForCharts.setupStats : setupStatsFromTradesToUse}
+              isLoading={chartsLoadingState}
+              includeTotalTrades={filteredChartStats !== null}
+            />
+          </div>
 
-      {/* Liquidity Stats (wider) & Local H/L Analysis (narrower) - same height */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-6 my-8 items-stretch">
-        {/* Liquidity Stats Card */}
-        <LiquidityStatisticsCard
-          liquidityStats={filteredChartStats ? statsToUseForCharts.liquidityStats : liquidityStatsFromTradesToUse}
-          isLoading={chartsLoadingState}
-          includeTotalTrades={filteredChartStats !== null}
-        />
-        {/* Local H/L Analysis Card - always uses same trades as Core stats row (Long/Short, Partial, Executed/Non-Executed) */}
-        <LocalHLStatisticsCard
-          localHLStats={localHLStatsFromTradesToUse}
-          isLoading={chartsLoadingState}
-          includeTotalTrades={filteredChartStats !== null}
-        />
-      </div>
+          {/* Liquidity Stats (wider) & Local H/L Analysis (narrower) - same height */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-6 my-8 items-stretch">
+            {/* Liquidity Stats Card */}
+            <LiquidityStatisticsCard
+              liquidityStats={filteredChartStats ? statsToUseForCharts.liquidityStats : liquidityStatsFromTradesToUse}
+              isLoading={chartsLoadingState}
+              includeTotalTrades={filteredChartStats !== null}
+            />
+            {/* Local H/L Analysis Card - always uses same trades as Core stats row (Long/Short, Partial, Executed/Non-Executed) */}
+            <LocalHLStatisticsCard
+              localHLStats={localHLStatsFromTradesToUse}
+              isLoading={chartsLoadingState}
+              includeTotalTrades={filteredChartStats !== null}
+            />
+          </div>
 
-      {/* MSS Stats & Launch Hour Trades - 50/50 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8 items-stretch">
-        <MSSStatisticsCard
-          mssStats={mssStatsFromTradesToUse}
-          isLoading={chartsLoadingState}
-          includeTotalTrades={filteredChartStats !== null}
-        />
-        <LaunchHourTradesCard filteredTrades={tradesToUse} isLoading={chartsLoadingState} />
-      </div>
+          {/* MSS Stats & Launch Hour Trades - 50/50 */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8 items-stretch">
+            <MSSStatisticsCard
+              mssStats={mssStatsFromTradesToUse}
+              isLoading={chartsLoadingState}
+              includeTotalTrades={filteredChartStats !== null}
+            />
+            <LaunchHourTradesCard filteredTrades={tradesToUse} isLoading={chartsLoadingState} />
+          </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {/* Local H/L & BE Stats */}
-        <LocalHLBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* Local H/L & BE Stats */}
+            <LocalHLBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
 
-        {/* Partials & BE Stats */}
-        <PartialsBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <AverageDisplacementSizeCard 
-          trades={tradesToUse} 
-          isLoading={chartsLoadingState}
-        />
-        
-        {/* Displacement Size Profitability by Market and Size Points */}
-        <DisplacementSizeStats 
-          trades={tradesToUse} 
-          isLoading={chartsLoadingState}
-        />
-      </div>
+            {/* Partials & BE Stats */}
+            <PartialsBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <AverageDisplacementSizeCard 
+              trades={tradesToUse} 
+              isLoading={chartsLoadingState}
+            />
+
+            {/* Displacement Size Profitability by Market and Size Points */}
+            <DisplacementSizeStats 
+              trades={tradesToUse} 
+              isLoading={chartsLoadingState}
+            />
+          </div>
+        </>
+      )}
     </>
   );
 }
