@@ -139,17 +139,21 @@ export function computeStatsFromTrades(trades: Trade[]) {
       // Non-executed trades are counted in total but don't increment wins/losses
     }
 
-    // Interval stats (using trade_time) - match TIME_INTERVALS labels
+    // Interval stats (using trade_time) - match TIME_INTERVALS (full-day 4h buckets)
     const tradeTimeStr = trade.trade_time || '00:00';
     const [hours, minutes] = tradeTimeStr.split(':').map(Number);
     const totalMinutes = hours * 60 + minutes;
     let intervalLabel = 'Unknown';
-    // Match TIME_INTERVALS: '< 10 a.m' (00:00-09:59), '10 a.m - 12 p.m' (10:00-11:59), '12 p.m - 16 p.m' (12:00-16:59), '17 p.m - 21 p.m' (17:00-20:59)
-    if (totalMinutes < 600) intervalLabel = '< 10 a.m'; // 00:00 - 09:59
-    else if (totalMinutes < 720) intervalLabel = '10 a.m - 12 p.m'; // 10:00 - 11:59
-    else if (totalMinutes < 1020) intervalLabel = '12 p.m - 16 p.m'; // 12:00 - 16:59
-    else if (totalMinutes < 1320) intervalLabel = '17 p.m - 21 p.m'; // 17:00 - 20:59
-    else intervalLabel = '< 10 a.m'; // 21:00 - 23:59 falls into next day's early morning
+    for (const { label, start, end } of TIME_INTERVALS) {
+      const [hS, mS] = start.split(':').map(Number);
+      const [hE, mE] = end.split(':').map(Number);
+      const sM = hS * 60 + mS;
+      const eM = hE * 60 + mE;
+      if (totalMinutes >= sM && totalMinutes <= eM) {
+        intervalLabel = label;
+        break;
+      }
+    }
 
     // Interval stats
     if (!intervalMap.has(intervalLabel)) {
