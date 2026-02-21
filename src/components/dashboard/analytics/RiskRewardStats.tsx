@@ -26,8 +26,14 @@ interface RiskRewardStatsProps {
   isLoading?: boolean;
 }
 
-// Only ratios we care about
-export const DISPLAY_RATIOS = [2, 2.5, 3] as const;
+// All valid Potential R:R values: 1 to 10 in 0.5 steps, plus 10+ (stored as 10.5)
+const RATIOS_1_TO_10 = Array.from({ length: 19 }, (_, i) => 1 + i * 0.5) as number[];
+export const DISPLAY_RATIOS: readonly number[] = [...RATIOS_1_TO_10, 10.5];
+
+/** Format ratio for display (10.5 -> "10+") */
+function formatRatioLabel(ratio: number): string {
+  return ratio === 10.5 ? '10+' : String(ratio);
+}
 
 export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewardStatsProps) {
   // --- 1. Find all unique markets with at least one trade with a qualifying ratio -----
@@ -38,7 +44,7 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
   trades.forEach((t) => {
     if (
       typeof t.risk_reward_ratio_long === "number" &&
-      (DISPLAY_RATIOS as readonly number[]).includes(t.risk_reward_ratio_long)
+      DISPLAY_RATIOS.includes(t.risk_reward_ratio_long)
     ) {
       if (!marketToRatios.has(t.market)) marketToRatios.set(t.market, new Set());
       marketToRatios.get(t.market)!.add(t.risk_reward_ratio_long);
@@ -55,7 +61,7 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
     (t) =>
       eligibleMarkets.includes(t.market) &&
       typeof t.risk_reward_ratio_long === "number" &&
-      (DISPLAY_RATIOS as readonly number[]).includes(t.risk_reward_ratio_long)
+      DISPLAY_RATIOS.includes(t.risk_reward_ratio_long)
   );
 
   // For each ratio, create one row with all markets as separate dataKeys
@@ -114,6 +120,11 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
 
     return row;
   });
+
+  // Only show ratios that have at least one market with data
+  const chartDataWithData = chartData.filter((row) =>
+    eligibleMarkets.some((m) => (row[m] ?? 0) > 0)
+  );
 
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -190,12 +201,14 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
       return null;
     }
     
-    // Get the ratio from the label
+    // Get the ratio from the label (stored as string e.g. "10.5")
     const ratio = label;
-    
-    // Find the row data for this ratio
-    const rowData = chartData.find((d) => d.ratio === ratio);
-    
+    const ratioNum = ratio != null ? parseFloat(String(ratio)) : NaN;
+    const ratioDisplay = !Number.isNaN(ratioNum) ? formatRatioLabel(ratioNum) : ratio;
+
+    // Find the row data for this ratio (use chartData so tooltip has full details)
+    const rowData = chartDataWithData.find((d) => d.ratio === ratio);
+
     if (!rowData || !rowData.marketDetails || rowData.marketDetails.length === 0) {
       return null;
     }
@@ -210,7 +223,7 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
     return (
       <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
         <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-          Risk/Reward {ratio}
+          Risk/Reward {ratioDisplay}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -253,9 +266,12 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
   const yAxisTickFormatter = (value: number) =>
     `${Number(value ?? 0).toFixed(0)}%`;
 
-  // --- Custom render X axis tick to left-align ratio number -----
+  // --- Custom render X axis tick (show "10+" for 10.5) -----
   const renderXAxisTick = (props: any) => {
     const { x, y, payload } = props;
+    const value = payload?.value != null ? String(payload.value) : '';
+    const num = value ? parseFloat(value) : NaN;
+    const label = !Number.isNaN(num) ? formatRatioLabel(num) : value;
     return (
       <text
         x={x}
@@ -263,9 +279,9 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
         dy={16}
         textAnchor="middle"
         fill={axisTextColor}
-        fontSize={12}
+        fontSize={11}
       >
-        {payload?.value}
+        {label}
       </text>
     );
   };
@@ -297,14 +313,14 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
                 No qualifying trades found
               </div>
               <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
-                No qualifying trades with Risk/Reward ratios of 2, 2.5, and 3 for any market.
+                No trades with a potential Risk/Reward ratio (1 – 10 or 10+) for any market.
               </div>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={chartData}
-                margin={{ top: 10, right: 24, left: 70, bottom: 48 }}
+                data={chartDataWithData}
+                margin={{ top: 20, right: 24, left: 24, bottom: 28 }}
                 barCategoryGap="30%"
               >
                 <defs>
@@ -337,16 +353,6 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={yAxisTickFormatter}
-                  label={{
-                    value: 'Percentage of trades',
-                    angle: -90,
-                    position: 'middle',
-                    fill: axisTextColor,
-                    fontSize: 12,
-                    fontWeight: 500,
-                    dy: -10,
-                    dx: -50,
-                  }}
                 />
 
                 <ReTooltip
@@ -395,7 +401,7 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
                       fill={`url(#${getGradientId(market)})`}
                       barSize={18}
                     >
-                      {chartData.map((row, rowIndex) => {
+                      {chartDataWithData.map((row, rowIndex) => {
                         // Find markets with non-zero values for this ratio
                         const marketsWithData = eligibleMarkets.filter((m) => (row[m] ?? 0) > 0);
                         const hasData = (row[market] ?? 0) > 0;
