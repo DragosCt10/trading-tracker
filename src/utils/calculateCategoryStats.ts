@@ -2,6 +2,18 @@ import { DayStats, DirectionStats, IntervalStats, LiquidityStats, LocalHLStats, 
 import { Trade } from '@/types/trade';
 
 /**
+ * Single source of truth for "liquidated" (local H/L = true).
+ * Handles boolean, string, number, or null from API/DB so both calculateLocalHLStats
+ * and computeStatsFromTrades (and any other consumer) categorize the same way.
+ */
+export function isLocalHighLowLiquidated(value: unknown): boolean {
+  if (value === true) return true;
+  if (value === false || value === null || value === undefined) return false;
+  const s = String(value).toLowerCase();
+  return s === 'true' || s === '1';
+}
+
+/**
  * Generic group statistics for trades.
  */
 export interface GroupStats {
@@ -227,21 +239,26 @@ export function calculateDirectionStats(trades: Trade[]): DirectionStats[] {
       beLosses:    g.beLosses
     }));
 }
+/** English keys for Local H/L stats (liquidated / not liquidated) */
+export const LOCAL_HL_KEYS = {
+  liquidated: 'liquidated',
+  notLiquidated: 'notLiquidated',
+} as const;
+
 export function calculateLocalHLStats(trades: Trade[]): LocalHLStats {
   const ZERO: LocalHLStats = {
-    lichidat:   { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0, total: 0 },
-    nelichidat: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0, total: 0 },
+    liquidated:   { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0, total: 0 },
+    notLiquidated: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0, total: 0 },
   };
 
   // ← if no trades at all, immediately return the zero‐stats
   if (trades.length === 0) return ZERO;
 
   // Group ALL trades (including non-executed) - processGroup will handle counting correctly
-  // Use the same logic as computeStatsFromTrades for consistency
-  // String(trade.local_high_low) === 'true' means lichidat
+  // Use isLocalHighLowLiquidated so we match computeStatsFromTrades (boolean/string/number from API)
   const groups = calculateGroupedStats(
     trades,
-    t => (String(t.local_high_low) === 'true' ? 'lichidat' : 'nelichidat')
+    t => (isLocalHighLowLiquidated(t.local_high_low) ? LOCAL_HL_KEYS.liquidated : LOCAL_HL_KEYS.notLiquidated)
   );
 
   return groups.reduce<LocalHLStats>((acc, g) => {
