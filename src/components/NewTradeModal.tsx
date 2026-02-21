@@ -47,12 +47,12 @@ const SETUP_OPTIONS = [
   'OG', 'TG', 'TCG', '3G', '3CG', 'MultipleGaps',
   'SLG+OG', 'SLG+TG', 'SLG+TCG', 'SLG+3G', 'SLG+3CG'
 ];
-const LIQUIDITY_OPTIONS = ['Liq. Majora', 'Liq. Minora', 'Liq. Locala', 'HOD', 'LOD'];
+const LIQUIDITY_OPTIONS = ['Major Liquidity', 'Low Liquidity', 'Local Liquidity', 'HOD', 'LOD'];
 const MSS_OPTIONS = ['Normal', 'Agresiv'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 const WEEKDAY_MAP: Record<string, string> = {
-  Monday: 'Luni', Tuesday: 'Marti', Wednesday: 'Miercuri', Thursday: 'Joi',
-  Friday: 'Vineri', Saturday: 'Sambata', Sunday: 'Duminica',
+  Monday: 'Monday', Tuesday: 'Tuesday', Wednesday: 'Wednesday', Thursday: 'Thursday',
+  Friday: 'Friday', Saturday: 'Saturday', Sunday: 'Sunday',
 };
 
 function getQuarter(dateStr: string): string {
