@@ -41,8 +41,13 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
 } from '@/components/ui/alert-dialog';
+import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarket';
+import { MarketCombobox } from '@/components/MarketCombobox';
+import { ALLOWED_MARKETS } from '@/constants/allowedMarkets';
 
-const MARKET_OPTIONS = ['DAX', 'US30', 'UK100', 'US100', 'EURUSD', 'GBPUSD'];
+/** Kept for any legacy reference; market input uses MarketCombobox + ALLOWED_MARKETS. */
+const MARKET_OPTIONS = ALLOWED_MARKETS;
+
 const SETUP_OPTIONS = [
   'OG', 'TG', 'TCG', '3G', '3CG', 'MultipleGaps',
   'SLG+OG', 'SLG+TG', 'SLG+TCG', 'SLG+3G', 'SLG+3CG'
@@ -332,12 +337,20 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     } catch { }
   }, [trade, selection.mode]);
 
+  // Auto-dismiss error after 3 seconds
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(null), 3000);
+    return () => clearTimeout(t);
+  }, [error]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!trade.market || !trade.trade_time) {
-      setError('Please fill in all required fields (including Trade Time).');
+    const marketError = getMarketValidationError(trade.market);
+    if (marketError || !trade.trade_time) {
+      setError(marketError || 'Please fill in all required fields (including Trade Time).');
       return;
     }
     if (isTradingInstitutional && (!trade.setup_type || !trade.liquidity || !trade.mss || !trade.sl_size)) {
@@ -367,7 +380,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         }
       }
 
-      const { id, user_id, account_id, calculated_profit, pnl_percentage, ...tradePayload } = trade as Trade & { user_id?: string; account_id?: string };
+      const normalizedMarket = normalizeMarket(trade.market);
+      const payload = { ...trade, market: normalizedMarket } as Trade & { user_id?: string; account_id?: string };
+      const { id, user_id, account_id, calculated_profit, pnl_percentage, ...tradePayload } = payload;
       const { error } = await createTrade({
         mode: selection.mode,
         account_id: selection.activeAccount.id,
@@ -478,14 +493,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         {/* Scrollable content wrapper */}
         <div className="relative overflow-y-auto flex-1 px-6 py-5">
 
-          {error && (
-            <Alert variant="destructive" className="mb-4 bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 backdrop-blur-sm">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
             {/* Links & Info Section */}
             <div className={`grid gap-4 ${isTradingInstitutional ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
@@ -558,17 +565,18 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             {/* Market & Setup Section */}
             <div className={`grid gap-4 ${isTradingInstitutional ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
               <div className="space-y-1.5">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Market *</Label>
-                <Select value={trade.market} onValueChange={(v) => updateTrade('market', v)}>
-                  <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
-                    <SelectValue placeholder="Select Market" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MARKET_OPTIONS.map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="market" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Market *</Label>
+                <MarketCombobox
+                  id="market"
+                  value={trade.market}
+                  onChange={(v) => updateTrade('market', v)}
+                  onBlur={() => {
+                    const normalized = normalizeMarket(trade.market);
+                    if (normalized !== trade.market) updateTrade('market', normalized);
+                  }}
+                  placeholder="Type market (e.g. EURUSD, EUR/USD)"
+                  className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                />
               </div>
 
               {isTradingInstitutional && (
@@ -904,6 +912,15 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 placeholder="Add your trade notes here..."
               />
             </div>
+
+            {/* Error message above Create Trade button – auto-dismiss after 3s */}
+            {error && (
+              <Alert variant="destructive" className="mb-2 bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 backdrop-blur-sm">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
             {/* Action Buttons */}
             <div className="flex justify-end gap-2 pt-4">
