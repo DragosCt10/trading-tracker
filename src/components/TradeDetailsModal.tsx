@@ -13,6 +13,7 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 // Shared input/select styles to match NewTradeModal
 const inputClass = 'h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100';
 const selectTriggerClass = 'h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100';
+const selectContentClass = 'z-[100] border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50';
 const labelClass = 'block text-sm font-semibold text-slate-700 dark:text-slate-300';
 
 // shadcn UI components
@@ -476,7 +477,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             <SelectTrigger className={selectTriggerClass}>
               <SelectValue placeholder="Potential RR (1 – 10 or 10+)" />
             </SelectTrigger>
-            <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+            <SelectContent className={selectContentClass}>
               {POTENTIAL_RR_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={String(opt.value)}>
                   {opt.label}
@@ -526,6 +527,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               }}
               placeholder="Search or type market (e.g. EURUSD, EUR/USD)"
               className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+              dropdownClassName="z-[100]"
             />
           </div>
         );
@@ -557,7 +559,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               <SelectTrigger className={selectTriggerClass}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+              <SelectContent className={selectContentClass}>
                 {options?.map((option) => (
                   <SelectItem key={option} value={option}>
                     {option}
@@ -578,7 +580,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               <SelectTrigger className={selectTriggerClass}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+              <SelectContent className={selectContentClass}>
                 <SelectItem value="true">Yes</SelectItem>
                 <SelectItem value="false">No</SelectItem>
               </SelectContent>
@@ -596,7 +598,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               <SelectTrigger className={selectTriggerClass}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+              <SelectContent className={selectContentClass}>
                 <SelectItem value="Win">Win</SelectItem>
                 <SelectItem value="Lose">Lose</SelectItem>
               </SelectContent>
@@ -700,7 +702,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                         <SelectTrigger className={selectTriggerClass}>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                        <SelectContent className={selectContentClass}>
                           <SelectItem value="Win">Win</SelectItem>
                           <SelectItem value="Lose">Lose</SelectItem>
                         </SelectContent>
@@ -735,7 +737,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                         <SelectTrigger className={selectTriggerClass}>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                        <SelectContent className={selectContentClass}>
                           {EVALUATION_OPTIONS.map((opt) => (
                             <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                           ))}
@@ -757,6 +759,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   </svg>
                   Basic Information
                 </h3>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-3">
                     {renderField('Date', 'trade_date')}
