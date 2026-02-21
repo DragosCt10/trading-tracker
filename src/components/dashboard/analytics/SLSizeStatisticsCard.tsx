@@ -12,9 +12,9 @@ export interface SLSizeStatisticsCardProps {
 }
 
 /**
- * Calculate SL size statistics from trades array
+ * Calculate Stop Loss Size Stats from trades array
  * @param trades - Array of trades to compute stats from
- * @returns Array of SL size statistics
+ * @returns Array of Stop Loss Size Stats
  */
 export function calculateSLSizeStats(trades: Trade[]): SLSizeStats[] {
   return calculateSLSizeStatsUtil(trades);
@@ -22,7 +22,7 @@ export function calculateSLSizeStats(trades: Trade[]): SLSizeStats[] {
 
 /**
  * Convert SL size stats to chart data format
- * @param slSizeStats - Array of SL size statistics
+ * @param slSizeStats - Array of Stop Loss Size Stats
  * @returns Array of TradeStatDatum for chart display
  */
 export function convertSLSizeStatsToChartData(slSizeStats: SLSizeStats[]): TradeStatDatum[] {
@@ -38,7 +38,7 @@ export const SLSizeStatisticsCard: React.FC<SLSizeStatisticsCardProps> = React.m
 
     return (
       <TradeStatsBarCard
-        title="SL Size Statistics"
+        title="Stop Loss Size Stats"
         description="Distribution of trades based on SL size"
         data={chartData}
         mode="singleValue"

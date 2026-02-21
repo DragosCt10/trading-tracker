@@ -29,9 +29,9 @@ export interface MSSStatisticsCardProps {
 }
 
 /**
- * Calculate MSS statistics from trades array
+ * Calculate Market Structure Shift Stats from trades array
  * @param trades - Array of trades to compute stats from
- * @returns Array of MSS statistics
+ * @returns Array of Market Structure Shift Stats
  */
 export function calculateMssStats(trades: Trade[]): MssStats[] {
   return calculateMssStatsUtil(trades);
@@ -116,13 +116,14 @@ export const MSSStatisticsCard: React.FC<MSSStatisticsCardProps> = React.memo(
       }
     }, [mounted, externalLoading]);
 
+    // Use stat.total so total matches Local H/L and Executed cards (same tradesToUse)
     const totalTrades = mssStats.reduce(
-      (sum, s) => sum + (s.wins ?? 0) + (s.losses ?? 0) + (s.beWins ?? 0) + (s.beLosses ?? 0),
+      (sum, s) => sum + (s.total ?? 0),
       0
     );
 
     const pieDataRaw: PieDatum[] = mssStats.map((stat, index) => {
-      const value = (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.beWins ?? 0) + (stat.beLosses ?? 0);
+      const value = stat.total ?? 0;
       return {
         name: stat.mss ?? 'Unknown',
         value,
@@ -230,7 +231,7 @@ export const MSSStatisticsCard: React.FC<MSSStatisticsCardProps> = React.memo(
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-              MSS Statistics
+              Market Structure Shift Stats
             </CardTitle>
             <CardDescription className="text-base text-slate-500 dark:text-slate-400">
               Distribution of trades based on MSS
@@ -248,7 +249,7 @@ export const MSSStatisticsCard: React.FC<MSSStatisticsCardProps> = React.memo(
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-              MSS Statistics
+              Market Structure Shift Stats
             </CardTitle>
             <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
               Distribution of trades based on MSS
@@ -279,7 +280,7 @@ export const MSSStatisticsCard: React.FC<MSSStatisticsCardProps> = React.memo(
       <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            MSS Statistics
+            Market Structure Shift Stats
           </CardTitle>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Distribution of trades based on MSS

@@ -149,6 +149,8 @@ import {
   calculateLocalHLStats,
   calculateSetupStats,
   calculateSLSizeStats,
+  calculateMssStats,
+  calculateNewsStats,
 } from '@/utils/calculateCategoryStats';
 import {
   type DateRangeState,
@@ -522,6 +524,14 @@ export default function StrategyClient(
 
   const breakEvenStatsFromTradesToUse = useMemo(() => {
     return calculateBreakEvenStats(tradesToUse);
+  }, [tradesToUse]);
+
+  const mssStatsFromTradesToUse = useMemo(() => {
+    return calculateMssStats(tradesToUse);
+  }, [tradesToUse]);
+
+  const newsStatsFromTradesToUse = useMemo(() => {
+    return calculateNewsStats(tradesToUse);
   }, [tradesToUse]);
 
   // Compute filtered statistics when filters are applied
@@ -1128,7 +1138,7 @@ export default function StrategyClient(
       </div>
 
       <div className="my-8">
-        {/* Market Statistics Card */}
+        {/* Market Stats Card */}
         <MarketStatisticsCard
           marketStats={
             filteredChartStats
@@ -1143,12 +1153,12 @@ export default function StrategyClient(
       <hr className="col-span-full my-10 border-t border-slate-200 dark:border-slate-700" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
-        {/* Potential Risk/Reward Ratio Statistics */}
+        {/* Potential Risk/Reward Ratio Stats */}
         <RiskRewardStats
           trades={tradesToUse}
           isLoading={chartsLoadingState}
         />
-        {/* SL Size Statistics Card */}
+        {/* Stop Loss Size Stats Card */}
         <SLSizeStatisticsCard
           slSizeStats={filteredChartStats ? statsToUseForCharts.slSizeStats : slSizeStatsFromTradesToUse}
           isLoading={chartsLoadingState}
@@ -1162,7 +1172,7 @@ export default function StrategyClient(
         />
       </div>
 
-      {/* Day Statistics - full width */}
+      {/* Days Stats - full width */}
       <div className="my-8">
         <DayStatisticsCard
           dayStats={filteredChartStats ? (statsToUseForCharts.dayStats as DayStatisticsCardProps['dayStats']) : dayStats}
@@ -1174,7 +1184,7 @@ export default function StrategyClient(
       <hr className="col-span-full my-10 border-t border-slate-200 dark:border-slate-700" />
 
       <div className="my-8">
-        {/* Market Profit Statistics Card */}
+        {/* Market Profit Stats Card */}
         <MarketProfitStatisticsCard
           trades={tradesToUse}
           marketStats={
@@ -1188,7 +1198,7 @@ export default function StrategyClient(
       </div>
 
       <div className="my-8">
-        {/* Setup Statistics Card */}
+        {/* Setup Stats Card */}
         <SetupStatisticsCard
           setupStats={filteredChartStats ? statsToUseForCharts.setupStats : setupStatsFromTradesToUse}
           isLoading={chartsLoadingState}
@@ -1197,9 +1207,9 @@ export default function StrategyClient(
       </div>
       
 
-      {/* Liquidity Statistics & Local H/L Analysis Row */}
+      {/* Liquidity Stats & Local H/L Analysis Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
-        {/* Liquidity Statistics Card */}
+        {/* Liquidity Stats Card */}
         <LiquidityStatisticsCard
           liquidityStats={filteredChartStats ? statsToUseForCharts.liquidityStats : liquidityStatsFromTradesToUse}
           isLoading={chartsLoadingState}
@@ -1213,22 +1223,22 @@ export default function StrategyClient(
         />
       </div>
 
-      {/* MSS & News Statistics Row */}
+      {/* MSS & News Stats Row - same trades as Core stats (Long/Short, Partial, Executed/Non-Executed) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
         <MSSStatisticsCard
-          mssStats={filteredChartStats ? (statsToUseForCharts.mssStats as MSSStatisticsCardProps['mssStats']) : mssStats}
+          mssStats={mssStatsFromTradesToUse}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
         <NewsStatisticsCard
-          newsStats={filteredChartStats ? (statsToUseForCharts.newsStats as NewsStatisticsCardProps['newsStats']) : newsStats}
+          newsStats={newsStatsFromTradesToUse}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {/* Local H/L + BE Statistics */}
+        {/* Local H/L & BE Stats */}
         <LocalHLBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
 
         {/* 1.4RR Hit Statistics */}
@@ -1248,7 +1258,7 @@ export default function StrategyClient(
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Partials + BE Statistics */}
+        {/* Partials &  BE Stats */}
         <PartialsBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
          
          {/* Launch Hour Trades Statistics */}

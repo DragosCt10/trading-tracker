@@ -119,7 +119,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
 
       <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
 
-      {/* Total Trades Chart and Streak Statistics - 2 columns */}
+      {/* Total Trades Chart and Streak Stats - 2 columns */}
       <div className="col-span-full grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TotalTradesChartCard
           totalTrades={stats.totalTrades}

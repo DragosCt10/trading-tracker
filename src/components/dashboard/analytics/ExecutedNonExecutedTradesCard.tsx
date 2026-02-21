@@ -172,7 +172,7 @@ export const ExecutedNonExecutedTradesCard: React.FC<ExecutedNonExecutedTradesCa
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col items-center justify-center relative pt-2 pb-4">
-          {/* Pie chart section - same layout and dimensions as Long/Short Statistics card */}
+          {/* Pie chart section - same layout and dimensions as Long/Short Stats card */}
           <div className="flex-1 w-full flex items-center justify-center min-h-0 relative">
             <div className="w-full h-full max-h-[200px] relative">
               <ResponsiveContainer width="100%" height="100%">

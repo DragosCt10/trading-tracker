@@ -11,7 +11,7 @@ export interface LocalHLBEStatisticsCardProps {
 }
 
 /**
- * Calculate Local H/L + BE statistics from trades array
+ * Calculate Local H/L & BE Stats from trades array
  * Returns chart data for trades that are both Local High/Low and Break Even
  * @param trades - Array of trades to compute stats from
  * @returns Array of TradeStatDatum for chart display (single item)
@@ -53,7 +53,7 @@ export const LocalHLBEStatisticsCard: React.FC<LocalHLBEStatisticsCardProps> = R
 
     return (
       <TradeStatsBarCard
-        title="Local H/L + BE Statistics"
+        title="Local H/L & BE Stats"
         description="Analysis of trades marked as both Local High/Low and Break Even"
         data={chartData}
         mode="winsLossesWinRate"

@@ -168,7 +168,7 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
   // Generate gradient IDs for each market
   const getGradientId = (market: string) => `rrGradient-${market.replace(/\s+/g, '-')}`;
   
-  // Use the same gradient as SL Size Statistics (blue to cyan) for all markets
+  // Use the same gradient as Stop Loss Size Stats (blue to cyan) for all markets
   const gradientColor = {
     start: '#3b82f6', // blue-500
     mid: '#06b6d4',   // cyan-500
@@ -278,7 +278,7 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
     <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
       <CardHeader className="pb-2 flex-shrink-0">
         <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-          Potential Risk/Reward Ratio Statistics
+          Potential Risk/Reward Ratio Stats
         </CardTitle>
         <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
           Distribution of trades based on potential risk/reward ratio for each market

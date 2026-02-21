@@ -53,9 +53,9 @@ export interface DayStatisticsCardProps {
 }
 
 /**
- * Calculate day statistics from trades array
+ * Calculate Days Stats from trades array
  * @param trades - Array of trades to compute stats from
- * @returns Array of day statistics
+ * @returns Array of Days Stats
  */
 export function calculateDayStats(trades: Trade[]): DayStats[] {
   return calculateDayStatsUtil(trades);
@@ -252,7 +252,7 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[360px] flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <CardTitle className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-              Day Statistics
+              Days Stats
             </CardTitle>
             <CardDescription className="text-base text-slate-500 dark:text-slate-400">
               Distribution of trades based on day of the week
@@ -270,7 +270,7 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[360px] flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <CardTitle className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-              Day Statistics
+              Days Stats
             </CardTitle>
             <CardDescription className="text-base text-slate-500 dark:text-slate-400">
               Distribution of trades based on day of the week
@@ -300,7 +300,7 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
       <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[360px] flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Day Statistics
+            Days Stats
           </CardTitle>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Distribution of trades based on day of the week

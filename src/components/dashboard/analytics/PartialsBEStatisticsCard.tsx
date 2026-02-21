@@ -10,7 +10,7 @@ export interface PartialsBEStatisticsCardProps {
 }
 
 /**
- * Calculate Partials + BE statistics from trades array
+ * Calculate Partials &  BE Stats from trades array
  * Returns chart data for trades that are both Break Even and have Partials Taken
  * @param trades - Array of trades to compute stats from
  * @returns Array of TradeStatDatum for chart display (single item)
@@ -50,7 +50,7 @@ export const PartialsBEStatisticsCard: React.FC<PartialsBEStatisticsCardProps> =
 
     return (
       <TradeStatsBarCard
-        title="Partials + BE Statistics"
+        title="Partials &  BE Stats"
         description="Analysis of trades marked as both Break Even and Partials Taken"
         data={chartData}
         mode="winsLossesWinRate"

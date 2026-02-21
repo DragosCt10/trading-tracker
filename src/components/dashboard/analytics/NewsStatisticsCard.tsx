@@ -29,9 +29,9 @@ export interface NewsStatisticsCardProps {
 }
 
 /**
- * Calculate news statistics from trades array
+ * Calculate News Stats from trades array
  * @param trades - Array of trades to compute stats from
- * @returns Array of news statistics
+ * @returns Array of News Stats
  */
 export function calculateNewsStats(trades: Trade[]): NewsStats[] {
   return calculateNewsStatsUtil(trades);
@@ -87,13 +87,14 @@ export const NewsStatisticsCard: React.FC<NewsStatisticsCardProps> = React.memo(
       }
     }, [mounted, externalLoading]);
 
+    // Use stat.total so total matches Local H/L and Executed cards (same tradesToUse)
     const totalTrades = newsStats.reduce(
-      (sum, s) => sum + (s.wins ?? 0) + (s.losses ?? 0) + (s.beWins ?? 0) + (s.beLosses ?? 0),
+      (sum, s) => sum + (s.total ?? 0),
       0
     );
 
     const pieDataRaw: PieDatum[] = newsStats.map((stat, index) => {
-      const value = (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.beWins ?? 0) + (stat.beLosses ?? 0);
+      const value = stat.total ?? 0;
       return {
         name: stat.news ?? 'Unknown',
         value,
@@ -201,7 +202,7 @@ export const NewsStatisticsCard: React.FC<NewsStatisticsCardProps> = React.memo(
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-              News Statistics
+              News Stats
             </CardTitle>
             <CardDescription className="text-base text-slate-500 dark:text-slate-400">
               Distribution of trades based on news
@@ -219,7 +220,7 @@ export const NewsStatisticsCard: React.FC<NewsStatisticsCardProps> = React.memo(
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-              News Statistics
+              News Stats
             </CardTitle>
             <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
               Distribution of trades based on news
@@ -250,7 +251,7 @@ export const NewsStatisticsCard: React.FC<NewsStatisticsCardProps> = React.memo(
       <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            News Statistics
+            News Stats
           </CardTitle>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Distribution of trades based on news

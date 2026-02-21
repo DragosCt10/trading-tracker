@@ -241,7 +241,7 @@ export function MonthlyPerformanceChart({
   const yAxisTickFormatter = (value: number) =>
     Number(value ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
-  // Custom Y-axis labels: vertically centered, left/right of tick area to avoid overlap (match Market Profit Statistics)
+  // Custom Y-axis labels: vertically centered, left/right of tick area to avoid overlap (match Market Profit Stats)
   const leftAxisLabel = (props: { viewBox?: { x?: number; y?: number; width?: number; height?: number } }) => {
     const vb = props.viewBox ?? {};
     const x = (vb.x ?? 0) + 6;

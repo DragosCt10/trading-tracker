@@ -1,4 +1,4 @@
-/** Full-day 4-hour buckets for time interval analysis (includes night sessions). */
+/** Full-day 4-hour buckets for Time Interval Stats (includes night sessions). */
 export const TIME_INTERVALS = [
   { label: '00:00 – 03:59', start: '00:00', end: '03:59' },
   { label: '04:00 – 07:59', start: '04:00', end: '07:59' },
