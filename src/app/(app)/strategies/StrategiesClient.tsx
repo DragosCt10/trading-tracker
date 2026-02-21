@@ -91,12 +91,12 @@ export function StrategiesClient() {
   const {
     data: allStrategyStats,
     isFetching: statsLoading,
-  } = useQuery<Record<string, { totalTrades: number; winRate: number; avgRR: number }>>({
+  } = useQuery<Record<string, { totalTrades: number; winRate: number; avgRR: number; totalRR: number }>>({
     queryKey: ['all-strategy-stats', userId, activeAccount?.id, mode, strategies.map(s => s.id).join(',')],
     queryFn: async () => {
       if (!userId || !activeAccount?.id || !mode || strategies.length === 0) return {};
       
-      const statsMap: Record<string, { totalTrades: number; winRate: number; avgRR: number }> = {};
+      const statsMap: Record<string, { totalTrades: number; winRate: number; avgRR: number; totalRR: number }> = {};
       await Promise.all(
         strategies.map(async (strategy) => {
           try {
