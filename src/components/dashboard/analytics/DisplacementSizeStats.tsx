@@ -306,8 +306,8 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="flex-1 flex items-center">
-        <div className="w-full h-full">
+      <CardContent className="flex-1 flex items-center w-full min-w-0">
+        <div className="w-full h-full min-w-0">
           {!mounted || isLoading ? (
             <div className="flex items-center justify-center w-full h-full min-h-[180px]">
               <BouncePulse size="md" />
@@ -325,8 +325,8 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={chartData}
-                margin={{ top: 10, right: 24, left: 70, bottom: 48 }}
-                barCategoryGap="30%"
+                margin={{ top: 10, right: 16, left: 24, bottom: 48 }}
+                barCategoryGap="20%"
               >
                 <defs>
                   <linearGradient 
