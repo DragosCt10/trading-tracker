@@ -72,13 +72,13 @@ export const StreakStatisticsCard: React.FC<StreakStatisticsCardProps> = React.m
         isCurrent: true,
       },
       {
-        name: 'Best Win',
+        name: 'Best Streak',
         value: maxWinningStreak,
         isPositive: true,
         isCurrent: false,
       },
       {
-        name: 'Best Loss',
+        name: 'Worst Streak',
         value: maxLosingStreak,
         isPositive: false,
         isCurrent: false,
@@ -251,7 +251,7 @@ export const StreakStatisticsCard: React.FC<StreakStatisticsCardProps> = React.m
               <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
               <div className="flex flex-col items-center">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  Best Win
+                  Best Streak
                 </div>
                 <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                   +{maxWinningStreak}
@@ -260,7 +260,7 @@ export const StreakStatisticsCard: React.FC<StreakStatisticsCardProps> = React.m
               <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
               <div className="flex flex-col items-center">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  Best Loss
+                  Worst Streak
                 </div>
                 <div className="text-lg font-bold text-rose-600 dark:text-rose-400">
                   -{maxLosingStreak}
