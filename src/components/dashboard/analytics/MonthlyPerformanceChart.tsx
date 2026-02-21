@@ -290,12 +290,12 @@ export function MonthlyPerformanceChart({
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="flex-1 flex items-center">
-        <div className="w-full h-full min-h-[220px]">
+      <CardContent className="flex-1 flex items-center pb-3">
+        <div className="w-full h-full">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={chartData}
-              margin={{ top: 12, right: 52, left: 52, bottom: 48 }}
+              margin={{ top: 12, right: 52, left: 52, bottom: 24 }}
             >
               <defs>
                 <linearGradient id="composedTotalArea" x1="0" y1="0" x2="0" y2="1">
