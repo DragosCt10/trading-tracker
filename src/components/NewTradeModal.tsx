@@ -48,7 +48,7 @@ const SETUP_OPTIONS = [
   'SLG+OG', 'SLG+TG', 'SLG+TCG', 'SLG+3G', 'SLG+3CG'
 ];
 const LIQUIDITY_OPTIONS = ['Major Liquidity', 'Low Liquidity', 'Local Liquidity', 'HOD', 'LOD'];
-const MSS_OPTIONS = ['Normal', 'Agresiv'];
+const MSS_OPTIONS = ['Normal', 'Aggressive'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 const WEEKDAY_MAP: Record<string, string> = {
   Monday: 'Monday', Tuesday: 'Tuesday', Wednesday: 'Wednesday', Thursday: 'Thursday',
