@@ -562,8 +562,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
             <Separator />
 
-            {/* Market & Setup Section */}
-            <div className={`grid gap-4 ${isTradingInstitutional ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+            {/* Market & Setup Section (institutional: Market | Setup; non-institutional: Market | Evaluation) */}
+            <div className={`grid gap-4 ${isTradingInstitutional ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2'}`}>
               <div className="space-y-1.5">
                 <Label htmlFor="market" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Market *</Label>
                 <MarketCombobox
@@ -579,7 +579,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 />
               </div>
 
-              {isTradingInstitutional && (
+              {isTradingInstitutional ? (
                 <div className="space-y-1.5">
                   <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Setup Type *</Label>
                   <Select value={trade.setup_type} onValueChange={(v) => updateTrade('setup_type', v)}>
@@ -589,6 +589,50 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                     <SelectContent>
                       {SETUP_OPTIONS.map((s) => (
                         <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Evaluation Grade</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 cursor-help text-slate-500 dark:text-slate-400" />
+                        </TooltipTrigger>
+                        <TooltipContent className="w-64 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-xl shadow-slate-200/40 dark:shadow-slate-950/50 p-3">
+                          <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2.5">Grade guide</p>
+                          <ul className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-6 h-6 rounded-md bg-blue-500/15 dark:bg-blue-400/20 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400 shrink-0">A+</span>
+                              <span>Perfect execution</span>
+                            </li>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-6 h-6 rounded-md bg-emerald-500/15 dark:bg-emerald-400/20 flex items-center justify-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">A</span>
+                              <span>Excellent trade</span>
+                            </li>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-6 h-6 rounded-md bg-amber-500/15 dark:bg-amber-400/20 flex items-center justify-center text-[10px] font-bold text-amber-600 dark:text-amber-400 shrink-0">B</span>
+                              <span>Good trade</span>
+                            </li>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-6 h-6 rounded-md bg-orange-500/15 dark:bg-orange-400/20 flex items-center justify-center text-[10px] font-bold text-orange-600 dark:text-orange-400 shrink-0">C</span>
+                              <span>Poor execution</span>
+                            </li>
+                          </ul>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <Select value={trade.evaluation} onValueChange={(v) => updateTrade('evaluation', v)}>
+                    <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
+                      <SelectValue placeholder="Select Grade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EVALUATION_OPTIONS.map((e) => (
+                        <SelectItem key={e} value={e}>{e}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -745,45 +789,51 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 </div>
               )}
 
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Evaluation Grade</Label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 cursor-help text-slate-500 dark:text-slate-400" />
-                      </TooltipTrigger>
-                      <TooltipContent className="w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4">
-                        <div className="space-y-2 text-xs">
-                          <div className="font-semibold text-slate-800 dark:text-slate-200">Evaluation Grade Guide</div>
-                          <div className="rounded border border-blue-300 dark:border-blue-700 text-slate-600 dark:text-slate-400 p-2">
-                            <span className="font-medium">A+</span> — Perfect execution.
-                          </div>
-                          <div className="rounded border border-emerald-300 dark:border-emerald-700 text-slate-600 dark:text-slate-400 p-2">
-                            <span className="font-medium">A</span> — Excellent trade.
-                          </div>
-                          <div className="rounded border border-yellow-300 dark:border-yellow-700 text-slate-600 dark:text-slate-400 p-2">
-                            <span className="font-medium">B</span> — Good trade.
-                          </div>
-                          <div className="rounded border border-orange-300 dark:border-orange-700 text-slate-600 dark:text-slate-400 p-2">
-                            <span className="font-medium">C</span> — Poor execution.
-                          </div>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+              {isTradingInstitutional && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Evaluation Grade</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 cursor-help text-slate-500 dark:text-slate-400" />
+                        </TooltipTrigger>
+                        <TooltipContent className="w-64 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-xl shadow-slate-200/40 dark:shadow-slate-950/50 p-3">
+                          <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2.5">Grade guide</p>
+                          <ul className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-6 h-6 rounded-md bg-blue-500/15 dark:bg-blue-400/20 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400 shrink-0">A+</span>
+                              <span>Perfect execution</span>
+                            </li>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-6 h-6 rounded-md bg-emerald-500/15 dark:bg-emerald-400/20 flex items-center justify-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">A</span>
+                              <span>Excellent trade</span>
+                            </li>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-6 h-6 rounded-md bg-amber-500/15 dark:bg-amber-400/20 flex items-center justify-center text-[10px] font-bold text-amber-600 dark:text-amber-400 shrink-0">B</span>
+                              <span>Good trade</span>
+                            </li>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-6 h-6 rounded-md bg-orange-500/15 dark:bg-orange-400/20 flex items-center justify-center text-[10px] font-bold text-orange-600 dark:text-orange-400 shrink-0">C</span>
+                              <span>Poor execution</span>
+                            </li>
+                          </ul>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <Select value={trade.evaluation} onValueChange={(v) => updateTrade('evaluation', v)}>
+                    <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
+                      <SelectValue placeholder="Select Grade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EVALUATION_OPTIONS.map((e) => (
+                        <SelectItem key={e} value={e}>{e}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Select value={trade.evaluation} onValueChange={(v) => updateTrade('evaluation', v)}>
-                  <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
-                    <SelectValue placeholder="Select Grade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EVALUATION_OPTIONS.map((e) => (
-                      <SelectItem key={e} value={e}>{e}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              )}
             </div>
 
             {/* P&L Display */}
