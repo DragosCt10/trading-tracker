@@ -381,7 +381,16 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       }
 
       const normalizedMarket = normalizeMarket(trade.market);
-      const payload = { ...trade, market: normalizedMarket } as Trade & { user_id?: string; account_id?: string };
+      // When outcome is Win and user did not select Potential R:R, use the exact Risk:Reward Ratio
+      const riskRewardRatioLong =
+        trade.trade_outcome === 'Win' && (trade.risk_reward_ratio_long == null || trade.risk_reward_ratio_long === undefined)
+          ? (Number(trade.risk_reward_ratio) || 0)
+          : trade.risk_reward_ratio_long;
+      const payload = {
+        ...trade,
+        market: normalizedMarket,
+        risk_reward_ratio_long: riskRewardRatioLong,
+      } as Trade & { user_id?: string; account_id?: string };
       const { id, user_id, account_id, calculated_profit, pnl_percentage, ...tradePayload } = payload;
       const { error } = await createTrade({
         mode: selection.mode,
@@ -749,13 +758,20 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   />
                 ) : (
                   <Select
-                    value={trade.risk_reward_ratio_long != null ? String(trade.risk_reward_ratio_long) : ''}
-                    onValueChange={(v) => updateTrade('risk_reward_ratio_long', v === '' ? undefined as any : Number(v))}
+                    value={trade.risk_reward_ratio_long != null ? String(trade.risk_reward_ratio_long) : '__placeholder__'}
+                    onValueChange={(v) => updateTrade('risk_reward_ratio_long', v === '__placeholder__' ? undefined as any : Number(v))}
                   >
                     <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
-                      <SelectValue placeholder="Potential RR (1 – 10 or 10+)" />
+                      {trade.risk_reward_ratio_long != null ? (
+                        <SelectValue />
+                      ) : (
+                        <span className="text-slate-400 dark:text-slate-500">Select ratio (1 – 10 or 10+)</span>
+                      )}
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="__placeholder__" disabled className="text-slate-400 dark:text-slate-500">
+                        Select ratio (1 – 10 or 10+)
+                      </SelectItem>
                       {POTENTIAL_RR_OPTIONS.map((opt) => (
                         <SelectItem key={opt.value} value={String(opt.value)}>
                           {opt.label}
