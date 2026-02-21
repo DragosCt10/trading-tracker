@@ -191,7 +191,7 @@ export const LocalHLBEStatisticsCard: React.FC<LocalHLBEStatisticsCardProps> = R
                 No trades found
               </div>
               <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
-                No trades in this period.
+                There are no trades to display for this category yet. Start trading to see your statistics here!
               </div>
             </div>
           </CardContent>
