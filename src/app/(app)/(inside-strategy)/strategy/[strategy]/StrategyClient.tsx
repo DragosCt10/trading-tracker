@@ -1160,17 +1160,10 @@ export default function StrategyClient(
         />
       </div>
 
-      {/* Day Statistics & News Statistics Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
-        {/* Day Statistics Card */}
+      {/* Day Statistics - full width */}
+      <div className="my-8">
         <DayStatisticsCard
           dayStats={filteredChartStats ? (statsToUseForCharts.dayStats as DayStatisticsCardProps['dayStats']) : dayStats}
-          isLoading={chartsLoadingState}
-          includeTotalTrades={filteredChartStats !== null}
-        />
-        {/* News Statistics Card */}
-        <NewsStatisticsCard
-          newsStats={filteredChartStats ? (statsToUseForCharts.newsStats as NewsStatisticsCardProps['newsStats']) : newsStats}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
@@ -1216,10 +1209,15 @@ export default function StrategyClient(
         />
       </div>
 
-      <div className="my-8">
-        {/* MSS Statistics Card */}
+      {/* MSS & News Statistics Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
         <MSSStatisticsCard
           mssStats={filteredChartStats ? (statsToUseForCharts.mssStats as MSSStatisticsCardProps['mssStats']) : mssStats}
+          isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
+        />
+        <NewsStatisticsCard
+          newsStats={filteredChartStats ? (statsToUseForCharts.newsStats as NewsStatisticsCardProps['newsStats']) : newsStats}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
