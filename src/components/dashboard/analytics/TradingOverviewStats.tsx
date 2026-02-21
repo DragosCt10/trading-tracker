@@ -2,7 +2,6 @@
 
 import { useMemo } from 'react';
 import { Trade } from '@/types/trade';
-import { StatCard } from './StatCard';
 import { WinRateStatCard } from './WinRateStatCard';
 import { TotalProfitStatCard } from './TotalProfitStatCard';
 import { AverageProfitStatCard } from './AverageProfitStatCard';
@@ -10,16 +9,32 @@ import { StreakStatisticsCard } from './StreakStatisticsCard';
 import { TotalTradesChartCard } from './TotalTradesChartCard';
 import { RRMultipleStatCard } from './RRMultipleStatCard';
 import { PNLPercentageStatCard } from './PNLPercentageStatCard';
+import { AverageDaysBetweenTradesCard } from './AverageDaysBetweenTradesCard';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
+
+interface MonthlyStatsForCard {
+  monthlyData?: {
+    [month: string]: {
+      wins: number;
+      losses: number;
+      beWins: number;
+      beLosses: number;
+      winRate: number;
+      winRateWithBE: number;
+    };
+  };
+}
 
 interface TradingOverviewStatsProps {
   trades: Trade[];
   currencySymbol: string;
   hydrated: boolean;
   accountBalance?: number | null | undefined;
+  viewMode?: 'yearly' | 'dateRange';
+  monthlyStats?: MonthlyStatsForCard | null;
 }
 
-export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance }: TradingOverviewStatsProps) {
+export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, viewMode = 'yearly', monthlyStats }: TradingOverviewStatsProps) {
   const stats = useMemo(() => calculateTradingOverviewStats(trades), [trades]);
 
   return (
@@ -44,22 +59,14 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
         hydrated={hydrated}
       />
 
-      {/* RR Multiple, P&L %, and Average Days Between Trades - 3 columns */}
+      {/* Key metrics: RR Multiple, P&L %, and Average Days Between Trades - 3 cards on a single row */}
       <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-4">
         <RRMultipleStatCard tradesToUse={trades} />
         <PNLPercentageStatCard tradesToUse={trades} accountBalance={accountBalance} />
-        <StatCard
-          title="Average Days Between Trades"
-          tooltipContent={
-            <p className="text-xs sm:text-sm text-slate-800">
-              Average number of days between your trades in the selected period.
-            </p>
-          }
-          value={
-            <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {stats.averageDaysBetweenTrades.toFixed(1)} <small className="text-sm text-slate-500">days</small>
-            </p>
-          }
+        <AverageDaysBetweenTradesCard
+          averageDaysBetweenTrades={stats.averageDaysBetweenTrades}
+          viewMode={viewMode}
+          monthlyStats={monthlyStats ?? undefined}
         />
       </div>
 
