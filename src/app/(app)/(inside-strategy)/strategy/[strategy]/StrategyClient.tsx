@@ -88,6 +88,8 @@ import {
 import {
   TradeTypesStatisticsCard,
   type TradeTypesStatisticsCardProps,
+  calculateReentryStats,
+  calculateBreakEvenStats,
 } from '@/components/dashboard/analytics/TradeTypesStatisticsCard';
 import {
   DayStatisticsCard,
@@ -520,6 +522,14 @@ export default function StrategyClient(
 
   const slSizeStatsFromTradesToUse = useMemo(() => {
     return calculateSLSizeStats(tradesToUse);
+  }, [tradesToUse]);
+
+  const reentryStatsFromTradesToUse = useMemo(() => {
+    return calculateReentryStats(tradesToUse);
+  }, [tradesToUse]);
+
+  const breakEvenStatsFromTradesToUse = useMemo(() => {
+    return calculateBreakEvenStats(tradesToUse);
   }, [tradesToUse]);
 
   // Compute filtered statistics when filters are applied
@@ -1154,12 +1164,12 @@ export default function StrategyClient(
           reentryStats={
             filteredChartStats
               ? (statsToUseForCharts.reentryStats as TradeTypesStatisticsCardProps['reentryStats'])
-              : reentryStats
+              : reentryStatsFromTradesToUse
           }
           breakEvenStats={
             filteredChartStats
               ? (statsToUseForCharts.breakEvenStats as TradeTypesStatisticsCardProps['breakEvenStats'])
-              : breakEvenStats
+              : breakEvenStatsFromTradesToUse
           }
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
