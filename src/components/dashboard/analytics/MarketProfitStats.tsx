@@ -370,8 +370,8 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
             </ResponsiveContainer>
           </div>
         </div>
-        {/* Stats summary below chart */}
-        <div className="w-full px-4 pt-4 mt-2">
+        {/* Stats summary below chart - hidden on small screens */}
+        <div className="w-full px-4 pt-4 mt-2 hidden sm:block">
           <div className="flex items-center justify-center gap-8">
             <div className="flex flex-col items-center">
               <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
