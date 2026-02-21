@@ -1105,10 +1105,10 @@ export default function StrategyClient(
       />
 
       <div className="my-8 mt-12">
-        <h2 className="text-xl font-semibold text-slate-800 mb-1">
+        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-2">
           Trade Performance Analysis
         </h2>
-        <p className="text-sm text-slate-500 mb-4">
+        <p className="text-slate-500 dark:text-slate-400 mb-6">
           See your trading performance metrics and statistics.
         </p>
       </div>
