@@ -9,6 +9,7 @@ import { Trash2, Pencil, ChartBar } from 'lucide-react';
 import { Strategy } from '@/types/strategy';
 import { Trade } from '@/types/trade';
 import { calculateWinRates } from '@/utils/calculateWinRates';
+import { calculateRRStats } from '@/utils/calculateRMultiple';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +30,7 @@ interface StrategyCardProps {
     totalTrades: number;
     winRate: number;
     avgRR: number;
+    totalRR: number;
   };
   currencySymbol: string;
   onEdit: (strategy: Strategy) => void;
@@ -79,6 +81,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
       return {
         winRate: aggregatedStats.winRate,
         avgRR: aggregatedStats.avgRR,
+        totalRR: aggregatedStats.totalRR ?? 0,
         totalTrades: aggregatedStats.totalTrades,
         totalProfit,
         chartData,
@@ -90,6 +93,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
       return {
         winRate: 0,
         avgRR: 0,
+        totalRR: 0,
         totalTrades: 0,
         totalProfit: 0,
         chartData: [],
@@ -98,13 +102,12 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
 
     const winRates = calculateWinRates(trades);
     
-    // Calculate average RR (risk reward ratio)
+    // RR total = RR Multiple (same as RR Multiple card: break_even => +0, Win => +risk_reward_ratio, Lose => -1)
+    const totalRR = calculateRRStats(trades);
     const validRRs = trades
       .filter(t => t.risk_reward_ratio != null && t.risk_reward_ratio > 0)
       .map(t => t.risk_reward_ratio!);
-    const avgRR = validRRs.length > 0
-      ? validRRs.reduce((sum, rr) => sum + rr, 0) / validRRs.length
-      : 0;
+    const avgRR = validRRs.length > 0 ? validRRs.reduce((sum, rr) => sum + rr, 0) / validRRs.length : 0;
 
     // Calculate cumulative P&L for chart
     const sortedTrades = [...trades].sort((a, b) => {
@@ -128,6 +131,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
     return {
       winRate: winRates.winRate,
       avgRR,
+      totalRR,
       totalTrades: trades.length,
       totalProfit,
       chartData,
@@ -235,11 +239,19 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
               {stats.winRate.toFixed(1)}%
             </span>
           </div>
-          <div className="flex flex-col items-end">
-            <span className="text-xs text-slate-500 dark:text-slate-400">RR</span>
-            <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-              {stats.avgRR.toFixed(2)}
-            </span>
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs text-slate-500 dark:text-slate-400">Total RR</span>
+              <span className="text-base font-bold text-slate-900 dark:text-slate-100">
+                {(stats.totalRR ?? 0).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs text-slate-500 dark:text-slate-400">Avg RR</span>
+              <span className="text-base font-bold text-slate-900 dark:text-slate-100">
+                {(stats.avgRR ?? 0).toFixed(2)}
+              </span>
+            </div>
           </div>
         </div>
 
