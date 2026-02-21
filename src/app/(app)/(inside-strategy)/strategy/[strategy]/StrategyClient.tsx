@@ -42,7 +42,6 @@ import {
   LocalHLBEStatisticsCard,
 } from '@/components/dashboard/analytics/LocalHLBEStatisticsCard';
 import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketProfitStats';
-import RiskPerTrade from '@/components/dashboard/analytics/RiskPerTrade';
 import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
 import { 
   AccountOverviewCard,
@@ -57,6 +56,7 @@ import { ViewModeToggle } from '@/components/dashboard/analytics/ViewModeToggle'
 import { YearSelector } from '@/components/dashboard/analytics/YearSelector';
 import { AnalysisModal } from '@/components/dashboard/analytics/AnalysisModal';
 import { TradingOverviewStats } from '@/components/dashboard/analytics/TradingOverviewStats';
+import type { RiskAnalysis } from '@/components/dashboard/analytics/RiskPerTrade';
 import {
   MonthlyPerformanceChart,
   computeFullMonthlyStatsFromTrades,
@@ -1038,24 +1038,6 @@ export default function StrategyClient(
         getDaysInMonth={() => getDaysInMonth}
       />
 
-      {/* Performance ratios */}
-      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Performance ratios</h2>
-      <p className="text-slate-500 dark:text-slate-400 mb-6">Return and risk-adjusted metrics.</p>
-      <div className="flex flex-col md:grid md:grid-cols-3 gap-4 w-full">
-        <ProfitFactorChart tradesToUse={tradesToUse} totalWins={statsToUse.totalWins} totalLosses={statsToUse.totalLosses} />
-        <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} />
-        <TQIChart tradesToUse={tradesToUse} />
-      </div>
-
-      {/* Consistency & drawdown */}
-      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Consistency & drawdown</h2>
-      <p className="text-slate-500 dark:text-slate-400 mb-6">Consistency and capital preservation metrics.</p>
-      <div className="flex flex-col md:grid md:grid-cols-3 gap-4 w-full">
-        <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} />
-        <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} />
-        <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} />
-      </div>
-
       {/* Core statistics: title + description, then core stats, then Partial/Executed/Direction cards */}
       <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Core statistics</h2>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Trading statistics and performance metrics.</p>
@@ -1085,9 +1067,33 @@ export default function StrategyClient(
               includeTotalTradesForDirection: filteredChartStats !== null,
               chartsLoadingState: chartsLoadingState,
             }}
+            allTradesRiskStats={
+              (viewMode === 'yearly'
+                ? (filteredRiskStats || allTradesRiskStats)
+                : (filteredRiskStats || riskStats)
+              ) as RiskAnalysis | null ?? null
+            }
           />
         </div>
       )}
+
+      {/* Consistency & drawdown */}
+      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Consistency & drawdown</h2>
+      <p className="text-slate-500 dark:text-slate-400 mb-6">Consistency and capital preservation metrics.</p>
+      <div className="flex flex-col md:grid md:grid-cols-3 gap-4 w-full">
+        <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} />
+        <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} />
+        <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} />
+      </div>
+
+      {/* Performance ratios */}
+      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Performance ratios</h2>
+      <p className="text-slate-500 dark:text-slate-400 mb-6">Return and risk-adjusted metrics.</p>
+      <div className="flex flex-col md:grid md:grid-cols-3 gap-4 w-full">
+        <ProfitFactorChart tradesToUse={tradesToUse} totalWins={statsToUse.totalWins} totalLosses={statsToUse.totalLosses} />
+        <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} />
+        <TQIChart tradesToUse={tradesToUse} />
+      </div>
 
       <AnalysisModal
         isOpen={openAnalyzeModal}
@@ -1106,16 +1112,6 @@ export default function StrategyClient(
           See your trading performance metrics and statistics.
         </p>
       </div>
-
-      {/* Risk Per Trade Card */}
-      <RiskPerTrade 
-        className="my-8" 
-        allTradesRiskStats={
-          viewMode === 'yearly' 
-            ? (filteredRiskStats || allTradesRiskStats) as any
-            : (filteredRiskStats || riskStats) as any
-        } 
-      />
 
       {/* Monthly Performance Chart - Show in both modes */}
       <div className="w-full mb-8">
