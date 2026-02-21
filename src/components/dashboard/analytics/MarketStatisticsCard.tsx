@@ -3,7 +3,7 @@
 import React from 'react';
 import { Trade } from '@/types/trade';
 import { TradeStatsBarCard, TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
-import { calculateMarketStats as calculateMarketStatsUtil } from '@/components/dashboard/analytics/MarketProfitStats';
+import { calculateMarketStats as calculateMarketStatsUtil } from '@/utils/calculateCategoryStats';
 import type { MarketStats, BaseStats } from '@/types/dashboard';
 
 // Type that matches both MarketStats and filtered stats (which may not have all MarketStats properties)
