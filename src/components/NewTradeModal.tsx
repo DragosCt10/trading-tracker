@@ -582,6 +582,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   }}
                   placeholder="Type market (e.g. EURUSD, EUR/USD)"
                   className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                  dropdownClassName="z-[100]"
                 />
               </div>
 
