@@ -103,10 +103,10 @@ export const LocalHLBEStatisticsCard: React.FC<LocalHLBEStatisticsCardProps> = R
       if (isSmallScreen) {
         return (
           <div className="relative overflow-hidden rounded-xl p-4 border shadow-lg shadow-slate-900/5 dark:shadow-black/40 backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border-slate-200/60 dark:border-slate-700/60">
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-violet-500/5 via-transparent to-purple-500/5 rounded-xl" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-blue-500/5 via-transparent to-blue-500/5 rounded-xl" />
             <div className="relative flex flex-col gap-3">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full shadow-sm ring-2 bg-violet-500 dark:bg-violet-400 ring-violet-200/50 dark:ring-violet-500/30" />
+                <div className="h-2 w-2 rounded-full shadow-sm ring-2 bg-blue-500 dark:bg-blue-400 ring-blue-200/50 dark:ring-blue-500/30" />
                 <div className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
                   {LEGEND_LABEL} ({totalTrades} {totalTrades === 1 ? 'TRADE' : 'TRADES'})
                 </div>
@@ -216,9 +216,9 @@ export const LocalHLBEStatisticsCard: React.FC<LocalHLBEStatisticsCardProps> = R
                 <PieChart>
                   <defs>
                     <linearGradient id="localHLBEGrad0" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity={1} />
-                      <stop offset="50%" stopColor="#7c3aed" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#6d28d9" stopOpacity={0.9} />
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+                      <stop offset="50%" stopColor="#2563eb" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#1d4ed8" stopOpacity={0.9} />
                     </linearGradient>
                   </defs>
                   <Pie
