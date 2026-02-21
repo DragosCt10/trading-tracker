@@ -1123,6 +1123,19 @@ export default function StrategyClient(
       </div>
 
       <div className="my-8">
+        {/* Market Statistics Card */}
+        <MarketStatisticsCard
+          marketStats={
+            filteredChartStats
+              ? (statsToUseForCharts.marketStats as MarketStatisticsCardProps['marketStats'])
+              : marketStatsToUse
+          }
+          isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
+        />
+      </div>
+
+      <div className="my-8">
         {/* Market Profit Statistics Card */}
         <MarketProfitStatisticsCard
           trades={tradesToUse}
@@ -1228,19 +1241,6 @@ export default function StrategyClient(
         {/* News Statistics Card */}
         <NewsStatisticsCard
           newsStats={filteredChartStats ? (statsToUseForCharts.newsStats as NewsStatisticsCardProps['newsStats']) : newsStats}
-          isLoading={chartsLoadingState}
-          includeTotalTrades={filteredChartStats !== null}
-        />
-      </div>
-
-      <div className="my-8">
-        {/* Market Statistics Card */}
-        <MarketStatisticsCard
-          marketStats={
-            filteredChartStats
-              ? (statsToUseForCharts.marketStats as MarketStatisticsCardProps['marketStats'])
-              : marketStatsToUse
-          }
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
