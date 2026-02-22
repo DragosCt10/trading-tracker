@@ -85,7 +85,7 @@ export async function getFilteredTrades({
 
   const limit = 500;
   let offset = 0;
-  let allTrades: any[] = [];
+  let allTrades: Trade[] = [];
   let totalCount = 0;
 
   const baseFilter = (q: any) => {
