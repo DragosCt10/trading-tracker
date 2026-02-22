@@ -1,18 +1,5 @@
 import { Trade } from "@/types/trade";
-
-/**
- * Simple helper: standard deviation of numeric array.
- */
-function stdDev(values: number[]): number {
-  const n = values.length;
-  if (!n) return 0;
-  const mean = values.reduce((sum, v) => sum + v, 0) / n;
-  const variance = values.reduce((sum, v) => {
-    const diff = v - mean;
-    return sum + diff * diff;
-  }, 0) / n;
-  return Math.sqrt(variance);
-}
+import { stdDev } from '@/utils/helpers/mathHelpers';
 
 /**
  * Trade Quality Index (TQI)
