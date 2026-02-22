@@ -4,6 +4,7 @@ import { MacroStats } from '@/types/dashboard';
 import { calculateTradeQualityIndex } from './calculateTradeQualityIndex';
 import { calculateRRStats } from './calculateRMultiple';
 import { calcSharpe } from '@/utils/helpers/mathHelpers';
+import { DEFAULT_RISK_PCT, DEFAULT_RR } from '@/constants/tradingDefaults';
 
 /**
  * Calculate profitFactor, consistency (excl-BE & incl-BE), Sharpe, and TQI.
@@ -21,9 +22,9 @@ export function calculateMacroStats(
 
   for (const t of trades) {
     const day = t.trade_date.slice(0, 10);
-    const pct = t.risk_per_trade ?? 0.5;
+    const pct = t.risk_per_trade ?? DEFAULT_RISK_PCT;
     const riskAmt = accountBalance * (pct / 100);
-    const rr = t.risk_reward_ratio ?? 2;
+    const rr = t.risk_reward_ratio ?? DEFAULT_RR;
 
     // — profitFactor (only non‐BE or BE with partials)
     const isRealTrade = !t.break_even || (t.break_even && t.partials_taken);
