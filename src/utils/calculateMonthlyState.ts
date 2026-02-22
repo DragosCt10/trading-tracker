@@ -73,7 +73,7 @@ export function calculateMonthlyStats(
 
   for (const [mStr, raw] of Object.entries(rawByMonth)) {
     const idx  = Number(mStr);
-    const name = monthFormatter.format(new Date(2025, idx, 1));
+    const name = monthFormatter.format(new Date(selectedYear, idx, 1));
 
     const nonBEWins   = raw.nonBEWins;
     const nonBELosses = raw.totalNonBE - raw.nonBEWins;
