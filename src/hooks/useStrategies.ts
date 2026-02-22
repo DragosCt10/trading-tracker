@@ -1,6 +1,8 @@
 import { getUserStrategies } from '@/lib/server/strategies';
 import type { Strategy } from '@/types/strategy';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { STATIC_DATA } from '@/constants/queryConfig';
+import { queryKeys } from '@/lib/queryKeys';
 
 interface UseStrategiesOptions {
   userId?: string;
@@ -8,7 +10,7 @@ interface UseStrategiesOptions {
 
 export function useStrategies({ userId }: UseStrategiesOptions) {
   const queryClient = useQueryClient();
-  const key = ['strategies:list', userId] as const;
+  const key = queryKeys.strategies(userId);
 
   // If cache exists, we won't auto-fetch.
   const cached = queryClient.getQueryData<Strategy[]>(key);
@@ -26,8 +28,7 @@ export function useStrategies({ userId }: UseStrategiesOptions) {
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    staleTime: Infinity,
-    gcTime: Infinity,
+    ...STATIC_DATA,
 
     // Server-side fetch: no client Supabase call
     queryFn: async (): Promise<Strategy[]> => {
