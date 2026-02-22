@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { calculateLocalHLStats as calculateLocalHLStatsUtil } from '@/utils/calculateCategoryStats';
 import type { LocalHLStats } from '@/types/dashboard';
 import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 /** English labels for local H/L categories (trading-related) */
 export const LOCAL_HL_LABELS = {
@@ -98,21 +99,9 @@ export function convertFilteredLocalHLStatsToChartData(localHLStats: LocalHLStat
 
 export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React.memo(
   function LocalHLStatisticsCard({ localHLStats, isLoading: externalLoading, includeTotalTrades = false }) {
-    const [mounted, setMounted] = useState(false);
-    const [isDark, setIsDark] = useState(false);
+    const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-      setMounted(true);
-      const checkDarkMode = () => setIsDark(document.documentElement.classList.contains('dark'));
-      checkDarkMode();
-      const observer = new MutationObserver(checkDarkMode);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      return () => observer.disconnect();
-    }, []);
 
     useEffect(() => {
       if (mounted) {

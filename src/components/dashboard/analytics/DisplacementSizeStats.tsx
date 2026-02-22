@@ -19,6 +19,7 @@ import {
 
 import { Trade } from '@/types/trade';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface DisplacementSizeStatsProps {
   trades: Trade[];
@@ -56,25 +57,9 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
 
   const hasAnyQualifyingTrades = filteredTrades.length > 0;
 
-  const [mounted, setMounted] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+  const { mounted, isDark } = useDarkMode();
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    setMounted(true);
-    // Check for dark mode
-    const checkDarkMode = () => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    };
-    checkDarkMode();
-    // Watch for changes
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     // Keep loading until external loading is complete and minimum time has passed

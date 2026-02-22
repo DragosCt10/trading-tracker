@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Trade } from '@/types/trade';
 import {
   ResponsiveContainer,
@@ -23,6 +23,7 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
 import { calculateLiquidityStats as calculateLiquidityStatsUtil } from '@/utils/calculateCategoryStats';
 import type { LiquidityStats } from '@/types/dashboard';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 /** Short display labels for liquidity categories on the chart */
 const LIQUIDITY_DISPLAY_LABELS: Record<string, string> = {
@@ -75,20 +76,7 @@ export function convertFilteredLiquidityStatsToChartData(liquidityStats: Liquidi
 
 export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = React.memo(
   function LiquidityStatisticsCard({ liquidityStats, isLoading, includeTotalTrades = false }) {
-    const [mounted, setMounted] = useState(false);
-    const [isDark, setIsDark] = useState(false);
-
-    useEffect(() => {
-      setMounted(true);
-      const checkDarkMode = () => setIsDark(document.documentElement.classList.contains('dark'));
-      checkDarkMode();
-      const observer = new MutationObserver(checkDarkMode);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      return () => observer.disconnect();
-    }, []);
+    const { mounted, isDark } = useDarkMode();
 
     const chartDataRaw = convertLiquidityStatsToChartData(liquidityStats, includeTotalTrades);
     const withTotals: TradeStatDatum[] = chartDataRaw.map((d) => {

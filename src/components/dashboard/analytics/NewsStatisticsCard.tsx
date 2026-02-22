@@ -14,6 +14,7 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { cn } from '@/lib/utils';
 import { calculateNewsStats as calculateNewsStatsUtil } from '@/utils/calculateCategoryStats';
 import type { NewsStats, BaseStats } from '@/types/dashboard';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 // Type that matches both NewsStats and filtered stats (which may not have news property)
 type NewsStatsLike = BaseStats & {
@@ -55,21 +56,9 @@ const NEWS_COLORS: PieColor[] = ['blue', 'purple', 'teal', 'amber'];
 
 export const NewsStatisticsCard: React.FC<NewsStatisticsCardProps> = React.memo(
   function NewsStatisticsCard({ newsStats, isLoading: externalLoading, includeTotalTrades = false }) {
-    const [mounted, setMounted] = useState(false);
-    const [isDark, setIsDark] = useState(false);
+    const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-      setMounted(true);
-      const checkDarkMode = () => setIsDark(document.documentElement.classList.contains('dark'));
-      checkDarkMode();
-      const observer = new MutationObserver(checkDarkMode);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      return () => observer.disconnect();
-    }, []);
 
     useEffect(() => {
       if (mounted) {

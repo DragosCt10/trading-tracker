@@ -13,6 +13,7 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { cn } from '@/lib/utils';
 import { calculateAverageMonthlyTrades } from './AverageMonthlyTradesCard';
 import { getNonExecutedTradesCount } from './NonExecutedTradesStatCard';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 interface MonthlyStatsData {
   [month: string]: {
@@ -43,23 +44,9 @@ export const MonthlyAndNonExecutedTradesCard: React.FC<MonthlyAndNonExecutedTrad
     nonExecutedTotalTradesCount,
     isLoading: externalLoading 
   }) {
-    const [mounted, setMounted] = useState(false);
-    const [isDark, setIsDark] = useState(false);
+    const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-      setMounted(true);
-      const checkDarkMode = () => {
-        setIsDark(document.documentElement.classList.contains('dark'));
-      };
-      checkDarkMode();
-      const observer = new MutationObserver(checkDarkMode);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      return () => observer.disconnect();
-    }, []);
 
     useEffect(() => {
       if (mounted) {

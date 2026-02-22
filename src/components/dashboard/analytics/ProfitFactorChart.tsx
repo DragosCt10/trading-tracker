@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Info } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Trade } from '@/types/trade';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 /* ---------------------------------------------------------
  * Constants & helpers
@@ -65,25 +66,11 @@ export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesT
   const profitFactor = useMemo(() => {
     return calculateProfitFactor(tradesToUse, wins, losses);
   }, [tradesToUse, wins, losses]);
-  const [mounted, setMounted] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+  const { mounted, isDark } = useDarkMode();
   const [showTooltip, setShowTooltip] = useState(false);
   const tooltipActiveRef = React.useRef(false);
   const prevActiveRef = React.useRef(false);
 
-  useEffect(() => {
-    setMounted(true);
-    const checkDarkMode = () => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    };
-    checkDarkMode();
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-    return () => observer.disconnect();
-  }, []);
 
 
   // Handle Infinity and invalid values

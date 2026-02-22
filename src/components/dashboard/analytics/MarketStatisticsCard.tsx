@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Trade } from '@/types/trade';
 import {
   ResponsiveContainer,
@@ -22,6 +22,7 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
 import { calculateMarketStats as calculateMarketStatsUtil } from '@/utils/calculateCategoryStats';
 import type { MarketStats, BaseStats } from '@/types/dashboard';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 type MarketStatsLike = BaseStats & {
   market?: string;
@@ -65,20 +66,7 @@ export function convertFilteredMarketStatsToChartData(marketStats: MarketStatsLi
 
 export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.memo(
   function MarketStatisticsCard({ marketStats, isLoading, includeTotalTrades = false }) {
-    const [mounted, setMounted] = useState(false);
-    const [isDark, setIsDark] = useState(false);
-
-    useEffect(() => {
-      setMounted(true);
-      const checkDarkMode = () => setIsDark(document.documentElement.classList.contains('dark'));
-      checkDarkMode();
-      const observer = new MutationObserver(checkDarkMode);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      return () => observer.disconnect();
-    }, []);
+    const { mounted, isDark } = useDarkMode();
 
     const chartDataRaw = convertMarketStatsToChartData(marketStats, includeTotalTrades);
     // Keep wins/losses as in source (same as Market Profit Stats); total = stat.total (actual trade count)

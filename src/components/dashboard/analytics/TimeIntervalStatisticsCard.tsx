@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface TimeIntervalStatisticsCardProps {
   data: TradeStatDatum[];
@@ -28,20 +29,7 @@ export interface TimeIntervalStatisticsCardProps {
 
 export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProps> = React.memo(
   function TimeIntervalStatisticsCard({ data, isLoading }) {
-    const [mounted, setMounted] = useState(false);
-    const [isDark, setIsDark] = useState(false);
-
-    useEffect(() => {
-      setMounted(true);
-      const checkDarkMode = () => setIsDark(document.documentElement.classList.contains('dark'));
-      checkDarkMode();
-      const observer = new MutationObserver(checkDarkMode);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      return () => observer.disconnect();
-    }, []);
+    const { mounted, isDark } = useDarkMode();
 
     const withTotals: TradeStatDatum[] = data.map((d) => {
       const totalTrades = d.totalTrades ?? (d.wins ?? 0) + (d.losses ?? 0) + (d.beWins ?? 0) + (d.beLosses ?? 0);

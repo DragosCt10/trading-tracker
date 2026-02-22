@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Trade } from '@/types/trade';
 import {
   ResponsiveContainer,
@@ -23,6 +23,7 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
 import { calculateSetupStats as calculateSetupStatsUtil } from '@/utils/calculateCategoryStats';
 import type { SetupStats } from '@/types/dashboard';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface SetupStatisticsCardProps {
   setupStats: SetupStats[];
@@ -62,20 +63,7 @@ export function convertFilteredSetupStatsToChartData(setupStats: SetupStats[]): 
 
 export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.memo(
   function SetupStatisticsCard({ setupStats, isLoading, includeTotalTrades = false }) {
-    const [mounted, setMounted] = useState(false);
-    const [isDark, setIsDark] = useState(false);
-
-    useEffect(() => {
-      setMounted(true);
-      const checkDarkMode = () => setIsDark(document.documentElement.classList.contains('dark'));
-      checkDarkMode();
-      const observer = new MutationObserver(checkDarkMode);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      return () => observer.disconnect();
-    }, []);
+    const { mounted, isDark } = useDarkMode();
 
     const chartDataRaw = convertSetupStatsToChartData(setupStats, includeTotalTrades);
     const withTotals: TradeStatDatum[] = chartDataRaw.map((d) => {

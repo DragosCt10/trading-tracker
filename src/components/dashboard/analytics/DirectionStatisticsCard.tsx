@@ -14,6 +14,7 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { cn } from '@/lib/utils';
 import type { DirectionStats } from '@/types/dashboard';
 import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface DirectionStatisticsCardProps {
   directionStats: DirectionStats[];
@@ -78,23 +79,9 @@ export function convertFilteredDirectionStatsToChartData(directionStats: Directi
 
 export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = React.memo(
   function DirectionStatisticsCard({ directionStats, isLoading: externalLoading }) {
-    const [mounted, setMounted] = useState(false);
-    const [isDark, setIsDark] = useState(false);
+    const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-      setMounted(true);
-      const checkDarkMode = () => {
-        setIsDark(document.documentElement.classList.contains('dark'));
-      };
-      checkDarkMode();
-      const observer = new MutationObserver(checkDarkMode);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      return () => observer.disconnect();
-    }, []);
 
     useEffect(() => {
       if (mounted) {

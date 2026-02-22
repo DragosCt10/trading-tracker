@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/card';
 import { Trade } from '@/types/trade';
 import { MONTHS } from '@/components/dashboard/analytics/AccountOverviewCard';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface MonthlyStatsAllTrades {
   [month: string]: {
@@ -96,24 +97,7 @@ export function MonthlyPerformanceChart({
   monthlyStatsAllTrades,
   months,
 }: MonthlyPerformanceChartProps) {
-  const [mounted, setMounted] = useState(false);
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    // Check for dark mode
-    const checkDarkMode = () => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    };
-    checkDarkMode();
-    // Watch for changes
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-    return () => observer.disconnect();
-  }, []);
+  const { mounted, isDark } = useDarkMode();
 
   const axisTextColor = isDark ? '#cbd5e1' : '#64748b';
 

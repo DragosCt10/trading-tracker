@@ -22,6 +22,7 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { Trade } from '@/types/trade';
 import { calculateDayStats as calculateDayStatsUtil } from '@/utils/calculateCategoryStats';
 import type { DayStats, BaseStats } from '@/types/dashboard';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -92,21 +93,9 @@ export function convertFilteredDayStatsToChartData(dayStats: DayStatsLike[]) {
 
 export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
   function DayStatisticsCard({ dayStats, isLoading: externalLoading, includeTotalTrades = false }) {
-    const [mounted, setMounted] = useState(false);
-    const [isDark, setIsDark] = useState(false);
+    const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-      setMounted(true);
-      const checkDarkMode = () => setIsDark(document.documentElement.classList.contains('dark'));
-      checkDarkMode();
-      const observer = new MutationObserver(checkDarkMode);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      return () => observer.disconnect();
-    }, []);
 
     useEffect(() => {
       if (mounted) {

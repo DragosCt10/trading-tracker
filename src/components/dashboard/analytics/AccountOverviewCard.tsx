@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip as ReTooltip, Bar as ReBar, Cell, LabelList } from 'recharts';
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { Trade } from '@/types/trade';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 /* ---------------------------------------------------------
  * Constants & helpers
@@ -112,24 +113,7 @@ export function AccountOverviewCard({
   monthlyStatsAllTrades,
   isYearDataLoading = false,
 }: AccountOverviewCardProps) {
-  const [mounted, setMounted] = useState(false);
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    // Check for dark mode
-    const checkDarkMode = () => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    };
-    checkDarkMode();
-    // Watch for changes
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-    return () => observer.disconnect();
-  }, []);
+  const { mounted, isDark } = useDarkMode();
 
   // Dynamic colors based on dark mode
   const axisTextColor = isDark ? '#cbd5e1' : '#64748b'; // slate-300 in dark, slate-500 in light

@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { cn } from '@/lib/utils';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface LaunchHourTradesCardProps {
   filteredTrades: Trade[];
@@ -71,23 +72,9 @@ export function calculateLaunchHourStats(trades: Trade[]) {
 
 export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.memo(
   function LaunchHourTradesCard({ filteredTrades, isLoading: externalLoading }) {
-    const [mounted, setMounted] = useState(false);
-    const [isDark, setIsDark] = useState(false);
+    const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-      setMounted(true);
-      const checkDarkMode = () => {
-        setIsDark(document.documentElement.classList.contains('dark'));
-      };
-      checkDarkMode();
-      const observer = new MutationObserver(checkDarkMode);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      return () => observer.disconnect();
-    }, []);
 
     useEffect(() => {
       if (mounted) {

@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { cn } from '@/lib/utils';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface PartialsBEStatisticsCardProps {
   trades: Trade[];
@@ -62,22 +63,10 @@ const LEGEND_LABEL = 'Partials + BE';
 
 export const PartialsBEStatisticsCard: React.FC<PartialsBEStatisticsCardProps> = React.memo(
   function PartialsBEStatisticsCard({ trades, isLoading: externalLoading }) {
-    const [mounted, setMounted] = useState(false);
-    const [isDark, setIsDark] = useState(false);
+    const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
     const [isSmallScreen, setIsSmallScreen] = useState(false);
 
-    useEffect(() => {
-      setMounted(true);
-      const checkDarkMode = () => setIsDark(document.documentElement.classList.contains('dark'));
-      checkDarkMode();
-      const observer = new MutationObserver(checkDarkMode);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      return () => observer.disconnect();
-    }, []);
 
     useEffect(() => {
       const checkSmall = () => setIsSmallScreen(typeof window !== 'undefined' && window.innerWidth < 640);

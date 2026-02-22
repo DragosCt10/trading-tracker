@@ -16,6 +16,7 @@ import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarC
 import { calculateReentryStats as calculateReentryStatsUtil } from '@/utils/calculateCategoryStats';
 import { calculateBreakEvenStats as calculateBreakEvenStatsUtil } from '@/utils/calculateCategoryStats';
 import type { TradeTypeStats, BaseStats } from '@/types/dashboard';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 type TradeTypeStatsLike = BaseStats & {
   tradeType?: string;
@@ -99,21 +100,9 @@ interface PieDatum {
 
 export const TradeTypesStatisticsCard: React.FC<TradeTypesStatisticsCardProps> = React.memo(
   function TradeTypesStatisticsCard({ reentryStats, breakEvenStats, isLoading: externalLoading, includeTotalTrades = false }) {
-    const [mounted, setMounted] = useState(false);
-    const [isDark, setIsDark] = useState(false);
+    const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-      setMounted(true);
-      const checkDarkMode = () => setIsDark(document.documentElement.classList.contains('dark'));
-      checkDarkMode();
-      const observer = new MutationObserver(checkDarkMode);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      return () => observer.disconnect();
-    }, []);
 
     useEffect(() => {
       if (mounted) {

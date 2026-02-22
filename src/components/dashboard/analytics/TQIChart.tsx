@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Info } from 'lucide-react';
@@ -8,6 +8,7 @@ import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger }
 import { cn } from '@/lib/utils';
 import { Trade } from '@/types/trade';
 import { calculateTradeQualityIndex } from '@/utils/calculateTradeQualityIndex';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 /* ---------------------------------------------------------
  * Constants & helpers
@@ -22,25 +23,11 @@ export const TQIChart = React.memo(function TQIChart({ tradesToUse }: TQIChartPr
   const tradeQualityIndex = useMemo(() => {
     return calculateTradeQualityIndex(tradesToUse);
   }, [tradesToUse]);
-  const [mounted, setMounted] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+  const { mounted, isDark } = useDarkMode();
   const [showTooltip, setShowTooltip] = useState(false);
   const tooltipActiveRef = React.useRef(false);
   const prevActiveRef = React.useRef(false);
 
-  useEffect(() => {
-    setMounted(true);
-    const checkDarkMode = () => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    };
-    checkDarkMode();
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-    return () => observer.disconnect();
-  }, []);
 
   const tqiValue = tradeQualityIndex ?? 0;
 

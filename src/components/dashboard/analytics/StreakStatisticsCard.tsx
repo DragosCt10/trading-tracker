@@ -10,6 +10,7 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface StreakStatisticsCardProps {
   currentStreak: number;
@@ -25,23 +26,9 @@ export const StreakStatisticsCard: React.FC<StreakStatisticsCardProps> = React.m
     maxLosingStreak, 
     isLoading: externalLoading 
   }) {
-    const [mounted, setMounted] = useState(false);
-    const [isDark, setIsDark] = useState(false);
+    const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-      setMounted(true);
-      const checkDarkMode = () => {
-        setIsDark(document.documentElement.classList.contains('dark'));
-      };
-      checkDarkMode();
-      const observer = new MutationObserver(checkDarkMode);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      return () => observer.disconnect();
-    }, []);
 
     useEffect(() => {
       if (mounted) {

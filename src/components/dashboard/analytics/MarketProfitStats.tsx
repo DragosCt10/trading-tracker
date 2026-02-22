@@ -23,6 +23,7 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { Trade } from '@/types/trade';
 import { calculateMarketStats as calculateMarketStatsUtil } from '@/utils/calculateCategoryStats';
 import type { MarketStats } from '@/types/dashboard';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface MarketStat {
   market: string;
@@ -61,21 +62,9 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
   trades,
   isLoading: externalLoading,
 }) => {
-  const [mounted, setMounted] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+  const { mounted, isDark } = useDarkMode();
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    setMounted(true);
-    const checkDarkMode = () => setIsDark(document.documentElement.classList.contains('dark'));
-    checkDarkMode();
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     if (mounted) {

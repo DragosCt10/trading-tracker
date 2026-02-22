@@ -17,6 +17,7 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 // Generic shape for each bar/category
 export interface TradeStatDatum {
@@ -59,29 +60,12 @@ export function TradeStatsBarCard({
   heightClassName, // ignored for height consistency
   isLoading: externalLoading,
 }: TradeStatsBarCardProps) {
-  const [mounted, setMounted] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+  const { mounted, isDark } = useDarkMode();
   const [internalLoading, setInternalLoading] = useState(true);
   const [settling, setSettling] = useState(false);
   const prevExternalLoadingRef = useRef<boolean | undefined>(externalLoading);
   const dataRef = useRef(data);
 
-  useEffect(() => {
-    setMounted(true);
-    // Check for dark mode
-    const checkDarkMode = () => {
-      setIsDark(document.documentElement.classList.contains('dark'));
-    };
-    checkDarkMode();
-    // Watch for changes
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
-    
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     // If parent doesn't drive loading, use a small internal minimum duration.

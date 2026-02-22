@@ -13,6 +13,7 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { TradeStatDatum } from './TradesStatsBarCard';
 import { calculateEvaluationStats as calculateEvaluationStatsUtil } from '@/utils/calculateEvaluationStats';
 import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface EvaluationStatsProps {
   stats: EvaluationStat[];
@@ -67,21 +68,9 @@ interface EvaluationChartDatum extends TradeStatDatum {
 
 export const EvaluationStats: React.FC<EvaluationStatsProps> = React.memo(
   function EvaluationStats({ stats, isLoading: externalLoading }) {
-    const [mounted, setMounted] = useState(false);
-    const [isDark, setIsDark] = useState(false);
+    const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-      setMounted(true);
-      const checkDarkMode = () => setIsDark(document.documentElement.classList.contains('dark'));
-      checkDarkMode();
-      const observer = new MutationObserver(checkDarkMode);
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-      });
-      return () => observer.disconnect();
-    }, []);
 
     useEffect(() => {
       if (mounted) {
