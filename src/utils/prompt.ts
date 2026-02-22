@@ -1,3 +1,5 @@
+import { ANALYSIS_MODEL } from '@/constants/llmConfig';
+
 export interface TradingAnalysisRequest {
   startDate: string;
   endDate: string;
@@ -59,7 +61,7 @@ Answer with bullet points and concise, actionable advice.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "o4-mini-2025-04-16",
+        model: ANALYSIS_MODEL,
         messages: [
           {
             role: "system",
