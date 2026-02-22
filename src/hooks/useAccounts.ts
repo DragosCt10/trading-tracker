@@ -1,6 +1,8 @@
 import { getAccountsForMode } from '@/lib/server/accounts';
 import type { AccountRow } from '@/lib/server/accounts';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { STATIC_DATA } from '@/constants/queryConfig';
+import { queryKeys } from '@/lib/queryKeys';
 
 type Mode = 'live' | 'backtesting' | 'demo';
 
@@ -11,7 +13,7 @@ interface UseAccountsOptions {
 
 export function useAccounts({ userId, pendingMode }: UseAccountsOptions) {
   const queryClient = useQueryClient();
-  const key = ['accounts:list', userId, pendingMode] as const;
+  const key = queryKeys.accounts(userId, pendingMode);
 
   // If cache exists, we won’t auto-fetch.
   const cached = queryClient.getQueryData<AccountRow[]>(key);
@@ -29,8 +31,7 @@ export function useAccounts({ userId, pendingMode }: UseAccountsOptions) {
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    staleTime: Infinity,
-    gcTime: Infinity,
+    ...STATIC_DATA,
 
     // Server-side fetch: no client Supabase call
     queryFn: async (): Promise<AccountRow[]> => {
