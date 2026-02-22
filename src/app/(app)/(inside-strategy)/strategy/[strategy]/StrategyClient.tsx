@@ -186,7 +186,7 @@ export type StrategyClientInitialProps = {
   initialSelectedYear: number;
   initialMode: 'live' | 'backtesting' | 'demo';
   initialActiveAccount: { id: string; [key: string]: unknown } | null;
-  initialStrategyId?: string | null;
+  initialStrategyId: string | null;
 };
 
 const defaultInitialRange = createInitialDateRange();
