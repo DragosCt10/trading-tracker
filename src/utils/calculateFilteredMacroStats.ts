@@ -1,7 +1,5 @@
 import { Trade } from '@/types/trade';
-import { calculateProfitFactor } from '@/components/dashboard/analytics/ProfitFactorChart';
-import { calculateConsistencyScore } from '@/components/dashboard/analytics/ConsistencyScoreChart';
-import { calculateSharpeRatio } from '@/components/dashboard/analytics/SharpeRatioChart';
+import { calculateProfitFactor, calculateConsistencyScore, calculateSharpeRatio } from '@/utils/analyticsCalculations';
 
 interface StatsToUse {
   totalWins: number;
@@ -43,7 +41,7 @@ interface CalculateFilteredMacroStatsParams {
 
 export function calculateFilteredMacroStats({
   viewMode,
-  selectedMarket,
+  selectedMarket: _selectedMarket,
   tradesToUse,
   statsToUse,
   monthlyStatsToUse,
@@ -51,7 +49,7 @@ export function calculateFilteredMacroStats({
   nonExecutedTotalTradesCount,
   yearlyPartialTradesCount,
   yearlyPartialsBECount,
-  macroStats,
+  macroStats: _macroStats,
 }: CalculateFilteredMacroStatsParams): MacroStats {
   // Always compute from tradesToUse to ensure consistency between yearly and date range modes
   // The hook's macroStats might use different calculation logic or include/exclude non-executed trades differently
