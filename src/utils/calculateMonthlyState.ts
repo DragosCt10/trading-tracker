@@ -2,6 +2,7 @@
 
 import { Trade } from '@/types/trade';
 import { MonthlyStatsResult, BestWorstMonth, MonthlyStats } from '@/types/dashboard';
+import { DEFAULT_RISK_PCT, DEFAULT_RR } from '@/constants/tradingDefaults';
 
 /**
  * Calculate per-month P&L and win rates for a given year and account balance.
@@ -58,8 +59,8 @@ export function calculateMonthlyStats(
         bucket.nonBEWins++;
       }
       // Calculate profit based on risk_per_trade and risk_reward_ratio
-      const pct = trade.risk_per_trade ?? 0.5;
-      const rr = trade.risk_reward_ratio ?? 2;
+      const pct = trade.risk_per_trade ?? DEFAULT_RISK_PCT;
+      const rr = trade.risk_reward_ratio ?? DEFAULT_RR;
       const riskAmount = accountBalance * (pct / 100);
       bucket.profit += trade.trade_outcome === 'Win' ? riskAmount * rr : -riskAmount;
     }
