@@ -117,11 +117,8 @@ export interface RiskStats {
   winrateWithBE: number;
 }
 
-export interface RiskAnalysis {
-  risk03: RiskStats;
-  risk05: RiskStats;
-  risk07: RiskStats;
-}
+/** Key is e.g. risk025, risk03, risk1. Record allows any number of risk levels. */
+export type RiskAnalysis = Record<string, RiskStats>;
 
 export interface Stats {
   totalTrades: number;
