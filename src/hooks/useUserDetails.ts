@@ -1,6 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/utils/supabase/client';
 import { useEffect } from 'react';
+import { USER_DATA } from '@/constants/queryConfig';
+import { queryKeys } from '@/lib/queryKeys';
 
 async function fetchUserDetails() {
   const supabase = createClient();
@@ -20,10 +22,10 @@ export function useUserDetails() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         // Clear user data on sign out
-        queryClient.setQueryData(['userDetails'], null);
+        queryClient.setQueryData(queryKeys.userDetails(), null);
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         // Update user data on sign in or token refresh
-        queryClient.setQueryData(['userDetails'], { user: session?.user, session });
+        queryClient.setQueryData(queryKeys.userDetails(), { user: session?.user, session });
       }
     });
     
@@ -34,10 +36,9 @@ export function useUserDetails() {
   }, [queryClient]);
   
   const { data, isLoading, error } = useQuery({
-    queryKey: ['userDetails'],
+    queryKey: queryKeys.userDetails(),
     queryFn: fetchUserDetails,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    ...USER_DATA,
     retry: 1, // Only retry once on failure
   });
   
