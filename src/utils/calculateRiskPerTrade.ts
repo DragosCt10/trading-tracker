@@ -1,24 +1,5 @@
 import { Trade } from '@/types/trade';
-
-interface RiskStats {
-  total: number;
-  wins: number;
-  losses: number;
-  breakEven: number;
-  beWins: number;
-  beLosses: number;
-  winrate: number; // winrate as a percentage (0-100), excluding BE
-  winrateWithBE: number; // winrate as a percentage (0-100), including BE as wins
-}
-
-interface RiskAnalysis {
-  risk025: RiskStats;
-  risk03: RiskStats;
-  risk035: RiskStats;
-  risk05: RiskStats;
-  risk07: RiskStats;
-  risk1: RiskStats;
-}
+import { RiskAnalysis } from '@/types/dashboard';
 
 export function calculateRiskPerTradeStats(trades: Trade[]): RiskAnalysis {
   const result: RiskAnalysis = {
