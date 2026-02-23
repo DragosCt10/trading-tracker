@@ -449,15 +449,15 @@
   --grad-from: #ffffff;
   --grad-via: rgb(243 232 255 / 0.8);   /* Tailwind purple-100 #f3e8ff at 80% */
   --grad-to: rgb(237 233 254 / 0.7);    /* Tailwind violet-100 #ede9fe at 70% */
-  --orb-1: rgb(168 85 247 / 0.08);
-  --orb-2: rgb(139 92 246 / 0.08);
-  --tc-primary: #a855f7;
-  --tc-accent: #8b5cf6;
-  --tc-accent-end: #c026d3;              /* fuchsia-600 — 3-stop gradient end */
+  --orb-1: rgb(168 85 247 / 0.08);      /* purple-500 #a855f7 */
+  --orb-2: rgb(139 92 246 / 0.08);      /* violet-500 #8b5cf6 */
+  --tc-primary: #a855f7;                 /* Tailwind purple-500 */
+  --tc-accent: #8b5cf6;                  /* Tailwind violet-500 */
+  --tc-accent-end: #c026d3;              /* Tailwind fuchsia-600 — 3-stop gradient end */
   --tc-subtle: rgb(168 85 247 / 0.05);
   --tc-border: rgb(168 85 247 / 0.3);
-  --tc-text: #7e22ce;
-  --tc-text-dark: #c084fc;
+  --tc-text: #7e22ce;                    /* Tailwind purple-700 */
+  --tc-text-dark: #c084fc;               /* Tailwind purple-400 */
 }
 
 html.dark {
@@ -469,30 +469,30 @@ html.dark {
   --tc-text: #c084fc;
 }
 
-/* === Palette 1: Midnight Blue + Electric Cyan === */
+/* === Palette 1: Midnight Blue + Electric Cyan — Tailwind sky/cyan === */
 html[data-color-theme="cyan"] {
-  --grad-from: white;
-  --grad-via: rgb(186 230 253 / 0.75);
-  --grad-to: rgb(224 242 254 / 0.60);
-  --orb-1: rgb(0 194 255 / 0.13);
-  --orb-2: rgb(58 224 255 / 0.13);
-  --tc-primary: #00C2FF;
-  --tc-accent: #3AE0FF;
-  --tc-accent-end: #0099cc;
-  --tc-subtle: rgb(0 194 255 / 0.05);
-  --tc-border: rgb(0 194 255 / 0.3);
-  --tc-text: #007aa3;
-  --tc-text-dark: #3AE0FF;
+  --grad-from: #ffffff;
+  --grad-via: rgb(186 230 253 / 0.8);   /* Tailwind sky-200 #bae6fd at 80% */
+  --grad-to: rgb(224 242 254 / 0.7);     /* Tailwind sky-100 #e0f2fe at 70% */
+  --orb-1: rgb(6 182 212 / 0.08);        /* cyan-500 #06b6d4 */
+  --orb-2: rgb(14 165 233 / 0.08);       /* sky-500 #0ea5e9 */
+  --tc-primary: #06b6d4;                 /* Tailwind cyan-500 */
+  --tc-accent: #0ea5e9;                   /* Tailwind sky-500 */
+  --tc-accent-end: #0891b2;               /* Tailwind cyan-600 — 3-stop gradient end */
+  --tc-subtle: rgb(6 182 212 / 0.05);
+  --tc-border: rgb(6 182 212 / 0.3);
+  --tc-text: #0e7490;                    /* Tailwind cyan-700 */
+  --tc-text-dark: #22d3ee;                /* Tailwind cyan-400 */
 }
 html.dark[data-color-theme="cyan"] {
-  --grad-from: #0B0F1A;
-  --grad-via: #0d1520;
-  --grad-to: #0a1018;
-  --orb-1: rgb(0 194 255 / 0.10);
-  --orb-2: rgb(58 224 255 / 0.10);
-  --tc-subtle: rgb(0 194 255 / 0.10);
-  --tc-border: rgb(0 194 255 / 0.25);
-  --tc-text: #3AE0FF;
+  --grad-from: #0d0a12;
+  --grad-via: #120d16;
+  --grad-to: #0f0a14;
+  --orb-1: rgb(6 182 212 / 0.10);
+  --orb-2: rgb(14 165 233 / 0.10);
+  --tc-subtle: rgb(6 182 212 / 0.10);
+  --tc-border: rgb(6 182 212 / 0.25);
+  --tc-text: #22d3ee;
 }
 
 /* === Palette 2: Deep Navy + Royal Purple — exact New Trade btn: purple-500 → violet-600 → fuchsia-600 === */
@@ -521,82 +521,82 @@ html.dark[data-color-theme="purple"] {
   --tc-text: #c084fc;
 }
 
-/* === Palette 3: Charcoal + Emerald === */
+/* === Palette 3: Charcoal + Emerald — Tailwind emerald === */
 html[data-color-theme="emerald"] {
-  --grad-from: white;
-  --grad-via: rgb(167 243 208 / 0.52);
-  --grad-to: rgb(209 250 229 / 0.48);
-  --orb-1: rgb(0 184 148 / 0.12);
-  --orb-2: rgb(0 217 165 / 0.12);
-  --tc-primary: #00B894;
-  --tc-accent: #00D9A5;
-  --tc-accent-end: #007560;
-  --tc-subtle: rgb(0 184 148 / 0.05);
-  --tc-border: rgb(0 184 148 / 0.3);
-  --tc-text: #007560;
-  --tc-text-dark: #00D9A5;
+  --grad-from: #ffffff;
+  --grad-via: rgb(167 243 208 / 0.8);    /* Tailwind emerald-200 #a7f3d0 at 80% */
+  --grad-to: rgb(209 250 229 / 0.7);     /* Tailwind emerald-100 #d1fae5 at 70% */
+  --orb-1: rgb(16 185 129 / 0.08);       /* emerald-500 #10b981 */
+  --orb-2: rgb(5 150 105 / 0.08);        /* emerald-600 #059669 */
+  --tc-primary: #10b981;                 /* Tailwind emerald-500 */
+  --tc-accent: #059669;                   /* Tailwind emerald-600 */
+  --tc-accent-end: #047857;              /* Tailwind emerald-700 — 3-stop gradient end */
+  --tc-subtle: rgb(16 185 129 / 0.05);
+  --tc-border: rgb(16 185 129 / 0.3);
+  --tc-text: #047857;                    /* Tailwind emerald-700 */
+  --tc-text-dark: #34d399;               /* Tailwind emerald-400 */
 }
 html.dark[data-color-theme="emerald"] {
-  --grad-from: #111111;
-  --grad-via: #171717;
-  --grad-to: #141414;
-  --orb-1: rgb(0 184 148 / 0.10);
-  --orb-2: rgb(0 217 165 / 0.10);
-  --tc-subtle: rgb(0 184 148 / 0.10);
-  --tc-border: rgb(0 184 148 / 0.25);
-  --tc-text: #00D9A5;
+  --grad-from: #0d0a12;
+  --grad-via: #120d16;
+  --grad-to: #0f0a14;
+  --orb-1: rgb(16 185 129 / 0.10);
+  --orb-2: rgb(5 150 105 / 0.10);
+  --tc-subtle: rgb(16 185 129 / 0.10);
+  --tc-border: rgb(16 185 129 / 0.25);
+  --tc-text: #34d399;
 }
 
-/* === Palette 4: Black + Gold Premium === */
+/* === Palette 4: Black + Gold Premium — Tailwind amber === */
 html[data-color-theme="gold"] {
-  --grad-from: white;
-  --grad-via: rgb(253 230 138 / 0.45);
-  --grad-to: rgb(254 243 199 / 0.55);
-  --orb-1: rgb(198 167 94 / 0.13);
-  --orb-2: rgb(230 199 122 / 0.13);
-  --tc-primary: #C6A75E;
-  --tc-accent: #E6C77A;
-  --tc-accent-end: #9a7a30;
-  --tc-subtle: rgb(198 167 94 / 0.05);
-  --tc-border: rgb(198 167 94 / 0.3);
-  --tc-text: #9a7a30;
-  --tc-text-dark: #E6C77A;
+  --grad-from: #ffffff;
+  --grad-via: rgb(253 230 138 / 0.8);    /* Tailwind amber-200 #fde68a at 80% */
+  --grad-to: rgb(254 243 199 / 0.7);     /* Tailwind amber-100 #fef3c7 at 70% */
+  --orb-1: rgb(245 158 11 / 0.08);       /* amber-500 #f59e0b */
+  --orb-2: rgb(217 119 6 / 0.08);        /* amber-600 #d97706 */
+  --tc-primary: #f59e0b;                 /* Tailwind amber-500 */
+  --tc-accent: #d97706;                   /* Tailwind amber-600 */
+  --tc-accent-end: #b45309;              /* Tailwind amber-700 — 3-stop gradient end */
+  --tc-subtle: rgb(245 158 11 / 0.05);
+  --tc-border: rgb(245 158 11 / 0.3);
+  --tc-text: #b45309;                    /* Tailwind amber-700 */
+  --tc-text-dark: #fbbf24;               /* Tailwind amber-400 */
 }
 html.dark[data-color-theme="gold"] {
-  --grad-from: #000000;
-  --grad-via: #0a0a0a;
-  --grad-to: #111111;
-  --orb-1: rgb(198 167 94 / 0.10);
-  --orb-2: rgb(230 199 122 / 0.10);
-  --tc-subtle: rgb(198 167 94 / 0.10);
-  --tc-border: rgb(198 167 94 / 0.25);
-  --tc-text: #E6C77A;
+  --grad-from: #0d0a12;
+  --grad-via: #120d16;
+  --grad-to: #0f0a14;
+  --orb-1: rgb(245 158 11 / 0.10);
+  --orb-2: rgb(217 119 6 / 0.10);
+  --tc-subtle: rgb(245 158 11 / 0.10);
+  --tc-border: rgb(245 158 11 / 0.25);
+  --tc-text: #fbbf24;
 }
 
-/* === Palette 5: Graphite + Ice Blue === */
+/* === Palette 5: Graphite + Ice Blue — Tailwind blue === */
 html[data-color-theme="ice"] {
-  --grad-from: white;
-  --grad-via: rgb(191 219 254 / 0.75);
-  --grad-to: rgb(219 234 254 / 0.60);
-  --orb-1: rgb(77 163 255 / 0.13);
-  --orb-2: rgb(124 192 255 / 0.13);
-  --tc-primary: #4DA3FF;
-  --tc-accent: #7CC0FF;
-  --tc-accent-end: #1a6abf;
-  --tc-subtle: rgb(77 163 255 / 0.05);
-  --tc-border: rgb(77 163 255 / 0.3);
-  --tc-text: #1a6abf;
-  --tc-text-dark: #7CC0FF;
+  --grad-from: #ffffff;
+  --grad-via: rgb(191 219 254 / 0.8);    /* Tailwind blue-200 #bfdbfe at 80% */
+  --grad-to: rgb(219 234 254 / 0.7);     /* Tailwind blue-100 #dbeafe at 70% */
+  --orb-1: rgb(59 130 246 / 0.08);       /* blue-500 #3b82f6 */
+  --orb-2: rgb(37 99 235 / 0.08);        /* blue-600 #2563eb */
+  --tc-primary: #3b82f6;                 /* Tailwind blue-500 */
+  --tc-accent: #2563eb;                   /* Tailwind blue-600 */
+  --tc-accent-end: #1d4ed8;              /* Tailwind blue-700 — 3-stop gradient end */
+  --tc-subtle: rgb(59 130 246 / 0.05);
+  --tc-border: rgb(59 130 246 / 0.3);
+  --tc-text: #1d4ed8;                    /* Tailwind blue-700 */
+  --tc-text-dark: #60a5fa;               /* Tailwind blue-400 */
 }
 html.dark[data-color-theme="ice"] {
-  --grad-from: #1C1F26;
-  --grad-via: #1e2330;
-  --grad-to: #1a1e28;
-  --orb-1: rgb(77 163 255 / 0.10);
-  --orb-2: rgb(124 192 255 / 0.10);
-  --tc-subtle: rgb(77 163 255 / 0.10);
-  --tc-border: rgb(77 163 255 / 0.25);
-  --tc-text: #7CC0FF;
+  --grad-from: #0d0a12;
+  --grad-via: #120d16;
+  --grad-to: #0f0a14;
+  --orb-1: rgb(59 130 246 / 0.10);
+  --orb-2: rgb(37 99 235 / 0.10);
+  --tc-subtle: rgb(59 130 246 / 0.10);
+  --tc-border: rgb(59 130 246 / 0.25);
+  --tc-text: #60a5fa;
 }
 
 /* ============================================================
