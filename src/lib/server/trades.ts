@@ -281,6 +281,70 @@ export async function deleteTrade(
 }
 
 /**
+ * Bulk-imports an array of trades for the current user.
+ * Validates ownership, normalizes markets, and batch-inserts in chunks of 100.
+ */
+export async function importTrades(params: {
+  mode: 'live' | 'backtesting' | 'demo';
+  account_id: string;
+  strategy_id: string | null;
+  trades: Array<Omit<Trade, 'id' | 'user_id' | 'account_id'>>;
+}): Promise<{
+  inserted: number;
+  failed: Array<{ row: number; reason: string }>;
+}> {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    throw new Error('Unauthorized');
+  }
+
+  const userAccounts = await getAccountsForMode(user.id, params.mode);
+  if (!userAccounts.some((a) => a.id === params.account_id)) {
+    throw new Error('Account not found or access denied');
+  }
+
+  const tableName = `${params.mode}_trades`;
+  const CHUNK_SIZE = 100;
+  let inserted = 0;
+  const failed: Array<{ row: number; reason: string }> = [];
+
+  // Validate all rows and normalise market
+  const validRows: { index: number; row: Record<string, unknown> }[] = [];
+  params.trades.forEach((trade, index) => {
+    if (!isValidMarket(trade.market)) {
+      failed.push({ row: index + 1, reason: `Invalid market: "${trade.market}"` });
+      return;
+    }
+    validRows.push({
+      index,
+      row: {
+        ...trade,
+        market: normalizeMarket(trade.market),
+        user_id: user.id,
+        account_id: params.account_id,
+        strategy_id: params.strategy_id,
+      },
+    });
+  });
+
+  // Batch insert in chunks
+  for (let i = 0; i < validRows.length; i += CHUNK_SIZE) {
+    const chunk = validRows.slice(i, i + CHUNK_SIZE).map((v) => v.row);
+    const { error } = await supabase.from(tableName).insert(chunk as any);
+    if (error) {
+      validRows.slice(i, i + CHUNK_SIZE).forEach((v) => {
+        failed.push({ row: v.index + 1, reason: error.message });
+      });
+    } else {
+      inserted += chunk.length;
+    }
+  }
+
+  return { inserted, failed };
+}
+
+/**
  * Aggregates statistics from trades table efficiently using SQL aggregation.
  * This handles thousands of trades by fetching only necessary fields and processing in batches.
  * Returns winrate, total trades count, and average RR for a specific strategy.
