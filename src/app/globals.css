@@ -453,6 +453,7 @@
   --orb-2: rgb(139 92 246 / 0.08);
   --tc-primary: #a855f7;
   --tc-accent: #8b5cf6;
+  --tc-accent-end: #c026d3;              /* fuchsia-600 — 3-stop gradient end */
   --tc-subtle: rgb(168 85 247 / 0.05);
   --tc-border: rgb(168 85 247 / 0.3);
   --tc-text: #7e22ce;
@@ -477,6 +478,7 @@ html[data-color-theme="cyan"] {
   --orb-2: rgb(58 224 255 / 0.13);
   --tc-primary: #00C2FF;
   --tc-accent: #3AE0FF;
+  --tc-accent-end: #0099cc;
   --tc-subtle: rgb(0 194 255 / 0.05);
   --tc-border: rgb(0 194 255 / 0.3);
   --tc-text: #007aa3;
@@ -493,15 +495,16 @@ html.dark[data-color-theme="cyan"] {
   --tc-text: #3AE0FF;
 }
 
-/* === Palette 2: Deep Navy + Royal Purple — exact Tailwind purple-100 / violet-100 === */
+/* === Palette 2: Deep Navy + Royal Purple — exact New Trade btn: purple-500 → violet-600 → fuchsia-600 === */
 html[data-color-theme="purple"] {
   --grad-from: #ffffff;
   --grad-via: rgb(243 232 255 / 0.8);   /* Tailwind purple-100 #f3e8ff at 80% */
   --grad-to: rgb(237 233 254 / 0.7);    /* Tailwind violet-100 #ede9fe at 70% */
-  --orb-1: rgb(168 85 247 / 0.08);
-  --orb-2: rgb(139 92 246 / 0.08);
-  --tc-primary: #a855f7;
-  --tc-accent: #8b5cf6;
+  --orb-1: rgb(168 85 247 / 0.08);      /* purple-500 #a855f7 */
+  --orb-2: rgb(124 58 237 / 0.08);      /* violet-600 #7c3aed */
+  --tc-primary: #a855f7;                 /* Tailwind purple-500 */
+  --tc-accent: #7c3aed;                  /* Tailwind violet-600 */
+  --tc-accent-end: #c026d3;              /* Tailwind fuchsia-600 — 3-stop gradient end */
   --tc-subtle: rgb(168 85 247 / 0.05);
   --tc-border: rgb(168 85 247 / 0.3);
   --tc-text: #7e22ce;
@@ -512,7 +515,7 @@ html.dark[data-color-theme="purple"] {
   --grad-via: #120d16;
   --grad-to: #0f0a14;
   --orb-1: rgb(168 85 247 / 0.10);
-  --orb-2: rgb(139 92 246 / 0.10);
+  --orb-2: rgb(124 58 237 / 0.10);
   --tc-subtle: rgb(168 85 247 / 0.10);
   --tc-border: rgb(168 85 247 / 0.25);
   --tc-text: #c084fc;
@@ -527,6 +530,7 @@ html[data-color-theme="emerald"] {
   --orb-2: rgb(0 217 165 / 0.12);
   --tc-primary: #00B894;
   --tc-accent: #00D9A5;
+  --tc-accent-end: #007560;
   --tc-subtle: rgb(0 184 148 / 0.05);
   --tc-border: rgb(0 184 148 / 0.3);
   --tc-text: #007560;
@@ -552,6 +556,7 @@ html[data-color-theme="gold"] {
   --orb-2: rgb(230 199 122 / 0.13);
   --tc-primary: #C6A75E;
   --tc-accent: #E6C77A;
+  --tc-accent-end: #9a7a30;
   --tc-subtle: rgb(198 167 94 / 0.05);
   --tc-border: rgb(198 167 94 / 0.3);
   --tc-text: #9a7a30;
@@ -577,6 +582,7 @@ html[data-color-theme="ice"] {
   --orb-2: rgb(124 192 255 / 0.13);
   --tc-primary: #4DA3FF;
   --tc-accent: #7CC0FF;
+  --tc-accent-end: #1a6abf;
   --tc-subtle: rgb(77 163 255 / 0.05);
   --tc-border: rgb(77 163 255 / 0.3);
   --tc-text: #1a6abf;
@@ -627,6 +633,18 @@ html.dark[data-color-theme="ice"] {
   opacity: 0.6;
 }
 
+/* Modal header icon box (e.g. Add New Trade plus icon) — theme-aware */
+.themed-header-icon-box {
+  background: linear-gradient(to bottom right, color-mix(in srgb, var(--tc-primary) 10%, transparent), color-mix(in srgb, var(--tc-accent) 10%, transparent));
+  border: 1px solid var(--tc-border);
+}
+.dark .themed-header-icon-box {
+  background: linear-gradient(to bottom right, color-mix(in srgb, var(--tc-primary) 20%, transparent), color-mix(in srgb, var(--tc-accent) 20%, transparent));
+}
+.themed-header-icon-box svg {
+  color: var(--tc-primary);
+}
+
 /* Active nav item — overrides hardcoded purple Tailwind classes */
 .themed-nav-active {
   background-color: var(--tc-subtle) !important;
@@ -643,13 +661,13 @@ html.dark[data-color-theme="ice"] {
   border-color: color-mix(in oklch, var(--tc-primary) 40%, transparent) !important;
 }
 
-/* ---- Themed primary button (replaces hardcoded purple gradient) ---- */
+/* ---- Themed primary button (3-stop gradient: primary → accent → accent-end, theme-aware) ---- */
 .themed-btn-primary {
   background-image: linear-gradient(
     to right,
     var(--tc-primary),
-    color-mix(in oklch, var(--tc-primary) 55%, var(--tc-accent)),
-    var(--tc-accent)
+    var(--tc-accent),
+    var(--tc-accent-end)
   ) !important;
   box-shadow:
     0 4px 6px -1px color-mix(in oklch, var(--tc-primary) 30%, transparent),
