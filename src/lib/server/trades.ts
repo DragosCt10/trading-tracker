@@ -192,7 +192,7 @@ export async function createTrade(params: {
   }
 
   const tableName = `${params.mode}_trades`;
-  const row = {
+  const row: Record<string, unknown> = {
     ...params.trade,
     market: normalizeMarket(params.trade.market),
     user_id: user.id,
@@ -200,6 +200,7 @@ export async function createTrade(params: {
     calculated_profit: params.calculated_profit,
     pnl_percentage: params.pnl_percentage,
   };
+  delete row.rr_hit_1_4; // Column removed from DB
 
   const { error } = await supabase.from(tableName).insert([row] as any);
 
@@ -234,6 +235,7 @@ export async function updateTrade(
   if (updateData.market !== undefined) {
     payload.market = normalizeMarket(updateData.market);
   }
+  delete payload.rr_hit_1_4; // Column removed from DB
 
   const tableName = `${mode}_trades`;
   const { error } = await supabase
@@ -315,16 +317,15 @@ export async function importTrades(params: {
       failed.push({ row: index + 1, reason: `Invalid market: "${trade.market}"` });
       return;
     }
-    validRows.push({
-      index,
-      row: {
-        ...trade,
-        market: normalizeMarket(trade.market),
-        user_id: user.id,
-        account_id: params.account_id,
-        strategy_id: params.strategy_id,
-      },
-    });
+    const row: Record<string, unknown> = {
+      ...trade,
+      market: normalizeMarket(trade.market),
+      user_id: user.id,
+      account_id: params.account_id,
+      strategy_id: params.strategy_id,
+    };
+    delete row.rr_hit_1_4; // Column removed from DB
+    validRows.push({ index, row });
   });
 
   // Batch insert in chunks
