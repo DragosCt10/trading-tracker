@@ -161,6 +161,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
 
   const hasTrades = stats.totalTrades > 0;
   const showNoTradesMessage = !isLoading && !hasTrades;
+  const isChartReady = !isLoading;
 
   return (
     <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm">
@@ -268,7 +269,8 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
             variant="outline"
             size="sm"
             onClick={() => onEdit(strategy)}
-            className="cursor-pointer relative w-full sm:w-auto h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 text-xs font-medium transition-colors duration-200 gap-2"
+            disabled={!isChartReady}
+            className="cursor-pointer relative w-full sm:w-auto h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 text-xs font-medium transition-colors duration-200 gap-2 disabled:opacity-60 disabled:pointer-events-none"
           >
             <Pencil className="h-4 w-4" />
             <span>Edit</span>
@@ -278,7 +280,8 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
               variant="outline"
               size="sm"
               onClick={handleAnalytics}
-              className="cursor-pointer relative w-full sm:w-auto h-8 overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 group border-0 text-xs"
+              disabled={!isChartReady}
+              className="cursor-pointer relative w-full sm:w-auto h-8 overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 group border-0 text-xs disabled:opacity-60 disabled:pointer-events-none"
             >
               <span className="relative z-10 flex items-center justify-center gap-2 group-hover:text-white">
                 <ChartBar className="h-4 w-4 group-hover:text-white" />
@@ -291,8 +294,8 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
                   <Button
                     variant="destructive"
                     size="sm"
-                    disabled={isDeleting}
-                    className="relative cursor-pointer p-2 px-4.5 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 h-8 w-8"
+                    disabled={isDeleting || !isChartReady}
+                    className="relative cursor-pointer p-2 px-4.5 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 disabled:pointer-events-none h-8 w-8"
                   >
                     <span className="relative z-10 flex items-center justify-center">
                       {isDeleting ? (
