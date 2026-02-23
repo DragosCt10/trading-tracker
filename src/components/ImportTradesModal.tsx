@@ -55,6 +55,9 @@ const TRADE_FIELDS: { value: string; label: string }[] = [
 
 const REQUIRED_FIELDS = new Set(['trade_date', 'market', 'direction', 'trade_outcome', 'risk_per_trade', 'risk_reward_ratio', 'sl_size']);
 
+const cancelButtonClass =
+  'cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200';
+
 interface ImportTradesModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -245,10 +248,18 @@ export default function ImportTradesModal({
     <Sheet open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <SheetContent
         side="right"
-        className="sm:max-w-2xl w-full flex flex-col overflow-hidden p-0"
+        className="sm:max-w-2xl w-full flex flex-col overflow-hidden p-0 border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-l-2xl"
       >
+        {/* Gradient orbs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-l-2xl">
+          <div className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/8 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+          <div className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/8 dark:bg-violet-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        </div>
+        <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60 rounded-tl-2xl" />
+
+        <div className="relative flex flex-col flex-1 min-h-0 overflow-hidden">
         {/* Header */}
-        <SheetHeader className="px-6 pt-6 pb-4 border-b border-slate-200/60 dark:border-slate-700/50 shrink-0">
+        <SheetHeader className="px-6 pt-6 pb-4 border-b border-slate-200/50 dark:border-slate-700/50 shrink-0">
           <SheetTitle className="text-xl font-bold text-slate-900 dark:text-slate-100">
             Import Trades
           </SheetTitle>
@@ -647,10 +658,10 @@ export default function ImportTradesModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-200/60 dark:border-slate-700/50 shrink-0 flex justify-between items-center">
+        <div className="px-6 py-4 border-t border-slate-200/50 dark:border-slate-700/50 shrink-0 flex justify-between items-center">
           {step === 'upload' ? (
             <>
-              <Button variant="outline" onClick={handleClose} className="cursor-pointer rounded-xl">
+              <Button variant="outline" onClick={handleClose} className={cancelButtonClass}>
                 Cancel
               </Button>
               {csvHeaders.length > 0 && (
@@ -663,7 +674,7 @@ export default function ImportTradesModal({
               )}
             </>
           ) : step === 'matching' ? (
-            <Button variant="outline" onClick={handleClose} className="cursor-pointer rounded-xl" disabled>
+            <Button variant="outline" onClick={handleClose} className={cancelButtonClass} disabled>
               Cancel
             </Button>
           ) : step === 'mapping' ? (
@@ -671,7 +682,7 @@ export default function ImportTradesModal({
               <Button
                 variant="outline"
                 onClick={() => { setStep('upload'); setCsvText(''); setCsvHeaders([]); setMapping({}); }}
-                className="cursor-pointer rounded-xl"
+                className={cancelButtonClass}
               >
                 ← Re-upload
               </Button>
@@ -685,7 +696,7 @@ export default function ImportTradesModal({
             </>
           ) : step === 'preview' ? (
             <>
-              <Button variant="outline" onClick={() => setStep('mapping')} className="cursor-pointer rounded-xl">
+              <Button variant="outline" onClick={() => setStep('mapping')} className={cancelButtonClass}>
                 ← Back
               </Button>
               <Button
@@ -704,6 +715,7 @@ export default function ImportTradesModal({
               Done
             </Button>
           ) : null}
+        </div>
         </div>
       </SheetContent>
     </Sheet>
