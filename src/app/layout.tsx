@@ -21,11 +21,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] min-h-screen relative`}>
-        {/* Same gradient orbs as CreateAccountModal */}
+      <body className={`${inter.className} app-gradient min-h-screen relative`}>
+        {/* Theme-aware gradient orbs (use --orb-1 / --orb-2 from color theme) */}
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden>
-          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-500/8 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-violet-500/8 dark:bg-violet-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] orb-bg-1 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] orb-bg-2 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
         </div>
         <script
           dangerouslySetInnerHTML={{
