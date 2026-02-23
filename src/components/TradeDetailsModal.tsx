@@ -230,7 +230,6 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         pnl_percentage: editedTrade.pnl_percentage,
         calculated_profit: editedTrade.calculated_profit,
         evaluation: editedTrade.evaluation,
-        rr_hit_1_4: editedTrade.rr_hit_1_4,
         partials_taken: editedTrade.partials_taken,
         executed: editedTrade.executed,
         launch_hour: editedTrade.launch_hour,
