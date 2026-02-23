@@ -96,17 +96,29 @@ export function parseCsvTrades(
       }
     });
 
+    // Skip rows where all mapped fields are empty (e.g. stats rows to the right of trade data)
+    if (Object.values(fieldValues).every((v) => v === '')) continue;
+
     const rowErrors: RowError[] = [];
 
     // --- Required: trade_date ---
     const rawDate = fieldValues['trade_date'] ?? '';
     let parsedDate: Date | null = null;
+    let normalizedDate = rawDate;
     if (!rawDate) {
       rowErrors.push({ rowIndex, field: 'trade_date', message: 'Missing required field: Date' });
     } else {
       parsedDate = parseISO(rawDate);
       if (!isValid(parsedDate)) {
-        rowErrors.push({ rowIndex, field: 'trade_date', message: `Invalid date: "${rawDate}" (expected YYYY-MM-DD)` });
+        // Try DD.MM.YYYY (European dot-separated format)
+        const dotMatch = rawDate.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+        if (dotMatch) {
+          normalizedDate = `${dotMatch[3]}-${dotMatch[2]}-${dotMatch[1]}`;
+          parsedDate = parseISO(normalizedDate);
+        }
+      }
+      if (!isValid(parsedDate)) {
+        rowErrors.push({ rowIndex, field: 'trade_date', message: `Invalid date: "${rawDate}" (expected YYYY-MM-DD or DD.MM.YYYY)` });
         parsedDate = null;
       }
     }
@@ -156,7 +168,7 @@ export function parseCsvTrades(
     }
 
     // All required fields valid — build the trade
-    const tradeDate = rawDate;
+    const tradeDate = normalizedDate;
     const tradeTime = fieldValues['trade_time'] ?? '00:00:00';
     const dayOfWeek = parsedDate ? format(parsedDate, 'EEEE') : (fieldValues['day_of_week'] ?? '');
     const quarter = parsedDate ? deriveQuarter(parsedDate) : (fieldValues['quarter'] ?? '');
