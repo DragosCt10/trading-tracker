@@ -469,11 +469,11 @@ html.dark {
   --tc-text: #c084fc;
 }
 
-/* === Palette 1: Midnight Blue + Electric Cyan — Tailwind sky/cyan === */
+/* === Palette 1: Midnight Blue + Electric Cyan — Tailwind sky/cyan (soft equilibrium like purple) === */
 html[data-color-theme="cyan"] {
   --grad-from: #ffffff;
-  --grad-via: rgb(186 230 253 / 0.8);   /* Tailwind sky-200 #bae6fd at 80% */
-  --grad-to: rgb(224 242 254 / 0.7);     /* Tailwind sky-100 #e0f2fe at 70% */
+  --grad-via: rgb(240 249 255 / 0.6);   /* Tailwind sky-50 #f0f9ff at 60% — soft, no dominance */
+  --grad-to: rgb(224 242 254 / 0.5);     /* Tailwind sky-100 #e0f2fe at 50% */
   --orb-1: rgb(6 182 212 / 0.08);        /* cyan-500 #06b6d4 */
   --orb-2: rgb(14 165 233 / 0.08);       /* sky-500 #0ea5e9 */
   --tc-primary: #06b6d4;                 /* Tailwind cyan-500 */
@@ -521,11 +521,11 @@ html.dark[data-color-theme="purple"] {
   --tc-text: #c084fc;
 }
 
-/* === Palette 3: Charcoal + Emerald — Tailwind emerald === */
+/* === Palette 3: Charcoal + Emerald — Tailwind emerald (soft equilibrium like purple) === */
 html[data-color-theme="emerald"] {
   --grad-from: #ffffff;
-  --grad-via: rgb(167 243 208 / 0.8);    /* Tailwind emerald-200 #a7f3d0 at 80% */
-  --grad-to: rgb(209 250 229 / 0.7);     /* Tailwind emerald-100 #d1fae5 at 70% */
+  --grad-via: rgb(236 253 245 / 0.6);    /* Tailwind emerald-50 #ecfdf5 at 60% — soft, no dominance */
+  --grad-to: rgb(209 250 229 / 0.5);     /* Tailwind emerald-100 #d1fae5 at 50% */
   --orb-1: rgb(16 185 129 / 0.08);       /* emerald-500 #10b981 */
   --orb-2: rgb(5 150 105 / 0.08);        /* emerald-600 #059669 */
   --tc-primary: #10b981;                 /* Tailwind emerald-500 */
@@ -547,11 +547,11 @@ html.dark[data-color-theme="emerald"] {
   --tc-text: #34d399;
 }
 
-/* === Palette 4: Black + Gold Premium — Tailwind amber === */
+/* === Palette 4: Black + Gold Premium — Tailwind amber (soft equilibrium like purple) === */
 html[data-color-theme="gold"] {
   --grad-from: #ffffff;
-  --grad-via: rgb(253 230 138 / 0.8);    /* Tailwind amber-200 #fde68a at 80% */
-  --grad-to: rgb(254 243 199 / 0.7);     /* Tailwind amber-100 #fef3c7 at 70% */
+  --grad-via: rgb(255 251 235 / 0.6);    /* Tailwind amber-50 #fffbeb at 60% — soft, no dominance */
+  --grad-to: rgb(254 243 199 / 0.5);     /* Tailwind amber-100 #fef3c7 at 50% */
   --orb-1: rgb(245 158 11 / 0.08);       /* amber-500 #f59e0b */
   --orb-2: rgb(217 119 6 / 0.08);        /* amber-600 #d97706 */
   --tc-primary: #f59e0b;                 /* Tailwind amber-500 */
@@ -573,11 +573,11 @@ html.dark[data-color-theme="gold"] {
   --tc-text: #fbbf24;
 }
 
-/* === Palette 5: Graphite + Ice Blue — Tailwind blue === */
+/* === Palette 5: Graphite + Ice Blue — Tailwind blue (soft equilibrium like purple) === */
 html[data-color-theme="ice"] {
   --grad-from: #ffffff;
-  --grad-via: rgb(191 219 254 / 0.8);    /* Tailwind blue-200 #bfdbfe at 80% */
-  --grad-to: rgb(219 234 254 / 0.7);     /* Tailwind blue-100 #dbeafe at 70% */
+  --grad-via: rgb(239 246 255 / 0.6);    /* Tailwind blue-50 #eff6ff at 60% — soft, no dominance */
+  --grad-to: rgb(219 234 254 / 0.5);     /* Tailwind blue-100 #dbeafe at 50% */
   --orb-1: rgb(59 130 246 / 0.08);       /* blue-500 #3b82f6 */
   --orb-2: rgb(37 99 235 / 0.08);        /* blue-600 #2563eb */
   --tc-primary: #3b82f6;                 /* Tailwind blue-500 */
