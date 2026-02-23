@@ -36,8 +36,37 @@ const DAY_NORMALIZE: Record<string, string> = {
   Sat: 'Saturday', Saturday: 'Saturday',
   Sun: 'Sunday', Sunday: 'Sunday',
 };
+
+/** Short display labels for X-axis (aligned with NewTradeModal/TradeDetailsModal DAY_OF_WEEK_OPTIONS). Other-language days from import are shown as-is, truncated to MAX_DAY_LABEL_LENGTH. */
+const DAY_DISPLAY_LABELS: Record<string, string> = {
+  Monday: 'Mon',
+  Tuesday: 'Tue',
+  Wednesday: 'Wed',
+  Thursday: 'Thu',
+  Friday: 'Fri',
+  Saturday: 'Sat',
+  Sunday: 'Sun',
+};
+
+const MAX_DAY_LABEL_LENGTH = 10;
+
 function normalizeDay(day: string): string {
   return DAY_NORMALIZE[day] ?? day;
+}
+
+/** Case-insensitive lookup for known English days; other-language day names (e.g. from import) are returned as-is, truncated to MAX_DAY_LABEL_LENGTH. */
+function getDayDisplayLabel(day: string): string {
+  if (!day || day.trim() === '') return 'Unknown';
+  const trimmed = day.trim();
+  const exact = DAY_DISPLAY_LABELS[trimmed];
+  if (exact !== undefined) return exact.length > MAX_DAY_LABEL_LENGTH ? exact.slice(0, MAX_DAY_LABEL_LENGTH) : exact;
+  const lower = trimmed.toLowerCase();
+  const entry = Object.entries(DAY_DISPLAY_LABELS).find(([k]) => k.toLowerCase() === lower);
+  if (entry) {
+    const label = entry[1];
+    return label.length > MAX_DAY_LABEL_LENGTH ? label.slice(0, MAX_DAY_LABEL_LENGTH) : label;
+  }
+  return trimmed.length > MAX_DAY_LABEL_LENGTH ? trimmed.slice(0, MAX_DAY_LABEL_LENGTH) : trimmed;
 }
 
 // Type that matches both DayStats and filtered stats (which may not have day property)
@@ -328,7 +357,7 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
                   tick={{ fill: axisTextColor, fontSize: 11 }}
                   tickFormatter={(value: string) => {
                     const d = chartData.find((x) => x.day === value);
-                    return d ? `${d.day.slice(0, 3)} (${d.totalTrades})` : (value?.slice(0, 3) ?? '');
+                    return d ? `${getDayDisplayLabel(d.day)} (${d.totalTrades})` : getDayDisplayLabel(value ?? '');
                   }}
                   height={38}
                 />
