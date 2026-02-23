@@ -164,7 +164,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     notes: NOTES_TEMPLATE,
     quarter: '',
     evaluation: '',
-    rr_hit_1_4: false,
     partials_taken: false,
     executed: true,
     launch_hour: false,
