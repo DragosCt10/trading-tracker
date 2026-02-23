@@ -282,6 +282,40 @@ export async function deleteTrade(
 }
 
 /**
+ * Deletes multiple trades by id. Only the owner (from session) can delete.
+ * Pass non-empty array of trade ids; no-op if empty.
+ */
+export async function deleteTrades(
+  tradeIds: string[],
+  mode: 'live' | 'backtesting' | 'demo'
+): Promise<{ error: { message: string } | null }> {
+  if (tradeIds.length === 0) {
+    return { error: null };
+  }
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { error: { message: 'Unauthorized' } };
+  }
+
+  const tableName = `${mode}_trades`;
+  const { error } = await supabase
+    .from(tableName)
+    .delete()
+    .eq('user_id', user.id)
+    .in('id', tradeIds);
+
+  if (error) {
+    console.error('Error bulk deleting trades:', error);
+    return { error: { message: error.message ?? 'Failed to delete trades' } };
+  }
+  return { error: null };
+}
+
+/**
  * Bulk-imports an array of trades for the current user.
  * Validates ownership, normalizes markets, and batch-inserts in chunks of 100.
  */
