@@ -8,7 +8,7 @@ const TRADE_FIELDS = [
   'trade_outcome', 'risk_per_trade', 'trade_link', 'liquidity_taken', 'local_high_low',
   'news_related', 'reentry', 'break_even', 'mss', 'risk_reward_ratio',
   'risk_reward_ratio_long', 'sl_size', 'calculated_profit', 'pnl_percentage',
-  'evaluation', 'rr_hit_1_4', 'notes', 'executed', 'partials_taken', 'launch_hour',
+  'evaluation', 'notes', 'executed', 'partials_taken', 'launch_hour',
   'displacement_size', 'liquidity',
 ];
 
