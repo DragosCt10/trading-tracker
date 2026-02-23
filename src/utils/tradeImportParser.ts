@@ -188,7 +188,6 @@ export function parseCsvTrades(
       reentry: parseBool(fieldValues['reentry']),
       news_related: parseBool(fieldValues['news_related']),
       local_high_low: parseBool(fieldValues['local_high_low']),
-      rr_hit_1_4: parseBool(fieldValues['rr_hit_1_4']),
       partials_taken: parseBool(fieldValues['partials_taken']),
       executed: fieldValues['executed'] !== undefined ? parseBool(fieldValues['executed']) : true,
       launch_hour: parseBool(fieldValues['launch_hour']),
