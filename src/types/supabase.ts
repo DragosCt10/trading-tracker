@@ -70,7 +70,6 @@ export interface Database {
           pnl_percentage: number | null;
           quarter: string | null;
           evaluation: string | null;
-          rr_hit_1_4: boolean | null;
           partials_taken: boolean | null;
           executed: boolean | null;
           launch_hour: boolean | null;
@@ -123,7 +122,6 @@ export interface Database {
           pnl_percentage: number | null;
           quarter: string | null;
           evaluation: string | null;
-          rr_hit_1_4: boolean | null;
           partials_taken: boolean | null;
           executed: boolean | null;
           launch_hour: boolean | null;
@@ -176,7 +174,6 @@ export interface Database {
           pnl_percentage: number | null;
           quarter: string | null;
           evaluation: string | null;
-          rr_hit_1_4: boolean | null;
           partials_taken: boolean | null;
           executed: boolean | null;
           launch_hour: boolean | null;
