@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { parseCsvTrades, extractCsvHeaders } from '@/utils/tradeImportParser';
 import { importTrades } from '@/lib/server/trades';
 import type { Database } from '@/types/supabase';
@@ -39,7 +40,6 @@ const TRADE_FIELDS: { value: string; label: string }[] = [
   { value: 'news_related', label: 'News Related' },
   { value: 'local_high_low', label: 'Local High/Low' },
   { value: 'partials_taken', label: 'Partials Taken' },
-  { value: 'rr_hit_1_4', label: 'RR Hit 1.4' },
   { value: 'executed', label: 'Executed' },
   { value: 'launch_hour', label: 'Launch Hour' },
   { value: 'mss', label: 'MSS' },
@@ -79,6 +79,8 @@ export default function ImportTradesModal({
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [pendingFileName, setPendingFileName] = useState('');
   const [mapping, setMapping] = useState<Record<string, string | null>>({});
+  const [defaultRiskPct, setDefaultRiskPct] = useState<number | null>(null);
+  const [customRiskInput, setCustomRiskInput] = useState('');
   const [skipErrorRows, setSkipErrorRows] = useState(true);
 
   const [parseResult, setParseResult] = useState<{ rows: ReturnType<typeof parseCsvTrades>['rows']; errors: ReturnType<typeof parseCsvTrades>['errors'] } | null>(null);
@@ -93,6 +95,8 @@ export default function ImportTradesModal({
     setCsvHeaders([]);
     setPendingFileName('');
     setMapping({});
+    setDefaultRiskPct(null);
+    setCustomRiskInput('');
     setParseResult(null);
     setImportResult(null);
     setImportProgress(0);
@@ -178,7 +182,11 @@ export default function ImportTradesModal({
     const confirmedMapping = Object.fromEntries(
       Object.entries(mapping).filter(([, v]) => v !== null)
     ) as Record<string, string>;
-    const result = parseCsvTrades(csvText, confirmedMapping);
+    const result = parseCsvTrades(
+      csvText,
+      confirmedMapping,
+      defaultRiskPct !== null ? { risk_per_trade: defaultRiskPct } : undefined
+    );
     setParseResult(result);
     setStep('preview');
   }
@@ -228,7 +236,11 @@ export default function ImportTradesModal({
   }
 
   const missingRequired = step === 'mapping' ? getMissingRequiredFields() : [];
-  const canProceedToPreview = missingRequired.length === 0;
+  const riskIsMissing = missingRequired.includes('risk_per_trade');
+  const effectiveMissingRequired = missingRequired.filter(
+    (f) => !(f === 'risk_per_trade' && defaultRiskPct !== null)
+  );
+  const canProceedToPreview = effectiveMissingRequired.length === 0;
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
@@ -356,10 +368,61 @@ export default function ImportTradesModal({
                 <span className="text-red-500">*</span>. Use the dropdowns to fix any mistakes or set missing fields.
               </p>
 
-              {missingRequired.length > 0 && (
+              {missingRequired.filter((f) => f !== 'risk_per_trade').length > 0 && (
                 <div className="text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
                   <span className="font-semibold">Required fields not mapped: </span>
-                  {missingRequired.join(', ')}
+                  {missingRequired.filter((f) => f !== 'risk_per_trade').join(', ')}
+                </div>
+              )}
+
+              {riskIsMissing && (
+                <div className="border border-amber-200 dark:border-amber-800 rounded-xl overflow-hidden">
+                  <div className="bg-amber-50 dark:bg-amber-900/20 px-4 py-2.5 text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wider">
+                    Risk % not found in CSV — set a default for all trades
+                  </div>
+                  <div className="px-4 py-4 flex flex-col gap-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {[0.25, 0.5, 0.75, 1].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => { setDefaultRiskPct(preset); setCustomRiskInput(''); }}
+                          className={`px-4 py-1.5 rounded-lg text-sm font-semibold border transition-all cursor-pointer ${
+                            defaultRiskPct === preset && customRiskInput === ''
+                              ? 'bg-gradient-to-r from-purple-500 to-violet-600 text-white border-transparent shadow-md shadow-purple-500/30'
+                              : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-purple-400 dark:hover:border-purple-500'
+                          }`}
+                        >
+                          {preset}%
+                        </button>
+                      ))}
+                      <div className="flex items-center gap-1.5 ml-1">
+                        <span className="text-xs text-slate-400 dark:text-slate-500">or custom:</span>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={customRiskInput}
+                            onChange={(e) => {
+                              setCustomRiskInput(e.target.value);
+                              const parsed = parseFloat(e.target.value);
+                              setDefaultRiskPct(!isNaN(parsed) && parsed > 0 ? parsed : null);
+                            }}
+                            className="h-8 w-24 text-sm rounded-lg border-slate-200 dark:border-slate-700 pr-6"
+                          />
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">%</span>
+                        </div>
+                      </div>
+                    </div>
+                    {defaultRiskPct !== null && (
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                        All imported trades will use <span className="font-semibold">{defaultRiskPct}%</span> risk.
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -372,7 +435,7 @@ export default function ImportTradesModal({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                    {csvHeaders.map((header, idx) => {
+                    {csvHeaders.filter((header) => mapping[header] != null).map((header, idx) => {
                       const currentValue = mapping[header] ?? null;
                       const isRequired = currentValue ? REQUIRED_FIELDS.has(currentValue) : false;
                       return (
