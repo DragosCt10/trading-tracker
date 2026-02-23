@@ -25,7 +25,7 @@ import { calculateLiquidityStats as calculateLiquidityStatsUtil } from '@/utils/
 import type { LiquidityStats } from '@/types/dashboard';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
-/** Short display labels for liquidity categories on the chart */
+/** Short display labels for liquidity categories on the chart (aligned with NewTradeModal/TradeDetailsModal LIQUIDITY_OPTIONS). */
 const LIQUIDITY_DISPLAY_LABELS: Record<string, string> = {
   'Local Liquidity': 'Local Liq.',
   'Major Liquidity': 'Major Liq.',
@@ -35,8 +35,21 @@ const LIQUIDITY_DISPLAY_LABELS: Record<string, string> = {
   'Unknown': 'Unknown',
 };
 
+const MAX_LABEL_LENGTH = 10;
+
+/** Case-insensitive lookup so imported values (e.g. "local liquidity") still get the short label. Any other name is displayed as-is, truncated to MAX_LABEL_LENGTH. */
 function getLiquidityDisplayLabel(category: string): string {
-  return LIQUIDITY_DISPLAY_LABELS[category] ?? category;
+  if (!category || category.trim() === '') return 'Unknown';
+  const trimmed = category.trim();
+  const exact = LIQUIDITY_DISPLAY_LABELS[trimmed];
+  if (exact !== undefined) return exact.length > MAX_LABEL_LENGTH ? exact.slice(0, MAX_LABEL_LENGTH) : exact;
+  const lower = trimmed.toLowerCase();
+  const entry = Object.entries(LIQUIDITY_DISPLAY_LABELS).find(([k]) => k.toLowerCase() === lower);
+  if (entry) {
+    const label = entry[1];
+    return label.length > MAX_LABEL_LENGTH ? label.slice(0, MAX_LABEL_LENGTH) : label;
+  }
+  return trimmed.length > MAX_LABEL_LENGTH ? trimmed.slice(0, MAX_LABEL_LENGTH) : trimmed;
 }
 
 export interface LiquidityStatisticsCardProps {
