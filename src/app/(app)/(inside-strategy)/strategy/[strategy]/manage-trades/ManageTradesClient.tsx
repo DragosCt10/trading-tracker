@@ -381,7 +381,7 @@ export default function ManageTradesClient({
         return next;
       });
     } else {
-      setSelectedIds((prev) => new Set([...prev, ...pageIds]));
+      setSelectedIds((prev) => new Set([...Array.from(prev), ...pageIds]));
     }
   };
   const toggleSelectOne = (id: string) => {
