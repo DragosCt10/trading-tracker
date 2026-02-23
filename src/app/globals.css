@@ -444,11 +444,15 @@
  * Works in both light and dark modes.
  * ============================================================ */
 
-/* Default (no theme selected) — exact Tailwind: from-white via-purple-100/80 to-violet-100/70 */
+/* Default (no theme selected) — soft equilibrium: purple-50/violet-50 at 60%/50% */
 :root {
   --grad-from: #ffffff;
-  --grad-via: rgb(243 232 255 / 0.8);   /* Tailwind purple-100 #f3e8ff at 80% */
-  --grad-to: rgb(237 233 254 / 0.7);    /* Tailwind violet-100 #ede9fe at 70% */
+  --grad-via: rgb(250 245 255 / 0.6);   /* Tailwind purple-50 #faf5ff at 60% — soft, no dominance */
+  --grad-to: rgb(245 243 255 / 0.5);    /* Tailwind violet-50 #f5f3ff at 50% */
+  /* Modal: stronger gradient (previous stable look) — purple-100/80, violet-100/70 */
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(243 232 255 / 0.8);   /* Tailwind purple-100 #f3e8ff at 80% */
+  --modal-grad-to: rgb(237 233 254 / 0.7);    /* Tailwind violet-100 #ede9fe at 70% */
   --orb-1: rgb(168 85 247 / 0.08);      /* purple-500 #a855f7 */
   --orb-2: rgb(139 92 246 / 0.08);      /* violet-500 #8b5cf6 */
   --tc-primary: #a855f7;                 /* Tailwind purple-500 */
@@ -464,6 +468,9 @@ html.dark {
   --grad-from: #0d0a12;
   --grad-via: #120d16;
   --grad-to: #0f0a14;
+  --modal-grad-from: #0d0a12;
+  --modal-grad-via: #120d16;
+  --modal-grad-to: #0f0a14;
   --orb-1: rgb(168 85 247 / 0.10);
   --orb-2: rgb(139 92 246 / 0.10);
   --tc-text: #c084fc;
@@ -474,6 +481,9 @@ html[data-color-theme="cyan"] {
   --grad-from: #ffffff;
   --grad-via: rgb(240 249 255 / 0.6);   /* Tailwind sky-50 #f0f9ff at 60% — soft, no dominance */
   --grad-to: rgb(224 242 254 / 0.5);     /* Tailwind sky-100 #e0f2fe at 50% */
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(186 230 253 / 0.8);   /* sky-200 at 80% — modal: stronger */
+  --modal-grad-to: rgb(224 242 254 / 0.7);     /* sky-100 at 70% */
   --orb-1: rgb(6 182 212 / 0.08);        /* cyan-500 #06b6d4 */
   --orb-2: rgb(14 165 233 / 0.08);       /* sky-500 #0ea5e9 */
   --tc-primary: #06b6d4;                 /* Tailwind cyan-500 */
@@ -488,6 +498,9 @@ html.dark[data-color-theme="cyan"] {
   --grad-from: #0d0a12;
   --grad-via: #120d16;
   --grad-to: #0f0a14;
+  --modal-grad-from: #0d0a12;
+  --modal-grad-via: #120d16;
+  --modal-grad-to: #0f0a14;
   --orb-1: rgb(6 182 212 / 0.10);
   --orb-2: rgb(14 165 233 / 0.10);
   --tc-subtle: rgb(6 182 212 / 0.10);
@@ -495,11 +508,14 @@ html.dark[data-color-theme="cyan"] {
   --tc-text: #22d3ee;
 }
 
-/* === Palette 2: Deep Navy + Royal Purple — exact New Trade btn: purple-500 → violet-600 → fuchsia-600 === */
+/* === Palette 2: Deep Navy + Royal Purple (soft equilibrium like other themes) === */
 html[data-color-theme="purple"] {
   --grad-from: #ffffff;
-  --grad-via: rgb(243 232 255 / 0.8);   /* Tailwind purple-100 #f3e8ff at 80% */
-  --grad-to: rgb(237 233 254 / 0.7);    /* Tailwind violet-100 #ede9fe at 70% */
+  --grad-via: rgb(250 245 255 / 0.6);   /* Tailwind purple-50 #faf5ff at 60% — soft, no dominance */
+  --grad-to: rgb(245 243 255 / 0.5);    /* Tailwind violet-50 #f5f3ff at 50% */
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(243 232 255 / 0.8);   /* purple-100 at 80% — modal: stable look */
+  --modal-grad-to: rgb(237 233 254 / 0.7);    /* violet-100 at 70% */
   --orb-1: rgb(168 85 247 / 0.08);      /* purple-500 #a855f7 */
   --orb-2: rgb(124 58 237 / 0.08);      /* violet-600 #7c3aed */
   --tc-primary: #a855f7;                 /* Tailwind purple-500 */
@@ -514,6 +530,9 @@ html.dark[data-color-theme="purple"] {
   --grad-from: #0d0a12;
   --grad-via: #120d16;
   --grad-to: #0f0a14;
+  --modal-grad-from: #0d0a12;
+  --modal-grad-via: #120d16;
+  --modal-grad-to: #0f0a14;
   --orb-1: rgb(168 85 247 / 0.10);
   --orb-2: rgb(124 58 237 / 0.10);
   --tc-subtle: rgb(168 85 247 / 0.10);
@@ -526,6 +545,9 @@ html[data-color-theme="emerald"] {
   --grad-from: #ffffff;
   --grad-via: rgb(236 253 245 / 0.6);    /* Tailwind emerald-50 #ecfdf5 at 60% — soft, no dominance */
   --grad-to: rgb(209 250 229 / 0.5);     /* Tailwind emerald-100 #d1fae5 at 50% */
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(167 243 208 / 0.8);   /* emerald-200 at 80% — modal: stronger */
+  --modal-grad-to: rgb(209 250 229 / 0.7);    /* emerald-100 at 70% */
   --orb-1: rgb(16 185 129 / 0.08);       /* emerald-500 #10b981 */
   --orb-2: rgb(5 150 105 / 0.08);        /* emerald-600 #059669 */
   --tc-primary: #10b981;                 /* Tailwind emerald-500 */
@@ -540,6 +562,9 @@ html.dark[data-color-theme="emerald"] {
   --grad-from: #0d0a12;
   --grad-via: #120d16;
   --grad-to: #0f0a14;
+  --modal-grad-from: #0d0a12;
+  --modal-grad-via: #120d16;
+  --modal-grad-to: #0f0a14;
   --orb-1: rgb(16 185 129 / 0.10);
   --orb-2: rgb(5 150 105 / 0.10);
   --tc-subtle: rgb(16 185 129 / 0.10);
@@ -552,6 +577,9 @@ html[data-color-theme="gold"] {
   --grad-from: #ffffff;
   --grad-via: rgb(255 251 235 / 0.6);    /* Tailwind amber-50 #fffbeb at 60% — soft, no dominance */
   --grad-to: rgb(254 243 199 / 0.5);     /* Tailwind amber-100 #fef3c7 at 50% */
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(253 230 138 / 0.8);    /* amber-200 at 80% — modal: stronger */
+  --modal-grad-to: rgb(254 243 199 / 0.7);     /* amber-100 at 70% */
   --orb-1: rgb(245 158 11 / 0.08);       /* amber-500 #f59e0b */
   --orb-2: rgb(217 119 6 / 0.08);        /* amber-600 #d97706 */
   --tc-primary: #f59e0b;                 /* Tailwind amber-500 */
@@ -566,6 +594,9 @@ html.dark[data-color-theme="gold"] {
   --grad-from: #0d0a12;
   --grad-via: #120d16;
   --grad-to: #0f0a14;
+  --modal-grad-from: #0d0a12;
+  --modal-grad-via: #120d16;
+  --modal-grad-to: #0f0a14;
   --orb-1: rgb(245 158 11 / 0.10);
   --orb-2: rgb(217 119 6 / 0.10);
   --tc-subtle: rgb(245 158 11 / 0.10);
@@ -578,6 +609,9 @@ html[data-color-theme="ice"] {
   --grad-from: #ffffff;
   --grad-via: rgb(239 246 255 / 0.6);    /* Tailwind blue-50 #eff6ff at 60% — soft, no dominance */
   --grad-to: rgb(219 234 254 / 0.5);     /* Tailwind blue-100 #dbeafe at 50% */
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(191 219 254 / 0.8);    /* blue-200 at 80% — modal: stronger */
+  --modal-grad-to: rgb(219 234 254 / 0.7);     /* blue-100 at 70% */
   --orb-1: rgb(59 130 246 / 0.08);       /* blue-500 #3b82f6 */
   --orb-2: rgb(37 99 235 / 0.08);        /* blue-600 #2563eb */
   --tc-primary: #3b82f6;                 /* Tailwind blue-500 */
@@ -592,6 +626,9 @@ html.dark[data-color-theme="ice"] {
   --grad-from: #0d0a12;
   --grad-via: #120d16;
   --grad-to: #0f0a14;
+  --modal-grad-from: #0d0a12;
+  --modal-grad-via: #120d16;
+  --modal-grad-to: #0f0a14;
   --orb-1: rgb(59 130 246 / 0.10);
   --orb-2: rgb(37 99 235 / 0.10);
   --tc-subtle: rgb(59 130 246 / 0.10);
@@ -613,13 +650,13 @@ html.dark[data-color-theme="ice"] {
   );
 }
 
-/* Modal background — same as Tailwind: to bottom right, 0% / 50% / 100%. Uses same theme vars as .app-gradient. */
+/* Modal background — theme-specific stronger gradient (stable modal look). Uses --modal-grad-* per theme. */
 .modal-bg-gradient {
   background: linear-gradient(
     to bottom right,
-    var(--grad-from) 0%,
-    var(--grad-via) 50%,
-    var(--grad-to) 100%
+    var(--modal-grad-from, var(--grad-from)) 0%,
+    var(--modal-grad-via, var(--grad-via)) 50%,
+    var(--modal-grad-to, var(--grad-to)) 100%
   );
 }
 
