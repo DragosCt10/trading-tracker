@@ -8,12 +8,22 @@ import ImportTradesModal from '@/components/ImportTradesModal';
 import { useQuery } from '@tanstack/react-query';
 import { format, endOfMonth, startOfMonth, startOfYear, endOfYear, subDays } from 'date-fns';
 import { DateRange } from 'react-date-range';
-import { Calendar } from 'lucide-react';
+import { Calendar, Trash2 } from 'lucide-react';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQueryClient } from '@tanstack/react-query';
-import { getFilteredTrades } from '@/lib/server/trades';
+import { getFilteredTrades, deleteTrades } from '@/lib/server/trades';
 import type { Database } from '@/types/supabase';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Import shadcn components
 import { Button } from '@/components/ui/button';
@@ -73,6 +83,9 @@ export default function ManageTradesClient({
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Filter states
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
@@ -355,6 +368,46 @@ export default function ManageTradesClient({
   const closeNotesModal = () => {
     setIsNotesModalOpen(false);
     setSelectedNotes('');
+  };
+
+  const mode = selection.mode ?? initialMode;
+  const pageIds = paginatedTrades.map((t) => t.id).filter((id): id is string => !!id);
+  const allOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+  const toggleSelectAll = () => {
+    if (allOnPageSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        pageIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => new Set([...prev, ...pageIds]));
+    }
+  };
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      const { error } = await deleteTrades(ids, mode);
+      if (error) {
+        console.error('Bulk delete error:', error);
+        return;
+      }
+      setSelectedIds(new Set());
+      setShowBulkDeleteConfirm(false);
+      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey?.[0] as string) === 'allTrades' });
+    } finally {
+      setBulkDeleting(false);
+    }
   };
 
   const exportToCSV = async () => {
@@ -741,12 +794,52 @@ export default function ManageTradesClient({
             </div>
           )}
 
+          {/* Bulk actions bar */}
+          {selectedIds.size > 0 && (
+            <div className="mb-4 flex items-center gap-4 rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-3">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                {selectedIds.size} trade{selectedIds.size !== 1 ? 's' : ''} selected
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedIds(new Set())}
+                className="cursor-pointer rounded-xl px-4 py-2 text-sm transition-all duration-200 border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80"
+              >
+                Clear selection
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowBulkDeleteConfirm(true)}
+                disabled={bulkDeleting}
+                className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 gap-2"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  {bulkDeleting ? 'Deleting…' : `Delete selected (${selectedIds.size})`}
+                </span>
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+              </Button>
+            </div>
+          )}
+
           {/* Trades Table Card - same design as analytics page cards */}
           <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
             <div className="relative overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200/30 dark:divide-slate-700/30">
                 <thead className="bg-transparent border-b border-slate-300 dark:border-slate-700">
                   <tr>
+                    <th className="w-12 px-4 py-4 text-left">
+                      {paginatedTrades.length > 0 && (
+                        <Checkbox
+                          checked={allOnPageSelected}
+                          onCheckedChange={toggleSelectAll}
+                          aria-label="Select all on page"
+                          className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
+                        />
+                      )}
+                    </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Date</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Time</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Market</th>
@@ -763,7 +856,7 @@ export default function ManageTradesClient({
                 <tbody className="bg-transparent divide-y divide-slate-200/30 dark:divide-slate-700/30">
                   {allTradesError ? (
                     <tr>
-                      <td colSpan={11} className="px-6 py-12 text-center">
+                      <td colSpan={12} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <p className="text-red-600 dark:text-red-400 text-sm font-semibold">
                             Failed to load trades: {(allTradesError as Error).message}
@@ -775,6 +868,9 @@ export default function ManageTradesClient({
                     // Skeleton rows
                     Array.from({ length: 6 }).map((_, index) => (
                       <tr key={`skeleton-${index}`}>
+                        <td className="w-12 px-4 py-4 whitespace-nowrap">
+                          <Skeleton className="h-5 w-5 rounded" />
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Skeleton className="h-5 w-20" />
                         </td>
@@ -813,6 +909,16 @@ export default function ManageTradesClient({
                   ) : (
                     paginatedTrades.map((trade: Trade) => (
                     <tr key={trade.id}>
+                      <td className="w-12 px-4 py-4 whitespace-nowrap">
+                        {trade.id && (
+                          <Checkbox
+                            checked={selectedIds.has(trade.id)}
+                            onCheckedChange={() => toggleSelectOne(trade.id!)}
+                            aria-label={`Select trade ${trade.trade_date} ${trade.market}`}
+                            className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
+                          />
+                        )}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">{trade.trade_date}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300" suppressHydrationWarning>{formatTradeTimeForDisplay(trade.trade_time)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">{trade.market}</td>
@@ -944,7 +1050,7 @@ export default function ManageTradesClient({
                   )}
                   {!allTradesLoading && paginatedTrades.length === 0 && activeAccount && (
                     <tr>
-                      <td colSpan={11} className="px-6 py-12 text-center">
+                      <td colSpan={12} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <p className="text-slate-600 dark:text-slate-400 text-sm">
                             No trades found for the selected filters.
@@ -1012,6 +1118,46 @@ export default function ManageTradesClient({
             activeAccount={activeAccount}
             strategyId={initialStrategyId}
           />
+
+          <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+            <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] rounded-2xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  <span className="text-red-500 dark:text-red-400 font-semibold text-lg">Confirm Delete</span>
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  <span className="text-slate-600 dark:text-slate-400">
+                    Are you sure you want to delete {selectedIds.size} trade{selectedIds.size !== 1 ? 's' : ''}? This action cannot be undone.
+                  </span>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex gap-3">
+                <AlertDialogCancel asChild>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowBulkDeleteConfirm(false)}
+                    className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
+                    disabled={bulkDeleting}
+                  >
+                    Cancel
+                  </Button>
+                </AlertDialogCancel>
+                <AlertDialogAction asChild>
+                  <Button
+                    variant="destructive"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleBulkDelete();
+                    }}
+                    disabled={bulkDeleting}
+                    className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
+                  >
+                    {bulkDeleting ? 'Deleting...' : 'Yes, Delete'}
+                  </Button>
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </TooltipProvider>
   );
