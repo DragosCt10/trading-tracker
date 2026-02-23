@@ -1,6 +1,7 @@
 import { format, parseISO, getMonth, isValid } from 'date-fns';
 import { isValidMarket, normalizeMarket } from '@/utils/validateMarket';
 import type { Trade } from '@/types/trade';
+import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 
 export type ParsedTrade = Omit<Trade, 'id' | 'user_id' | 'account_id'>;
 
@@ -71,7 +72,7 @@ function deriveQuarter(date: Date): string {
 export function parseCsvTrades(
   csvText: string,
   mapping: Record<string, string | null>,
-  defaults?: { risk_per_trade?: number }
+  defaults?: { risk_per_trade?: number; account_balance?: number }
 ): ParseResult {
   const lines = csvText.split(/\r?\n/).filter((l) => l.trim() !== '');
   if (lines.length < 2) {
@@ -164,13 +165,25 @@ export function parseCsvTrades(
     const rrLong = rawRRLong !== '' ? parseFloat(rawRRLong) : (rawOutcome === 'Lose' ? 0 : rrRatio);
 
     const rawCalcProfit = fieldValues['calculated_profit'] ?? '';
-    const calcProfit = rawCalcProfit !== '' ? parseFloat(rawCalcProfit) : undefined;
+    const csvCalcProfit = rawCalcProfit !== '' ? parseFloat(rawCalcProfit) : undefined;
 
     const rawPnl = fieldValues['pnl_percentage'] ?? '';
-    const pnlPct = rawPnl !== '' ? parseFloat(rawPnl) : undefined;
+    const csvPnlPct = rawPnl !== '' ? parseFloat(rawPnl) : undefined;
 
     const rawDisplace = fieldValues['displacement_size'] ?? '';
     const displacementSize = rawDisplace !== '' ? parseFloat(rawDisplace) : 0;
+
+    const breakEven = parseBool(fieldValues['break_even']);
+
+    // If CSV doesn't supply profit/pnl, calculate using the same formula as NewTradeModal.
+    // Pure arithmetic — O(1) per row, safe for any import size.
+    const computedPnl =
+      (csvCalcProfit === undefined || csvPnlPct === undefined) && defaults?.account_balance
+        ? calculateTradePnl(
+            { trade_outcome: rawOutcome, risk_per_trade: riskPerTrade, risk_reward_ratio: rrRatio, break_even: breakEven },
+            defaults.account_balance
+          )
+        : null;
 
     const trade: ParsedTrade = {
       mode: undefined,
@@ -185,7 +198,7 @@ export function parseCsvTrades(
       risk_reward_ratio: rrRatio,
       risk_reward_ratio_long: isNaN(rrLong) ? 0 : rrLong,
       sl_size: slSize,
-      break_even: parseBool(fieldValues['break_even']),
+      break_even: breakEven,
       reentry: parseBool(fieldValues['reentry']),
       news_related: parseBool(fieldValues['news_related']),
       local_high_low: parseBool(fieldValues['local_high_low']),
@@ -200,8 +213,8 @@ export function parseCsvTrades(
       notes: fieldValues['notes'] || undefined,
       quarter,
       displacement_size: isNaN(displacementSize) ? 0 : displacementSize,
-      calculated_profit: calcProfit,
-      pnl_percentage: pnlPct,
+      calculated_profit: csvCalcProfit ?? computedPnl?.calculated_profit,
+      pnl_percentage: csvPnlPct ?? computedPnl?.pnl_percentage,
       strategy_id: undefined,
     };
 
