@@ -70,7 +70,8 @@ function deriveQuarter(date: Date): string {
  */
 export function parseCsvTrades(
   csvText: string,
-  mapping: Record<string, string | null>
+  mapping: Record<string, string | null>,
+  defaults?: { risk_per_trade?: number }
 ): ParseResult {
   const lines = csvText.split(/\r?\n/).filter((l) => l.trim() !== '');
   if (lines.length < 2) {
@@ -131,8 +132,8 @@ export function parseCsvTrades(
 
     // --- Required numerics ---
     const rawRisk = fieldValues['risk_per_trade'] ?? '';
-    const riskPerTrade = parseFloat(rawRisk);
-    if (rawRisk === '' || isNaN(riskPerTrade)) {
+    const riskPerTrade = rawRisk !== '' ? parseFloat(rawRisk) : (defaults?.risk_per_trade ?? NaN);
+    if (isNaN(riskPerTrade)) {
       rowErrors.push({ rowIndex, field: 'risk_per_trade', message: `Risk % must be a number, got: "${rawRisk}"` });
     }
 
