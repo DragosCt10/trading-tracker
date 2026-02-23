@@ -39,6 +39,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarket';
+import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { MarketCombobox } from '@/components/MarketCombobox';
 
 interface TradeDetailsModalProps {
@@ -156,26 +157,22 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       const newRR = field === 'risk_reward_ratio' ? value : editedTrade.risk_reward_ratio;
       const newOutcome = field === 'trade_outcome' ? value : editedTrade.trade_outcome;
 
-      const riskAmount = (Number(newRisk) / 100) * (selection.activeAccount?.account_balance || 0);
-      const riskRewardRatio = Number(newRR) || 2;
-
-      let calculatedProfit = 0;
-      if (newOutcome === 'Win') {
-        calculatedProfit = riskAmount * riskRewardRatio;
-      } else if (newOutcome === 'Lose') {
-        calculatedProfit = -riskAmount;
-      }
-
-      const pnlPercentage = newOutcome === 'Win'
-        ? (Number(newRisk) * riskRewardRatio)
-        : -Number(newRisk);
+      const { pnl_percentage, calculated_profit } = calculateTradePnl(
+        {
+          trade_outcome: newOutcome,
+          risk_per_trade: Number(newRisk),
+          risk_reward_ratio: Number(newRR),
+          break_even: editedTrade.break_even,
+        },
+        selection.activeAccount?.account_balance || 0
+      );
 
       // When outcome becomes Lose, set Potential R:R to 0 (read-only)
       const nextState = {
         ...editedTrade,
         [field]: value,
-        calculated_profit: calculatedProfit,
-        pnl_percentage: pnlPercentage
+        calculated_profit,
+        pnl_percentage,
       };
       if (field === 'trade_outcome' && value === 'Lose') {
         nextState.risk_reward_ratio_long = 0;
