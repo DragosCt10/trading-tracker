@@ -42,6 +42,7 @@ import {
   AlertDialogFooter,
 } from '@/components/ui/alert-dialog';
 import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarket';
+import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { MarketCombobox } from '@/components/MarketCombobox';
 import { ALLOWED_MARKETS } from '@/constants/allowedMarkets';
 
@@ -300,34 +301,10 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   const accountBalance = selection.activeAccount?.account_balance ?? 0;
   const currency = selection.activeAccount?.currency === 'EUR' ? '€' : '$';
 
-  const { signedProfit, pnlPercentage } = useMemo(() => {
-    if (!accountBalance) {
-      return { signedProfit: 0, pnlPercentage: 0 };
-    }
-
-    if (trade.break_even) {
-      return { signedProfit: 0, pnlPercentage: 0 };
-    }
-
-    // Ensure we have valid numbers, default to 0 if undefined/NaN
-    const riskPerTrade = Number(trade.risk_per_trade) || 0;
-    const riskRewardRatio = Number(trade.risk_reward_ratio) || 0;
-
-    let pnlPct = 0;
-
-    if (trade.trade_outcome === 'Lose') {
-      pnlPct = -riskPerTrade;
-    } else {
-      pnlPct = riskPerTrade * riskRewardRatio;
-    }
-
-    const profit = (pnlPct / 100) * accountBalance;
-
-    return {
-      signedProfit: profit,
-      pnlPercentage: pnlPct,
-    };
-  }, [accountBalance, trade.break_even, trade.trade_outcome, trade.risk_per_trade, trade.risk_reward_ratio]);
+  const { pnl_percentage: pnlPercentage, calculated_profit: signedProfit } = useMemo(
+    () => calculateTradePnl(trade, accountBalance),
+    [accountBalance, trade.break_even, trade.trade_outcome, trade.risk_per_trade, trade.risk_reward_ratio]
+  );
 
   // Save trade draft to localStorage
   useEffect(() => {
