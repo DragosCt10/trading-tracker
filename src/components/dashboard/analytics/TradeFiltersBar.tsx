@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { useColorTheme } from '@/hooks/useColorTheme';
+import { COLOR_THEMES } from '@/constants/colorThemes';
 
 type PresetKey = 'year' | '15days' | '30days' | 'month';
 
@@ -60,6 +62,9 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
   onSelectedExecutionChange,
   showAllTradesOption = false,
 }) => {
+  const { colorTheme } = useColorTheme();
+  const rangeColor = (colorTheme ? COLOR_THEMES.find(t => t.id === colorTheme)?.preview.primary : null) ?? '#a855f7';
+
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [tempRange, setTempRange] = React.useState<DateRangeValue>(dateRange);
   const [pickerPosition, setPickerPosition] = React.useState({ top: 0, left: 0 });
@@ -142,12 +147,12 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                   onFocus={() => setShowDatePicker(true)}
                   onClick={() => setShowDatePicker(true)}
                   placeholder="Select date range"
-                  className="w-full cursor-pointer h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
+                  className="themed-focus w-full cursor-pointer h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
                 />
                 <button
                   type="button"
                   onClick={() => setShowDatePicker((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer p-1.5 rounded-lg hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20"
+                  className="themed-focus absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer p-1.5 rounded-lg hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20"
                   aria-label="Open date picker"
                 >
                   <Calendar className="h-5 w-5 text-slate-500 dark:text-slate-400" />
@@ -161,12 +166,8 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                 >
                   {/* Gradient orbs background - dark mode only */}
                   <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl hidden dark:block">
-                    <div
-                      className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/10 rounded-full blur-3xl"
-                    />
-                    <div
-                      className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/10 rounded-full blur-3xl"
-                    />
+                    <div className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl" />
+                    <div className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl" />
                   </div>
 
                   {/* Noise texture overlay - dark mode only */}
@@ -179,7 +180,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                   />
 
                   {/* Top accent line - dark mode only */}
-                  <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60 hidden dark:block" />
+                  <div className="absolute -top-px left-0 right-0 h-0.5 opacity-60 hidden dark:block" style={{ background: 'linear-gradient(to right, transparent, var(--tc-primary), transparent)' }} />
 
                   <div className="relative p-2">
                     <DateRange
@@ -204,7 +205,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                     editableDateInputs={false}
                     maxDate={new Date()}
                     showMonthAndYearPickers
-                    rangeColors={['#a855f7']} // purple-500 for gradient
+                    rangeColors={[rangeColor]}
                     direction="vertical"
                     />
 
@@ -222,7 +223,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                       type="button"
                       size="sm"
                       onClick={handleApply}
-                      className="cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 border-0 bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white shadow-md shadow-purple-500/30"
+                      className="themed-btn-primary cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 border-0 bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white shadow-md shadow-purple-500/30"
                     >
                       Apply
                     </Button>
@@ -252,7 +253,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                   className={cn(
                     'cursor-pointer rounded-xl px-4 py-2 text-sm transition-colors duration-200 relative overflow-hidden group',
                     isActive
-                      ? 'bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 border-0'
+                      ? 'themed-btn-primary bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 border-0'
                       : 'border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium',
                   )}
                 >
@@ -276,7 +277,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
             onValueChange={onSelectedMarketChange}
           >
             <SelectTrigger 
-              className="flex w-40 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100" 
+              className="themed-focus flex w-40 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
               suppressHydrationWarning
             >
               <SelectValue placeholder="All Markets" />
@@ -302,7 +303,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
             onValueChange={onSelectedExecutionChange}
           >
             <SelectTrigger 
-              className="flex w-40 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100" 
+              className="themed-focus flex w-40 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
               suppressHydrationWarning
             >
               <SelectValue placeholder={showAllTradesOption ? "All Trades" : "Executed Trades"} />

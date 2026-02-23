@@ -1,2 +1,2 @@
-/** OpenAI model used for trading analysis in /api/analyze-trading */
-export const ANALYSIS_MODEL = 'o4-mini-2025-04-16';
+/** OpenAI model used in QuantifyX */
+export const ANALYSIS_MODEL = 'gpt-4.1-nano-2025-04-14';

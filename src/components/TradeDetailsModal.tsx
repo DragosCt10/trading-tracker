@@ -10,9 +10,9 @@ import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
-// Shared input/select styles to match NewTradeModal
-const inputClass = 'h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100';
-const selectTriggerClass = 'h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100';
+// Shared input/select styles to match CreateAccountModal / NewTradeModal (themed)
+const inputClass = 'themed-focus h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100';
+const selectTriggerClass = 'themed-focus h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100';
 const selectContentClass = 'z-[100] border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50';
 const labelClass = 'block text-sm font-semibold text-slate-700 dark:text-slate-300';
 
@@ -618,15 +618,15 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
   return (
     <AlertDialog open={isOpen}>
-      <AlertDialogContent className="max-w-6xl max-h-[90vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl p-0 flex flex-col overflow-hidden">
+      <AlertDialogContent className="max-w-6xl max-h-[90vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 app-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl p-0 flex flex-col overflow-hidden">
         {/* Gradient orbs background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
           <div
-            className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/8 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse"
+            className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl animate-pulse"
             style={{ animationDuration: '8s' }}
           />
           <div
-            className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/8 dark:bg-violet-500/10 rounded-full blur-3xl animate-pulse"
+            className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl animate-pulse"
             style={{ animationDuration: '10s', animationDelay: '2s' }}
           />
         </div>
@@ -641,7 +641,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         />
 
         {/* Top accent line */}
-        <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60" />
+        <div className="absolute -top-px left-0 right-0 h-0.5 opacity-60" style={{ background: 'linear-gradient(to right, transparent, var(--tc-primary), transparent)' }} />
 
         {/* Fixed Header */}
         <div className="relative px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
@@ -722,7 +722,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Evaluation</label>
                   <div className="mt-2">
                     {!isEditing ? (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold themed-badge-live">
                         {editedTrade?.evaluation}
                       </span>
                     ) : (
@@ -750,7 +750,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               {/* Basic Information */}
               <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--tc-primary)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   Basic Information
@@ -775,7 +775,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               {/* Risk Management */}
               <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--tc-primary)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
                   Risk Management
@@ -802,15 +802,15 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             {/* Trade Conditions - Single Card with 3 columns */}
             <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
-                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+<svg className="w-4 h-4 shrink-0" style={{ color: 'var(--tc-primary)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
                 Trade Conditions
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Execution */}
                 <div>
-                  <h4 className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-3">Execution</h4>
+                  <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Execution</h4>
                   <div className="space-y-3">
                     {isTradingInstitutional && renderField('MSS', 'mss', 'select', MSS_OPTIONS)}
                     {renderField('Break Even', 'break_even', 'boolean')}
@@ -820,7 +820,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
                 {/* Context */}
                 <div>
-                  <h4 className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-3">Context</h4>
+                  <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Context</h4>
                   <div className="space-y-3">
                     {renderField('News Related', 'news_related', 'boolean')}
                     {renderField('Local High/Low', 'local_high_low', 'boolean')}
@@ -830,7 +830,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
                 {/* Performance */}
                 <div>
-                  <h4 className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-3">Performance</h4>
+                  <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Performance</h4>
                   <div className="space-y-3">
                     {renderField('Partials', 'partials_taken', 'boolean')}
                     {renderField('Executed', 'executed', 'boolean')}
@@ -842,8 +842,8 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             {/* Trade Screenshots */}
             <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
-                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+<svg className="w-4 h-4 shrink-0" style={{ color: 'var(--tc-primary)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 Trade Screenshots
               </h3>
@@ -855,7 +855,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Trade Chart</label>
                     {editedTrade?.trade_link ? (
                       <a href={editedTrade.trade_link} target="_blank" rel="noopener noreferrer" className="block group">
-                        <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 hover:border-purple-500 dark:hover:border-purple-400 transition-all duration-300">
+                        <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300">
                           <img 
                             src={editedTrade.trade_link} 
                             alt="Trade Chart" 
@@ -880,7 +880,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                       <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Liquidity Taken</label>
                       {editedTrade?.liquidity_taken ? (
                         <a href={editedTrade.liquidity_taken} target="_blank" rel="noopener noreferrer" className="block group">
-                          <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 hover:border-purple-500 dark:hover:border-purple-400 transition-all duration-300">
+                          <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300">
                             <img 
                               src={editedTrade.liquidity_taken} 
                               alt="Liquidity Taken" 
@@ -932,7 +932,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             {/* Notes */}
             <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
-                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
                 Notes
@@ -940,7 +940,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               <textarea
                 value={editedTrade?.notes ?? ''}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
-                className="w-full min-h-[200px] bg-transparent rounded-xl placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100 px-3 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 focus:ring-inset"
+                className="themed-focus w-full min-h-[200px] bg-transparent rounded-xl placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100 px-3 py-3 text-sm resize-none focus:outline-none focus:ring-inset"
                 rows={8}
                 disabled={!isEditing}
                 readOnly={!isEditing}
@@ -950,7 +950,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
             {/* Delete confirm using AlertDialog */}
             <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-              <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] rounded-2xl">
+              <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 app-gradient rounded-2xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle>
                     <span className="text-red-500 dark:text-red-400 font-semibold text-lg">Confirm Delete</span>
@@ -992,11 +992,11 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 }
               }}
             >
-              <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] rounded-2xl">
+              <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 app-gradient rounded-2xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle>
                     {progressDialog.status === 'loading' && (
-                      <span className="text-purple-600 dark:text-purple-400 font-semibold text-lg flex items-center gap-2">
+                      <span className="font-semibold text-lg flex items-center gap-2" style={{ color: 'var(--tc-primary)' }}>
                         <Loader2 className="h-5 w-5 animate-spin" />
                         {progressDialog.title === 'Delete' ? 'Deleting Trade' : 'Updating Trade'}
                       </span>
@@ -1045,7 +1045,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 <>
                   <Button 
                     onClick={() => setIsEditing(true)} 
-                    className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-5 py-2 group border-0"
+                    className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-5 py-2 group border-0"
                   >
                     <span className="relative z-10">Edit Trade</span>
                     <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
@@ -1073,7 +1073,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   <Button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 via-green-600 to-teal-600 hover:from-emerald-600 hover:via-green-700 hover:to-teal-700 text-white font-semibold shadow-md shadow-emerald-500/30 dark:shadow-emerald-500/20 px-5 py-2 group border-0 disabled:opacity-60"
+                    className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-5 py-2 group border-0 disabled:opacity-60"
                   >
                     <span className="relative z-10">{isSaving ? 'Saving...' : 'Save Changes'}</span>
                     <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />

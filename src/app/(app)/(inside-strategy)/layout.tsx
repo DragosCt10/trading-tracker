@@ -96,12 +96,12 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
             <Button
               variant="ghost"
               size="sm"
-              className="w-full h-auto min-h-[64px] cursor-pointer transition-all duration-300 relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white hover:text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 border-0 !p-0 [&_svg]:text-white"
+              className="group/newtrade w-full h-auto min-h-[64px] cursor-pointer transition-all duration-300 relative overflow-hidden rounded-xl themed-btn-primary text-white font-semibold border-0 !p-0 hover:text-white [&_svg]:text-white [&_span]:text-white"
               onClick={() => setNewTradeModalOpen(true)}
             >
               <div className="block w-full h-full relative min-h-[40px]">
                 <PlusCircle className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
-                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">New Trade</span>
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap text-white">New Trade</span>
               </div>
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
             </Button>

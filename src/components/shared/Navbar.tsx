@@ -10,6 +10,7 @@ import {
   Target,
   Sparkles,
   Home,
+  Palette,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -30,6 +31,7 @@ import { CreateAccountAlertDialog } from '../CreateAccountModal';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useAccounts } from '@/hooks/useAccounts';
 import Logo from '../shared/Logo';
+import { ThemePickerModal } from './ThemePickerModal';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -38,6 +40,7 @@ export default function Navbar() {
   const supabase = createClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
   const queryClient = useQueryClient();
   const { theme, toggleTheme, mounted } = useTheme();
 
@@ -100,15 +103,14 @@ export default function Navbar() {
       'gap-2 rounded-xl border transition-all duration-200',
       'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 hover:border-slate-300/70',
       'dark:text-slate-200 dark:hover:text-slate-50 dark:hover:bg-slate-800/70 dark:hover:border-slate-700/70',
-      active &&
-        'bg-purple-500/5 border-purple-500/30 text-purple-700 hover:bg-purple-500/15 hover:border-purple-500/40 dark:text-purple-300 dark:bg-purple-500/10 dark:border-purple-400/25'
+      active && 'themed-nav-active'
     );
 
   return (
     <>
       <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-(--breakpoint-xl) px-4 sm:px-0">
         <div className="relative rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-fuchsia-500/5" />
+          <div className="themed-nav-overlay pointer-events-none absolute inset-0" />
           <div className="relative flex items-center px-3 py-2 sm:px-4 sm:py-2.5">
             <Link
               href="/"
@@ -167,11 +169,24 @@ export default function Navbar() {
             </ul>
           </div>
 
-          {/* Right actions */}
+          {/* Right actions — same style as Edit btn (EditAccountAlertDialog), icon only */}
           <div className="ml-auto hidden items-center gap-2 lg:flex">
-            <button
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setThemePickerOpen(true)}
+              className="cursor-pointer h-8 w-8 rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 p-0 flex items-center justify-center transition-colors duration-200"
+              aria-label="Color theme"
+            >
+              <Palette className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
               onClick={toggleTheme}
-              className="p-2 rounded-xl bg-slate-100/70 border border-slate-200/80 text-slate-700 hover:bg-slate-200/80 hover:border-slate-300/80 dark:bg-slate-800/70 dark:border-slate-700/80 dark:text-slate-100 dark:hover:bg-slate-700/80 dark:hover:border-slate-600/80 shadow-sm transition-all duration-300 hover:shadow-md group"
+              className="cursor-pointer h-8 w-8 rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 p-0 flex items-center justify-center transition-colors duration-200 group"
               aria-label="Toggle theme"
             >
               {!mounted ? (
@@ -203,7 +218,7 @@ export default function Navbar() {
                   <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
                 </svg>
               )}
-            </button>
+            </Button>
 
             <CreateAccountAlertDialog
               onCreated={async () => {
@@ -215,7 +230,7 @@ export default function Navbar() {
             <Button
               variant="destructive"
               size="sm"
-              className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
+              className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 transition-all duration-300"
               onClick={handleSignOut}
               disabled={isSigningOut}
             >
@@ -307,47 +322,54 @@ export default function Navbar() {
 
                 <Separator className="my-2" />
 
-                {/* Mobile theme toggle */}
-                <div className="flex items-center justify-between rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/60 dark:bg-slate-900/60 px-3 py-2">
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                    Appearance
-                  </span>
-                  <button
-                    onClick={toggleTheme}
-                    className="p-2 rounded-xl bg-slate-100/70 border border-slate-200/80 text-slate-700 hover:bg-slate-200/80 hover:border-slate-300/80 dark:bg-slate-800/70 dark:border-slate-700/80 dark:text-slate-100 dark:hover:bg-slate-700/80 dark:hover:border-slate-600/80 shadow-sm transition-all duration-300 hover:shadow-md group"
-                    aria-label="Toggle theme"
-                  >
-                    {!mounted ? (
-                      <svg
-                        className="h-4 w-4 text-slate-700 dark:text-slate-100 group-hover:rotate-180 transition-transform duration-500"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-                      </svg>
-                    ) : theme === 'dark' ? (
-                      <svg
-                        className="h-4 w-4 text-amber-400 group-hover:rotate-180 transition-transform duration-500"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
-                          fillRule="evenodd"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="h-4 w-4 text-slate-700 dark:text-slate-100 group-hover:rotate-180 transition-transform duration-500"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
+                {/* Mobile color theme picker */}
+                <button
+                  onClick={() => { setMobileMenuOpen(false); setThemePickerOpen(true); }}
+                  className="w-full flex items-center gap-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/60 dark:bg-slate-900/60 px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition-all"
+                >
+                  <Palette className="h-4 w-4" />
+                  <span>Color Theme</span>
+                </button>
+
+                {/* Mobile theme toggle — same style as Edit btn, icon only */}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={toggleTheme}
+                  className="w-full cursor-pointer h-9 rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 p-0 flex items-center justify-center transition-colors duration-200 group"
+                  aria-label="Toggle theme"
+                >
+                  {!mounted ? (
+                    <svg
+                      className="h-4 w-4 text-slate-700 dark:text-slate-100 group-hover:rotate-180 transition-transform duration-500"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                    </svg>
+                  ) : theme === 'dark' ? (
+                    <svg
+                      className="h-4 w-4 text-amber-400 group-hover:rotate-180 transition-transform duration-500"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                        fillRule="evenodd"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="h-4 w-4 text-slate-700 dark:text-slate-100 group-hover:rotate-180 transition-transform duration-500"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                    </svg>
+                  )}
+                </Button>
 
                 <CreateAccountAlertDialog
                   onCreated={async () => {
@@ -409,6 +431,7 @@ export default function Navbar() {
         </div>
       </div>
 
+      <ThemePickerModal open={themePickerOpen} onClose={() => setThemePickerOpen(false)} />
     </>
   );
 }

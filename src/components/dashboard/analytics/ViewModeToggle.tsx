@@ -36,17 +36,17 @@ export function ViewModeToggle({ viewMode, onViewModeChange }: ViewModeTogglePro
           type="button"
           onClick={() => onViewModeChange(viewMode === 'yearly' ? 'dateRange' : 'yearly')}
           className={cn(
-            "relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 shadow-md cursor-pointer",
-            viewMode === 'dateRange' 
-              ? "bg-gradient-to-r from-purple-500 to-violet-600 shadow-purple-500/40 dark:shadow-purple-900/50" 
+            "relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 themed-focus focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 shadow-md cursor-pointer",
+            viewMode === 'dateRange'
+              ? "themed-toggle-active bg-gradient-to-r from-purple-500 to-violet-600 shadow-purple-500/40 dark:shadow-purple-900/50"
               : "bg-gradient-to-r from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-700"
           )}
         >
           <span
             className={cn(
               "inline-block h-5 w-5 transform rounded-full bg-white transition-all duration-300 shadow-md border",
-              viewMode === 'dateRange' 
-                ? "translate-x-[24px] border-purple-200/50" 
+              viewMode === 'dateRange'
+                ? "translate-x-[24px] border-white/50"
                 : "translate-x-[4px] border-slate-200/50 dark:border-slate-600/50"
             )}
           />
