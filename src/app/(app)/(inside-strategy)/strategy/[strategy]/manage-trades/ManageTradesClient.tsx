@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Trade } from '@/types/trade';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import NotesModal from '@/components/NotesModal';
+import ImportTradesModal from '@/components/ImportTradesModal';
 import { useQuery } from '@tanstack/react-query';
 import { format, endOfMonth, startOfMonth, startOfYear, endOfYear, subDays } from 'date-fns';
 import { DateRange } from 'react-date-range';
@@ -71,6 +72,7 @@ export default function ManageTradesClient({
   const [currentPage, setCurrentPage] = useState(1);
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Filter states
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
@@ -367,7 +369,7 @@ export default function ManageTradesClient({
         'Risk %', 'Trade Link', 'Liquidity Taken', 'Local High/Low',
         'News Related', 'ReEntry', 'Break Even', 'MSS', 'Risk:Reward Ratio',
         'Risk:Reward Ratio Long', 'SL Size', 'Calculated Profit', 'P/L %',
-        'Evaluation', 'Notes'
+        'Evaluation', 'Notes', 'Executed'
       ];
 
       const escapeCSV = (value: any) => {
@@ -400,7 +402,6 @@ export default function ManageTradesClient({
           trade.calculated_profit || '',
           trade.pnl_percentage || '',
           trade.evaluation || '',
-          trade.rr_hit_1_4 ? 'Yes' : 'No',
           trade.notes || '',
           trade.executed ? 'Yes' : 'No'
         ].map(escapeCSV).join(','))
@@ -436,13 +437,22 @@ export default function ManageTradesClient({
                   Viewing trades for {selection.mode} mode
                 </p>
               </div>
-              <Button 
-                onClick={exportToCSV} 
-                className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0"
-              >
-                <span className="relative z-10">Export Trades</span>
-                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setIsImportModalOpen(true)}
+                  variant="outline"
+                  className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 font-semibold transition-colors duration-200"
+                >
+                  Import Trades
+                </Button>
+                <Button
+                  onClick={exportToCSV}
+                  className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0"
+                >
+                  <span className="relative z-10">Export Trades</span>
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -993,6 +1003,14 @@ export default function ManageTradesClient({
             isOpen={isNotesModalOpen}
             onClose={closeNotesModal}
             notes={selectedNotes}
+          />
+
+          <ImportTradesModal
+            isOpen={isImportModalOpen}
+            onClose={() => setIsImportModalOpen(false)}
+            mode={selection.mode ?? initialMode}
+            activeAccount={activeAccount}
+            strategyId={initialStrategyId}
           />
         </div>
       </TooltipProvider>
