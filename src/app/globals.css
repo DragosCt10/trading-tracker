@@ -436,3 +436,296 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ============================================================
+ * Color Theme System — CSS Custom Properties
+ * Each theme sets gradient variables + UI accent variables.
+ * Applied via data-color-theme attribute on <html>.
+ * Works in both light and dark modes.
+ * ============================================================ */
+
+/* Default (no theme selected) — exact Tailwind: from-white via-purple-100/80 to-violet-100/70 */
+:root {
+  --grad-from: #ffffff;
+  --grad-via: rgb(243 232 255 / 0.8);   /* Tailwind purple-100 #f3e8ff at 80% */
+  --grad-to: rgb(237 233 254 / 0.7);    /* Tailwind violet-100 #ede9fe at 70% */
+  --orb-1: rgb(168 85 247 / 0.08);
+  --orb-2: rgb(139 92 246 / 0.08);
+  --tc-primary: #a855f7;
+  --tc-accent: #8b5cf6;
+  --tc-subtle: rgb(168 85 247 / 0.05);
+  --tc-border: rgb(168 85 247 / 0.3);
+  --tc-text: #7e22ce;
+  --tc-text-dark: #c084fc;
+}
+
+html.dark {
+  --grad-from: #0d0a12;
+  --grad-via: #120d16;
+  --grad-to: #0f0a14;
+  --orb-1: rgb(168 85 247 / 0.10);
+  --orb-2: rgb(139 92 246 / 0.10);
+  --tc-text: #c084fc;
+}
+
+/* === Palette 1: Midnight Blue + Electric Cyan === */
+html[data-color-theme="cyan"] {
+  --grad-from: white;
+  --grad-via: rgb(186 230 253 / 0.75);
+  --grad-to: rgb(224 242 254 / 0.60);
+  --orb-1: rgb(0 194 255 / 0.13);
+  --orb-2: rgb(58 224 255 / 0.13);
+  --tc-primary: #00C2FF;
+  --tc-accent: #3AE0FF;
+  --tc-subtle: rgb(0 194 255 / 0.05);
+  --tc-border: rgb(0 194 255 / 0.3);
+  --tc-text: #007aa3;
+  --tc-text-dark: #3AE0FF;
+}
+html.dark[data-color-theme="cyan"] {
+  --grad-from: #0B0F1A;
+  --grad-via: #0d1520;
+  --grad-to: #0a1018;
+  --orb-1: rgb(0 194 255 / 0.10);
+  --orb-2: rgb(58 224 255 / 0.10);
+  --tc-subtle: rgb(0 194 255 / 0.10);
+  --tc-border: rgb(0 194 255 / 0.25);
+  --tc-text: #3AE0FF;
+}
+
+/* === Palette 2: Deep Navy + Royal Purple — exact Tailwind purple-100 / violet-100 === */
+html[data-color-theme="purple"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(243 232 255 / 0.8);   /* Tailwind purple-100 #f3e8ff at 80% */
+  --grad-to: rgb(237 233 254 / 0.7);    /* Tailwind violet-100 #ede9fe at 70% */
+  --orb-1: rgb(168 85 247 / 0.08);
+  --orb-2: rgb(139 92 246 / 0.08);
+  --tc-primary: #a855f7;
+  --tc-accent: #8b5cf6;
+  --tc-subtle: rgb(168 85 247 / 0.05);
+  --tc-border: rgb(168 85 247 / 0.3);
+  --tc-text: #7e22ce;
+  --tc-text-dark: #c084fc;
+}
+html.dark[data-color-theme="purple"] {
+  --grad-from: #0d0a12;
+  --grad-via: #120d16;
+  --grad-to: #0f0a14;
+  --orb-1: rgb(168 85 247 / 0.10);
+  --orb-2: rgb(139 92 246 / 0.10);
+  --tc-subtle: rgb(168 85 247 / 0.10);
+  --tc-border: rgb(168 85 247 / 0.25);
+  --tc-text: #c084fc;
+}
+
+/* === Palette 3: Charcoal + Emerald === */
+html[data-color-theme="emerald"] {
+  --grad-from: white;
+  --grad-via: rgb(167 243 208 / 0.52);
+  --grad-to: rgb(209 250 229 / 0.48);
+  --orb-1: rgb(0 184 148 / 0.12);
+  --orb-2: rgb(0 217 165 / 0.12);
+  --tc-primary: #00B894;
+  --tc-accent: #00D9A5;
+  --tc-subtle: rgb(0 184 148 / 0.05);
+  --tc-border: rgb(0 184 148 / 0.3);
+  --tc-text: #007560;
+  --tc-text-dark: #00D9A5;
+}
+html.dark[data-color-theme="emerald"] {
+  --grad-from: #111111;
+  --grad-via: #171717;
+  --grad-to: #141414;
+  --orb-1: rgb(0 184 148 / 0.10);
+  --orb-2: rgb(0 217 165 / 0.10);
+  --tc-subtle: rgb(0 184 148 / 0.10);
+  --tc-border: rgb(0 184 148 / 0.25);
+  --tc-text: #00D9A5;
+}
+
+/* === Palette 4: Black + Gold Premium === */
+html[data-color-theme="gold"] {
+  --grad-from: white;
+  --grad-via: rgb(253 230 138 / 0.45);
+  --grad-to: rgb(254 243 199 / 0.55);
+  --orb-1: rgb(198 167 94 / 0.13);
+  --orb-2: rgb(230 199 122 / 0.13);
+  --tc-primary: #C6A75E;
+  --tc-accent: #E6C77A;
+  --tc-subtle: rgb(198 167 94 / 0.05);
+  --tc-border: rgb(198 167 94 / 0.3);
+  --tc-text: #9a7a30;
+  --tc-text-dark: #E6C77A;
+}
+html.dark[data-color-theme="gold"] {
+  --grad-from: #000000;
+  --grad-via: #0a0a0a;
+  --grad-to: #111111;
+  --orb-1: rgb(198 167 94 / 0.10);
+  --orb-2: rgb(230 199 122 / 0.10);
+  --tc-subtle: rgb(198 167 94 / 0.10);
+  --tc-border: rgb(198 167 94 / 0.25);
+  --tc-text: #E6C77A;
+}
+
+/* === Palette 5: Graphite + Ice Blue === */
+html[data-color-theme="ice"] {
+  --grad-from: white;
+  --grad-via: rgb(191 219 254 / 0.75);
+  --grad-to: rgb(219 234 254 / 0.60);
+  --orb-1: rgb(77 163 255 / 0.13);
+  --orb-2: rgb(124 192 255 / 0.13);
+  --tc-primary: #4DA3FF;
+  --tc-accent: #7CC0FF;
+  --tc-subtle: rgb(77 163 255 / 0.05);
+  --tc-border: rgb(77 163 255 / 0.3);
+  --tc-text: #1a6abf;
+  --tc-text-dark: #7CC0FF;
+}
+html.dark[data-color-theme="ice"] {
+  --grad-from: #1C1F26;
+  --grad-via: #1e2330;
+  --grad-to: #1a1e28;
+  --orb-1: rgb(77 163 255 / 0.10);
+  --orb-2: rgb(124 192 255 / 0.10);
+  --tc-subtle: rgb(77 163 255 / 0.10);
+  --tc-border: rgb(77 163 255 / 0.25);
+  --tc-text: #7CC0FF;
+}
+
+/* ============================================================
+ * Theme utility classes
+ * ============================================================ */
+
+/* Body gradient — Tailwind-style: to bottom right with explicit 0%, 50%, 100% stops */
+.app-gradient {
+  background: linear-gradient(
+    to bottom right,
+    var(--grad-from) 0%,
+    var(--grad-via) 50%,
+    var(--grad-to) 100%
+  );
+}
+
+/* Modal background — same as Tailwind: to bottom right, 0% / 50% / 100%. Uses same theme vars as .app-gradient. */
+.modal-bg-gradient {
+  background: linear-gradient(
+    to bottom right,
+    var(--grad-from) 0%,
+    var(--grad-via) 50%,
+    var(--grad-to) 100%
+  );
+}
+
+/* Gradient orbs */
+.orb-bg-1 { background-color: var(--orb-1); }
+.orb-bg-2 { background-color: var(--orb-2); }
+
+/* Top accent line (e.g. modal) — gradient uses theme primary */
+.themed-accent-line {
+  background: linear-gradient(to right, transparent, var(--tc-primary), transparent);
+  opacity: 0.6;
+}
+
+/* Active nav item — overrides hardcoded purple Tailwind classes */
+.themed-nav-active {
+  background-color: var(--tc-subtle) !important;
+  border-color: var(--tc-border) !important;
+  color: var(--tc-text) !important;
+}
+.dark .themed-nav-active {
+  color: var(--tc-text-dark) !important;
+  background-color: var(--tc-subtle) !important;
+  border-color: var(--tc-border) !important;
+}
+.themed-nav-active:hover {
+  background-color: color-mix(in oklch, var(--tc-primary) 15%, transparent) !important;
+  border-color: color-mix(in oklch, var(--tc-primary) 40%, transparent) !important;
+}
+
+/* ---- Themed primary button (replaces hardcoded purple gradient) ---- */
+.themed-btn-primary {
+  background-image: linear-gradient(
+    to right,
+    var(--tc-primary),
+    color-mix(in oklch, var(--tc-primary) 55%, var(--tc-accent)),
+    var(--tc-accent)
+  ) !important;
+  box-shadow:
+    0 4px 6px -1px color-mix(in oklch, var(--tc-primary) 30%, transparent),
+    0 2px 4px -2px color-mix(in oklch, var(--tc-primary) 20%, transparent) !important;
+  transition: filter 0.2s ease;
+}
+.themed-btn-primary:not(:disabled):hover {
+  filter: brightness(0.88);
+}
+
+/* ---- Themed input / select focus ring ---- */
+.themed-focus:focus,
+.themed-focus:focus-visible {
+  border-color: var(--tc-primary) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--tc-primary) 20%, transparent) !important;
+}
+
+/* ---- Themed live mode badge ---- */
+.themed-badge-live {
+  background-color: var(--tc-subtle) !important;
+  color: var(--tc-text) !important;
+  border-color: var(--tc-border) !important;
+}
+.dark .themed-badge-live {
+  color: var(--tc-text-dark) !important;
+  background-color: var(--tc-subtle) !important;
+  border-color: var(--tc-border) !important;
+}
+
+/* ---- Themed nav gradient overlay ---- */
+.themed-nav-overlay {
+  background: linear-gradient(to right, var(--orb-1), transparent, var(--orb-2));
+}
+
+/* ---- Themed toggle (ViewModeToggle active state) ---- */
+.themed-toggle-active {
+  background-image: linear-gradient(to right, var(--tc-primary), var(--tc-accent)) !important;
+  box-shadow: 0 4px 6px -1px color-mix(in oklch, var(--tc-primary) 40%, transparent) !important;
+}
+
+/* ---- Themed icon button (navbar palette / theme toggle) ---- */
+.themed-icon-btn {
+  background-color: var(--tc-subtle) !important;
+  border: 1px solid var(--tc-border) !important;
+  color: var(--tc-text) !important;
+}
+.dark .themed-icon-btn {
+  color: var(--tc-text-dark) !important;
+}
+.themed-icon-btn:hover {
+  background-color: color-mix(in oklch, var(--tc-primary) 15%, transparent) !important;
+  border-color: color-mix(in oklch, var(--tc-primary) 40%, transparent) !important;
+}
+.dark .themed-icon-btn:hover {
+  color: var(--tc-text-dark) !important;
+}
+
+/* ---- Themed checkbox (checked state uses theme primary/accent) ---- */
+.themed-checkbox[data-state="checked"] {
+  background: linear-gradient(to right, var(--tc-primary), var(--tc-accent)) !important;
+  border-color: var(--tc-primary) !important;
+}
+.themed-checkbox:hover {
+  border-color: color-mix(in oklch, var(--tc-primary) 50%, transparent) !important;
+}
+
+/* ---- Themed section heading (e.g. Execution, Context, Performance) ---- */
+.themed-heading-accent {
+  color: var(--tc-text) !important;
+}
+.dark .themed-heading-accent {
+  color: var(--tc-text-dark) !important;
+}
+
+/* ---- Themed hover border (e.g. image placeholder containers) ---- */
+.themed-hover-border:hover {
+  border-color: var(--tc-primary) !important;
+}
