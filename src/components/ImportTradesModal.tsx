@@ -182,11 +182,10 @@ export default function ImportTradesModal({
     const confirmedMapping = Object.fromEntries(
       Object.entries(mapping).filter(([, v]) => v !== null)
     ) as Record<string, string>;
-    const result = parseCsvTrades(
-      csvText,
-      confirmedMapping,
-      defaultRiskPct !== null ? { risk_per_trade: defaultRiskPct } : undefined
-    );
+    const result = parseCsvTrades(csvText, confirmedMapping, {
+      ...(defaultRiskPct !== null ? { risk_per_trade: defaultRiskPct } : {}),
+      ...(activeAccount?.account_balance ? { account_balance: activeAccount.account_balance } : {}),
+    });
     setParseResult(result);
     setStep('preview');
   }
