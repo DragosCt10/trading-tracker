@@ -169,10 +169,6 @@ export default function ActionBar({ initialData }: ActionBarProps) {
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 min-w-0">
-      {/* ── Single grouped account selector (same style/size as Edit button) ── */}
-      <span className="hidden sm:inline text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 shrink-0">
-        Account:
-      </span>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
