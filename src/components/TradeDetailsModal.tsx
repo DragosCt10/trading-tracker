@@ -128,6 +128,8 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const TREND_OPTIONS = ['Trend-following', 'Counter-trend'];
 
+  const snapToHalfStep = (num: number) => Math.round(num * 2) / 2;
+
   // Potential Risk:Reward Ratio (RR Long) – same options as NewTradeModal: 1 to 10 step 0.5, plus 10+
   const POTENTIAL_RR_OPTIONS: { value: number; label: string }[] = [
     ...Array.from({ length: 19 }, (_, i) => {
@@ -233,6 +235,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         launch_hour: editedTrade.launch_hour,
         strategy_id: editedTrade.strategy_id,
         trend: editedTrade.trend ?? null,
+        fvg_size: editedTrade.fvg_size ?? null,
       };
 
       const { error: updateError } = await updateTrade(editedTrade.id, tradingMode, updateData);
@@ -360,7 +363,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             </div>
           );
         }
-        if (field === 'pnl_percentage' || field === 'risk_per_trade' || field === 'displacement_size') {
+        if (field === 'pnl_percentage' || field === 'risk_per_trade' || field === 'displacement_size' || field === 'fvg_size') {
           return (
             <div>
               <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
@@ -500,6 +503,48 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             onChange={e => {
               const val = e.target.value;
               handleInputChange(field, val === '' ? '' : parseFloat(val));
+            }}
+            className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+            disabled={!isEditing}
+            readOnly={!isEditing}
+          />
+        </div>
+      );
+    }
+
+    // FVG Size: 0.5 steps only, min 0.5
+    if (field === 'fvg_size') {
+      const num = value != null && !isNaN(Number(value)) ? Number(value) : null;
+      return (
+        <div>
+          <label className={`${labelClass} mb-2`}>{label}</label>
+          <Input
+            type="number"
+            step="0.5"
+            min={0.5}
+            value={num !== null ? String(num) : ''}
+            onChange={e => {
+              const val = e.target.value;
+              if (val === '') {
+                handleInputChange(field, undefined as any);
+                return;
+              }
+              const parsed = parseFloat(val);
+              if (!Number.isNaN(parsed)) {
+                const snapped = snapToHalfStep(parsed);
+                const clamped = snapped < 0.5 ? 0.5 : snapped;
+                handleInputChange(field, clamped);
+              }
+            }}
+            onBlur={e => {
+              const val = e.target.value;
+              if (val === '') return;
+              const parsed = parseFloat(val);
+              if (!Number.isNaN(parsed)) {
+                const snapped = snapToHalfStep(parsed);
+                const clamped = snapped < 0.5 ? 0.5 : snapped;
+                handleInputChange(field, clamped);
+              }
             }}
             className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
             disabled={!isEditing}
@@ -797,6 +842,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   {isTradingInstitutional && (
                     <div className="space-y-3">
                       {renderField('Displacement', 'displacement_size', 'number')}
+                      {(isEditing || (editedTrade?.fvg_size != null && editedTrade.fvg_size !== undefined)) && renderField('FVG Size', 'fvg_size', 'number')}
                       {(isEditing || (editedTrade?.liquidity != null && editedTrade.liquidity !== '')) && renderField('Liquidity', 'liquidity', 'select', LIQUIDITY_OPTIONS)}
                     </div>
                   )}
