@@ -424,9 +424,9 @@ export default function Navbar() {
       </div>
       </nav>
       
-      {/* ActionBar - Under Navbar */}
-      <div className="fixed top-20 left-1/2 z-40 w-auto -translate-x-1/2 transform">
-        <div className="inline-block mx-4 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 pb-2 pt-2">
+      {/* ActionBar - Under Navbar, centered, responsive */}
+      <div className="fixed top-20 left-1/2 z-40 w-auto max-w-[calc(100vw-2rem)] -translate-x-1/2 transform">
+        <div className="inline-block mx-2 sm:mx-4 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-2 sm:px-3 pb-2 pt-2">
           <ActionBar />
         </div>
       </div>
