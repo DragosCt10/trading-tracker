@@ -1071,7 +1071,7 @@ export default function StrategyClient(
       <p className="text-slate-500 dark:text-slate-400 mb-6">Trading statistics and performance metrics.</p>
 
       {(viewMode === 'dateRange' || viewMode === 'yearly') && (
-        <div className="flex flex-col md:grid md:grid-cols-3 gap-4 w-full">
+        <div className="flex flex-col md:grid md:grid-cols-4 gap-4 w-full">
           <TradingOverviewStats
             trades={tradesToUse}
             currencySymbol={currencySymbol}
