@@ -46,6 +46,7 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
     displacement_size: trade.displacement_size,
     strategy_id: trade.strategy_id,
     trend: trade.trend ?? null,
+    fvg_size: trade.fvg_size ?? null
   };
 }
 
