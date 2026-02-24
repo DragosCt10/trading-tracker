@@ -178,9 +178,10 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
                 id="note-title"
                 type="text"
                 value={note.title}
-                onChange={(e) => setNote({ ...note, title: e.target.value })}
-                className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 themed-focus transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none"
-                placeholder="Insight title"
+                onChange={(e) => setNote({ ...note, title: e.target.value.slice(0, 25) })}
+                maxLength={25}
+                className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none"
+                placeholder="Insight title (max 25 characters)"
                 required
               />
             </div>
@@ -308,7 +309,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
                 onCheckedChange={(checked) =>
                   setNote({ ...note, is_pinned: checked as boolean })
                 }
-                className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
+                className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 themed-checkbox data-[state=checked]:!text-white transition-colors duration-150"
               />
               <Label htmlFor="pin-note" className="text-sm font-normal cursor-pointer text-slate-700 dark:text-slate-300">
                 Pin this insight
@@ -329,7 +330,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0 disabled:opacity-60"
+                className="cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60 themed-btn-primary shadow-md"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
                   {isSubmitting && (
