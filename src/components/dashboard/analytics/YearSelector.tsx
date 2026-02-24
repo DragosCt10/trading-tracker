@@ -14,7 +14,7 @@ export function YearSelector({ selectedYear, onYearChange }: YearSelectorProps) 
       <Select value={String(selectedYear)} onValueChange={(value) => onYearChange(Number(value))}>
         <SelectTrigger
           suppressHydrationWarning
-          className="themed-focus w-28 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
+          className="themed-focus w-28 h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 transition-all duration-300"
         >
           <SelectValue />
         </SelectTrigger>
