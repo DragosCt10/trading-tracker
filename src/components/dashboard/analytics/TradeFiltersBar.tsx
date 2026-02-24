@@ -45,7 +45,7 @@ interface TradeFiltersBarProps {
   /** execution filter dropdown */
   selectedExecution: 'all' | 'executed' | 'nonExecuted';
   onSelectedExecutionChange: (execution: 'all' | 'executed' | 'nonExecuted') => void;
-  /** Show "All Trades" option in execution filter (for my-trades page) */
+  /** Show "All" option in execution filter (for my-trades page) */
   showAllTradesOption?: boolean;
 }
 
@@ -306,14 +306,14 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
               className="flex w-40 h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
               suppressHydrationWarning
             >
-              <SelectValue placeholder={showAllTradesOption ? "All Trades" : "Executed Trades"} />
+              <SelectValue placeholder={showAllTradesOption ? "All" : "Executed"} />
             </SelectTrigger>
 <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
             {showAllTradesOption && (
-                <SelectItem value="all">All Trades</SelectItem>
+                <SelectItem value="all">All</SelectItem>
               )}
-              <SelectItem value="executed">Executed Trades</SelectItem>
-              <SelectItem value="nonExecuted">Non Executed Trades</SelectItem>
+              <SelectItem value="executed">Executed</SelectItem>
+              <SelectItem value="nonExecuted">Non Executed</SelectItem>
             </SelectContent>
           </Select>
         </div>
