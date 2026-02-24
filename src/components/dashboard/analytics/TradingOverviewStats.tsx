@@ -9,6 +9,7 @@ import { AverageProfitStatCard } from './AverageProfitStatCard';
 import { StreakStatisticsCard } from './StreakStatisticsCard';
 import { TotalTradesChartCard } from './TotalTradesChartCard';
 import { RRMultipleStatCard } from './RRMultipleStatCard';
+import { BestRRStatCard } from './BestRRStatCard';
 import { PNLPercentageStatCard } from './PNLPercentageStatCard';
 import { AverageDaysBetweenTradesCard } from './AverageDaysBetweenTradesCard';
 import { AverageMonthlyTradesCard } from './AverageMonthlyTradesCard';
@@ -105,6 +106,8 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
         currencySymbol={currencySymbol}
         hydrated={hydrated}
       />
+
+      <BestRRStatCard tradesToUse={trades} />
 
       {/* Key metrics: RR Multiple, P&L %, Average Days Between Trades; in year mode also Average Monthly Trades */}
       <div className={`col-span-full grid grid-cols-1 gap-4 ${viewMode === 'yearly' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
