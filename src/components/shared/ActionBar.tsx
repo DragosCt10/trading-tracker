@@ -165,12 +165,12 @@ export default function ActionBar({ initialData }: ActionBarProps) {
     'h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 text-xs sm:text-sm font-medium transition-colors duration-200 disabled:opacity-50 gap-2';
 
   const selectTriggerClass =
-    'h-8 overflow-hidden  rounded-xl border border-slate-200/80 bg-transparent text-slate-700 hover:bg-slate-100/60 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-transparent dark:text-slate-200 dark:hover:bg-slate-800/50 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 text-xs sm:text-sm font-medium transition-colors duration-200 disabled:opacity-50 gap-2';
+    'h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-transparent text-slate-700 hover:bg-slate-100/60 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-transparent dark:text-slate-200 dark:hover:bg-slate-800/50 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-2 sm:px-4 text-xs sm:text-sm font-medium transition-colors duration-200 disabled:opacity-50 gap-1.5 sm:gap-2';
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 min-w-0">
       {/* ── Single grouped account selector (same style/size as Edit button) ── */}
-      <span className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 shrink-0">
+      <span className="hidden sm:inline text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 shrink-0">
         Account:
       </span>
       <Popover open={open} onOpenChange={setOpen}>
@@ -185,7 +185,7 @@ export default function ActionBar({ initialData }: ActionBarProps) {
               'disabled:pointer-events-none'
             )}
           >
-            <span className="font-medium max-w-[150px] sm:max-w-[200px] truncate">
+            <span className="font-medium max-w-[120px] sm:max-w-[200px] truncate">
               {triggerLabel}
             </span>
             {applying ? (
@@ -202,9 +202,9 @@ export default function ActionBar({ initialData }: ActionBarProps) {
         </PopoverTrigger>
 
         <PopoverContent
-          align="end"
+          align="center"
           sideOffset={6}
-          className="w-auto min-w-[220px] max-h-[min(320px,70vh)] flex flex-col rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 pt-2 pb-2 text-slate-900 dark:text-slate-50"
+          className="w-auto min-w-[200px] max-w-[min(280px,calc(100vw-2rem))] max-h-[min(320px,70vh)] flex flex-col rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 pt-2 pb-2 text-slate-900 dark:text-slate-50"
         >
           <div className="overflow-y-auto overscroll-contain">
             {MODES.map((mode, i) => {
@@ -289,7 +289,7 @@ export default function ActionBar({ initialData }: ActionBarProps) {
       <div
         title={`Current mode: ${activeMode}`}
         className={clsx(
-          'flex items-center justify-center h-8 rounded-xl border px-4 pointer-events-none shrink-0',
+          'flex items-center justify-center h-8 rounded-xl border px-2 sm:px-4 pointer-events-none shrink-0',
           'text-xs sm:text-sm font-medium',
           MODE_BADGE[activeMode]
         )}
