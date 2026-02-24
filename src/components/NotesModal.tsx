@@ -19,20 +19,20 @@ interface NotesModalProps {
 export default function NotesModal({ isOpen, onClose, notes }: NotesModalProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <AlertDialogContent className="max-w-md max-h-[80vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl p-0 flex flex-col overflow-hidden">
-        {/* Gradient orbs background - fixed to modal */}
+      <AlertDialogContent className="max-w-md max-h-[80vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl p-0 flex flex-col overflow-hidden">
+        {/* Gradient orbs background - theme-aware */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
           <div
-            className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/8 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse"
+            className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl animate-pulse"
             style={{ animationDuration: '8s' }}
           />
           <div
-            className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/8 dark:bg-violet-500/10 rounded-full blur-3xl animate-pulse"
+            className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl animate-pulse"
             style={{ animationDuration: '10s', animationDelay: '2s' }}
           />
         </div>
 
-        {/* Noise texture overlay - fixed to modal */}
+        {/* Noise texture overlay */}
         <div
           className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl"
           style={{
@@ -41,22 +41,22 @@ export default function NotesModal({ isOpen, onClose, notes }: NotesModalProps) 
           }}
         />
 
-        {/* Top accent line */}
-        <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60" />
+        {/* Top accent line - theme-aware */}
+        <div className="absolute -top-px left-0 right-0 h-0.5 themed-accent-line rounded-t-2xl" />
 
         {/* Fixed Header */}
         <div className="relative px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
           <AlertDialogHeader className="space-y-1.5">
             <div className="flex items-center justify-between">
               <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50">
-                  <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                <div className="p-2 rounded-lg themed-header-icon-box">
+                  <FileText className="h-5 w-5" />
                 </div>
                 <span>Trade Notes</span>
               </AlertDialogTitle>
               <button
                 onClick={onClose}
-                className="cursor-pointer rounded-sm ring-offset-background transition-all hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none h-8 w-8 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-black dark:hover:text-white"
+                className="cursor-pointer rounded-sm ring-offset-background transition-all hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none h-8 w-8 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg hover:text-slate-900 dark:hover:text-slate-50"
               >
                 <X className="h-4 w-4" />
                 <span className="sr-only">Close</span>
@@ -72,20 +72,20 @@ export default function NotesModal({ isOpen, onClose, notes }: NotesModalProps) 
         <div className="relative overflow-y-auto flex-1 px-6 py-5">
           <div className="pt-2 pb-4">
             {notes ? (
-              <div className="rounded-lg bg-transparent border border-slate-300 dark:border-slate-700 p-4">
+              <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm p-4">
                 <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{notes}</p>
               </div>
             ) : (
-              <div className="rounded-lg bg-transparent border border-slate-300 dark:border-slate-700 p-4">
-                <p className="text-sm text-slate-500 dark:text-slate-500 italic">No notes available for this trade.</p>
+              <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm p-4">
+                <p className="text-sm text-slate-500 dark:text-slate-400 italic">No notes available for this trade.</p>
               </div>
             )}
           </div>
 
           <AlertDialogFooter className="flex justify-end pt-2">
-            <Button 
+            <Button
               onClick={onClose}
-              className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0"
+              className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0"
             >
               <span className="relative z-10">Close</span>
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
