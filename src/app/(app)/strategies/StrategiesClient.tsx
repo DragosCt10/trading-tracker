@@ -200,8 +200,8 @@ export function StrategiesClient() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50 shadow-sm">
-              <Target className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            <div className="p-2.5 rounded-xl shadow-sm themed-header-icon-box">
+              <Target className="w-6 h-6" />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
               Strategies
