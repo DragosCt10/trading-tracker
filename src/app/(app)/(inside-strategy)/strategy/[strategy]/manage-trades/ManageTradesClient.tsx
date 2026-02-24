@@ -423,7 +423,7 @@ export default function ManageTradesClient({
         'Risk %', 'Trade Link', 'Liquidity Taken', 'Local High/Low',
         'News Related', 'ReEntry', 'Break Even', 'MSS', 'Risk:Reward Ratio',
         'Risk:Reward Ratio Long', 'SL Size', 'Calculated Profit', 'P/L %',
-        'Evaluation', 'Notes', 'Executed'
+        'Evaluation', 'Notes', 'Executed', 'Trend', 'FVG Size'
       ];
 
       const escapeCSV = (value: any) => {
@@ -457,7 +457,9 @@ export default function ManageTradesClient({
           trade.pnl_percentage || '',
           trade.evaluation || '',
           trade.notes || '',
-          trade.executed ? 'Yes' : 'No'
+          trade.executed ? 'Yes' : 'No',
+          trade.trend ?? '',
+          trade.fvg_size ?? ''
         ].map(escapeCSV).join(','))
       ].join('\n');
 
