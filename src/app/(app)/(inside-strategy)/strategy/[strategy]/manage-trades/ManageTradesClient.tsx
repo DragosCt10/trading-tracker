@@ -519,11 +519,11 @@ export default function ManageTradesClient({
                 <Select value={selectedMarket} onValueChange={setSelectedMarket}>
                   <SelectTrigger
                     id="market-filter"
-                    className="w-full sm:w-48 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
+                    className="w-full sm:w-48 h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
                   >
                     <SelectValue placeholder="Market" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
                     <SelectItem value="all">All Markets</SelectItem>
                     {uniqueMarkets.map(market => (
                       <SelectItem key={market} value={market}>{market}</SelectItem>
@@ -541,10 +541,10 @@ export default function ManageTradesClient({
                     direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
                   }));
                 }}>
-                  <SelectTrigger id="sort-by" className="w-full sm:w-48 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
+                  <SelectTrigger id="sort-by" className="w-full sm:w-48 h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
                     <SelectItem value="trade_date">Date</SelectItem>
                     <SelectItem value="market">Market</SelectItem>
                     <SelectItem value="outcome">Outcome</SelectItem>
@@ -564,7 +564,7 @@ export default function ManageTradesClient({
                     ref={inputRef}
                     placeholder="Select date range"
                     type="text"
-                    className="pr-12 w-full h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
+                    className="pr-12 w-full h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
                     value={`${dateRange.startDate} ~ ${dateRange.endDate}`}
                     readOnly
                     onClick={e => {
