@@ -140,7 +140,7 @@ import {
 } from '@/components/dashboard/analytics/ConsistencyScoreChart';
 import { chartOptions } from '@/utils/chartConfig';
 import { TIME_INTERVALS } from '@/constants/analytics';
-import { 
+import {
   calculateLiquidityStats,
   calculateDirectionStats,
   calculateLocalHLStats,
@@ -148,6 +148,7 @@ import {
   calculateSLSizeStats,
   calculateMssStats,
   calculateNewsStats,
+  calculateTrendStats,
 } from '@/utils/calculateCategoryStats';
 import {
   type DateRangeState,
@@ -536,6 +537,10 @@ export default function StrategyClient(
     return calculateNewsStats(tradesToUse);
   }, [tradesToUse]);
 
+  const trendStatsFromTradesToUse = useMemo(() => {
+    return calculateTrendStats(tradesToUse);
+  }, [tradesToUse]);
+
   // Compute filtered statistics when filters are applied
   const {
     filteredChartStats,
@@ -557,6 +562,7 @@ export default function StrategyClient(
       slSizeStats,
       reentryStats: reentryStatsFromTradesToUse,
       breakEvenStats: breakEvenStatsFromTradesToUse,
+      trendStats: trendStatsFromTradesToUse,
       intervalStats,
       mssStats,
       newsStats,
@@ -1081,6 +1087,7 @@ export default function StrategyClient(
               evaluationStats: filteredEvaluationStats || evaluationStats,
               reentryStats: statsToUseForCharts.reentryStats as TradeTypesStatisticsCardProps['reentryStats'],
               breakEvenStats: statsToUseForCharts.breakEvenStats as TradeTypesStatisticsCardProps['breakEvenStats'],
+              trendStats: statsToUseForCharts.trendStats ?? [],
               chartsLoadingState: chartsLoadingState,
               includeTotalTrades: filteredChartStats !== null,
             }}
