@@ -120,6 +120,9 @@ import {
 import {
   AverageDisplacementSizeCard,
 } from '@/components/dashboard/analytics/AverageDisplacementSizeCard';
+import {
+  FvgSizeStats,
+} from '@/components/dashboard/analytics/FvgSizeStats';
 import { 
   ProfitFactorChart,
 } from '@/components/dashboard/analytics/ProfitFactorChart';
@@ -1274,6 +1277,12 @@ export default function StrategyClient(
             {/* Displacement Size Profitability by Market and Size Points */}
             <DisplacementSizeStats 
               trades={tradesToUse} 
+              isLoading={chartsLoadingState}
+            />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <FvgSizeStats
+              trades={tradesToUse}
               isLoading={chartsLoadingState}
             />
           </div>
