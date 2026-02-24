@@ -182,12 +182,12 @@ export default function NotesClient({
             placeholder="Search insights..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-md h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 themed-focus transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
+            className="max-w-md h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
           />
         </div>
         <div className="w-full sm:w-48">
           <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
-            <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 themed-focus transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
+            <SelectTrigger className="themed-focus h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 transition-all duration-300">
               <SelectValue placeholder="Filter by strategy" />
             </SelectTrigger>
             <SelectContent>
