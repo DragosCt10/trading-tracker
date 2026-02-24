@@ -157,8 +157,8 @@ export function parseCsvTrades(
     }
 
     const rawSL = fieldValues['sl_size'] ?? '';
-    const slSize = parseFloat(rawSL);
-    if (rawSL === '' || isNaN(slSize)) {
+    const slSize = rawSL === '' ? 0 : parseFloat(rawSL);
+    if (rawSL !== '' && isNaN(slSize)) {
       rowErrors.push({ rowIndex, field: 'sl_size', message: `SL Size must be a number, got: "${rawSL}"` });
     }
 
