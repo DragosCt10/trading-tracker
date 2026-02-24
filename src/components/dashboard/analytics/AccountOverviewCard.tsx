@@ -147,8 +147,8 @@ export function AccountOverviewCard({
         <div className="flex justify-between items-start mb-8">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50 shadow-sm">
-                <Wallet className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <div className="p-2.5 rounded-xl shadow-sm themed-header-icon-box">
+                <Wallet className="w-5 h-5" />
               </div>
               <CardTitle className="text-2xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
                 {displayName}
