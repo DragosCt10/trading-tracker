@@ -8,7 +8,7 @@ import {
   X,
   LogOut,
   Target,
-  Sparkles,
+  Lightbulb,
   Home,
   Palette,
 } from 'lucide-react';
@@ -161,7 +161,7 @@ export default function Navbar() {
                   className={navButtonClass(isActive('/insight-vault'))}
                 >
                   <Link href="/insight-vault">
-                    <Sparkles className="h-4 w-4" />
+                    <Lightbulb className="h-4 w-4" />
                     <span>Insight Vault</span>
                   </Link>
                 </Button>
@@ -315,7 +315,7 @@ export default function Navbar() {
                   className={cn('w-full justify-start', navButtonClass(isActive('/insight-vault')))}
                 >
                   <Link href="/insight-vault" onClick={() => setMobileMenuOpen(false)}>
-                    <Sparkles className="h-4 w-4" />
+                    <Lightbulb className="h-4 w-4" />
                     Insight Vault
                   </Link>
                 </Button>
