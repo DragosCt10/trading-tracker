@@ -285,9 +285,11 @@ export default function NoteDetailsModal({
                   <Input
                     value={editedNote.title}
                     onChange={(e) =>
-                      setEditedNote({ ...editedNote, title: e.target.value })
+                      setEditedNote({ ...editedNote, title: e.target.value.slice(0, 25) })
                     }
-                    className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 themed-focus transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none"
+                    maxLength={25}
+                    placeholder="Insight title (max 25 characters)"
+                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none"
                   />
                 </div>
 
