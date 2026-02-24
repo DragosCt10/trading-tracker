@@ -57,6 +57,21 @@ const LIQUIDITY_OPTIONS = ['Major Liquidity', 'Low Liquidity', 'Local Liquidity'
 const MSS_OPTIONS = ['Normal', 'Aggressive'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 
+// FVG Size: preset ranges (stored as upper bound). Custom must be > 3 and in 0.5 steps (3.5, 4, 4.5, ...).
+const FVG_SIZE_OPTIONS: { value: number; label: string }[] = [
+  { value: 1, label: '0.5 - 1' },
+  { value: 1.5, label: '1 - 1.5' },
+  { value: 2, label: '1.5 - 2' },
+  { value: 2.5, label: '2 - 2.5' },
+  { value: 3, label: '2.5 - 3' },
+];
+const FVG_SIZE_PRESET_VALUES = [1, 1.5, 2, 2.5, 3];
+const FVG_SIZE_CUSTOM_MIN = 3.5; // Custom values must be above preset max (3)
+const FVG_SIZE_NONE = '__none__';
+function snapToHalfStep(num: number): number {
+  return Math.round(num * 2) / 2;
+}
+
 // Potential Risk:Reward Ratio: 1 to 10 in 0.5 steps, plus 10+
 const POTENTIAL_RR_OPTIONS: { value: number; label: string }[] = [
   ...Array.from({ length: 19 }, (_, i) => {
@@ -170,7 +185,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     launch_hour: false,
     displacement_size: undefined as any,
     strategy_id: null,
-    trend: ''
+    trend: '',
+    fvg_size: undefined as any,
   };
 
   const [trade, setTrade] = useState<Trade>(() => {
@@ -795,6 +811,79 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   required={isTradingInstitutional}
                 />
               </div>
+
+              {isTradingInstitutional && (
+                <div className="space-y-2">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">FVG Size</Label>
+                  <Select
+                    value={
+                      trade.fvg_size == null || trade.fvg_size === undefined
+                        ? FVG_SIZE_NONE
+                        : FVG_SIZE_PRESET_VALUES.includes(trade.fvg_size)
+                          ? String(trade.fvg_size)
+                          : 'custom'
+                    }
+                    onValueChange={(v) => {
+                      if (v === 'custom') {
+                        updateTrade('fvg_size', FVG_SIZE_CUSTOM_MIN);
+                      } else if (v === FVG_SIZE_NONE) {
+                        updateTrade('fvg_size', undefined as any);
+                      } else {
+                        updateTrade('fvg_size', Number(v));
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                      <SelectValue placeholder="Select range or Custom" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={FVG_SIZE_NONE}>—</SelectItem>
+                      {FVG_SIZE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={String(opt.value)}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="custom">Custom (3.5+)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {trade.fvg_size != null && !FVG_SIZE_PRESET_VALUES.includes(trade.fvg_size) && (
+                    <div className="pt-1">
+                      <Input
+                        type="number"
+                        step="0.5"
+                        min={FVG_SIZE_CUSTOM_MIN}
+                        inputMode="decimal"
+                        value={String(trade.fvg_size)}
+                        onChange={(e) => {
+                          const raw = parseFloat(e.target.value);
+                          if (Number.isNaN(raw)) {
+                            updateTrade('fvg_size', FVG_SIZE_CUSTOM_MIN);
+                            return;
+                          }
+                          const snapped = snapToHalfStep(raw);
+                          const clamped = snapped < FVG_SIZE_CUSTOM_MIN ? FVG_SIZE_CUSTOM_MIN : snapped;
+                          updateTrade('fvg_size', clamped);
+                        }}
+                        onBlur={(e) => {
+                          const raw = parseFloat(e.target.value);
+                          if (Number.isNaN(raw) || raw < FVG_SIZE_CUSTOM_MIN) {
+                            updateTrade('fvg_size', trade.fvg_size != null && trade.fvg_size >= FVG_SIZE_CUSTOM_MIN ? trade.fvg_size : FVG_SIZE_CUSTOM_MIN);
+                            return;
+                          }
+                          const snapped = snapToHalfStep(raw);
+                          const clamped = snapped < FVG_SIZE_CUSTOM_MIN ? FVG_SIZE_CUSTOM_MIN : snapped;
+                          updateTrade('fvg_size', clamped);
+                        }}
+                        className="h-10 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 themed-focus text-slate-900 dark:text-slate-50"
+                        placeholder="e.g. 3.5, 4, 4.5 (0.5 steps only)"
+                      />
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Only 0.5 steps from 3.5 onward (e.g. 3.5, 4, 4.5). Values are rounded to nearest 0.5.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {isTradingInstitutional && (
                 <div className="space-y-2">
