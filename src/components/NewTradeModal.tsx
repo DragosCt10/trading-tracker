@@ -169,7 +169,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     executed: true,
     launch_hour: false,
     displacement_size: undefined as any,
-    strategy_id: null
+    strategy_id: null,
+    trend: ''
   };
 
   const [trade, setTrade] = useState<Trade>(() => {
@@ -632,8 +633,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               )}
             </div>
 
-            {/* Direction & Outcome */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Direction, Trend & Outcome */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               <div className="space-y-2">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Direction</Label>
                 <Select value={trade.direction} onValueChange={(v) => updateTrade('direction', v as 'Long' | 'Short')}>
@@ -643,6 +644,19 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   <SelectContent>
                     <SelectItem value="Long">Long</SelectItem>
                     <SelectItem value="Short">Short</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Trend</Label>
+                <Select value={trade.trend ?? ''} onValueChange={(v) => updateTrade('trend', v || null)}>
+                  <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                    <SelectValue placeholder="Select Trend" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Trend-following">Trend-following</SelectItem>
+                    <SelectItem value="Counter-trend">Counter-trend</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
