@@ -410,7 +410,7 @@ export default function ImportTradesModal({
               <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-800/40 overflow-hidden">
                 <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/60">
                   <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                    CSV format (quantifyX / Export Trades)
+                    CSV format
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     Column names do not need to match exactly — AI will map your CSV columns to the required fields.
