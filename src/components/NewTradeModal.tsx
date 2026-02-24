@@ -706,12 +706,13 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   value={String(trade.risk_per_trade ?? '')}
                   onChange={(e) => updateTrade('risk_per_trade', parseFloat(e.target.value) || 0)}
                   className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                  placeholder="e.g. 1.5"
                   required
                 />
-              </div>
+                </div>
 
-              <div className="space-y-2">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Risk:Reward Ratio *</Label>
+                <div className="space-y-2">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Risk:Reward Ratio *</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -719,6 +720,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   value={String(trade.risk_reward_ratio ?? '')}
                   onChange={(e) => updateTrade('risk_reward_ratio', parseFloat(e.target.value) || 0)}
                   className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                  placeholder="e.g. 2"
                   required
                 />
               </div>
@@ -775,6 +777,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   value={String(trade.sl_size ?? '')}
                   onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
                   className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                  placeholder="e.g. 10"
                   required={isTradingInstitutional}
                 />
               </div>
