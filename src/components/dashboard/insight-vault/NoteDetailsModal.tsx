@@ -128,15 +128,15 @@ export default function NoteDetailsModal({
   return (
     <>
       <AlertDialog open={isOpen} onOpenChange={onClose}>
-        <AlertDialogContent className="max-w-4xl max-h-[90vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl p-0 flex flex-col overflow-hidden">
+        <AlertDialogContent className="max-w-4xl max-h-[90vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl p-0 flex flex-col overflow-hidden">
           {/* Gradient orbs background */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
             <div
-              className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/8 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse"
+              className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl animate-pulse"
               style={{ animationDuration: '8s' }}
             />
             <div
-              className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/8 dark:bg-violet-500/10 rounded-full blur-3xl animate-pulse"
+              className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl animate-pulse"
               style={{ animationDuration: '10s', animationDelay: '2s' }}
             />
           </div>
@@ -151,15 +151,15 @@ export default function NoteDetailsModal({
           />
 
           {/* Top accent line */}
-          <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60" />
+          <div className="themed-accent-line absolute -top-px left-0 right-0 h-0.5 opacity-60" />
 
           {/* Fixed Header */}
           <div className="relative px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
             <AlertDialogHeader className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50">
-                    <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <div className="p-2 rounded-lg themed-header-icon-box">
+                    <FileText className="h-5 w-5" style={{ color: 'var(--tc-primary)' }} />
                   </div>
                   <span>{isEditing ? 'Edit Insight' : 'Insight Details'}</span>
                 </AlertDialogTitle>
@@ -212,7 +212,7 @@ export default function NoteDetailsModal({
                             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] rounded-2xl">
+                        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient rounded-2xl">
                           <AlertDialogHeader>
                             <AlertDialogTitle>
                               <span className="text-red-500 dark:text-red-400 font-semibold text-lg">Confirm Delete</span>
@@ -287,7 +287,7 @@ export default function NoteDetailsModal({
                     onChange={(e) =>
                       setEditedNote({ ...editedNote, title: e.target.value })
                     }
-                    className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none"
+                    className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 themed-focus transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none"
                   />
                 </div>
 
@@ -325,7 +325,7 @@ export default function NoteDetailsModal({
                                     });
                                   }
                                 }}
-                                className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
+                                className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 themed-checkbox data-[state=checked]:!text-white transition-colors duration-150"
                               />
                               <Label
                                 htmlFor={`edit-strategy-${strategy.id}`}
@@ -359,7 +359,7 @@ export default function NoteDetailsModal({
                         onClick={() => setIsPreview(false)}
                         className={`relative px-4 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer ${
                           !isPreview
-                            ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-sm'
+                            ? 'bg-white dark:bg-slate-700 shadow-sm text-[var(--tc-text)] dark:text-[var(--tc-text-dark)]'
                             : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                         }`}
                       >
@@ -370,7 +370,7 @@ export default function NoteDetailsModal({
                         onClick={() => setIsPreview(true)}
                         className={`relative px-4 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer ${
                           isPreview
-                            ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-sm'
+                            ? 'bg-white dark:bg-slate-700 shadow-sm text-[var(--tc-text)] dark:text-[var(--tc-text-dark)]'
                             : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                         }`}
                       >
@@ -380,12 +380,12 @@ export default function NoteDetailsModal({
                   </div>
                   <div className="border border-slate-200/60 dark:border-slate-600 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm">
                     {isPreview ? (
-                      <div className="min-h-[400px] p-4 prose prose-slate dark:prose-invert max-w-none break-words [overflow-wrap:anywhere] [&_a]:underline [&_a]:text-purple-600 dark:[&_a]:text-purple-400 [&_a]:decoration-purple-500/50 hover:[&_a]:decoration-purple-500 [&_*]:break-words [&_*]:[overflow-wrap:anywhere]">
+                      <div className="min-h-[400px] p-4 prose prose-slate dark:prose-invert max-w-none break-words [overflow-wrap:anywhere] [&_a]:underline [&_a]:[color:var(--tc-text)] dark:[&_a]:[color:var(--tc-text-dark)] [&_a]:decoration-[var(--tc-primary)]/50 hover:[&_a]:decoration-[var(--tc-primary)] [&_*]:break-words [&_*]:[overflow-wrap:anywhere]">
                         <ReactMarkdown 
                           remarkPlugins={[remarkGfm]}
                           components={{
                             a: ({ node, ...props }) => (
-                              <a {...props} className="underline text-purple-600 dark:text-purple-400 decoration-purple-500/50 hover:decoration-purple-500 break-words [overflow-wrap:anywhere]" />
+                              <a {...props} className="underline text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] decoration-[var(--tc-primary)]/50 hover:decoration-[var(--tc-primary)] break-words [overflow-wrap:anywhere]" />
                             ),
                             p: ({ node, ...props }) => (
                               <p {...props} className="break-words [overflow-wrap:anywhere]" />
@@ -418,7 +418,7 @@ export default function NoteDetailsModal({
                     onCheckedChange={(checked) =>
                       setEditedNote({ ...editedNote, is_pinned: checked as boolean })
                     }
-                    className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
+                    className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 themed-checkbox data-[state=checked]:!text-white transition-colors duration-150"
                   />
                   <Label htmlFor="pin-note-edit" className="text-sm font-normal cursor-pointer text-slate-700 dark:text-slate-300">
                     Pin this insight
@@ -445,7 +445,7 @@ export default function NoteDetailsModal({
                     type="button"
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0 disabled:opacity-60"
+                    className="cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60 themed-btn-primary shadow-md"
                   >
                     <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
                       {isSaving && (
@@ -482,7 +482,7 @@ export default function NoteDetailsModal({
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 flex-wrap">
                     {editedNote.is_pinned && (
-                      <Badge className="bg-purple-100 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                      <Badge className="bg-[var(--tc-subtle)] border border-[var(--tc-border)] text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] hover:bg-[var(--tc-subtle)]">
                         <Pin className="h-3 w-3 mr-1" />
                         Pinned
                       </Badge>
@@ -510,13 +510,13 @@ export default function NoteDetailsModal({
                           editedNote.strategies.map((strategy) => (
                             <Badge
                               key={strategy.id}
-                              className="bg-purple-100 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                              className="bg-[var(--tc-subtle)] border border-[var(--tc-border)] text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] hover:bg-[var(--tc-subtle)]"
                             >
                               {strategy.name}
                             </Badge>
                           ))
                         ) : editedNote.strategy ? (
-                          <Badge className="bg-purple-100 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                          <Badge className="bg-[var(--tc-subtle)] border border-[var(--tc-border)] text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] hover:bg-[var(--tc-subtle)]">
                             {editedNote.strategy.name}
                           </Badge>
                         ) : null}
@@ -531,12 +531,12 @@ export default function NoteDetailsModal({
                 </h2>
 
                 {/* Content */}
-                <div className="prose prose-slate dark:prose-invert max-w-none min-h-[200px] p-4 bg-slate-50/50 dark:bg-slate-900/30 rounded-xl border border-slate-200/70 dark:border-slate-800/70 break-words [overflow-wrap:anywhere] [&_a]:underline [&_a]:text-purple-600 dark:[&_a]:text-purple-400 [&_a]:decoration-purple-500/50 hover:[&_a]:decoration-purple-500 [&_*]:break-words [&_*]:[overflow-wrap:anywhere]">
+                <div className="prose prose-slate dark:prose-invert max-w-none min-h-[200px] p-4 bg-slate-50/50 dark:bg-slate-900/30 rounded-xl border border-slate-200/70 dark:border-slate-800/70 break-words [overflow-wrap:anywhere] [&_a]:underline [&_a]:[color:var(--tc-text)] dark:[&_a]:[color:var(--tc-text-dark)] [&_a]:decoration-[var(--tc-primary)]/50 hover:[&_a]:decoration-[var(--tc-primary)] [&_*]:break-words [&_*]:[overflow-wrap:anywhere]">
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm]}
                     components={{
                       a: ({ node, ...props }) => (
-                        <a {...props} className="underline text-purple-600 dark:text-purple-400 decoration-purple-500/50 hover:decoration-purple-500 break-words [overflow-wrap:anywhere]" />
+                        <a {...props} className="underline text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] decoration-[var(--tc-primary)]/50 hover:decoration-[var(--tc-primary)] break-words [overflow-wrap:anywhere]" />
                       ),
                       p: ({ node, ...props }) => (
                         <p {...props} className="break-words [overflow-wrap:anywhere]" />
