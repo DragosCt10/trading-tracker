@@ -2,30 +2,46 @@
 
 import * as React from 'react';
 import clsx from 'clsx';
-import { useQueryClient } from '@tanstack/react-query';
-import { setActiveAccount } from '@/lib/server/accounts';
-import { useAccounts } from '@/hooks/useAccounts';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { setActiveAccount, getAllAccountsForUser } from '@/lib/server/accounts';
+import type { AccountRow } from '@/lib/server/accounts';
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
-import { Check } from 'lucide-react';
-import type { Database } from '@/types/supabase';
+import { ChevronDown, Check, Loader2 } from 'lucide-react';
+import { STATIC_DATA } from '@/constants/queryConfig';
 
-// shadcn/ui
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/select';
 import { EditAccountAlertDialog } from '../EditAccountAlertDialog';
 
 type Mode = 'live' | 'backtesting' | 'demo';
-type AccountRow = Database['public']['Tables']['account_settings']['Row'];
+
+const MODES: Mode[] = ['live', 'demo', 'backtesting'];
+
+const MODE_LABELS: Record<Mode, string> = {
+  live: 'Live',
+  demo: 'Demo',
+  backtesting: 'Backtesting',
+};
+
+const MODE_DOT: Record<Mode, string> = {
+  live: 'bg-emerald-500',
+  demo: 'bg-sky-500',
+  backtesting: 'bg-violet-500',
+};
+
+const MODE_BADGE: Record<Mode, string> = {
+  live: 'themed-badge-live',
+  demo: 'bg-sky-50/90 text-sky-700 border border-sky-200/80 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/25',
+  backtesting: 'bg-violet-50/90 text-violet-700 border border-violet-200/80 dark:bg-violet-500/10 dark:text-violet-300 dark:border-violet-500/25',
+};
+
+const MODE_SECTION_COLOR: Record<Mode, string> = {
+  live: 'text-emerald-600 dark:text-emerald-400',
+  demo: 'text-sky-600 dark:text-sky-400',
+  backtesting: 'text-violet-600 dark:text-violet-400',
+};
 
 /** Optional server-fetched initial data. When provided, hydrates TanStack cache so hooks use it without client fetch. */
 export interface ActionBarInitialData {
@@ -36,11 +52,6 @@ export interface ActionBarInitialData {
 }
 
 interface ActionBarProps {
-  /**
-   * Server-fetched initial data. When provided, hydrates React Query cache in useLayoutEffect
-   * so useUserDetails, useActionBarSelection, and useAccounts use it (no client fetch for first paint).
-   * Build with: getUserSession(), getActiveAccountForMode(user.id, 'live'), getAccountsForMode(user.id, 'live').
-   */
   initialData?: ActionBarInitialData | null;
 }
 
@@ -48,62 +59,61 @@ export default function ActionBar({ initialData }: ActionBarProps) {
   const queryClient = useQueryClient();
   const hydratedRef = useRef(false);
 
-  // Hydrate TanStack cache from server-fetched initial data (before paint so first render can use it)
+  // Hydrate TanStack cache from server-fetched initial data (before paint)
   useLayoutEffect(() => {
     if (!initialData || hydratedRef.current) return;
     const { userDetails, mode, activeAccount, accountsForMode } = initialData;
-    const userId = userDetails?.user?.id;
-    if (userId) {
+    const uid = userDetails?.user?.id;
+    if (uid) {
       queryClient.setQueryData(['userDetails'], userDetails);
       queryClient.setQueryData(['actionBar:selection'], { mode, activeAccount });
-      queryClient.setQueryData(['accounts:list', userId, mode], accountsForMode);
+      queryClient.setQueryData(['accounts:list', uid, mode], accountsForMode);
       hydratedRef.current = true;
     }
   }, [initialData, queryClient]);
 
-  const { data: userId } = useUserDetails();
+  const { data: userDetails } = useUserDetails();
   const { selection, setSelection } = useActionBarSelection();
-
-  // seed local UI from the cached value
-  const [activeMode, setActiveMode] = React.useState<Mode>(selection.mode);
-  const [pendingMode, setPendingMode] = React.useState<Mode>(selection.mode);
-  const [pendingAccountId, setPendingAccountId] = React.useState<string | null>(
-    selection.activeAccount?.id ?? null
-  );
+  const [open, setOpen] = React.useState(false);
   const [applying, setApplying] = React.useState(false);
+  const autoAppliedRef = useRef(false);
 
-  // Use accounts for the pending mode and user (so you see what would hypothetically be available if you apply)
+  const userId = userDetails?.user?.id;
+
+  // One query for all accounts across all modes — powers the grouped dropdown
   const {
-    accounts,
-    accountsLoading,
-    refetchAccounts
-  } = useAccounts({ userId: userId?.user?.id, pendingMode });
+    data: allAccounts = [],
+    isFetching: accountsLoading,
+    refetch: refetchAccounts,
+  } = useQuery<AccountRow[]>({
+    queryKey: ['accounts:all', userId],
+    enabled: !!userId,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    ...STATIC_DATA,
+    queryFn: async () => {
+      if (!userId) return [];
+      return getAllAccountsForUser(userId);
+    },
+  });
 
-  const pendingAccount = accounts.find(a => a.id === pendingAccountId) ?? null;
-
-  // keep in sync if another part of the app changes the selection
-  React.useEffect(() => {
-    setActiveMode(selection.mode);
-    setPendingMode(selection.mode);
-    setPendingAccountId(selection.activeAccount?.id ?? null);
-  }, [selection.mode, selection.activeAccount?.id]);
-
-  // ensure the account select stays valid & preselects cached active
-  React.useEffect(() => {
-    if (pendingAccountId && !accounts.some(a => a.id === pendingAccountId)) {
-      setPendingAccountId(null);
-      return;
+  // Group accounts by mode for the dropdown sections
+  const accountsByMode = React.useMemo(() => {
+    const map: Record<Mode, AccountRow[]> = { live: [], demo: [], backtesting: [] };
+    for (const a of allAccounts) {
+      if (a.mode in map) map[a.mode as Mode].push(a);
     }
-    if (!pendingAccountId) {
-      const cachedActive = accounts.find(a => a.is_active);
-      if (cachedActive) setPendingAccountId(cachedActive.id);
-    }
-  }, [accounts, pendingAccountId]);
+    return map;
+  }, [allAccounts]);
 
-  // ---------- 1) param-based apply helper (used by button + auto init)
-  const applyWith = React.useCallback(
+  const activeMode = selection.mode;
+  const activeAccount = selection.activeAccount;
+
+  // ---------- Apply helper
+  const applyWith = useCallback(
     async (mode: Mode, accountId: string | null) => {
-      if (!userId?.user?.id) return;
+      if (!userId) return;
       setApplying(true);
       try {
         const { data: activeAccountObj, error } = await setActiveAccount(mode, accountId);
@@ -111,211 +121,193 @@ export default function ActionBar({ initialData }: ActionBarProps) {
           console.error('setActiveAccount failed:', error.message);
           return;
         }
-
-        // publish committed selection into the cache (use server-returned account or fallback to local list)
-        const resolved = activeAccountObj ?? (accountId ? accounts.find(a => a.id === accountId) ?? null : null);
+        const resolved =
+          activeAccountObj ??
+          (accountId ? allAccounts.find((a) => a.id === accountId) ?? null : null);
         setSelection({ mode, activeAccount: resolved });
-        setActiveMode(mode);
 
-        // refresh queries
-        const keysToNukeStartsWith = [
-          'allTrades', 'filteredTrades',
-          'nonExecutedTrades',
-          // Note: nonExecutedTotalTradesCount is now derived from allTrades, no need to invalidate separately
-        ];
+        const keysToNuke = ['allTrades', 'filteredTrades', 'nonExecutedTrades'];
         queryClient.removeQueries({
-          predicate: q => keysToNukeStartsWith.includes((q.queryKey?.[0] as string) ?? ''),
+          predicate: (q) => keysToNuke.includes((q.queryKey?.[0] as string) ?? ''),
         });
         queryClient.refetchQueries({
-          predicate: q => keysToNukeStartsWith.includes((q.queryKey?.[0] as string) ?? ''),
+          predicate: (q) => keysToNuke.includes((q.queryKey?.[0] as string) ?? ''),
           type: 'active',
         });
-
-        refetchAccounts?.();
+        refetchAccounts();
       } finally {
         setApplying(false);
       }
     },
-    [userId, accounts, queryClient, refetchAccounts, setSelection]
+    [userId, allAccounts, queryClient, refetchAccounts, setSelection]
   );
 
-  // existing button handler just delegates to helper
-  const onApply = useCallback(
-    () => applyWith(pendingMode, pendingAccountId),
-    [applyWith, pendingMode, pendingAccountId]
-  );
-
-  // ---------- 2) AUTO-APPLY ON FIRST MOUNT (Live + active-or-first subaccount)
-  const autoAppliedRef = useRef(false);
+  // ---------- Auto-apply Live + active/first account on first mount
   useEffect(() => {
     if (autoAppliedRef.current) return;
-    if (!userId?.user?.id) return;
-
-    // only auto-apply if nothing chosen yet
+    if (!userId) return;
     if (selection.activeAccount) return;
-
-    // we only auto-apply Live on first mount
-    if (pendingMode !== 'live') return;
-
     if (accountsLoading) return;
 
-    // prefer an already-active one in DB; otherwise first (sorted by created_at in your hook)
-    const pick = accounts.find(a => a.is_active) ?? accounts[0];
+    const liveAccounts = accountsByMode.live;
+    const pick = liveAccounts.find((a) => a.is_active) ?? liveAccounts[0];
     if (!pick) return;
 
     autoAppliedRef.current = true;
-
-    // ensure local pending state reflects what we’re applying
-    setPendingAccountId(pick.id);
     applyWith('live', pick.id);
-  }, [
-    userId, accountsLoading, accounts,
-    applyWith, selection.activeAccount, pendingMode,
-  ]);
+  }, [userId, accountsLoading, accountsByMode, applyWith, selection.activeAccount]);
 
-  const noAccounts = accounts.length === 0;
+  // Only render dynamic content after mount to avoid SSR/client hydration mismatch.
+  // Server and AppLayout-seeded client cache diverge on first paint — same pattern the old Select used.
+  const [mounted, setMounted] = React.useState(false);
+  useEffect(() => setMounted(true), []);
 
-  // Render subaccount Select only after mount to avoid Radix/SelectValue hydration mismatch
-  // (server and client can resolve placeholder vs value differently).
-  const [selectMounted, setSelectMounted] = React.useState(false);
-  React.useEffect(() => setSelectMounted(true), []);
-
-  // Determine if apply button should be disabled due to already-active selection
-  const isAlreadyActive =
-    activeMode === pendingMode &&
-    (selection.activeAccount?.id ?? null) === (pendingAccountId ?? null);
-
-  // badge color mapping (shadcn Badge + utility classes)
-  const badgeClass =
-    activeMode === 'live'
-      ? 'themed-badge-live'
-      : activeMode === 'backtesting'
-      ? 'bg-violet-50/90 text-violet-700 border border-violet-200/80 dark:bg-violet-500/10 dark:text-violet-300 dark:border-violet-500/25'
-      : activeMode === 'demo'
-      ? 'bg-sky-50/90 text-sky-700 border border-sky-200/80 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/25'
-      : '';
+  const triggerLabel = !mounted
+    ? 'Select account'
+    : applying
+    ? 'Applying…'
+    : activeAccount?.name ?? 'Select account';
 
   return (
-    <div className="flex items-center justify-end w-full">
-      <div className="flex flex-col gap-2 w-full items-stretch sm:flex-row sm:items-center sm:justify-end sm:gap-2 text-xs sm:text-sm">
-        {/* Current mode badge */}
-        <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
-          <Badge
-            title={`Current mode: ${activeMode ?? '—'}`}
+    <div className="flex items-center gap-2">
+      {/* Mode badge (mirrors the old behaviour — shows the committed active mode) */}
+      <Badge
+        title={`Current mode: ${activeMode}`}
+        className={clsx(
+          'px-2.5 py-1 text-[11px] rounded-full font-medium shadow-none pointer-events-none',
+          MODE_BADGE[activeMode]
+        )}
+      >
+        <span className="leading-none">{MODE_LABELS[activeMode]}</span>
+      </Badge>
+
+      {/* ── Single grouped account selector ── */}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            aria-label="Select trading account"
+            disabled={applying}
             className={clsx(
-              'px-2.5 py-1 text-[11px] rounded-full font-medium shadow-none pointer-events-none',
-              badgeClass
+              'group flex items-center gap-2 h-9 pl-3 pr-3 rounded-xl',
+              'border border-slate-200/80 dark:border-slate-700/60',
+              'bg-white/70 dark:bg-slate-900/60 backdrop-blur-sm',
+              'text-sm text-slate-800 dark:text-slate-100',
+              'shadow-sm hover:shadow-md',
+              'hover:border-slate-300 dark:hover:border-slate-600',
+              'transition-all duration-200',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50',
+              'disabled:opacity-60 disabled:pointer-events-none'
             )}
           >
-            <span className="leading-none">
-              {activeMode ? activeMode[0].toUpperCase() + activeMode.slice(1) : '—'}
+            {/* Account name only */}
+            <span className="font-medium max-w-[150px] sm:max-w-[200px] truncate text-sm">
+              {triggerLabel}
             </span>
-          </Badge>
-        </div>
 
-        {/* Mode select (pending) */}
-        <div className="flex-1 sm:flex-initial">
-          <Select
-            value={pendingMode}
-            onValueChange={(val: Mode) => setPendingMode(val)}
-          >
-            <SelectTrigger className="themed-focus h-8 rounded-xl bg-transparent border border-slate-200/70 dark:border-slate-700/70 text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[130px] w-full sm:w-[130px] md:w-[160px] transition-all duration-200">
-              <SelectValue placeholder="Select mode" />
-            </SelectTrigger>
-            <SelectContent className="text-xs sm:text-sm min-w-[140px] md:min-w-[160px] border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100">
-              <SelectItem value="live" className="text-xs sm:text-sm">Live</SelectItem>
-              <SelectItem value="backtesting" className="text-xs sm:text-sm">Backtesting</SelectItem>
-              <SelectItem value="demo" className="text-xs sm:text-sm">Demo</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Divider (hidden on mobile) */}
-        <div className="hidden md:flex">
-          <Separator orientation="vertical" className="mx-1 h-5" />
-        </div>
-
-        {/* Subaccount select - only mount on client to avoid SelectValue hydration mismatch */}
-        <div className="flex-1 sm:flex-initial">
-          {!selectMounted ? (
-            <div
-              className="h-8 rounded-xl bg-transparent border border-slate-200/70 dark:border-slate-700/70 text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px] flex items-center px-3"
-              aria-hidden
-            >
-              Choose subaccount…
-            </div>
-          ) : (
-            <Select
-              value={pendingAccountId ?? undefined}
-              onValueChange={(val) => setPendingAccountId(val ?? null)}
-              disabled={accountsLoading || noAccounts}
-            >
-              <SelectTrigger className="themed-focus h-8 rounded-xl bg-transparent border border-slate-200/70 dark:border-slate-700/70 text-xs sm:text-sm text-slate-800 dark:text-slate-100 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px] transition-all duration-200">
-                <SelectValue placeholder="Choose subaccount…" />
-              </SelectTrigger>
-              <SelectContent className="text-xs sm:text-sm min-w-[170px] md:min-w-[200px] border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100">
-                {!noAccounts ? (
-                  accounts.map((a) => (
-                    <SelectItem key={a.id} value={a.id} className="text-xs sm:text-sm">
-                      {a.name}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <div className="px-2 py-1.5 text-sm text-muted-foreground">No subaccounts</div>
+            {/* Spinner or chevron */}
+            {applying ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400 flex-shrink-0" />
+            ) : (
+              <ChevronDown
+                className={clsx(
+                  'h-3.5 w-3.5 text-slate-400 flex-shrink-0 transition-transform duration-200',
+                  open && 'rotate-180'
                 )}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
+              />
+            )}
+          </button>
+        </PopoverTrigger>
 
-        {/* Edit and Apply buttons (stack on mobile, inline on sm+) */}
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-          <EditAccountAlertDialog
-            account={
-              pendingAccount
-                ? {
-                    id: pendingAccount.id,
-                    name: pendingAccount.name,
-                    account_balance: pendingAccount.account_balance,
-                    currency: pendingAccount.currency,
-                    mode: pendingAccount.mode,
-                    description: pendingAccount.description,
-                  }
-                : null
-            }
-            onUpdated={async () => {
-              await refetchAccounts?.();
-            }}
-            onDeleted={async () => {
-              await refetchAccounts?.();
-            }}
-          />
-          <Button
-            type="button"
-            size="sm"
-            className="themed-btn-primary relative w-full sm:w-auto h-8 overflow-hidden rounded-xl text-white font-semibold group border-0 text-xs sm:text-sm transition-all duration-300 disabled:opacity-60"
-            onClick={onApply}
-            disabled={
-              applying ||
-              (!pendingAccountId && !noAccounts) ||
-              isAlreadyActive
-            }
-            >
-            <span className="relative z-10 flex items-center justify-center gap-2">
-              {applying ? (
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" className="opacity-25" />
-                  <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z" />
-                </svg>
-              ) : (
-                <Check className="h-4 w-4" />
-              )}
-              <span>Apply</span>
-            </span>
-            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-          </Button>
-        </div>
-      </div>
+        <PopoverContent
+          align="end"
+          sideOffset={6}
+          className="w-auto min-w-[220px] p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl"
+        >
+          {MODES.map((mode, i) => {
+            const modeAccounts = accountsByMode[mode];
+            return (
+              <React.Fragment key={mode}>
+                {/* Separator between sections */}
+                {i > 0 && (
+                  <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+                )}
+
+                {/* Mode section header */}
+                <div
+                  className={clsx(
+                    'flex items-center gap-1.5 px-2 pt-1.5 pb-0.5',
+                    'text-[10px] font-bold uppercase tracking-widest select-none',
+                    MODE_SECTION_COLOR[mode]
+                  )}
+                >
+                  <span className={clsx('w-1.5 h-1.5 rounded-full', MODE_DOT[mode])} />
+                  {MODE_LABELS[mode]}
+                </div>
+
+                {/* Account items */}
+                {modeAccounts.length === 0 ? (
+                  <p className="px-3 py-1.5 text-xs text-slate-400 dark:text-slate-500 italic">
+                    No accounts
+                  </p>
+                ) : (
+                  modeAccounts.map((account) => {
+                    const isActive =
+                      mode === activeMode && account.id === activeAccount?.id;
+                    return (
+                      <button
+                        key={account.id}
+                        className={clsx(
+                          'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-left',
+                          'transition-colors duration-150',
+                          isActive
+                            ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 font-semibold'
+                            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium'
+                        )}
+                        onClick={() => {
+                          if (!isActive) applyWith(mode, account.id);
+                          setOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={clsx(
+                            'h-3.5 w-3.5 flex-shrink-0 transition-opacity',
+                            isActive
+                              ? 'opacity-100 text-violet-500'
+                              : 'opacity-0'
+                          )}
+                        />
+                        <span className="truncate">{account.name}</span>
+                      </button>
+                    );
+                  })
+                )}
+              </React.Fragment>
+            );
+          })}
+        </PopoverContent>
+      </Popover>
+
+      {/* Edit the currently active account */}
+      <EditAccountAlertDialog
+        account={
+          activeAccount
+            ? {
+                id: activeAccount.id,
+                name: activeAccount.name,
+                account_balance: activeAccount.account_balance,
+                currency: activeAccount.currency,
+                mode: activeAccount.mode,
+                description: activeAccount.description,
+              }
+            : null
+        }
+        onUpdated={async () => {
+          refetchAccounts();
+        }}
+        onDeleted={async () => {
+          refetchAccounts();
+        }}
+      />
     </div>
   );
 }
