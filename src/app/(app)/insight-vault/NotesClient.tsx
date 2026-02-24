@@ -152,8 +152,8 @@ export default function NotesClient({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50 shadow-sm">
-              <Sparkles className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            <div className="p-2.5 rounded-xl shadow-sm themed-header-icon-box">
+              <Sparkles className="w-6 h-6" style={{ color: 'var(--tc-primary)' }} />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
               Insight Vault
@@ -161,7 +161,7 @@ export default function NotesClient({
           </div>
           <Button
             onClick={() => setIsNewNoteModalOpen(true)}
-            className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0"
+            className="cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 themed-btn-primary shadow-md"
           >
             <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
               <Plus className="h-4 w-4" />
@@ -182,12 +182,12 @@ export default function NotesClient({
             placeholder="Search insights..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-md h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
+            className="max-w-md h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 themed-focus transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
           />
         </div>
         <div className="w-full sm:w-48">
           <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
-            <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
+            <SelectTrigger className="h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 themed-focus transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100">
               <SelectValue placeholder="Filter by strategy" />
             </SelectTrigger>
             <SelectContent>
@@ -255,7 +255,7 @@ export default function NotesClient({
           </>
         ) : displayedNotes.length === 0 ? (
           <div className="col-span-full text-center py-12">
-            <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50 text-slate-400 dark:text-slate-600" />
+            <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50" style={{ color: 'var(--tc-primary)' }} />
             <p className="text-slate-500 dark:text-slate-400">
               {searchQuery ? 'No insights found matching your search.' : 'Your vault is empty. Create your first insight!'}
             </p>
