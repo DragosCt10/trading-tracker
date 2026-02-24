@@ -57,16 +57,17 @@ const LIQUIDITY_OPTIONS = ['Major Liquidity', 'Low Liquidity', 'Local Liquidity'
 const MSS_OPTIONS = ['Normal', 'Aggressive'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 
-// FVG Size: preset ranges (stored as upper bound). Custom must be > 3 and in 0.5 steps (3.5, 4, 4.5, ...).
+// FVG Size: preset list 0.5, 1, 1.5, 2, 2.5, 3 (0.5 steps). Custom (3+) for 3.5, 4, 4.5, ...
 const FVG_SIZE_OPTIONS: { value: number; label: string }[] = [
-  { value: 1, label: '0.5 - 1' },
-  { value: 1.5, label: '1 - 1.5' },
-  { value: 2, label: '1.5 - 2' },
-  { value: 2.5, label: '2 - 2.5' },
-  { value: 3, label: '2.5 - 3' },
+  { value: 0.5, label: '0.5' },
+  { value: 1, label: '1' },
+  { value: 1.5, label: '1.5' },
+  { value: 2, label: '2' },
+  { value: 2.5, label: '2.5' },
+  { value: 3, label: '3' },
 ];
-const FVG_SIZE_PRESET_VALUES = [1, 1.5, 2, 2.5, 3];
-const FVG_SIZE_CUSTOM_MIN = 3.5; // Custom values must be above preset max (3)
+const FVG_SIZE_PRESET_VALUES = [0.5, 1, 1.5, 2, 2.5, 3];
+const FVG_SIZE_CUSTOM_MIN = 3.5; // Custom (3+) values: 3.5, 4, 4.5, ...
 const FVG_SIZE_NONE = '__none__';
 function snapToHalfStep(num: number): number {
   return Math.round(num * 2) / 2;
@@ -834,7 +835,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                     }}
                   >
                     <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                      <SelectValue placeholder="Select range or Custom" />
+                      <SelectValue placeholder="Select value or Custom (3+)" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={FVG_SIZE_NONE}>—</SelectItem>
@@ -843,7 +844,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                           {opt.label}
                         </SelectItem>
                       ))}
-                      <SelectItem value="custom">Custom (3.5+)</SelectItem>
+                      <SelectItem value="custom">Custom (3+)</SelectItem>
                     </SelectContent>
                   </Select>
                   {trade.fvg_size != null && !FVG_SIZE_PRESET_VALUES.includes(trade.fvg_size) && (
