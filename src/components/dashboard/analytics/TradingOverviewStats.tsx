@@ -18,6 +18,8 @@ import { DirectionStatisticsCard } from './DirectionStatisticsCard';
 import { EvaluationStats } from './EvaluationStats';
 import { TradeTypesStatisticsCard } from './TradeTypesStatisticsCard';
 import type { TradeTypesStatisticsCardProps } from './TradeTypesStatisticsCard';
+import { TrendStatisticsCard } from './TrendStatisticsCard';
+import type { TradeTypeStats } from '@/types/dashboard';
 import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
 import RiskPerTrade, { type RiskAnalysis } from './RiskPerTrade';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
@@ -65,11 +67,12 @@ interface TradingOverviewStatsProps {
   partialRowProps?: CoreStatsPartialRowProps | null;
   /** When provided, renders RiskPerTrade card below the three chart cards (with a separator above). */
   allTradesRiskStats?: RiskAnalysis | null;
-  /** When provided, renders Evaluation + Trade Types row above the RiskPerTrade card. */
+  /** When provided, renders Evaluation + Trade Types + Trend Trades row above the RiskPerTrade card. */
   aboveRiskPerTradeRow?: {
     evaluationStats: EvaluationStat[];
     reentryStats: TradeTypesStatisticsCardProps['reentryStats'];
     breakEvenStats: TradeTypesStatisticsCardProps['breakEvenStats'];
+    trendStats: TradeTypeStats[];
     chartsLoadingState?: boolean;
     includeTotalTrades: boolean;
   } | null;
@@ -165,7 +168,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
       {aboveRiskPerTradeRow && (
         <>
         <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
-        <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-6">
           <EvaluationStats
             stats={aboveRiskPerTradeRow.evaluationStats}
             isLoading={aboveRiskPerTradeRow.chartsLoadingState}
@@ -173,6 +176,11 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
           <TradeTypesStatisticsCard
             reentryStats={aboveRiskPerTradeRow.reentryStats}
             breakEvenStats={aboveRiskPerTradeRow.breakEvenStats}
+            isLoading={aboveRiskPerTradeRow.chartsLoadingState}
+            includeTotalTrades={aboveRiskPerTradeRow.includeTotalTrades}
+          />
+          <TrendStatisticsCard
+            trendStats={aboveRiskPerTradeRow.trendStats}
             isLoading={aboveRiskPerTradeRow.chartsLoadingState}
             includeTotalTrades={aboveRiskPerTradeRow.includeTotalTrades}
           />
