@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, Lightbulb, Loader2 } from 'lucide-react';
 import NoteDetailsModal from '@/components/dashboard/insight-vault/NoteDetailsModal';
 import NewNoteModal from '@/components/dashboard/insight-vault/NewNoteModal';
 import { NoteCard } from '@/components/dashboard/insight-vault/NoteCard';
@@ -153,7 +153,7 @@ export default function NotesClient({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl shadow-sm themed-header-icon-box">
-              <Sparkles className="w-6 h-6" style={{ color: 'var(--tc-primary)' }} />
+              <Lightbulb className="w-6 h-6" style={{ color: 'var(--tc-primary)' }} />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
               Insight Vault
@@ -255,7 +255,7 @@ export default function NotesClient({
           </>
         ) : displayedNotes.length === 0 ? (
           <div className="col-span-full text-center py-12">
-            <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50" style={{ color: 'var(--tc-primary)' }} />
+            <Lightbulb className="h-12 w-12 mx-auto mb-3 opacity-50" style={{ color: 'var(--tc-primary)' }} />
             <p className="text-slate-500 dark:text-slate-400">
               {searchQuery ? 'No insights found matching your search.' : 'Your vault is empty. Create your first insight!'}
             </p>
