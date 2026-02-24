@@ -386,9 +386,11 @@ export default function ImportTradesModal({
               )}
 
               {riskIsMissing && (
-                <div className="border border-amber-200 dark:border-amber-800 rounded-xl overflow-hidden">
-                  <div className="bg-amber-50 dark:bg-amber-900/20 px-4 py-2.5 text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wider">
-                    Risk % not found in CSV — set a default for all trades
+                <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/60 overflow-hidden bg-slate-50/50 dark:bg-slate-800/30">
+                  <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/60">
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Risk % not found in CSV — set a default for all trades
+                    </p>
                   </div>
                   <div className="px-4 py-4 flex flex-col gap-3">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -399,15 +401,15 @@ export default function ImportTradesModal({
                           onClick={() => { setDefaultRiskPct(preset); setCustomRiskInput(''); }}
                           className={`px-4 py-1.5 rounded-lg text-sm font-semibold border transition-all cursor-pointer ${
                             defaultRiskPct === preset && customRiskInput === ''
-                              ? 'bg-gradient-to-r from-purple-500 to-violet-600 text-white border-transparent shadow-md shadow-purple-500/30'
-                              : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-purple-400 dark:hover:border-purple-500'
+                              ? 'bg-slate-200/80 dark:bg-slate-700/60 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600'
+                              : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-slate-800/50 hover:border-slate-300 dark:hover:border-slate-600'
                           }`}
                         >
                           {preset}%
                         </button>
                       ))}
                       <div className="flex items-center gap-1.5 ml-1">
-                        <span className="text-xs text-slate-400 dark:text-slate-500">or custom:</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">or custom:</span>
                         <div className="relative">
                           <Input
                             type="number"
@@ -421,40 +423,40 @@ export default function ImportTradesModal({
                               const parsed = parseFloat(e.target.value);
                               setDefaultRiskPct(!isNaN(parsed) && parsed > 0 ? parsed : null);
                             }}
-                            className="h-8 w-24 text-sm rounded-lg border-slate-200 dark:border-slate-700 pr-6"
+                            className="h-8 w-24 text-sm rounded-lg border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/50 pr-6"
                           />
                           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">%</span>
                         </div>
                       </div>
                     </div>
                     {defaultRiskPct !== null && (
-                      <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                        All imported trades will use <span className="font-semibold">{defaultRiskPct}%</span> risk.
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        All imported trades will use <span className="font-semibold text-slate-800 dark:text-slate-200">{defaultRiskPct}%</span> risk.
                       </p>
                     )}
                   </div>
                 </div>
               )}
 
-              <div className="border border-slate-200/60 dark:border-slate-700/50 rounded-xl overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 dark:bg-slate-800/50">
+              <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
                     <tr>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">CSV Column</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Maps to Trade Field</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider border-b border-r border-slate-200 dark:border-slate-700">CSV Column</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">Maps to Trade Field</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                  <tbody>
                     {csvHeaders.filter((header) => mapping[header] != null).map((header, idx) => {
                       const currentValue = mapping[header] ?? null;
                       const isRequired = currentValue ? REQUIRED_FIELDS.has(currentValue) : false;
                       return (
-                        <tr key={idx} className="bg-white dark:bg-transparent">
-                          <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">
+                        <tr key={idx}>
+                          <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200 border-b border-r border-slate-200 dark:border-slate-700">
                             {header}
                             {isRequired && <span className="text-red-500 ml-1">*</span>}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
                             <Select
                               value={currentValue ?? '__skip__'}
                               onValueChange={(v) => updateMapping(header, v === '__skip__' ? null : v)}
@@ -545,31 +547,31 @@ export default function ImportTradesModal({
               {parseResult.rows.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Preview (first 5 rows)</p>
-                  <div className="border border-slate-200/60 dark:border-slate-700/50 rounded-xl overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead className="bg-slate-50 dark:bg-slate-800/50">
+                  <div className="rounded-xl overflow-x-auto border border-slate-200 dark:border-slate-700">
+                    <table className="w-full text-xs border-collapse">
+                      <thead className="bg-slate-100/80 dark:bg-slate-800/60">
                         <tr>
-                          <th className="text-left px-3 py-2 font-semibold text-slate-500 dark:text-slate-400">Date</th>
-                          <th className="text-left px-3 py-2 font-semibold text-slate-500 dark:text-slate-400">Market</th>
-                          <th className="text-left px-3 py-2 font-semibold text-slate-500 dark:text-slate-400">Direction</th>
-                          <th className="text-left px-3 py-2 font-semibold text-slate-500 dark:text-slate-400">Outcome</th>
-                          <th className="text-left px-3 py-2 font-semibold text-slate-500 dark:text-slate-400">Risk %</th>
-                          <th className="text-left px-3 py-2 font-semibold text-slate-500 dark:text-slate-400">RR</th>
+                          <th className="text-left px-3 py-2 font-semibold text-slate-600 dark:text-slate-400 border-b border-r border-slate-200 dark:border-slate-700">Date</th>
+                          <th className="text-left px-3 py-2 font-semibold text-slate-600 dark:text-slate-400 border-b border-r border-slate-200 dark:border-slate-700">Market</th>
+                          <th className="text-left px-3 py-2 font-semibold text-slate-600 dark:text-slate-400 border-b border-r border-slate-200 dark:border-slate-700">Direction</th>
+                          <th className="text-left px-3 py-2 font-semibold text-slate-600 dark:text-slate-400 border-b border-r border-slate-200 dark:border-slate-700">Outcome</th>
+                          <th className="text-left px-3 py-2 font-semibold text-slate-600 dark:text-slate-400 border-b border-r border-slate-200 dark:border-slate-700">Risk %</th>
+                          <th className="text-left px-3 py-2 font-semibold text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">RR</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-700/30">
+                      <tbody>
                         {parseResult.rows.slice(0, 5).map((row, i) => (
-                          <tr key={i} className="bg-white dark:bg-transparent">
-                            <td className="px-3 py-2 text-slate-800 dark:text-slate-200">{row.trade_date}</td>
-                            <td className="px-3 py-2 text-slate-800 dark:text-slate-200">{row.market}</td>
-                            <td className="px-3 py-2 text-slate-800 dark:text-slate-200">{row.direction}</td>
-                            <td className="px-3 py-2">
+                          <tr key={i} className="bg-white dark:bg-slate-900/20">
+                            <td className="px-3 py-2 text-slate-800 dark:text-slate-200 border-b border-r border-slate-200 dark:border-slate-700">{row.trade_date}</td>
+                            <td className="px-3 py-2 text-slate-800 dark:text-slate-200 border-b border-r border-slate-200 dark:border-slate-700">{row.market}</td>
+                            <td className="px-3 py-2 text-slate-800 dark:text-slate-200 border-b border-r border-slate-200 dark:border-slate-700">{row.direction}</td>
+                            <td className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-700">
                               <Badge className={`text-xs shadow-none border-none ${row.trade_outcome === 'Win' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
                                 {row.trade_outcome}
                               </Badge>
                             </td>
-                            <td className="px-3 py-2 text-slate-800 dark:text-slate-200">{row.risk_per_trade}%</td>
-                            <td className="px-3 py-2 text-slate-800 dark:text-slate-200">{row.risk_reward_ratio}</td>
+                            <td className="px-3 py-2 text-slate-800 dark:text-slate-200 border-b border-r border-slate-200 dark:border-slate-700">{row.risk_per_trade}%</td>
+                            <td className="px-3 py-2 text-slate-800 dark:text-slate-200 border-b border-slate-200 dark:border-slate-700">{row.risk_reward_ratio}</td>
                           </tr>
                         ))}
                       </tbody>
