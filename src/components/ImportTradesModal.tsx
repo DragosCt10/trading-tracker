@@ -54,6 +54,7 @@ const TRADE_FIELDS: { value: string; label: string }[] = [
   { value: 'calculated_profit', label: 'Calculated Profit' },
   { value: 'pnl_percentage', label: 'P/L %' },
   { value: 'displacement_size', label: 'Displacement Size' },
+  { value: 'fvg_size', label: 'FVG Size' },
 ];
 
 const BASE_REQUIRED_FIELDS = ['trade_date', 'trade_time', 'market', 'direction', 'trade_outcome', 'risk_per_trade', 'risk_reward_ratio'] as const;
