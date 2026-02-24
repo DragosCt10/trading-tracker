@@ -618,7 +618,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
   return (
     <AlertDialog open={isOpen}>
-      <AlertDialogContent className="max-w-6xl max-h-[90vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 app-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl p-0 flex flex-col overflow-hidden">
+      <AlertDialogContent className="max-w-6xl max-h-[90vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl p-0 flex flex-col overflow-hidden">
         {/* Gradient orbs background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
           <div
@@ -640,8 +640,8 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
           }}
         />
 
-        {/* Top accent line */}
-        <div className="absolute -top-px left-0 right-0 h-0.5 opacity-60" style={{ background: 'linear-gradient(to right, transparent, var(--tc-primary), transparent)' }} />
+        {/* Top accent line (theme-aware, same as NewTradeModal) */}
+        <div className="absolute -top-px left-0 right-0 h-0.5 themed-accent-line rounded-t-2xl" />
 
         {/* Fixed Header */}
         <div className="relative px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
@@ -877,13 +877,13 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
                   {isTradingInstitutional && (
                     <div>
-                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Liquidity Taken</label>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Liquidity Link</label>
                       {editedTrade?.liquidity_taken ? (
                         <a href={editedTrade.liquidity_taken} target="_blank" rel="noopener noreferrer" className="block group">
                           <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300">
                             <img 
                               src={editedTrade.liquidity_taken} 
-                              alt="Liquidity Taken" 
+                              alt="Liquidity Link" 
                               className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
@@ -915,7 +915,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   </div>
                   {isTradingInstitutional && (
                     <div>
-                      <label className={`${labelClass} mb-2`}>Liquidity Taken URL</label>
+                      <label className={`${labelClass} mb-2`}>Liquidity Link URL</label>
                       <Input
                         type="text"
                         value={editedTrade?.liquidity_taken ?? ''}
@@ -950,7 +950,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
             {/* Delete confirm using AlertDialog */}
             <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-              <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 app-gradient rounded-2xl">
+              <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient rounded-2xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle>
                     <span className="text-red-500 dark:text-red-400 font-semibold text-lg">Confirm Delete</span>
@@ -992,7 +992,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 }
               }}
             >
-              <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 app-gradient rounded-2xl">
+              <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient rounded-2xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle>
                     {progressDialog.status === 'loading' && (
