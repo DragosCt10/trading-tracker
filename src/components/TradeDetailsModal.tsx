@@ -764,6 +764,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   <div className="space-y-3">
                     {renderField('Date', 'trade_date')}
                     {renderField('Time', 'trade_time')}
+                    {(isEditing || (editedTrade?.trend != null && editedTrade.trend !== '')) && renderField('Trend', 'trend', 'select', TREND_OPTIONS)}
                   </div>
                   <div className="space-y-3">
                     {(isEditing || (editedTrade?.day_of_week != null && editedTrade.day_of_week !== '')) && renderField('Day', 'day_of_week', 'select', DAY_OF_WEEK_OPTIONS)}
@@ -772,7 +773,6 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   <div className="space-y-3">
                     {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
                     {isTradingInstitutional && (isEditing || (editedTrade?.setup_type != null && editedTrade.setup_type !== '')) && renderField('Setup Type', 'setup_type', 'select', SETUP_OPTIONS)}
-                    {(isEditing || (editedTrade?.trend != null && editedTrade.trend !== '')) && renderField('Trend', 'trend', 'select', TREND_OPTIONS)}
                   </div>
                 </div>
               </div>
