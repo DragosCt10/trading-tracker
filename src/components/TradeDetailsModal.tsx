@@ -126,6 +126,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const MSS_OPTIONS = ['Normal', 'Aggressive'];
   const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
   const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const TREND_OPTIONS = ['Trend-following', 'Counter-trend'];
 
   // Potential Risk:Reward Ratio (RR Long) – same options as NewTradeModal: 1 to 10 step 0.5, plus 10+
   const POTENTIAL_RR_OPTIONS: { value: number; label: string }[] = [
@@ -231,6 +232,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         executed: editedTrade.executed,
         launch_hour: editedTrade.launch_hour,
         strategy_id: editedTrade.strategy_id,
+        trend: editedTrade.trend ?? null,
       };
 
       const { error: updateError } = await updateTrade(editedTrade.id, tradingMode, updateData);
@@ -718,30 +720,32 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     {typeof editedTrade?.calculated_profit === 'number' ? editedTrade.calculated_profit.toFixed(2) : '0.00'}
                   </div>
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Evaluation</label>
-                  <div className="mt-2">
-                    {!isEditing ? (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold themed-badge-live">
-                        {editedTrade?.evaluation}
-                      </span>
-                    ) : (
-                      <Select
-                        value={editedTrade?.evaluation ?? ''}
-                        onValueChange={(val) => handleInputChange('evaluation', val)}
-                      >
-                        <SelectTrigger className={selectTriggerClass}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className={selectContentClass}>
-                          {EVALUATION_OPTIONS.map((opt) => (
-                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
+                {(isEditing || (editedTrade?.evaluation != null && editedTrade.evaluation !== '')) && (
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Evaluation</label>
+                    <div className="mt-2">
+                      {!isEditing ? (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold themed-badge-live">
+                          {editedTrade?.evaluation}
+                        </span>
+                      ) : (
+                        <Select
+                          value={editedTrade?.evaluation ?? ''}
+                          onValueChange={(val) => handleInputChange('evaluation', val)}
+                        >
+                          <SelectTrigger className={selectTriggerClass}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className={selectContentClass}>
+                            {EVALUATION_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -762,12 +766,13 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     {renderField('Time', 'trade_time')}
                   </div>
                   <div className="space-y-3">
-                    {renderField('Day', 'day_of_week', 'select', DAY_OF_WEEK_OPTIONS)}
+                    {(isEditing || (editedTrade?.day_of_week != null && editedTrade.day_of_week !== '')) && renderField('Day', 'day_of_week', 'select', DAY_OF_WEEK_OPTIONS)}
                     {renderField('Market', 'market', 'market')}
                   </div>
                   <div className="space-y-3">
                     {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
-                    {isTradingInstitutional && renderField('Setup Type', 'setup_type', 'select', SETUP_OPTIONS)}
+                    {isTradingInstitutional && (isEditing || (editedTrade?.setup_type != null && editedTrade.setup_type !== '')) && renderField('Setup Type', 'setup_type', 'select', SETUP_OPTIONS)}
+                    {(isEditing || (editedTrade?.trend != null && editedTrade.trend !== '')) && renderField('Trend', 'trend', 'select', TREND_OPTIONS)}
                   </div>
                 </div>
               </div>
@@ -792,7 +797,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   {isTradingInstitutional && (
                     <div className="space-y-3">
                       {renderField('Displacement', 'displacement_size', 'number')}
-                      {renderField('Liquidity', 'liquidity', 'select', LIQUIDITY_OPTIONS)}
+                      {(isEditing || (editedTrade?.liquidity != null && editedTrade.liquidity !== '')) && renderField('Liquidity', 'liquidity', 'select', LIQUIDITY_OPTIONS)}
                     </div>
                   )}
                 </div>
@@ -812,7 +817,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 <div>
                   <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Execution</h4>
                   <div className="space-y-3">
-                    {isTradingInstitutional && renderField('MSS', 'mss', 'select', MSS_OPTIONS)}
+                    {isTradingInstitutional && (isEditing || (editedTrade?.mss != null && editedTrade.mss !== '')) && renderField('MSS', 'mss', 'select', MSS_OPTIONS)}
                     {renderField('Break Even', 'break_even', 'boolean')}
                     {renderField('Re-entry', 'reentry', 'boolean')}
                   </div>
@@ -839,7 +844,8 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               </div>
             </div>
 
-            {/* Trade Screenshots */}
+            {/* Trade Screenshots - only show when has link(s) or when editing */}
+            {(isEditing || editedTrade?.trade_link || (isTradingInstitutional && editedTrade?.liquidity_taken)) && (
             <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
 <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--tc-primary)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -850,10 +856,9 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               
               {!isEditing ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Trade Link Image */}
-                  <div>
-                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Trade Chart</label>
-                    {editedTrade?.trade_link ? (
+                  {editedTrade?.trade_link ? (
+                    <div>
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Trade Chart</label>
                       <a href={editedTrade.trade_link} target="_blank" rel="noopener noreferrer" className="block group">
                         <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300">
                           <img 
@@ -868,38 +873,28 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                           </div>
                         </div>
                       </a>
-                    ) : (
-                      <div className="flex items-center justify-center h-64 rounded-lg bg-slate-200/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700">
-                        <span className="text-sm text-slate-500 dark:text-slate-400">No image</span>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : null}
 
-                  {isTradingInstitutional && (
+                  {isTradingInstitutional && editedTrade?.liquidity_taken ? (
                     <div>
                       <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Liquidity Link</label>
-                      {editedTrade?.liquidity_taken ? (
-                        <a href={editedTrade.liquidity_taken} target="_blank" rel="noopener noreferrer" className="block group">
-                          <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300">
-                            <img 
-                              src={editedTrade.liquidity_taken} 
-                              alt="Liquidity Link" 
-                              className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
-                              <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                              </svg>
-                            </div>
+                      <a href={editedTrade.liquidity_taken} target="_blank" rel="noopener noreferrer" className="block group">
+                        <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300">
+                          <img 
+                            src={editedTrade.liquidity_taken} 
+                            alt="Liquidity Link" 
+                            className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+                            <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
                           </div>
-                        </a>
-                      ) : (
-                        <div className="flex items-center justify-center h-64 rounded-lg bg-slate-200/50 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700">
-                          <span className="text-sm text-slate-500 dark:text-slate-400">No image</span>
                         </div>
-                      )}
+                      </a>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -928,8 +923,10 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 </div>
               )}
             </div>
+            )}
 
-            {/* Notes */}
+            {/* Notes - only show when has notes or when editing */}
+            {(isEditing || (editedTrade?.notes != null && editedTrade.notes !== '')) && (
             <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -947,6 +944,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 placeholder="Add notes about this trade..."
               />
             </div>
+            )}
 
             {/* Delete confirm using AlertDialog */}
             <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
