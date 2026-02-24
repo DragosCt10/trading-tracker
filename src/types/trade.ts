@@ -33,4 +33,5 @@ export interface Trade {
   displacement_size: number;
   strategy_id?: string | null;
   trend: string | null;
+  fvg_size?: number | null;  // e.g. 1, 1.5, 2, 2.5
 }
