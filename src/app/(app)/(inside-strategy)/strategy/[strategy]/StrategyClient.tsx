@@ -138,6 +138,7 @@ import {
 import { 
   ConsistencyScoreChart,
 } from '@/components/dashboard/analytics/ConsistencyScoreChart';
+import { EquityCurveCard } from '@/components/dashboard/analytics/EquityCurveCard';
 import { chartOptions } from '@/utils/chartConfig';
 import { TIME_INTERVALS } from '@/constants/analytics';
 import {
@@ -1053,6 +1054,13 @@ export default function StrategyClient(
         accountBalance={selection.activeAccount?.account_balance}
         getDaysInMonth={() => getDaysInMonth}
       />
+
+      {/* Equity Curve - full row above Core statistics */}
+      {(viewMode === 'dateRange' || viewMode === 'yearly') && (
+        <div className="w-full mt-14 mb-6">
+          <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
+        </div>
+      )}
 
       {/* Core statistics: title + description, then core stats, then Partial/Executed/Direction cards, then Evaluation + Trade Types above RiskPerTrade */}
       <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Core statistics</h2>
