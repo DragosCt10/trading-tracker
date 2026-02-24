@@ -293,6 +293,11 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
                 </div>
                 <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
                   {totalBE}
+                  {totalTrades > 0 && (
+                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">
+                      ({((totalBE / totalTrades) * 100).toFixed(1)}%)
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
