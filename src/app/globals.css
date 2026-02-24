@@ -462,6 +462,9 @@
   --tc-border: rgb(168 85 247 / 0.3);
   --tc-text: #7e22ce;                    /* Tailwind purple-700 */
   --tc-text-dark: #c084fc;               /* Tailwind purple-400 */
+  /* Sidebar overlay gradient — from-X/5 via-transparent to-Y/5 */
+  --sidebar-overlay-from: rgb(168 85 247 / 0.05);   /* purple-500/5 */
+  --sidebar-overlay-to: rgb(217 70 239 / 0.05);     /* fuchsia-500/5 */
 }
 
 html.dark {
@@ -493,6 +496,8 @@ html[data-color-theme="cyan"] {
   --tc-border: rgb(6 182 212 / 0.3);
   --tc-text: #0e7490;                    /* Tailwind cyan-700 */
   --tc-text-dark: #22d3ee;                /* Tailwind cyan-400 */
+  --sidebar-overlay-from: rgb(6 182 212 / 0.05);    /* cyan-500/5 */
+  --sidebar-overlay-to: rgb(14 165 233 / 0.05);     /* sky-500/5 */
 }
 html.dark[data-color-theme="cyan"] {
   --grad-from: #0d0a12;
@@ -525,6 +530,8 @@ html[data-color-theme="purple"] {
   --tc-border: rgb(168 85 247 / 0.3);
   --tc-text: #7e22ce;
   --tc-text-dark: #c084fc;
+  --sidebar-overlay-from: rgb(168 85 247 / 0.05);   /* purple-500/5 */
+  --sidebar-overlay-to: rgb(124 58 237 / 0.05);     /* violet-600/5 */
 }
 html.dark[data-color-theme="purple"] {
   --grad-from: #0d0a12;
@@ -557,6 +564,8 @@ html[data-color-theme="emerald"] {
   --tc-border: rgb(16 185 129 / 0.3);
   --tc-text: #047857;                    /* Tailwind emerald-700 */
   --tc-text-dark: #34d399;               /* Tailwind emerald-400 */
+  --sidebar-overlay-from: rgb(16 185 129 / 0.05);  /* emerald-500/5 */
+  --sidebar-overlay-to: rgb(5 150 105 / 0.05);      /* emerald-600/5 */
 }
 html.dark[data-color-theme="emerald"] {
   --grad-from: #0d0a12;
@@ -589,6 +598,8 @@ html[data-color-theme="gold"] {
   --tc-border: rgb(245 158 11 / 0.3);
   --tc-text: #b45309;                    /* Tailwind amber-700 */
   --tc-text-dark: #fbbf24;               /* Tailwind amber-400 */
+  --sidebar-overlay-from: rgb(245 158 11 / 0.05);  /* amber-500/5 */
+  --sidebar-overlay-to: rgb(217 119 6 / 0.05);      /* amber-600/5 */
 }
 html.dark[data-color-theme="gold"] {
   --grad-from: #0d0a12;
@@ -621,6 +632,8 @@ html[data-color-theme="ice"] {
   --tc-border: rgb(59 130 246 / 0.3);
   --tc-text: #1d4ed8;                    /* Tailwind blue-700 */
   --tc-text-dark: #60a5fa;               /* Tailwind blue-400 */
+  --sidebar-overlay-from: rgb(59 130 246 / 0.05);  /* blue-500/5 */
+  --sidebar-overlay-to: rgb(37 99 235 / 0.05);      /* blue-600/5 */
 }
 html.dark[data-color-theme="ice"] {
   --grad-from: #0d0a12;
@@ -696,6 +709,11 @@ html.dark[data-color-theme="ice"] {
 .themed-nav-active:hover {
   background-color: color-mix(in oklch, var(--tc-primary) 15%, transparent) !important;
   border-color: color-mix(in oklch, var(--tc-primary) 40%, transparent) !important;
+}
+
+/* Sidebar bar gradient overlay — from-X/5 via-transparent to-Y/5 per theme (see --sidebar-overlay-from/to) */
+.themed-sidebar-overlay {
+  background: linear-gradient(to bottom, var(--sidebar-overlay-from), transparent, var(--sidebar-overlay-to));
 }
 
 /* ---- Themed primary button (3-stop gradient: primary → accent → accent-end, theme-aware) ---- */
