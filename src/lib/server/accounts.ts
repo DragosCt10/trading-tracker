@@ -173,6 +173,26 @@ export async function deleteAccount(
 }
 
 /**
+ * Gets all accounts for a user across all modes (for the ActionBar grouped dropdown).
+ */
+export async function getAllAccountsForUser(userId: string): Promise<AccountRow[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('account_settings')
+    .select('*')
+    .eq('user_id', userId)
+    .order('mode', { ascending: true })
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching all accounts:', error);
+    return [];
+  }
+  return (data ?? []) as AccountRow[];
+}
+
+/**
  * Sets the active account for a mode (server-side only). Replaces client-side
  * account_settings updates so security does not depend on RLS alone.
  */
