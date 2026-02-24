@@ -482,7 +482,7 @@ export default function NoteDetailsModal({
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 flex-wrap">
                     {editedNote.is_pinned && (
-                      <Badge className="bg-[var(--tc-subtle)] border border-[var(--tc-border)] text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] hover:bg-[var(--tc-subtle)]">
+                      <Badge className="shadow-none bg-[var(--tc-subtle)] border border-[var(--tc-border)] text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] hover:bg-[var(--tc-subtle)]">
                         <Pin className="h-3 w-3 mr-1" />
                         Pinned
                       </Badge>
@@ -510,13 +510,13 @@ export default function NoteDetailsModal({
                           editedNote.strategies.map((strategy) => (
                             <Badge
                               key={strategy.id}
-                              className="bg-[var(--tc-subtle)] border border-[var(--tc-border)] text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] hover:bg-[var(--tc-subtle)]"
+                              className="shadow-none bg-[var(--tc-subtle)] border border-[var(--tc-border)] text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] hover:bg-[var(--tc-subtle)]"
                             >
                               {strategy.name}
                             </Badge>
                           ))
                         ) : editedNote.strategy ? (
-                          <Badge className="bg-[var(--tc-subtle)] border border-[var(--tc-border)] text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] hover:bg-[var(--tc-subtle)]">
+                          <Badge className="shadow-none bg-[var(--tc-subtle)] border border-[var(--tc-border)] text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] hover:bg-[var(--tc-subtle)]">
                             {editedNote.strategy.name}
                           </Badge>
                         ) : null}
