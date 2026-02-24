@@ -169,19 +169,10 @@ export default function ActionBar({ initialData }: ActionBarProps) {
 
   return (
     <div className="flex items-center gap-2">
-      {/* Mode badge — same size and style as Edit button */}
-      <div
-        title={`Current mode: ${activeMode}`}
-        className={clsx(
-          'flex items-center justify-center h-8 rounded-xl border px-4 pointer-events-none shrink-0',
-          'text-xs sm:text-sm font-medium',
-          MODE_BADGE[activeMode]
-        )}
-      >
-        <span className="leading-none">{MODE_LABELS[activeMode]}</span>
-      </div>
-
       {/* ── Single grouped account selector (same style/size as Edit button) ── */}
+      <span className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 shrink-0">
+        Account:
+      </span>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
@@ -293,6 +284,18 @@ export default function ActionBar({ initialData }: ActionBarProps) {
           refetchAccounts();
         }}
       />
+
+      {/* Mode badge — same size and style as Edit button */}
+      <div
+        title={`Current mode: ${activeMode}`}
+        className={clsx(
+          'flex items-center justify-center h-8 rounded-xl border px-4 pointer-events-none shrink-0',
+          'text-xs sm:text-sm font-medium',
+          MODE_BADGE[activeMode]
+        )}
+      >
+        <span className="leading-none">{MODE_LABELS[activeMode]}</span>
+      </div>
     </div>
   );
 }
