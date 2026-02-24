@@ -32,7 +32,7 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
 
   return (
     <Card
-      className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm cursor-pointer hover:shadow-md transition-all duration-200"
+      className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm cursor-pointer hover:shadow-md transition-all duration-200"
       onClick={onClick}
     >
       <CardContent className="p-6 flex flex-col h-full">
@@ -41,7 +41,7 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
             {note.title}
           </h3>
           {note.is_pinned && (
-            <Pin className="h-4 w-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+            <Pin className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--tc-primary)' }} />
           )}
         </div>
 
@@ -66,13 +66,13 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
                   note.strategies.map((strategy) => (
                     <Badge
                       key={strategy.id}
-                      className="bg-purple-100 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 shadow-none text-xs"
+                      className="bg-[var(--tc-subtle)] border border-[var(--tc-border)] text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] hover:bg-[var(--tc-subtle)] shadow-none text-xs"
                     >
                       {strategy.name}
                     </Badge>
                   ))
                 ) : note.strategy ? (
-                  <Badge className="bg-purple-100 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 shadow-none text-xs">
+                  <Badge className="bg-[var(--tc-subtle)] border border-[var(--tc-border)] text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] hover:bg-[var(--tc-subtle)] shadow-none text-xs">
                     {note.strategy.name}
                   </Badge>
                 ) : null}
@@ -89,7 +89,7 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
             e.stopPropagation();
             onClick();
           }}
-          className="inline-flex items-center text-sm text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 underline cursor-pointer mt-auto"
+          className="inline-flex items-center text-sm text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] hover:opacity-90 underline cursor-pointer mt-auto"
         >
           View Details
           <ArrowRight className="w-4 h-4 ml-1" />
