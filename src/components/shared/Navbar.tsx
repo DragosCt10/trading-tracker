@@ -116,7 +116,7 @@ export default function Navbar() {
               href="/"
               className="mr-2 flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-50"
             >
-              <Logo width={35} height={35} />
+              <Logo width={37} height={37} />
               <span className="hidden sm:inline text-sm font-semibold tracking-tight">
                 QuantifyX
               </span>
