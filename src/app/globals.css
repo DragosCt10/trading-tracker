@@ -784,3 +784,32 @@ html.dark[data-color-theme="ice"] {
 .themed-hover-border:hover {
   border-color: var(--tc-primary) !important;
 }
+
+/* ---- Theme primary text (links, accents in Import Trades drop zone) ---- */
+.text-tc-primary {
+  color: var(--tc-primary);
+}
+
+/* ---- Import Trades drop zone (theme-aware on hover/drag; neutral default) ---- */
+.import-drop-zone {
+  border-color: rgb(226 232 240); /* slate-200 */
+  background-color: rgb(248 250 252 / 0.5); /* slate-50/50 */
+}
+.dark .import-drop-zone {
+  border-color: rgb(51 65 85); /* slate-700 */
+  background-color: rgb(30 41 59 / 0.2); /* slate-800/20 */
+}
+.import-drop-zone:hover {
+  border-color: color-mix(in oklch, var(--tc-primary) 65%, transparent);
+  background-color: color-mix(in oklch, var(--tc-primary) 12%, transparent);
+}
+.dark .import-drop-zone:hover {
+  background-color: color-mix(in oklch, var(--tc-primary) 16%, transparent);
+}
+.import-drop-zone[data-dragging="true"] {
+  border-color: var(--tc-primary);
+  background-color: color-mix(in oklch, var(--tc-primary) 18%, transparent);
+}
+.dark .import-drop-zone[data-dragging="true"] {
+  background-color: color-mix(in oklch, var(--tc-primary) 20%, transparent);
+}
