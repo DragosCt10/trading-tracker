@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { Eye, Loader2 } from 'lucide-react';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import { TradeFiltersBar, DateRangeValue } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { getFilteredTrades } from '@/lib/server/trades';
@@ -476,14 +476,14 @@ export default function MyTradesClient({
                   </div>
                   {/* Date and time info */}
                   <div className="space-y-2.5 mb-5">
-                    <div className="flex items-center text-slate-600 dark:text-slate-400 text-sm">
+                    <div className="flex items-center text-slate-500 dark:text-slate-300 text-sm">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
                         strokeWidth={2}
                         stroke="currentColor"
-                        className="w-4 h-4 mr-2.5 text-slate-500 dark:text-slate-400"
+                        className="w-4 h-4 mr-2.5 text-slate-500 dark:text-slate-300"
                       >
                         <path
                           strokeLinecap="round"
@@ -493,14 +493,14 @@ export default function MyTradesClient({
                       </svg>
                       <span className="font-medium">{trade.trade_date}</span>
                     </div>
-                    <div className="flex items-center text-slate-600 dark:text-slate-400 text-sm">
+                    <div className="flex items-center text-slate-500 dark:text-slate-300 text-sm">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
                         strokeWidth={2}
                         stroke="currentColor"
-                        className="w-4 h-4 mr-2.5 text-slate-500 dark:text-slate-400"
+                        className="w-4 h-4 mr-2.5 text-slate-500 dark:text-slate-300"
                       >
                         <path
                           strokeLinecap="round"
@@ -516,8 +516,8 @@ export default function MyTradesClient({
                     onClick={() => openModal(trade)}
                     className="inline-flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline underline-offset-4 decoration-slate-300 dark:decoration-slate-600 hover:decoration-slate-500 dark:hover:decoration-slate-400 transition-colors cursor-pointer group"
                   >
+                    <Eye className="w-4 h-4 mr-1.5 shrink-0" />
                     Trade Details
-                    <ArrowRight className="w-4 h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </CardContent>
               </Card>
