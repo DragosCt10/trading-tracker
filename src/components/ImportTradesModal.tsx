@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
+import { useParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Sheet,
@@ -15,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { X } from 'lucide-react';
 import { parseCsvTrades, extractCsvHeaders } from '@/utils/tradeImportParser';
 import { importTrades } from '@/lib/server/trades';
 import type { Database } from '@/types/supabase';
@@ -53,7 +55,8 @@ const TRADE_FIELDS: { value: string; label: string }[] = [
   { value: 'displacement_size', label: 'Displacement Size' },
 ];
 
-const REQUIRED_FIELDS = new Set(['trade_date', 'market', 'direction', 'trade_outcome', 'risk_per_trade', 'risk_reward_ratio', 'sl_size']);
+const BASE_REQUIRED_FIELDS = ['trade_date', 'trade_time', 'market', 'direction', 'trade_outcome', 'risk_per_trade', 'risk_reward_ratio', 'sl_size'] as const;
+const INSTITUTIONAL_REQUIRED_FIELDS = ['setup_type', 'liquidity', 'mss'] as const;
 
 const cancelButtonClass =
   'cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200';
@@ -73,6 +76,18 @@ export default function ImportTradesModal({
   activeAccount,
   strategyId,
 }: ImportTradesModalProps) {
+  const params = useParams();
+  const strategySlug = typeof params?.strategy === 'string' ? decodeURIComponent(params.strategy) : undefined;
+  const isTradingInstitutional = strategySlug === 'trading-institutional';
+
+  const requiredFields = useMemo(() => {
+    const set = new Set<string>(BASE_REQUIRED_FIELDS);
+    if (isTradingInstitutional) {
+      INSTITUTIONAL_REQUIRED_FIELDS.forEach((f) => set.add(f));
+    }
+    return set;
+  }, [isTradingInstitutional]);
+
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -178,7 +193,7 @@ export default function ImportTradesModal({
 
   function getMissingRequiredFields(): string[] {
     const mapped = getMappedTradeFields();
-    return Array.from(REQUIRED_FIELDS).filter((f) => !mapped.has(f));
+    return Array.from(requiredFields).filter((f) => !mapped.has(f));
   }
 
   function handleProceedToPreview() {
@@ -248,18 +263,29 @@ export default function ImportTradesModal({
     <Sheet open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <SheetContent
         side="right"
-        className="sm:max-w-2xl w-full flex flex-col overflow-hidden p-0 border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-l-2xl"
+        hideClose
+        className="sm:max-w-2xl w-full flex flex-col overflow-hidden p-0 border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-l-2xl"
       >
-        {/* Gradient orbs */}
+        {/* Theme-aware gradient orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-l-2xl">
-          <div className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/8 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-          <div className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/8 dark:bg-violet-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+          <div className="absolute -top-40 -left-32 w-[420px] h-[420px] orb-bg-1 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+          <div className="absolute -bottom-40 -right-32 w-[420px] h-[420px] orb-bg-2 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
         </div>
-        <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60 rounded-tl-2xl" />
+        <div className="absolute -top-px left-0 right-0 h-0.5 rounded-tl-2xl opacity-60" style={{ background: 'linear-gradient(to right, transparent, var(--tc-primary), transparent)' }} />
 
         <div className="relative flex flex-col flex-1 min-h-0 overflow-hidden">
         {/* Header */}
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-slate-200/50 dark:border-slate-700/50 shrink-0">
+          <div className="absolute right-4 top-4 z-10">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="rounded-xl cursor-pointer border border-slate-200/80 bg-slate-100/60 dark:border-slate-600/80 dark:bg-slate-800/60 p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 hover:bg-slate-200/80 dark:hover:text-slate-100 dark:hover:bg-slate-700/80 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-transparent"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
           <SheetTitle className="text-xl font-bold text-slate-900 dark:text-slate-100">
             Import Trades
           </SheetTitle>
@@ -272,26 +298,32 @@ export default function ImportTradesModal({
             {step === 'done' && 'Import complete.'}
           </SheetDescription>
 
-          {/* Step indicator */}
-          <div className="flex items-center gap-2 mt-3">
-            {(['upload', 'mapping', 'preview', 'importing'] as const).map((s, i) => {
-              const stepOrder = { upload: 0, matching: 0, mapping: 1, preview: 2, importing: 3, done: 3 };
-              const currentOrder = stepOrder[step];
-              const thisOrder = i;
-              const isActive = currentOrder === thisOrder;
-              const isDone = currentOrder > thisOrder;
-              return (
-                <div key={s} className="flex items-center gap-2">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${isDone ? 'bg-emerald-500 text-white' : isActive ? 'bg-gradient-to-br from-purple-500 to-violet-600 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
-                    {isDone ? '✓' : i + 1}
+          {/* Step indicator — same card style as Risk % / table */}
+          <div className="mt-3 rounded-xl border border-slate-200/80 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/30 px-4 py-3">
+            <div className="flex items-center gap-2">
+              {(['upload', 'mapping', 'preview', 'importing'] as const).map((s, i) => {
+                const stepOrder = { upload: 0, matching: 0, mapping: 1, preview: 2, importing: 3, done: 3 };
+                const currentOrder = stepOrder[step];
+                const thisOrder = i;
+                const isActive = currentOrder === thisOrder;
+                const isDone = currentOrder > thisOrder;
+                return (
+                  <div key={s} className="flex items-center gap-2">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-all shrink-0 ${
+                      isDone ? 'bg-emerald-600/90 dark:bg-emerald-500/90 text-white' 
+                      : isActive ? 'bg-slate-600 dark:bg-slate-500 text-white border border-slate-700/30 dark:border-slate-400/30' 
+                      : 'bg-slate-200/80 dark:bg-slate-700/60 text-slate-500 dark:text-slate-400 border border-slate-300/50 dark:border-slate-600/50'
+                    }`}>
+                      {isDone ? '✓' : i + 1}
+                    </div>
+                    <span className={`text-xs font-medium ${isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                      {['Upload', 'Map Columns', 'Preview', 'Import'][i]}
+                    </span>
+                    {i < 3 && <div className="w-4 h-px bg-slate-300 dark:bg-slate-600/70" />}
                   </div>
-                  <span className={`text-xs font-medium ${isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500'}`}>
-                    {['Upload', 'Map Columns', 'Preview', 'Import'][i]}
-                  </span>
-                  {i < 3 && <div className="w-4 h-px bg-slate-200 dark:bg-slate-700" />}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </SheetHeader>
 
@@ -449,7 +481,7 @@ export default function ImportTradesModal({
                   <tbody>
                     {csvHeaders.filter((header) => mapping[header] != null).map((header, idx) => {
                       const currentValue = mapping[header] ?? null;
-                      const isRequired = currentValue ? REQUIRED_FIELDS.has(currentValue) : false;
+                      const isRequired = currentValue ? requiredFields.has(currentValue) : false;
                       return (
                         <tr key={idx}>
                           <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200 border-b border-r border-slate-200 dark:border-slate-700">
@@ -472,9 +504,9 @@ export default function ImportTradesModal({
                                   const alreadyUsed = getMappedTradeFields().has(f.value) && mapping[header] !== f.value;
                                   return (
                                     <SelectItem key={f.value} value={f.value} disabled={alreadyUsed}>
-                                      <span className={`${REQUIRED_FIELDS.has(f.value) ? 'font-semibold' : ''} ${alreadyUsed ? 'text-slate-400' : ''}`}>
+                                      <span className={`${requiredFields.has(f.value) ? 'font-semibold' : ''} ${alreadyUsed ? 'text-slate-400' : ''}`}>
                                         {f.label}
-                                        {REQUIRED_FIELDS.has(f.value) && <span className="text-red-400 ml-1">*</span>}
+                                        {requiredFields.has(f.value) && <span className="text-red-400 ml-1">*</span>}
                                       </span>
                                     </SelectItem>
                                   );
