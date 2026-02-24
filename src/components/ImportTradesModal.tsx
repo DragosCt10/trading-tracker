@@ -406,27 +406,25 @@ export default function ImportTradesModal({
                 )}
               </div>
 
-              {/* Expected CSV format — required cols */}
+              {/* Expected CSV format — required cols (conditional on strategy) */}
               <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-800/40 overflow-hidden">
                 <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/60">
                   <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                     CSV format (quantifyX / Export Trades)
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Same column names as Export Trades. Column order does not matter.
+                    Column names do not need to match exactly — AI will map your CSV columns to the required fields.
                   </p>
                 </div>
                 <div className="px-4 py-3 space-y-3">
                   <div>
-                    <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Required columns (all strategies)</p>
-                    <p className="text-xs text-slate-700 dark:text-slate-300">
-                      {REQUIRED_CSV_COLS_ALL.join(', ')}
+                    <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+                      Required columns
                     </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Also required for Trading Institutional</p>
                     <p className="text-xs text-slate-700 dark:text-slate-300">
-                      {REQUIRED_CSV_COLS_INSTITUTIONAL.join(', ')}
+                      {isTradingInstitutional
+                        ? [...REQUIRED_CSV_COLS_ALL, ...REQUIRED_CSV_COLS_INSTITUTIONAL].join(', ')
+                        : REQUIRED_CSV_COLS_ALL.join(', ')}
                     </p>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
