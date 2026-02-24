@@ -370,5 +370,28 @@ export function calculateBreakEvenStats(trades: Trade[]): TradeTypeStats[] {
   return [group];
 }
 
+/** Trend stats: only trades with trend set; groups by Trend-following / Counter-trend. */
+export function calculateTrendStats(trades: Trade[]): TradeTypeStats[] {
+  if (trades.length === 0) return [];
+  const TREND_VALUES = ['Trend-following', 'Counter-trend'] as const;
+  const result: TradeTypeStats[] = [];
+  for (const trendValue of TREND_VALUES) {
+    const subset = trades.filter(t => (t.trend ?? '').trim() === trendValue);
+    if (subset.length > 0) {
+      const g = processGroup(trendValue, subset);
+      result.push({
+        tradeType: g.type,
+        total: g.total,
+        wins: g.wins,
+        losses: g.losses,
+        winRate: g.winRate,
+        winRateWithBE: g.winRateWithBE,
+        beWins: g.beWins,
+        beLosses: g.beLosses,
+      });
+    }
+  }
+  return result.sort((a, b) => b.total - a.total);
+}
 
 
