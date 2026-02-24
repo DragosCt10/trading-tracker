@@ -9,16 +9,9 @@ import {
   XAxis,
   YAxis,
   Tooltip as ReTooltip,
-  CartesianGrid,
   ReferenceLine,
 } from 'recharts';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Trade } from '@/types/trade';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { format } from 'date-fns';
@@ -55,19 +48,14 @@ export const EquityCurveCard = React.memo(function EquityCurveCard({
   const { mounted, isDark } = useDarkMode();
   const chartData = useMemo(() => buildEquityChartData(trades), [trades]);
   const hasData = chartData.length > 0;
-  const axisStroke = isDark ? '#64748b' : '#94a3b8';
+  // Same axis label color as AccountOverviewCard (slate-300 dark, slate-500 light)
+  const axisTextColor = isDark ? '#cbd5e1' : '#64748b';
+  // Zero line: more opaque in dark mode so it stays visible
+  const zeroLineStroke = isDark ? '#e2e8f0' : '#64748b';
 
   return (
     <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm w-full flex flex-col">
-      <CardHeader className="pb-2 flex-shrink-0">
-        <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-          Equity Curve
-        </CardTitle>
-        <CardDescription className="text-base text-slate-500 dark:text-slate-400">
-          Cumulative P&L over time.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1 min-h-[320px] pt-2 pb-4">
+      <CardContent className="flex-1 min-h-[320px] px-4 pt-6 pb-4">
         {!mounted ? (
           <div className="w-full h-[320px] flex items-center justify-center text-slate-400 dark:text-slate-500">
             Loading…
@@ -81,31 +69,26 @@ export const EquityCurveCard = React.memo(function EquityCurveCard({
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={320}>
-            <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+            <AreaChart data={chartData} margin={{ top: 24, right: 16, left: 8, bottom: 8 }}>
               <defs>
                 <linearGradient id="equityPositive" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                  <stop offset="0%" stopColor="var(--tc-primary, #8b5cf6)" stopOpacity={0.55} />
+                  <stop offset="100%" stopColor="var(--tc-primary, #8b5cf6)" stopOpacity={0.08} />
                 </linearGradient>
                 <linearGradient id="equityNegative" x1="0" y1="1" x2="0" y2="0">
-                  <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="#f43f5e" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.08} />
                 </linearGradient>
               </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke={isDark ? '#334155' : '#e2e8f0'}
-                vertical={false}
-              />
               <XAxis
                 dataKey="date"
-                tick={{ fill: axisStroke, fontSize: 11 }}
-                axisLine={{ stroke: axisStroke }}
+                tick={{ fill: axisTextColor, fontSize: 12, fontWeight: 500 }}
+                axisLine={false}
                 tickLine={false}
                 tickFormatter={(value) => format(new Date(value), 'MMM d')}
               />
               <YAxis
-                tick={{ fill: axisStroke, fontSize: 11 }}
+                tick={{ fill: axisTextColor, fontSize: 11, fontWeight: 500 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(value) =>
@@ -134,7 +117,7 @@ export const EquityCurveCard = React.memo(function EquityCurveCard({
                   return null;
                 }}
               />
-              <ReferenceLine y={0} stroke={axisStroke} strokeDasharray="2 2" />
+              <ReferenceLine y={0} stroke={zeroLineStroke} strokeWidth={1.5} strokeDasharray="2 2" />
               <Area
                 type="monotone"
                 dataKey="equityPositive"
@@ -152,7 +135,7 @@ export const EquityCurveCard = React.memo(function EquityCurveCard({
               <Line
                 type="monotone"
                 dataKey="equity"
-                stroke="var(--tc-primary, #3b82f6)"
+                stroke="var(--tc-primary, #8b5cf6)"
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 4 }}
