@@ -138,13 +138,13 @@ export const StreakStatisticsCard: React.FC<StreakStatisticsCardProps> = React.m
         </CardHeader>
         <CardContent className="flex-1 flex flex-col items-center justify-center relative pt-2 pb-4">
           {/* Chart section */}
-          <div className="flex-1 w-full flex items-center justify-center min-h-0 relative px-4">
+          <div className="flex-1 w-full flex items-center justify-center min-h-0 relative pl-1 pr-4">
             <div className="w-full h-full relative">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={chartData}
                   layout="vertical"
-                  margin={{ top: 10, right: 24, left: 16, bottom: 20 }}
+                  margin={{ top: 10, right: 24, left: 0, bottom: 20 }}
                   barCategoryGap="20%"
                 >
                   <defs>
@@ -191,7 +191,8 @@ export const StreakStatisticsCard: React.FC<StreakStatisticsCardProps> = React.m
                     tick={{ fill: axisTextColor, fontSize: 12, fontWeight: 500 }}
                     axisLine={false}
                     tickLine={false}
-                    width={80}
+                    width={72}
+                    tickMargin={8}
                   />
                   <Bar
                     dataKey="value"
