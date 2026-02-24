@@ -1055,11 +1055,15 @@ export default function StrategyClient(
         getDaysInMonth={() => getDaysInMonth}
       />
 
-      {/* Equity Curve - full row above Core statistics */}
+      {/* Equity Curve - title and description outside card, then full-row card */}
       {(viewMode === 'dateRange' || viewMode === 'yearly') && (
-        <div className="w-full mt-14 mb-6">
-          <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
-        </div>
+        <>
+          <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Equity Curve</h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">Cumulative P&L over time.</p>
+          <div className="w-full mb-6">
+            <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
+          </div>
+        </>
       )}
 
       {/* Core statistics: title + description, then core stats, then Partial/Executed/Direction cards, then Evaluation + Trade Types above RiskPerTrade */}
