@@ -17,7 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { X } from 'lucide-react';
+import { X, Download } from 'lucide-react';
 import { parseCsvTrades, extractCsvHeaders } from '@/utils/tradeImportParser';
 import { importTrades } from '@/lib/server/trades';
 import type { Database } from '@/types/supabase';
@@ -56,8 +56,40 @@ const TRADE_FIELDS: { value: string; label: string }[] = [
   { value: 'displacement_size', label: 'Displacement Size' },
 ];
 
-const BASE_REQUIRED_FIELDS = ['trade_date', 'trade_time', 'market', 'direction', 'trade_outcome', 'risk_per_trade', 'risk_reward_ratio', 'sl_size'] as const;
-const INSTITUTIONAL_REQUIRED_FIELDS = ['setup_type', 'liquidity', 'mss'] as const;
+const BASE_REQUIRED_FIELDS = ['trade_date', 'trade_time', 'market', 'direction', 'trade_outcome', 'risk_per_trade', 'risk_reward_ratio'] as const;
+const INSTITUTIONAL_REQUIRED_FIELDS = ['setup_type', 'liquidity', 'mss', 'sl_size'] as const;
+
+/** CSV headers matching Export Trades (quantifyX). Liquidity added for Trading Institutional. */
+const SAMPLE_CSV_HEADERS = [
+  'Date', 'Time', 'Day of Week', 'Market', 'Direction', 'Setup', 'Outcome',
+  'Risk %', 'Trade Link', 'Liquidity Taken', 'Liquidity', 'Local High/Low',
+  'News Related', 'ReEntry', 'Break Even', 'MSS', 'Risk:Reward Ratio',
+  'Risk:Reward Ratio Long', 'SL Size', 'Calculated Profit', 'P/L %',
+  'Evaluation', 'Notes', 'Executed'
+];
+
+/** Required columns for all strategies (CSV header names). */
+const REQUIRED_CSV_COLS_ALL = ['Date', 'Time', 'Market', 'Direction', 'Outcome', 'Risk %', 'Risk:Reward Ratio'];
+/** Extra required columns for Trading Institutional only (base + these). */
+const REQUIRED_CSV_COLS_INSTITUTIONAL = ['Setup', 'Liquidity', 'MSS', 'SL Size'];
+
+function buildSampleCsvBlob(): Blob {
+  const escape = (v: string | number) => {
+    const s = String(v).replace(/"/g, '""');
+    return `"${s}"`;
+  };
+  const headerRow = SAMPLE_CSV_HEADERS.map(escape).join(',');
+  const row1 = [
+    '2025-01-15', '09:30', 'Wednesday', 'ES', 'Long', 'FVG', 'Win',
+    0.5, '', '', 'High', 'No', 'No', 'No', 'No', '1', 1.5, '', 150, 0.3, 8, 'Good', '', 'Yes'
+  ].map(escape).join(',');
+  const row2 = [
+    '2025-01-16', '14:00', 'Thursday', 'NQ', 'Short', 'OB', 'Lose',
+    0.5, '', '', 'Low', 'No', 'Yes', 'No', 'No', '2', 1, '', 80, -0.25, -4, 'Revenge', '', 'Yes'
+  ].map(escape).join(',');
+  const csv = [headerRow, row1, row2].join('\r\n');
+  return new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+}
 
 const cancelButtonClass =
   'cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200';
@@ -393,11 +425,57 @@ export default function ImportTradesModal({
                         Drop your CSV here or <span className="text-tc-primary underline">click to browse</span>
                       </p>
                       <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                        Supports any CSV format — AI will auto-match the columns
+                        Download the sample CSV below to see the format, or use any CSV — AI will map columns
                       </p>
                     </div>
                   </>
                 )}
+              </div>
+
+              {/* Expected CSV format — simple: required cols + sample download */}
+              <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-800/40 overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/60">
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    CSV format (quantifyX / Export Trades)
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Same column names as Export Trades. Column order does not matter.
+                  </p>
+                </div>
+                <div className="px-4 py-3 space-y-3">
+                  <div>
+                    <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Required columns (all strategies)</p>
+                    <p className="text-xs text-slate-700 dark:text-slate-300">
+                      {REQUIRED_CSV_COLS_ALL.join(', ')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Also required for Trading Institutional</p>
+                    <p className="text-xs text-slate-700 dark:text-slate-300">
+                      {REQUIRED_CSV_COLS_INSTITUTIONAL.join(', ')}
+                    </p>
+                  </div>
+                  <div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="cursor-pointer rounded-lg border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/80"
+                      onClick={() => {
+                        const blob = buildSampleCsvBlob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'sample_trades_import.csv';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1.5" />
+                      Download sample CSV (2 trades)
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               {errorMessage && (
