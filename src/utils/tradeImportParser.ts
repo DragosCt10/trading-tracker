@@ -185,6 +185,9 @@ export function parseCsvTrades(
     const rawDisplace = fieldValues['displacement_size'] ?? '';
     const displacementSize = rawDisplace !== '' ? parseFloat(rawDisplace) : 0;
 
+    const rawFvgSize = fieldValues['fvg_size'] ?? '';
+    const fvgSize = rawFvgSize !== '' ? parseFloat(rawFvgSize) : null;
+
     const breakEven = parseBool(fieldValues['break_even']);
 
     // If CSV doesn't supply profit/pnl, calculate using the same formula as NewTradeModal.
@@ -228,6 +231,8 @@ export function parseCsvTrades(
       calculated_profit: csvCalcProfit ?? computedPnl?.calculated_profit,
       pnl_percentage: csvPnlPct ?? computedPnl?.pnl_percentage,
       strategy_id: undefined,
+      trend: fieldValues['trend']?.trim() ?? null,
+      fvg_size: fvgSize !== null && !isNaN(fvgSize) ? fvgSize : null,
     };
 
     rows.push(trade);
