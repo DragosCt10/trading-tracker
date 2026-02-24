@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { format } from 'date-fns';
 import { DateRange } from 'react-date-range';
-import { Calendar, ChevronDown } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useColorTheme } from '@/hooks/useColorTheme';
-import { COLOR_THEMES } from '@/constants/colorThemes';
 
 type PresetKey = 'year' | '15days' | '30days' | 'month';
 
@@ -63,11 +62,16 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
   showAllTradesOption = false,
 }) => {
   const { colorTheme } = useColorTheme();
-  const rangeColor = (colorTheme ? COLOR_THEMES.find(t => t.id === colorTheme)?.preview.primary : null) ?? '#a855f7';
+  const rangeColor = React.useMemo(() => {
+    if (typeof window === 'undefined') return '#a855f7';
+    const value = getComputedStyle(document.documentElement)
+      .getPropertyValue('--tc-primary')
+      .trim();
+    return value || '#a855f7';
+  }, [colorTheme]);
 
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [tempRange, setTempRange] = React.useState<DateRangeValue>(dateRange);
-  const [pickerPosition, setPickerPosition] = React.useState({ top: 0, left: 0 });
 
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const pickerRef = React.useRef<HTMLDivElement | null>(null);
@@ -77,16 +81,6 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
     setTempRange(dateRange);
   }, [dateRange]);
 
-  // Calculate picker position when opening
-  React.useEffect(() => {
-    if (showDatePicker && inputRef.current) {
-      const rect = inputRef.current.getBoundingClientRect();
-      setPickerPosition({
-        top: rect.bottom + window.scrollY + 8,
-        left: rect.left + window.scrollX,
-      });
-    }
-  }, [showDatePicker]);
 
   // click-outside to close date picker
   React.useEffect(() => {
@@ -223,7 +217,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                       type="button"
                       size="sm"
                       onClick={handleApply}
-                      className="themed-btn-primary cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 border-0 bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white shadow-md shadow-purple-500/30"
+                      className="themed-btn-primary cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 border-0 text-white shadow-md"
                     >
                       Apply
                     </Button>
@@ -253,7 +247,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                   className={cn(
                     'cursor-pointer rounded-xl px-4 py-2 text-sm transition-colors duration-200 relative overflow-hidden group',
                     isActive
-                      ? 'themed-btn-primary bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 border-0'
+                      ? 'themed-btn-primary text-white font-semibold shadow-md border-0'
                       : 'border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium',
                   )}
                 >
