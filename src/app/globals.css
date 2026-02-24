@@ -113,7 +113,11 @@
 
 .rdrDateDisplayWrapper {
   background: transparent !important;
-  padding: 1rem 0.5rem !important; /* add vertical and horizontal spacing */
+  padding: 0 0.5rem !important; /* add vertical and horizontal spacing */
+}
+
+.rdrMonthAndYearWrapper {
+  padding-top:0 !important
 }
 
 .rdrCalendarWrapper {
@@ -130,7 +134,6 @@
 }
 
 .rdrDateDisplayItem {
-  color: #64748b !important; /* slate-500 */
   border-radius: 0.5rem !important; /* rounded-lg */
   border: 1px solid rgba(148, 163, 184, 0.5) !important; /* slate-400/50 */
   background-color: transparent !important;
@@ -139,7 +142,7 @@
   font-size: 0.875rem !important; /* text-sm */
   transition: all 0.2s !important;
   box-shadow: none !important;
-  color: #a855f7 !important;
+  color: var(--tc-primary) !important;
   margin: 0 0.5rem !important; /* add horizontal spacing between date inputs */
 }
 
@@ -149,13 +152,13 @@
 
 .rdrDateDisplayItem:hover {
   background-color: transparent !important;
-  color: #7c3aed !important; /* purple-600 */
+  color: var(--tc-text) !important;
 }
 
 .rdrDateDisplayItemActive {
-  border-color: #a855f7 !important; /* purple-500 */
+  border-color: var(--tc-primary) !important;
   background-color: transparent !important;
-  color: #7c3aed !important; /* purple-600 */
+  color: var(--tc-text) !important;
   box-shadow: none !important;
 }
 
@@ -183,6 +186,34 @@
   appearance: none !important;
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
+}
+
+/* Force selected range and dates to use theme (override library background: currentColor) */
+.rdrInRange,
+.rdrStartEdge,
+.rdrEndEdge,
+.rdrSelected {
+  background: var(--tc-primary) !important;
+  background-color: var(--tc-primary) !important;
+  color: #ffffff !important;
+}
+.rdrDayInRange,
+.rdrDayStartRange .rdrDayStartEdge,
+.rdrDayEndRange .rdrDayEndEdge,
+.rdrDayInRange .rdrInRange,
+.rdrDayStartRange .rdrInRange,
+.rdrDayEndRange .rdrInRange,
+.rdrDaySelected .rdrSelected,
+.rdrDayStartRange .rdrSelected,
+.rdrDayEndRange .rdrSelected {
+  background-color: var(--tc-primary) !important;
+  color: #ffffff !important;
+}
+.rdrDayInRange .rdrDayNumber span,
+.rdrDayStartRange .rdrDayNumber span,
+.rdrDayEndRange .rdrDayNumber span,
+.rdrDaySelected .rdrDayNumber span {
+  color: #ffffff !important;
 }
 
 .rdrDayDisabled {
@@ -245,13 +276,13 @@
 }
 
 .dark .rdrDateDisplayItem:hover {
-  color: #a78bfa !important; /* violet-400 - lighter purple */
-  border-color: rgba(167, 139, 250, 0.5) !important;
+  color: var(--tc-text-dark) !important;
+  border-color: var(--tc-border) !important;
 }
 
 .dark .rdrDateDisplayItemActive {
-  color: #a78bfa !important; /* violet-400 */
-  border-color: #a855f7 !important; /* purple-500 */
+  color: var(--tc-text-dark) !important;
+  border-color: var(--tc-primary) !important;
 }
 
 .dark .rdrWeekDays .rdrWeekDay {
