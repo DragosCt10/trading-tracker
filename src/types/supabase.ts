@@ -74,6 +74,8 @@ export interface Database {
           executed: boolean | null;
           launch_hour: boolean | null;
           strategy_id: string | null; // Added
+          fvg_size: number | null; // e.g. 1, 1.5, 2, 2.5
+          trend: string | null;
         };
         Insert: Partial<Database['public']['Tables']['live_trades']['Row']> & {
           user_id: string;
@@ -126,6 +128,8 @@ export interface Database {
           executed: boolean | null;
           launch_hour: boolean | null;
           strategy_id: string | null; // Added
+          fvg_size: number | null; // e.g. 1, 1.5, 2, 2.5
+          trend: string | null;
         };
         Insert: Partial<Database['public']['Tables']['backtesting_trades']['Row']> & {
           user_id: string;
@@ -178,6 +182,8 @@ export interface Database {
           executed: boolean | null;
           launch_hour: boolean | null;
           strategy_id: string | null; // Added
+          fvg_size: number | null; // e.g. 1, 1.5, 2, 2.5
+          trend: string | null;
         };
         Insert: Partial<Database['public']['Tables']['demo_trades']['Row']> & {
           user_id: string;
