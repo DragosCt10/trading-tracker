@@ -58,8 +58,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
       'gap-2 rounded-xl border transition-all duration-200',
       'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 hover:border-slate-300/70',
       'dark:text-slate-200 dark:hover:text-slate-50 dark:hover:bg-slate-800/70 dark:hover:border-slate-700/70',
-      active &&
-        'bg-purple-500/5 border-purple-500/30 text-purple-700 hover:bg-purple-500/15 hover:border-purple-500/40 dark:text-purple-300 dark:bg-purple-500/10 dark:border-purple-400/25'
+      active && 'themed-nav-active'
     );
 
   return (
