@@ -147,7 +147,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                   onFocus={() => setShowDatePicker(true)}
                   onClick={() => setShowDatePicker(true)}
                   placeholder="Select date range"
-                  className="themed-focus w-full cursor-pointer h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
+                  className="w-full cursor-pointer h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
                 />
                 <button
                   type="button"
@@ -277,12 +277,12 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
             onValueChange={onSelectedMarketChange}
           >
             <SelectTrigger 
-              className="themed-focus flex w-40 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
+              className="flex w-40 h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
               suppressHydrationWarning
             >
               <SelectValue placeholder="All Markets" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
               <SelectItem value="all">All Markets</SelectItem>
               {markets.map((market) => (
                 <SelectItem key={market} value={market}>
@@ -303,13 +303,13 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
             onValueChange={onSelectedExecutionChange}
           >
             <SelectTrigger 
-              className="themed-focus flex w-40 h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100"
+              className="flex w-40 h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
               suppressHydrationWarning
             >
               <SelectValue placeholder={showAllTradesOption ? "All Trades" : "Executed Trades"} />
             </SelectTrigger>
-            <SelectContent>
-              {showAllTradesOption && (
+<SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+            {showAllTradesOption && (
                 <SelectItem value="all">All Trades</SelectItem>
               )}
               <SelectItem value="executed">Executed Trades</SelectItem>
