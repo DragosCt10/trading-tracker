@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { X } from 'lucide-react';
 import { parseCsvTrades, extractCsvHeaders } from '@/utils/tradeImportParser';
 import { importTrades } from '@/lib/server/trades';
@@ -338,11 +339,10 @@ export default function ImportTradesModal({
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
                 onClick={() => step === 'upload' && fileInputRef.current?.click()}
-                className={`relative flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-2xl p-12 cursor-pointer transition-all duration-200 ${
-                  isDragging
-                    ? 'border-purple-400 bg-purple-50/50 dark:bg-purple-900/10'
-                    : 'border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/20 hover:border-purple-300 dark:hover:border-purple-600 hover:bg-purple-50/30 dark:hover:bg-purple-900/5'
-                } ${step === 'matching' ? 'pointer-events-none opacity-70' : ''}`}
+                data-dragging={isDragging}
+                className={`import-drop-zone relative flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-2xl p-12 cursor-pointer transition-all duration-200 ${
+                  step === 'matching' ? 'pointer-events-none opacity-70' : ''
+                }`}
               >
                 <input
                   ref={fileInputRef}
@@ -354,7 +354,10 @@ export default function ImportTradesModal({
 
                 {step === 'matching' ? (
                   <>
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center animate-pulse">
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center animate-pulse"
+                      style={{ background: 'linear-gradient(to bottom right, var(--tc-primary), var(--tc-accent))' }}
+                    >
                       <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
@@ -371,20 +374,23 @@ export default function ImportTradesModal({
                     <div className="text-center">
                       <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{pendingFileName}</p>
                       <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                        {csvHeaders.length} columns detected · <span className="text-purple-600 dark:text-purple-400">click to change file</span>
+                        {csvHeaders.length} columns detected · <span className="text-tc-primary underline">click to change file</span>
                       </p>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-100 to-violet-100 dark:from-purple-900/40 dark:to-violet-900/40 flex items-center justify-center">
-                      <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                      style={{ background: 'linear-gradient(to bottom right, color-mix(in srgb, var(--tc-primary) 25%, transparent), color-mix(in srgb, var(--tc-accent) 25%, transparent))' }}
+                    >
+                      <svg className="w-6 h-6 text-tc-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                       </svg>
                     </div>
                     <div className="text-center">
                       <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                        Drop your CSV here or <span className="text-purple-600 dark:text-purple-400">click to browse</span>
+                        Drop your CSV here or <span className="text-tc-primary underline">click to browse</span>
                       </p>
                       <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                         Supports any CSV format — AI will auto-match the columns
@@ -407,7 +413,7 @@ export default function ImportTradesModal({
             <div className="flex flex-col gap-4">
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 AI suggested the mappings below. Required fields are marked with{' '}
-                <span className="text-red-500">*</span>. Use the dropdowns to fix any mistakes or set missing fields.
+                <span className="text-red-500">*</span>. Use the dropdowns to fix any mistakes.
               </p>
 
               {missingRequired.filter((f) => f !== 'risk_per_trade').length > 0 && (
@@ -442,23 +448,30 @@ export default function ImportTradesModal({
                       ))}
                       <div className="flex items-center gap-1.5 ml-1">
                         <span className="text-xs text-slate-500 dark:text-slate-400">or custom:</span>
-                        <div className="relative">
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={customRiskInput}
-                            onChange={(e) => {
-                              setCustomRiskInput(e.target.value);
-                              const parsed = parseFloat(e.target.value);
-                              setDefaultRiskPct(!isNaN(parsed) && parsed > 0 ? parsed : null);
-                            }}
-                            className="h-8 w-24 text-sm rounded-lg border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/50 pr-6"
-                          />
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">%</span>
-                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={customRiskInput}
+                                onChange={(e) => {
+                                  setCustomRiskInput(e.target.value);
+                                  const parsed = parseFloat(e.target.value);
+                                  setDefaultRiskPct(!isNaN(parsed) && parsed > 0 ? parsed : null);
+                                }}
+                                className="h-8 w-24 text-sm rounded-lg border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/50 pr-6"
+                              />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">%</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="max-w-[220px]">
+                            Use the average risk across your trades for more accurate import results.
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </div>
                     {defaultRiskPct !== null && (
