@@ -484,7 +484,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               {isTradingInstitutional && (
                 <div className="space-y-2">
                   <Label htmlFor="liquidity-taken" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Liquidity Taken
+                    Liquidity Link
                   </Label>
                   <Input
                     id="liquidity-taken"
