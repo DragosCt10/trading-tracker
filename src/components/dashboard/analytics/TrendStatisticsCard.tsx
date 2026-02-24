@@ -176,10 +176,10 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
           <CardContent className="flex-1 flex flex-col items-center justify-center">
             <div className="flex flex-col justify-center items-center w-full h-full">
               <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
-                No trend trades found
+                No trades found
               </div>
               <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
-                Add trend (Trend-following / Counter-trend) to trades to see stats here.
+                No trades in this period.
               </div>
             </div>
           </CardContent>
