@@ -35,6 +35,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -500,7 +501,7 @@ export default function ManageTradesClient({
                 </Button>
                 <Button
                   onClick={exportToCSV}
-                  className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0"
+                  className="cursor-pointer relative overflow-hidden rounded-xl themed-btn-primary text-white font-semibold px-4 py-2 group border-0 [&_svg]:text-white"
                 >
                   <span className="relative z-10">Export Trades</span>
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
@@ -678,7 +679,7 @@ export default function ManageTradesClient({
                               setCurrentPage(1);
                               setShowDatePicker(false);
                             }}
-                            className="cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 border-0 bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white shadow-md shadow-purple-500/30"
+                            className="cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 border-0 themed-btn-primary text-white"
                           >
                             Apply
                           </Button>
@@ -706,11 +707,12 @@ export default function ManageTradesClient({
                         key={filterType}
                         variant={isActive ? 'default' : 'outline'}
                         onClick={() => handleFilter(filterType)}
-                        className={`cursor-pointer rounded-xl px-4 py-2 text-sm transition-all duration-200 ${
+                        className={cn(
+                          'cursor-pointer rounded-xl px-4 py-2 text-sm transition-all duration-200',
                           isActive
-                            ? 'bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white border-0 shadow-md shadow-purple-500/30 dark:shadow-purple-500/20'
+                            ? 'themed-btn-primary text-white border-0'
                             : 'border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80'
-                        }`}
+                        )}
                       >
                         {labels[filterType]}
                       </Button>
@@ -1085,7 +1087,7 @@ export default function ManageTradesClient({
               <Button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, paginatedTotalPages))}
                 disabled={paginatedCurrentPage === paginatedTotalPages}
-                className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0 disabled:opacity-60"
+                className="cursor-pointer relative overflow-hidden rounded-xl themed-btn-primary text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60 [&_svg]:text-white"
               >
                 <span className="relative z-10">Next</span>
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
