@@ -10,10 +10,10 @@ import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
-// Shared input/select styles to match CreateAccountModal / NewTradeModal (themed)
-const inputClass = 'themed-focus h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100';
-const selectTriggerClass = 'themed-focus h-12 rounded-full bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border-slate-200/60 dark:border-slate-600 transition-all duration-300 shadow-sm text-slate-900 dark:text-slate-100';
-const selectContentClass = 'z-[100] border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50';
+// Shared input/select styles to match NewTradeModal (themed, rounded-2xl)
+const inputClass = 'h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300';
+const selectTriggerClass = 'h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300';
+const selectContentClass = 'z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50';
 const labelClass = 'block text-sm font-semibold text-slate-700 dark:text-slate-300';
 
 // shadcn UI components
@@ -404,7 +404,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             type="text"
             value={`${displayValue}%`}
             readOnly
-            className={`${inputClass} bg-slate-200/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 cursor-not-allowed`}
+            className={`${inputClass} bg-slate-200/50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-not-allowed`}
           />
         </div>
       );
@@ -440,7 +440,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               type="text"
               value={`${displayValue}%`}
               readOnly
-              className={`${inputClass} bg-slate-200/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 cursor-not-allowed`}
+              className={`${inputClass} bg-slate-200/50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-not-allowed`}
             />
           </div>
         );
@@ -457,7 +457,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               type="text"
               value="0"
               readOnly
-              className={`${inputClass} bg-slate-200/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 cursor-not-allowed`}
+              className={`${inputClass} bg-slate-200/50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-not-allowed`}
             />
           </div>
         );
@@ -940,7 +940,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               <textarea
                 value={editedTrade?.notes ?? ''}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
-                className="themed-focus w-full min-h-[200px] bg-transparent rounded-xl placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100 px-3 py-3 text-sm resize-none focus:outline-none focus:ring-inset"
+                className="themed-focus w-full min-h-[200px] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-transparent placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-slate-50 px-4 py-3 text-sm resize-none focus:outline-none focus:ring-inset"
                 rows={8}
                 disabled={!isEditing}
                 readOnly={!isEditing}
