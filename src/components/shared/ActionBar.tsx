@@ -164,6 +164,9 @@ export default function ActionBar({ initialData }: ActionBarProps) {
   const editBtnClass =
     'h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 text-xs sm:text-sm font-medium transition-colors duration-200 disabled:opacity-50 gap-2';
 
+  const selectTriggerClass =
+    'h-8 overflow-hidden  rounded-xl border border-slate-200/80 bg-transparent text-slate-700 hover:bg-slate-100/60 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-transparent dark:text-slate-200 dark:hover:bg-slate-800/50 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 text-xs sm:text-sm font-medium transition-colors duration-200 disabled:opacity-50 gap-2';
+
   return (
     <div className="flex items-center gap-2">
       {/* Mode badge — same size and style as Edit button */}
@@ -186,7 +189,7 @@ export default function ActionBar({ initialData }: ActionBarProps) {
             disabled={applying}
             className={clsx(
               'group flex items-center gap-2 min-w-0',
-              editBtnClass,
+              selectTriggerClass,
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50',
               'disabled:pointer-events-none'
             )}
@@ -210,9 +213,9 @@ export default function ActionBar({ initialData }: ActionBarProps) {
         <PopoverContent
           align="end"
           sideOffset={6}
-          className="w-auto min-w-[220px] max-h-[min(320px,70vh)] flex flex-col p-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl"
+          className="w-auto min-w-[220px] max-h-[min(320px,70vh)] flex flex-col rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 pt-2 pb-2 text-slate-900 dark:text-slate-50"
         >
-          <div className="overflow-y-auto overscroll-contain p-1.5">
+          <div className="overflow-y-auto overscroll-contain">
             {MODES.map((mode, i) => {
               const modeAccounts = accountsByMode[mode];
               return (
@@ -238,10 +241,10 @@ export default function ActionBar({ initialData }: ActionBarProps) {
                         <button
                           key={account.id}
                           className={clsx(
-                            'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-left',
+                            'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-left cursor-pointer',
                             'transition-colors duration-150',
                             isActive
-                              ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 font-semibold'
+                              ? 'bg-[var(--tc-subtle)] text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] font-semibold'
                               : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium'
                           )}
                           onClick={() => {
@@ -253,7 +256,7 @@ export default function ActionBar({ initialData }: ActionBarProps) {
                             className={clsx(
                               'h-3.5 w-3.5 flex-shrink-0 transition-opacity',
                               isActive
-                                ? 'opacity-100 text-violet-500'
+                                ? 'opacity-100 text-[var(--tc-primary)]'
                                 : 'opacity-0'
                             )}
                           />
