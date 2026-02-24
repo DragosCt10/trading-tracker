@@ -214,7 +214,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
                 <Line
                   type="monotone"
                   dataKey="profit"
-                  stroke="#8b5cf6"
+                  stroke="var(--tc-primary)"
                   strokeWidth={2}
                   dot={false}
                   activeDot={{ r: 4 }}
@@ -281,7 +281,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
               size="sm"
               onClick={handleAnalytics}
               disabled={!isChartReady}
-              className="cursor-pointer relative w-full sm:w-auto h-8 overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 group border-0 text-xs disabled:opacity-60 disabled:pointer-events-none"
+              className="cursor-pointer relative w-full sm:w-auto h-8 overflow-hidden rounded-xl themed-btn-primary text-white font-semibold group border-0 text-xs disabled:opacity-60 disabled:pointer-events-none [&_svg]:text-white"
             >
               <span className="relative z-10 flex items-center justify-center gap-2 group-hover:text-white">
                 <ChartBar className="h-4 w-4 group-hover:text-white" />
