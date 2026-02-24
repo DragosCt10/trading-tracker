@@ -217,15 +217,15 @@ export function StrategiesClient() {
                 <span>Archived</span>
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl px-6 py-5">
+            <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl px-6 py-5">
               {/* Gradient orbs background */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
                 <div
-                  className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/8 dark:bg-purple-500/10 rounded-full blur-3xl animate-pulse"
+                  className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl animate-pulse"
                   style={{ animationDuration: '8s' }}
                 />
                 <div
-                  className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/8 dark:bg-violet-500/10 rounded-full blur-3xl animate-pulse"
+                  className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl animate-pulse"
                   style={{ animationDuration: '10s', animationDelay: '2s' }}
                 />
               </div>
@@ -240,7 +240,7 @@ export function StrategiesClient() {
               />
 
               {/* Top accent line */}
-              <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60" />
+              <div className="absolute -top-px left-0 right-0 h-0.5 themed-accent-line rounded-t-2xl" />
 
               <div className="relative flex flex-col h-full">
                 {/* Close button */}
@@ -261,8 +261,8 @@ export function StrategiesClient() {
 
                 <AlertDialogHeader className="space-y-1.5 mb-4">
                   <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 border border-purple-200/50 dark:border-purple-700/50">
-                      <Archive className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    <div className="p-2 rounded-lg themed-header-icon-box">
+                      <Archive className="h-5 w-5" />
                     </div>
                     <span>Archived Strategies</span>
                   </AlertDialogTitle>
@@ -272,9 +272,9 @@ export function StrategiesClient() {
                 </AlertDialogHeader>
 
                 {/* Disclaimer */}
-                <div className="mb-4 p-3 rounded-xl border border-purple-200/60 dark:border-purple-700/50 bg-gradient-to-br from-purple-50/40 via-violet-50/20 to-fuchsia-50/20 dark:from-purple-900/15 dark:via-violet-900/10 dark:to-fuchsia-900/10 backdrop-blur-sm">
+                <div className="mb-4 p-3 rounded-xl border backdrop-blur-sm bg-[var(--tc-subtle)] border-[var(--tc-border)]">
                   <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
-                    <span className="font-semibold text-purple-700 dark:text-purple-400">Important:</span> Archived strategies will be permanently removed after 30 days if not reactivated. All associated trade data will be preserved.
+                    <span className="font-semibold themed-heading-accent">Important:</span> Archived strategies will be permanently removed after 30 days if not reactivated. All associated trade data will be preserved.
                   </p>
                 </div>
 
@@ -298,7 +298,7 @@ export function StrategiesClient() {
                           className="group flex items-center justify-between p-4 rounded-xl border border-slate-700/60 dark:border-slate-300/50 bg-transparent hover:bg-slate-100/30 dark:hover:bg-slate-800/30 hover:border-slate-600/80 dark:hover:border-slate-400/80 transition-all duration-200 cursor-pointer"
                         >
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                            <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate transition-colors group-hover:[color:var(--tc-text)] dark:group-hover:[color:var(--tc-text-dark)]">
                               {strategy.name}
                             </h3>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -308,7 +308,7 @@ export function StrategiesClient() {
                           <Button
                             onClick={() => handleReactivate(strategy.id)}
                             disabled={reactivatingStrategyId === strategy.id}
-                            className="ml-4 flex-shrink-0 cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group/btn border-0 disabled:opacity-60"
+                            className="ml-4 flex-shrink-0 cursor-pointer relative overflow-hidden rounded-xl themed-btn-primary text-white font-semibold px-4 py-2 group/btn border-0 disabled:opacity-60 [&_svg]:text-white"
                           >
                             <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
                               {reactivatingStrategyId === strategy.id ? (
