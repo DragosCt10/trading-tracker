@@ -21,6 +21,7 @@ interface HookStats {
   slSizeStats: any[];
   reentryStats: any[];
   breakEvenStats: any[];
+  trendStats: any[];
   intervalStats: any[];
   mssStats: any[];
   newsStats: any[];
