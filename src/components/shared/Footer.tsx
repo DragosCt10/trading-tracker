@@ -84,7 +84,7 @@ export function Footer() {
                 href="/"
                 className="inline-flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-slate-50 tracking-tight hover:opacity-90 transition-opacity"
               >
-                <Logo width={28} height={28} className="flex-shrink-0" />
+                <Logo width={37} height={37} className="flex-shrink-0" />
                 QuantifyX
               </Link>
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
