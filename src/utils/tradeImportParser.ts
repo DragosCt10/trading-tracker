@@ -51,6 +51,33 @@ function splitCsvLine(line: string): string[] {
   return result;
 }
 
+/**
+ * Strip emoji, icons, and any characters that are not letters, digits, or slash.
+ * Handles markets like "GBPUSD🔥" or "EUR/USD✓".
+ */
+function sanitizeMarketInput(value: string): string {
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/[^A-Za-z0-9/]/g, '').toUpperCase();
+}
+
+/** Normalize direction: handles any casing and common abbreviations */
+function normalizeDirection(value: string): 'Long' | 'Short' | null {
+  if (!value) return null;
+  const v = value.trim().toLowerCase();
+  if (v === 'long' || v === 'l' || v === 'buy' || v === 'b') return 'Long';
+  if (v === 'short' || v === 's' || v === 'sell') return 'Short';
+  return null;
+}
+
+/** Normalize outcome: handles any casing and common abbreviations */
+function normalizeOutcome(value: string): 'Win' | 'Lose' | null {
+  if (!value) return null;
+  const v = value.trim().toLowerCase();
+  if (v === 'win' || v === 'w' || v === 'winner' || v === 'won') return 'Win';
+  if (v === 'lose' || v === 'loss' || v === 'l' || v === 'loser' || v === 'lost') return 'Lose';
+  return null;
+}
+
 function parseBool(value: string | undefined): boolean {
   if (!value) return false;
   const v = value.trim().toLowerCase();
@@ -125,21 +152,28 @@ export function parseCsvTrades(
 
     // --- Required: market ---
     const rawMarket = fieldValues['market'] ?? '';
+    const sanitizedMarket = sanitizeMarketInput(rawMarket);
     if (!rawMarket) {
       rowErrors.push({ rowIndex, field: 'market', message: 'Missing required field: Market' });
-    } else if (!isValidMarket(rawMarket)) {
-      rowErrors.push({ rowIndex, field: 'market', message: `Invalid market format: "${rawMarket}"` });
+    } else if (!isValidMarket(sanitizedMarket)) {
+      rowErrors.push({ rowIndex, field: 'market', message: `Invalid market: "${rawMarket}"` });
     }
 
     // --- Required: direction ---
     const rawDirection = fieldValues['direction'] ?? '';
-    if (rawDirection !== 'Long' && rawDirection !== 'Short') {
+    const normalizedDirection = normalizeDirection(rawDirection);
+    if (!rawDirection) {
+      rowErrors.push({ rowIndex, field: 'direction', message: 'Missing required field: Direction' });
+    } else if (normalizedDirection === null) {
       rowErrors.push({ rowIndex, field: 'direction', message: `Direction must be "Long" or "Short", got: "${rawDirection}"` });
     }
 
     // --- Required: trade_outcome ---
     const rawOutcome = fieldValues['trade_outcome'] ?? '';
-    if (rawOutcome !== 'Win' && rawOutcome !== 'Lose') {
+    const normalizedOutcome = normalizeOutcome(rawOutcome);
+    if (!rawOutcome) {
+      rowErrors.push({ rowIndex, field: 'trade_outcome', message: 'Missing required field: Outcome' });
+    } else if (normalizedOutcome === null) {
       rowErrors.push({ rowIndex, field: 'trade_outcome', message: `Outcome must be "Win" or "Lose", got: "${rawOutcome}"` });
     }
 
@@ -174,7 +208,7 @@ export function parseCsvTrades(
     const quarter = parsedDate ? deriveQuarter(parsedDate) : (fieldValues['quarter'] ?? '');
 
     const rawRRLong = fieldValues['risk_reward_ratio_long'] ?? '';
-    const rrLong = rawRRLong !== '' ? parseFloat(rawRRLong) : (rawOutcome === 'Lose' ? 0 : rrRatio);
+    const rrLong = rawRRLong !== '' ? parseFloat(rawRRLong) : (normalizedOutcome === 'Lose' ? 0 : rrRatio);
 
     const rawCalcProfit = fieldValues['calculated_profit'] ?? '';
     const csvCalcProfit = rawCalcProfit !== '' ? parseFloat(rawCalcProfit) : undefined;
@@ -195,7 +229,7 @@ export function parseCsvTrades(
     const computedPnl =
       (csvCalcProfit === undefined || csvPnlPct === undefined) && defaults?.account_balance
         ? calculateTradePnl(
-            { trade_outcome: rawOutcome, risk_per_trade: riskPerTrade, risk_reward_ratio: rrRatio, break_even: breakEven },
+            { trade_outcome: normalizedOutcome!, risk_per_trade: riskPerTrade, risk_reward_ratio: rrRatio, break_even: breakEven },
             defaults.account_balance
           )
         : null;
@@ -205,10 +239,10 @@ export function parseCsvTrades(
       trade_date: tradeDate,
       trade_time: tradeTime,
       day_of_week: dayOfWeek,
-      market: normalizeMarket(rawMarket),
-      direction: rawDirection as 'Long' | 'Short',
+      market: normalizeMarket(sanitizedMarket),
+      direction: normalizedDirection!,
       setup_type: fieldValues['setup_type'] ?? '',
-      trade_outcome: rawOutcome as 'Win' | 'Lose',
+      trade_outcome: normalizedOutcome!,
       risk_per_trade: riskPerTrade,
       risk_reward_ratio: rrRatio,
       risk_reward_ratio_long: isNaN(rrLong) ? 0 : rrLong,
