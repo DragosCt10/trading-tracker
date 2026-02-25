@@ -122,11 +122,9 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
                       side="bottom"
                       align="start"
                       sideOffset={6}
-                      className={cn(
-                        'w-48 max-h-[280px] overflow-y-auto p-4 text-xs bg-white/95 dark:bg-slate-800/98 border border-slate-200/60 dark:border-slate-600/50 text-slate-900 dark:text-slate-100 shadow-2xl dark:shadow-slate-900/50 rounded-2xl backdrop-blur-xl space-y-1.5'
-                      )}
+                      className="w-48 max-h-[280px] overflow-y-auto rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3 space-y-1.5"
                     >
-                      <div className="font-semibold text-slate-700 dark:text-slate-200 mb-2">Linked trades</div>
+                      <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2.5">Linked trades</p>
                       {linkedTrades.map((t, i) => (
                         <button
                           key={t.id ?? i}
