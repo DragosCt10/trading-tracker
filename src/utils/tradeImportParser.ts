@@ -316,6 +316,8 @@ export function parseCsvTrades(
       strategy_id: undefined,
       trend: normalizeText(fieldValues['trend']) || null,
       fvg_size: fvgSize !== null && !isNaN(fvgSize) ? fvgSize : null,
+      confidence_at_entry: undefined,
+      mind_state_at_entry: undefined,
     };
 
     rows.push(trade);
