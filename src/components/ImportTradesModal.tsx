@@ -178,6 +178,13 @@ export default function ImportTradesModal({
           deduped[header] = null;
         }
       }
+
+      // Fallback: if AI didn't map "direction", map known direction-like headers (e.g. "order-type" with buy/sell)
+      const directionHeaderAliases = /^(order[- ]?type|side|type|action|buy\/sell|direction)$/i;
+      if (!seenFields.has('direction')) {
+        const directionHeader = csvHeaders.find((h) => directionHeaderAliases.test(h.trim().toLowerCase().replace(/\s+/g, ' ')));
+        if (directionHeader) deduped[directionHeader] = 'direction';
+      }
       setMapping(deduped);
     } catch {
       setMapping({});
