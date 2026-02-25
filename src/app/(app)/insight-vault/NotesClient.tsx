@@ -267,6 +267,7 @@ export default function NotesClient({
                 key={note.id}
                 note={note}
                 onClick={() => openModal(note)}
+                userId={userId}
               />
             ))}
             
