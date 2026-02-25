@@ -224,7 +224,7 @@ export function parseCsvTrades(
 
     const breakEven = parseBool(fieldValues['break_even']);
 
-    // If CSV doesn't supply profit/pnl, calculate using the same formula as NewTradeModal.
+    // If CSV doesn't supply profit/pnl, calculate using the same formula as NewTradeModal
     // Pure arithmetic — O(1) per row, safe for any import size.
     const computedPnl =
       (csvCalcProfit === undefined || csvPnlPct === undefined) && defaults?.account_balance
