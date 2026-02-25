@@ -1,8 +1,14 @@
 'use server';
 
+/**
+ * Notes can be linked to strategies (strategy_ids) and to specific trades (trade_refs).
+ * DB: ensure `notes` has column `trade_refs` (jsonb), e.g.:
+ *   ALTER TABLE notes ADD COLUMN IF NOT EXISTS trade_refs jsonb DEFAULT '[]'::jsonb;
+ */
 import { createClient } from '@/utils/supabase/server';
-import { Note } from '@/types/note';
+import { Note, TradeRef } from '@/types/note';
 import type { Database } from '@/types/supabase';
+import { getTradeSummariesByRefs } from '@/lib/server/trades';
 
 export type NoteRow = Database['public']['Tables']['notes']['Row'];
 
@@ -10,23 +16,27 @@ export type NoteRow = Database['public']['Tables']['notes']['Row'];
  * Maps Supabase note data to Note type
  */
 function mapSupabaseNoteToNote(
-  note: NoteRow, 
+  note: NoteRow,
   strategy?: { id: string; name: string; slug: string } | null,
-  strategies?: Array<{ id: string; name: string; slug: string }>
+  strategies?: Array<{ id: string; name: string; slug: string }>,
+  trades?: Array<{ id: string; mode: string; trade_date: string; market: string; direction: string; trade_outcome: string; strategy_name?: string }>
 ): Note {
+  const row = note as any;
   return {
     id: note.id,
     user_id: note.user_id,
     strategy_id: note.strategy_id,
-    strategy_ids: (note as any).strategy_ids || undefined,
+    strategy_ids: row.strategy_ids || undefined,
     title: note.title,
     content: note.content,
     created_at: note.created_at,
     updated_at: note.updated_at,
     is_pinned: note.is_pinned ?? false,
     tags: note.tags ?? [],
+    trade_refs: Array.isArray(row.trade_refs) ? row.trade_refs as TradeRef[] : undefined,
     strategy: strategy || undefined,
     strategies: strategies || undefined,
+    trades: trades || undefined,
   };
 }
 
@@ -106,7 +116,7 @@ export async function getNotes(
         name: note.strategy.name,
         slug: note.strategy.slug,
       } : null;
-      
+
       // Get strategies from strategy_ids array
       const strategies = note.strategy_ids && Array.isArray(note.strategy_ids)
         ? note.strategy_ids
@@ -116,7 +126,7 @@ export async function getNotes(
             })
         : undefined;
 
-      return mapSupabaseNoteToNote(note, strategy, strategies);
+      return mapSupabaseNoteToNote(note, strategy, strategies, undefined);
     });
   } catch (error) {
     console.error('Error in getNotes:', error);
@@ -171,16 +181,32 @@ export async function getNoteById(noteId: string, userId: string): Promise<Note 
         .in('id', data.strategy_ids)
         .eq('user_id', userId);
 
-      if (strategiesData) {
-        strategies = strategiesData.map((s: { id: string; name: string; slug: string }) => ({
-          id: s.id,
-          name: s.name,
-          slug: s.slug,
-        }));
-      }
+    if (strategiesData) {
+      strategies = strategiesData.map((s: { id: string; name: string; slug: string }) => ({
+        id: s.id,
+        name: s.name,
+        slug: s.slug,
+      }));
     }
+  }
 
-    return mapSupabaseNoteToNote(data, strategy, strategies);
+  // Resolve linked trades for display
+  let trades: Array<{ id: string; mode: string; trade_date: string; market: string; direction: string; trade_outcome: string; strategy_name?: string }> | undefined;
+  const refs = (data as any).trade_refs;
+  if (Array.isArray(refs) && refs.length > 0) {
+    const resolved = await getTradeSummariesByRefs(userId, refs);
+    trades = resolved.map((t) => ({
+      id: t.id,
+      mode: t.mode,
+      trade_date: t.trade_date,
+      market: t.market,
+      direction: t.direction,
+      trade_outcome: t.trade_outcome,
+      strategy_name: t.strategy_name ?? undefined,
+    }));
+  }
+
+  return mapSupabaseNoteToNote(data, strategy, strategies, trades);
   } catch (error) {
     console.error('Error in getNoteById:', error);
     return null;
@@ -232,6 +258,22 @@ export async function createNote(
     }
   }
 
+  // Validate trade_refs: each (id, mode) must exist and belong to user
+  if (note.trade_refs && note.trade_refs.length > 0) {
+    for (const ref of note.trade_refs) {
+      const tableName = `${ref.mode}_trades`;
+      const { data: trade, error: tradeError } = await supabase
+        .from(tableName)
+        .select('id')
+        .eq('id', ref.id)
+        .eq('user_id', userId)
+        .single();
+      if (tradeError || !trade) {
+        return { data: null, error: { message: `Trade not found or access denied (${ref.mode})` } };
+      }
+    }
+  }
+
   // Use first strategy_id from strategy_ids array for backward compatibility, or use strategy_id
   const finalStrategyId = (note.strategy_ids && note.strategy_ids.length > 0) 
     ? note.strategy_ids[0] 
@@ -241,17 +283,21 @@ export async function createNote(
     ? note.strategy_ids 
     : (note.strategy_id ? [note.strategy_id] : null);
 
+  const insertRow: Record<string, unknown> = {
+    user_id: userId,
+    strategy_id: finalStrategyId,
+    strategy_ids: strategyIdsArray,
+    title: note.title.trim(),
+    content: note.content,
+    is_pinned: note.is_pinned ?? false,
+    tags: note.tags ?? [],
+  };
+  if (note.trade_refs && note.trade_refs.length > 0) {
+    insertRow.trade_refs = note.trade_refs;
+  }
   const { data, error } = await supabase
     .from('notes')
-    .insert({
-      user_id: userId,
-      strategy_id: finalStrategyId,
-      strategy_ids: strategyIdsArray,
-      title: note.title.trim(),
-      content: note.content,
-      is_pinned: note.is_pinned ?? false,
-      tags: note.tags ?? [],
-    })
+    .insert(insertRow)
     .select(`
       *,
       strategy:strategies(id, name, slug)
@@ -348,6 +394,22 @@ export async function updateNote(
     }
   }
 
+  // Validate trade_refs if provided
+  if (updates.trade_refs !== undefined && updates.trade_refs.length > 0) {
+    for (const ref of updates.trade_refs) {
+      const tableName = `${ref.mode}_trades`;
+      const { data: trade, error: tradeError } = await supabase
+        .from(tableName)
+        .select('id')
+        .eq('id', ref.id)
+        .eq('user_id', userId)
+        .single();
+      if (tradeError || !trade) {
+        return { data: null, error: { message: `Trade not found or access denied (${ref.mode})` } };
+      }
+    }
+  }
+
   const updateData: any = {};
   if (updates.title !== undefined) updateData.title = updates.title.trim();
   if (updates.content !== undefined) updateData.content = updates.content;
@@ -368,6 +430,7 @@ export async function updateNote(
   
   if (updates.is_pinned !== undefined) updateData.is_pinned = updates.is_pinned;
   if (updates.tags !== undefined) updateData.tags = updates.tags;
+  if (updates.trade_refs !== undefined) updateData.trade_refs = updates.trade_refs.length > 0 ? updates.trade_refs : null;
 
   const { data, error } = await supabase
     .from('notes')
