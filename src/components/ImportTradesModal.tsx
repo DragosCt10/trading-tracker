@@ -107,6 +107,8 @@ export default function ImportTradesModal({
   const [mapping, setMapping] = useState<Record<string, string | null>>({});
   const [defaultRiskPct, setDefaultRiskPct] = useState<number | null>(null);
   const [customRiskInput, setCustomRiskInput] = useState('');
+  const [defaultRR, setDefaultRR] = useState<number | null>(null);
+  const [customRRInput, setCustomRRInput] = useState('');
   const [skipErrorRows, setSkipErrorRows] = useState(true);
 
   const [parseResult, setParseResult] = useState<{ rows: ReturnType<typeof parseCsvTrades>['rows']; errors: ReturnType<typeof parseCsvTrades>['errors'] } | null>(null);
@@ -123,6 +125,8 @@ export default function ImportTradesModal({
     setMapping({});
     setDefaultRiskPct(null);
     setCustomRiskInput('');
+    setDefaultRR(null);
+    setCustomRRInput('');
     setParseResult(null);
     setImportResult(null);
     setImportProgress(0);
@@ -229,6 +233,7 @@ export default function ImportTradesModal({
     ) as Record<string, string>;
     const result = parseCsvTrades(csvText, confirmedMapping, {
       ...(defaultRiskPct !== null ? { risk_per_trade: defaultRiskPct } : {}),
+      ...(defaultRR !== null ? { risk_reward_ratio: defaultRR } : {}),
       ...(activeAccount?.account_balance ? { account_balance: activeAccount.account_balance } : {}),
     });
     setParseResult(result);
@@ -281,8 +286,11 @@ export default function ImportTradesModal({
 
   const missingRequired = step === 'mapping' ? getMissingRequiredFields() : [];
   const riskIsMissing = missingRequired.includes('risk_per_trade');
+  const rrIsMissing = missingRequired.includes('risk_reward_ratio');
   const effectiveMissingRequired = missingRequired.filter(
-    (f) => !(f === 'risk_per_trade' && defaultRiskPct !== null)
+    (f) =>
+      !(f === 'risk_per_trade' && defaultRiskPct !== null) &&
+      !(f === 'risk_reward_ratio' && defaultRR !== null)
   );
   const canProceedToPreview = effectiveMissingRequired.length === 0;
 
@@ -448,7 +456,7 @@ export default function ImportTradesModal({
                     </p>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    No Risk % column? You can set a custom risk for all trades in the next step; it will be used to calculate P&L and profit.
+                    No Risk % or Risk:Reward column? You can set defaults for all trades in the next step; they will be used to calculate P&L and profit.
                   </p>
                 </div>
               </div>
@@ -469,10 +477,20 @@ export default function ImportTradesModal({
                 <span className="text-red-500">*</span>. Use the dropdowns to fix any mistakes.
               </p>
 
-              {missingRequired.filter((f) => f !== 'risk_per_trade').length > 0 && (
+              {missingRequired.filter(
+                (f) =>
+                  f !== 'risk_per_trade' &&
+                  !(f === 'risk_reward_ratio' && defaultRR !== null)
+              ).length > 0 && (
                 <div className="text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
                   <span className="font-semibold">Required fields not mapped: </span>
-                  {missingRequired.filter((f) => f !== 'risk_per_trade').join(', ')}
+                  {missingRequired
+                    .filter(
+                      (f) =>
+                        f !== 'risk_per_trade' &&
+                        !(f === 'risk_reward_ratio' && defaultRR !== null)
+                    )
+                    .join(', ')}
                 </div>
               )}
 
@@ -530,6 +548,58 @@ export default function ImportTradesModal({
                     {defaultRiskPct !== null && (
                       <p className="text-xs text-slate-600 dark:text-slate-400">
                         All imported trades will use <span className="font-semibold text-slate-800 dark:text-slate-200">{defaultRiskPct}%</span> risk.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {rrIsMissing && (
+                <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/60 overflow-hidden bg-slate-50/50 dark:bg-slate-800/30">
+                  <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/60">
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Risk:Reward Ratio not found in CSV — set a default for all trades
+                    </p>
+                  </div>
+                  <div className="px-4 py-4 flex flex-col gap-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {[1, 1.5, 2, 2.5].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => { setDefaultRR(preset); setCustomRRInput(''); }}
+                          className={`px-4 py-1.5 rounded-lg text-sm font-semibold border transition-all cursor-pointer ${
+                            defaultRR === preset && customRRInput === ''
+                              ? 'bg-slate-200/80 dark:bg-slate-700/60 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600'
+                              : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-slate-800/50 hover:border-slate-300 dark:hover:border-slate-600'
+                          }`}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                      <div className="flex items-center gap-1.5 ml-1">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">or custom:</span>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            min="0.1"
+                            max="100"
+                            step="0.1"
+                            placeholder="0.00"
+                            value={customRRInput}
+                            onChange={(e) => {
+                              setCustomRRInput(e.target.value);
+                              const parsed = parseFloat(e.target.value);
+                              setDefaultRR(!isNaN(parsed) && parsed > 0 ? parsed : null);
+                            }}
+                            className="h-8 w-24 text-sm rounded-lg border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/50 pr-6"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    {defaultRR !== null && (
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        All imported trades will use <span className="font-semibold text-slate-800 dark:text-slate-200">{defaultRR}</span> risk:reward ratio.
                       </p>
                     )}
                   </div>
