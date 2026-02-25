@@ -166,7 +166,19 @@ export default function ImportTradesModal({
         body: JSON.stringify({ headers: csvHeaders }),
       });
       const { mapping: aiMapping } = await res.json() as { mapping: Record<string, string | null> };
-      setMapping(aiMapping ?? {});
+
+      // Deduplicate: each DB field can appear at most once — keep the first occurrence
+      const seenFields = new Set<string>();
+      const deduped: Record<string, string | null> = {};
+      for (const [header, field] of Object.entries(aiMapping ?? {})) {
+        if (!field || !seenFields.has(field)) {
+          deduped[header] = field;
+          if (field) seenFields.add(field);
+        } else {
+          deduped[header] = null;
+        }
+      }
+      setMapping(deduped);
     } catch {
       setMapping({});
     }
