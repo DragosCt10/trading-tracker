@@ -16,7 +16,6 @@ import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '@/hooks/useTheme';
-import ActionBar from '../shared/ActionBar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -423,13 +422,6 @@ export default function Navbar() {
         </div>
       </div>
       </nav>
-      
-      {/* ActionBar - Under Navbar, centered, responsive */}
-      <div className="fixed top-20 left-1/2 z-40 w-auto max-w-[calc(100vw-2rem)] -translate-x-1/2 transform">
-        <div className="inline-block mx-2 sm:mx-4 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-2 sm:px-3 pb-2 pt-2">
-          <ActionBar />
-        </div>
-      </div>
 
       <ThemePickerModal open={themePickerOpen} onClose={() => setThemePickerOpen(false)} />
     </>
