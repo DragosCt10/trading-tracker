@@ -714,10 +714,11 @@ html.dark[data-color-theme="ice"] {
   opacity: 0.6;
 }
 
-/* Modal header icon box (e.g. Add New Trade plus icon) — theme-aware */
+/* Modal header icon box (e.g. Add New Trade plus icon) — theme-aware. Also used for active Confidence/Mind state scale buttons. */
 .themed-header-icon-box {
   background: linear-gradient(to bottom right, color-mix(in srgb, var(--tc-primary) 10%, transparent), color-mix(in srgb, var(--tc-accent) 10%, transparent));
   border: 1px solid var(--tc-border);
+  color: var(--tc-primary);
 }
 .dark .themed-header-icon-box {
   background: linear-gradient(to bottom right, color-mix(in srgb, var(--tc-primary) 20%, transparent), color-mix(in srgb, var(--tc-accent) 20%, transparent));
