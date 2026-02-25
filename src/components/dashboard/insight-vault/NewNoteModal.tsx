@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createNote } from '@/lib/server/notes';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
@@ -100,22 +100,32 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
     staleTime: 60 * 1000,
   });
 
-  const tradesForLinking = tradesForLinkingData?.pages.flatMap((p) => p.trades) ?? [];
+  const tradesForLinking = useMemo(
+    () => tradesForLinkingData?.pages.flatMap((p) => p.trades) ?? [],
+    [tradesForLinkingData]
+  );
+
+  // Refs so the observer callback always reads fresh values without recreating the observer
+  const isFetchingNextPageRef = useRef(isFetchingNextPage);
+  const fetchNextPageRef = useRef(fetchNextPage);
+  isFetchingNextPageRef.current = isFetchingNextPage;
+  fetchNextPageRef.current = fetchNextPage;
 
   // Infinite scroll: load more when sentinel enters viewport
+  // Only recreate when accountId or hasNextPage changes (sentinel enters/leaves DOM)
   useEffect(() => {
-    if (!tradePickerSelection.accountId || !hasNextPage || isFetchingNextPage) return;
+    if (!tradePickerSelection.accountId || !hasNextPage) return;
     const el = tradeListScrollSentinelRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) fetchNextPage();
+        if (entries[0].isIntersecting && !isFetchingNextPageRef.current) fetchNextPageRef.current();
       },
       { root: el.closest('.overflow-y-auto'), rootMargin: '100px', threshold: 0 }
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [tradePickerSelection.accountId, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [tradePickerSelection.accountId, hasNextPage]);
 
   const isTradeSelected = (id: string, mode: string) =>
     note.trade_refs.some((r) => r.id === id && r.mode === mode);
