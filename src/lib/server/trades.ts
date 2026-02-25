@@ -198,7 +198,6 @@ export async function createTrade(params: {
     calculated_profit: params.calculated_profit,
     pnl_percentage: params.pnl_percentage,
   };
-  delete row.rr_hit_1_4; // Column removed from DB
 
   const { error } = await supabase.from(tableName).insert([row] as any);
 
@@ -345,7 +344,6 @@ export async function importTrades(params: {
       account_id: params.account_id,
       strategy_id: params.strategy_id,
     };
-    delete row.rr_hit_1_4; // Column removed from DB
     validRows.push({ index, row });
   });
 
