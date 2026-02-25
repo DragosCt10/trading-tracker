@@ -34,4 +34,8 @@ export interface Trade {
   strategy_id?: string | null;
   trend: string | null;
   fvg_size?: number | null;  // e.g. 1, 1.5, 2, 2.5
+  /** Confidence at entry (1–5): 1=very low, 5=very confident. Optional. */
+  confidence_at_entry?: number | null;
+  /** Mind state at entry (1–5): 1=very poor, 5=very good. Optional. */
+  mind_state_at_entry?: number | null;
 }
