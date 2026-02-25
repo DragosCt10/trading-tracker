@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Note, TradeRef } from '@/types/note';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { Note } from '@/types/note';
 import { deleteNote, updateNote } from '@/lib/server/notes';
-import { useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
 import { getTradesForNoteLinking } from '@/lib/server/trades';
@@ -55,7 +55,6 @@ export default function NoteDetailsModal({
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPreview, setIsPreview] = useState(false);
-  const queryClient = useQueryClient();
 
   const [editedNote, setEditedNote] = useState<Note>({
     ...note,
@@ -73,7 +72,7 @@ export default function NoteDetailsModal({
   const displayNote = note;
 
   // Derived: linked trades for display (list note has linkedTradesFull; getNoteById would set trades)
-  const linkedTradesForDisplay =
+  const linkedTradesForDisplay = useMemo(() =>
     displayNote.trades && displayNote.trades.length > 0
       ? displayNote.trades
       : (displayNote.linkedTradesFull?.map((t) => ({
@@ -84,7 +83,8 @@ export default function NoteDetailsModal({
           direction: t.direction,
           trade_outcome: t.trade_outcome,
           strategy_name: undefined as string | undefined,
-        })) ?? []);
+        })) ?? []),
+  [displayNote.trades, displayNote.linkedTradesFull]);
 
   // Update editedNote when note prop changes (e.g. list refetched)
   useEffect(() => {
@@ -116,22 +116,31 @@ export default function NoteDetailsModal({
     staleTime: 60 * 1000,
   });
 
-  const tradesForLinking = tradesForLinkingData?.pages.flatMap((p) => p.trades) ?? [];
+  const tradesForLinking = useMemo(
+    () => tradesForLinkingData?.pages.flatMap((p) => p.trades) ?? [],
+    [tradesForLinkingData]
+  );
 
-  // Infinite scroll: load more when sentinel enters viewport
+  // Refs so the observer callback always reads fresh values without recreating the observer
+  const isFetchingNextPageRef = useRef(isFetchingNextPage);
+  const fetchNextPageRef = useRef(fetchNextPage);
+  isFetchingNextPageRef.current = isFetchingNextPage;
+  fetchNextPageRef.current = fetchNextPage;
+
+  // Infinite scroll: only recreate when accountId or hasNextPage changes (sentinel enters/leaves DOM)
   useEffect(() => {
-    if (!tradePickerSelection.accountId || !hasNextPage || isFetchingNextPage) return;
+    if (!tradePickerSelection.accountId || !hasNextPage) return;
     const el = tradeListScrollSentinelRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) fetchNextPage();
+        if (entries[0].isIntersecting && !isFetchingNextPageRef.current) fetchNextPageRef.current();
       },
       { root: el.closest('.overflow-y-auto'), rootMargin: '100px', threshold: 0 }
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [tradePickerSelection.accountId, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [tradePickerSelection.accountId, hasNextPage]);
 
   const isTradeSelected = (id: string, mode: string) =>
     (editedNote.trade_refs ?? []).some((r) => r.id === id && r.mode === mode);
