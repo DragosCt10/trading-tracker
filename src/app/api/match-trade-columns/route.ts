@@ -27,6 +27,7 @@ Available DB fields: ${TRADE_FIELDS.join(', ')}
 Rules:
 - Return a JSON object where each key is a CSV header and the value is the matching DB field name, or null if no clear match.
 - Be lenient with fuzzy/abbreviated names. Examples: "Date"→"trade_date", "Win/Loss"→"trade_outcome", "RR"→"risk_reward_ratio", "Setup"→"setup_type", "Risk %"→"risk_per_trade", "BE"→"break_even", "P&L"→"pnl_percentage".
+- For direction (Long/Short or Buy/Sell): map any of these to "direction": "Direction", "order-type", "order type", "Order Type", "side", "Side", "type", "Type", "action", "buy/sell".
 - Each DB field should appear at most once in the output.
 - Return null for headers with no reasonable match.`;
 
