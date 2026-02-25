@@ -52,8 +52,8 @@ export interface Database {
           setup_type: string;
           liquidity: string;
           sl_size: number; // numeric(10,2)
-          direction: 'Long' | 'Short';
-          trade_outcome: 'Win' | 'Lose';
+          direction: string; // 'Long' | 'Short';
+          trade_outcome: string; // 'Win' | 'Lose';
           break_even: boolean | null;
           reentry: boolean | null;
           news_related: boolean | null;
@@ -88,8 +88,8 @@ export interface Database {
           setup_type: string;
           liquidity: string;
           sl_size: number;
-          direction: 'Long' | 'Short';
-          trade_outcome: 'Win' | 'Lose';
+          direction: string; // 'Long' | 'Short';
+          trade_outcome: string; // 'Win' | 'Lose';
         };
         Update: Partial<Database['public']['Tables']['live_trades']['Row']>;
       };
@@ -108,8 +108,8 @@ export interface Database {
           setup_type: string;
           liquidity: string;
           sl_size: number; // numeric(10,2)
-          direction: 'Long' | 'Short';
-          trade_outcome: 'Win' | 'Lose';
+          direction: string; // 'Long' | 'Short';
+          trade_outcome: string; // 'Win' | 'Lose';
           break_even: boolean | null;
           reentry: boolean | null;
           news_related: boolean | null;
@@ -144,8 +144,8 @@ export interface Database {
           setup_type: string;
           liquidity: string;
           sl_size: number;
-          direction: 'Long' | 'Short';
-          trade_outcome: 'Win' | 'Lose';
+          direction: string; // 'Long' | 'Short';
+          trade_outcome: string; // 'Win' | 'Lose';
         };
         Update: Partial<Database['public']['Tables']['backtesting_trades']['Row']>;
       };
@@ -164,8 +164,8 @@ export interface Database {
           setup_type: string;
           liquidity: string;
           sl_size: number; // numeric(10,2)
-          direction: 'Long' | 'Short';
-          trade_outcome: 'Win' | 'Lose';
+          direction: string; // 'Long' | 'Short';
+          trade_outcome: string; // 'Win' | 'Lose';
           break_even: boolean | null;
           reentry: boolean | null;
           news_related: boolean | null;
@@ -200,8 +200,8 @@ export interface Database {
           setup_type: string;
           liquidity: string;
           sl_size: number;
-          direction: 'Long' | 'Short';
-          trade_outcome: 'Win' | 'Lose';
+          direction: string; // 'Long' | 'Short';
+          trade_outcome: string; // 'Win' | 'Lose';
         };
         Update: Partial<Database['public']['Tables']['demo_trades']['Row']>;
       };
