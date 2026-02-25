@@ -13,15 +13,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { X, Check } from 'lucide-react';
-import { parseCsvTrades, extractCsvHeaders, getRawRowsFromCsv, aiRowToParsedTrade } from '@/utils/tradeImportParser';
-import type { RowError } from '@/utils/tradeImportParser';
+import { parseCsvTrades, extractCsvHeaders } from '@/utils/tradeImportParser';
 import { importTrades } from '@/lib/server/trades';
-import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import type { Database } from '@/types/supabase';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
@@ -111,13 +107,11 @@ export default function ImportTradesModal({
   const [customRiskInput, setCustomRiskInput] = useState('');
   const [defaultRR, setDefaultRR] = useState<number | null>(null);
   const [customRRInput, setCustomRRInput] = useState('');
-  const [skipErrorRows, setSkipErrorRows] = useState(true);
 
   const [parseResult, setParseResult] = useState<{ rows: ReturnType<typeof parseCsvTrades>['rows']; errors: ReturnType<typeof parseCsvTrades>['errors'] } | null>(null);
   const [importResult, setImportResult] = useState<{ inserted: number; failed: { row: number; reason: string }[] } | null>(null);
   const [importProgress, setImportProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isNormalizing, setIsNormalizing] = useState(false);
 
   function resetState() {
     setStep('upload');
@@ -134,7 +128,6 @@ export default function ImportTradesModal({
     setImportResult(null);
     setImportProgress(0);
     setErrorMessage('');
-    setSkipErrorRows(true);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
@@ -243,67 +236,23 @@ export default function ImportTradesModal({
     return Array.from(requiredFields).filter((f) => !mapped.has(f));
   }
 
-  async function handleProceedToPreview() {
+  function handleProceedToPreview() {
     const confirmedMapping = Object.fromEntries(
       Object.entries(mapping).filter(([, v]) => v !== null)
     ) as Record<string, string>;
-    setErrorMessage('');
-    setIsNormalizing(true);
-    try {
-      const { rawRows } = getRawRowsFromCsv(csvText, confirmedMapping);
-      if (rawRows.length === 0) {
-        setParseResult({ rows: [], errors: [{ rowIndex: 0, field: 'file', message: 'No data rows found in CSV.' }] });
-        setStep('preview');
-        return;
-      }
-      const res = await fetch('/api/normalize-trade-rows', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          rows: rawRows,
-          defaults: {
-            risk_per_trade: defaultRiskPct ?? 1,
-            risk_reward_ratio: 1,
-          },
-        }),
-      });
-      const data = await res.json() as { trades?: Record<string, unknown>[]; errors?: { rowIndex: number; message: string }[] };
-      const aiTrades = Array.isArray(data.trades) ? data.trades : [];
-      const aiErrors = Array.isArray(data.errors) ? data.errors : [];
-      let rows = aiTrades.map((t) => aiRowToParsedTrade(t));
-      const balance = activeAccount?.account_balance;
-      if (balance) {
-        rows = rows.map((row) => {
-          if (row.calculated_profit != null && row.pnl_percentage != null) return row;
-          const pnl = calculateTradePnl(
-            { trade_outcome: row.trade_outcome, risk_per_trade: row.risk_per_trade, risk_reward_ratio: row.risk_reward_ratio, break_even: row.break_even },
-            balance
-          );
-          return {
-            ...row,
-            calculated_profit: row.calculated_profit ?? pnl.calculated_profit,
-            pnl_percentage: row.pnl_percentage ?? pnl.pnl_percentage,
-          };
-        });
-      }
-      const errors: RowError[] = aiErrors.map((e) => ({ rowIndex: e.rowIndex, field: 'import', message: e.message }));
-      setParseResult({ rows, errors });
-      setStep('preview');
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'AI normalization failed. Please try again.');
-    } finally {
-      setIsNormalizing(false);
-    }
+    const result = parseCsvTrades(csvText, confirmedMapping, {
+      ...(defaultRiskPct !== null ? { risk_per_trade: defaultRiskPct } : {}),
+      ...(defaultRR !== null ? { risk_reward_ratio: defaultRR } : {}),
+      ...(activeAccount?.account_balance ? { account_balance: activeAccount.account_balance } : {}),
+    });
+    setParseResult(result);
+    setStep('preview');
   }
 
   async function handleImport() {
     if (!parseResult || !activeAccount) return;
 
-    const rowsToImport = skipErrorRows
-      ? parseResult.rows
-      : parseResult.rows; // both paths use valid rows; errors already excluded by parser
-
-    if (rowsToImport.length === 0) {
+    if (parseResult.rows.length === 0) {
       setErrorMessage('No valid rows to import.');
       return;
     }
@@ -321,7 +270,7 @@ export default function ImportTradesModal({
         mode,
         account_id: activeAccount.id,
         strategy_id: strategyId || null,
-        trades: rowsToImport,
+        trades: parseResult.rows,
       });
 
       clearInterval(progressInterval);
@@ -528,16 +477,6 @@ export default function ImportTradesModal({
           {/* ── Step: Mapping ── */}
           {step === 'mapping' && (
             <div className="flex flex-col gap-4">
-              {isNormalizing && (
-                <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/80 dark:bg-purple-900/20 px-4 py-3 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-violet-600 flex items-center justify-center animate-pulse">
-                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  </div>
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300">AI is normalizing your trades…</p>
-                </div>
-              )}
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 AI suggested the mappings below. Required fields are marked with{' '}
                 <span className="text-red-500">*</span>. Use the dropdowns to fix any mistakes.
@@ -548,15 +487,25 @@ export default function ImportTradesModal({
                   f !== 'risk_per_trade' &&
                   !(f === 'risk_reward_ratio' && defaultRR !== null)
               ).length > 0 && (
-                <div className="text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
-                  <span className="font-semibold">Required fields not mapped: </span>
-                  {missingRequired
-                    .filter(
-                      (f) =>
-                        f !== 'risk_per_trade' &&
-                        !(f === 'risk_reward_ratio' && defaultRR !== null)
-                    )
-                    .join(', ')}
+                <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30">
+                  <div className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-red-600 dark:text-red-400 border-b border-slate-200 dark:border-slate-700">
+                    Required fields not mapped
+                  </div>
+                  <div className="max-h-40 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
+                    {missingRequired
+                      .filter(
+                        (f) =>
+                          f !== 'risk_per_trade' &&
+                          !(f === 'risk_reward_ratio' && defaultRR !== null)
+                      )
+                      .map((field) => (
+                        <div key={field} className="px-4 py-2.5 text-sm">
+                          <span className="font-semibold text-red-600 dark:text-red-400">{field}</span>
+                          <span className="text-slate-400 dark:text-slate-500 mx-1.5">·</span>
+                          <span className="text-slate-700 dark:text-slate-300">Required field not mapped</span>
+                        </div>
+                      ))}
+                  </div>
                 </div>
               )}
 
@@ -747,24 +696,9 @@ export default function ImportTradesModal({
                 )}
               </div>
 
-              {/* Skip errors option + validation errors */}
+              {/* Validation errors */}
               {parseResult.errors.length > 0 && (
-                <>
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <Checkbox
-                        id="skip-errors"
-                        checked={skipErrorRows}
-                        onCheckedChange={(v) => setSkipErrorRows(!!v)}
-                        className="themed-checkbox h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 transition-colors duration-150 data-[state=checked]:!text-white"
-                      />
-                      <Label htmlFor="skip-errors" className="text-sm font-medium text-slate-700 dark:text-slate-200 cursor-pointer select-none">
-                        Import valid rows only and skip errors (recommended)
-                      </Label>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30">
+                <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30">
                     <div className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-red-600 dark:text-red-400 border-b border-slate-200 dark:border-slate-700">
                       Validation errors
                     </div>
@@ -780,7 +714,6 @@ export default function ImportTradesModal({
                       ))}
                     </div>
                   </div>
-                </>
               )}
 
               {/* Preview table */}
@@ -929,11 +862,11 @@ export default function ImportTradesModal({
                 ← Re-upload
               </Button>
               <Button
-                onClick={() => void handleProceedToPreview()}
-                disabled={!canProceedToPreview || isNormalizing}
+                onClick={handleProceedToPreview}
+                disabled={!canProceedToPreview}
                 className="cursor-pointer rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold border-0 shadow-md shadow-purple-500/30 disabled:opacity-50"
               >
-                {isNormalizing ? 'AI normalizing…' : 'Preview →'}
+                Preview →
               </Button>
             </>
           ) : step === 'preview' ? (
