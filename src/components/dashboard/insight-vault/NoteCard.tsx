@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Eye, Pin } from 'lucide-react';
+import { ArrowRight, ChevronDown, Eye, Pin } from 'lucide-react';
 import { Note } from '@/types/note';
 import { format } from 'date-fns';
 import { Trade } from '@/types/trade';
@@ -110,13 +110,16 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
                     <TooltipTrigger asChild>
                       <Badge
                         variant="outline"
-                        className="shadow-none text-xs font-normal bg-slate-100/80 dark:bg-slate-800/80 border-slate-200 dark:border-slate-600 cursor-pointer hover:bg-slate-200/80 dark:hover:bg-slate-700/80"
+                        title="Hover to view linked trades"
+                        aria-label="Hover to view linked trades"
+                        className="shadow-none text-xs font-normal bg-slate-100/80 dark:bg-slate-800/80 border-slate-200 dark:border-slate-600 cursor-pointer hover:bg-slate-200/80 dark:hover:bg-slate-700/80 inline-flex items-center gap-1"
                       >
                         {note.trade_refs.length} trade{note.trade_refs.length === 1 ? '' : 's'}
+                        <ChevronDown className="h-3 w-3 opacity-60 shrink-0" aria-hidden />
                       </Badge>
                     </TooltipTrigger>
                     <TooltipContent
-                      side="top"
+                      side="bottom"
                       align="start"
                       sideOffset={6}
                       className={cn(
