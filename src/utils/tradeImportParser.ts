@@ -25,6 +25,18 @@ function parseValue(raw: string): string {
   return trimmed;
 }
 
+/** Trim and strip BOM / non-breaking space so " WIN " and similar normalize correctly */
+function normalizeTrim(value: string): string {
+  return value.replace(/\uFEFF/g, '').replace(/\u00A0/g, ' ').trim();
+}
+
+/** Normalize numeric string: strip currency symbols and spaces, comma → dot. Use before parseFloat. */
+function normalizeNumericInput(raw: string): string {
+  return normalizeTrim(raw)
+    .replace(/[\s€$£¥%]/g, '')
+    .replace(',', '.');
+}
+
 /** Split a CSV line respecting quoted fields (commas inside quotes are not delimiters) */
 function splitCsvLine(line: string): string[] {
   const result: string[] = [];
@@ -62,8 +74,8 @@ function sanitizeMarketInput(value: string): string {
 
 /** Normalize direction: handles any casing and common abbreviations */
 function normalizeDirection(value: string): 'Long' | 'Short' | null {
-  if (!value) return null;
-  const v = value.trim().toLowerCase();
+  const v = normalizeTrim(value).toLowerCase();
+  if (!v) return null;
   if (v === 'long' || v === 'l' || v === 'buy' || v === 'b') return 'Long';
   if (v === 'short' || v === 's' || v === 'sell') return 'Short';
   return null;
@@ -71,10 +83,10 @@ function normalizeDirection(value: string): 'Long' | 'Short' | null {
 
 /** Normalize outcome: handles any casing and common abbreviations */
 function normalizeOutcome(value: string): 'Win' | 'Lose' | null {
-  if (!value) return null;
-  const v = value.trim().toLowerCase();
-  if (v === 'win' || v === 'w' || v === 'winner' || v === 'won') return 'Win';
-  if (v === 'lose' || v === 'loss' || v === 'l' || v === 'loser' || v === 'lost') return 'Lose';
+  const v = normalizeTrim(value).toLowerCase();
+  if (!v) return null;
+  if (v === 'win' || v === 'w' || v === 'winner' || v === 'won' || v === 'wins') return 'Win';
+  if (v === 'lose' || v === 'loss' || v === 'l' || v === 'loser' || v === 'lost' || v === 'losing') return 'Lose';
   return null;
 }
 
@@ -128,71 +140,86 @@ export function parseCsvTrades(
 
     const rowErrors: RowError[] = [];
 
-    // --- Required: trade_date ---
+    // --- Required: trade_date (normalize first; error only when empty or still invalid) ---
     const rawDate = fieldValues['trade_date'] ?? '';
+    const dateTrimmed = normalizeTrim(rawDate);
     let parsedDate: Date | null = null;
     let normalizedDate = rawDate;
-    if (!rawDate) {
+    if (!dateTrimmed) {
       rowErrors.push({ rowIndex, field: 'trade_date', message: 'Missing required field: Date' });
     } else {
-      parsedDate = parseISO(rawDate);
+      parsedDate = parseISO(dateTrimmed);
       if (!isValid(parsedDate)) {
-        // Try DD.MM.YYYY (European dot-separated format)
-        const dotMatch = rawDate.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+        const dotMatch = dateTrimmed.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
         if (dotMatch) {
           normalizedDate = `${dotMatch[3]}-${dotMatch[2]}-${dotMatch[1]}`;
           parsedDate = parseISO(normalizedDate);
         }
       }
       if (!isValid(parsedDate)) {
-        rowErrors.push({ rowIndex, field: 'trade_date', message: `Invalid date: "${rawDate}" (expected YYYY-MM-DD or DD.MM.YYYY)` });
+        const slashMatch = dateTrimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (slashMatch) {
+          normalizedDate = `${slashMatch[3]}-${slashMatch[2]}-${slashMatch[1]}`;
+          parsedDate = parseISO(normalizedDate);
+        }
+      }
+      if (!isValid(parsedDate)) {
+        rowErrors.push({ rowIndex, field: 'trade_date', message: `Invalid date: "${dateTrimmed}" (expected YYYY-MM-DD, DD.MM.YYYY or DD/MM/YYYY)` });
         parsedDate = null;
       }
     }
 
-    // --- Required: market ---
+    // --- Required: market (sanitize first; error only when empty or still invalid) ---
     const rawMarket = fieldValues['market'] ?? '';
+    const marketTrimmed = normalizeTrim(rawMarket);
     const sanitizedMarket = sanitizeMarketInput(rawMarket);
-    if (!rawMarket) {
+    if (!marketTrimmed) {
       rowErrors.push({ rowIndex, field: 'market', message: 'Missing required field: Market' });
     } else if (!isValidMarket(sanitizedMarket)) {
-      rowErrors.push({ rowIndex, field: 'market', message: `Invalid market: "${rawMarket}"` });
+      rowErrors.push({ rowIndex, field: 'market', message: `Invalid market: "${sanitizedMarket || '(empty after removing invalid characters)'}" (use letters/numbers or pair with slash, e.g. EURUSD)` });
     }
 
-    // --- Required: direction ---
+    // --- Required: direction (normalize first; error only when empty or still invalid) ---
     const rawDirection = fieldValues['direction'] ?? '';
     const normalizedDirection = normalizeDirection(rawDirection);
-    if (!rawDirection) {
+    if (!normalizeTrim(rawDirection)) {
       rowErrors.push({ rowIndex, field: 'direction', message: 'Missing required field: Direction' });
     } else if (normalizedDirection === null) {
       rowErrors.push({ rowIndex, field: 'direction', message: `Direction must be "Long" or "Short", got: "${rawDirection}"` });
     }
 
-    // --- Required: trade_outcome ---
+    // --- Required: trade_outcome (normalize first; error only when empty or still invalid) ---
     const rawOutcome = fieldValues['trade_outcome'] ?? '';
     const normalizedOutcome = normalizeOutcome(rawOutcome);
-    if (!rawOutcome) {
+    if (!normalizeTrim(rawOutcome)) {
       rowErrors.push({ rowIndex, field: 'trade_outcome', message: 'Missing required field: Outcome' });
     } else if (normalizedOutcome === null) {
       rowErrors.push({ rowIndex, field: 'trade_outcome', message: `Outcome must be "Win" or "Lose", got: "${rawOutcome}"` });
     }
 
-    // --- Required numerics ---
+    // --- Required numerics (normalize string first; error only when empty or still not a number) ---
     const rawRisk = fieldValues['risk_per_trade'] ?? '';
-    const riskPerTrade = rawRisk !== '' ? parseFloat(rawRisk) : (defaults?.risk_per_trade ?? NaN);
-    if (isNaN(riskPerTrade)) {
+    const riskNormalized = normalizeNumericInput(rawRisk);
+    const riskPerTrade = riskNormalized !== '' ? parseFloat(riskNormalized) : (defaults?.risk_per_trade ?? NaN);
+    if (riskNormalized !== '' && isNaN(riskPerTrade)) {
       rowErrors.push({ rowIndex, field: 'risk_per_trade', message: `Risk % must be a number, got: "${rawRisk}"` });
+    } else if (riskNormalized === '' && (defaults?.risk_per_trade == null || isNaN(defaults.risk_per_trade))) {
+      rowErrors.push({ rowIndex, field: 'risk_per_trade', message: 'Missing required field: Risk % (or set a default in the previous step)' });
     }
 
     const rawRR = fieldValues['risk_reward_ratio'] ?? '';
-    const rrRatio = parseFloat(rawRR);
-    if (rawRR === '' || isNaN(rrRatio)) {
+    const rrNormalized = normalizeNumericInput(rawRR);
+    const rrRatio = parseFloat(rrNormalized);
+    if (!rrNormalized) {
+      rowErrors.push({ rowIndex, field: 'risk_reward_ratio', message: 'Missing required field: Risk:Reward Ratio' });
+    } else if (isNaN(rrRatio)) {
       rowErrors.push({ rowIndex, field: 'risk_reward_ratio', message: `Risk:Reward Ratio must be a number, got: "${rawRR}"` });
     }
 
     const rawSL = fieldValues['sl_size'] ?? '';
-    const slSize = rawSL === '' ? 0 : parseFloat(rawSL);
-    if (rawSL !== '' && isNaN(slSize)) {
+    const slNormalized = normalizeNumericInput(rawSL);
+    const slSize = slNormalized === '' ? 0 : parseFloat(slNormalized);
+    if (slNormalized !== '' && isNaN(slSize)) {
       rowErrors.push({ rowIndex, field: 'sl_size', message: `SL Size must be a number, got: "${rawSL}"` });
     }
 
@@ -208,19 +235,24 @@ export function parseCsvTrades(
     const quarter = parsedDate ? deriveQuarter(parsedDate) : (fieldValues['quarter'] ?? '');
 
     const rawRRLong = fieldValues['risk_reward_ratio_long'] ?? '';
-    const rrLong = rawRRLong !== '' ? parseFloat(rawRRLong) : (normalizedOutcome === 'Lose' ? 0 : rrRatio);
+    const rrLongNorm = normalizeNumericInput(rawRRLong);
+    const rrLong = rrLongNorm !== '' ? parseFloat(rrLongNorm) : (normalizedOutcome === 'Lose' ? 0 : rrRatio);
 
     const rawCalcProfit = fieldValues['calculated_profit'] ?? '';
-    const csvCalcProfit = rawCalcProfit !== '' ? parseFloat(rawCalcProfit) : undefined;
+    const calcProfitNorm = normalizeNumericInput(rawCalcProfit);
+    const csvCalcProfit = calcProfitNorm !== '' ? parseFloat(calcProfitNorm) : undefined;
 
     const rawPnl = fieldValues['pnl_percentage'] ?? '';
-    const csvPnlPct = rawPnl !== '' ? parseFloat(rawPnl) : undefined;
+    const pnlNorm = normalizeNumericInput(rawPnl);
+    const csvPnlPct = pnlNorm !== '' ? parseFloat(pnlNorm) : undefined;
 
     const rawDisplace = fieldValues['displacement_size'] ?? '';
-    const displacementSize = rawDisplace !== '' ? parseFloat(rawDisplace) : 0;
+    const displaceNorm = normalizeNumericInput(rawDisplace);
+    const displacementSize = displaceNorm !== '' ? parseFloat(displaceNorm) : 0;
 
     const rawFvgSize = fieldValues['fvg_size'] ?? '';
-    const fvgSize = rawFvgSize !== '' ? parseFloat(rawFvgSize) : null;
+    const fvgNorm = normalizeNumericInput(rawFvgSize);
+    const fvgSize = fvgNorm !== '' ? parseFloat(fvgNorm) : null;
 
     const breakEven = parseBool(fieldValues['break_even']);
 
