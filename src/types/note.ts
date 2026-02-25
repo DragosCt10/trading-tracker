@@ -1,3 +1,6 @@
+/** Reference to a trade: id is the trade UUID, mode is the table (live/demo/backtesting) */
+export type TradeRef = { id: string; mode: 'live' | 'backtesting' | 'demo' };
+
 export interface Note {
   id: string;
   user_id: string;
@@ -9,6 +12,8 @@ export interface Note {
   updated_at: string;
   is_pinned?: boolean;
   tags?: string[];
+  /** Link insight to specific trades (from one or more strategies) */
+  trade_refs?: TradeRef[];
   // Joined data (optional, when fetched with strategy/strategies)
   strategy?: {
     id: string;
@@ -19,5 +24,15 @@ export interface Note {
     id: string;
     name: string;
     slug: string;
+  }>;
+  /** Resolved trade summaries when note has trade_refs (for display) */
+  trades?: Array<{
+    id: string;
+    mode: string;
+    trade_date: string;
+    market: string;
+    direction: string;
+    trade_outcome: string;
+    strategy_name?: string;
   }>;
 }
