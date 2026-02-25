@@ -198,6 +198,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
           </div>
         </>
       )}
+
     </>
   );
 }
