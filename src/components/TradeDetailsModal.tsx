@@ -20,6 +20,8 @@ const labelClass = 'block text-sm font-semibold text-slate-700 dark:text-slate-3
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectTrigger,
@@ -971,26 +973,18 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             </div>
             )}
 
-            {/* Notes - only show when has notes or when editing */}
-            {(isEditing || (editedTrade?.notes != null && editedTrade.notes !== '')) && (
-            <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Notes
-              </h3>
-              <textarea
+            {/* Notes Section - same structure as NewTradeModal */}
+            <div className="space-y-2">
+              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Notes</Label>
+              <Textarea
                 value={editedTrade?.notes ?? ''}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
-                className="themed-focus w-full min-h-[200px] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-transparent placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-slate-50 px-4 py-3 text-sm resize-none focus:outline-none focus:ring-inset"
-                rows={8}
                 disabled={!isEditing}
                 readOnly={!isEditing}
-                placeholder="Add notes about this trade..."
+                className="min-h-[320px] shadow-sm bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-200/60 dark:border-slate-600 disabled:!opacity-100 themed-focus transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100 disabled:cursor-not-allowed read-only:cursor-default"
+                placeholder="Add your trade notes here..."
               />
             </div>
-            )}
 
             {/* Delete confirm using AlertDialog */}
             <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
