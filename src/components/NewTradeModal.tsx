@@ -167,8 +167,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     setup_type: '',
     liquidity: '',
     sl_size: undefined as any,
-    direction: 'Long',
-    trade_outcome: 'Win',
+    direction: '' as 'Long' | 'Short',
+    trade_outcome: '' as 'Win' | 'Lose',
     break_even: false,
     reentry: false,
     news_related: false,
@@ -345,6 +345,10 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     const marketError = getMarketValidationError(trade.market);
     if (marketError || !trade.trade_time) {
       setError(marketError || 'Please fill in all required fields (including Trade Time).');
+      return;
+    }
+    if (!trade.direction || !trade.trade_outcome) {
+      setError('Please select Direction and Trade Outcome.');
       return;
     }
     if (isTradingInstitutional && (!trade.setup_type || !trade.liquidity || !trade.mss || !trade.sl_size)) {
@@ -571,7 +575,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
             <Separator />
 
-            {/* Market & Setup Section (institutional: Market | Setup; non-institutional: Market | Evaluation) */}
+            {/* Market & Setup Section (institutional: Market | Setup; non-institutional: Market | Evaluation + Trend) */}
             <div className={`grid gap-5 ${isTradingInstitutional ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2'}`}>
               <div className="space-y-2">
                 <Label htmlFor="market" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Market *</Label>
@@ -605,58 +609,75 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Evaluation Grade</Label>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-4 w-4 cursor-help text-slate-500 dark:text-slate-400" />
-                        </TooltipTrigger>
-                        <TooltipContent className="w-64 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-xl shadow-slate-200/40 dark:shadow-slate-950/50 p-3">
-                          <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2.5">Grade guide</p>
-                          <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
-                            <li className="flex items-center gap-2.5">
-                              <span className="w-6 h-6 rounded-md bg-blue-500/15 dark:bg-blue-400/20 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400 shrink-0">A+</span>
-                              <span>Perfect execution</span>
-                            </li>
-                            <li className="flex items-center gap-2.5">
-                              <span className="w-6 h-6 rounded-md bg-emerald-500/15 dark:bg-emerald-400/20 flex items-center justify-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">A</span>
-                              <span>Excellent trade</span>
-                            </li>
-                            <li className="flex items-center gap-2.5">
-                              <span className="w-6 h-6 rounded-md bg-amber-500/15 dark:bg-amber-400/20 flex items-center justify-center text-[10px] font-bold text-amber-600 dark:text-amber-400 shrink-0">B</span>
-                              <span>Good trade</span>
-                            </li>
-                            <li className="flex items-center gap-2.5">
-                              <span className="w-6 h-6 rounded-md bg-orange-500/15 dark:bg-orange-400/20 flex items-center justify-center text-[10px] font-bold text-orange-600 dark:text-orange-400 shrink-0">C</span>
-                              <span>Poor execution</span>
-                            </li>
-                          </ul>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Evaluation Grade</Label>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 cursor-help text-slate-500 dark:text-slate-400" />
+                            </TooltipTrigger>
+                            <TooltipContent className="w-64 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-xl shadow-slate-200/40 dark:shadow-slate-950/50 p-3">
+                              <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2.5">Grade guide</p>
+                              <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                                <li className="flex items-center gap-2.5">
+                                  <span className="w-6 h-6 rounded-md bg-blue-500/15 dark:bg-blue-400/20 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400 shrink-0">A+</span>
+                                  <span>Perfect execution</span>
+                                </li>
+                                <li className="flex items-center gap-2.5">
+                                  <span className="w-6 h-6 rounded-md bg-emerald-500/15 dark:bg-emerald-400/20 flex items-center justify-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">A</span>
+                                  <span>Excellent trade</span>
+                                </li>
+                                <li className="flex items-center gap-2.5">
+                                  <span className="w-6 h-6 rounded-md bg-amber-500/15 dark:bg-amber-400/20 flex items-center justify-center text-[10px] font-bold text-amber-600 dark:text-amber-400 shrink-0">B</span>
+                                  <span>Good trade</span>
+                                </li>
+                                <li className="flex items-center gap-2.5">
+                                  <span className="w-6 h-6 rounded-md bg-orange-500/15 dark:bg-orange-400/20 flex items-center justify-center text-[10px] font-bold text-orange-600 dark:text-orange-400 shrink-0">C</span>
+                                  <span>Poor execution</span>
+                                </li>
+                              </ul>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <Select value={trade.evaluation} onValueChange={(v) => updateTrade('evaluation', v)}>
+                        <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                          <SelectValue placeholder="Select Grade" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {EVALUATION_OPTIONS.map((e) => (
+                            <SelectItem key={e} value={e}>{e}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Trend</Label>
+                      <Select value={trade.trend ?? ''} onValueChange={(v) => updateTrade('trend', v || null)}>
+                        <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                          <SelectValue placeholder="Select Trend" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Trend-following">Trend-following</SelectItem>
+                          <SelectItem value="Counter-trend">Counter-trend</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <Select value={trade.evaluation} onValueChange={(v) => updateTrade('evaluation', v)}>
-                    <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                      <SelectValue placeholder="Select Grade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EVALUATION_OPTIONS.map((e) => (
-                        <SelectItem key={e} value={e}>{e}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               )}
             </div>
 
-            {/* Direction, Trend & Outcome */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            {/* Direction & Outcome (Trend moved near Evaluation Grade) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-2">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Direction</Label>
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Direction *</Label>
                 <Select value={trade.direction} onValueChange={(v) => updateTrade('direction', v as 'Long' | 'Short')}>
                   <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                    <SelectValue />
+                    <SelectValue placeholder="Select Direction" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Long">Long</SelectItem>
@@ -666,23 +687,10 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               </div>
 
               <div className="space-y-2">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Trend</Label>
-                <Select value={trade.trend ?? ''} onValueChange={(v) => updateTrade('trend', v || null)}>
-                  <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                    <SelectValue placeholder="Select Trend" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Trend-following">Trend-following</SelectItem>
-                    <SelectItem value="Counter-trend">Counter-trend</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Trade Outcome</Label>
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Trade Outcome *</Label>
                 <Select value={trade.trade_outcome} onValueChange={(v) => updateTrade('trade_outcome', v as 'Win' | 'Lose')}>
                   <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                    <SelectValue />
+                    <SelectValue placeholder="Select Trade Outcome" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Win">Win</SelectItem>
@@ -766,34 +774,21 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                     className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-200/50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-not-allowed"
                   />
                 ) : (
-                  <div className="relative">
-                    {trade.risk_reward_ratio_long == null && (
-                      <span
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none text-sm"
-                        aria-hidden
-                      >
-                        Select ratio (1 – 10 or 10+)
-                      </span>
-                    )}
-                    <Select
-                      value={trade.risk_reward_ratio_long != null ? String(trade.risk_reward_ratio_long) : '__placeholder__'}
-                      onValueChange={(v) => updateTrade('risk_reward_ratio_long', v === '__placeholder__' ? undefined as any : Number(v))}
-                    >
-                      <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__placeholder__" className="text-slate-400 dark:text-slate-500">
-                          Select ratio (1 – 10 or 10+)
+                  <Select
+                    value={trade.risk_reward_ratio_long != null && trade.risk_reward_ratio_long !== undefined ? String(trade.risk_reward_ratio_long) : ''}
+                    onValueChange={(v) => updateTrade('risk_reward_ratio_long', v === '' ? undefined as any : Number(v))}
+                  >
+                    <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                      <SelectValue placeholder="Select ratio (1 – 10 or 10+)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {POTENTIAL_RR_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={String(opt.value)}>
+                          {opt.label}
                         </SelectItem>
-                        {POTENTIAL_RR_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={String(opt.value)}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               </div>
 
@@ -819,7 +814,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   <Select
                     value={
                       trade.fvg_size == null || trade.fvg_size === undefined
-                        ? FVG_SIZE_NONE
+                        ? ''
                         : FVG_SIZE_PRESET_VALUES.includes(trade.fvg_size)
                           ? String(trade.fvg_size)
                           : 'custom'
@@ -827,7 +822,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                     onValueChange={(v) => {
                       if (v === 'custom') {
                         updateTrade('fvg_size', FVG_SIZE_CUSTOM_MIN);
-                      } else if (v === FVG_SIZE_NONE) {
+                      } else if (v === '') {
                         updateTrade('fvg_size', undefined as any);
                       } else {
                         updateTrade('fvg_size', Number(v));
@@ -835,10 +830,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                     }}
                   >
                     <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                      <SelectValue placeholder="Select value or Custom (3+)" />
+                      <SelectValue placeholder="Select FVG Size" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={FVG_SIZE_NONE}>—</SelectItem>
                       {FVG_SIZE_OPTIONS.map((opt) => (
                         <SelectItem key={opt.value} value={String(opt.value)}>
                           {opt.label}
@@ -942,6 +936,21 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                       {EVALUATION_OPTIONS.map((e) => (
                         <SelectItem key={e} value={e}>{e}</SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {isTradingInstitutional && (
+                <div className="space-y-2">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Trend</Label>
+                  <Select value={trade.trend ?? ''} onValueChange={(v) => updateTrade('trend', v || null)}>
+                    <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                      <SelectValue placeholder="Select Trend" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Trend-following">Trend-following</SelectItem>
+                      <SelectItem value="Counter-trend">Counter-trend</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
