@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Note } from '@/types/note';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,7 +13,7 @@ import NoteDetailsModal from '@/components/dashboard/insight-vault/NoteDetailsMo
 import NewNoteModal from '@/components/dashboard/insight-vault/NewNoteModal';
 import { NoteCard } from '@/components/dashboard/insight-vault/NoteCard';
 import { getNotes } from '@/lib/server/notes';
-import { getTradesForNoteLinking } from '@/lib/server/trades';
+import { getTradesForNoteLinking, type GetTradesForNoteLinkingResult } from '@/lib/server/trades';
 import { useStrategies } from '@/hooks/useStrategies';
 import {
   Select,
@@ -70,7 +70,7 @@ export default function NotesClient({
           offset: pageParam as number,
         }),
       initialPageParam: 0,
-      getNextPageParam: (lastPage) => lastPage.nextOffset,
+      getNextPageParam: (lastPage: GetTradesForNoteLinkingResult) => lastPage.nextOffset,
       staleTime: 60 * 1000,
     });
   }, [userId, selection.mode, selection.activeAccount?.id, queryClient]);
@@ -92,9 +92,13 @@ export default function NotesClient({
     enabled: !!userId,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 
-  const notesList = notes ?? (selectedStrategy === 'all' ? initialNotes : []);
+  const notesList = useMemo(
+    () => notes ?? (selectedStrategy === 'all' ? initialNotes : []),
+    [notes, selectedStrategy, initialNotes]
+  );
 
   // Filter by search query (client-side)
   const filteredNotes = useMemo(() => {
@@ -119,30 +123,33 @@ export default function NotesClient({
 
   const hasMore = displayedCount < filteredNotes.length;
 
-  // Intersection Observer for infinite scroll (only on client)
+  // Refs so the observer callback always reads the latest values without needing to be recreated
+  const hasMoreRef = useRef(hasMore);
+  const notesLoadingRef = useRef(notesLoading);
+  const notesFetchingRef = useRef(notesFetching);
+  const filteredLengthRef = useRef(filteredNotes.length);
+  hasMoreRef.current = hasMore;
+  notesLoadingRef.current = notesLoading;
+  notesFetchingRef.current = notesFetching;
+  filteredLengthRef.current = filteredNotes.length;
+
+  // Intersection Observer for infinite scroll — set up once after mount, never recreated
   useEffect(() => {
     if (!mounted) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !notesLoading && !notesFetching) {
-          setDisplayedCount((prev) => Math.min(prev + ITEMS_PER_LOAD, filteredNotes.length));
+        if (entries[0].isIntersecting && hasMoreRef.current && !notesLoadingRef.current && !notesFetchingRef.current) {
+          setDisplayedCount((prev) => Math.min(prev + ITEMS_PER_LOAD, filteredLengthRef.current));
         }
       },
       { threshold: 0.1 }
     );
 
     const currentTarget = observerTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [mounted, hasMore, notesLoading, notesFetching, filteredNotes.length]);
+    if (currentTarget) observer.observe(currentTarget);
+    return () => observer.disconnect();
+  }, [mounted]);
 
   const openModal = (note: Note) => {
     setSelectedNote(note);
@@ -154,19 +161,19 @@ export default function NotesClient({
     setIsModalOpen(false);
   };
 
-  const handleNoteCreated = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['notes'] });
+  const handleNoteCreated = () => {
     setIsNewNoteModalOpen(false);
+    queryClient.invalidateQueries({ queryKey: ['notes'] });
   };
 
-  const handleNoteUpdated = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['notes'] });
+  const handleNoteUpdated = () => {
     setIsModalOpen(false);
+    queryClient.invalidateQueries({ queryKey: ['notes'] });
   };
 
-  const handleNoteDeleted = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['notes'] });
+  const handleNoteDeleted = () => {
     setIsModalOpen(false);
+    queryClient.invalidateQueries({ queryKey: ['notes'] });
   };
 
   return (
