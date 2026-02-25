@@ -104,9 +104,6 @@ const NOTES_TEMPLATE = `📈 Setup:
 ❌ Negatives:
 (What didn't work? Did you enter too early/late? Did you ignore something? Overtrading? FOMO?)
 
-🧠 Emotions:
-(What did you feel during the trade? Confidence? Fear? Impatience? Calm? Were you emotionally influenced?)
-
 🎯 Lessons learned:
 (What can you improve? What will you do differently next time?)`;
 
@@ -119,9 +116,6 @@ const NOTES_TEMPLATE_LEGACY_RO = `📈 Setup:
 
 ❌ Minusuri:
 (Ce nu a mers? Ai intrat prea devreme/târziu? Ai ignorat ceva? Overtrading? FOMO?)
-
-🧠 Emoții:
-(Ce ai simțit în timpul trade-ului? Încredere? Frică? Nerăbdare? Calm? Ai fost influențat emoțional?)
 
 🎯 Lecții învățate:
 (Ce poți îmbunătăți? Ce vei face diferit data viitoare?)`;
@@ -188,6 +182,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     strategy_id: null,
     trend: '',
     fvg_size: undefined as any,
+    confidence_at_entry: null as number | null,
+    mind_state_at_entry: 3, // Preselect Neutral so user sees the scale (1–5) like Confidence
   };
 
   const [trade, setTrade] = useState<Trade>(() => {
@@ -197,8 +193,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         try {
           const parsed = JSON.parse(saved);
           const dateStr = parsed.trade_date || new Date().toISOString().split('T')[0];
-          // Migrate notes from old Romanian template to English
-          const notes = parsed.notes === NOTES_TEMPLATE_LEGACY_RO ? NOTES_TEMPLATE : (parsed.notes ?? initialTradeState.notes);
+          // Migrate notes: legacy RO → English; any notes with old "🧠 Emotions:" section → new template without it
+          let notes = parsed.notes === NOTES_TEMPLATE_LEGACY_RO ? NOTES_TEMPLATE : (parsed.notes ?? initialTradeState.notes);
+          if (notes && notes.includes('🧠 Emotions:')) {
+            notes = NOTES_TEMPLATE;
+          }
           return {
             ...initialTradeState,
             ...parsed,
@@ -208,6 +207,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               WEEKDAY_MAP[new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' })],
             quarter: parsed.quarter || getQuarter(dateStr),
             notes,
+            mind_state_at_entry: parsed.mind_state_at_entry ?? 3, // Preselect 3 (Neutral) when missing so scale is clear
           };
         } catch { }
       }
@@ -618,7 +618,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                             <TooltipTrigger asChild>
                               <Info className="h-4 w-4 cursor-help text-slate-500 dark:text-slate-400" />
                             </TooltipTrigger>
-                            <TooltipContent className="w-64 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-xl shadow-slate-200/40 dark:shadow-slate-950/50 p-3">
+                            <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
                               <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2.5">Grade guide</p>
                               <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
                                 <li className="flex items-center gap-2.5">
@@ -904,7 +904,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                         <TooltipTrigger asChild>
                           <Info className="h-4 w-4 cursor-help text-slate-500 dark:text-slate-400" />
                         </TooltipTrigger>
-                        <TooltipContent className="w-64 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-xl shadow-slate-200/40 dark:shadow-slate-950/50 p-3">
+                        <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
                           <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2.5">Grade guide</p>
                           <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
                             <li className="flex items-center gap-2.5">
@@ -1035,7 +1035,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                         <Label htmlFor="launch-hour" className="text-sm font-normal cursor-pointer">LH</Label>
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent>
+                    <TooltipContent className="rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-2.5">
                       <p>Launch Hour</p>
                     </TooltipContent>
                   </Tooltip>
@@ -1064,16 +1064,98 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               </div>
             </div>
 
-            {/* Notes Section */}
-            <div className="space-y-2">
-              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Notes</Label>
+            {/* Notes & Confidence Section */}
+            <div className="space-y-3">
+              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Notes & Confidence</Label>
               <Textarea
                 ref={notesRef}
                 defaultValue={trade.notes}
                 onBlur={(e) => updateTrade('notes', e.target.value)}
-                className="min-h-[320px] backdrop-blur-sm shadow-sm bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-slate-200/60 dark:border-slate-600 themed-focus transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100"
+                className="min-h-[280px] backdrop-blur-sm shadow-sm bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-slate-200/60 dark:border-slate-600 themed-focus transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100"
                 placeholder="Add your trade notes here..."
               />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/60 dark:border-slate-600 shadow-sm">
+                {/* Confidence */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Confidence</p>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 cursor-help text-slate-400 dark:text-slate-500 shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            How sure were you in this trade? From &quot;not at all&quot; to &quot;very confident&quot; in the setup and your decision. Helps you spot overconfidence or doubt when you review later.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => updateTrade('confidence_at_entry', value)}
+                        className={`min-w-[2.25rem] px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer ${
+                          trade.confidence_at_entry === value
+                            ? 'themed-header-icon-box shadow-sm'
+                            : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                        }`}
+                        title={['Very low', 'Low', 'Neutral', 'Good', 'Very confident'][value - 1]}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                  </div>
+                  {trade.confidence_at_entry != null && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Selected: {[null, 'Very low', 'Low', 'Neutral', 'Good', 'Very confident'][trade.confidence_at_entry]}
+                    </p>
+                  )}
+                </div>
+                {/* Mind state (covers focus, fear, calm, stress, impatience, etc.) */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Mind state</p>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 cursor-help text-slate-400 dark:text-slate-500 shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            How were you when you entered? e.g. calm, focused, stressed, fearful, impatient. 1 = very poor state, 5 = very good state. Helps you see how your state matched the outcome.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => updateTrade('mind_state_at_entry', value)}
+                        className={`min-w-[2.25rem] px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer ${
+                          trade.mind_state_at_entry === value
+                            ? 'themed-header-icon-box shadow-sm'
+                            : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                        }`}
+                        title={['Very poor', 'Poor', 'Neutral', 'Good', 'Very good'][value - 1]}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                  </div>
+                  {trade.mind_state_at_entry != null && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Selected: {['Very poor', 'Poor', 'Neutral', 'Good', 'Very good'][trade.mind_state_at_entry - 1]}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Error message above Create Trade button – auto-dismiss after 3s */}
