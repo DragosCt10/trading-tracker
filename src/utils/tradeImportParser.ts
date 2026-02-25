@@ -128,7 +128,7 @@ function deriveQuarter(date: Date): string {
 export function parseCsvTrades(
   csvText: string,
   mapping: Record<string, string | null>,
-  defaults?: { risk_per_trade?: number; account_balance?: number }
+  defaults?: { risk_per_trade?: number; risk_reward_ratio?: number; account_balance?: number }
 ): ParseResult {
   const lines = csvText.split(/\r?\n/).filter((l) => l.trim() !== '');
   if (lines.length < 2) {
@@ -226,10 +226,10 @@ export function parseCsvTrades(
 
     const rawRR = fieldValues['risk_reward_ratio'] ?? '';
     const rrNormalized = normalizeNumericInput(rawRR);
-    const rrRatio = parseFloat(rrNormalized);
-    if (!rrNormalized) {
-      rowErrors.push({ rowIndex, field: 'risk_reward_ratio', message: 'Missing required field: Risk:Reward Ratio' });
-    } else if (isNaN(rrRatio)) {
+    const rrRatio = rrNormalized !== '' ? parseFloat(rrNormalized) : (defaults?.risk_reward_ratio ?? NaN);
+    if (!rrNormalized && (defaults?.risk_reward_ratio == null || isNaN(defaults.risk_reward_ratio))) {
+      rowErrors.push({ rowIndex, field: 'risk_reward_ratio', message: 'Missing required field: Risk:Reward Ratio (or set a default in the previous step)' });
+    } else if (rrNormalized !== '' && isNaN(rrRatio)) {
       rowErrors.push({ rowIndex, field: 'risk_reward_ratio', message: `Risk:Reward Ratio must be a number, got: "${rawRR}"` });
     }
 
