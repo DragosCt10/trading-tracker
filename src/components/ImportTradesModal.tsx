@@ -1,7 +1,6 @@
 'use client';
 
-import { useRef, useState, useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Sheet,
@@ -55,15 +54,6 @@ const TRADE_FIELDS: { value: string; label: string }[] = [
   { value: 'fvg_size', label: 'FVG Size' },
 ];
 
-const BASE_REQUIRED_FIELDS = ['trade_date', 'market', 'direction', 'trade_outcome', 'risk_per_trade', 'risk_reward_ratio'] as const;
-const INSTITUTIONAL_REQUIRED_FIELDS = ['setup_type', 'liquidity', 'mss', 'sl_size'] as const;
-
-/** Required columns for all strategies (CSV header names). */
-const REQUIRED_CSV_COLS_ALL = ['Date', 'Market', 'Direction', 'Outcome', 'Risk %', 'Risk:Reward Ratio'];
-/** Extra required columns for Trading Institutional only (base + these). */
-const REQUIRED_CSV_COLS_INSTITUTIONAL = ['Setup', 'Liquidity', 'MSS', 'SL Size'];
-
-/** Sample CSV for other strategies (no Setup, Liquidity, MSS, SL Size). Matches NewTradeModal base fields. */
 const cancelButtonClass =
   'cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200';
 
@@ -82,18 +72,6 @@ export default function ImportTradesModal({
   activeAccount,
   strategyId,
 }: ImportTradesModalProps) {
-  const params = useParams();
-  const strategySlug = typeof params?.strategy === 'string' ? decodeURIComponent(params.strategy) : undefined;
-  const isTradingInstitutional = strategySlug === 'trading-institutional';
-
-  const requiredFields = useMemo(() => {
-    const set = new Set<string>(BASE_REQUIRED_FIELDS);
-    if (isTradingInstitutional) {
-      INSTITUTIONAL_REQUIRED_FIELDS.forEach((f) => set.add(f));
-    }
-    return set;
-  }, [isTradingInstitutional]);
-
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -231,11 +209,6 @@ export default function ImportTradesModal({
     return new Set(Object.values(mapping).filter(Boolean) as string[]);
   }
 
-  function getMissingRequiredFields(): string[] {
-    const mapped = getMappedTradeFields();
-    return Array.from(requiredFields).filter((f) => !mapped.has(f));
-  }
-
   function handleProceedToPreview() {
     const confirmedMapping = Object.fromEntries(
       Object.entries(mapping).filter(([, v]) => v !== null)
@@ -289,15 +262,7 @@ export default function ImportTradesModal({
     }
   }
 
-  const missingRequired = step === 'mapping' ? getMissingRequiredFields() : [];
-  const riskIsMissing = missingRequired.includes('risk_per_trade');
-  const rrIsMissing = missingRequired.includes('risk_reward_ratio');
-  const effectiveMissingRequired = missingRequired.filter(
-    (f) =>
-      !(f === 'risk_per_trade' && defaultRiskPct !== null) &&
-      !(f === 'risk_reward_ratio' && defaultRR !== null)
-  );
-  const canProceedToPreview = effectiveMissingRequired.length === 0;
+  const canProceedToPreview = true;
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
@@ -446,22 +411,12 @@ export default function ImportTradesModal({
                     CSV format
                   </p>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Column names do not need to match exactly — AI will map your CSV columns to the required fields.
+                    Column names do not need to match exactly — AI will map your CSV columns to trade fields.
                   </p>
                 </div>
                 <div className="px-4 py-3 space-y-3">
-                  <div>
-                    <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                      Required columns
-                    </p>
-                    <p className="text-xs text-slate-700 dark:text-slate-300">
-                      {isTradingInstitutional
-                        ? [...REQUIRED_CSV_COLS_ALL, ...REQUIRED_CSV_COLS_INSTITUTIONAL].join(', ')
-                        : REQUIRED_CSV_COLS_ALL.join(', ')}
-                    </p>
-                  </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    No Risk % or Risk:Reward column? You can set defaults for all trades in the next step; they will be used to calculate P&L and profit.
+                    You can set default Risk % and Risk:Reward in the next step; they will be used to calculate P&L and profit when not in the CSV.
                   </p>
                 </div>
               </div>
@@ -478,148 +433,116 @@ export default function ImportTradesModal({
           {step === 'mapping' && (
             <div className="flex flex-col gap-4">
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                AI suggested the mappings below. Required fields are marked with{' '}
-                <span className="text-red-500">*</span>. Use the dropdowns to fix any mistakes.
+                AI suggested the mappings below. Use the dropdowns to fix any mistakes.
               </p>
 
-              {missingRequired.filter(
-                (f) =>
-                  f !== 'risk_per_trade' &&
-                  !(f === 'risk_reward_ratio' && defaultRR !== null)
-              ).length > 0 && (
-                <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30">
-                  <div className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-red-600 dark:text-red-400 border-b border-slate-200 dark:border-slate-700">
-                    Required fields not mapped
-                  </div>
-                  <div className="max-h-40 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
-                    {missingRequired
-                      .filter(
-                        (f) =>
-                          f !== 'risk_per_trade' &&
-                          !(f === 'risk_reward_ratio' && defaultRR !== null)
-                      )
-                      .map((field) => (
-                        <div key={field} className="px-4 py-2.5 text-sm">
-                          <span className="font-semibold text-red-600 dark:text-red-400">{field}</span>
-                          <span className="text-slate-400 dark:text-slate-500 mx-1.5">·</span>
-                          <span className="text-slate-700 dark:text-slate-300">Required field not mapped</span>
-                        </div>
-                      ))}
-                  </div>
+              <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/60 overflow-hidden bg-slate-50/50 dark:bg-slate-800/30">
+                <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/60">
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    Set default Risk % (optional)
+                  </p>
                 </div>
-              )}
-
-              {riskIsMissing && (
-                <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/60 overflow-hidden bg-slate-50/50 dark:bg-slate-800/30">
-                  <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/60">
-                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                      Risk % not found in CSV — set a default for all trades
-                    </p>
+                <div className="px-4 py-4 flex flex-col gap-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {[0.25, 0.5, 0.75, 1].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => { setDefaultRiskPct(preset); setCustomRiskInput(''); }}
+                        className={`px-4 py-1.5 rounded-lg text-sm font-semibold border transition-all cursor-pointer ${
+                          defaultRiskPct === preset && customRiskInput === ''
+                            ? 'bg-slate-200/80 dark:bg-slate-700/60 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600'
+                            : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-slate-800/50 hover:border-slate-300 dark:hover:border-slate-600'
+                        }`}
+                      >
+                        {preset}%
+                      </button>
+                    ))}
+                    <div className="flex items-center gap-1.5 ml-1">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">or custom:</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={customRiskInput}
+                              onChange={(e) => {
+                                setCustomRiskInput(e.target.value);
+                                const parsed = parseFloat(e.target.value);
+                                setDefaultRiskPct(!isNaN(parsed) && parsed > 0 ? parsed : null);
+                              }}
+                              className="h-8 w-24 text-sm rounded-lg border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/50 pr-6"
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">%</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-[220px]">
+                          Use the average risk across your trades for more accurate import results.
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                   </div>
-                  <div className="px-4 py-4 flex flex-col gap-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {[0.25, 0.5, 0.75, 1].map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          onClick={() => { setDefaultRiskPct(preset); setCustomRiskInput(''); }}
-                          className={`px-4 py-1.5 rounded-lg text-sm font-semibold border transition-all cursor-pointer ${
-                            defaultRiskPct === preset && customRiskInput === ''
-                              ? 'bg-slate-200/80 dark:bg-slate-700/60 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600'
-                              : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-slate-800/50 hover:border-slate-300 dark:hover:border-slate-600'
-                          }`}
-                        >
-                          {preset}%
-                        </button>
-                      ))}
-                      <div className="flex items-center gap-1.5 ml-1">
-                        <span className="text-xs text-slate-500 dark:text-slate-400">or custom:</span>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="relative">
-                              <Input
-                                type="number"
-                                min="0"
-                                max="100"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={customRiskInput}
-                                onChange={(e) => {
-                                  setCustomRiskInput(e.target.value);
-                                  const parsed = parseFloat(e.target.value);
-                                  setDefaultRiskPct(!isNaN(parsed) && parsed > 0 ? parsed : null);
-                                }}
-                                className="h-8 w-24 text-sm rounded-lg border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/50 pr-6"
-                              />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">%</span>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent side="bottom" className="max-w-[220px]">
-                            Use the average risk across your trades for more accurate import results.
-                          </TooltipContent>
-                        </Tooltip>
+                  {defaultRiskPct !== null && (
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                      All imported trades will use <span className="font-semibold text-slate-800 dark:text-slate-200">{defaultRiskPct}%</span> risk.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/60 overflow-hidden bg-slate-50/50 dark:bg-slate-800/30">
+                <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/60">
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    Set default Risk:Reward ratio (optional)
+                  </p>
+                </div>
+                <div className="px-4 py-4 flex flex-col gap-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {[1, 1.5, 2, 2.5].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => { setDefaultRR(preset); setCustomRRInput(''); }}
+                        className={`px-4 py-1.5 rounded-lg text-sm font-semibold border transition-all cursor-pointer ${
+                          defaultRR === preset && customRRInput === ''
+                            ? 'bg-slate-200/80 dark:bg-slate-700/60 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600'
+                            : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-slate-800/50 hover:border-slate-300 dark:hover:border-slate-600'
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                    <div className="flex items-center gap-1.5 ml-1">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">or custom:</span>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min="0.1"
+                          max="100"
+                          step="0.1"
+                          placeholder="0.00"
+                          value={customRRInput}
+                          onChange={(e) => {
+                            setCustomRRInput(e.target.value);
+                            const parsed = parseFloat(e.target.value);
+                            setDefaultRR(!isNaN(parsed) && parsed > 0 ? parsed : null);
+                          }}
+                          className="h-8 w-24 text-sm rounded-lg border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/50 pr-6"
+                        />
                       </div>
                     </div>
-                    {defaultRiskPct !== null && (
-                      <p className="text-xs text-slate-600 dark:text-slate-400">
-                        All imported trades will use <span className="font-semibold text-slate-800 dark:text-slate-200">{defaultRiskPct}%</span> risk.
-                      </p>
-                    )}
                   </div>
-                </div>
-              )}
-
-              {rrIsMissing && (
-                <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/60 overflow-hidden bg-slate-50/50 dark:bg-slate-800/30">
-                  <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/60">
-                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                      Risk:Reward Ratio not found in CSV — set a default for all trades
+                  {defaultRR !== null && (
+                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                      All imported trades will use <span className="font-semibold text-slate-800 dark:text-slate-200">{defaultRR}</span> risk:reward ratio.
                     </p>
-                  </div>
-                  <div className="px-4 py-4 flex flex-col gap-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {[1, 1.5, 2, 2.5].map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          onClick={() => { setDefaultRR(preset); setCustomRRInput(''); }}
-                          className={`px-4 py-1.5 rounded-lg text-sm font-semibold border transition-all cursor-pointer ${
-                            defaultRR === preset && customRRInput === ''
-                              ? 'bg-slate-200/80 dark:bg-slate-700/60 text-slate-900 dark:text-slate-100 border-slate-300 dark:border-slate-600'
-                              : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-slate-800/50 hover:border-slate-300 dark:hover:border-slate-600'
-                          }`}
-                        >
-                          {preset}
-                        </button>
-                      ))}
-                      <div className="flex items-center gap-1.5 ml-1">
-                        <span className="text-xs text-slate-500 dark:text-slate-400">or custom:</span>
-                        <div className="relative">
-                          <Input
-                            type="number"
-                            min="0.1"
-                            max="100"
-                            step="0.1"
-                            placeholder="0.00"
-                            value={customRRInput}
-                            onChange={(e) => {
-                              setCustomRRInput(e.target.value);
-                              const parsed = parseFloat(e.target.value);
-                              setDefaultRR(!isNaN(parsed) && parsed > 0 ? parsed : null);
-                            }}
-                            className="h-8 w-24 text-sm rounded-lg border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/50 pr-6"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    {defaultRR !== null && (
-                      <p className="text-xs text-slate-600 dark:text-slate-400">
-                        All imported trades will use <span className="font-semibold text-slate-800 dark:text-slate-200">{defaultRR}</span> risk:reward ratio.
-                      </p>
-                    )}
-                  </div>
+                  )}
                 </div>
-              )}
+              </div>
 
               <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30">
                 <table className="w-full text-sm border-collapse">
@@ -632,12 +555,10 @@ export default function ImportTradesModal({
                   <tbody>
                     {csvHeaders.filter((header) => mapping[header] != null).map((header, idx) => {
                       const currentValue = mapping[header] ?? null;
-                      const isRequired = currentValue ? requiredFields.has(currentValue) : false;
                       return (
                         <tr key={idx}>
                           <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200 border-b border-r border-slate-200 dark:border-slate-700">
                             {header}
-                            {isRequired && <span className="text-red-500 ml-1">*</span>}
                           </td>
                           <td className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
                             <Select
@@ -655,9 +576,8 @@ export default function ImportTradesModal({
                                   const alreadyUsed = getMappedTradeFields().has(f.value) && mapping[header] !== f.value;
                                   return (
                                     <SelectItem key={f.value} value={f.value} disabled={alreadyUsed}>
-                                      <span className={`${requiredFields.has(f.value) ? 'font-semibold' : ''} ${alreadyUsed ? 'text-slate-400' : ''}`}>
+                                      <span className={alreadyUsed ? 'text-slate-400' : ''}>
                                         {f.label}
-                                        {requiredFields.has(f.value) && <span className="text-red-400 ml-1">*</span>}
                                       </span>
                                     </SelectItem>
                                   );
