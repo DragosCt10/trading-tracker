@@ -29,28 +29,6 @@ function normalizeTrim(value: string): string {
   return value.replace(/\uFEFF/g, '').replace(/\u00A0/g, ' ').trim();
 }
 
-/**
- * Normalize numeric string: strip currency symbols, spaces, support EU (1.234,56) and US (1,234.56),
- * strip trailing R/k/K for risk:reward. Use before parseFloat.
- */
-function normalizeNumericInput(raw: string): string {
-  let s = normalizeTrim(raw).replace(/[\s€$£¥%]/g, '');
-  // Strip trailing R, k, K (e.g. "1.5R" → "1.5")
-  s = s.replace(/[rRkK]\s*$/, '');
-  // EU style: dot = thousands, comma = decimal (e.g. 1.234,56 → 1234.56)
-  if (/^\d{1,3}(\.\d{3})*,\d+$/.test(s)) {
-    return s.replace(/\./g, '').replace(',', '.');
-  }
-  // US style or plain: remove thousands commas, then comma → dot
-  s = s.replace(/,/g, '.');
-  // If multiple dots, treat as thousands (e.g. 1.234.56 → 1234.56 for EU)
-  const parts = s.split('.');
-  if (parts.length > 2) {
-    s = parts.slice(0, -1).join('') + '.' + parts[parts.length - 1];
-  }
-  return s;
-}
-
 /** Detect CSV delimiter from first line: use semicolon if it has more semicolons than commas (EU style). */
 function detectDelimiter(firstLine: string): ',' | ';' {
   const commas = (firstLine.match(/,/g) ?? []).length;
@@ -84,16 +62,9 @@ function splitCsvLine(line: string, delimiter: ',' | ';' = ','): string[] {
   return result;
 }
 
-/** Very flexible boolean: yes/no, 1/0, true/false, x, +, -, ok, positive/negative, on/off, etc. */
+/** Truthy trimmed value → true (no text normalization). */
 function parseBool(value: string | undefined): boolean {
-  const v = normalizeTrim(value ?? '').toLowerCase().replace(/\s+/g, ' ');
-  if (!v) return false;
-  if (v === 'no' || v === 'n' || v === 'false' || v === '0' || v === '-' || v === 'off' ||
-    v === 'negative' || v === 'nope' || v === 'none') return false;
-  if (v === 'yes' || v === 'y' || v === 'true' || v === '1' || v === '+' || v === 'on' ||
-    v === 'ok' || v === 'positive' || v === 'x' || v === 'check' || v === 'checked' ||
-    v === 'affirmative' || v === 'correct') return true;
-  return false;
+  return !!normalizeTrim(value ?? '');
 }
 
 function deriveQuarter(date: Date): string {
@@ -235,29 +206,29 @@ export function parseCsvTrades(
       rowErrors.push({ rowIndex, field: 'trade_outcome', message: 'Missing required field: Outcome' });
     }
 
-    // --- Required numerics (normalize string first; error only when empty or still not a number) ---
+    // --- Numerics: trim only, then parseFloat (no format normalization) ---
     const rawRisk = fieldValues['risk_per_trade'] ?? '';
-    const riskNormalized = normalizeNumericInput(rawRisk);
-    const riskPerTrade = riskNormalized !== '' ? parseFloat(riskNormalized) : (defaults?.risk_per_trade ?? NaN);
-    if (riskNormalized !== '' && isNaN(riskPerTrade)) {
+    const riskTrimmed = normalizeTrim(rawRisk);
+    const riskPerTrade = riskTrimmed !== '' ? parseFloat(riskTrimmed) : (defaults?.risk_per_trade ?? NaN);
+    if (riskTrimmed !== '' && isNaN(riskPerTrade)) {
       rowErrors.push({ rowIndex, field: 'risk_per_trade', message: `Risk % must be a number, got: "${rawRisk}"` });
-    } else if (riskNormalized === '' && (defaults?.risk_per_trade == null || isNaN(defaults.risk_per_trade))) {
+    } else if (riskTrimmed === '' && (defaults?.risk_per_trade == null || isNaN(defaults.risk_per_trade))) {
       rowErrors.push({ rowIndex, field: 'risk_per_trade', message: 'Missing required field: Risk % (or set a default in the previous step)' });
     }
 
     const rawRR = fieldValues['risk_reward_ratio'] ?? '';
-    const rrNormalized = normalizeNumericInput(rawRR);
-    const rrRatio = rrNormalized !== '' ? parseFloat(rrNormalized) : (defaults?.risk_reward_ratio ?? NaN);
-    if (!rrNormalized && (defaults?.risk_reward_ratio == null || isNaN(defaults.risk_reward_ratio))) {
+    const rrTrimmed = normalizeTrim(rawRR);
+    const rrRatio = rrTrimmed !== '' ? parseFloat(rrTrimmed) : (defaults?.risk_reward_ratio ?? NaN);
+    if (!rrTrimmed && (defaults?.risk_reward_ratio == null || isNaN(defaults.risk_reward_ratio))) {
       rowErrors.push({ rowIndex, field: 'risk_reward_ratio', message: 'Missing required field: Risk:Reward Ratio (or set a default in the previous step)' });
-    } else if (rrNormalized !== '' && isNaN(rrRatio)) {
+    } else if (rrTrimmed !== '' && isNaN(rrRatio)) {
       rowErrors.push({ rowIndex, field: 'risk_reward_ratio', message: `Risk:Reward Ratio must be a number, got: "${rawRR}"` });
     }
 
     const rawSL = fieldValues['sl_size'] ?? '';
-    const slNormalized = normalizeNumericInput(rawSL);
-    const slSize = slNormalized === '' ? 0 : parseFloat(slNormalized);
-    if (slNormalized !== '' && isNaN(slSize)) {
+    const slTrimmed = normalizeTrim(rawSL);
+    const slSize = slTrimmed === '' ? 0 : parseFloat(slTrimmed);
+    if (slTrimmed !== '' && isNaN(slSize)) {
       rowErrors.push({ rowIndex, field: 'sl_size', message: `SL Size must be a number, got: "${rawSL}"` });
     }
 
@@ -266,7 +237,7 @@ export function parseCsvTrades(
       continue;
     }
 
-    // All required fields valid — build the trade (only date is normalized; rest pass-through trimmed)
+    // All required fields valid — build the trade (only date is normalized to YYYY-MM-DD; rest trim only)
     const tradeDate = normalizedDate;
     const rawTime = normalizeTrim(fieldValues['trade_time'] ?? '');
     const tradeTime = rawTime || '00:00:00';
@@ -274,25 +245,25 @@ export function parseCsvTrades(
     const quarter = parsedDate ? deriveQuarter(parsedDate) : normalizeTrim(fieldValues['quarter'] ?? '');
 
     const rawRRLong = fieldValues['risk_reward_ratio_long'] ?? '';
-    const rrLongNorm = normalizeNumericInput(rawRRLong);
+    const rrLongTrimmed = normalizeTrim(rawRRLong);
     const isLose = /^(lose|loss|l)$/i.test(outcomeTrimmed);
-    const rrLong = rrLongNorm !== '' ? parseFloat(rrLongNorm) : (isLose ? 0 : rrRatio);
+    const rrLong = rrLongTrimmed !== '' ? parseFloat(rrLongTrimmed) : (isLose ? 0 : rrRatio);
 
     const rawCalcProfit = fieldValues['calculated_profit'] ?? '';
-    const calcProfitNorm = normalizeNumericInput(rawCalcProfit);
-    const csvCalcProfit = calcProfitNorm !== '' ? parseFloat(calcProfitNorm) : undefined;
+    const calcProfitTrimmed = normalizeTrim(rawCalcProfit);
+    const csvCalcProfit = calcProfitTrimmed !== '' ? parseFloat(calcProfitTrimmed) : undefined;
 
     const rawPnl = fieldValues['pnl_percentage'] ?? '';
-    const pnlNorm = normalizeNumericInput(rawPnl);
-    const csvPnlPct = pnlNorm !== '' ? parseFloat(pnlNorm) : undefined;
+    const pnlTrimmed = normalizeTrim(rawPnl);
+    const csvPnlPct = pnlTrimmed !== '' ? parseFloat(pnlTrimmed) : undefined;
 
     const rawDisplace = fieldValues['displacement_size'] ?? '';
-    const displaceNorm = normalizeNumericInput(rawDisplace);
-    const displacementSize = displaceNorm !== '' ? parseFloat(displaceNorm) : 0;
+    const displaceTrimmed = normalizeTrim(rawDisplace);
+    const displacementSize = displaceTrimmed !== '' ? parseFloat(displaceTrimmed) : 0;
 
     const rawFvgSize = fieldValues['fvg_size'] ?? '';
-    const fvgNorm = normalizeNumericInput(rawFvgSize);
-    const fvgSize = fvgNorm !== '' ? parseFloat(fvgNorm) : null;
+    const fvgTrimmed = normalizeTrim(rawFvgSize);
+    const fvgSize = fvgTrimmed !== '' ? parseFloat(fvgTrimmed) : null;
 
     const breakEven = parseBool(fieldValues['break_even']);
 
