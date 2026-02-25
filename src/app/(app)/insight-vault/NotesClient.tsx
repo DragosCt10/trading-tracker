@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Note } from '@/types/note';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,6 +13,7 @@ import NoteDetailsModal from '@/components/dashboard/insight-vault/NoteDetailsMo
 import NewNoteModal from '@/components/dashboard/insight-vault/NewNoteModal';
 import { NoteCard } from '@/components/dashboard/insight-vault/NoteCard';
 import { getNotes } from '@/lib/server/notes';
+import { getTradesForNoteLinking } from '@/lib/server/trades';
 import { useStrategies } from '@/hooks/useStrategies';
 import {
   Select,
@@ -35,6 +37,7 @@ export default function NotesClient({
 }: NotesClientProps) {
   const { data: userDetails } = useUserDetails();
   const queryClient = useQueryClient();
+  const { selection } = useActionBarSelection();
   const userId = userDetails?.user?.id ?? initialUserId;
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -51,6 +54,26 @@ export default function NotesClient({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Prefetch first page of trades-for-linking so "Link trades" picker opens instantly (same key as modals when no strategy filter)
+  useEffect(() => {
+    const accountId = selection.activeAccount?.id ?? null;
+    if (!userId || !accountId || !selection.mode) return;
+    const mode = selection.mode as 'live' | 'backtesting' | 'demo';
+    const strategyIds: string[] | undefined = undefined;
+    queryClient.prefetchInfiniteQuery({
+      queryKey: ['tradesForNoteLinking', userId, mode, accountId, []],
+      queryFn: ({ pageParam }) =>
+        getTradesForNoteLinking(userId, mode, {
+          accountId,
+          strategyIds,
+          offset: pageParam as number,
+        }),
+      initialPageParam: 0,
+      getNextPageParam: (lastPage) => lastPage.nextOffset,
+      staleTime: 60 * 1000,
+    });
+  }, [userId, selection.mode, selection.activeAccount?.id, queryClient]);
 
   // Fetch notes with React Query
   const {
