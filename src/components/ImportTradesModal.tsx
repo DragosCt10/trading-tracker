@@ -585,48 +585,54 @@ export default function ImportTradesModal({
           {/* ── Step: Preview ── */}
           {step === 'preview' && parseResult && (
             <div className="flex flex-col gap-5">
-              {/* Summary */}
+              {/* Summary cards */}
               <div className="flex gap-3">
-                <div className="flex-1 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl px-4 py-3 text-center">
-                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{parseResult.rows.length}</p>
-                  <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium mt-0.5">Rows ready</p>
+                <div className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 px-4 py-3.5 text-center">
+                  <p className="text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{parseResult.rows.length}</p>
+                  <p className="text-xs font-medium mt-0.5 text-slate-600 dark:text-slate-400">Rows ready</p>
                 </div>
-                {parseResult.errors.length > 0 && (
-                  <div className="flex-1 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-center">
-                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">{parseResult.errors.length}</p>
-                    <p className="text-xs text-red-700 dark:text-red-300 font-medium mt-0.5">Rows with errors</p>
+                {parseResult.errors.length > 0 ? (
+                  <div className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 px-4 py-3.5 text-center">
+                    <p className="text-2xl font-bold tabular-nums text-red-600 dark:text-red-400">{parseResult.errors.length}</p>
+                    <p className="text-xs font-medium mt-0.5 text-slate-600 dark:text-slate-400">Rows with errors</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 px-4 py-3.5 text-center">
+                    <p className="text-2xl font-bold tabular-nums text-slate-400 dark:text-slate-500">0</p>
+                    <p className="text-xs font-medium mt-0.5 text-slate-500 dark:text-slate-400">Rows with errors</p>
                   </div>
                 )}
               </div>
 
-              {/* Skip errors option */}
+              {/* Skip errors option + validation errors */}
               {parseResult.errors.length > 0 && (
                 <>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="skip-errors"
-                      checked={skipErrorRows}
-                      onCheckedChange={(v) => setSkipErrorRows(!!v)}
-                      className="h-4 w-4 rounded border-2 border-slate-300 dark:border-slate-600 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500"
-                    />
-                    <Label htmlFor="skip-errors" className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
-                      Import valid rows only and skip errors (recommended)
-                    </Label>
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id="skip-errors"
+                        checked={skipErrorRows}
+                        onCheckedChange={(v) => setSkipErrorRows(!!v)}
+                        className="themed-checkbox h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 transition-colors duration-150 data-[state=checked]:!text-white"
+                      />
+                      <Label htmlFor="skip-errors" className="text-sm font-medium text-slate-700 dark:text-slate-200 cursor-pointer select-none">
+                        Import valid rows only and skip errors (recommended)
+                      </Label>
+                    </div>
                   </div>
 
-                  {/* Error list */}
-                  <div className="border border-red-200/60 dark:border-red-800/40 rounded-xl overflow-hidden">
-                    <div className="bg-red-50 dark:bg-red-900/20 px-4 py-2 text-xs font-semibold text-red-700 dark:text-red-300 uppercase tracking-wider">
-                      Validation Errors
+                  <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30">
+                    <div className="px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-red-600 dark:text-red-400 border-b border-slate-200 dark:border-slate-700">
+                      Validation errors
                     </div>
-                    <div className="max-h-40 overflow-y-auto divide-y divide-red-100 dark:divide-red-900/30">
+                    <div className="max-h-40 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
                       {parseResult.errors.map((err, i) => (
-                        <div key={i} className="px-4 py-2 text-sm text-slate-700 dark:text-slate-300">
-                          <span className="font-semibold text-red-500">Row {err.rowIndex}</span>
-                          <span className="text-slate-400 mx-1">·</span>
-                          <span className="text-slate-500 dark:text-slate-400">{err.field}</span>
-                          <span className="text-slate-400 mx-1">·</span>
-                          {err.message}
+                        <div key={i} className="px-4 py-2.5 text-sm">
+                          <span className="font-semibold text-red-600 dark:text-red-400">Row {err.rowIndex}</span>
+                          <span className="text-slate-400 dark:text-slate-500 mx-1.5">·</span>
+                          <span className="text-slate-600 dark:text-slate-400">{err.field}</span>
+                          <span className="text-slate-400 dark:text-slate-500 mx-1.5">·</span>
+                          <span className="text-slate-700 dark:text-slate-300">{err.message}</span>
                         </div>
                       ))}
                     </div>
@@ -638,9 +644,9 @@ export default function ImportTradesModal({
               {parseResult.rows.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Preview (first 5 rows)</p>
-                  <div className="rounded-xl overflow-x-auto border border-slate-200 dark:border-slate-700">
+                  <div className="rounded-xl overflow-x-auto border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30">
                     <table className="w-full text-xs border-collapse">
-                      <thead className="bg-slate-100/80 dark:bg-slate-800/60">
+                      <thead>
                         <tr>
                           <th className="text-left px-3 py-2 font-semibold text-slate-600 dark:text-slate-400 border-b border-r border-slate-200 dark:border-slate-700">Date</th>
                           <th className="text-left px-3 py-2 font-semibold text-slate-600 dark:text-slate-400 border-b border-r border-slate-200 dark:border-slate-700">Market</th>
@@ -652,11 +658,11 @@ export default function ImportTradesModal({
                       </thead>
                       <tbody>
                         {parseResult.rows.slice(0, 5).map((row, i) => (
-                          <tr key={i} className="bg-white dark:bg-slate-900/20">
+                          <tr key={i}>
                             <td className="px-3 py-2 text-slate-800 dark:text-slate-200 border-b border-r border-slate-200 dark:border-slate-700">{row.trade_date}</td>
                             <td className="px-3 py-2 text-slate-800 dark:text-slate-200 border-b border-r border-slate-200 dark:border-slate-700">{row.market}</td>
                             <td className="px-3 py-2 text-slate-800 dark:text-slate-200 border-b border-r border-slate-200 dark:border-slate-700">{row.direction}</td>
-                            <td className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-700">
+                            <td className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-700 pointer-events-none">
                               <Badge className={`text-xs shadow-none border-none ${row.trade_outcome === 'Win' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
                                 {row.trade_outcome}
                               </Badge>
