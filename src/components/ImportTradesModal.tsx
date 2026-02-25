@@ -183,11 +183,24 @@ export default function ImportTradesModal({
         }
       }
 
-      // Fallback: if AI didn't map "direction", map known direction-like headers (e.g. "order-type" with buy/sell)
-      const directionHeaderAliases = /^(order[- ]?type|side|type|action|buy\/sell|direction)$/i;
-      if (!seenFields.has('direction')) {
-        const directionHeader = csvHeaders.find((h) => directionHeaderAliases.test(h.trim().toLowerCase().replace(/\s+/g, ' ')));
-        if (directionHeader) deduped[directionHeader] = 'direction';
+      // Fallbacks: when AI didn't map a required/common field, map from known header aliases (flexible import)
+      const norm = (h: string) => h.trim().toLowerCase().replace(/\s+/g, ' ');
+      const fallbacks: { field: string; pattern: RegExp }[] = [
+        { field: 'direction', pattern: /^(order[- ]?type|side|type|action|buy\/sell|direction)$/i },
+        { field: 'risk_reward_ratio', pattern: /^(rr|r:r|risk[- ]?reward|risk[- ]?reward[- ]?ratio|reward[- ]?ratio|rr[- ]?ratio)$/i },
+        { field: 'trade_date', pattern: /^(date|open[- ]?date|trade[- ]?date|entry[- ]?date|close[- ]?date|time[- ]?open)$/i },
+        { field: 'trade_outcome', pattern: /^(outcome|result|win\/loss|p\/l|profit\/loss|win[- ]?loss|status|trade[- ]?result)$/i },
+        { field: 'trade_time', pattern: /^(time|open[- ]?time|entry[- ]?time|trade[- ]?time|hour)$/i },
+        { field: 'market', pattern: /^(market|symbol|instrument|pair|asset|ticker|product)$/i },
+        { field: 'risk_per_trade', pattern: /^(risk|risk\s*%|risk[- ]?%|risk[- ]?percent)$/i },
+      ];
+      for (const { field, pattern } of fallbacks) {
+        if (seenFields.has(field)) continue;
+        const header = csvHeaders.find((h) => pattern.test(norm(h)));
+        if (header) {
+          deduped[header] = field;
+          seenFields.add(field);
+        }
       }
       setMapping(deduped);
     } catch {
