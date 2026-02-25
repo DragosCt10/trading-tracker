@@ -18,8 +18,10 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { X, Check } from 'lucide-react';
-import { parseCsvTrades, extractCsvHeaders } from '@/utils/tradeImportParser';
+import { parseCsvTrades, extractCsvHeaders, getRawRowsFromCsv, aiRowToParsedTrade } from '@/utils/tradeImportParser';
+import type { RowError } from '@/utils/tradeImportParser';
 import { importTrades } from '@/lib/server/trades';
+import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import type { Database } from '@/types/supabase';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
@@ -115,6 +117,7 @@ export default function ImportTradesModal({
   const [importResult, setImportResult] = useState<{ inserted: number; failed: { row: number; reason: string }[] } | null>(null);
   const [importProgress, setImportProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isNormalizing, setIsNormalizing] = useState(false);
 
   function resetState() {
     setStep('upload');
@@ -240,17 +243,57 @@ export default function ImportTradesModal({
     return Array.from(requiredFields).filter((f) => !mapped.has(f));
   }
 
-  function handleProceedToPreview() {
+  async function handleProceedToPreview() {
     const confirmedMapping = Object.fromEntries(
       Object.entries(mapping).filter(([, v]) => v !== null)
     ) as Record<string, string>;
-    const result = parseCsvTrades(csvText, confirmedMapping, {
-      ...(defaultRiskPct !== null ? { risk_per_trade: defaultRiskPct } : {}),
-      ...(defaultRR !== null ? { risk_reward_ratio: defaultRR } : {}),
-      ...(activeAccount?.account_balance ? { account_balance: activeAccount.account_balance } : {}),
-    });
-    setParseResult(result);
-    setStep('preview');
+    setErrorMessage('');
+    setIsNormalizing(true);
+    try {
+      const { rawRows } = getRawRowsFromCsv(csvText, confirmedMapping);
+      if (rawRows.length === 0) {
+        setParseResult({ rows: [], errors: [{ rowIndex: 0, field: 'file', message: 'No data rows found in CSV.' }] });
+        setStep('preview');
+        return;
+      }
+      const res = await fetch('/api/normalize-trade-rows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rows: rawRows,
+          defaults: {
+            risk_per_trade: defaultRiskPct ?? 1,
+            risk_reward_ratio: 1,
+          },
+        }),
+      });
+      const data = await res.json() as { trades?: Record<string, unknown>[]; errors?: { rowIndex: number; message: string }[] };
+      const aiTrades = Array.isArray(data.trades) ? data.trades : [];
+      const aiErrors = Array.isArray(data.errors) ? data.errors : [];
+      let rows = aiTrades.map((t) => aiRowToParsedTrade(t));
+      const balance = activeAccount?.account_balance;
+      if (balance) {
+        rows = rows.map((row) => {
+          if (row.calculated_profit != null && row.pnl_percentage != null) return row;
+          const pnl = calculateTradePnl(
+            { trade_outcome: row.trade_outcome, risk_per_trade: row.risk_per_trade, risk_reward_ratio: row.risk_reward_ratio, break_even: row.break_even },
+            balance
+          );
+          return {
+            ...row,
+            calculated_profit: row.calculated_profit ?? pnl.calculated_profit,
+            pnl_percentage: row.pnl_percentage ?? pnl.pnl_percentage,
+          };
+        });
+      }
+      const errors: RowError[] = aiErrors.map((e) => ({ rowIndex: e.rowIndex, field: 'import', message: e.message }));
+      setParseResult({ rows, errors });
+      setStep('preview');
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'AI normalization failed. Please try again.');
+    } finally {
+      setIsNormalizing(false);
+    }
   }
 
   async function handleImport() {
@@ -485,6 +528,16 @@ export default function ImportTradesModal({
           {/* ── Step: Mapping ── */}
           {step === 'mapping' && (
             <div className="flex flex-col gap-4">
+              {isNormalizing && (
+                <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/80 dark:bg-purple-900/20 px-4 py-3 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-violet-600 flex items-center justify-center animate-pulse">
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300">AI is normalizing your trades…</p>
+                </div>
+              )}
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 AI suggested the mappings below. Required fields are marked with{' '}
                 <span className="text-red-500">*</span>. Use the dropdowns to fix any mistakes.
@@ -876,11 +929,11 @@ export default function ImportTradesModal({
                 ← Re-upload
               </Button>
               <Button
-                onClick={handleProceedToPreview}
-                disabled={!canProceedToPreview}
+                onClick={() => void handleProceedToPreview()}
+                disabled={!canProceedToPreview || isNormalizing}
                 className="cursor-pointer rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold border-0 shadow-md shadow-purple-500/30 disabled:opacity-50"
               >
-                Preview →
+                {isNormalizing ? 'AI normalizing…' : 'Preview →'}
               </Button>
             </>
           ) : step === 'preview' ? (
