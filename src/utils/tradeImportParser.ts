@@ -1,5 +1,4 @@
 import { format, parseISO, getMonth, isValid } from 'date-fns';
-import { isValidMarket, normalizeMarket } from '@/utils/validateMarket';
 import type { Trade } from '@/types/trade';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 
@@ -52,52 +51,6 @@ function normalizeNumericInput(raw: string): string {
   return s;
 }
 
-/** Normalize free-text: trim, strip BOM/nbsp, collapse multiple spaces, remove control characters. */
-function normalizeText(value: string | undefined): string {
-  if (value == null) return '';
-  const t = normalizeTrim(value);
-  // eslint-disable-next-line no-control-regex
-  return t.replace(/[\x00-\x1F\x7F]/g, '').replace(/\s+/g, ' ').trim();
-}
-
-/** Normalize time string: 09:00, 9:00:00, 0900, 09:00:00 AM, etc. Default to 00:00:00 if empty. */
-function normalizeTime(value: string | undefined): string {
-  const t = normalizeTrim(value ?? '');
-  if (!t) return '00:00:00';
-  const lower = t.toLowerCase();
-  const isPm = lower.includes('pm') || lower.includes('p.m');
-  const isAm = lower.includes('am') || lower.includes('a.m');
-  let digits = t.replace(/[^\d:]/g, '');
-  if (!digits) return '00:00:00';
-  const parts = digits.split(':').filter(Boolean);
-  let h = 0;
-  let m = 0;
-  let s = 0;
-  if (parts.length >= 3) {
-    h = parseInt(parts[0], 10);
-    m = parseInt(parts[1], 10);
-    s = parseInt(parts[2], 10);
-  } else if (parts.length === 2) {
-    h = parseInt(parts[0], 10);
-    m = parseInt(parts[1], 10);
-  } else if (digits.length <= 2) {
-    h = parseInt(digits, 10);
-  } else if (digits.length === 4) {
-    h = parseInt(digits.slice(0, 2), 10);
-    m = parseInt(digits.slice(2, 4), 10);
-  } else {
-    h = parseInt(digits.slice(0, 2), 10);
-    m = digits.length >= 4 ? parseInt(digits.slice(2, 4), 10) : 0;
-    s = digits.length >= 6 ? parseInt(digits.slice(4, 6), 10) : 0;
-  }
-  if (isPm && h < 12) h += 12;
-  if (isAm && h === 12) h = 0;
-  h = Math.min(23, Math.max(0, h));
-  m = Math.min(59, Math.max(0, m));
-  s = Math.min(59, Math.max(0, s));
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
 /** Detect CSV delimiter from first line: use semicolon if it has more semicolons than commas (EU style). */
 function detectDelimiter(firstLine: string): ',' | ';' {
   const commas = (firstLine.match(/,/g) ?? []).length;
@@ -129,43 +82,6 @@ function splitCsvLine(line: string, delimiter: ',' | ';' = ','): string[] {
   }
   result.push(current);
   return result;
-}
-
-/**
- * Strip emoji, icons, and any characters that are not letters, digits, or slash.
- * Handles markets like "GBPUSD🔥" or "EUR/USD✓".
- */
-function sanitizeMarketInput(value: string): string {
-  // eslint-disable-next-line no-control-regex
-  return value.replace(/[^A-Za-z0-9/]/g, '').toUpperCase();
-}
-
-/** Normalize direction: very flexible — long/short, buy/sell, call/put, 1/2, +/-, bull/bear, etc. */
-function normalizeDirection(value: string): 'Long' | 'Short' | null {
-  const v = normalizeTrim(value).toLowerCase().replace(/\s+/g, ' ');
-  if (!v) return null;
-  const one = v === '1' || v === '+' || v === 'up' || v === 'upward' || v === 'bull' || v === 'bullish' ||
-    v === 'long' || v === 'l' || v === 'buy' || v === 'b' || v === 'call' || v === 'c';
-  const two = v === '2' || v === '-' || v === 'down' || v === 'downward' || v === 'bear' || v === 'bearish' ||
-    v === 'short' || v === 's' || v === 'sell' || v === 'selll' || v === 'put' || v === 'p';
-  if (one) return 'Long';
-  if (two) return 'Short';
-  return null;
-}
-
-/** Normalize outcome: very flexible — win/lose, profit/loss, green/red, 1/0, tp/sl, hit/miss, etc. */
-function normalizeOutcome(value: string): 'Win' | 'Lose' | null {
-  const v = normalizeTrim(value).toLowerCase().replace(/\s+/g, ' ');
-  if (!v) return null;
-  const win = v === 'win' || v === 'w' || v === 'winner' || v === 'won' || v === 'wins' ||
-    v === 'profit' || v === 'profitable' || v === 'green' || v === '1' || v === '+' ||
-    v === 'tp' || v === 'take profit' || v === 'hit' || v === 'hit tp' || v === 'success' || v === 'successful';
-  const lose = v === 'lose' || v === 'loss' || v === 'l' || v === 'loser' || v === 'lost' || v === 'losing' ||
-    v === 'red' || v === '0' || v === '-' || v === 'sl' || v === 'stop loss' || v === 'miss' || v === 'hit sl' ||
-    v === 'failure' || v === 'failed' || v === 'breakeven' || v === 'be' || v === 'b/e';
-  if (win) return 'Win';
-  if (lose) return 'Lose';
-  return null;
 }
 
 /** Very flexible boolean: yes/no, 1/0, true/false, x, +, -, ok, positive/negative, on/off, etc. */
@@ -298,32 +214,25 @@ export function parseCsvTrades(
       }
     }
 
-    // --- Required: market (sanitize first; error only when empty or still invalid) ---
+    // --- Required: market (trim only; no format validation) ---
     const rawMarket = fieldValues['market'] ?? '';
     const marketTrimmed = normalizeTrim(rawMarket);
-    const sanitizedMarket = sanitizeMarketInput(rawMarket);
     if (!marketTrimmed) {
       rowErrors.push({ rowIndex, field: 'market', message: 'Missing required field: Market' });
-    } else if (!isValidMarket(sanitizedMarket)) {
-      rowErrors.push({ rowIndex, field: 'market', message: `Invalid market: "${sanitizedMarket || '(empty after removing invalid characters)'}" (use letters/numbers or pair with slash, e.g. EURUSD)` });
     }
 
-    // --- Required: direction (normalize first; error only when empty or still invalid) ---
+    // --- Required: direction (trim only; pass through as-is) ---
     const rawDirection = fieldValues['direction'] ?? '';
-    const normalizedDirection = normalizeDirection(rawDirection);
-    if (!normalizeTrim(rawDirection)) {
+    const directionTrimmed = normalizeTrim(rawDirection);
+    if (!directionTrimmed) {
       rowErrors.push({ rowIndex, field: 'direction', message: 'Missing required field: Direction' });
-    } else if (normalizedDirection === null) {
-      rowErrors.push({ rowIndex, field: 'direction', message: `Direction must be "Long" or "Short", got: "${rawDirection}"` });
     }
 
-    // --- Required: trade_outcome (normalize first; error only when empty or still invalid) ---
+    // --- Required: trade_outcome (trim only; pass through as-is) ---
     const rawOutcome = fieldValues['trade_outcome'] ?? '';
-    const normalizedOutcome = normalizeOutcome(rawOutcome);
-    if (!normalizeTrim(rawOutcome)) {
+    const outcomeTrimmed = normalizeTrim(rawOutcome);
+    if (!outcomeTrimmed) {
       rowErrors.push({ rowIndex, field: 'trade_outcome', message: 'Missing required field: Outcome' });
-    } else if (normalizedOutcome === null) {
-      rowErrors.push({ rowIndex, field: 'trade_outcome', message: `Outcome must be "Win" or "Lose", got: "${rawOutcome}"` });
     }
 
     // --- Required numerics (normalize string first; error only when empty or still not a number) ---
@@ -357,15 +266,17 @@ export function parseCsvTrades(
       continue;
     }
 
-    // All required fields valid — build the trade
+    // All required fields valid — build the trade (only date is normalized; rest pass-through trimmed)
     const tradeDate = normalizedDate;
-    const tradeTime = normalizeTime(fieldValues['trade_time']);
-    const dayOfWeek = parsedDate ? format(parsedDate, 'EEEE') : normalizeText(fieldValues['day_of_week']);
-    const quarter = parsedDate ? deriveQuarter(parsedDate) : normalizeText(fieldValues['quarter']);
+    const rawTime = normalizeTrim(fieldValues['trade_time'] ?? '');
+    const tradeTime = rawTime || '00:00:00';
+    const dayOfWeek = parsedDate ? format(parsedDate, 'EEEE') : normalizeTrim(fieldValues['day_of_week'] ?? '');
+    const quarter = parsedDate ? deriveQuarter(parsedDate) : normalizeTrim(fieldValues['quarter'] ?? '');
 
     const rawRRLong = fieldValues['risk_reward_ratio_long'] ?? '';
     const rrLongNorm = normalizeNumericInput(rawRRLong);
-    const rrLong = rrLongNorm !== '' ? parseFloat(rrLongNorm) : (normalizedOutcome === 'Lose' ? 0 : rrRatio);
+    const isLose = /^(lose|loss|l)$/i.test(outcomeTrimmed);
+    const rrLong = rrLongNorm !== '' ? parseFloat(rrLongNorm) : (isLose ? 0 : rrRatio);
 
     const rawCalcProfit = fieldValues['calculated_profit'] ?? '';
     const calcProfitNorm = normalizeNumericInput(rawCalcProfit);
@@ -385,12 +296,12 @@ export function parseCsvTrades(
 
     const breakEven = parseBool(fieldValues['break_even']);
 
-    // If CSV doesn't supply profit/pnl, calculate using the same formula as NewTradeModal
-    // Pure arithmetic — O(1) per row, safe for any import size.
+    // If CSV doesn't supply profit/pnl, calculate using the same formula as NewTradeModal (derive Win/Lose from outcome text for formula only)
+    const outcomeForPnl = isLose ? 'Lose' : 'Win';
     const computedPnl =
       (csvCalcProfit === undefined || csvPnlPct === undefined) && defaults?.account_balance
         ? calculateTradePnl(
-            { trade_outcome: normalizedOutcome!, risk_per_trade: riskPerTrade, risk_reward_ratio: rrRatio, break_even: breakEven },
+            { trade_outcome: outcomeForPnl, risk_per_trade: riskPerTrade, risk_reward_ratio: rrRatio, break_even: breakEven },
             defaults.account_balance
           )
         : null;
@@ -400,10 +311,10 @@ export function parseCsvTrades(
       trade_date: tradeDate,
       trade_time: tradeTime,
       day_of_week: dayOfWeek,
-      market: normalizeMarket(sanitizedMarket),
-      direction: normalizedDirection!,
-      setup_type: normalizeText(fieldValues['setup_type']),
-      trade_outcome: normalizedOutcome!,
+      market: marketTrimmed,
+      direction: directionTrimmed,
+      setup_type: normalizeTrim(fieldValues['setup_type'] ?? ''),
+      trade_outcome: outcomeTrimmed,
       risk_per_trade: riskPerTrade,
       risk_reward_ratio: rrRatio,
       risk_reward_ratio_long: isNaN(rrLong) ? 0 : rrLong,
@@ -415,18 +326,18 @@ export function parseCsvTrades(
       partials_taken: parseBool(fieldValues['partials_taken']),
       executed: fieldValues['executed'] !== undefined ? parseBool(fieldValues['executed']) : true,
       launch_hour: parseBool(fieldValues['launch_hour']),
-      mss: normalizeText(fieldValues['mss']),
-      liquidity: normalizeText(fieldValues['liquidity']),
-      trade_link: normalizeText(fieldValues['trade_link']),
-      liquidity_taken: normalizeText(fieldValues['liquidity_taken']),
-      evaluation: normalizeText(fieldValues['evaluation']),
-      notes: normalizeText(fieldValues['notes']) || undefined,
+      mss: normalizeTrim(fieldValues['mss'] ?? ''),
+      liquidity: normalizeTrim(fieldValues['liquidity'] ?? ''),
+      trade_link: normalizeTrim(fieldValues['trade_link'] ?? ''),
+      liquidity_taken: normalizeTrim(fieldValues['liquidity_taken'] ?? ''),
+      evaluation: normalizeTrim(fieldValues['evaluation'] ?? ''),
+      notes: normalizeTrim(fieldValues['notes'] ?? '') || undefined,
       quarter,
       displacement_size: isNaN(displacementSize) ? 0 : displacementSize,
       calculated_profit: csvCalcProfit ?? computedPnl?.calculated_profit,
       pnl_percentage: csvPnlPct ?? computedPnl?.pnl_percentage,
       strategy_id: undefined,
-      trend: normalizeText(fieldValues['trend']) || null,
+      trend: normalizeTrim(fieldValues['trend'] ?? '') || null,
       fvg_size: fvgSize !== null && !isNaN(fvgSize) ? fvgSize : null,
       confidence_at_entry: undefined,
       mind_state_at_entry: undefined,
@@ -443,75 +354,4 @@ export function extractCsvHeaders(csvText: string): string[] {
   const firstLine = csvText.split(/\r?\n/)[0] ?? '';
   const delimiter = detectDelimiter(firstLine);
   return splitCsvLine(firstLine, delimiter).map((h) => parseValue(h));
-}
-
-/**
- * Build raw row objects from CSV using column mapping (no validation/normalization).
- * Used when AI will normalize the data. Returns one object per data row; keys = trade field names, values = raw strings.
- */
-export function getRawRowsFromCsv(
-  csvText: string,
-  mapping: Record<string, string>
-): { rawRows: Record<string, string>[] } {
-  const lines = csvText.split(/\r?\n/).filter((l) => l.trim() !== '');
-  if (lines.length < 2) return { rawRows: [] };
-
-  const csvHeaders = splitCsvLine(lines[0]).map((h) => parseValue(h));
-  const rawRows: Record<string, string>[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const values = splitCsvLine(lines[i]);
-    const fieldValues: Record<string, string> = {};
-    csvHeaders.forEach((header, colIdx) => {
-      const tradeField = mapping[header];
-      if (tradeField) {
-        fieldValues[tradeField] = parseValue(values[colIdx] ?? '');
-      }
-    });
-    if (Object.values(fieldValues).every((v) => v === '')) continue;
-    rawRows.push(fieldValues);
-  }
-
-  return { rawRows };
-}
-
-/** Coerce AI-normalized row to ParsedTrade (ensure correct types for DB insert). */
-export function aiRowToParsedTrade(row: Record<string, unknown>): ParsedTrade {
-  const num = (v: unknown) => (typeof v === 'number' && !Number.isNaN(v) ? v : typeof v === 'string' ? parseFloat(v) || 0 : 0);
-  const bool = (v: unknown) => v === true || v === 'true' || v === 1 || v === '1' || v === 'yes' || v === 'y';
-  const str = (v: unknown) => (v != null && String(v).trim() !== '' ? String(v).trim() : '');
-  return {
-    trade_link: str(row.trade_link),
-    liquidity_taken: str(row.liquidity_taken),
-    trade_time: str(row.trade_time) || '00:00:00',
-    trade_date: str(row.trade_date),
-    day_of_week: str(row.day_of_week),
-    market: str(row.market),
-    setup_type: str(row.setup_type),
-    liquidity: str(row.liquidity),
-    sl_size: num(row.sl_size),
-    direction: (row.direction === 'Long' || row.direction === 'Short' ? row.direction : 'Long') as 'Long' | 'Short',
-    trade_outcome: (row.trade_outcome === 'Win' || row.trade_outcome === 'Lose' ? row.trade_outcome : 'Lose') as 'Win' | 'Lose',
-    break_even: bool(row.break_even),
-    reentry: bool(row.reentry),
-    news_related: bool(row.news_related),
-    mss: str(row.mss),
-    risk_reward_ratio: num(row.risk_reward_ratio),
-    risk_reward_ratio_long: num(row.risk_reward_ratio_long),
-    local_high_low: bool(row.local_high_low),
-    risk_per_trade: num(row.risk_per_trade),
-    quarter: str(row.quarter),
-    evaluation: str(row.evaluation),
-    partials_taken: bool(row.partials_taken),
-    executed: row.executed !== false && row.executed !== 'false' && row.executed !== 0,
-    launch_hour: bool(row.launch_hour),
-    displacement_size: num(row.displacement_size),
-    trend: str(row.trend) || null,
-    notes: str(row.notes) || undefined,
-    calculated_profit: row.calculated_profit != null ? num(row.calculated_profit) : undefined,
-    pnl_percentage: row.pnl_percentage != null ? num(row.pnl_percentage) : undefined,
-    fvg_size: row.fvg_size != null && row.fvg_size !== '' ? num(row.fvg_size) : null,
-    confidence_at_entry: row.confidence_at_entry != null && row.confidence_at_entry !== '' ? Math.min(5, Math.max(1, num(row.confidence_at_entry))) : undefined,
-    mind_state_at_entry: row.mind_state_at_entry != null && row.mind_state_at_entry !== '' ? Math.min(5, Math.max(1, num(row.mind_state_at_entry))) : undefined,
-  };
 }
