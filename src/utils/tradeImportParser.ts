@@ -30,11 +30,26 @@ function normalizeTrim(value: string): string {
   return value.replace(/\uFEFF/g, '').replace(/\u00A0/g, ' ').trim();
 }
 
-/** Normalize numeric string: strip currency symbols and spaces, comma → dot. Use before parseFloat. */
+/**
+ * Normalize numeric string: strip currency symbols, spaces, support EU (1.234,56) and US (1,234.56),
+ * strip trailing R/k/K for risk:reward. Use before parseFloat.
+ */
 function normalizeNumericInput(raw: string): string {
-  return normalizeTrim(raw)
-    .replace(/[\s€$£¥%]/g, '')
-    .replace(',', '.');
+  let s = normalizeTrim(raw).replace(/[\s€$£¥%]/g, '');
+  // Strip trailing R, k, K (e.g. "1.5R" → "1.5")
+  s = s.replace(/[rRkK]\s*$/, '');
+  // EU style: dot = thousands, comma = decimal (e.g. 1.234,56 → 1234.56)
+  if (/^\d{1,3}(\.\d{3})*,\d+$/.test(s)) {
+    return s.replace(/\./g, '').replace(',', '.');
+  }
+  // US style or plain: remove thousands commas, then comma → dot
+  s = s.replace(/,/g, '.');
+  // If multiple dots, treat as thousands (e.g. 1.234.56 → 1234.56 for EU)
+  const parts = s.split('.');
+  if (parts.length > 2) {
+    s = parts.slice(0, -1).join('') + '.' + parts[parts.length - 1];
+  }
+  return s;
 }
 
 /** Normalize free-text: trim, strip BOM/nbsp, collapse multiple spaces, remove control characters. */
@@ -45,16 +60,53 @@ function normalizeText(value: string | undefined): string {
   return t.replace(/[\x00-\x1F\x7F]/g, '').replace(/\s+/g, ' ').trim();
 }
 
-/** Normalize time string: keep only digits and colons (e.g. 09:00, 9:00:00). Default to 00:00:00 if empty. */
+/** Normalize time string: 09:00, 9:00:00, 0900, 09:00:00 AM, etc. Default to 00:00:00 if empty. */
 function normalizeTime(value: string | undefined): string {
   const t = normalizeTrim(value ?? '');
   if (!t) return '00:00:00';
-  const kept = t.replace(/[^\d:]/g, '');
-  return kept || '00:00:00';
+  const lower = t.toLowerCase();
+  const isPm = lower.includes('pm') || lower.includes('p.m');
+  const isAm = lower.includes('am') || lower.includes('a.m');
+  let digits = t.replace(/[^\d:]/g, '');
+  if (!digits) return '00:00:00';
+  const parts = digits.split(':').filter(Boolean);
+  let h = 0;
+  let m = 0;
+  let s = 0;
+  if (parts.length >= 3) {
+    h = parseInt(parts[0], 10);
+    m = parseInt(parts[1], 10);
+    s = parseInt(parts[2], 10);
+  } else if (parts.length === 2) {
+    h = parseInt(parts[0], 10);
+    m = parseInt(parts[1], 10);
+  } else if (digits.length <= 2) {
+    h = parseInt(digits, 10);
+  } else if (digits.length === 4) {
+    h = parseInt(digits.slice(0, 2), 10);
+    m = parseInt(digits.slice(2, 4), 10);
+  } else {
+    h = parseInt(digits.slice(0, 2), 10);
+    m = digits.length >= 4 ? parseInt(digits.slice(2, 4), 10) : 0;
+    s = digits.length >= 6 ? parseInt(digits.slice(4, 6), 10) : 0;
+  }
+  if (isPm && h < 12) h += 12;
+  if (isAm && h === 12) h = 0;
+  h = Math.min(23, Math.max(0, h));
+  m = Math.min(59, Math.max(0, m));
+  s = Math.min(59, Math.max(0, s));
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-/** Split a CSV line respecting quoted fields (commas inside quotes are not delimiters) */
-function splitCsvLine(line: string): string[] {
+/** Detect CSV delimiter from first line: use semicolon if it has more semicolons than commas (EU style). */
+function detectDelimiter(firstLine: string): ',' | ';' {
+  const commas = (firstLine.match(/,/g) ?? []).length;
+  const semicolons = (firstLine.match(/;/g) ?? []).length;
+  return semicolons > commas ? ';' : ',';
+}
+
+/** Split a CSV line respecting quoted fields. Delimiter can be comma or semicolon. */
+function splitCsvLine(line: string, delimiter: ',' | ';' = ','): string[] {
   const result: string[] = [];
   let current = '';
   let inQuotes = false;
@@ -68,7 +120,7 @@ function splitCsvLine(line: string): string[] {
       } else {
         inQuotes = !inQuotes;
       }
-    } else if (char === ',' && !inQuotes) {
+    } else if (char === delimiter && !inQuotes) {
       result.push(current);
       current = '';
     } else {
@@ -88,34 +140,106 @@ function sanitizeMarketInput(value: string): string {
   return value.replace(/[^A-Za-z0-9/]/g, '').toUpperCase();
 }
 
-/** Normalize direction: handles any casing and common abbreviations (including typos like "selll") */
+/** Normalize direction: very flexible — long/short, buy/sell, call/put, 1/2, +/-, bull/bear, etc. */
 function normalizeDirection(value: string): 'Long' | 'Short' | null {
-  const v = normalizeTrim(value).toLowerCase();
+  const v = normalizeTrim(value).toLowerCase().replace(/\s+/g, ' ');
   if (!v) return null;
-  if (v === 'long' || v === 'l' || v === 'buy' || v === 'b') return 'Long';
-  if (v === 'short' || v === 's' || v === 'sell' || v === 'selll') return 'Short';
+  const one = v === '1' || v === '+' || v === 'up' || v === 'upward' || v === 'bull' || v === 'bullish' ||
+    v === 'long' || v === 'l' || v === 'buy' || v === 'b' || v === 'call' || v === 'c';
+  const two = v === '2' || v === '-' || v === 'down' || v === 'downward' || v === 'bear' || v === 'bearish' ||
+    v === 'short' || v === 's' || v === 'sell' || v === 'selll' || v === 'put' || v === 'p';
+  if (one) return 'Long';
+  if (two) return 'Short';
   return null;
 }
 
-/** Normalize outcome: handles any casing and common abbreviations */
+/** Normalize outcome: very flexible — win/lose, profit/loss, green/red, 1/0, tp/sl, hit/miss, etc. */
 function normalizeOutcome(value: string): 'Win' | 'Lose' | null {
-  const v = normalizeTrim(value).toLowerCase();
+  const v = normalizeTrim(value).toLowerCase().replace(/\s+/g, ' ');
   if (!v) return null;
-  if (v === 'win' || v === 'w' || v === 'winner' || v === 'won' || v === 'wins') return 'Win';
-  if (v === 'lose' || v === 'loss' || v === 'l' || v === 'loser' || v === 'lost' || v === 'losing') return 'Lose';
+  const win = v === 'win' || v === 'w' || v === 'winner' || v === 'won' || v === 'wins' ||
+    v === 'profit' || v === 'profitable' || v === 'green' || v === '1' || v === '+' ||
+    v === 'tp' || v === 'take profit' || v === 'hit' || v === 'hit tp' || v === 'success' || v === 'successful';
+  const lose = v === 'lose' || v === 'loss' || v === 'l' || v === 'loser' || v === 'lost' || v === 'losing' ||
+    v === 'red' || v === '0' || v === '-' || v === 'sl' || v === 'stop loss' || v === 'miss' || v === 'hit sl' ||
+    v === 'failure' || v === 'failed' || v === 'breakeven' || v === 'be' || v === 'b/e';
+  if (win) return 'Win';
+  if (lose) return 'Lose';
   return null;
 }
 
+/** Very flexible boolean: yes/no, 1/0, true/false, x, +, -, ok, positive/negative, on/off, etc. */
 function parseBool(value: string | undefined): boolean {
-  const v = normalizeTrim(value ?? '').toLowerCase();
+  const v = normalizeTrim(value ?? '').toLowerCase().replace(/\s+/g, ' ');
   if (!v) return false;
-  if (v === 'no' || v === 'n' || v === 'false' || v === '0') return false;
-  return v === 'yes' || v === 'y' || v === 'true' || v === '1';
+  if (v === 'no' || v === 'n' || v === 'false' || v === '0' || v === '-' || v === 'off' ||
+    v === 'negative' || v === 'nope' || v === 'none') return false;
+  if (v === 'yes' || v === 'y' || v === 'true' || v === '1' || v === '+' || v === 'on' ||
+    v === 'ok' || v === 'positive' || v === 'x' || v === 'check' || v === 'checked' ||
+    v === 'affirmative' || v === 'correct') return true;
+  return false;
 }
 
 function deriveQuarter(date: Date): string {
   const month = getMonth(date); // 0-indexed
   return `Q${Math.ceil((month + 1) / 3)}`;
+}
+
+/**
+ * Parse date string flexibly: ISO, DD.MM.YYYY, DD/MM/YYYY, MM/DD/YYYY, MM-DD-YYYY,
+ * D.M.YYYY, D/M/YYYY, M/D/YYYY, YYYY.MM.DD, and Excel-style YYYY-MM-DD with time.
+ * Returns [normalizedDateStr, parsedDate] or [original, null] if invalid.
+ */
+function parseDateFlexible(dateTrimmed: string): { normalized: string; parsed: Date | null } {
+  if (!dateTrimmed) return { normalized: dateTrimmed, parsed: null };
+  let parsed = parseISO(dateTrimmed);
+  let normalized = dateTrimmed;
+
+  const patterns: Array<{ regex: RegExp; toISO: (m: RegExpMatchArray) => string }> = [
+    { regex: /^(\d{2})\.(\d{2})\.(\d{4})$/, toISO: (m) => `${m[3]}-${m[2]}-${m[1]}` },
+    { regex: /^(\d{2})\/(\d{2})\/(\d{4})$/, toISO: (m) => `${m[3]}-${m[2]}-${m[1]}` },
+    { regex: /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/, toISO: (m) => `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` },
+    { regex: /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, toISO: (m) => `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` },
+    { regex: /^(\d{4})-(\d{1,2})-(\d{1,2})/, toISO: (m) => `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}` },
+    { regex: /^(\d{4})\.(\d{1,2})\.(\d{1,2})$/, toISO: (m) => `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}` },
+  ];
+
+  if (isValid(parsed)) return { normalized: dateTrimmed.slice(0, 10), parsed };
+
+  for (const { regex, toISO } of patterns) {
+    const m = dateTrimmed.match(regex);
+    if (m) {
+      normalized = toISO(m);
+      parsed = parseISO(normalized);
+      if (isValid(parsed)) return { normalized, parsed };
+    }
+  }
+
+  // MM/DD/YYYY or MM-DD-YYYY (US): try if first segment <= 12 and second > 12
+  const usSlash = dateTrimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (usSlash) {
+    const [, a, b, y] = usSlash;
+    const m1 = parseInt(a, 10);
+    const m2 = parseInt(b, 10);
+    if (m1 >= 1 && m1 <= 12 && m2 >= 1 && m2 <= 31) {
+      const asDDMM = `${y}-${b.padStart(2, '0')}-${a.padStart(2, '0')}`;
+      const asMMDD = `${y}-${a.padStart(2, '0')}-${b.padStart(2, '0')}`;
+      const p1 = parseISO(asDDMM);
+      const p2 = parseISO(asMMDD);
+      if (isValid(p1)) return { normalized: asDDMM, parsed: p1 };
+      if (isValid(p2)) return { normalized: asMMDD, parsed: p2 };
+    }
+  }
+
+  const usDash = dateTrimmed.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (usDash) {
+    const [, a, b, y] = usDash;
+    const asMMDD = `${y}-${a.padStart(2, '0')}-${b.padStart(2, '0')}`;
+    parsed = parseISO(asMMDD);
+    if (isValid(parsed)) return { normalized: asMMDD, parsed };
+  }
+
+  return { normalized: dateTrimmed, parsed: null };
 }
 
 /**
@@ -135,13 +259,14 @@ export function parseCsvTrades(
     return { rows: [], errors: [{ rowIndex: 0, field: 'file', message: 'CSV file has no data rows.' }] };
   }
 
-  const csvHeaders = splitCsvLine(lines[0]).map((h) => parseValue(h));
+  const delimiter = detectDelimiter(lines[0]);
+  const csvHeaders = splitCsvLine(lines[0], delimiter).map((h) => parseValue(h));
   const rows: ParsedTrade[] = [];
   const errors: RowError[] = [];
 
   for (let i = 1; i < lines.length; i++) {
     const rowIndex = i; // 1-based for display
-    const values = splitCsvLine(lines[i]);
+    const values = splitCsvLine(lines[i], delimiter);
 
     // Build a lookup: tradeField → raw string value from this row
     const fieldValues: Record<string, string> = {};
@@ -157,7 +282,7 @@ export function parseCsvTrades(
 
     const rowErrors: RowError[] = [];
 
-    // --- Required: trade_date (normalize first; error only when empty or still invalid) ---
+    // --- Required: trade_date (flexible formats: ISO, DD.MM.YYYY, MM/DD/YYYY, etc.) ---
     const rawDate = fieldValues['trade_date'] ?? '';
     const dateTrimmed = normalizeTrim(rawDate);
     let parsedDate: Date | null = null;
@@ -165,24 +290,11 @@ export function parseCsvTrades(
     if (!dateTrimmed) {
       rowErrors.push({ rowIndex, field: 'trade_date', message: 'Missing required field: Date' });
     } else {
-      parsedDate = parseISO(dateTrimmed);
-      if (!isValid(parsedDate)) {
-        const dotMatch = dateTrimmed.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-        if (dotMatch) {
-          normalizedDate = `${dotMatch[3]}-${dotMatch[2]}-${dotMatch[1]}`;
-          parsedDate = parseISO(normalizedDate);
-        }
-      }
-      if (!isValid(parsedDate)) {
-        const slashMatch = dateTrimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-        if (slashMatch) {
-          normalizedDate = `${slashMatch[3]}-${slashMatch[2]}-${slashMatch[1]}`;
-          parsedDate = parseISO(normalizedDate);
-        }
-      }
-      if (!isValid(parsedDate)) {
-        rowErrors.push({ rowIndex, field: 'trade_date', message: `Invalid date: "${dateTrimmed}" (expected YYYY-MM-DD, DD.MM.YYYY or DD/MM/YYYY)` });
-        parsedDate = null;
+      const dateResult = parseDateFlexible(dateTrimmed);
+      parsedDate = dateResult.parsed;
+      normalizedDate = dateResult.normalized;
+      if (!parsedDate) {
+        rowErrors.push({ rowIndex, field: 'trade_date', message: `Invalid date: "${dateTrimmed}" (try YYYY-MM-DD, DD.MM.YYYY, DD/MM/YYYY, or MM/DD/YYYY)` });
       }
     }
 
@@ -326,8 +438,9 @@ export function parseCsvTrades(
   return { rows, errors };
 }
 
-/** Extract only the header row from a CSV string */
+/** Extract only the header row from a CSV string (auto-detects comma vs semicolon delimiter). */
 export function extractCsvHeaders(csvText: string): string[] {
   const firstLine = csvText.split(/\r?\n/)[0] ?? '';
-  return splitCsvLine(firstLine).map((h) => parseValue(h));
+  const delimiter = detectDelimiter(firstLine);
+  return splitCsvLine(firstLine, delimiter).map((h) => parseValue(h));
 }
