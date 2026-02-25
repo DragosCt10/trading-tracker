@@ -169,14 +169,12 @@ export function parseCsvTrades(
 
     const rowErrors: RowError[] = [];
 
-    // --- Required: trade_date (flexible formats: ISO, DD.MM.YYYY, MM/DD/YYYY, etc.) ---
+    // --- trade_date: only normalize when present; error only on invalid format ---
     const rawDate = fieldValues['trade_date'] ?? '';
     const dateTrimmed = normalizeTrim(rawDate);
     let parsedDate: Date | null = null;
-    let normalizedDate = rawDate;
-    if (!dateTrimmed) {
-      rowErrors.push({ rowIndex, field: 'trade_date', message: 'Missing required field: Date' });
-    } else {
+    let normalizedDate = dateTrimmed;
+    if (dateTrimmed) {
       const dateResult = parseDateFlexible(dateTrimmed);
       parsedDate = dateResult.parsed;
       normalizedDate = dateResult.normalized;
@@ -185,43 +183,23 @@ export function parseCsvTrades(
       }
     }
 
-    // --- Required: market (trim only; no format validation) ---
-    const rawMarket = fieldValues['market'] ?? '';
-    const marketTrimmed = normalizeTrim(rawMarket);
-    if (!marketTrimmed) {
-      rowErrors.push({ rowIndex, field: 'market', message: 'Missing required field: Market' });
-    }
+    // --- Optional text: trim only (no "missing" errors) ---
+    const marketTrimmed = normalizeTrim(fieldValues['market'] ?? '');
+    const directionTrimmed = normalizeTrim(fieldValues['direction'] ?? '');
+    const outcomeTrimmed = normalizeTrim(fieldValues['trade_outcome'] ?? '');
 
-    // --- Required: direction (trim only; pass through as-is) ---
-    const rawDirection = fieldValues['direction'] ?? '';
-    const directionTrimmed = normalizeTrim(rawDirection);
-    if (!directionTrimmed) {
-      rowErrors.push({ rowIndex, field: 'direction', message: 'Missing required field: Direction' });
-    }
-
-    // --- Required: trade_outcome (trim only; pass through as-is) ---
-    const rawOutcome = fieldValues['trade_outcome'] ?? '';
-    const outcomeTrimmed = normalizeTrim(rawOutcome);
-    if (!outcomeTrimmed) {
-      rowErrors.push({ rowIndex, field: 'trade_outcome', message: 'Missing required field: Outcome' });
-    }
-
-    // --- Numerics: trim only, then parseFloat (no format normalization) ---
+    // --- Numerics: trim only; use defaults when empty, error only on invalid format ---
     const rawRisk = fieldValues['risk_per_trade'] ?? '';
     const riskTrimmed = normalizeTrim(rawRisk);
-    const riskPerTrade = riskTrimmed !== '' ? parseFloat(riskTrimmed) : (defaults?.risk_per_trade ?? NaN);
+    const riskPerTrade = riskTrimmed !== '' ? parseFloat(riskTrimmed) : (defaults?.risk_per_trade ?? 0);
     if (riskTrimmed !== '' && isNaN(riskPerTrade)) {
       rowErrors.push({ rowIndex, field: 'risk_per_trade', message: `Risk % must be a number, got: "${rawRisk}"` });
-    } else if (riskTrimmed === '' && (defaults?.risk_per_trade == null || isNaN(defaults.risk_per_trade))) {
-      rowErrors.push({ rowIndex, field: 'risk_per_trade', message: 'Missing required field: Risk % (or set a default in the previous step)' });
     }
 
     const rawRR = fieldValues['risk_reward_ratio'] ?? '';
     const rrTrimmed = normalizeTrim(rawRR);
-    const rrRatio = rrTrimmed !== '' ? parseFloat(rrTrimmed) : (defaults?.risk_reward_ratio ?? NaN);
-    if (!rrTrimmed && (defaults?.risk_reward_ratio == null || isNaN(defaults.risk_reward_ratio))) {
-      rowErrors.push({ rowIndex, field: 'risk_reward_ratio', message: 'Missing required field: Risk:Reward Ratio (or set a default in the previous step)' });
-    } else if (rrTrimmed !== '' && isNaN(rrRatio)) {
+    const rrRatio = rrTrimmed !== '' ? parseFloat(rrTrimmed) : (defaults?.risk_reward_ratio ?? 0);
+    if (rrTrimmed !== '' && isNaN(rrRatio)) {
       rowErrors.push({ rowIndex, field: 'risk_reward_ratio', message: `Risk:Reward Ratio must be a number, got: "${rawRR}"` });
     }
 
@@ -237,7 +215,7 @@ export function parseCsvTrades(
       continue;
     }
 
-    // All required fields valid — build the trade (only date is normalized to YYYY-MM-DD; rest trim only)
+    // Build the trade (only date is normalized to YYYY-MM-DD when present; rest trim only, empty allowed)
     const tradeDate = normalizedDate;
     const rawTime = normalizeTrim(fieldValues['trade_time'] ?? '');
     const tradeTime = rawTime || '00:00:00';
