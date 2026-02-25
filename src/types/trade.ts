@@ -12,8 +12,8 @@ export interface Trade {
   setup_type: string;
   liquidity: string;
   sl_size: number;
-  direction: 'Long' | 'Short';
-  trade_outcome: 'Win' | 'Lose';
+  direction: string;
+  trade_outcome: string;
   break_even: boolean;
   reentry: boolean;
   news_related: boolean;
