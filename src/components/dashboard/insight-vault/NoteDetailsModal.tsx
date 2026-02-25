@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Note } from '@/types/note';
-import { deleteNote, updateNote } from '@/lib/server/notes';
-import { useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useRef } from 'react';
+import { Note, TradeRef } from '@/types/note';
+import { deleteNote, updateNote, getNoteById } from '@/lib/server/notes';
+import { useQueryClient, useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
-import { AlertCircle, Pencil, Trash2, Pin, X, FileText } from 'lucide-react';
+import { getTradesForNoteLinking } from '@/lib/server/trades';
+import { AccountModePopover, type AccountModeSelection } from '@/components/shared/AccountModePopover';
+import { AlertCircle, Pencil, Trash2, Pin, X, FileText, Link2, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -58,17 +60,83 @@ export default function NoteDetailsModal({
   const [editedNote, setEditedNote] = useState<Note>({
     ...note,
     strategy_ids: note.strategy_ids || (note.strategy_id ? [note.strategy_id] : []),
+    trade_refs: note.trade_refs ?? [],
   });
+  const [tradePickerSelection, setTradePickerSelection] = useState<AccountModeSelection>({
+    mode: 'live',
+    accountId: null,
+    account: null,
+  });
+  const tradeListScrollSentinelRef = useRef<HTMLDivElement>(null);
 
-  // Update editedNote when note changes
+  // Fetch full note when modal opens to get resolved trades for display
+  const { data: fullNote } = useQuery({
+    queryKey: ['note', note.id],
+    queryFn: () => getNoteById(note.id, userId!),
+    enabled: !!userId && isOpen && !!note.id,
+    staleTime: 30 * 1000,
+  });
+  const displayNote = fullNote ?? note;
+
+  // Update editedNote when note or fullNote changes
   useEffect(() => {
-    if (note.id !== editedNote.id && !isEditing) {
+    if (displayNote.id !== editedNote.id && !isEditing) {
       setEditedNote({
-        ...note,
-        strategy_ids: note.strategy_ids || (note.strategy_id ? [note.strategy_id] : []),
+        ...displayNote,
+        strategy_ids: displayNote.strategy_ids || (displayNote.strategy_id ? [displayNote.strategy_id] : []),
+        trade_refs: displayNote.trade_refs ?? [],
       });
     }
-  }, [note.id, note.strategy_id, note.strategy_ids, editedNote.id, isEditing]);
+  }, [displayNote.id, displayNote.strategy_id, displayNote.strategy_ids, displayNote.trade_refs, editedNote.id, isEditing]);
+
+  const {
+    data: tradesForLinkingData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['tradesForNoteLinking', userId, tradePickerSelection.mode, tradePickerSelection.accountId, editedNote.strategy_ids],
+    queryFn: ({ pageParam }) =>
+      getTradesForNoteLinking(userId!, tradePickerSelection.mode, {
+        accountId: tradePickerSelection.accountId,
+        strategyIds: (editedNote.strategy_ids?.length ?? 0) > 0 ? editedNote.strategy_ids : undefined,
+        offset: pageParam as number,
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextOffset,
+    enabled: !!userId && isOpen && isEditing && !!tradePickerSelection.accountId,
+    staleTime: 60 * 1000,
+  });
+
+  const tradesForLinking = tradesForLinkingData?.pages.flatMap((p) => p.trades) ?? [];
+
+  // Infinite scroll: load more when sentinel enters viewport
+  useEffect(() => {
+    if (!tradePickerSelection.accountId || !hasNextPage || isFetchingNextPage) return;
+    const el = tradeListScrollSentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) fetchNextPage();
+      },
+      { root: el.closest('.overflow-y-auto'), rootMargin: '100px', threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [tradePickerSelection.accountId, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const isTradeSelected = (id: string, mode: string) =>
+    (editedNote.trade_refs ?? []).some((r) => r.id === id && r.mode === mode);
+  const toggleTradeRef = (id: string, mode: 'live' | 'backtesting' | 'demo') => {
+    setEditedNote((prev) => {
+      const refs = prev.trade_refs ?? [];
+      const exists = refs.some((r) => r.id === id && r.mode === mode);
+      const trade_refs = exists
+        ? refs.filter((r) => !(r.id === id && r.mode === mode))
+        : [...refs, { id, mode }];
+      return { ...prev, trade_refs };
+    });
+  };
 
   const handleSave = async () => {
     if (!userId) {
@@ -85,6 +153,7 @@ export default function NoteDetailsModal({
         content: editedNote.content,
         strategy_id: editedNote.strategy_id,
         strategy_ids: editedNote.strategy_ids,
+        trade_refs: editedNote.trade_refs,
         is_pinned: editedNote.is_pinned,
         tags: editedNote.tags,
       });
@@ -348,6 +417,68 @@ export default function NoteDetailsModal({
                   )}
                 </div>
 
+                {/* Link to trades (optional) */}
+                <div className="space-y-1.5">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    <span className="flex items-center gap-2">
+                      <Link2 className="h-4 w-4" style={{ color: 'var(--tc-primary)' }} />
+                      Link to trades (optional)
+                    </span>
+                  </Label>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Account:</span>
+                    <AccountModePopover
+                      userId={userId}
+                      value={tradePickerSelection}
+                      onChange={setTradePickerSelection}
+                      placeholder="Select account"
+                      triggerClassName="min-w-[160px]"
+                    />
+                  </div>
+                  <div className="border border-slate-200/60 dark:border-slate-600 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm max-h-48 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:dark:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
+                    {!tradePickerSelection.accountId ? (
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Select an account above to see its trades.
+                      </p>
+                    ) : tradesForLinking.length === 0 ? (
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        {(editedNote.strategy_ids?.length ?? 0) === 0
+                          ? 'No trades in this account yet.'
+                          : 'No trades for selected strategies in this account.'}
+                      </p>
+                    ) : (
+                      <div className="space-y-2 pr-1">
+                        {tradesForLinking.map((t) => (
+                          <div key={`${t.mode}-${t.id}`} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`edit-trade-${t.mode}-${t.id}`}
+                              checked={isTradeSelected(t.id, t.mode)}
+                              onCheckedChange={() => toggleTradeRef(t.id, t.mode)}
+                              className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 themed-checkbox data-[state=checked]:!text-white transition-colors duration-150"
+                            />
+                            <Label
+                              htmlFor={`edit-trade-${t.mode}-${t.id}`}
+                              className="text-sm font-normal cursor-pointer text-slate-700 dark:text-slate-300 flex-1 truncate"
+                            >
+                              {t.trade_date} · {t.market} · {t.direction} · {t.trade_outcome}
+                            </Label>
+                          </div>
+                        ))}
+                        <div ref={tradeListScrollSentinelRef} className="min-h-4 flex items-center justify-center py-2">
+                          {isFetchingNextPage && (
+                            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {((editedNote.trade_refs?.length ?? 0) > 0) && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {editedNote.trade_refs!.length} trade{editedNote.trade_refs!.length === 1 ? '' : 's'} linked
+                    </p>
+                  )}
+                </div>
+
                 {/* Content Editor */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
@@ -434,7 +565,11 @@ export default function NoteDetailsModal({
                     onClick={() => {
                       setIsSaving(false);
                       setIsEditing(false);
-                      setEditedNote(note);
+                      setEditedNote({
+                        ...displayNote,
+                        strategy_ids: displayNote.strategy_ids || (displayNote.strategy_id ? [displayNote.strategy_id] : []),
+                        trade_refs: displayNote.trade_refs ?? [],
+                      });
                       setError(null);
                     }}
                     disabled={isSaving}
@@ -522,6 +657,23 @@ export default function NoteDetailsModal({
                             {editedNote.strategy.name}
                           </Badge>
                         ) : null}
+                      </div>
+                    </div>
+                  )}
+                  {(displayNote.trades && displayNote.trades.length > 0) && (
+                    <div className="flex items-start gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 mt-0.5">Linked trades:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {displayNote.trades.map((t) => (
+                          <Badge
+                            key={`${t.mode}-${t.id}`}
+                            variant="outline"
+                            className="shadow-none bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-xs font-normal"
+                          >
+                            {t.trade_date} · {t.market} {t.direction}
+                            {t.strategy_name ? ` · ${t.strategy_name}` : ''}
+                          </Badge>
+                        ))}
                       </div>
                     </div>
                   )}
