@@ -1,10 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createNote } from '@/lib/server/notes';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
-import { FileText, X } from 'lucide-react';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { getTradesForNoteLinking } from '@/lib/server/trades';
+import type { TradeRef } from '@/types/note';
+import { AccountModePopover, type AccountModeSelection } from '@/components/shared/AccountModePopover';
+import { FileText, X, Link2, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -44,8 +48,15 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
     content: '',
     strategy_id: null as string | null,
     strategy_ids: [] as string[],
+    trade_refs: [] as TradeRef[],
     is_pinned: false,
   });
+  const [tradePickerSelection, setTradePickerSelection] = useState<AccountModeSelection>({
+    mode: 'live',
+    accountId: null,
+    account: null,
+  });
+  const tradeListScrollSentinelRef = useRef<HTMLDivElement>(null);
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -60,6 +71,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
         content: '',
         strategy_id: null,
         strategy_ids: [],
+        trade_refs: [],
         is_pinned: false,
       });
       setError(null);
@@ -67,6 +79,55 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
       setIsSubmitting(false);
     }
   }, [isOpen]);
+
+  // Trades for linking with infinite scroll (filtered by account + strategies)
+  const {
+    data: tradesForLinkingData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['tradesForNoteLinking', userId, tradePickerSelection.mode, tradePickerSelection.accountId, note.strategy_ids],
+    queryFn: ({ pageParam }) =>
+      getTradesForNoteLinking(userId!, tradePickerSelection.mode, {
+        accountId: tradePickerSelection.accountId,
+        strategyIds: note.strategy_ids.length > 0 ? note.strategy_ids : undefined,
+        offset: pageParam as number,
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextOffset,
+    enabled: !!userId && isOpen && !!tradePickerSelection.accountId,
+    staleTime: 60 * 1000,
+  });
+
+  const tradesForLinking = tradesForLinkingData?.pages.flatMap((p) => p.trades) ?? [];
+
+  // Infinite scroll: load more when sentinel enters viewport
+  useEffect(() => {
+    if (!tradePickerSelection.accountId || !hasNextPage || isFetchingNextPage) return;
+    const el = tradeListScrollSentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) fetchNextPage();
+      },
+      { root: el.closest('.overflow-y-auto'), rootMargin: '100px', threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [tradePickerSelection.accountId, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const isTradeSelected = (id: string, mode: string) =>
+    note.trade_refs.some((r) => r.id === id && r.mode === mode);
+  const toggleTradeRef = (id: string, mode: 'live' | 'backtesting' | 'demo') => {
+    setNote((prev) => {
+      const exists = prev.trade_refs.some((r) => r.id === id && r.mode === mode);
+      const trade_refs = exists
+        ? prev.trade_refs.filter((r) => !(r.id === id && r.mode === mode))
+        : [...prev.trade_refs, { id, mode }];
+      return { ...prev, trade_refs };
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,6 +293,72 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
               {note.strategy_ids.length > 0 && (
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   {note.strategy_ids.length} strateg{note.strategy_ids.length === 1 ? 'y' : 'ies'} selected
+                </p>
+              )}
+            </div>
+
+            {/* Link to trades (optional) */}
+            <div className="space-y-1.5">
+              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                <span className="flex items-center gap-2">
+                  <Link2 className="h-4 w-4" style={{ color: 'var(--tc-primary)' }} />
+                  Link to trades (optional)
+                </span>
+              </Label>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Choose an account (and mode) to list its trades; optionally filter by strategies above.
+              </p>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Account:</span>
+                <AccountModePopover
+                  userId={userId}
+                  value={tradePickerSelection}
+                  onChange={setTradePickerSelection}
+                  placeholder="Select account"
+                  triggerClassName="min-w-[160px]"
+                />
+              </div>
+              <div className="border border-slate-200/60 dark:border-slate-600 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm max-h-48 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:dark:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full">
+                {!tradePickerSelection.accountId ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Select an account above to see its trades.
+                  </p>
+                ) : tradesForLinking.length === 0 ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {note.strategy_ids.length === 0
+                      ? 'No trades in this account yet.'
+                      : `No trades for selected strategies in this account.`}
+                  </p>
+                ) : (
+                  <div className="space-y-2 pr-1">
+                    {tradesForLinking.map((t) => (
+                      <div key={`${t.mode}-${t.id}`} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`trade-${t.mode}-${t.id}`}
+                          checked={isTradeSelected(t.id, t.mode)}
+                          onCheckedChange={() => toggleTradeRef(t.id, t.mode)}
+                          className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 themed-checkbox data-[state=checked]:!text-white transition-colors duration-150"
+                        />
+                        <Label
+                          htmlFor={`trade-${t.mode}-${t.id}`}
+                          className="text-sm font-normal cursor-pointer text-slate-700 dark:text-slate-300 flex-1 truncate"
+                        >
+                          {t.trade_date} · {t.market} · {t.direction} · {t.trade_outcome}
+                        </Label>
+                      </div>
+                    ))}
+                    {/* Sentinel for infinite scroll */}
+                    <div ref={tradeListScrollSentinelRef} className="min-h-4 flex items-center justify-center py-2">
+                      {isFetchingNextPage && (
+                        <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {note.trade_refs.length > 0 && (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {note.trade_refs.length} trade{note.trade_refs.length === 1 ? '' : 's'} linked
                 </p>
               )}
             </div>
