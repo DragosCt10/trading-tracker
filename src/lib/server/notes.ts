@@ -8,7 +8,8 @@
 import { createClient } from '@/utils/supabase/server';
 import { Note, TradeRef } from '@/types/note';
 import type { Database } from '@/types/supabase';
-import { getTradeSummariesByRefs } from '@/lib/server/trades';
+import type { Trade } from '@/types/trade';
+import { getFullTradesByRefs } from '@/lib/server/trades';
 
 export type NoteRow = Database['public']['Tables']['notes']['Row'];
 
@@ -19,7 +20,8 @@ function mapSupabaseNoteToNote(
   note: NoteRow,
   strategy?: { id: string; name: string; slug: string } | null,
   strategies?: Array<{ id: string; name: string; slug: string }>,
-  trades?: Array<{ id: string; mode: string; trade_date: string; market: string; direction: string; trade_outcome: string; strategy_name?: string }>
+  trades?: Array<{ id: string; mode: string; trade_date: string; market: string; direction: string; trade_outcome: string; strategy_name?: string }>,
+  linkedTradesFull?: Trade[]
 ): Note {
   const row = note as any;
   return {
@@ -37,6 +39,7 @@ function mapSupabaseNoteToNote(
     strategy: strategy || undefined,
     strategies: strategies || undefined,
     trades: trades || undefined,
+    linkedTradesFull: linkedTradesFull ?? undefined,
   };
 }
 
@@ -110,6 +113,23 @@ export async function getNotes(
       }
     }
 
+    // Resolve full linked trades in one batch (for list hover + modal, no extra fetch on click)
+    const allRefs: TradeRef[] = [];
+    (data || []).forEach((note: any) => {
+      if (Array.isArray(note.trade_refs) && note.trade_refs.length > 0) {
+        note.trade_refs.forEach((r: TradeRef) => allRefs.push(r));
+      }
+    });
+    const refKey = (r: TradeRef) => `${r.id}:${r.mode}`;
+    let tradesByRef = new Map<string, Trade>();
+    if (allRefs.length > 0) {
+      const fullTrades = await getFullTradesByRefs(userId, allRefs);
+      fullTrades.forEach((t) => {
+        const mode = t.mode as string;
+        if (t.id) tradesByRef.set(`${t.id}:${mode}`, t);
+      });
+    }
+
     return (data || []).map((note: any) => {
       const strategy = note.strategy ? {
         id: note.strategy.id,
@@ -126,7 +146,15 @@ export async function getNotes(
             })
         : undefined;
 
-      return mapSupabaseNoteToNote(note, strategy, strategies, undefined);
+      const rawTrades: (Trade | undefined)[] =
+        Array.isArray(note.trade_refs) && note.trade_refs.length > 0
+          ? note.trade_refs.map((r: TradeRef) => tradesByRef.get(refKey(r)))
+          : [];
+      const linkedTradesFull = rawTrades.length > 0
+        ? rawTrades.filter((t: Trade | undefined): t is Trade => t != null)
+        : undefined;
+
+      return mapSupabaseNoteToNote(note, strategy, strategies, undefined, linkedTradesFull);
     });
   } catch (error) {
     console.error('Error in getNotes:', error);
@@ -190,19 +218,19 @@ export async function getNoteById(noteId: string, userId: string): Promise<Note 
     }
   }
 
-  // Resolve linked trades for display
+  // Resolve linked trades for display (same full-trade fetch as list; map to summary shape for modal)
   let trades: Array<{ id: string; mode: string; trade_date: string; market: string; direction: string; trade_outcome: string; strategy_name?: string }> | undefined;
   const refs = (data as any).trade_refs;
   if (Array.isArray(refs) && refs.length > 0) {
-    const resolved = await getTradeSummariesByRefs(userId, refs);
-    trades = resolved.map((t) => ({
-      id: t.id,
-      mode: t.mode,
+    const fullTrades = await getFullTradesByRefs(userId, refs);
+    trades = fullTrades.map((t) => ({
+      id: t.id ?? '',
+      mode: (t.mode ?? '') as string,
       trade_date: t.trade_date,
       market: t.market,
       direction: t.direction,
       trade_outcome: t.trade_outcome,
-      strategy_name: t.strategy_name ?? undefined,
+      strategy_name: undefined,
     }));
   }
 
