@@ -498,3 +498,154 @@ export async function getStrategyStatsFromTrades({
     return null;
   }
 }
+
+/** Lightweight trade list for linking insights to trades (e.g. in Insight Vault). */
+export type TradeForNoteLinking = {
+  id: string;
+  mode: 'live' | 'backtesting' | 'demo';
+  trade_date: string;
+  market: string;
+  direction: string;
+  trade_outcome: string;
+  strategy_id: string | null;
+  strategy_name: string | null;
+};
+
+const TRADES_FOR_NOTE_LINKING_PAGE_SIZE = 50;
+
+export type GetTradesForNoteLinkingResult = {
+  trades: TradeForNoteLinking[];
+  nextOffset: number | undefined;
+};
+
+export async function getTradesForNoteLinking(
+  userId: string,
+  mode: 'live' | 'backtesting' | 'demo',
+  options?: {
+    strategyIds?: string[];
+    accountId?: string | null;
+    limit?: number;
+    offset?: number;
+  }
+): Promise<GetTradesForNoteLinkingResult> {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user || user.id !== userId) {
+    throw new Error('Unauthorized');
+  }
+
+  if (options?.accountId) {
+    const { getAccountsForMode } = await import('@/lib/server/accounts');
+    const accounts = await getAccountsForMode(userId, mode);
+    if (!accounts.some((a) => a.id === options.accountId)) {
+      return { trades: [], nextOffset: undefined };
+    }
+  }
+
+  const pageSize = Math.min(options?.limit ?? TRADES_FOR_NOTE_LINKING_PAGE_SIZE, 100);
+  const offset = options?.offset ?? 0;
+  const tableName = `${mode}_trades`;
+
+  // Fetch one extra to know if there are more
+  let query = supabase
+    .from(tableName)
+    .select(`
+      id,
+      trade_date,
+      market,
+      direction,
+      trade_outcome,
+      strategy_id,
+      strategy:strategies(name)
+    `)
+    .eq('user_id', userId)
+    .order('trade_date', { ascending: false })
+    .range(offset, offset + pageSize); // request pageSize+1 items
+
+  if (options?.accountId) {
+    query = query.eq('account_id', options.accountId);
+  }
+  if (options?.strategyIds && options.strategyIds.length > 0) {
+    query = query.in('strategy_id', options.strategyIds);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error('Error in getTradesForNoteLinking:', error);
+    return { trades: [], nextOffset: undefined };
+  }
+
+  const rows = data || [];
+  const hasMore = rows.length > pageSize;
+  const trades = (hasMore ? rows.slice(0, pageSize) : rows).map((row: any) => ({
+    id: row.id,
+    mode,
+    trade_date: row.trade_date,
+    market: row.market,
+    direction: row.direction,
+    trade_outcome: row.trade_outcome ?? '',
+    strategy_id: row.strategy_id ?? null,
+    strategy_name: row.strategy?.name ?? null,
+  }));
+
+  return {
+    trades,
+    nextOffset: hasMore ? offset + pageSize : undefined,
+  };
+}
+
+/** Fetch trade summaries by (id, mode) for note display. Validates ownership. */
+export async function getTradeSummariesByRefs(
+  userId: string,
+  refs: Array<{ id: string; mode: 'live' | 'backtesting' | 'demo' }>
+): Promise<TradeForNoteLinking[]> {
+  if (refs.length === 0) return [];
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user || user.id !== userId) {
+    throw new Error('Unauthorized');
+  }
+
+  const byMode = new Map<string, Array<{ id: string; mode: 'live' | 'backtesting' | 'demo' }>>();
+  for (const r of refs) {
+    const key = r.mode;
+    if (!byMode.has(key)) byMode.set(key, []);
+    byMode.get(key)!.push(r);
+  }
+
+  type Ref = { id: string; mode: 'live' | 'backtesting' | 'demo' };
+  const results: TradeForNoteLinking[] = [];
+  for (const [mode, refList] of Array.from(byMode.entries())) {
+    const ids = refList.map((r: Ref) => r.id);
+    const tableName = `${mode}_trades`;
+    const { data } = await supabase
+      .from(tableName)
+      .select(`
+        id,
+        trade_date,
+        market,
+        direction,
+        trade_outcome,
+        strategy_id,
+        strategy:strategies(name)
+      `)
+      .eq('user_id', userId)
+      .in('id', ids);
+
+    if (data) {
+      for (const row of data as any[]) {
+        results.push({
+          id: row.id,
+          mode: mode as 'live' | 'backtesting' | 'demo',
+          trade_date: row.trade_date,
+          market: row.market,
+          direction: row.direction,
+          trade_outcome: row.trade_outcome ?? '',
+          strategy_id: row.strategy_id ?? null,
+          strategy_name: row.strategy?.name ?? null,
+        });
+      }
+    }
+  }
+  return results;
+}
