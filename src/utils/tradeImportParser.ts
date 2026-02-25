@@ -2,7 +2,8 @@ import { format, parseISO, getMonth, isValid } from 'date-fns';
 import type { Trade } from '@/types/trade';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 
-export type ParsedTrade = Omit<Trade, 'id' | 'user_id' | 'account_id'>;
+/** Parsed trade for import; trade_date may be null when CSV date is empty. */
+export type ParsedTrade = Omit<Trade, 'id' | 'user_id' | 'account_id' | 'trade_date'> & { trade_date: string | null };
 
 export interface RowError {
   rowIndex: number;
@@ -215,8 +216,8 @@ export function parseCsvTrades(
       continue;
     }
 
-    // Build the trade (only date is normalized to YYYY-MM-DD when present; rest trim only, empty allowed)
-    const tradeDate = normalizedDate;
+    // Build the trade (only date is normalized to YYYY-MM-DD when present; empty CSV date → NULL)
+    const tradeDate: string | null = dateTrimmed ? normalizedDate : null;
     const rawTime = normalizeTrim(fieldValues['trade_time'] ?? '');
     const tradeTime = rawTime || '00:00:00';
     const dayOfWeek = parsedDate ? format(parsedDate, 'EEEE') : normalizeTrim(fieldValues['day_of_week'] ?? '');
