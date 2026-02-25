@@ -3,6 +3,7 @@
 import { cache } from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { Trade } from '@/types/trade';
+import type { ParsedTrade } from '@/utils/tradeImportParser';
 import { getAccountsForMode } from '@/lib/server/accounts';
 import { calculateRRStats } from '@/utils/calculateRMultiple';
  
@@ -314,7 +315,7 @@ export async function importTrades(params: {
   mode: 'live' | 'backtesting' | 'demo';
   account_id: string;
   strategy_id: string | null;
-  trades: Array<Omit<Trade, 'id' | 'user_id' | 'account_id'>>;
+  trades: ParsedTrade[];
 }): Promise<{
   inserted: number;
   failed: Array<{ row: number; reason: string }>;
