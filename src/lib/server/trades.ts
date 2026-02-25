@@ -5,7 +5,6 @@ import { createClient } from '@/utils/supabase/server';
 import { Trade } from '@/types/trade';
 import { getAccountsForMode } from '@/lib/server/accounts';
 import { calculateRRStats } from '@/utils/calculateRMultiple';
-import { isValidMarket, normalizeMarket } from '@/utils/validateMarket';
 
 /**
  * Maps Supabase trade data to Trade type
@@ -191,14 +190,9 @@ export async function createTrade(params: {
     return { error: { message: 'Account not found or access denied' } };
   }
 
-  if (!isValidMarket(params.trade.market)) {
-    return { error: { message: 'Invalid market. Use a short code (e.g. DAX, US30, EURUSD).' } };
-  }
-
   const tableName = `${params.mode}_trades`;
   const row: Record<string, unknown> = {
     ...params.trade,
-    market: normalizeMarket(params.trade.market),
     user_id: user.id,
     account_id: params.account_id,
     calculated_profit: params.calculated_profit,
@@ -232,13 +226,7 @@ export async function updateTrade(
     return { error: { message: 'Unauthorized' } };
   }
 
-  if (updateData.market !== undefined && !isValidMarket(updateData.market)) {
-    return { error: { message: 'Invalid market. Use a short code (e.g. DAX, US30, EURUSD).' } };
-  }
   const payload = { ...updateData } as Record<string, unknown>;
-  if (updateData.market !== undefined) {
-    payload.market = normalizeMarket(updateData.market);
-  }
   delete payload.rr_hit_1_4; // Column removed from DB
 
   const tableName = `${mode}_trades`;
@@ -348,16 +336,11 @@ export async function importTrades(params: {
   let inserted = 0;
   const failed: Array<{ row: number; reason: string }> = [];
 
-  // Validate all rows and normalise market
+  // Use trades as-is (no market validation or normalization)
   const validRows: { index: number; row: Record<string, unknown> }[] = [];
   params.trades.forEach((trade, index) => {
-    if (!isValidMarket(trade.market)) {
-      failed.push({ row: index + 1, reason: `Invalid market: "${trade.market}"` });
-      return;
-    }
     const row: Record<string, unknown> = {
       ...trade,
-      market: normalizeMarket(trade.market),
       user_id: user.id,
       account_id: params.account_id,
       strategy_id: params.strategy_id,
