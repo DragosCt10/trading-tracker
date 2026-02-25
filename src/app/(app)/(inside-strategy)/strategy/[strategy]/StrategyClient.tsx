@@ -64,6 +64,7 @@ import {
   getDaysInMonthForDate,
   buildWeeklyStats,
 } from '@/components/dashboard/analytics/TradesCalendarCard';
+import TradeDetailsModal from '@/components/TradeDetailsModal';
 import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
 import {
   SetupStatisticsCard,
@@ -212,6 +213,7 @@ export default function StrategyClient(
 
   const [analysisResults, setAnalysisResults] = useState<string | null>(null);
   const [openAnalyzeModal, setOpenAnalyzeModal] = useState(false);
+  const [calendarTradeDetails, setCalendarTradeDetails] = useState<Trade | null>(null);
 
   // view mode: 'yearly' or 'dateRange'
   const [viewMode, setViewMode] = useState<'yearly' | 'dateRange'>('yearly');
@@ -1056,18 +1058,13 @@ export default function StrategyClient(
         currencySymbol={currencySymbol}
         accountBalance={selection.activeAccount?.account_balance}
         getDaysInMonth={() => getDaysInMonth}
+        onTradeClick={setCalendarTradeDetails}
       />
-
-      {/* Equity Curve - title and description outside card, then full-row card */}
-      {(viewMode === 'dateRange' || viewMode === 'yearly') && (
-        <>
-          <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Equity Curve</h2>
-          <p className="text-slate-500 dark:text-slate-400 mb-6">Cumulative P&L over time.</p>
-          <div className="w-full mb-6">
-            <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
-          </div>
-        </>
-      )}
+      <TradeDetailsModal
+        trade={calendarTradeDetails}
+        isOpen={!!calendarTradeDetails}
+        onClose={() => setCalendarTradeDetails(null)}
+      />
 
       {/* Core statistics: title + description, then core stats, then Partial/Executed/Direction cards, then Evaluation + Trade Types above RiskPerTrade */}
       <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Core statistics</h2>
@@ -1114,6 +1111,17 @@ export default function StrategyClient(
             }
           />
         </div>
+      )}
+
+      {/* Equity Curve - title and description outside card, then full-row card */}
+      {(viewMode === 'dateRange' || viewMode === 'yearly') && (
+        <>
+          <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Equity Curve</h2>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">Cumulative P&L over time.</p>
+          <div className="w-full mb-6">
+            <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
+          </div>
+        </>
       )}
 
       {/* Consistency & drawdown */}
