@@ -444,3 +444,74 @@ export function extractCsvHeaders(csvText: string): string[] {
   const delimiter = detectDelimiter(firstLine);
   return splitCsvLine(firstLine, delimiter).map((h) => parseValue(h));
 }
+
+/**
+ * Build raw row objects from CSV using column mapping (no validation/normalization).
+ * Used when AI will normalize the data. Returns one object per data row; keys = trade field names, values = raw strings.
+ */
+export function getRawRowsFromCsv(
+  csvText: string,
+  mapping: Record<string, string>
+): { rawRows: Record<string, string>[] } {
+  const lines = csvText.split(/\r?\n/).filter((l) => l.trim() !== '');
+  if (lines.length < 2) return { rawRows: [] };
+
+  const csvHeaders = splitCsvLine(lines[0]).map((h) => parseValue(h));
+  const rawRows: Record<string, string>[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = splitCsvLine(lines[i]);
+    const fieldValues: Record<string, string> = {};
+    csvHeaders.forEach((header, colIdx) => {
+      const tradeField = mapping[header];
+      if (tradeField) {
+        fieldValues[tradeField] = parseValue(values[colIdx] ?? '');
+      }
+    });
+    if (Object.values(fieldValues).every((v) => v === '')) continue;
+    rawRows.push(fieldValues);
+  }
+
+  return { rawRows };
+}
+
+/** Coerce AI-normalized row to ParsedTrade (ensure correct types for DB insert). */
+export function aiRowToParsedTrade(row: Record<string, unknown>): ParsedTrade {
+  const num = (v: unknown) => (typeof v === 'number' && !Number.isNaN(v) ? v : typeof v === 'string' ? parseFloat(v) || 0 : 0);
+  const bool = (v: unknown) => v === true || v === 'true' || v === 1 || v === '1' || v === 'yes' || v === 'y';
+  const str = (v: unknown) => (v != null && String(v).trim() !== '' ? String(v).trim() : '');
+  return {
+    trade_link: str(row.trade_link),
+    liquidity_taken: str(row.liquidity_taken),
+    trade_time: str(row.trade_time) || '00:00:00',
+    trade_date: str(row.trade_date),
+    day_of_week: str(row.day_of_week),
+    market: str(row.market),
+    setup_type: str(row.setup_type),
+    liquidity: str(row.liquidity),
+    sl_size: num(row.sl_size),
+    direction: (row.direction === 'Long' || row.direction === 'Short' ? row.direction : 'Long') as 'Long' | 'Short',
+    trade_outcome: (row.trade_outcome === 'Win' || row.trade_outcome === 'Lose' ? row.trade_outcome : 'Lose') as 'Win' | 'Lose',
+    break_even: bool(row.break_even),
+    reentry: bool(row.reentry),
+    news_related: bool(row.news_related),
+    mss: str(row.mss),
+    risk_reward_ratio: num(row.risk_reward_ratio),
+    risk_reward_ratio_long: num(row.risk_reward_ratio_long),
+    local_high_low: bool(row.local_high_low),
+    risk_per_trade: num(row.risk_per_trade),
+    quarter: str(row.quarter),
+    evaluation: str(row.evaluation),
+    partials_taken: bool(row.partials_taken),
+    executed: row.executed !== false && row.executed !== 'false' && row.executed !== 0,
+    launch_hour: bool(row.launch_hour),
+    displacement_size: num(row.displacement_size),
+    trend: str(row.trend) || null,
+    notes: str(row.notes) || undefined,
+    calculated_profit: row.calculated_profit != null ? num(row.calculated_profit) : undefined,
+    pnl_percentage: row.pnl_percentage != null ? num(row.pnl_percentage) : undefined,
+    fvg_size: row.fvg_size != null && row.fvg_size !== '' ? num(row.fvg_size) : null,
+    confidence_at_entry: row.confidence_at_entry != null && row.confidence_at_entry !== '' ? Math.min(5, Math.max(1, num(row.confidence_at_entry))) : undefined,
+    mind_state_at_entry: row.mind_state_at_entry != null && row.mind_state_at_entry !== '' ? Math.min(5, Math.max(1, num(row.mind_state_at_entry))) : undefined,
+  };
+}
