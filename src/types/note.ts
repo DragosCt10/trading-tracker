@@ -1,3 +1,5 @@
+import type { Trade } from '@/types/trade';
+
 /** Reference to a trade: id is the trade UUID, mode is the table (live/demo/backtesting) */
 export type TradeRef = { id: string; mode: 'live' | 'backtesting' | 'demo' };
 
@@ -25,7 +27,7 @@ export interface Note {
     name: string;
     slug: string;
   }>;
-  /** Resolved trade summaries when note has trade_refs (for display) */
+  /** Resolved trade summaries when note has trade_refs (for display in NoteDetailsModal etc.) */
   trades?: Array<{
     id: string;
     mode: string;
@@ -35,4 +37,6 @@ export interface Note {
     trade_outcome: string;
     strategy_name?: string;
   }>;
+  /** Full Trade rows for linked trades (from list fetch). Use for hover list + modal without extra fetch. */
+  linkedTradesFull?: Trade[];
 }
