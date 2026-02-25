@@ -37,6 +37,22 @@ function normalizeNumericInput(raw: string): string {
     .replace(',', '.');
 }
 
+/** Normalize free-text: trim, strip BOM/nbsp, collapse multiple spaces, remove control characters. */
+function normalizeText(value: string | undefined): string {
+  if (value == null) return '';
+  const t = normalizeTrim(value);
+  // eslint-disable-next-line no-control-regex
+  return t.replace(/[\x00-\x1F\x7F]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+/** Normalize time string: keep only digits and colons (e.g. 09:00, 9:00:00). Default to 00:00:00 if empty. */
+function normalizeTime(value: string | undefined): string {
+  const t = normalizeTrim(value ?? '');
+  if (!t) return '00:00:00';
+  const kept = t.replace(/[^\d:]/g, '');
+  return kept || '00:00:00';
+}
+
 /** Split a CSV line respecting quoted fields (commas inside quotes are not delimiters) */
 function splitCsvLine(line: string): string[] {
   const result: string[] = [];
@@ -91,9 +107,10 @@ function normalizeOutcome(value: string): 'Win' | 'Lose' | null {
 }
 
 function parseBool(value: string | undefined): boolean {
-  if (!value) return false;
-  const v = value.trim().toLowerCase();
-  return v === 'yes' || v === 'true' || v === '1';
+  const v = normalizeTrim(value ?? '').toLowerCase();
+  if (!v) return false;
+  if (v === 'no' || v === 'n' || v === 'false' || v === '0') return false;
+  return v === 'yes' || v === 'y' || v === 'true' || v === '1';
 }
 
 function deriveQuarter(date: Date): string {
@@ -230,9 +247,9 @@ export function parseCsvTrades(
 
     // All required fields valid — build the trade
     const tradeDate = normalizedDate;
-    const tradeTime = fieldValues['trade_time'] ?? '00:00:00';
-    const dayOfWeek = parsedDate ? format(parsedDate, 'EEEE') : (fieldValues['day_of_week'] ?? '');
-    const quarter = parsedDate ? deriveQuarter(parsedDate) : (fieldValues['quarter'] ?? '');
+    const tradeTime = normalizeTime(fieldValues['trade_time']);
+    const dayOfWeek = parsedDate ? format(parsedDate, 'EEEE') : normalizeText(fieldValues['day_of_week']);
+    const quarter = parsedDate ? deriveQuarter(parsedDate) : normalizeText(fieldValues['quarter']);
 
     const rawRRLong = fieldValues['risk_reward_ratio_long'] ?? '';
     const rrLongNorm = normalizeNumericInput(rawRRLong);
@@ -273,7 +290,7 @@ export function parseCsvTrades(
       day_of_week: dayOfWeek,
       market: normalizeMarket(sanitizedMarket),
       direction: normalizedDirection!,
-      setup_type: fieldValues['setup_type'] ?? '',
+      setup_type: normalizeText(fieldValues['setup_type']),
       trade_outcome: normalizedOutcome!,
       risk_per_trade: riskPerTrade,
       risk_reward_ratio: rrRatio,
@@ -286,18 +303,18 @@ export function parseCsvTrades(
       partials_taken: parseBool(fieldValues['partials_taken']),
       executed: fieldValues['executed'] !== undefined ? parseBool(fieldValues['executed']) : true,
       launch_hour: parseBool(fieldValues['launch_hour']),
-      mss: fieldValues['mss'] ?? '',
-      liquidity: fieldValues['liquidity'] ?? '',
-      trade_link: fieldValues['trade_link'] ?? '',
-      liquidity_taken: fieldValues['liquidity_taken'] ?? '',
-      evaluation: fieldValues['evaluation'] ?? '',
-      notes: fieldValues['notes'] || undefined,
+      mss: normalizeText(fieldValues['mss']),
+      liquidity: normalizeText(fieldValues['liquidity']),
+      trade_link: normalizeText(fieldValues['trade_link']),
+      liquidity_taken: normalizeText(fieldValues['liquidity_taken']),
+      evaluation: normalizeText(fieldValues['evaluation']),
+      notes: normalizeText(fieldValues['notes']) || undefined,
       quarter,
       displacement_size: isNaN(displacementSize) ? 0 : displacementSize,
       calculated_profit: csvCalcProfit ?? computedPnl?.calculated_profit,
       pnl_percentage: csvPnlPct ?? computedPnl?.pnl_percentage,
       strategy_id: undefined,
-      trend: fieldValues['trend']?.trim() ?? null,
+      trend: normalizeText(fieldValues['trend']) || null,
       fvg_size: fvgSize !== null && !isNaN(fvgSize) ? fvgSize : null,
     };
 
