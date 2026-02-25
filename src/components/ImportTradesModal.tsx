@@ -17,7 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { X } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 import { parseCsvTrades, extractCsvHeaders } from '@/utils/tradeImportParser';
 import { importTrades } from '@/lib/server/trades';
 import type { Database } from '@/types/supabase';
@@ -334,7 +334,7 @@ export default function ImportTradesModal({
                       : isActive ? 'bg-slate-600 dark:bg-slate-500 text-white border border-slate-700/30 dark:border-slate-400/30' 
                       : 'bg-slate-200/80 dark:bg-slate-700/60 text-slate-500 dark:text-slate-400 border border-slate-300/50 dark:border-slate-600/50'
                     }`}>
-                      {isDone ? '✓' : i + 1}
+                      {isDone ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : i + 1}
                     </div>
                     <span className={`text-xs font-medium ${isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>
                       {['Upload', 'Map Columns', 'Preview', 'Import'][i]}
