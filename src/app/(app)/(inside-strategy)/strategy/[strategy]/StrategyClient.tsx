@@ -143,6 +143,7 @@ import {
   ConsistencyScoreChart,
 } from '@/components/dashboard/analytics/ConsistencyScoreChart';
 import { EquityCurveCard } from '@/components/dashboard/analytics/EquityCurveCard';
+import { ConfidenceStatsCard, MindStateStatsCard } from '@/components/dashboard/analytics/ConfidenceMindStateCards';
 import { chartOptions } from '@/utils/chartConfig';
 import { TIME_INTERVALS } from '@/constants/analytics';
 import {
@@ -1111,6 +1112,18 @@ export default function StrategyClient(
             }
           />
         </div>
+      )}
+
+      {/* Confidence & Mind State */}
+      {(viewMode === 'dateRange' || viewMode === 'yearly') && (
+        <>
+          <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Psychological Factors</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 mb-6">Confidence and mind state at entry across your trades.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-6">
+            <ConfidenceStatsCard trades={tradesToUse} isLoading={chartsLoadingState} />
+            <MindStateStatsCard trades={tradesToUse} isLoading={chartsLoadingState} />
+          </div>
+        </>
       )}
 
       {/* Equity Curve - title and description outside card, then full-row card */}
