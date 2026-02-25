@@ -1062,7 +1062,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 ref={notesRef}
                 defaultValue={trade.notes}
                 onBlur={(e) => updateTrade('notes', e.target.value)}
-                className="min-h-[200px] shadow-sm bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-200/60 dark:border-slate-600 themed-focus transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100"
+                className="min-h-[320px] shadow-sm bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-600 themed-focus transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100"
                 placeholder="Add your trade notes here..."
               />
             </div>
