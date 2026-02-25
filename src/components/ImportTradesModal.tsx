@@ -59,11 +59,11 @@ const TRADE_FIELDS: { value: string; label: string }[] = [
   { value: 'fvg_size', label: 'FVG Size' },
 ];
 
-const BASE_REQUIRED_FIELDS = ['trade_date', 'trade_time', 'market', 'direction', 'trade_outcome', 'risk_per_trade', 'risk_reward_ratio'] as const;
+const BASE_REQUIRED_FIELDS = ['trade_date', 'market', 'direction', 'trade_outcome', 'risk_per_trade', 'risk_reward_ratio'] as const;
 const INSTITUTIONAL_REQUIRED_FIELDS = ['setup_type', 'liquidity', 'mss', 'sl_size'] as const;
 
 /** Required columns for all strategies (CSV header names). */
-const REQUIRED_CSV_COLS_ALL = ['Date', 'Time', 'Market', 'Direction', 'Outcome', 'Risk %', 'Risk:Reward Ratio'];
+const REQUIRED_CSV_COLS_ALL = ['Date', 'Market', 'Direction', 'Outcome', 'Risk %', 'Risk:Reward Ratio'];
 /** Extra required columns for Trading Institutional only (base + these). */
 const REQUIRED_CSV_COLS_INSTITUTIONAL = ['Setup', 'Liquidity', 'MSS', 'SL Size'];
 
