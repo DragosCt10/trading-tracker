@@ -594,11 +594,11 @@ export async function getTradesForNoteLinking(
   };
 }
 
-/** Fetch trade summaries by (id, mode) for note display. Validates ownership. */
-export async function getTradeSummariesByRefs(
+/** Fetch full Trade rows by (id, mode) refs. Used for note list (hover + modal) and getNoteById. */
+export async function getFullTradesByRefs(
   userId: string,
   refs: Array<{ id: string; mode: 'live' | 'backtesting' | 'demo' }>
-): Promise<TradeForNoteLinking[]> {
+): Promise<Trade[]> {
   if (refs.length === 0) return [];
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -614,36 +614,19 @@ export async function getTradeSummariesByRefs(
   }
 
   type Ref = { id: string; mode: 'live' | 'backtesting' | 'demo' };
-  const results: TradeForNoteLinking[] = [];
+  const results: Trade[] = [];
   for (const [mode, refList] of Array.from(byMode.entries())) {
     const ids = refList.map((r: Ref) => r.id);
     const tableName = `${mode}_trades`;
     const { data } = await supabase
       .from(tableName)
-      .select(`
-        id,
-        trade_date,
-        market,
-        direction,
-        trade_outcome,
-        strategy_id,
-        strategy:strategies(name)
-      `)
+      .select('*')
       .eq('user_id', userId)
       .in('id', ids);
 
     if (data) {
       for (const row of data as any[]) {
-        results.push({
-          id: row.id,
-          mode: mode as 'live' | 'backtesting' | 'demo',
-          trade_date: row.trade_date,
-          market: row.market,
-          direction: row.direction,
-          trade_outcome: row.trade_outcome ?? '',
-          strategy_id: row.strategy_id ?? null,
-          strategy_name: row.strategy?.name ?? null,
-        });
+        results.push(mapSupabaseTradeToTrade(row, mode));
       }
     }
   }
