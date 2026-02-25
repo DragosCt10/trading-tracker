@@ -88,12 +88,12 @@ function sanitizeMarketInput(value: string): string {
   return value.replace(/[^A-Za-z0-9/]/g, '').toUpperCase();
 }
 
-/** Normalize direction: handles any casing and common abbreviations */
+/** Normalize direction: handles any casing and common abbreviations (including typos like "selll") */
 function normalizeDirection(value: string): 'Long' | 'Short' | null {
   const v = normalizeTrim(value).toLowerCase();
   if (!v) return null;
   if (v === 'long' || v === 'l' || v === 'buy' || v === 'b') return 'Long';
-  if (v === 'short' || v === 's' || v === 'sell') return 'Short';
+  if (v === 'short' || v === 's' || v === 'sell' || v === 'selll') return 'Short';
   return null;
 }
 
