@@ -1022,15 +1022,24 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               </div>
 
               {isTradingInstitutional && (
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="launch-hour"
-                    checked={trade.launch_hour}
-                    onCheckedChange={(checked) => updateTrade('launch_hour', checked as boolean)}
-                    className="themed-checkbox h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 transition-colors duration-150 data-[state=checked]:!text-white"
-                  />
-                  <Label htmlFor="launch-hour" className="text-sm font-normal cursor-pointer">LH</Label>
-                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="launch-hour"
+                          checked={trade.launch_hour}
+                          onCheckedChange={(checked) => updateTrade('launch_hour', checked as boolean)}
+                          className="themed-checkbox h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 transition-colors duration-150 data-[state=checked]:!text-white"
+                        />
+                        <Label htmlFor="launch-hour" className="text-sm font-normal cursor-pointer">LH</Label>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Launch Hour</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
 
               <div className="flex items-center space-x-2">
