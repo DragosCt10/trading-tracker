@@ -76,6 +76,8 @@ export interface Database {
           strategy_id: string | null; // Added
           fvg_size: number | null; // e.g. 1, 1.5, 2, 2.5
           trend: string | null;
+          confidence_at_entry: number | null; // 1–5 confidence at entry
+          mind_state_at_entry: number | null; // 1–5 mind state at entry
         };
         Insert: Partial<Database['public']['Tables']['live_trades']['Row']> & {
           user_id: string;
@@ -130,6 +132,8 @@ export interface Database {
           strategy_id: string | null; // Added
           fvg_size: number | null; // e.g. 1, 1.5, 2, 2.5
           trend: string | null;
+          confidence_at_entry: number | null; // 1–5 confidence at entry
+          mind_state_at_entry: number | null; // 1–5 mind state at entry
         };
         Insert: Partial<Database['public']['Tables']['backtesting_trades']['Row']> & {
           user_id: string;
@@ -184,6 +188,8 @@ export interface Database {
           strategy_id: string | null; // Added
           fvg_size: number | null; // e.g. 1, 1.5, 2, 2.5
           trend: string | null;
+          confidence_at_entry: number | null; // 1–5 confidence at entry
+          mind_state_at_entry: number | null; // 1–5 mind state at entry
         };
         Insert: Partial<Database['public']['Tables']['demo_trades']['Row']> & {
           user_id: string;
