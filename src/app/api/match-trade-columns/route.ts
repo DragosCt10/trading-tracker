@@ -56,14 +56,10 @@ Rules:
   const data = await openaiRes.json();
   const content = data.choices?.[0]?.message?.content ?? '{}';
 
-  console.log(data.choices?.[0]?.message);
-
   try {
     // Strip markdown code fences if present
     const cleaned = content.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
     const mapping = JSON.parse(cleaned) as Record<string, string | null>;
-
-    console.log('mapping', mapping);
 
     return Response.json({ mapping });
   } catch {
