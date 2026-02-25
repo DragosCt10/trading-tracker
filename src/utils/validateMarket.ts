@@ -4,7 +4,7 @@
  */
 const MARKET_FORMAT_REGEX = /^[A-Z0-9]+(\/[A-Z0-9]+)?$/;
 const MIN_LENGTH = 2;
-const MAX_LENGTH = 10;
+const MAX_LENGTH = 20;
 
 export function normalizeMarket(value: string): string {
   return value.trim().toUpperCase();
@@ -21,7 +21,7 @@ export function getMarketValidationError(value: string): string | null {
   if (!trimmed) return 'Market is required.';
   const normalized = normalizeMarket(value);
   if (normalized.length < MIN_LENGTH) return 'Market must be at least 2 characters.';
-  if (normalized.length > MAX_LENGTH) return 'Market must be at most 10 characters.';
+  if (normalized.length > MAX_LENGTH) return `Market must be at most ${MAX_LENGTH} characters.`;
   if (!MARKET_FORMAT_REGEX.test(normalized)) {
     return 'Use only letters and numbers, or a pair with one slash (e.g. EURUSD, EUR/USD, DE30EU). No spaces, dots or other special characters.';
   }
