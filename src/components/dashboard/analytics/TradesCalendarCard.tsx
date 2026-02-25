@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -152,6 +152,9 @@ interface TradesCalendarCardProps {
 
   /** Function returning all Date objects for the visible month */
   getDaysInMonth: () => Date[];
+
+  /** Called when user clicks to view a trade's details (e.g. open TradeDetailsModal) */
+  onTradeClick?: (trade: Trade) => void;
 }
 
 export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
@@ -164,6 +167,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
   currencySymbol,
   accountBalance,
   getDaysInMonth,
+  onTradeClick,
 }) => {
   const balance = accountBalance || 1;
 
@@ -449,36 +453,59 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                     >
                       {/* Existing list of trades (all breakpoints) */}
                       {filteredDayTrades.map((trade, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between py-0.5"
+                        <button
+                          key={trade.id ?? i}
+                          type="button"
+                          onClick={
+                            onTradeClick
+                              ? (e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  onTradeClick(trade);
+                                }
+                              : undefined
+                          }
+                          disabled={!onTradeClick}
+                          className={cn(
+                            'flex w-full cursor-pointer items-center gap-2 rounded-lg py-1.5 px-1 -mx-1 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-500 focus:ring-offset-1',
+                            onTradeClick &&
+                              'hover:bg-slate-100/80 dark:hover:bg-slate-700/40',
+                            !onTradeClick && 'cursor-default'
+                          )}
+                          title={onTradeClick ? 'View trade details' : undefined}
+                          aria-label={onTradeClick ? `View details for ${trade.market} trade` : undefined}
                         >
-                          <span className="font-semibold text-slate-900 dark:text-slate-50">
-                            {trade.market}
-                          </span>
-                          <span
-                            className={cn(
-                              'font-semibold',
-                              trade.break_even
-                                ? 'text-slate-500 dark:text-slate-400'
-                                : trade.calculated_profit &&
-                                  trade.calculated_profit >= 0
-                                ? 'text-emerald-600 dark:text-emerald-400'
-                                : 'text-rose-600 dark:text-rose-400',
-                            )}
-                          >
-                            {trade.break_even
-                              ? trade.trade_outcome === 'Win'
-                                ? 'W (BE)'
-                                : 'L (BE)'
-                              : trade.trade_outcome === 'Win'
-                              ? 'W'
-                              : 'L'}
-                            {!trade.break_even &&
-                              trade.pnl_percentage &&
-                              ` (${trade.pnl_percentage.toFixed(2)}%)`}
-                          </span>
-                        </div>
+                          {onTradeClick && (
+                            <Eye className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden />
+                          )}
+                          <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                            <span className="font-semibold text-slate-900 dark:text-slate-50 truncate">
+                              {trade.market}
+                            </span>
+                            <span
+                              className={cn(
+                                'font-semibold shrink-0',
+                                trade.break_even
+                                  ? 'text-slate-500 dark:text-slate-400'
+                                  : trade.calculated_profit &&
+                                    trade.calculated_profit >= 0
+                                  ? 'text-emerald-600 dark:text-emerald-400'
+                                  : 'text-rose-600 dark:text-rose-400',
+                              )}
+                            >
+                              {trade.break_even
+                                ? trade.trade_outcome === 'Win'
+                                  ? 'W (BE)'
+                                  : 'L (BE)'
+                                : trade.trade_outcome === 'Win'
+                                ? 'W'
+                                : 'L'}
+                              {!trade.break_even &&
+                                trade.pnl_percentage &&
+                                ` (${trade.pnl_percentage.toFixed(2)}%)`}
+                            </span>
+                          </div>
+                        </button>
                       ))}
 
                       <div className="my-2.5 border-t border-slate-200/60 dark:border-slate-600/40 md:hidden" />
