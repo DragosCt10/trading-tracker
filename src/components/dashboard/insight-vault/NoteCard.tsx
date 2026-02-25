@@ -3,10 +3,17 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Pin } from 'lucide-react';
+import { ArrowRight, Eye, Pin } from 'lucide-react';
 import { Note } from '@/types/note';
 import { format } from 'date-fns';
 import { Trade } from '@/types/trade';
+import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 
 interface NoteCardProps {
@@ -17,7 +24,6 @@ interface NoteCardProps {
 
 export function NoteCard({ note, onClick }: NoteCardProps) {
   const [tradeForModal, setTradeForModal] = useState<Trade | null>(null);
-  const [linkedHover, setLinkedHover] = useState(false);
 
   const linkedTrades = note.linkedTradesFull ?? [];
 
@@ -96,41 +102,77 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
             </div>
           )}
           {note.trade_refs && note.trade_refs.length > 0 && (
-            <div
-              className="relative flex items-center gap-1.5"
-              onMouseEnter={() => setLinkedHover(true)}
-              onMouseLeave={() => setLinkedHover(false)}
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
               <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Linked:</span>
-              <Badge
-                variant="outline"
-                className="shadow-none text-xs font-normal bg-slate-100/80 dark:bg-slate-800/80 border-slate-200 dark:border-slate-600 cursor-default"
-              >
-                {note.trade_refs.length} trade{note.trade_refs.length === 1 ? '' : 's'}
-              </Badge>
-              {linkedHover && linkedTrades.length > 0 && (
-                <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] max-w-[280px] max-h-[240px] overflow-y-auto rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 shadow-lg shadow-slate-900/10 dark:shadow-black/30 py-1">
-                  <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-200/70 dark:border-slate-700/50">
-                    Linked trades
-                  </div>
-                  <ul className="py-0.5">
-                    {linkedTrades.map((t) => (
-                      <li key={`${t.id}-${t.mode}`}>
+              {linkedTrades.length > 0 ? (
+                <TooltipProvider>
+                  <Tooltip delayDuration={160}>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="outline"
+                        className="shadow-none text-xs font-normal bg-slate-100/80 dark:bg-slate-800/80 border-slate-200 dark:border-slate-600 cursor-pointer hover:bg-slate-200/80 dark:hover:bg-slate-700/80"
+                      >
+                        {note.trade_refs.length} trade{note.trade_refs.length === 1 ? '' : 's'}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      align="start"
+                      sideOffset={6}
+                      className={cn(
+                        'w-48 max-h-[280px] overflow-y-auto p-4 text-xs bg-white/95 dark:bg-slate-800/98 border border-slate-200/60 dark:border-slate-600/50 text-slate-900 dark:text-slate-100 shadow-2xl dark:shadow-slate-900/50 rounded-2xl backdrop-blur-xl space-y-1.5'
+                      )}
+                    >
+                      <div className="font-semibold text-slate-700 dark:text-slate-200 mb-2">Linked trades</div>
+                      {linkedTrades.map((t, i) => (
                         <button
+                          key={t.id ?? i}
                           type="button"
                           onClick={(e) => handleTradeClick(e, t)}
-                          className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors flex flex-col gap-0.5"
+                          className={cn(
+                            'flex w-full cursor-pointer items-center gap-2 rounded-lg py-1.5 px-1 -mx-1 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-500 focus:ring-offset-1',
+                            'hover:bg-slate-100/80 dark:hover:bg-slate-700/40'
+                          )}
+                          title="View trade details"
+                          aria-label={`View details for ${t.market} trade`}
                         >
-                          <span className="font-medium truncate">{t.market}</span>
-                          <span className="text-xs text-slate-500 dark:text-slate-400">
-                            {format(new Date(t.trade_date), 'MMM d, yyyy')} · {t.direction} · {t.trade_outcome}
-                          </span>
+                          <Eye className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden />
+                          <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                            <span className="font-semibold text-slate-900 dark:text-slate-50 truncate">
+                              {t.market}
+                            </span>
+                            <span
+                              className={cn(
+                                'font-semibold shrink-0',
+                                t.break_even
+                                  ? 'text-slate-500 dark:text-slate-400'
+                                  : t.calculated_profit != null && t.calculated_profit >= 0
+                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                    : 'text-rose-600 dark:text-rose-400',
+                              )}
+                            >
+                              {t.break_even
+                                ? t.trade_outcome === 'Win'
+                                  ? 'W (BE)'
+                                  : 'L (BE)'
+                                : t.trade_outcome === 'Win'
+                                  ? 'W'
+                                  : 'L'}
+                              {!t.break_even && t.pnl_percentage != null && ` (${t.pnl_percentage.toFixed(2)}%)`}
+                            </span>
+                          </div>
                         </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                      ))}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="shadow-none text-xs font-normal bg-slate-100/80 dark:bg-slate-800/80 border-slate-200 dark:border-slate-600 cursor-default"
+                >
+                  {note.trade_refs.length} trade{note.trade_refs.length === 1 ? '' : 's'}
+                </Badge>
               )}
             </div>
           )}
