@@ -8,7 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, Info } from 'lucide-react';
 
 // Shared input/select styles to match NewTradeModal (themed, rounded-2xl)
 const inputClass = 'h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300';
@@ -40,6 +40,12 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarket';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { MarketCombobox } from '@/components/MarketCombobox';
@@ -238,6 +244,8 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         strategy_id: editedTrade.strategy_id,
         trend: editedTrade.trend ?? null,
         fvg_size: editedTrade.fvg_size ?? null,
+        confidence_at_entry: editedTrade.confidence_at_entry ?? null,
+        mind_state_at_entry: editedTrade.mind_state_at_entry ?? null,
       };
 
       const { error: updateError } = await updateTrade(editedTrade.id, tradingMode, updateData);
@@ -973,9 +981,9 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             </div>
             )}
 
-            {/* Notes Section - same structure as NewTradeModal */}
-            <div className="space-y-2">
-              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Notes</Label>
+            {/* Notes & Confidence Section - same structure as NewTradeModal */}
+            <div className="space-y-3">
+              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Notes & Confidence</Label>
               <Textarea
                 value={editedTrade?.notes ?? ''}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
@@ -984,6 +992,90 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 className="min-h-[320px] shadow-sm bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-200/60 dark:border-slate-600 disabled:!opacity-100 themed-focus transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100 disabled:cursor-not-allowed read-only:cursor-default"
                 placeholder="Add your trade notes here..."
               />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/60 dark:border-slate-600 shadow-sm">
+                {/* Confidence */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Confidence</p>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 cursor-help text-slate-400 dark:text-slate-500 shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            How sure were you in this trade? From &quot;not at all&quot; to &quot;very confident&quot; in the setup and your decision. Helps you spot overconfidence or doubt when you review later.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        disabled={!isEditing}
+                        onClick={() => handleInputChange('confidence_at_entry', value)}
+                        className={`min-w-[2.25rem] px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed ${
+                          editedTrade?.confidence_at_entry === value
+                            ? 'themed-header-icon-box shadow-sm'
+                            : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                        }`}
+                        title={['Very low', 'Low', 'Neutral', 'Good', 'Very confident'][value - 1]}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                  </div>
+                  {editedTrade?.confidence_at_entry != null && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Selected: {[null, 'Very low', 'Low', 'Neutral', 'Good', 'Very confident'][editedTrade.confidence_at_entry]}
+                    </p>
+                  )}
+                </div>
+                {/* Mind state (covers focus, fear, calm, stress, impatience, etc.) */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Mind state</p>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 cursor-help text-slate-400 dark:text-slate-500 shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            How were you when you entered? e.g. calm, focused, stressed, fearful, impatient. 1 = very poor state, 5 = very good state. Helps you see how your state matched the outcome.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        disabled={!isEditing}
+                        onClick={() => handleInputChange('mind_state_at_entry', value)}
+                        className={`min-w-[2.25rem] px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed ${
+                          editedTrade?.mind_state_at_entry === value
+                            ? 'themed-header-icon-box shadow-sm'
+                            : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                        }`}
+                        title={['Very poor', 'Poor', 'Neutral', 'Good', 'Very good'][value - 1]}
+                      >
+                        {value}
+                      </button>
+                    ))}
+                  </div>
+                  {editedTrade?.mind_state_at_entry != null && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Selected: {['Very poor', 'Poor', 'Neutral', 'Good', 'Very good'][editedTrade.mind_state_at_entry - 1]}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Delete confirm using AlertDialog */}
