@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Note, TradeRef } from '@/types/note';
-import { deleteNote, updateNote, getNoteById } from '@/lib/server/notes';
-import { useQueryClient, useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { deleteNote, updateNote } from '@/lib/server/notes';
+import { useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
 import { getTradesForNoteLinking } from '@/lib/server/trades';
@@ -69,16 +69,24 @@ export default function NoteDetailsModal({
   });
   const tradeListScrollSentinelRef = useRef<HTMLDivElement>(null);
 
-  // Fetch full note when modal opens to get resolved trades for display
-  const { data: fullNote } = useQuery({
-    queryKey: ['note', note.id],
-    queryFn: () => getNoteById(note.id, userId!),
-    enabled: !!userId && isOpen && !!note.id,
-    staleTime: 30 * 1000,
-  });
-  const displayNote = fullNote ?? note;
+  // Use list note as source of truth (no getNoteById on open — list already has note + linkedTradesFull)
+  const displayNote = note;
 
-  // Update editedNote when note or fullNote changes
+  // Derived: linked trades for display (list note has linkedTradesFull; getNoteById would set trades)
+  const linkedTradesForDisplay =
+    displayNote.trades && displayNote.trades.length > 0
+      ? displayNote.trades
+      : (displayNote.linkedTradesFull?.map((t) => ({
+          id: t.id ?? '',
+          mode: t.mode ?? '',
+          trade_date: t.trade_date,
+          market: t.market,
+          direction: t.direction,
+          trade_outcome: t.trade_outcome,
+          strategy_name: undefined as string | undefined,
+        })) ?? []);
+
+  // Update editedNote when note prop changes (e.g. list refetched)
   useEffect(() => {
     if (displayNote.id !== editedNote.id && !isEditing) {
       setEditedNote({
@@ -660,11 +668,11 @@ export default function NoteDetailsModal({
                       </div>
                     </div>
                   )}
-                  {(displayNote.trades && displayNote.trades.length > 0) && (
+                  {linkedTradesForDisplay.length > 0 && (
                     <div className="flex items-start gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-slate-600 dark:text-slate-400 mt-0.5">Linked trades:</span>
                       <div className="flex flex-wrap gap-1.5">
-                        {displayNote.trades.map((t) => (
+                        {linkedTradesForDisplay.map((t) => (
                           <Badge
                             key={`${t.mode}-${t.id}`}
                             variant="outline"
