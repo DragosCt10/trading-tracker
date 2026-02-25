@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/server';
 import { Trade } from '@/types/trade';
 import { getAccountsForMode } from '@/lib/server/accounts';
 import { calculateRRStats } from '@/utils/calculateRMultiple';
-
+ 
 /**
  * Maps Supabase trade data to Trade type
  */
