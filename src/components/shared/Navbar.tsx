@@ -9,7 +9,6 @@ import {
   LogOut,
   Target,
   Lightbulb,
-  Home,
   Palette,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
@@ -84,11 +83,6 @@ export default function Navbar() {
   };
 
   const isActive = (path: string) => {
-    // For home, check exact match
-    if (path === '/') {
-      return pathname === '/';
-    }
-    // For strategies, check if pathname starts with /strategies (to handle dynamic routes)
     if (path === '/strategies') {
       return pathname.startsWith('/strategies');
     }
@@ -126,19 +120,6 @@ export default function Navbar() {
           {/* Desktop nav */}
           <div className="hidden lg:block">
             <ul className="flex items-center gap-1">
-              <li>
-                <Button
-                  variant="ghost"
-                  asChild
-                  size="sm"
-                  className={navButtonClass(isActive('/'))}
-                >
-                  <Link href="/">
-                    <Home className="h-4 w-4" />
-                    <span>Home</span>
-                  </Link>
-                </Button>
-              </li>
               <li>
                 <Button
                   variant="ghost"
@@ -286,17 +267,6 @@ export default function Navbar() {
               </SheetHeader>
 
               <div className="mt-4 space-y-2">
-                <Button
-                  variant="ghost"
-                  asChild
-                  className={cn('w-full justify-start', navButtonClass(isActive('/')))}
-                >
-                  <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-                    <Home className="h-4 w-4" />
-                    Home
-                  </Link>
-                </Button>
-
                 <Button
                   variant="ghost"
                   asChild
