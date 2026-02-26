@@ -2,10 +2,11 @@
 
 import * as React from 'react';
 import { useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteAccount, updateAccount } from '@/lib/server/accounts';
+import { getTradeCountForAccount } from '@/lib/server/trades';
 import { useUserDetails } from '@/hooks/useUserDetails';
-import { AlertCircle, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { AlertCircle, Info, Loader2, Pencil, Trash2 } from 'lucide-react';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,12 @@ import {
   AlertDialogAction,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 type Mode = 'live' | 'backtesting' | 'demo';
 type Currency = 'EUR' | 'USD' | 'GBP';
@@ -117,6 +124,15 @@ export function EditAccountAlertDialog({
     }
   }, [open, account, resetFormFromAccount]);
 
+  // Lock balance when account has trades (Variant B: allow edit only when no trades)
+  const { data: tradeCount } = useQuery({
+    queryKey: ['accountTradeCount', account?.id, account?.mode],
+    queryFn: () =>
+      getTradeCountForAccount(account!.id, (account!.mode || 'live') as Mode),
+    enabled: open && !!account?.id && !!account?.mode,
+  });
+  const hasTrades = (tradeCount ?? 0) > 0;
+
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setError(null);
@@ -131,8 +147,11 @@ export function EditAccountAlertDialog({
       return;
     }
 
-    const parsedBalance = parseFloat(balance);
-    if (Number.isNaN(parsedBalance)) {
+    // When account has trades, keep existing balance; otherwise validate and use edited value
+    const balanceToSave = hasTrades
+      ? (account.account_balance ?? 0)
+      : parseFloat(balance);
+    if (!hasTrades && Number.isNaN(balanceToSave)) {
       setError('Please enter a valid number for balance.');
       return;
     }
@@ -148,7 +167,7 @@ export function EditAccountAlertDialog({
     try {
       const { data, error: updateError } = await updateAccount(account.id, {
         name: name.trim(),
-        account_balance: parsedBalance,
+        account_balance: balanceToSave,
         currency,
         mode,
         description: description.trim() || null,
@@ -360,7 +379,21 @@ export function EditAccountAlertDialog({
                     htmlFor="edit-account-balance"
                     className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
                   >
-                    Balance
+                    <span className="inline-flex items-center gap-1.5">
+                      Balance
+                      {hasTrades && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 cursor-help text-slate-500 dark:text-slate-400" aria-hidden />
+                            </TooltipTrigger>
+                            <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
+                              Balance cannot be changed after trades exist. Create a new account for a different size.
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </span>
                   </Label>
                   <Input
                     id="edit-account-balance"
@@ -371,7 +404,9 @@ export function EditAccountAlertDialog({
                     value={balance}
                     onChange={(e) => setBalance(e.target.value)}
                     required
-                    className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                    disabled={hasTrades}
+                    readOnly={hasTrades}
+                    className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100 disabled:opacity-70 disabled:cursor-not-allowed"
                   />
                 </div>
 
