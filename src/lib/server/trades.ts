@@ -52,8 +52,6 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
   };
 }
 
-export { getTradeCountForAccount } from './getTradeCountForAccount';
-
 /**
  * Server-side function to fetch filtered trades
  * This enforces user_id server-side for security
