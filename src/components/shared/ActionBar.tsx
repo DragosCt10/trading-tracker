@@ -132,19 +132,31 @@ export default function ActionBar({ initialData }: ActionBarProps) {
     [activeAccount?.id, activeMode, applyWith]
   );
 
-  // ---------- Auto-apply Live + active/first account on first mount
+  // ---------- Auto-apply first available account on mount (live → demo → backtesting)
   useEffect(() => {
     if (autoAppliedRef.current) return;
     if (!userId) return;
     if (selection.activeAccount) return;
     if (accountsLoading) return;
 
-    const liveAccounts = accountsByMode.live;
-    const pick = liveAccounts.find((a) => a.is_active) ?? liveAccounts[0];
+    const fallbackOrder: Mode[] = ['live', 'demo', 'backtesting'];
+    let pick: AccountRow | undefined;
+    let pickedMode: Mode = 'live';
+
+    for (const mode of fallbackOrder) {
+      const accounts = accountsByMode[mode];
+      const found = accounts.find((a) => a.is_active) ?? accounts[0];
+      if (found) {
+        pick = found;
+        pickedMode = mode;
+        break;
+      }
+    }
+
     if (!pick) return;
 
     autoAppliedRef.current = true;
-    applyWith('live', pick.id);
+    applyWith(pickedMode, pick.id);
   }, [userId, accountsLoading, accountsByMode, applyWith, selection.activeAccount]);
 
   return (
