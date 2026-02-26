@@ -315,7 +315,12 @@ export default function ImportTradesModal({
   const mappedCount = matches.filter((m) => m.dbField).length;
   const requiredMissing = DB_SCHEMA.filter(
     (f) => f.required && !matches.some((m) => m.dbField === f.key),
-  );
+  ).filter((f) => {
+    // When user selected default Risk % and R:R, don't treat unmapped columns as missing
+    if (f.key === 'risk_per_trade' && defaultRiskPct !== null) return false;
+    if (f.key === 'risk_reward_ratio' && defaultRR !== null) return false;
+    return true;
+  });
   const accountBalance = activeAccount?.account_balance ?? 0;
   const accountCurrency = activeAccount?.currency ?? 'USD';
   const translationCount = Object.keys(translations).length;
