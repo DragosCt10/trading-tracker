@@ -184,7 +184,24 @@ export function EditAccountAlertDialog({
       });
 
       onUpdated?.(data as AccountSettings);
-      await queryClient.invalidateQueries();
+
+      // Invalidate account-related caches so UI updates immediately (no hard refresh)
+      await queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey;
+          if (!Array.isArray(key)) return false;
+          const first = key[0] as string;
+          return first === 'accounts:list' || first === 'accounts:all';
+        },
+      });
+      // Update actionBar selection if the edited account is the active one (name, balance, etc. show immediately)
+      const selectionKey = ['actionBar:selection'] as const;
+      const currentSelection = queryClient.getQueryData(selectionKey) as { mode: string; activeAccount: { id: string } | null } | undefined;
+      if (currentSelection?.activeAccount?.id === account.id) {
+        queryClient.setQueryData(selectionKey, { ...currentSelection, activeAccount: data });
+      }
+      await queryClient.refetchQueries({ type: 'active' });
+
       setOpen(false);
 
       setTimeout(() => {
