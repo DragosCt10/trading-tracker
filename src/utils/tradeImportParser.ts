@@ -357,7 +357,8 @@ export function parseCsvTradesWithNorm(
     const tradeDate: string | null = dateTrimmed ? normalizedDate : null;
     const rawTime = normalizeTrim(fieldValues['trade_time'] ?? '');
     const tradeTime = rawTime || '00:00:00';
-    const dayOfWeek = parsedDate ? format(parsedDate, 'EEEE') : normalizeTrim(fieldValues['day_of_week'] ?? '');
+    // Day of week is always derived from Trade Date (not mapped from CSV)
+    const dayOfWeek = parsedDate ? format(parsedDate, 'EEEE') : '';
     const quarter = parsedDate ? deriveQuarter(parsedDate) : normalizeTrim(fieldValues['quarter'] ?? '');
 
     const rrLong = parseCSVNumber(fieldValues['risk_reward_ratio_long'] ?? '') ?? (isLose ? 0 : rrRatio);
