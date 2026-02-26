@@ -299,19 +299,6 @@ export const DB_SCHEMA: SchemaField[] = [
     description: 'Market structure shift type',
   },
   {
-    key: 'day_of_week',
-    label: 'Day of Week',
-    synonyms: [
-      'day_of_week', 'day', 'weekday', 'dow', 'trade day', 'day name',
-      'dayofweek',
-      // More variants
-      'week day', 'trading day', 'day of trade',
-    ],
-    required: false,
-    valueType: 'string',
-    description: 'Day of the week (Monday–Friday)',
-  },
-  {
     key: 'evaluation',
     label: 'Evaluation',
     synonyms: [
