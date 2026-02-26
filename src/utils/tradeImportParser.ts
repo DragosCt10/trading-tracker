@@ -43,6 +43,18 @@ function normalizeTrim(value: string): string {
   return value.replace(/\uFEFF/g, '').replace(/\u00A0/g, ' ').trim();
 }
 
+/**
+ * Strip Notion-style inline URL annotations added by Notion CSV exports.
+ * Notion appends " (https://www.notion.so/...)" to every linked property value.
+ * Examples:
+ *   "bare minimum (https://www.notion.so/abc123)"  → "bare minimum"
+ *   "SELL (https://www.notion.so/abc123)"           → "SELL"
+ *   "Jan 22 (https://www.notion.so/abc123)"         → "Jan 22"
+ */
+function stripNotionLinks(value: string): string {
+  return value.replace(/\s*\(https?:\/\/[^)]+\)/g, '').trim();
+}
+
 /** Detect CSV delimiter from first line: use semicolon if it has more semicolons than commas (EU style). */
 function detectDelimiter(firstLine: string): ',' | ';' {
   const commas = (firstLine.match(/,/g) ?? []).length;
@@ -434,8 +446,8 @@ function parseCsvWithPapaParse(csvText: string): RawCsvParseResult {
   const result = Papa.parse<Record<string, string>>(csvText, {
     header: true,
     skipEmptyLines: true,
-    transformHeader: (h) => normalizeTrim(h),
-    transform: (value) => normalizeTrim(value ?? ''),
+    transformHeader: (h) => normalizeTrim(stripNotionLinks(h)),
+    transform: (value) => normalizeTrim(stripNotionLinks(value ?? '')),
   });
   console.log('[PapaParse]', result);
   const headers = result.meta.fields ?? [];
