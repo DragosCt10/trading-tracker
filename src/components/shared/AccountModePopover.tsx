@@ -13,12 +13,6 @@ export type Mode = 'live' | 'backtesting' | 'demo';
 
 const MODES: Mode[] = ['live', 'demo', 'backtesting'];
 
-const MODE_LABELS: Record<Mode, string> = {
-  live: 'Live',
-  demo: 'Demo',
-  backtesting: 'Backtesting',
-};
-
 const MODE_SECTION_LABEL: Record<Mode, string> = {
   live: 'LIVE',
   demo: 'DEMO',
@@ -75,8 +69,13 @@ export function AccountModePopover({
     return map;
   }, [allAccounts]);
 
+  // Resolve label: from prop, then live accounts list (always fresh), then cached account object, then placeholder
+  const resolvedAccountName =
+    value.mode != null && value.accountId != null
+      ? accountsByMode[value.mode]?.find((a) => a.id === value.accountId)?.name
+      : undefined;
   const triggerLabel =
-    triggerLabelProp ?? value.account?.name ?? placeholder;
+    triggerLabelProp ?? resolvedAccountName ?? value.account?.name ?? placeholder;
 
   const selectTriggerClass =
     variant === 'default'
@@ -98,7 +97,10 @@ export function AccountModePopover({
             triggerClassName
           )}
         >
-          <span className="font-medium max-w-[120px] sm:max-w-[200px] truncate">
+          <span
+            className="font-medium max-w-[120px] sm:max-w-[200px] truncate"
+            suppressHydrationWarning
+          >
             {triggerLabel}
           </span>
           {loading ? (
