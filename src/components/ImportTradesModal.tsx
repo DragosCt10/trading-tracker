@@ -10,24 +10,15 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { X, Check, Table2 } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 import { matchHeaders, toFieldMapping, DB_SCHEMA, type ColumnMatch } from '@/lib/columnMatcher';
 import { buildAutoNormalizations } from '@/lib/tradeNormalizers';
 import {
   extractColumnSamples,
   parseCsvTradesWithNorm,
-  parseCsvRaw,
-  type RawCsvParseResult,
 } from '@/utils/tradeImportParser';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { importTrades } from '@/lib/server/trades';
@@ -92,10 +83,6 @@ export default function ImportTradesModal({
     failed: { row: number; reason: string }[];
   } | null>(null);
 
-  // ── Raw CSV preview dialog ──────────────────────────────────────────────
-  const [rawParseOpen, setRawParseOpen] = useState(false);
-  const [rawParseData, setRawParseData] = useState<RawCsvParseResult | null>(null);
-
   // ── Reset ───────────────────────────────────────────────────────────────
   function resetState() {
     setStep('upload');
@@ -113,20 +100,12 @@ export default function ImportTradesModal({
     setCustomRRInput('');
     setImportProgress(0);
     setImportResult(null);
-    setRawParseOpen(false);
-    setRawParseData(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
   function handleClose() {
     resetState();
     onClose();
-  }
-
-  function handleShowParsedCsv() {
-    if (!csvText.trim()) return;
-    setRawParseData(parseCsvRaw(csvText));
-    setRawParseOpen(true);
   }
 
   // ── File handling ────────────────────────────────────────────────────────
@@ -494,14 +473,6 @@ export default function ImportTradesModal({
                         </span>
                       </>
                     )}
-                    <button
-                      type="button"
-                      onClick={handleShowParsedCsv}
-                      className="ml-auto flex items-center gap-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                    >
-                      <Table2 className="h-3.5 w-3.5" />
-                      Preview raw
-                    </button>
                   </div>
 
                   {/* Required fields warning */}
@@ -830,96 +801,6 @@ export default function ImportTradesModal({
           </div>
         </SheetContent>
       </Sheet>
-
-      {/* Raw CSV preview dialog — same design as NewTradeModal (AlertDialog with orbs, accent, header) */}
-      <AlertDialog open={rawParseOpen} onOpenChange={setRawParseOpen}>
-        <AlertDialogContent className="max-w-4xl max-h-[90vh] fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl p-0 flex flex-col overflow-hidden">
-          {/* Gradient orbs background */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
-            <div className="absolute -top-40 -left-32 w-[420px] h-[420px] orb-bg-1 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-            <div className="absolute -bottom-40 -right-32 w-[420px] h-[420px] orb-bg-2 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-          </div>
-          {/* Noise texture overlay */}
-          <div
-            className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-              backgroundRepeat: 'repeat',
-            }}
-          />
-          {/* Top accent line */}
-          <div className="absolute -top-px left-0 right-0 h-0.5 themed-accent-line rounded-t-2xl" />
-
-          {/* Fixed Header — same pattern as NewTradeModal */}
-          <div className="relative px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
-            <AlertDialogHeader className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                  <div className="p-2 rounded-lg themed-header-icon-box">
-                    <Table2 className="h-5 w-5" />
-                  </div>
-                  <span>Parsed CSV data</span>
-                </AlertDialogTitle>
-                <button
-                  onClick={() => setRawParseOpen(false)}
-                  className="cursor-pointer rounded-sm ring-offset-background transition-all hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none h-8 w-8 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-black dark:hover:text-white"
-                >
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Close</span>
-                </button>
-              </div>
-              <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
-                {rawParseData
-                  ? `${rawParseData.rowCount} row(s), ${rawParseData.headers.length} column(s). Raw parse — no column mapping applied.`
-                  : 'No data.'}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-          </div>
-
-          {/* Scrollable content */}
-          {rawParseData && rawParseData.headers.length > 0 && (
-            <div className="relative flex-1 min-h-0 overflow-auto px-6 py-5">
-              <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/60 overflow-hidden">
-                <table className="w-full text-sm border-collapse">
-                  <thead className="sticky top-0 bg-slate-50/50 dark:bg-slate-800/95 border-b border-slate-200 dark:border-slate-700 backdrop-blur-sm">
-                    <tr>
-                      <th className="text-left px-3 py-2 font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">#</th>
-                      {rawParseData.headers.map((h, i) => (
-                        <th key={i} className="text-left px-3 py-2 font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                          {h || '(empty)'}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rawParseData.rows.map((row, rowIdx) => (
-                      <tr key={rowIdx} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <td className="px-3 py-2 text-slate-500 dark:text-slate-400 tabular-nums">{rowIdx + 1}</td>
-                        {rawParseData.headers.map((header, colIdx) => (
-                          <td key={colIdx} className="px-3 py-2 text-slate-800 dark:text-slate-200 max-w-[200px] truncate" title={row[header] ?? ''}>
-                            {row[header] ?? '—'}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Footer — same cancel style as main modal */}
-          <div className="px-6 py-4 border-t border-slate-200/50 dark:border-slate-700/50 flex-shrink-0 flex justify-end">
-            <Button
-              variant="outline"
-              onClick={() => setRawParseOpen(false)}
-              className={cancelButtonClass}
-            >
-              Close
-            </Button>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
