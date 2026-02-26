@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteAccount, updateAccount } from '@/lib/server/accounts';
-import { getTradeCountForAccount } from '@/lib/server/trades';
+import { getTradeCountForAccount } from '@/lib/server/getTradeCountForAccount';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { AlertCircle, Info, Loader2, Pencil, Trash2 } from 'lucide-react';
 
