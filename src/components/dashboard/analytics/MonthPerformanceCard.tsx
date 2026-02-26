@@ -205,15 +205,22 @@ export const MonthPerformanceCards: React.FC<MonthPerformanceCardsProps> = ({
   // Compute best and worst month from monthlyPerformanceStatsToUse
   const { bestMonth, worstMonth } = useMemo((): { bestMonth: MonthWithStats; worstMonth: MonthWithStats } => {
     const monthlyData = monthlyPerformanceStatsToUse;
+    const entries = Object.entries(monthlyData);
+
+    // No monthly data at all
+    if (entries.length === 0) {
+      return { bestMonth: null, worstMonth: null };
+    }
+
     let bestMonth: MonthWithStats = null;
     let worstMonth: MonthWithStats = null;
     let bestProfit = -Infinity;
     let worstProfit = Infinity;
 
-    Object.entries(monthlyData).forEach(([month, stats]) => {
+    entries.forEach(([month, stats]) => {
       // Use monthlyStatsToUse for profit (computed from current filtered trades)
       const monthProfit = monthlyStatsToUse[month]?.profit || 0;
-      
+
       if (monthProfit > bestProfit) {
         bestProfit = monthProfit;
         bestMonth = {
@@ -235,6 +242,11 @@ export const MonthPerformanceCards: React.FC<MonthPerformanceCardsProps> = ({
         };
       }
     });
+
+    // When there's only a single month of data, treat it as "best month" only
+    if (entries.length === 1) {
+      return { bestMonth, worstMonth: null };
+    }
 
     return { bestMonth, worstMonth };
   }, [monthlyPerformanceStatsToUse, monthlyStatsToUse]);
