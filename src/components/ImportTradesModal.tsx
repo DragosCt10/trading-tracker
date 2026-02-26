@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import Papa from 'papaparse';
 import {
@@ -85,9 +85,6 @@ export default function ImportTradesModal({
   const [defaultRR, setDefaultRR] = useState<number | null>(null);
   const [customRRInput, setCustomRRInput] = useState('');
 
-  // ── CSV row count ───────────────────────────────────────────────────────
-  const [csvRowCount, setCsvRowCount] = useState(0);
-
   // ── Import result ───────────────────────────────────────────────────────
   const [importProgress, setImportProgress] = useState(0);
   const [importResult, setImportResult] = useState<{
@@ -110,7 +107,6 @@ export default function ImportTradesModal({
     setColumnSamples({});
     setTranslating(false);
     setTranslations({});
-    setCsvRowCount(0);
     setDefaultRiskPct(null);
     setCustomRiskInput('');
     setDefaultRR(null);
@@ -148,7 +144,6 @@ export default function ImportTradesModal({
       header: true,
       skipEmptyLines: true,
     });
-    setCsvRowCount(parsed.data.length);
 
     const headers = parsed.meta.fields ?? [];
     if (headers.length === 0) {
@@ -312,6 +307,17 @@ export default function ImportTradesModal({
   }
 
   // ── Derived ──────────────────────────────────────────────────────────────
+  const parsedRowCount = useMemo(() => {
+    if (!csvText || matches.length === 0) return 0;
+    const fieldMapping = toFieldMapping(matches);
+    const normalizations = buildAutoNormalizations(fieldMapping, columnSamples);
+    const { rows } = parseCsvTradesWithNorm(csvText, fieldMapping, normalizations, {
+      ...(defaultRiskPct !== null ? { risk_per_trade: defaultRiskPct } : {}),
+      ...(defaultRR !== null ? { risk_reward_ratio: defaultRR } : {}),
+    });
+    return rows.length;
+  }, [csvText, matches, columnSamples, defaultRiskPct, defaultRR]);
+
   const mappedCount = matches.filter((m) => m.dbField).length;
   const requiredMissing = DB_SCHEMA.filter(
     (f) => f.required && !matches.some((m) => m.dbField === f.key),
@@ -789,7 +795,6 @@ export default function ImportTradesModal({
                       setTranslations({});
                       setTranslating(false);
                       setErrorMessage('');
-                      setCsvRowCount(0);
                       setStep('upload');
                       if (fileInputRef.current) fileInputRef.current.value = '';
                     }}
@@ -802,7 +807,7 @@ export default function ImportTradesModal({
                     disabled={translating || requiredMissing.length > 0 || !activeAccount || defaultRiskPct === null || defaultRR === null}
                     className="cursor-pointer rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold border-0 shadow-md shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {translating ? 'Translating…' : `Import ${csvRowCount} trade${csvRowCount !== 1 ? 's' : ''}`}
+                    {translating ? 'Translating…' : `Import ${parsedRowCount} trade${parsedRowCount !== 1 ? 's' : ''}`}
                   </Button>
                 </>
               )}
