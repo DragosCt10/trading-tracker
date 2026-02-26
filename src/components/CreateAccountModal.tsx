@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { createAccount } from '@/lib/server/accounts';
+import { createAccount, setActiveAccount } from '@/lib/server/accounts';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { AlertCircle, Loader2, UserPlus } from 'lucide-react';
 
@@ -144,10 +144,24 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
 
       const createdAccount = data as AccountSettings;
 
+      await setActiveAccount(createdAccount.mode as Mode, createdAccount.id);
+
+      // Sync ActionBar's in-memory selection to the newly created account
+      queryClient.setQueryData(['actionBar:selection'], {
+        mode: createdAccount.mode as Mode,
+        activeAccount: createdAccount,
+      });
+
+      // Clear cached trades so they refetch for the new account
+      const tradeKeys = ['allTrades', 'filteredTrades', 'nonExecutedTrades'];
+      queryClient.removeQueries({
+        predicate: (q) => tradeKeys.includes((q.queryKey?.[0] as string) ?? ''),
+      });
+
       setProgressDialog({
         open: true,
         status: 'success',
-        message: 'Account created successfully. You can now select it in the action bar.',
+        message: 'Account created and set as active.',
       });
 
       onCreated?.(createdAccount);
