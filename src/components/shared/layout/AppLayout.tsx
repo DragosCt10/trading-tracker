@@ -1,6 +1,7 @@
 "use client";
 
-import type { AccountRow } from '@/lib/server/accounts';
+import { useRef } from 'react';
+import type { AccountRow, AccountMode } from '@/lib/server/accounts';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
@@ -15,19 +16,24 @@ interface AppLayoutProps {
   title?: string;
   initialUserDetails?: InitialUserDetails;
   initialAccountsForLive?: AccountRow[];
-  initialActiveAccountForLive?: AccountRow | null;
+  initialAllAccounts?: AccountRow[];
+  initialActiveAccount?: AccountRow | null;
+  initialActiveAccountMode?: AccountMode;
 }
 
 export default function AppLayout({
   children,
   initialUserDetails,
   initialAccountsForLive,
-  initialActiveAccountForLive,
+  initialAllAccounts,
+  initialActiveAccount,
+  initialActiveAccountMode = 'live',
 }: AppLayoutProps) {
   const queryClient = useQueryClient();
   const pathname = usePathname();
   const userId = initialUserDetails?.user?.id;
   const showActionBar = pathname === '/strategies' || (pathname?.startsWith('/strategy/') ?? false);
+  const actionBarSelectionHydratedRef = useRef(false);
 
   // Hydrate caches so Navbar/ActionBar and useUserDetails/useAccounts/useActionBarSelection get data on first paint (no client fetch)
   if (initialUserDetails != null && queryClient.getQueryData(['userDetails']) === undefined) {
@@ -36,8 +42,13 @@ export default function AppLayout({
   if (userId != null && initialAccountsForLive != null && queryClient.getQueryData(['accounts:list', userId, 'live']) === undefined) {
     queryClient.setQueryData(['accounts:list', userId, 'live'], initialAccountsForLive);
   }
-  if (userId != null && initialActiveAccountForLive !== undefined && queryClient.getQueryData(['actionBar:selection']) === undefined) {
-    queryClient.setQueryData(['actionBar:selection'], { mode: 'live' as const, activeAccount: initialActiveAccountForLive ?? null });
+  if (userId != null && initialAllAccounts != null && queryClient.getQueryData(['accounts:all', userId]) === undefined) {
+    queryClient.setQueryData(['accounts:all', userId], initialAllAccounts);
+  }
+  // Always apply server initial selection on first paint when available, so client matches server and avoids hydration mismatch (client cache may already hold a different mode from a previous session)
+  if (userId != null && initialActiveAccount !== undefined && !actionBarSelectionHydratedRef.current) {
+    queryClient.setQueryData(['actionBar:selection'], { mode: initialActiveAccountMode, activeAccount: initialActiveAccount ?? null });
+    actionBarSelectionHydratedRef.current = true;
   }
 
   return (
