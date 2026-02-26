@@ -16,7 +16,6 @@ const REQUIRED_FIELDS = [
 
 // Optional fields — AI tries to match these after required fields are matched
 const OPTIONAL_FIELDS = [
-  { name: 'day_of_week', description: 'Day of week (Monday, Tuesday, ...). Also look for: Day, Weekday' },
   { name: 'setup_type', description: 'Trade setup or strategy name. Also look for: Setup, Strategy, Pattern, Signal' },
   { name: 'risk_reward_ratio_long', description: 'Extended or target RR ratio. Also look for: Target RR, Max RR, RR Target' },
   { name: 'sl_size', description: 'Stop loss size in pips or points. Also look for: SL, Stop Loss, SL Pips, SL Size' },
