@@ -7,8 +7,8 @@ export interface TradingOverviewStats {
   totalLosses: number;
   wins: number;
   losses: number;
-  beWins: number;
-  beLosses: number;
+  /** Count of trades with outcome BE (break_even). */
+  beTradesCount: number;
   totalProfit: number;
   averageProfit: number;
   winRate: number;
@@ -28,13 +28,12 @@ export function calculateTradingOverviewStats(trades: Trade[]): TradingOverviewS
   const wins = nonBETrades.filter((t) => t.trade_outcome === 'Win').length;
   const losses = nonBETrades.filter((t) => t.trade_outcome === 'Lose').length;
 
-  // For BE trades, use be_final_result when present to classify them
-  const beWins = beTrades.filter((t) => t.be_final_result === 'Win').length;
-  const beLosses = beTrades.filter((t) => t.be_final_result === 'Lose').length;
+  // BE trades: single bucket
+  const beTradesCount = beTrades.length;
 
   const totalTrades = trades.length;
-  const totalWins = wins + beWins;
-  const totalLosses = losses + beLosses;
+  const totalWins = wins;
+  const totalLosses = losses;
 
   const totalProfit = trades.reduce((sum, t) => sum + (t.calculated_profit || 0), 0);
   const averageProfit = totalTrades > 0 ? totalProfit / totalTrades : 0;
@@ -43,10 +42,8 @@ export function calculateTradingOverviewStats(trades: Trade[]): TradingOverviewS
   const nonBETotal = wins + losses;
   const winRate = nonBETotal > 0 ? (wins / nonBETotal) * 100 : 0;
 
-  // Win rate including BE trades that have a final result
-  const effectiveTotalWithBE = wins + losses + beWins + beLosses;
-  const winRateWithBE =
-    effectiveTotalWithBE > 0 ? ((wins + beWins) / effectiveTotalWithBE) * 100 : 0;
+  // Win rate with BE: wins as % of all trades
+  const winRateWithBE = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
 
   // Streaks: use only non-BE trades so BE (with or without final result) never affects streaks
   const { currentStreak, maxWinningStreak, maxLosingStreak } = calculateStreaks(nonBETrades);
@@ -76,8 +73,7 @@ export function calculateTradingOverviewStats(trades: Trade[]): TradingOverviewS
     totalLosses,
     wins,
     losses,
-    beWins,
-    beLosses,
+    beTradesCount,
     totalProfit,
     averageProfit,
     winRate,
