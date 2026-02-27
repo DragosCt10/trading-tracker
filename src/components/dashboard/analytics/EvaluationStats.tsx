@@ -52,8 +52,7 @@ export function convertEvaluationStatsToChartData(stats: EvaluationStat[]): Trad
     category: `${stat.grade}`,
     wins: stat.wins,
     losses: stat.losses,
-    beWins: stat.beWins,
-    beLosses: stat.beLosses,
+    beTrades: stat.beTradesCount,
     winRate: stat.winRate,
     winRateWithBE: stat.winRateWithBE,
     totalTrades: stat.total,
@@ -115,11 +114,10 @@ export const EvaluationStats: React.FC<EvaluationStatsProps> = React.memo(
       const d = payload[0].payload;
       const wins = d.wins ?? 0;
       const losses = d.losses ?? 0;
-      const beWins = d.beWins ?? 0;
-      const beLosses = d.beLosses ?? 0;
+      const beTrades = (d as { beTrades?: number }).beTrades ?? 0;
       const winRate = d.winRate ?? 0;
       const winRateWithBE = d.winRateWithBE ?? d.winRate ?? 0;
-      const totalTrades = d.totalTrades ?? wins + losses;
+      const totalTrades = d.totalTrades ?? wins + losses + beTrades;
       return (
         <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-50">
           <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
@@ -130,15 +128,15 @@ export const EvaluationStats: React.FC<EvaluationStatsProps> = React.memo(
             <div className="space-y-2">
               <div className="flex items-baseline justify-between gap-4">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
-                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                  {wins} {beWins > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beWins} BE)</span>}
-                </span>
+                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{wins}</span>
               </div>
               <div className="flex items-baseline justify-between gap-4">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
-                <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
-                  {losses} {beLosses > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beLosses} BE)</span>}
-                </span>
+                <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{losses}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">BE:</span>
+                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{beTrades}</span>
               </div>
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
