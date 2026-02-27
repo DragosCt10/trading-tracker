@@ -122,15 +122,19 @@ const OUTCOME_LOSE = new Set([
   'lose', 'loss', 'l', 'lost', 'sl', 'stop loss', 'stoploss',
   'red', '0', '✗', 'no', 'n', 'loser', '-', 'stopped',
 ]);
+const OUTCOME_BE = new Set([
+  'be', 'b/e', 'break even', 'breakeven', 'break-even', 'be hit',
+]);
 
 /**
  * Normalize a trade outcome value.
- * Returns `'Win'` | `'Lose'` | `null` (unrecognised).
+ * Returns `'Win'` | `'Lose'` | `'BE'` | `null` (unrecognised).
  */
-export function normalizeOutcome(raw: string): 'Win' | 'Lose' | null {
+export function normalizeOutcome(raw: string): 'Win' | 'Lose' | 'BE' | null {
   const key = raw.trim().toLowerCase();
   if (OUTCOME_WIN.has(key)) return 'Win';
   if (OUTCOME_LOSE.has(key)) return 'Lose';
+  if (OUTCOME_BE.has(key)) return 'BE';
   return null;
 }
 
