@@ -84,11 +84,11 @@ import {
   SLSizeStatisticsCard,
 } from '@/components/dashboard/analytics/SLSizeStatisticsCard';
 import {
-  TradeTypesStatisticsCard,
-  type TradeTypesStatisticsCardProps,
+  ReentryTradesChartCard,
+  type ReentryTradesChartCardProps,
   calculateReentryStats,
   calculateBreakEvenStats,
-} from '@/components/dashboard/analytics/TradeTypesStatisticsCard';
+} from '@/components/dashboard/analytics/ReentryTradesChartCard';
 import {
   DayStatisticsCard,
   type DayStatisticsCardProps,
@@ -1057,7 +1057,7 @@ export default function StrategyClient(
         onClose={() => setCalendarTradeDetails(null)}
       />
 
-      {/* Core statistics: title + description, then core stats, then Partial/Executed/Direction cards, then Evaluation + Trade Types above RiskPerTrade */}
+      {/* Core statistics: title + description, then core stats, then Partial/Executed/Direction cards, then Evaluation + Re-entry Trades above RiskPerTrade */}
       <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Core statistics</h2>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Trading statistics and performance metrics.</p>
 
@@ -1085,8 +1085,8 @@ export default function StrategyClient(
             }}
             aboveRiskPerTradeRow={{
               evaluationStats: filteredEvaluationStats || evaluationStats,
-              reentryStats: statsToUseForCharts.reentryStats as TradeTypesStatisticsCardProps['reentryStats'],
-              breakEvenStats: statsToUseForCharts.breakEvenStats as TradeTypesStatisticsCardProps['breakEvenStats'],
+              reentryStats: statsToUseForCharts.reentryStats as ReentryTradesChartCardProps['reentryStats'],
+              breakEvenStats: statsToUseForCharts.breakEvenStats as ReentryTradesChartCardProps['breakEvenStats'],
               trendStats: statsToUseForCharts.trendStats ?? [],
               chartsLoadingState: chartsLoadingState,
               includeTotalTrades: filteredChartStats !== null,
