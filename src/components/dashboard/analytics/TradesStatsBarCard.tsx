@@ -27,6 +27,7 @@ export interface TradeStatDatum {
   losses?: number;
   beWins?: number;
   beLosses?: number;
+  breakEven?: number;      // total BE trades (when only count is needed)
   winRate?: number;        // 0–100
   winRateWithBE?: number;  // 0–100
   value?: number;          // generic value (e.g. SL size)
