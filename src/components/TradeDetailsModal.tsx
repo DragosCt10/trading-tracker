@@ -162,26 +162,31 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       const newRisk = field === 'risk_per_trade' ? value : editedTrade.risk_per_trade;
       const newRR = field === 'risk_reward_ratio' ? value : editedTrade.risk_reward_ratio;
       const newOutcome = field === 'trade_outcome' ? value : editedTrade.trade_outcome;
+      const nextBreakEven = field === 'trade_outcome' ? value === 'BE' : editedTrade.break_even;
 
       const { pnl_percentage, calculated_profit } = calculateTradePnl(
         {
           trade_outcome: newOutcome,
           risk_per_trade: Number(newRisk),
           risk_reward_ratio: Number(newRR),
-          break_even: editedTrade.break_even,
+          break_even: nextBreakEven,
         },
         selection.activeAccount?.account_balance || 0
       );
 
-      // When outcome becomes Lose, set Potential R:R to 0 (read-only)
+      // When outcome becomes Lose or BE, set Potential R:R to 0 (read-only); BE also sets break_even
       const nextState = {
         ...editedTrade,
         [field]: value,
         calculated_profit,
         pnl_percentage,
       };
-      if (field === 'trade_outcome' && value === 'Lose') {
+      if (field === 'trade_outcome' && (value === 'Lose' || value === 'BE')) {
         nextState.risk_reward_ratio_long = 0;
+      }
+      if (field === 'trade_outcome') {
+        nextState.break_even = value === 'BE';
+        if (value !== 'BE') nextState.be_final_result = null;
       }
       setEditedTrade(nextState);
     } else {
@@ -221,11 +226,12 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         risk_per_trade: editedTrade.risk_per_trade,
         trade_outcome: editedTrade.trade_outcome,
         risk_reward_ratio: editedTrade.risk_reward_ratio,
-        risk_reward_ratio_long: editedTrade.trade_outcome === 'Lose' ? 0 : editedTrade.risk_reward_ratio_long,
+        risk_reward_ratio_long: (editedTrade.trade_outcome === 'Lose' || editedTrade.trade_outcome === 'BE') ? 0 : editedTrade.risk_reward_ratio_long,
         trade_link: editedTrade.trade_link,
         liquidity_taken: editedTrade.liquidity_taken,
         mss: editedTrade.mss,
         break_even: editedTrade.break_even,
+        be_final_result: editedTrade.be_final_result,
         reentry: editedTrade.reentry,
         news_related: editedTrade.news_related,
         local_high_low: editedTrade.local_high_low,
@@ -320,7 +326,8 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     const colors: Record<string, string> = {
       'Win': 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400',
       'Lose': 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
-      'Break Even': 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+      'BE': 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
+      'Break Even': 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
     };
     return (
       <span className={`px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-lg ${
@@ -329,6 +336,18 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         {outcome}
       </span>
     );
+  };
+
+  const renderOutcomeBadges = (outcome: string, beFinalResult?: string | null) => {
+    if (outcome === 'BE' || outcome === 'Break Even') {
+      return (
+        <div className="flex flex-wrap items-center gap-2">
+          {renderOutcomeBadge(outcome)}
+          {beFinalResult ? renderOutcomeBadge(beFinalResult) : null}
+        </div>
+      );
+    }
+    return renderOutcomeBadge(outcome);
   };
 
   const renderField = (
@@ -354,7 +373,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         return (
           <div>
             <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
-            <dd className="mt-1.5">{renderOutcomeBadge(outcome)}</dd>
+            <dd className="mt-1.5">{renderOutcomeBadges(outcome, editedTrade.be_final_result)}</dd>
           </div>
         );
       }
@@ -377,7 +396,9 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   field === 'pnl_percentage'
                     ? (editedTrade.trade_outcome === 'Lose'
                       ? 'text-red-500 dark:text-red-400'
-                      : 'text-emerald-500 dark:text-emerald-400')
+                      : editedTrade.trade_outcome === 'BE'
+                        ? 'text-orange-600 dark:text-orange-400'
+                        : 'text-emerald-500 dark:text-emerald-400')
                     : 'text-slate-900 dark:text-slate-100'
                 }`
               }>
@@ -457,9 +478,9 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       }
     }
 
-    // Potential Risk:Reward Ratio (RR Long) – select 1, 1.5, … 10, 10+; read-only when outcome is Lose
+    // Potential Risk:Reward Ratio (RR Long) – select 1, 1.5, … 10, 10+; read-only when outcome is Lose or BE
     if (field === 'risk_reward_ratio_long') {
-      if (editedTrade.trade_outcome === 'Lose') {
+      if (editedTrade.trade_outcome === 'Lose' || editedTrade.trade_outcome === 'BE') {
         return (
           <div>
             <label className={`${labelClass} mb-2`}>{label}</label>
@@ -649,6 +670,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               <SelectContent className={selectContentClass}>
                 <SelectItem value="Win">Win</SelectItem>
                 <SelectItem value="Lose">Lose</SelectItem>
+                <SelectItem value="BE">BE</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -741,32 +763,58 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Outcome</label>
                   <div className="mt-2">
                     {!isEditing ? (
-                      renderOutcomeBadge(editedTrade?.trade_outcome as string)
+                      renderOutcomeBadges(editedTrade?.trade_outcome as string, editedTrade?.be_final_result)
                     ) : (
-                      <Select
-                        value={editedTrade?.trade_outcome ?? ''}
-                        onValueChange={(val) => handleInputChange('trade_outcome', val)}
-                      >
-                        <SelectTrigger className={selectTriggerClass}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className={selectContentClass}>
-                          <SelectItem value="Win">Win</SelectItem>
-                          <SelectItem value="Lose">Lose</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <>
+                        <Select
+                          value={editedTrade?.trade_outcome ?? ''}
+                          onValueChange={(val) => handleInputChange('trade_outcome', val)}
+                        >
+                          <SelectTrigger className={selectTriggerClass}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className={selectContentClass}>
+                            <SelectItem value="Win">Win</SelectItem>
+                            <SelectItem value="Lose">Lose</SelectItem>
+                            <SelectItem value="BE">BE</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        {editedTrade?.trade_outcome === 'BE' && (
+                          <div className="mt-3">
+                            <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                              Final result <span className="font-normal normal-case tracking-normal">(optional)</span>
+                            </label>
+                            <div className="mt-2">
+                              <Select
+                                value={editedTrade?.be_final_result ?? '__none__'}
+                                onValueChange={(val) => handleInputChange('be_final_result', val === '__none__' ? null : val)}
+                              >
+                                <SelectTrigger className={selectTriggerClass}>
+                                  <SelectValue placeholder="Win or Lose at close" />
+                                </SelectTrigger>
+                                <SelectContent className={selectContentClass}>
+                                  <SelectItem value="__none__">—</SelectItem>
+                                  <SelectItem value="Win">Win</SelectItem>
+                                  <SelectItem value="Lose">Lose</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">P&L %</label>
-                  <div className={`mt-2 text-2xl font-bold ${editedTrade?.trade_outcome === 'Lose' ? 'text-red-500 dark:text-red-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
+                  <div className={`mt-2 text-2xl font-bold ${editedTrade?.trade_outcome === 'Lose' ? 'text-red-500 dark:text-red-400' : editedTrade?.trade_outcome === 'BE' ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
                     {typeof editedTrade?.pnl_percentage === 'number' ? editedTrade.pnl_percentage.toFixed(2) : '0.00'}%
                   </div>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Profit/Loss</label>
-                  <div className={`mt-2 text-2xl font-bold ${editedTrade?.trade_outcome === 'Lose' ? 'text-red-500 dark:text-red-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
+                  <div className={`mt-2 text-2xl font-bold ${editedTrade?.trade_outcome === 'Lose' ? 'text-red-500 dark:text-red-400' : editedTrade?.trade_outcome === 'BE' ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
                     {typeof editedTrade?.calculated_profit === 'number' ? editedTrade.calculated_profit.toFixed(2) : '0.00'}
                   </div>
                 </div>
