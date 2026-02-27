@@ -5,8 +5,6 @@ export interface PartialTradesStats {
   partialLosingTrades: number;
   /** Partial trades with outcome BE (break-even). */
   partialBETrades: number;
-  partialWinRate: number; // without BE
-  partialWinRateWithBE: number; // wins as % of all partial trades
   totalPartialTradesCount: number;
   /** Same as partialBETrades (for backward compatibility). */
   totalPartialsBECount: number;
@@ -34,22 +32,10 @@ export function calculatePartialTradesStats(trades: Trade[]): PartialTradesStats
   const totalPartialTradesCount =
     partialWinningTrades + partialLosingTrades + partialBETrades;
 
-  const partialWinRate =
-    partialWinningTrades + partialLosingTrades > 0
-      ? (partialWinningTrades / (partialWinningTrades + partialLosingTrades)) * 100
-      : 0;
-
-  const partialWinRateWithBE =
-    totalPartialTradesCount > 0
-      ? (partialWinningTrades / totalPartialTradesCount) * 100
-      : 0;
-
   return {
     partialWinningTrades,
     partialLosingTrades,
     partialBETrades,
-    partialWinRate,
-    partialWinRateWithBE,
     totalPartialTradesCount,
     totalPartialsBECount: partialBETrades,
   };
