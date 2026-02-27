@@ -29,6 +29,10 @@ function parseTradeDate(tradeDate: string | Date): Date {
   return new Date(tradeDate);
 }
 
+function isBreakEvenTrade(trade: Trade): boolean {
+  return Boolean(trade.break_even || trade.trade_outcome === 'BE');
+}
+
 /* ---------------------------------------------------------
  * Constants & helpers
  * ------------------------------------------------------ */
@@ -83,8 +87,8 @@ export function buildWeeklyStats(
         ? trades
         : trades.filter((t) => t.market === selectedMarket);
 
-    const nonBETrades = filteredTrades.filter((t) => !t.break_even);
-    const beTrades = filteredTrades.filter((t) => t.break_even);
+    const nonBETrades = filteredTrades.filter((t) => !isBreakEvenTrade(t));
+    const beTrades = filteredTrades.filter((t) => isBreakEvenTrade(t));
 
     const totalProfit = nonBETrades.reduce(
       (sum, trade) => sum + (trade.calculated_profit || 0),
@@ -330,12 +334,12 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
               // Non-BE trades + BE with partials
               const realDayTrades = filteredDayTrades.filter(
                 (trade) =>
-                  !trade.break_even ||
-                  (trade.break_even && trade.partials_taken),
+                  !isBreakEvenTrade(trade) ||
+                  (isBreakEvenTrade(trade) && trade.partials_taken),
               );
 
               const beTrades = filteredDayTrades.filter(
-                (trade) => trade.break_even,
+                (trade) => isBreakEvenTrade(trade),
               );
               const hasBE = beTrades.length > 0;
               const beOutcome =
@@ -346,7 +350,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
 
               // Filter out all pure BE trades
               const validTradesForPNL = filteredDayTrades.filter(
-                (trade) => !trade.break_even // ignore all BE completely
+                (trade) => !isBreakEvenTrade(trade) // ignore all BE completely
               );
 
               // Profit (€)
@@ -490,7 +494,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                             <span
                               className={cn(
                                 'font-semibold shrink-0',
-                                trade.break_even
+                                isBreakEvenTrade(trade)
                                   ? 'text-slate-500 dark:text-slate-400'
                                   : trade.calculated_profit &&
                                     trade.calculated_profit >= 0
@@ -498,7 +502,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                                   : 'text-rose-600 dark:text-red-400',
                               )}
                             >
-                              {trade.break_even
+                              {isBreakEvenTrade(trade)
                                 ? (() => {
                                     const finalOutcome =
                                       trade.be_final_result ??
@@ -512,8 +516,10 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                                   })()
                                 : trade.trade_outcome === 'Win'
                                 ? 'W'
-                                : 'L'}
-                              {!trade.break_even &&
+                                : trade.trade_outcome === 'Lose'
+                                ? 'L'
+                                : '—'}
+                              {!isBreakEvenTrade(trade) &&
                                 trade.pnl_percentage &&
                                 ` (${trade.pnl_percentage.toFixed(2)}%)`}
                             </span>
