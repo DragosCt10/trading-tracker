@@ -99,13 +99,14 @@ export function convertDayStatsToChartData(
   _includeTotalTrades: boolean = false
 ): { category: string; wins: number; losses: number; beWins: number; beLosses: number; winRate: number; winRateWithBE: number; totalTrades?: number }[] {
   return dayStats.map((stat) => {
-    const totalTrades = (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.beWins ?? 0) + (stat.beLosses ?? 0);
+    const totalTrades = (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.breakEven ?? 0);
     return {
       category: `${stat.day}`,
       wins: stat.wins ?? 0,
       losses: stat.losses ?? 0,
       beWins: stat.beWins ?? 0,
       beLosses: stat.beLosses ?? 0,
+      breakEven: stat.breakEven ?? 0,
       winRate: stat.winRate ?? 0,
       winRateWithBE: stat.winRateWithBE ?? 0,
       totalTrades,
@@ -137,37 +138,36 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
       }
     }, [mounted, externalLoading]);
 
-    const statsByDay: Record<string, { wins: number; losses: number; beWins: number; beLosses: number; winRate: number; winRateWithBE: number }> = {};
+    const statsByDay: Record<string, { wins: number; losses: number; breakEven: number; winRate: number; winRateWithBE: number }> = {};
     dayStats.forEach((stat) => {
       const rawDay = stat.day ?? 'Unknown';
       const day = normalizeDay(rawDay);
       const existing = statsByDay[day];
       const wins = (stat.wins ?? 0) + (existing?.wins ?? 0);
       const losses = (stat.losses ?? 0) + (existing?.losses ?? 0);
-      const beWins = (stat.beWins ?? 0) + (existing?.beWins ?? 0);
-      const beLosses = (stat.beLosses ?? 0) + (existing?.beLosses ?? 0);
-      const total = wins + losses + beWins + beLosses;
+      const breakEven = (stat.breakEven ?? 0) + (existing?.breakEven ?? 0);
+      const total = wins + losses + breakEven;
       statsByDay[day] = {
         wins,
         losses,
-        beWins,
-        beLosses,
+        breakEven,
         winRate: stat.winRate ?? (wins + losses > 0 ? (wins / (wins + losses)) * 100 : 0),
-        winRateWithBE: stat.winRateWithBE ?? (total > 0 ? ((wins + beWins) / total) * 100 : 0),
+        winRateWithBE: stat.winRateWithBE ?? (total > 0 ? (wins / total) * 100 : 0),
       };
     });
 
     // Build chart data: first the 7 canonical days (in order), then any other keys (e.g. "Unknown") so data always shows
     const knownDays = DAYS.map((day) => {
-      const stats = statsByDay[day] ?? { wins: 0, losses: 0, beWins: 0, beLosses: 0, winRate: 0, winRateWithBE: 0 };
-      const totalTrades = stats.wins + stats.losses + stats.beWins + stats.beLosses;
+      const stats = statsByDay[day] ?? { wins: 0, losses: 0, breakEven: 0, winRate: 0, winRateWithBE: 0 };
+      const totalTrades = stats.wins + stats.losses + stats.breakEven;
       return {
         day,
         totalTrades,
         wins: stats.wins,
         losses: stats.losses,
-        beWins: stats.beWins,
-        beLosses: stats.beLosses,
+        beWins: 0,
+        beLosses: 0,
+        breakEven: stats.breakEven,
         winRate: stats.winRate,
         winRateWithBE: stats.winRateWithBE,
       };
@@ -175,14 +175,15 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
     const otherDayKeys = Object.keys(statsByDay).filter((k) => !DAYS.includes(k));
     const otherDays = otherDayKeys.map((day) => {
       const stats = statsByDay[day];
-      const totalTrades = stats.wins + stats.losses + stats.beWins + stats.beLosses;
+      const totalTrades = stats.wins + stats.losses + stats.breakEven;
       return {
         day,
         totalTrades,
         wins: stats.wins,
         losses: stats.losses,
-        beWins: stats.beWins,
-        beLosses: stats.beLosses,
+        beWins: 0,
+        beLosses: 0,
+        breakEven: stats.breakEven,
         winRate: stats.winRate,
         winRateWithBE: stats.winRateWithBE,
       };
@@ -193,7 +194,7 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
     const hasTrades =
       dayStats.some(
         (s) =>
-          ((s.wins ?? 0) + (s.losses ?? 0) + (s.beWins ?? 0) + (s.beLosses ?? 0)) > 0
+          ((s.wins ?? 0) + (s.losses ?? 0) + (s.breakEven ?? 0)) > 0
       ) || chartData.some((d) => d.totalTrades > 0);
     const axisTextColor = isDark ? '#cbd5e1' : '#64748b';
 
@@ -215,15 +216,19 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
             <div className="flex items-baseline justify-between gap-4">
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
               <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                {d.wins} {d.beWins > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({d.beWins} BE)</span>}
+                {d.wins}
               </span>
             </div>
             <div className="flex items-baseline justify-between gap-4">
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
-              <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
-                {d.losses} {d.beLosses > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({d.beLosses} BE)</span>}
-              </span>
+              <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{d.losses}</span>
             </div>
+            {(d.breakEven ?? 0) > 0 && (
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even:</span>
+                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{d.breakEven}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
               <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
