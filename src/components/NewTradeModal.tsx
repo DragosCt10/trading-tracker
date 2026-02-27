@@ -163,6 +163,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     sl_size: undefined as any,
     direction: '' as 'Long' | 'Short',
     trade_outcome: '' as 'Win' | 'Lose',
+    be_final_result: null as string | null,
     break_even: false,
     reentry: false,
     news_related: false,
@@ -308,9 +309,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     });
   }, [trade.trade_date]);
 
-  // When outcome is Lose, set Potential R:R to 0 (not editable)
+  // When outcome is Lose or BE, set Potential R:R to 0 (not editable)
   useEffect(() => {
-    if (trade.trade_outcome === 'Lose' && trade.risk_reward_ratio_long !== 0) {
+    if ((trade.trade_outcome === 'Lose' || trade.trade_outcome === 'BE') && trade.risk_reward_ratio_long !== 0) {
       setTrade((prev) => ({ ...prev, risk_reward_ratio_long: 0 as any }));
     }
   }, [trade.trade_outcome, trade.risk_reward_ratio_long]);
@@ -688,16 +689,44 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
               <div className="space-y-2">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Trade Outcome *</Label>
-                <Select value={trade.trade_outcome} onValueChange={(v) => updateTrade('trade_outcome', v as 'Win' | 'Lose')}>
+                <Select
+                  value={trade.trade_outcome}
+                  onValueChange={(v) => setTrade(prev => ({ ...prev, trade_outcome: v, break_even: v === 'BE', be_final_result: v === 'BE' ? prev.be_final_result : null }))}
+                >
                   <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
                     <SelectValue placeholder="Select Trade Outcome" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Win">Win</SelectItem>
                     <SelectItem value="Lose">Lose</SelectItem>
+                    <SelectItem value="BE">BE</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              {trade.trade_outcome === 'BE' && (
+                <div className="space-y-2">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Final result <span className="font-normal text-slate-500 dark:text-slate-400">(optional)</span>
+                  </Label>
+                  <Select
+                    value={trade.be_final_result ?? '__none__'}
+                    onValueChange={(v) => updateTrade('be_final_result', v === '__none__' ? null : v)}
+                  >
+                    <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                      <SelectValue placeholder="Win or Lose at close" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">—</SelectItem>
+                      <SelectItem value="Win">Win</SelectItem>
+                      <SelectItem value="Lose">Lose</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    How did this trade end after moving to break even? (e.g. closed in profit = Win, stopped out = Lose)
+                  </p>
+                </div>
+              )}
             </div>
 
             {isTradingInstitutional && (
@@ -766,7 +795,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
               <div className="space-y-2">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Potential Risk:Reward Ratio</Label>
-                {trade.trade_outcome === 'Lose' ? (
+                {trade.trade_outcome === 'Lose' || trade.trade_outcome === 'BE' ? (
                   <Input
                     type="text"
                     value="0"
@@ -981,16 +1010,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
             {/* Additional Options - Checkboxes */}
             <div className="flex flex-wrap gap-5">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="break-even"
-                  checked={trade.break_even}
-                  onCheckedChange={(checked) => updateTrade('break_even', checked as boolean)}
-                  className="themed-checkbox h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 transition-colors duration-150 data-[state=checked]:!text-white"
-                />
-                <Label htmlFor="break-even" className="text-sm font-normal cursor-pointer">Break Even</Label>
-              </div>
-
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="reentry"
