@@ -31,10 +31,7 @@ export interface MarketStat {
   pnlPercentage: number;
   wins: number;
   losses: number;
-  nonBeWins: number;
-  nonBeLosses: number;
-  beWins: number;
-  beLosses: number;
+  breakEven?: number;
   profitTaken: boolean;
 }
 
