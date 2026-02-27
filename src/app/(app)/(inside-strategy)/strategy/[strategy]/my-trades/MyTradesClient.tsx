@@ -443,18 +443,32 @@ export default function MyTradesClient({
                       {trade.market}
                     </h3>
                     <div className="flex items-center gap-1">
-                      <Badge
-                        className={`shadow-none border-none outline-none ring-0 ${
-                          trade.trade_outcome === 'Win'
-                            ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white'
-                            : 'bg-gradient-to-br from-rose-500 to-rose-300 text-white'
-                        }`}
-                      >
-                        {trade.trade_outcome}
-                      </Badge>
-                      {trade.break_even && (
-                        <Badge className="shadow-none border-none outline-none ring-0 bg-gradient-to-br from-slate-400 to-slate-600 text-white">
-                          BE
+                      {(trade.break_even || trade.trade_outcome === 'BE') ? (
+                        <>
+                          <Badge className="shadow-none border-none outline-none ring-0 bg-gradient-to-br from-orange-400 to-orange-500 dark:from-orange-500 dark:to-orange-600 text-white">
+                            BE
+                          </Badge>
+                          {trade.be_final_result && (
+                            <Badge
+                              className={`shadow-none border-none outline-none ring-0 ${
+                                trade.be_final_result === 'Win'
+                                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white'
+                                  : 'bg-gradient-to-br from-rose-500 to-rose-300 text-white'
+                              }`}
+                            >
+                              {trade.be_final_result}
+                            </Badge>
+                          )}
+                        </>
+                      ) : (
+                        <Badge
+                          className={`shadow-none border-none outline-none ring-0 ${
+                            trade.trade_outcome === 'Win'
+                              ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white'
+                              : 'bg-gradient-to-br from-rose-500 to-rose-300 text-white'
+                          }`}
+                        >
+                          {trade.trade_outcome}
                         </Badge>
                       )}
                       {!trade.executed && (
