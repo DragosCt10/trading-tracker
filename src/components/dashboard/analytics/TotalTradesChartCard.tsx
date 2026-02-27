@@ -15,20 +15,21 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface TotalTradesChartCardProps {
   totalTrades: number;
-  totalWins: number;
-  totalLosses: number;
-  beWins: number;
-  beLosses: number;
+  /** Wins (trades with outcome Win, excluding BE). */
+  wins: number;
+  /** Losses (trades with outcome Lose, excluding BE). */
+  losses: number;
+  /** Trades with outcome BE (break-even). */
+  beTrades: number;
   isLoading?: boolean;
 }
 
 export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.memo(
   function TotalTradesChartCard({ 
     totalTrades, 
-    totalWins, 
-    totalLosses, 
-    beWins, 
-    beLosses, 
+    wins, 
+    losses, 
+    beTrades, 
     isLoading: externalLoading 
   }) {
     const { mounted, isDark } = useDarkMode();
@@ -55,21 +56,13 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
       }
     }, [mounted, externalLoading]);
 
-    // Calculate distribution based on final outcomes:
-    // - Wins: all wins including BE trades with final result Win
-    // - Losses: all losses including BE trades with final result Lose
-    // - BE: BE trades that do not have a final result
-    const wins = totalWins;
-    const losses = totalLosses;
-    const neutralBE = Math.max(totalTrades - wins - losses, 0);
-
-    // Prepare pie chart data using this distribution
-    const totalForChart = wins + losses + neutralBE;
+    // Three buckets: Wins, Losses, BE. Total = totalTrades.
+    const totalForChart = totalTrades;
     const pieData = [
       { name: 'Wins', value: wins, color: 'emerald', percentage: totalForChart > 0 ? (wins / totalForChart) * 100 : 0 },
       { name: 'Losses', value: losses, color: 'rose', percentage: totalForChart > 0 ? (losses / totalForChart) * 100 : 0 },
-      { name: 'Break Even', value: neutralBE, color: 'amber', percentage: totalForChart > 0 ? (neutralBE / totalForChart) * 100 : 0 },
-    ].filter((item) => item.value > 0); // Only show segments with values
+      { name: 'BE', value: beTrades, color: 'amber', percentage: totalForChart > 0 ? (beTrades / totalForChart) * 100 : 0 },
+    ].filter((item) => item.value > 0);
 
     const CustomTooltip = ({ active, payload }: any) => {
       if (!active || !payload || payload.length === 0) return null;
@@ -267,12 +260,7 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
                   Wins
                 </div>
                 <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                  {totalWins}
-                  {beWins > 0 && (
-                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">
-                      ({beWins} BE)
-                    </span>
-                  )}
+                  {wins}
                 </div>
               </div>
               <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
@@ -281,12 +269,7 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
                   Losses
                 </div>
                 <div className="text-lg font-bold text-rose-600 dark:text-rose-400">
-                  {totalLosses}
-                  {beLosses > 0 && (
-                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">
-                      ({beLosses} BE)
-                    </span>
-                  )}
+                  {losses}
                 </div>
               </div>
               <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
@@ -295,10 +278,10 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
                   BE
                 </div>
                 <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
-                  {neutralBE}
+                  {beTrades}
                   {totalTrades > 0 && (
                     <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">
-                      ({((neutralBE / totalTrades) * 100).toFixed(1)}%)
+                      ({((beTrades / totalTrades) * 100).toFixed(1)}%)
                     </span>
                   )}
                 </div>
