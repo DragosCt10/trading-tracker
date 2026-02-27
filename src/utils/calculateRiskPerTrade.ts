@@ -1,61 +1,88 @@
 import { Trade } from '@/types/trade';
-import { RiskAnalysis } from '@/types/dashboard';
+import { RiskAnalysis, RiskStats } from '@/types/dashboard';
+
+/**
+ * Resolve effective outcome for a trade, matching NewTradeModal:
+ * - Trade Outcome Win/Lose → use directly.
+ * - Trade Outcome BE → use be_final_result (Win/Lose) when set; legacy: trade_outcome may still be Win/Lose.
+ */
+function resolveOutcome(trade: Trade): 'Win' | 'Lose' | 'BE' | null {
+  if (trade.trade_outcome === 'BE' || trade.break_even) {
+    if (trade.be_final_result === 'Win' || trade.be_final_result === 'Lose') {
+      return trade.be_final_result;
+    }
+    if (trade.trade_outcome === 'Win' || trade.trade_outcome === 'Lose') {
+      return trade.trade_outcome as 'Win' | 'Lose';
+    }
+    return 'BE';
+  }
+  if (trade.trade_outcome === 'Win' || trade.trade_outcome === 'Lose') {
+    return trade.trade_outcome as 'Win' | 'Lose';
+  }
+  return null;
+}
+
+/**
+ * Convert a risk percentage value to a key compatible with parseRiskKey in RiskPerTrade.tsx.
+ * e.g. 1 → "risk1", 0.5 → "risk05", 0.25 → "risk025", 1.5 → "risk15"
+ */
+function riskValueToKey(risk: number): string {
+  if (Number.isInteger(risk)) {
+    return `risk${risk}`;
+  }
+  const tenths = Math.round(risk * 10);
+  if (Math.abs(tenths / 10 - risk) < 0.0001) {
+    return `risk${String(tenths).padStart(2, '0')}`;
+  }
+  const hundredths = Math.round(risk * 100);
+  return `risk${String(hundredths).padStart(3, '0')}`;
+}
+
+const emptyStats = (): RiskStats => ({
+  total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0,
+});
 
 export function calculateRiskPerTradeStats(trades: Trade[]): RiskAnalysis {
-  const result: RiskAnalysis = {
-    risk025: { total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0 },
-    risk03:  { total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0 },
-    risk035: { total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0 },
-    risk05:  { total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0 },
-    risk07:  { total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0 },
-    risk1:   { total: 0, wins: 0, losses: 0, breakEven: 0, beWins: 0, beLosses: 0, winrate: 0, winrateWithBE: 0 }
-  };
+  const result: RiskAnalysis = {};
 
   trades.forEach(trade => {
     const risk = trade.risk_per_trade;
+    if (risk == null || Number.isNaN(risk)) return;
 
-    // Helper function to update stats for a risk category
-    const updateRiskStats = (riskCategory: keyof RiskAnalysis) => {
-      result[riskCategory].total++;
+    const outcome = resolveOutcome(trade);
+    if (outcome === null) return;
 
-      if (trade.break_even) {
-        result[riskCategory].breakEven++;
-        // Determine if break even is a BE Win or BE Loss
-        if (trade.trade_outcome === 'Win') {
-          result[riskCategory].beWins++;
-        } else if (trade.trade_outcome === 'Lose') {
-          result[riskCategory].beLosses++;
-        }
-      } else if (trade.trade_outcome === 'Win') {
-        result[riskCategory].wins++;
-      } else if (trade.trade_outcome === 'Lose') {
-        result[riskCategory].losses++;
+    const key = riskValueToKey(risk);
+    if (!result[key]) result[key] = emptyStats();
+
+    result[key].total++;
+
+    if (outcome === 'BE') {
+      result[key].breakEven++;
+    } else if (outcome === 'Win') {
+      if (trade.break_even || trade.trade_outcome === 'BE') {
+        result[key].breakEven++;
+        result[key].beWins++;
+      } else {
+        result[key].wins++;
       }
-    };
-
-    // Categorize trades based on risk percentage
-    if (risk === 0.25) {
-      updateRiskStats('risk025');
-    } else if (risk === 0.3) {
-      updateRiskStats('risk03');
-    } else if (risk === 0.35) {
-      updateRiskStats('risk035');
-    } else if (risk === 0.5) {
-      updateRiskStats('risk05');
-    } else if (risk === 0.7) {
-      updateRiskStats('risk07');
-    } else if (risk === 1) {
-      updateRiskStats('risk1');
+    } else if (outcome === 'Lose') {
+      if (trade.break_even || trade.trade_outcome === 'BE') {
+        result[key].breakEven++;
+        result[key].beLosses++;
+      } else {
+        result[key].losses++;
+      }
     }
   });
 
-  // Calculate winrate for each risk category
-  (['risk025', 'risk03', 'risk035', 'risk05', 'risk07', 'risk1'] as (keyof RiskAnalysis)[]).forEach(riskKey => {
-    const stats = result[riskKey];
-    const denominator = stats.total - stats.breakEven;
-    stats.winrate = denominator > 0 ? (stats.wins / denominator) * 100 : 0;
-    // Winrate with BE: (wins + breakEven) / total
-    stats.winrateWithBE = stats.total > 0 ? ((stats.wins + stats.breakEven) / stats.total) * 100 : 0;
+  // Win rate excluding BE; win rate with BE = wins / (wins + losses + breakEven)
+  Object.keys(result).forEach(key => {
+    const stats = result[key];
+    const decisive = stats.wins + stats.losses;
+    stats.winrate = decisive > 0 ? (stats.wins / decisive) * 100 : 0;
+    const withBE = stats.wins + stats.losses + stats.breakEven;
+    stats.winrateWithBE = withBE > 0 ? (stats.wins / withBE) * 100 : 0;
   });
 
   return result;
