@@ -37,10 +37,35 @@ export function calculateEvaluationStats(
     .map(grade => {
       const bucket = groups[grade]!;
       const total = bucket.length;
-      const wins  = bucket.filter(t => t.trade_outcome === 'Win').length;
-      const losses = bucket.filter(t => t.trade_outcome === 'Lose').length;
-      const beWins = bucket.filter(t => t.trade_outcome === 'Win'  && t.break_even).length;
-      const beLosses = bucket.filter(t => t.trade_outcome === 'Lose' && t.break_even).length;
+
+      let wins = 0;
+      let losses = 0;
+      let beWins = 0;
+      let beLosses = 0;
+
+      for (const t of bucket) {
+        // Derive final outcome using BE final result when available.
+        let outcome: 'Win' | 'Lose' | null = null;
+
+        if (t.break_even) {
+          if (t.be_final_result === 'Win' || t.be_final_result === 'Lose') {
+            outcome = t.be_final_result;
+          } else if (t.trade_outcome === 'Win' || t.trade_outcome === 'Lose') {
+            // Legacy data: BE trades may still store Win/Lose in trade_outcome
+            outcome = t.trade_outcome as 'Win' | 'Lose';
+          }
+        } else if (t.trade_outcome === 'Win' || t.trade_outcome === 'Lose') {
+          outcome = t.trade_outcome as 'Win' | 'Lose';
+        }
+
+        if (outcome === 'Win') {
+          wins++;
+          if (t.break_even) beWins++;
+        } else if (outcome === 'Lose') {
+          losses++;
+          if (t.break_even) beLosses++;
+        }
+      }
 
       const nonBEWins   = wins  - beWins;
       const nonBELosses = losses - beLosses;
