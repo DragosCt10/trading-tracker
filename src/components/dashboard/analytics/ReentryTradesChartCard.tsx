@@ -37,17 +37,15 @@ export function calculateBreakEvenStats(trades: Trade[]): TradeTypeStats[] {
   return calculateBreakEvenStatsUtil(trades);
 }
 
-/** Aggregate reentry stats into a single wins / losses / be count (no beWins/beLosses in UI). */
+/** Aggregate reentry stats: wins, losses, breakEven (simple model). */
 function aggregateReentryStats(stats: TradeTypeStatsLike[]): { wins: number; losses: number; be: number; total: number } {
   let wins = 0;
   let losses = 0;
   let be = 0;
   for (const stat of stats) {
-    const beWins = stat.beWins ?? 0;
-    const beLosses = stat.beLosses ?? 0;
-    wins += (stat.wins ?? 0) - beWins;
-    losses += (stat.losses ?? 0) - beLosses;
-    be += beWins + beLosses;
+    wins += stat.wins ?? 0;
+    losses += stat.losses ?? 0;
+    be += stat.breakEven ?? 0;
   }
   const total = wins + losses + be;
   return { wins, losses, be, total };
