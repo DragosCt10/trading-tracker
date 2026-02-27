@@ -109,6 +109,7 @@ import { TimeIntervalStatisticsCard } from '@/components/dashboard/analytics/Tim
 import {
   EvaluationStats,
 } from '@/components/dashboard/analytics/EvaluationStats';
+import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
 import {
   LaunchHourTradesCard,
 } from '@/components/dashboard/analytics/LaunchHourTradesCard';
@@ -457,20 +458,18 @@ export default function StrategyClient(
       intervalStats.find((s) => s.label === interval.label) ?? {
         wins: 0,
         losses: 0,
-        beWins: 0,
-        beLosses: 0,
+        breakEven: 0,
         winRate: 0,
         winRateWithBE: 0,
       };
 
-    const totalTrades = stat.wins + stat.losses;
+    const totalTrades = stat.wins + stat.losses + (stat.breakEven ?? 0);
 
     return {
       category: `${interval.label}`,
       wins: stat.wins,
       losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
+      breakEven: stat.breakEven ?? 0,
       winRate: stat.winRate,
       winRateWithBE: stat.winRateWithBE,
       totalTrades,
@@ -587,21 +586,18 @@ export default function StrategyClient(
       statsToUseForCharts.intervalStats.find((s) => s.label === interval.label) ?? {
         wins: 0,
         losses: 0,
-        beWins: 0,
-        beLosses: 0,
+        breakEven: 0,
         winRate: 0,
         winRateWithBE: 0,
       };
-    const statWithTotal = stat as any;
     return {
       category: `${interval.label}`,
       wins: stat.wins,
       losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
+      breakEven: stat.breakEven ?? 0,
       winRate: stat.winRate,
       winRateWithBE: stat.winRateWithBE,
-      totalTrades: statWithTotal.total !== undefined ? statWithTotal.total : (stat.wins + stat.losses + stat.beWins + stat.beLosses),
+      totalTrades: stat.wins + stat.losses + (stat.breakEven ?? 0),
     };
   });
 
@@ -624,8 +620,7 @@ export default function StrategyClient(
                          setupChartDataToUse.some(d => 
                            (d.wins ?? 0) > 0 || 
                            (d.losses ?? 0) > 0 || 
-                           (d.beWins ?? 0) > 0 || 
-                           (d.beLosses ?? 0) > 0
+                           (d.breakEven ?? 0) > 0
                          );
     
     if (hasChartData) {
@@ -1084,7 +1079,7 @@ export default function StrategyClient(
               chartsLoadingState: chartsLoadingState,
             }}
             aboveRiskPerTradeRow={{
-              evaluationStats: filteredEvaluationStats || evaluationStats,
+              evaluationStats: (filteredEvaluationStats ?? evaluationStats) as EvaluationStat[],
               reentryStats: statsToUseForCharts.reentryStats as ReentryTradesChartCardProps['reentryStats'],
               breakEvenStats: statsToUseForCharts.breakEvenStats as ReentryTradesChartCardProps['breakEvenStats'],
               trendStats: statsToUseForCharts.trendStats ?? [],
