@@ -13,8 +13,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { X, Check } from 'lucide-react';
-import { matchHeaders, toFieldMapping, DB_SCHEMA, type ColumnMatch } from '@/lib/columnMatcher';
+import { X, Check, MoreHorizontal, Wand2, FileText, Mail } from 'lucide-react';
+import { matchHeaders, applyValueMatches, toFieldMapping, DB_SCHEMA, type ColumnMatch, type SchemaField } from '@/lib/columnMatcher';
+import { matchCsvColumns, type ColumnSuggestion } from '@/utils/csvColumnMatcher';
 import { buildAutoNormalizations } from '@/lib/tradeNormalizers';
 import {
   extractColumnSamples,
@@ -70,6 +71,16 @@ export default function ImportTradesModal({
   const [translating, setTranslating] = useState(false);
   const [translations, setTranslations] = useState<Record<string, string>>({});
 
+  // ── Value-based matcher suggestions (combined date/time, ambiguous cols) ─
+  const [suggestions, setSuggestions] = useState<ColumnSuggestion[]>([]);
+
+  // ── "More options" modal for unresolved required fields ─────────────────
+  const [moreOptionsField, setMoreOptionsField] = useState<SchemaField | null>(null);
+  const [aiMatchingField, setAiMatchingField] = useState<string | null>(null);
+
+  // ── Per-field inline defaults (applied to rows missing that column) ──────
+  const [fieldDefaults, setFieldDefaults] = useState<Record<string, string>>({});
+
   // ── Import defaults ─────────────────────────────────────────────────────
   const [defaultRiskPct, setDefaultRiskPct] = useState<number | null>(null);
   const [customRiskInput, setCustomRiskInput] = useState('');
@@ -94,6 +105,10 @@ export default function ImportTradesModal({
     setColumnSamples({});
     setTranslating(false);
     setTranslations({});
+    setSuggestions([]);
+    setMoreOptionsField(null);
+    setAiMatchingField(null);
+    setFieldDefaults({});
     setDefaultRiskPct(null);
     setCustomRiskInput('');
     setDefaultRR(null);
@@ -136,12 +151,18 @@ export default function ImportTradesModal({
     setColumnSamples(samples);
     setTranslations({});
 
-    // Step 1: local fuzzy match — instant
+    // Step 1: local fuzzy match — instant (header-name based)
     const initialMatches = matchHeaders(headers);
-    setMatches(initialMatches);
+
+    // Step 2: value-based match — pattern analysis on sample cell contents.
+    // Upgrades low-confidence fuzzy matches and catches columns with generic
+    // or misleading headers (e.g. "Column A", "Type") by reading the actual values.
+    const valueResult = matchCsvColumns(samples);
+    setSuggestions(valueResult.suggestions);
+    setMatches(applyValueMatches(initialMatches, valueResult));
     setStep('map');
 
-    // Step 2: background AI translation for unmatched headers only.
+    // Step 3: background AI translation for unmatched headers only.
     // Only send headers that contain non-ASCII characters — those are likely
     // foreign-language. Pure ASCII headers are English; leave them unmatched
     // for manual mapping rather than letting the AI expand/rephrase them.
@@ -170,15 +191,13 @@ export default function ImportTradesModal({
       );
       if (Object.keys(meaningful).length === 0) return;
 
-      // Re-run matchHeaders on the full list with translations applied.
-      // Keeps greedy assignment correct across all columns.
+      // Re-run both matchers with translations applied, then merge again.
       const translatedHeaders = headers.map((h) => meaningful[h] ?? h);
-      const finalMatches = matchHeaders(translatedHeaders).map((m, i) => ({
+      const translatedFuzzy = matchHeaders(translatedHeaders).map((m, i) => ({
         ...m,
         csvHeader: headers[i], // restore original name for display
       }));
-
-      setMatches(finalMatches);
+      setMatches(applyValueMatches(translatedFuzzy, valueResult));
       setTranslations(meaningful);
     } catch {
       // Silent — keep local-only matches
@@ -197,6 +216,10 @@ export default function ImportTradesModal({
   function updateMatch(csvHeader: string, newDbField: string | null) {
     setMatches((prev) =>
       prev.map((m) => {
+        // Enforce one-to-one: clear this field from any other column that already holds it
+        if (newDbField && m.csvHeader !== csvHeader && m.dbField === newDbField) {
+          return { ...m, dbField: null, score: 0, label: '— Ignore —', required: false, valueType: null };
+        }
         if (m.csvHeader !== csvHeader) return m;
         if (!newDbField) return { ...m, dbField: null, score: 0, label: '— Ignore —' };
         const field = DB_SCHEMA.find((f) => f.key === newDbField);
@@ -228,10 +251,20 @@ export default function ImportTradesModal({
       const fieldMapping = toFieldMapping(matches);
       const normalizations = buildAutoNormalizations(fieldMapping, columnSamples);
 
-      const { rows, errors } = parseCsvTradesWithNorm(csvText, fieldMapping, normalizations, {
+      const { rows: rawRows, errors } = parseCsvTradesWithNorm(csvText, fieldMapping, normalizations, {
         ...(defaultRiskPct !== null ? { risk_per_trade: defaultRiskPct } : {}),
         ...(defaultRR !== null ? { risk_reward_ratio: defaultRR } : {}),
       });
+
+      // Apply inline field defaults to rows that are missing those values
+      const rows = rawRows.map((row) => ({
+        ...row,
+        ...(fieldDefaults.trade_date    && !row.trade_date    ? { trade_date:    fieldDefaults.trade_date }    : {}),
+        ...(fieldDefaults.trade_time    && !row.trade_time    ? { trade_time:    fieldDefaults.trade_time }    : {}),
+        ...(fieldDefaults.market        && !row.market        ? { market:        fieldDefaults.market }        : {}),
+        ...(fieldDefaults.direction     && !row.direction     ? { direction:     fieldDefaults.direction }     : {}),
+        ...(fieldDefaults.trade_outcome && !row.trade_outcome ? { trade_outcome: fieldDefaults.trade_outcome } : {}),
+      }));
 
       if (rows.length === 0) {
         clearInterval(progressInterval);
@@ -285,6 +318,29 @@ export default function ImportTradesModal({
     }
   }
 
+  // ── AI column match for a specific missing required field ────────────────
+  async function handleAiMatch(field: SchemaField) {
+    setAiMatchingField(field.key);
+    try {
+      const res = await fetch('/api/match-trade-columns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ headers: matches.map((m) => m.csvHeader), columnSamples }),
+      });
+      if (!res.ok) return;
+      const { fieldMapping } = await res.json() as { fieldMapping: Record<string, string | null> };
+      const csvCol = Object.entries(fieldMapping).find(([, dbField]) => dbField === field.key)?.[0];
+      if (csvCol) {
+        updateMatch(csvCol, field.key);
+        setMoreOptionsField(null);
+      }
+    } catch {
+      // silent
+    } finally {
+      setAiMatchingField(null);
+    }
+  }
+
   // ── Derived ──────────────────────────────────────────────────────────────
   const parsedRowCount = useMemo(() => {
     if (!csvText || matches.length === 0) return 0;
@@ -298,17 +354,96 @@ export default function ImportTradesModal({
   }, [csvText, matches, columnSamples, defaultRiskPct, defaultRR]);
 
   const mappedCount = matches.filter((m) => m.dbField).length;
-  const requiredMissing = DB_SCHEMA.filter(
+
+  // Required fields with no mapped CSV column — shown in the "Not Matched" table section
+  const requiredNotMapped = DB_SCHEMA.filter(
     (f) => f.required && !matches.some((m) => m.dbField === f.key),
   ).filter((f) => {
-    // When user selected default Risk % and R:R, don't treat unmapped columns as missing
+    // Already resolved by the dedicated default controls below the table
     if (f.key === 'risk_per_trade' && defaultRiskPct !== null) return false;
     if (f.key === 'risk_reward_ratio' && defaultRR !== null) return false;
     return true;
   });
+
+  // Subset that are still fully unresolved — blocks import button
+  const requiredMissing = requiredNotMapped.filter((f) => !fieldDefaults[f.key]);
   const accountBalance = activeAccount?.account_balance ?? 0;
   const accountCurrency = activeAccount?.currency ?? 'USD';
   const translationCount = Object.keys(translations).length;
+
+  // ── Table groupings ───────────────────────────────────────────────────────
+  const requiredMatched    = matches.filter((m) => m.required && !!m.dbField);
+  const otherMatches       = matches.filter((m) => !(m.required && m.dbField));
+  const availableForPicker = matches.filter((m) => !m.dbField);
+
+  const renderMatchRow = (m: ColumnMatch) => (
+    <tr
+      key={m.csvHeader}
+      className="bg-white dark:bg-slate-900/50 hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+    >
+      {/* CSV header */}
+      <td className="px-3 py-2 font-mono text-slate-800 dark:text-slate-200 whitespace-nowrap max-w-[140px]">
+        <span className="truncate block" title={m.csvHeader}>{m.csvHeader}</span>
+        <div className="flex items-center gap-1 mt-0.5">
+          {m.required && m.dbField && (
+            <span className="text-[9px] text-orange-500">req</span>
+          )}
+          {translations[m.csvHeader] && m.dbField && (
+            <span
+              title={`AI translated "${m.csvHeader}" → "${translations[m.csvHeader]}"`}
+              className="inline-block rounded bg-purple-100 dark:bg-purple-900/40 px-1 text-[9px] text-purple-600 dark:text-purple-300"
+            >
+              🌐 {translations[m.csvHeader]}
+            </span>
+          )}
+        </div>
+      </td>
+      {/* Sample values */}
+      <td className="px-3 py-2">
+        <div className="flex flex-wrap gap-0.5 max-w-[150px]">
+          {(columnSamples[m.csvHeader] ?? []).slice(0, 3).map((v) => (
+            <span
+              key={v}
+              title={v}
+              className="rounded bg-slate-100 dark:bg-slate-700/60 px-1 py-0.5 text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate max-w-[80px]"
+            >
+              {v}
+            </span>
+          ))}
+        </div>
+      </td>
+      {/* DB field dropdown */}
+      <td className="px-3 py-2">
+        <select
+          value={m.dbField ?? ''}
+          onChange={(e) => updateMatch(m.csvHeader, e.target.value || null)}
+          className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="">— Ignore —</option>
+          <optgroup label="Required">
+            {DB_SCHEMA.filter((f) => f.required).map((f) => (
+              <option key={f.key} value={f.key}>{f.label}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Optional">
+            {DB_SCHEMA.filter((f) => !f.required).map((f) => (
+              <option key={f.key} value={f.key}>{f.label}</option>
+            ))}
+          </optgroup>
+        </select>
+      </td>
+      {/* Score badge */}
+      <td className="px-3 py-2 text-center">
+        {m.dbField ? (
+          <span className={`inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${scoreBadge(m.score)}`}>
+            {m.score}%
+          </span>
+        ) : (
+          <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+        )}
+      </td>
+    </tr>
+  );
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -475,12 +610,16 @@ export default function ImportTradesModal({
                     )}
                   </div>
 
-                  {/* Required fields warning */}
-                  {requiredMissing.length > 0 && (
-                    <div className="rounded-lg border border-yellow-300/80 bg-yellow-50 dark:border-yellow-700/50 dark:bg-yellow-950/30 px-3 py-2.5 text-xs">
-                      <span className="font-semibold text-yellow-800 dark:text-yellow-300">Missing required: </span>
-                      <span className="text-yellow-700 dark:text-yellow-400">{requiredMissing.map((f) => f.label).join(', ')}</span>
-                      <p className="mt-1 text-yellow-600 dark:text-yellow-500">Use the dropdowns below to assign them manually.</p>
+                  {/* Value-based matcher suggestions (e.g. combined date/time column) */}
+                  {suggestions.length > 0 && (
+                    <div className="rounded-lg border border-sky-300/80 bg-sky-50 dark:border-sky-700/50 dark:bg-sky-950/30 px-3 py-2.5 text-xs flex flex-col gap-1">
+                      <span className="font-semibold text-sky-800 dark:text-sky-300">Column hints</span>
+                      {suggestions.map((s, i) => (
+                        <p key={i} className="text-sky-700 dark:text-sky-400">
+                          <span className="font-mono bg-sky-100 dark:bg-sky-900/50 px-1 rounded">{s.csvColumn}</span>
+                          {' — '}{s.reason}
+                        </p>
+                      ))}
                     </div>
                   )}
 
@@ -496,77 +635,116 @@ export default function ImportTradesModal({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {matches.map((m) => (
-                          <tr
-                            key={m.csvHeader}
-                            className="bg-white dark:bg-slate-900/50 hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
-                          >
-                            {/* CSV header */}
-                            <td className="px-3 py-2 font-mono text-slate-800 dark:text-slate-200 whitespace-nowrap max-w-[140px]">
-                              <span className="truncate block" title={m.csvHeader}>{m.csvHeader}</span>
-                              <div className="flex items-center gap-1 mt-0.5">
-                                {m.required && m.dbField && (
-                                  <span className="text-[9px] text-orange-500">req</span>
-                                )}
-                                {translations[m.csvHeader] && m.dbField && (
-                                  <span
-                                    title={`AI translated "${m.csvHeader}" → "${translations[m.csvHeader]}"`}
-                                    className="inline-block rounded bg-purple-100 dark:bg-purple-900/40 px-1 text-[9px] text-purple-600 dark:text-purple-300"
-                                  >
-                                    🌐 {translations[m.csvHeader]}
-                                  </span>
-                                )}
-                              </div>
-                            </td>
 
-                            {/* Sample values */}
-                            <td className="px-3 py-2">
-                              <div className="flex flex-wrap gap-0.5 max-w-[150px]">
-                                {(columnSamples[m.csvHeader] ?? []).slice(0, 3).map((v) => (
-                                  <span
-                                    key={v}
-                                    title={v}
-                                    className="rounded bg-slate-100 dark:bg-slate-700/60 px-1 py-0.5 text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate max-w-[80px]"
-                                  >
-                                    {v}
-                                  </span>
-                                ))}
-                              </div>
-                            </td>
+                        {/* ── Section 1: Required fields — matched ── */}
+                        {requiredMatched.length > 0 && (
+                          <>
+                            <tr className="bg-emerald-50/60 dark:bg-emerald-950/20">
+                              <td colSpan={4} className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                                Required — Matched
+                              </td>
+                            </tr>
+                            {requiredMatched.map(renderMatchRow)}
+                          </>
+                        )}
 
-                            {/* DB field dropdown */}
-                            <td className="px-3 py-2">
-                              <select
-                                value={m.dbField ?? ''}
-                                onChange={(e) => updateMatch(m.csvHeader, e.target.value || null)}
-                                className="w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                              >
-                                <option value="">— Ignore —</option>
-                                <optgroup label="Required">
-                                  {DB_SCHEMA.filter((f) => f.required).map((f) => (
-                                    <option key={f.key} value={f.key}>{f.label}</option>
-                                  ))}
-                                </optgroup>
-                                <optgroup label="Optional">
-                                  {DB_SCHEMA.filter((f) => !f.required).map((f) => (
-                                    <option key={f.key} value={f.key}>{f.label}</option>
-                                  ))}
-                                </optgroup>
-                              </select>
-                            </td>
+                        {/* ── Section 2: Required fields — not yet matched ── */}
+                        {requiredNotMapped.length > 0 && (
+                          <>
+                            <tr className={requiredMissing.length > 0 ? 'bg-amber-50/60 dark:bg-amber-950/20' : 'bg-emerald-50/40 dark:bg-emerald-950/10'}>
+                              <td colSpan={4} className={`px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${requiredMissing.length > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                Required — Not Matched
+                              </td>
+                            </tr>
+                            {requiredNotMapped.map((field) => {
+                              const hasDefault = !!fieldDefaults[field.key];
+                              return (
+                                <tr key={`req-missing-${field.key}`} className="bg-white dark:bg-slate-900/50 hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                                  {/* Col 1 — CSV column picker (mirrors matched-row layout) */}
+                                  <td className="px-3 py-2 max-w-[140px]">
+                                    <select
+                                      defaultValue=""
+                                      onChange={(e) => { if (e.target.value) updateMatch(e.target.value, field.key); }}
+                                      className="w-full rounded-md border border-amber-300/80 dark:border-amber-700/60 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-slate-700 dark:text-slate-300 font-mono focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                    >
+                                      <option value="">— Pick a column —</option>
+                                      {availableForPicker.map((m) => (
+                                        <option key={m.csvHeader} value={m.csvHeader}>{m.csvHeader}</option>
+                                      ))}
+                                    </select>
+                                    <div className="flex items-center gap-1 mt-0.5">
+                                      <span className="text-[9px] text-amber-500">req</span>
+                                      <span className="text-[9px] text-slate-400 dark:text-slate-500">· not found</span>
+                                    </div>
+                                  </td>
 
-                            {/* Score badge */}
-                            <td className="px-3 py-2 text-center">
-                              {m.dbField ? (
-                                <span className={`inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${scoreBadge(m.score)}`}>
-                                  {m.score}%
-                                </span>
-                              ) : (
-                                <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                                  {/* Col 2 — Samples / default indicator / More options */}
+                                  <td className="px-3 py-2">
+                                    {hasDefault ? (
+                                      <div className="flex items-center gap-1 flex-wrap">
+                                        <span className="rounded bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 text-[10px] font-mono text-emerald-700 dark:text-emerald-300">
+                                          default: {fieldDefaults[field.key]}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => setMoreOptionsField(field)}
+                                          className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 underline"
+                                        >
+                                          change
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => setMoreOptionsField(field)}
+                                        className="flex items-center gap-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 px-2 py-1 text-[10px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
+                                      >
+                                        <MoreHorizontal className="h-3 w-3" />
+                                        More options
+                                      </button>
+                                    )}
+                                  </td>
+
+                                  {/* Col 3 — Locked DB field label */}
+                                  <td className="px-3 py-2">
+                                    <div className="flex items-center gap-1">
+                                      <span className={`font-medium text-xs ${hasDefault ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}`}>
+                                        {field.label}
+                                      </span>
+                                      <span className="text-[9px] font-semibold text-amber-500 uppercase">req</span>
+                                    </div>
+                                  </td>
+
+                                  {/* Col 4 — Status */}
+                                  <td className="px-3 py-2 text-center">
+                                    {hasDefault ? (
+                                      <span className="inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                        default
+                                      </span>
+                                    ) : (
+                                      <span className="text-amber-400 dark:text-amber-600 text-xs">?</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </>
+                        )}
+
+                        {/* ── Section 3: All other columns ── */}
+                        {otherMatches.length > 0 && (
+                          <>
+                            {(requiredMatched.length > 0 || requiredMissing.length > 0) && (
+                              <tr className="bg-slate-50/80 dark:bg-slate-800/30">
+                                <td colSpan={4} className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                  Other Columns
+                                </td>
+                              </tr>
+                            )}
+                            {otherMatches.map(renderMatchRow)}
+                          </>
+                        )}
+
                       </tbody>
                     </table>
                   </div>
@@ -801,6 +979,173 @@ export default function ImportTradesModal({
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* ── More Options Modal ─────────────────────────────────────────────── */}
+      {moreOptionsField && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setMoreOptionsField(null); }}
+        >
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-700/80 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-amber-500 mb-0.5">Required field</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  {moreOptionsField.label}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{moreOptionsField.description}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMoreOptionsField(null)}
+                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-800/60 p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 flex flex-col gap-3 max-h-[70vh] overflow-y-auto">
+
+              {/* ── Set a default value ── */}
+              {(moreOptionsField.key === 'risk_per_trade' || moreOptionsField.key === 'risk_reward_ratio') ? (
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3.5">
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Set a default value</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Use the <span className="font-medium">Default values</span> section below the mapping table — it already handles {moreOptionsField.label}.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3.5">
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Set a default value</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-2.5">
+                    Applied to every row that doesn&apos;t have this column in the CSV.
+                  </p>
+                  {moreOptionsField.key === 'direction' ? (
+                    <select
+                      value={fieldDefaults[moreOptionsField.key] ?? ''}
+                      onChange={(e) => setFieldDefaults((p) => ({ ...p, [moreOptionsField.key]: e.target.value }))}
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="">— No default —</option>
+                      <option value="Long">Long</option>
+                      <option value="Short">Short</option>
+                    </select>
+                  ) : moreOptionsField.key === 'trade_outcome' ? (
+                    <select
+                      value={fieldDefaults[moreOptionsField.key] ?? ''}
+                      onChange={(e) => setFieldDefaults((p) => ({ ...p, [moreOptionsField.key]: e.target.value }))}
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="">— No default —</option>
+                      <option value="Win">Win</option>
+                      <option value="Lose">Lose</option>
+                      <option value="Break-Even">Break-Even</option>
+                    </select>
+                  ) : (
+                    <input
+                      type={moreOptionsField.valueType === 'date' ? 'date' : moreOptionsField.valueType === 'time' ? 'time' : 'text'}
+                      value={fieldDefaults[moreOptionsField.key] ?? ''}
+                      onChange={(e) => setFieldDefaults((p) => ({ ...p, [moreOptionsField.key]: e.target.value }))}
+                      placeholder={moreOptionsField.valueType === 'date' ? 'YYYY-MM-DD' : moreOptionsField.valueType === 'time' ? 'HH:MM' : `e.g. EURUSD`}
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  )}
+                  {fieldDefaults[moreOptionsField.key] && (
+                    <button
+                      type="button"
+                      onClick={() => setFieldDefaults((p) => { const n = { ...p }; delete n[moreOptionsField.key]; return n; })}
+                      className="mt-1.5 text-[10px] text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      ✕ Clear default
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider">or</span>
+                <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
+              </div>
+
+              {/* ── Option 1: Add it yourself ── */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3.5 flex items-start gap-3">
+                <div className="shrink-0 w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                  <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">Add it to your CSV</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Open your file, add a <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">{moreOptionsField.label}</span> column with values for each row, then re-upload.
+                  </p>
+                </div>
+              </div>
+
+              {/* ── Option 2: Let AI find it ── */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3.5 flex items-start gap-3">
+                <div className="shrink-0 w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
+                  <Wand2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">Let AI find it</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-2">
+                    AI will scan all your CSV columns and values to find a match for <span className="font-medium">{moreOptionsField.label}</span>.
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={() => handleAiMatch(moreOptionsField)}
+                    disabled={aiMatchingField === moreOptionsField.key}
+                    className="h-7 px-3 text-xs rounded-lg cursor-pointer bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white border-0 shadow-sm shadow-purple-500/30 disabled:opacity-50"
+                  >
+                    {aiMatchingField === moreOptionsField.key ? (
+                      <>
+                        <svg className="h-3 w-3 mr-1.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                        </svg>
+                        Scanning…
+                      </>
+                    ) : 'Run AI scan'}
+                  </Button>
+                </div>
+              </div>
+
+              {/* ── Option 3: Get help ── */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3.5 flex items-start gap-3">
+                <div className="shrink-0 w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
+                  <Mail className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">Get help</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Can&apos;t figure it out? Contact me and I&apos;ll help you set up your import.
+                  </p>
+                  <a
+                    href="mailto:support@tradingtracker.app"
+                    className="mt-1.5 inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
+                  >
+                    support@tradingtracker.app →
+                  </a>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMoreOptionsField(null)}
+                className="h-7 px-3 text-xs rounded-lg cursor-pointer"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
