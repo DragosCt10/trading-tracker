@@ -27,8 +27,7 @@ interface PieDatum {
   color: 'teal' | 'orange';
   wins: number;
   losses: number;
-  beWins: number;
-  beLosses: number;
+  breakEven: number;
   winRate: number;
   winRateWithBE: number;
 }
@@ -64,8 +63,7 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
         color: (index === 0 ? 'teal' : 'orange') as 'teal' | 'orange',
         wins: stat.wins ?? 0,
         losses: stat.losses ?? 0,
-        beWins: stat.beWins ?? 0,
-        beLosses: stat.beLosses ?? 0,
+        breakEven: stat.breakEven ?? 0,
         winRate: stat.winRate ?? 0,
         winRateWithBE: stat.winRateWithBE ?? 0,
       }));
@@ -92,8 +90,7 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
       const colors = colorMap[data.color] ?? colorMap.teal;
       const wins = data.wins ?? 0;
       const losses = data.losses ?? 0;
-      const beWins = data.beWins ?? 0;
-      const beLosses = data.beLosses ?? 0;
+      const breakEven = data.breakEven ?? 0;
       const winRate = data.winRate ?? 0;
       const winRateWithBE = data.winRateWithBE ?? 0;
 
@@ -110,33 +107,25 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
             <div className="space-y-2">
               <div className="flex items-baseline justify-between gap-4">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
-                <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-                  {wins}
-                  {beWins > 0 && (
-                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">({beWins} BE)</span>
-                  )}
-                </span>
+                <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">{wins}</span>
               </div>
               <div className="flex items-baseline justify-between gap-4">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
-                <span className="text-base font-bold text-rose-600 dark:text-rose-400">
-                  {losses}
-                  {beLosses > 0 && (
-                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">({beLosses} BE)</span>
-                  )}
-                </span>
+                <span className="text-base font-bold text-rose-600 dark:text-rose-400">{losses}</span>
               </div>
-              <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+              {breakEven > 0 && (
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even:</span>
+                  <span className="text-base font-bold text-amber-600 dark:text-amber-400">{breakEven}</span>
+                </div>
+              )}
+              <div className="flex items-baseline justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
-                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                  {winRate.toFixed(2)}%
-                </div>
+                <span className="text-base font-bold">{winRate.toFixed(2)}%</span>
               </div>
-              <div className="flex items-center justify-between gap-4 pt-1">
+              <div className="flex items-baseline justify-between gap-4 pt-1">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate (w/ BE):</span>
-                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                  {winRateWithBE.toFixed(2)}%
-                </div>
+                <span className="text-base font-bold">{winRateWithBE.toFixed(2)}%</span>
               </div>
             </div>
           </div>
