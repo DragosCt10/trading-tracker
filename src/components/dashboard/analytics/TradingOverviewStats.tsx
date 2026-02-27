@@ -44,10 +44,8 @@ export interface CoreStatsPartialRowProps {
     totalPartials: number;
     partialWinningTrades: number;
     partialLosingTrades: number;
-    beWinPartialTrades: number;
-    beLosingPartialTrades: number;
-    partialWinRate: number;
-    partialWinRateWithBE: number;
+    /** Break-even partial trades (single bucket). */
+    partialBETrades: number;
   };
   initialNonExecutedTotalTradesCount?: number | null;
   directionStats: DirectionStats[];
@@ -153,10 +151,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
             totalPartials={partialRowProps.partialStats.totalPartials}
             partialWinningTrades={partialRowProps.partialStats.partialWinningTrades}
             partialLosingTrades={partialRowProps.partialStats.partialLosingTrades}
-            beWinPartialTrades={partialRowProps.partialStats.beWinPartialTrades}
-            beLosingPartialTrades={partialRowProps.partialStats.beLosingPartialTrades}
-            partialWinRate={partialRowProps.partialStats.partialWinRate}
-            partialWinRateWithBE={partialRowProps.partialStats.partialWinRateWithBE}
+            partialBETrades={partialRowProps.partialStats.partialBETrades}
             isLoading={partialRowProps.chartsLoadingState}
           />
           <ExecutedNonExecutedTradesCard
