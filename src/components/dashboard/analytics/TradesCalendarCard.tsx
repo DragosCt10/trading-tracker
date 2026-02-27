@@ -249,7 +249,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                     <span
                       className={cn(
                         "text-sm font-semibold",
-                        mounted && week.totalProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : mounted && week.totalProfit < 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-400"
+                        mounted && week.totalProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : mounted && week.totalProfit < 0 ? "text-rose-600 dark:text-red-400" : "text-slate-500 dark:text-slate-400"
                       )}
                     >
                       {mounted ? `${currencySymbol}${week.totalProfit.toFixed(2)}` : '\u2014'}
@@ -262,7 +262,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                     <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
                       <span className="text-emerald-600 dark:text-emerald-400">W: {mounted ? week.wins : '\u2014'}</span>
                       <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
-                      <span className="text-rose-600 dark:text-rose-400">L: {mounted ? week.losses : '\u2014'}</span>
+                      <span className="text-rose-600 dark:text-red-400">L: {mounted ? week.losses : '\u2014'}</span>
                       <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
                       <span className="text-slate-500 dark:text-slate-400">BE: {mounted ? week.beCount : '\u2014'}</span>
                     </span>
@@ -340,6 +340,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
               const hasBE = beTrades.length > 0;
               const beOutcome =
                 beTrades.length > 0 ? beTrades[0].trade_outcome : null;
+              const onlyBETrades = filteredDayTrades.length > 0 && beTrades.length === filteredDayTrades.length;
 
               // Filter out all pure BE trades
               const validTradesForPNL = filteredDayTrades.filter(
@@ -361,13 +362,15 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
 
               const baseColor =
                 displayProfit > 0
-                  ? 'bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200/80 dark:border-emerald-700/50 hover:bg-emerald-100/90 dark:hover:bg-emerald-900/30 hover:border-emerald-300/80 dark:hover:border-emerald-600/60'
+                  ? 'bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-500/15 dark:hover:bg-emerald-500/28 hover:border-emerald-300 dark:hover:border-emerald-700'
                   : displayProfit < 0
-                  ? 'bg-rose-50/80 dark:bg-rose-900/20 border border-rose-200/80 dark:border-rose-700/50 hover:bg-rose-100/90 dark:hover:bg-rose-900/30 hover:border-rose-300/80 dark:hover:border-rose-600/60'
+                  ? 'bg-rose-500/10 dark:bg-rose-500/20 border border-rose-200 dark:border-rose-800 hover:bg-rose-500/15 dark:hover:bg-rose-500/28 hover:border-rose-300 dark:hover:border-rose-700'
+                  : onlyBETrades || (hasBE && beOutcome === 'BE')
+                  ? 'bg-orange-100/60 dark:bg-amber-800/25 border border-orange-200/70 dark:border-amber-600/40 hover:bg-orange-100/80 dark:hover:bg-amber-800/30 hover:border-orange-300/70 dark:hover:border-amber-500/45'
                   : hasBE && beOutcome === 'Win'
-                  ? 'bg-emerald-50/80 dark:bg-emerald-900/20 border border-emerald-200/80 dark:border-emerald-700/50 hover:bg-emerald-100/90 dark:hover:bg-emerald-900/30 hover:border-emerald-300/80 dark:hover:border-emerald-600/60'
+                  ? 'bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-500/15 dark:hover:bg-emerald-500/28 hover:border-emerald-300 dark:hover:border-emerald-700'
                   : hasBE && beOutcome === 'Lose'
-                  ? 'bg-rose-50/80 dark:bg-rose-900/20 border border-rose-200/80 dark:border-rose-700/50 hover:bg-rose-100/90 dark:hover:bg-rose-900/30 hover:border-rose-300/80 dark:hover:border-rose-600/60'
+                  ? 'bg-rose-500/10 dark:bg-rose-500/20 border border-rose-200 dark:border-rose-800 hover:bg-rose-500/15 dark:hover:bg-rose-500/28 hover:border-rose-300 dark:hover:border-rose-700'
                   : 'bg-slate-50/50 dark:bg-slate-800/20 border border-slate-200/60 dark:border-slate-700/50 hover:bg-slate-100/70 dark:hover:bg-slate-800/30 hover:border-slate-300/80 dark:hover:border-slate-600/60';
 
               const dayCellContent = (
@@ -394,7 +397,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                           <div
                             className={cn(
                               'font-semibold',
-                              displayProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400',
+                              displayProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-red-400',
                             )}
                           >
                             {currencySymbol}
@@ -405,7 +408,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                       <div className="hidden md:block absolute bottom-3 right-3 text-xs font-semibold">
                         <span
                           className={
-                            totalPnLPercentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                            totalPnLPercentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-red-400'
                           }
                         >
                           {totalPnLPercentage >= 0 ? '+' : ''}
@@ -490,7 +493,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                                   : trade.calculated_profit &&
                                     trade.calculated_profit >= 0
                                   ? 'text-emerald-600 dark:text-emerald-400'
-                                  : 'text-rose-600 dark:text-rose-400',
+                                  : 'text-rose-600 dark:text-red-400',
                               )}
                             >
                               {trade.break_even
@@ -516,7 +519,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                         <span
                           className={cn(
                             'font-semibold',
-                            displayProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400',
+                            displayProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-red-400',
                           )}
                         >
                           {currencySymbol}
@@ -528,7 +531,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                         <span
                           className={cn(
                             'font-semibold',
-                            totalPnLPercentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400',
+                            totalPnLPercentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-red-400',
                           )}
                         >
                           {totalPnLPercentage >= 0 ? '+' : ''}
