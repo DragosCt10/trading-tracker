@@ -111,17 +111,20 @@ export const EquityCurveCard = React.memo(function EquityCurveCard({
                   if (active && payload && payload.length) {
                     const data = payload[0].payload as EquityDatum;
                     return (
-                      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 shadow-lg">
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {format(new Date(data.date), 'MMM d, yyyy')}
-                        </p>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                          {currencySymbol}
-                          {data.equity.toLocaleString('en-US', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </p>
+                      <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-50">
+                        <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
+                        <div className="relative flex flex-col gap-2">
+                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                            {format(new Date(data.date), 'MMM d, yyyy')}
+                          </p>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            {currencySymbol}
+                            {data.equity.toLocaleString('en-US', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </p>
+                        </div>
                       </div>
                     );
                   }
