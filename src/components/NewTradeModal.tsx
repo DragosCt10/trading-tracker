@@ -804,13 +804,23 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   />
                 ) : (
                   <Select
-                    value={trade.risk_reward_ratio_long != null && trade.risk_reward_ratio_long !== undefined ? String(trade.risk_reward_ratio_long) : ''}
-                    onValueChange={(v) => updateTrade('risk_reward_ratio_long', v === '' ? undefined as any : Number(v))}
+                    value={
+                      trade.risk_reward_ratio_long && trade.risk_reward_ratio_long > 0
+                        ? String(trade.risk_reward_ratio_long)
+                        : undefined
+                    }
+                    onValueChange={(v) =>
+                      updateTrade(
+                        'risk_reward_ratio_long',
+                        v === '' || v === '__none__' ? (undefined as any) : Number(v),
+                      )
+                    }
                   >
                     <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
                       <SelectValue placeholder="Select ratio (1 – 10 or 10+)" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="__none__">No potential R:R</SelectItem>
                       {POTENTIAL_RR_OPTIONS.map((opt) => {
                         const baseValue = Number(trade.risk_reward_ratio ?? 0);
                         const disabled =
