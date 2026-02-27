@@ -33,7 +33,6 @@ export function calculateEvaluationStats(
     .filter((grade) => groups[grade] != null)
     .map((grade) => {
       const bucket = groups[grade]!;
-      const total = bucket.length;
 
       let wins = 0;
       let losses = 0;
@@ -47,6 +46,9 @@ export function calculateEvaluationStats(
           else if (t.trade_outcome === 'Lose') losses++;
         }
       }
+
+      /** Total = only trades with an outcome (Wins + Losses + BE), so tooltip matches the three buckets. */
+      const total = wins + losses + beTradesCount;
 
       const nonBETotal = wins + losses;
       const winRate = nonBETotal > 0 ? Math.round((wins / nonBETotal) * 100) : 0;
