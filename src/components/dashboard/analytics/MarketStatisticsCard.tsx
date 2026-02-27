@@ -45,14 +45,13 @@ export function convertMarketStatsToChartData(
 ): TradeStatDatum[] {
   return marketStats.map((stat) => {
     // Use source total (same as Market Profit Stats: actual trade count) so tooltip total matches
-    const totalTrades = stat.total ?? (stat.wins + stat.losses);
+    const totalTrades = stat.total ?? (stat.wins + stat.losses + (stat.breakEven ?? 0));
     const computedWinRate = totalTrades > 0 ? (stat.wins / totalTrades) * 100 : 0;
     return {
       category: `${stat.market}`,
       wins: stat.wins,
       losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
+      breakEven: stat.breakEven ?? 0,
       winRate: computedWinRate,
       winRateWithBE: stat.winRateWithBE ?? stat.winRate,
       totalTrades,
