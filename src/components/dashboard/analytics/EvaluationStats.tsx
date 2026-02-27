@@ -139,19 +139,16 @@ export const EvaluationStats: React.FC<EvaluationStatsProps> = React.memo(
                 <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{beTrades}</span>
               </div>
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
-                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
+                <span className="text-base font-bold text-slate-900 dark:text-slate-100">
                   {winRate.toFixed(2)}%
-                </div>
+                  {d.winRateWithBE !== undefined && (
+                    <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
+                      ({winRateWithBE.toFixed(2)}% w/BE)
+                    </span>
+                  )}
+                </span>
               </div>
-              {d.winRateWithBE !== undefined && (
-                <div className="flex items-center justify-between gap-4 pt-1">
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate (w/ BE):</span>
-                  <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                    {winRateWithBE.toFixed(2)}%
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
