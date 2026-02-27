@@ -108,17 +108,14 @@ function processGroup(label: string, trades: Trade[]): GroupStats {
   const nonBELosses = losses - beLosses;
   const beCount     = beWins + beLosses;
 
-  // Win Rate: exclude BE trades entirely from the denominator.
+  // Win Rate: exclude BE trades entirely (same as calculateRiskPerTrade).
   const denomWinRate = nonBEWins + nonBELosses;
   const winRate = denomWinRate > 0
     ? (nonBEWins / denomWinRate) * 100
     : 0;
 
-  // Win Rate (w/ BE): include BE trades that have a final result.
-  const denomWithBE = nonBEWins + nonBELosses + beCount;
-  const winRateWithBE = denomWithBE > 0
-    ? ((nonBEWins + beWins) / denomWithBE) * 100
-    : 0;
+  // Win Rate w/BE: (all wins including BE wins) / total — so "what % of trades were wins".
+  const winRateWithBE = total > 0 ? (wins / total) * 100 : 0;
 
   return {
     type: label,
@@ -259,7 +256,8 @@ export function calculateDirectionStats(trades: Trade[]): DirectionStats[] {
       winRate:     g.winRate,
       winRateWithBE: g.winRateWithBE,
       beWins:      g.beWins,
-      beLosses:    g.beLosses
+      beLosses:    g.beLosses,
+      breakEven:   g.beWins + g.beLosses,
     }));
 }
 /** English keys for Local H/L stats (liquidated / not liquidated) */
