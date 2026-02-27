@@ -148,35 +148,47 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
     active?: boolean;
     payload?: any[];
   }) => {
-    if (active && payload && payload.length > 0) {
-      const stat: MarketStat & { tradeCount: number } = payload[0].payload;
-      const beCount = stat.breakEven ?? 0;
-      const currencySymbol = getCurrencySymbol();
-      return (
-        <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
+    if (!active || !payload || payload.length === 0) return null;
+    const stat: MarketStat & { tradeCount: number } = payload[0].payload;
+    const beCount = stat.breakEven ?? 0;
+    const currencySymbol = getCurrencySymbol();
+
+    return (
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-50">
+        <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
+        <div className="relative flex flex-col gap-3">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
             {stat.market} ({stat.tradeCount} trade{stat.tradeCount === 1 ? '' : 's'})
           </div>
           <div className="space-y-2">
             <div className="flex items-baseline justify-between gap-4">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Profit:</span>
-              <span className={`text-lg font-bold ${stat.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Profit</span>
+              <span
+                className={`text-lg font-bold ${
+                  stat.profit >= 0
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-rose-600 dark:text-rose-400'
+                }`}
+              >
                 {currencySymbol}
                 {stat.profit.toFixed(2)}
               </span>
             </div>
-            <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">P&amp;L:</span>
-              <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold ${
-                stat.pnlPercentage >= 0 
-                  ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' 
-                  : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
-              }`}>
-                {stat.pnlPercentage >= 0 ? '+' : ''}{stat.pnlPercentage.toFixed(2)}%
-              </div>
+            <div className="flex items-baseline justify-between gap-4">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">P&amp;L</span>
+              <span
+                className={`text-base font-bold ${
+                  stat.pnlPercentage >= 0
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-rose-600 dark:text-rose-400'
+                }`}
+              >
+                {stat.pnlPercentage >= 0 ? '+' : ''}
+                {stat.pnlPercentage.toFixed(2)}%
+              </span>
             </div>
-            <div className="flex items-center justify-between gap-4 pt-1">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Results:</span>
+            <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Results</span>
               <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                 <span className="text-emerald-600 dark:text-emerald-400">{stat.wins}W</span>
                 <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
@@ -187,9 +199,8 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
             </div>
           </div>
         </div>
-      );
-    }
-    return null;
+      </div>
+    );
   };
 
   // X-Axis: custom tick (market + tradeCount + pnl%)
