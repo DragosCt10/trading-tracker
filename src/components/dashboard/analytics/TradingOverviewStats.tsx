@@ -17,8 +17,8 @@ import { PartialTradesChartCard } from './PartialTradesChartCard';
 import { ExecutedNonExecutedTradesCard } from './ExecutedNonExecutedTradesCard';
 import { DirectionStatisticsCard } from './DirectionStatisticsCard';
 import { EvaluationStats } from './EvaluationStats';
-import { TradeTypesStatisticsCard } from './TradeTypesStatisticsCard';
-import type { TradeTypesStatisticsCardProps } from './TradeTypesStatisticsCard';
+import { ReentryTradesChartCard } from './ReentryTradesChartCard';
+import type { ReentryTradesChartCardProps } from './ReentryTradesChartCard';
 import { TrendStatisticsCard } from './TrendStatisticsCard';
 import type { TradeTypeStats } from '@/types/dashboard';
 import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
@@ -66,11 +66,11 @@ interface TradingOverviewStatsProps {
   partialRowProps?: CoreStatsPartialRowProps | null;
   /** When provided, renders RiskPerTrade card below the three chart cards (with a separator above). */
   allTradesRiskStats?: RiskAnalysis | null;
-  /** When provided, renders Evaluation + Trade Types + Trend Trades row above the RiskPerTrade card. */
+  /** When provided, renders Evaluation + Re-entry Trades + Trend Trades row above the RiskPerTrade card. */
   aboveRiskPerTradeRow?: {
     evaluationStats: EvaluationStat[];
-    reentryStats: TradeTypesStatisticsCardProps['reentryStats'];
-    breakEvenStats: TradeTypesStatisticsCardProps['breakEvenStats'];
+    reentryStats: ReentryTradesChartCardProps['reentryStats'];
+    breakEvenStats: ReentryTradesChartCardProps['breakEvenStats'];
     trendStats: TradeTypeStats[];
     chartsLoadingState?: boolean;
     includeTotalTrades: boolean;
@@ -170,11 +170,10 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
             stats={aboveRiskPerTradeRow.evaluationStats}
             isLoading={aboveRiskPerTradeRow.chartsLoadingState}
           />
-          <TradeTypesStatisticsCard
+          <ReentryTradesChartCard
             reentryStats={aboveRiskPerTradeRow.reentryStats}
             breakEvenStats={aboveRiskPerTradeRow.breakEvenStats}
             isLoading={aboveRiskPerTradeRow.chartsLoadingState}
-            includeTotalTrades={aboveRiskPerTradeRow.includeTotalTrades}
           />
           <TrendStatisticsCard
             trendStats={aboveRiskPerTradeRow.trendStats}
