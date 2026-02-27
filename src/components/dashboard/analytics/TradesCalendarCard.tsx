@@ -339,7 +339,9 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
               );
               const hasBE = beTrades.length > 0;
               const beOutcome =
-                beTrades.length > 0 ? beTrades[0].trade_outcome : null;
+                beTrades.length > 0
+                  ? (beTrades[0].be_final_result ?? beTrades[0].trade_outcome)
+                  : null;
               const onlyBETrades = filteredDayTrades.length > 0 && beTrades.length === filteredDayTrades.length;
 
               // Filter out all pure BE trades
@@ -497,9 +499,17 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                               )}
                             >
                               {trade.break_even
-                                ? trade.trade_outcome === 'Win'
-                                  ? 'W (BE)'
-                                  : 'L (BE)'
+                                ? (() => {
+                                    const finalOutcome =
+                                      trade.be_final_result ??
+                                      ((trade.trade_outcome === 'Win' ||
+                                        trade.trade_outcome === 'Lose')
+                                        ? trade.trade_outcome
+                                        : null);
+                                    if (finalOutcome === 'Win') return 'W (BE)';
+                                    if (finalOutcome === 'Lose') return 'L (BE)';
+                                    return 'BE';
+                                  })()
                                 : trade.trade_outcome === 'Win'
                                 ? 'W'
                                 : 'L'}
