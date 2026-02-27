@@ -60,7 +60,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
         const percent = parseRiskKey(key);
         const percentNum = percent ?? 0;
         const label = `${percentNum}% Risk`;
-        const tooltip = `Trades risking ${percentNum}% of account. Shows total wins (with break-evens in parentheses), losses (with break-evens), and win rates.`;
+        const tooltip = `Trades risking ${percentNum}% of account. Win Rate = wins / (wins + losses). Win Rate w/BE = wins / (wins + losses + BE).`;
         return { key, label, tooltip, stats, percentNum };
       })
       .sort((a, b) => a.percentNum - b.percentNum);
@@ -109,9 +109,8 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
                   Risk Per Trade
                 </div>
                 <p className="text-slate-500 dark:text-slate-400">
-                  Detailed breakdown of trades by risk percentage for the
-                  current year, showing wins, losses, and win rates for each
-                  risk level. Break-even (BE) trades are shown in parentheses.
+                  Trades grouped by risk %. Win Rate uses only wins &amp; losses.
+                  Win Rate w/BE adds BE trades to the denominator.
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -172,18 +171,18 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
                     <span className="text-sm text-slate-500 dark:text-slate-400">Wins</span>
                     <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                       {stats.wins}
-                      <span className="text-slate-500 dark:text-slate-400 text-xs ml-1 font-normal">
-                        ({stats.beWins} BE)
-                      </span>
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-500 dark:text-slate-400">Losses</span>
                     <span className="text-sm font-bold text-rose-600 dark:text-rose-400">
                       {stats.losses}
-                      <span className="text-slate-500 dark:text-slate-400 text-xs ml-1 font-normal">
-                        ({stats.beLosses} BE)
-                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-500 dark:text-slate-400">Break Even</span>
+                    <span className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                      {stats.breakEven}
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-t border-slate-200/60 dark:border-slate-700/50">
