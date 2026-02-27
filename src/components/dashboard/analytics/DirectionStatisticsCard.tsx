@@ -142,6 +142,10 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
     const shortWinRate = shortTradesWithoutBE > 0 ? (shortWinsWithoutBE / shortTradesWithoutBE) * 100 : 0;
     const shortWinRateWithBE = shortCount > 0 ? (shortWins / shortCount) * 100 : 0;
 
+    // Percentage of BE trades per direction (used in bottom labels)
+    const longBEPercentage = longCount > 0 ? (longBE / longCount) * 100 : 0;
+    const shortBEPercentage = shortCount > 0 ? (shortBE / shortCount) * 100 : 0;
+
     // Prepare pie chart data - Long vs Short
     const pieData = directionStats
       .map((stat) => {
@@ -168,12 +172,12 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
       const data = payload[0].payload;
       const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
         blue: {
-          bg: 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-200/50 dark:border-blue-800/30',
+          bg: 'bg-blue-100 dark:bg-blue-900 border-blue-200 dark:border-blue-700',
           text: 'text-blue-600 dark:text-blue-400',
           dot: 'bg-blue-500 dark:bg-blue-400 ring-blue-200/50 dark:ring-blue-500/30',
         },
         purple: {
-          bg: 'bg-purple-50/80 dark:bg-purple-950/30 border-purple-200/50 dark:border-purple-800/30',
+          bg: 'bg-purple-100 dark:bg-purple-900 border-purple-200 dark:border-purple-700',
           text: 'text-purple-600 dark:text-purple-400',
           dot: 'bg-purple-500 dark:bg-purple-400 ring-purple-200/50 dark:ring-purple-500/30',
         },
@@ -190,8 +194,8 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
       const winRateWithBE = data.winRateWithBE ?? 0;
 
       return (
-        <div className="relative overflow-hidden rounded-xl p-4 border shadow-lg shadow-slate-900/5 dark:shadow-black/40 backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border-slate-200/60 dark:border-slate-700/60">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5 rounded-xl" />
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-50">
+          <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
           <div className="relative flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <div className={cn("h-2 w-2 rounded-full shadow-sm ring-2", colors.dot)}></div>
@@ -385,6 +389,11 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
                 </div>
                 <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
                   {longCount}
+                  {longBE > 0 && (
+                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">
+                      ({longBEPercentage.toFixed(1)}% BE)
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
@@ -394,6 +403,11 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
                 </div>
                 <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
                   {shortCount}
+                  {shortBE > 0 && (
+                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">
+                      ({shortBEPercentage.toFixed(1)}% BE)
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
