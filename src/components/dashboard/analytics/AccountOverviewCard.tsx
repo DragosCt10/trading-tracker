@@ -101,6 +101,8 @@ interface AccountOverviewCardProps {
   monthlyStatsAllTrades: MonthlyStats;
   /** When true, year data (allTrades) is still loading; avoid showing "No trades found" until false */
   isYearDataLoading?: boolean;
+  /** Number of trades in the period. When set, "No trades found" is shown only when this is 0 (so BE-only trades still show the chart). */
+  tradesCount?: number;
 }
 
 export function AccountOverviewCard({
@@ -112,6 +114,7 @@ export function AccountOverviewCard({
   months,
   monthlyStatsAllTrades,
   isYearDataLoading = false,
+  tradesCount,
 }: AccountOverviewCardProps) {
   const { mounted, isDark } = useDarkMode();
 
@@ -132,8 +135,10 @@ export function AccountOverviewCard({
       : 0,
   }));
 
-  const hasTrades = chartData.some(item => item.profit !== 0);
-  const showNoTradesMessage = !isYearDataLoading && !hasTrades;
+  const hasNonZeroProfit = chartData.some(item => item.profit !== 0);
+  const hasAnyTrades = tradesCount !== undefined ? tradesCount > 0 : hasNonZeroProfit;
+  const showEmptyState = !isYearDataLoading && (!hasAnyTrades || !hasNonZeroProfit);
+  const emptyStateNoTrades = !hasAnyTrades;
 
   const displayName = mounted ? (accountName || 'No Active Account') : '\u00A0';
   const displayBalanceStr = mounted
@@ -216,16 +221,18 @@ export function AccountOverviewCard({
             <div className="w-full h-full min-h-[200px] flex items-center justify-center" aria-hidden>
               <BouncePulse size="md" />
             </div>
-          ) : showNoTradesMessage ? (
+          ) : showEmptyState ? (
             <div className="flex flex-col justify-center items-center w-full h-full">
               <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-100/50 to-slate-50 dark:from-slate-800/50 dark:to-slate-800/30 border border-slate-200 dark:border-slate-700 mb-4">
                 <Wallet className="w-12 h-12 text-slate-400 dark:text-slate-500" />
               </div>
               <div className="text-lg font-semibold text-slate-600 dark:text-slate-300 text-center mb-2">
-                No trades found
+                {emptyStateNoTrades ? 'No trades found' : 'No trades with profit found'}
               </div>
               <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-md px-4">
-                There are no trades to display for this account yet. Start trading to see your statistics here!
+                {emptyStateNoTrades
+                  ? 'There are no trades to display for this account yet. Start trading to see your statistics here!'
+                  : 'Your trades have zero P&L for this period (e.g. break-even).'}
               </div>
             </div>
           ) : (
