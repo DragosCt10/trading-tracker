@@ -1030,6 +1030,7 @@ export default function StrategyClient(
         months={MONTHS}
         monthlyStatsAllTrades={monthlyStatsToUse}
         isYearDataLoading={accountOverviewLoadingState}
+        tradesCount={tradesToUse.length}
       />
 
       {/* Month Stats Cards - Only show in yearly mode */}
