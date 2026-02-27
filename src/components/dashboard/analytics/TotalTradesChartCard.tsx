@@ -97,8 +97,8 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
       const percentage = totalForChart > 0 ? (data.value / totalForChart) * 100 : 0;
 
       return (
-        <div className={cn("relative overflow-hidden rounded-xl p-3 border shadow-lg shadow-slate-900/5 dark:shadow-black/40 backdrop-blur-xl", colors.bg)}>
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5 rounded-xl" />
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-3 text-slate-900 dark:text-slate-50">
+          <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
           <div className="relative flex flex-col">
             <div className="flex items-center gap-2">
               <div className={cn("h-2 w-2 rounded-full shadow-sm ring-2", colors.dot)}></div>
