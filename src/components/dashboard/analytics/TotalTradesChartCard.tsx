@@ -55,17 +55,20 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
       }
     }, [mounted, externalLoading]);
 
-    // Calculate non-BE wins and losses
-    const wins = totalWins - beWins;
-    const losses = totalLosses - beLosses;
-    const totalBE = beWins + beLosses;
+    // Calculate distribution based on final outcomes:
+    // - Wins: all wins including BE trades with final result Win
+    // - Losses: all losses including BE trades with final result Lose
+    // - BE: BE trades that do not have a final result
+    const wins = totalWins;
+    const losses = totalLosses;
+    const neutralBE = Math.max(totalTrades - wins - losses, 0);
 
-    // Prepare pie chart data
-    const totalForChart = wins + losses + totalBE;
+    // Prepare pie chart data using this distribution
+    const totalForChart = wins + losses + neutralBE;
     const pieData = [
       { name: 'Wins', value: wins, color: 'emerald', percentage: totalForChart > 0 ? (wins / totalForChart) * 100 : 0 },
       { name: 'Losses', value: losses, color: 'rose', percentage: totalForChart > 0 ? (losses / totalForChart) * 100 : 0 },
-      { name: 'Break Even', value: totalBE, color: 'amber', percentage: totalForChart > 0 ? (totalBE / totalForChart) * 100 : 0 },
+      { name: 'Break Even', value: neutralBE, color: 'amber', percentage: totalForChart > 0 ? (neutralBE / totalForChart) * 100 : 0 },
     ].filter((item) => item.value > 0); // Only show segments with values
 
     const CustomTooltip = ({ active, payload }: any) => {
@@ -292,10 +295,10 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
                   BE
                 </div>
                 <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
-                  {totalBE}
+                  {neutralBE}
                   {totalTrades > 0 && (
                     <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">
-                      ({((totalBE / totalTrades) * 100).toFixed(1)}%)
+                      ({((neutralBE / totalTrades) * 100).toFixed(1)}%)
                     </span>
                   )}
                 </div>
