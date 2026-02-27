@@ -29,10 +29,8 @@ export interface GroupStats {
   winRate: number;
   /** Win rate including BE trades (%). */
   winRateWithBE: number;
-  /** Of wins, how many were BE. */
-  beWins: number;
-  /** Of losses, how many were BE. */
-  beLosses: number;
+  /** Break-even trades (one bucket: wins, losses, breakEven). */
+  breakEven: number;
   /** Trade type. */
   tradeType: string;
 }
@@ -69,52 +67,25 @@ function isTimeInInterval(time: string, start: string, end: string): boolean {
 
 /**
  * Build stats for a single labeled group of trades.
- * Processes all trades passed (tradesToUse already handles filtering).
- * Uses BE final result when available so BE trades with a final Win/Lose
- * are counted correctly in wins/losses, while neutral BEs remain neutral.
+ * Simple model: wins (non-BE), losses (non-BE), breakEven (all BE trades).
  */
 function processGroup(label: string, trades: Trade[]): GroupStats {
-  const total = trades.length;
-
   let wins = 0;
   let losses = 0;
-  let beWins = 0;
-  let beLosses = 0;
+  let breakEven = 0;
 
   for (const t of trades) {
-    let outcome: 'Win' | 'Lose' | null = null;
-
     if (t.break_even) {
-      if (t.be_final_result === 'Win' || t.be_final_result === 'Lose') {
-        outcome = t.be_final_result;
-      } else if (t.trade_outcome === 'Win' || t.trade_outcome === 'Lose') {
-        // Legacy BE trades may still encode Win/Lose directly on trade_outcome.
-        outcome = t.trade_outcome as 'Win' | 'Lose';
-      }
-    } else if (t.trade_outcome === 'Win' || t.trade_outcome === 'Lose') {
-      outcome = t.trade_outcome as 'Win' | 'Lose';
+      breakEven++;
+      continue;
     }
-
-    if (outcome === 'Win') {
-      wins++;
-      if (t.break_even) beWins++;
-    } else if (outcome === 'Lose') {
-      losses++;
-      if (t.break_even) beLosses++;
-    }
+    if (t.trade_outcome === 'Win') wins++;
+    else if (t.trade_outcome === 'Lose') losses++;
   }
 
-  const nonBEWins   = wins - beWins;
-  const nonBELosses = losses - beLosses;
-  const beCount     = beWins + beLosses;
-
-  // Win Rate: exclude BE trades entirely (same as calculateRiskPerTrade).
-  const denomWinRate = nonBEWins + nonBELosses;
-  const winRate = denomWinRate > 0
-    ? (nonBEWins / denomWinRate) * 100
-    : 0;
-
-  // Win Rate w/BE: (all wins including BE wins) / total — so "what % of trades were wins".
+  const total = wins + losses + breakEven;
+  const denomWinRate = wins + losses;
+  const winRate = denomWinRate > 0 ? (wins / denomWinRate) * 100 : 0;
   const winRateWithBE = total > 0 ? (wins / total) * 100 : 0;
 
   return {
@@ -124,8 +95,7 @@ function processGroup(label: string, trades: Trade[]): GroupStats {
     losses,
     winRate,
     winRateWithBE,
-    beWins,
-    beLosses,
+    breakEven,
     tradeType: label,
   };
 }
@@ -163,28 +133,19 @@ export function calculateIntervalStats(
       isTimeInInterval(normalizeTimeToHHMM(t.trade_time), start, end)
     );
 
-    // now compute your GroupStats kind of logic in-line
-    const wins      = bucket.filter(t => t.trade_outcome === 'Win').length;
-    const losses    = bucket.filter(t => t.trade_outcome === 'Lose').length;
-    const beWins    = bucket.filter(t => t.trade_outcome === 'Win'  && t.break_even).length;
-    const beLosses  = bucket.filter(t => t.trade_outcome === 'Lose' && t.break_even).length;
-
-    const nonBEWins   = wins  - beWins;
-    const nonBELosses = losses - beLosses;
-    const beCount     = beWins + beLosses;
-    // Win Rate: non-BE wins / (non-BE wins + all losses) so BE losses count in denominator (1 win + 1 BE loss → 50%)
-    const denomWinRate = nonBEWins + nonBELosses + beLosses;
-    const denomWithBE  = nonBEWins + nonBELosses + beCount;
-
-    const winRate       = denomWinRate > 0 ? (nonBEWins / denomWinRate) * 100 : 0;
-    const winRateWithBE = denomWithBE   > 0 ? (nonBEWins / denomWithBE  ) * 100 : 0;
+    const breakEven = bucket.filter(t => t.break_even).length;
+    const wins      = bucket.filter(t => !t.break_even && t.trade_outcome === 'Win').length;
+    const losses    = bucket.filter(t => !t.break_even && t.trade_outcome === 'Lose').length;
+    const total     = wins + losses + breakEven;
+    const denom     = wins + losses;
+    const winRate       = denom > 0 ? (wins / denom) * 100 : 0;
+    const winRateWithBE = total > 0 ? (wins / total) * 100 : 0;
 
     return {
       label,
       wins,
       losses,
-      beWins,
-      beLosses,
+      breakEven,
       winRate,
       winRateWithBE
     };
@@ -226,8 +187,7 @@ export function calculateLiquidityStats(trades: Trade[]): LiquidityStats[] {
       losses:      g.losses,
       winRate:     g.winRate,
       winRateWithBE: g.winRateWithBE,
-      beWins:      g.beWins,
-      beLosses:    g.beLosses
+      breakEven:   g.breakEven
     }));
 }
 
@@ -241,8 +201,7 @@ export function calculateSetupStats(trades: Trade[]) {
       losses:      g.losses,
       winRate:     g.winRate,
       winRateWithBE: g.winRateWithBE,
-      beWins:      g.beWins,
-      beLosses:    g.beLosses
+      breakEven:   g.breakEven
     }));
 }
 export function calculateDirectionStats(trades: Trade[]): DirectionStats[] {
@@ -255,9 +214,7 @@ export function calculateDirectionStats(trades: Trade[]): DirectionStats[] {
       losses:      g.losses,
       winRate:     g.winRate,
       winRateWithBE: g.winRateWithBE,
-      beWins:      g.beWins,
-      beLosses:    g.beLosses,
-      breakEven:   g.beWins + g.beLosses,
+      breakEven:   g.breakEven,
     }));
 }
 /** English keys for Local H/L stats (liquidated / not liquidated) */
@@ -268,8 +225,8 @@ export const LOCAL_HL_KEYS = {
 
 export function calculateLocalHLStats(trades: Trade[]): LocalHLStats {
   const ZERO: LocalHLStats = {
-    liquidated:   { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0, total: 0 },
-    notLiquidated: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0, total: 0 },
+    liquidated:   { wins: 0, losses: 0, winRate: 0, breakEven: 0, winRateWithBE: 0, total: 0 },
+    notLiquidated: { wins: 0, losses: 0, winRate: 0, breakEven: 0, winRateWithBE: 0, total: 0 },
   };
 
   // ← if no trades at all, immediately return the zero‐stats
@@ -287,8 +244,7 @@ export function calculateLocalHLStats(trades: Trade[]): LocalHLStats {
       wins:           g.wins,
       losses:         g.losses,
       winRate:        g.winRate,
-      winsWithBE:     g.beWins,
-      lossesWithBE:   g.beLosses,
+      breakEven:      g.breakEven,
       winRateWithBE:  g.winRateWithBE,
       total:          g.total,
     };
@@ -305,8 +261,7 @@ export function calculateMssStats(trades: Trade[]): MssStats[] {
       losses: g.losses,
       winRate: g.winRate,
       winRateWithBE: g.winRateWithBE,
-      beWins: g.beWins,
-      beLosses: g.beLosses
+      breakEven: g.breakEven
     }));
 }
 export function calculateNewsStats(trades: Trade[]): NewsStats[] {
@@ -322,8 +277,7 @@ export function calculateNewsStats(trades: Trade[]): NewsStats[] {
       losses: g.losses,
       winRate: g.winRate,
       winRateWithBE: g.winRateWithBE,
-      beWins: g.beWins,
-      beLosses: g.beLosses
+      breakEven: g.breakEven
     }));
 }
 
@@ -337,8 +291,7 @@ export function calculateDayStats(trades: Trade[]): DayStats[] {
       losses: g.losses,
       winRate: g.winRate,
       winRateWithBE: g.winRateWithBE,
-      beWins: g.beWins,
-      beLosses: g.beLosses
+      breakEven: g.breakEven
     }));
 }
 export function calculateMarketStats(trades: Trade[], accountBalance: number): MarketStats[] {  
@@ -361,10 +314,7 @@ export function calculateMarketStats(trades: Trade[], accountBalance: number): M
         losses: g.losses,
         winRate: g.winRate,
         winRateWithBE: g.winRateWithBE,
-        beWins: g.beWins,
-        beLosses: g.beLosses,
-        nonBeWins: g.wins - g.beWins,
-        nonBeLosses: g.losses - g.beLosses,
+        breakEven: g.breakEven,
         profit,
         pnlPercentage,
         profitTaken: true
@@ -407,8 +357,7 @@ export function calculateTrendStats(trades: Trade[]): TradeTypeStats[] {
         losses: g.losses,
         winRate: g.winRate,
         winRateWithBE: g.winRateWithBE,
-        beWins: g.beWins,
-        beLosses: g.beLosses,
+        breakEven: g.breakEven,
       });
     }
   }
