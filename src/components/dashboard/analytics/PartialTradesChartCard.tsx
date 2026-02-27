@@ -100,8 +100,8 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
       const percentage = totalForChart > 0 ? (data.value / totalForChart) * 100 : 0;
 
       return (
-        <div className={cn("relative overflow-hidden rounded-xl p-4 border shadow-lg shadow-slate-900/5 dark:shadow-black/40 backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border-slate-200/60 dark:border-slate-700/60", colors.bg)}>
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5 rounded-xl" />
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-50">
+          <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
           <div className="relative flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <div className={cn("h-2 w-2 rounded-full shadow-sm ring-2", colors.dot)} />
