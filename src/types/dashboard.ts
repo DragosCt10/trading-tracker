@@ -35,10 +35,8 @@ export interface BaseStats {
   losses: number;
   winRate: number;
   winRateWithBE: number;
-  beWins: number;
-  beLosses: number;
-  /** Total break-even trades (beWins + beLosses). Use this when only BE count is needed. */
-  breakEven?: number;
+  /** Break-even trades (wins, losses, breakEven). */
+  breakEven: number;
 }
 
 export interface LiquidityStats extends BaseStats {
@@ -60,8 +58,6 @@ export interface MarketStats extends BaseStats {
   market: string;
   profit: number;
   pnlPercentage: number;
-  nonBeWins: number;
-  nonBeLosses: number;
   profitTaken: boolean;
 }
 
@@ -91,8 +87,7 @@ export interface LocalHLStats {
     wins: number;
     losses: number;
     winRate: number;
-    winsWithBE: number;
-    lossesWithBE: number;
+    breakEven: number;
     winRateWithBE: number;
     total: number;
   }
@@ -102,8 +97,7 @@ export interface IntervalStats {
   label: string;
   wins: number;
   losses: number;
-  beWins: number;
-  beLosses: number;
+  breakEven: number;
   winRate: number;
   winRateWithBE: number;
 }
