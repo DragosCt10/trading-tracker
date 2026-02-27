@@ -121,37 +121,40 @@ export const EvaluationStats: React.FC<EvaluationStatsProps> = React.memo(
       const winRateWithBE = d.winRateWithBE ?? d.winRate ?? 0;
       const totalTrades = d.totalTrades ?? wins + losses;
       return (
-        <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-            {d.category} {typeof totalTrades === 'number' ? `(${totalTrades} trade${totalTrades === 1 ? '' : 's'})` : ''}
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
-              <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                {wins} {beWins > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beWins} BE)</span>}
-              </span>
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-50">
+          <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
+          <div className="relative flex flex-col gap-3">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {d.category} {typeof totalTrades === 'number' ? `(${totalTrades} trade${totalTrades === 1 ? '' : 's'})` : ''}
             </div>
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
-              <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
-                {losses} {beLosses > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beLosses} BE)</span>}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
-              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                {winRate.toFixed(2)}%
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
+                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                  {wins} {beWins > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beWins} BE)</span>}
+                </span>
               </div>
-            </div>
-            {d.winRateWithBE !== undefined && (
-              <div className="flex items-center justify-between gap-4 pt-1">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate (w/ BE):</span>
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
+                <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
+                  {losses} {beLosses > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beLosses} BE)</span>}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
                 <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                  {winRateWithBE.toFixed(2)}%
+                  {winRate.toFixed(2)}%
                 </div>
               </div>
-            )}
+              {d.winRateWithBE !== undefined && (
+                <div className="flex items-center justify-between gap-4 pt-1">
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate (w/ BE):</span>
+                  <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                    {winRateWithBE.toFixed(2)}%
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       );
@@ -239,18 +242,10 @@ export const EvaluationStats: React.FC<EvaluationStatsProps> = React.memo(
                   </defs>
                   <ReTooltip
                     contentStyle={{
-                      background: isDark
-                        ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)'
-                        : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
-                      backdropFilter: 'blur(16px)',
-                      border: isDark ? '1px solid rgba(51, 65, 85, 0.6)' : '1px solid rgba(148, 163, 184, 0.2)',
-                      borderRadius: '16px',
-                      padding: '14px 18px',
-                      color: isDark ? '#e2e8f0' : '#1e293b',
-                      fontSize: 14,
-                      boxShadow: isDark
-                        ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05)'
-                        : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      boxShadow: 'none',
                       minWidth: '160px',
                     }}
                     wrapperStyle={{ outline: 'none', zIndex: 1000 }}
