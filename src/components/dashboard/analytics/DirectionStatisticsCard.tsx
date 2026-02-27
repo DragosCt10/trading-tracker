@@ -33,29 +33,36 @@ export function convertDirectionStatsToChartData(
   includeTotalTrades: boolean = false
 ): TradeStatDatum[] {
   const totalDirectionTrades = directionStats.reduce(
-    (sum, stat) => sum + (stat.wins ?? 0) + (stat.losses ?? 0),
+    (sum, stat) => sum + (stat.total ?? (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.breakEven ?? 0)),
     0
   );
 
   return directionStats.map((stat) => {
-    const directionTotal = (stat.wins ?? 0) + (stat.losses ?? 0);
+    const wins = stat.wins ?? 0;
+    const losses = stat.losses ?? 0;
+    const breakEven = stat.breakEven ?? 0;
+    const directionTotal = stat.total ?? (wins + losses + breakEven);
     const percentage =
       totalDirectionTrades > 0
         ? ((directionTotal / totalDirectionTrades) * 100).toFixed(1)
         : "0.0";
 
+    const nonBE = wins + losses;
+    const winRate = nonBE > 0 ? (wins / nonBE) * 100 : 0;
+    const winRateWithBE = directionTotal > 0 ? (wins / directionTotal) * 100 : 0;
+
     const baseData: TradeStatDatum = {
       category: `${stat.direction} - ${percentage}%`,
-      wins: stat.wins,
-      losses: stat.losses,
-      breakEven: stat.breakEven ?? 0,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
+      wins,
+      losses,
+      breakEven,
+      winRate,
+      winRateWithBE,
     };
 
     // Use total from stats which includes all trades (including non-executed)
     // This ensures the count shown in parentheses matches the actual number of trades in tradesToUse
-    baseData.totalTrades = stat.total ?? ((stat.wins ?? 0) + (stat.losses ?? 0));
+    baseData.totalTrades = directionTotal;
 
     return baseData;
   });
@@ -98,7 +105,7 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
 
     // Calculate totals
     const totalTrades = directionStats.reduce(
-      (sum, stat) => sum + (stat.total ?? (stat.wins ?? 0) + (stat.losses ?? 0)),
+      (sum, stat) => sum + (stat.total ?? (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.breakEven ?? 0)),
       0
     );
 
@@ -117,18 +124,24 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
     // Prepare pie chart data - Long vs Short (wins, losses, breakEven, win rates from API)
     const pieData = directionStats
       .map((stat) => {
-        const total = stat.total ?? (stat.wins ?? 0) + (stat.losses ?? 0);
+        const wins = stat.wins ?? 0;
+        const losses = stat.losses ?? 0;
+        const breakEven = stat.breakEven ?? 0;
+        const total = stat.total ?? (wins + losses + breakEven);
         const percentage = totalTrades > 0 ? (total / totalTrades) * 100 : 0;
+        const nonBE = wins + losses;
+        const winRate = nonBE > 0 ? (wins / nonBE) * 100 : 0;
+        const winRateWithBE = total > 0 ? (wins / total) * 100 : 0;
         return {
           name: stat.direction,
           value: total,
           percentage,
           color: stat.direction.toLowerCase() === 'long' ? 'blue' : 'purple',
-          wins: stat.wins ?? 0,
-          losses: stat.losses ?? 0,
-          breakEven: stat.breakEven ?? 0,
-          winRate: stat.winRate ?? 0,
-          winRateWithBE: stat.winRateWithBE ?? 0,
+          wins,
+          losses,
+          breakEven,
+          winRate,
+          winRateWithBE,
         };
       })
       .filter((item) => item.value > 0);
