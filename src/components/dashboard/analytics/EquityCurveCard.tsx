@@ -12,6 +12,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { Card, CardContent } from '@/components/ui/card';
+import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { Trade } from '@/types/trade';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { format } from 'date-fns';
@@ -23,17 +24,25 @@ export interface EquityCurveCardProps {
 
 type EquityDatum = { date: string; equity: number; equityPositive: number; equityNegative: number };
 
+/** Normalize to YYYY-MM-DD for grouping by day */
+function toDayKey(tradeDate: string): string {
+  const d = new Date(tradeDate);
+  return format(d, 'yyyy-MM-dd');
+}
+
+/** Aggregate P&L by day, then build cumulative equity (one data point per day). */
 function buildEquityChartData(trades: Trade[]): EquityDatum[] {
-  const sorted = [...trades].sort((a, b) => {
-    const dateA = new Date(a.trade_date).getTime();
-    const dateB = new Date(b.trade_date).getTime();
-    return dateA - dateB;
-  });
+  const profitByDay = new Map<string, number>();
+  for (const t of trades) {
+    const day = toDayKey(t.trade_date);
+    profitByDay.set(day, (profitByDay.get(day) ?? 0) + (t.calculated_profit ?? 0));
+  }
+  const sortedDays = [...profitByDay.keys()].sort();
   let cumulative = 0;
-  return sorted.map((trade) => {
-    cumulative += trade.calculated_profit ?? 0;
+  return sortedDays.map((date) => {
+    cumulative += profitByDay.get(date) ?? 0;
     return {
-      date: trade.trade_date,
+      date,
       equity: cumulative,
       equityPositive: cumulative >= 0 ? cumulative : 0,
       equityNegative: cumulative < 0 ? cumulative : 0,
@@ -57,8 +66,8 @@ export const EquityCurveCard = React.memo(function EquityCurveCard({
     <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm w-full flex flex-col">
       <CardContent className="flex-1 min-h-[320px] px-4 pt-6 pb-4">
         {!mounted ? (
-          <div className="w-full h-[320px] flex items-center justify-center text-slate-400 dark:text-slate-500">
-            Loading…
+          <div className="w-full h-[320px] flex items-center justify-center">
+            <BouncePulse size="md" />
           </div>
         ) : !hasData ? (
           <div className="w-full h-[320px] flex flex-col items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
@@ -86,6 +95,8 @@ export const EquityCurveCard = React.memo(function EquityCurveCard({
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(value) => format(new Date(value), 'MMM d')}
+                interval="preserveStartEnd"
+                minTickGap={32}
               />
               <YAxis
                 tick={{ fill: axisTextColor, fontSize: 11, fontWeight: 500 }}
