@@ -65,7 +65,8 @@ export function computeFullMonthlyStatsFromTrades(
     const total = nonBETrades + stats.breakEven;
 
     stats.winRate = nonBETrades > 0 ? (stats.wins / nonBETrades) * 100 : 0;
-    stats.winRateWithBE = total > 0 ? ((stats.wins + stats.breakEven) / total) * 100 : 0;
+    // BE is not profit: keep wins numerator, include BE in denominator
+    stats.winRateWithBE = total > 0 ? (stats.wins / total) * 100 : 0;
   });
 
   return monthlyData;
