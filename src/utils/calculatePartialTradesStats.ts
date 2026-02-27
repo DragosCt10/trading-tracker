@@ -16,41 +16,76 @@ export function calculatePartialTradesStats(trades: Trade[]): PartialTradesStats
   let partialLosingTrades = 0;
   let beWinPartialTrades = 0;
   let beLosingPartialTrades = 0;
-
-  // For winrate calculations
-  let totalWithoutBE = 0;
-  let totalWithBE = 0;
-  let winsWithoutBE = 0;
-  let winsWithBE = 0;
+  let neutralBEPartials = 0;
 
   for (const trade of trades) {
     if (!trade.partials_taken) continue;
 
     if (trade.break_even) {
-      totalWithBE++;
-      if (trade.trade_outcome === 'Win') {
+      // For BE trades, prefer the explicit final result when present.
+      const explicitFinal =
+        trade.be_final_result === 'Win' || trade.be_final_result === 'Lose'
+          ? trade.be_final_result
+          : null;
+
+      // Backwards‑compatible fallback for legacy data where BE trades still
+      // have trade_outcome 'Win' | 'Lose' instead of 'BE'.
+      const legacyOutcome =
+        trade.trade_outcome === 'Win' || trade.trade_outcome === 'Lose'
+          ? trade.trade_outcome
+          : null;
+
+      const finalOutcome = explicitFinal ?? legacyOutcome;
+
+      if (finalOutcome === 'Win') {
         beWinPartialTrades++;
-        winsWithBE++;
-      } else {
+      } else if (finalOutcome === 'Lose') {
         beLosingPartialTrades++;
+      } else {
+        // True neutral BE partial (no final result)
+        neutralBEPartials++;
       }
     } else {
-      totalWithBE++;
-      totalWithoutBE++;
+      // Non‑BE partials use trade_outcome directly.
       if (trade.trade_outcome === 'Win') {
         partialWinningTrades++;
-        winsWithoutBE++;
-        winsWithBE++;
-      } else {
+      } else if (trade.trade_outcome === 'Lose') {
         partialLosingTrades++;
       }
     }
   }
 
-  const partialWinRate = totalWithoutBE > 0 ? (winsWithoutBE / totalWithoutBE) * 100 : 0;
-  const partialWinRateWithBE = totalWithBE > 0 ? (winsWithBE / totalWithBE) * 100 : 0;
-  const totalPartialTradesCount = partialWinningTrades + partialLosingTrades + beWinPartialTrades + beLosingPartialTrades;
-  const totalPartialsBECount = beWinPartialTrades + beLosingPartialTrades;
+  const nonBEWins = partialWinningTrades;
+  const nonBELosses = partialLosingTrades;
+
+  // Win rate excluding BE partials entirely.
+  const partialWinRate =
+    nonBEWins + nonBELosses > 0
+      ? (nonBEWins / (nonBEWins + nonBELosses)) * 100
+      : 0;
+
+  // Win rate including BE partials that have a final result.
+  const winsWithBE = partialWinningTrades + beWinPartialTrades;
+  const effectiveTotalWithBE =
+    partialWinningTrades +
+    partialLosingTrades +
+    beWinPartialTrades +
+    beLosingPartialTrades;
+
+  const partialWinRateWithBE =
+    effectiveTotalWithBE > 0
+      ? (winsWithBE / effectiveTotalWithBE) * 100
+      : 0;
+
+  const totalPartialTradesCount =
+    partialWinningTrades +
+    partialLosingTrades +
+    beWinPartialTrades +
+    beLosingPartialTrades +
+    neutralBEPartials;
+
+  const totalPartialsBECount =
+    beWinPartialTrades + beLosingPartialTrades + neutralBEPartials;
 
   return {
     partialWinningTrades,
