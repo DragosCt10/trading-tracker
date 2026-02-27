@@ -37,6 +37,8 @@ export interface BaseStats {
   winRateWithBE: number;
   beWins: number;
   beLosses: number;
+  /** Total break-even trades (beWins + beLosses). Use this when only BE count is needed. */
+  breakEven?: number;
 }
 
 export interface LiquidityStats extends BaseStats {
@@ -141,10 +143,7 @@ export interface Stats {
   averageDaysBetweenTrades: number;
   partialWinningTrades: number;
   partialLosingTrades: number;
-  beWinPartialTrades: number;
-  beLosingPartialTrades: number;
-  partialWinRate: number;
-  partialWinRateWithBE: number;
+  partialBETrades: number;
   totalPartialTradesCount: number;
   totalPartialsBECount: number;
   tradeQualityIndex: number;
