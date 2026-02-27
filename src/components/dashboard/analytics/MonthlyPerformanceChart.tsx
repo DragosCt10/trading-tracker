@@ -26,63 +26,48 @@ export interface MonthlyStatsAllTrades {
   [month: string]: {
     wins: number;
     losses: number;
-    beWins: number;
-    beLosses: number;
+    breakEven: number;
     winRate: number;
     winRateWithBE: number;
   };
 }
 
 /**
- * Compute full monthly stats from trades array (wins, losses, winRate, etc.)
- * Processes all trades passed (tradesToUse already handles filtering)
- * @param trades - Array of trades to compute stats from
- * @returns Object with monthly statistics keyed by month name
+ * Compute full monthly stats from trades array (wins, losses, breakEven, winRate, etc.)
+ * Processes all trades passed (tradesToUse already handles filtering).
+ * Model: wins (non-BE), losses (non-BE), breakEven (all break_even trades).
  */
 export function computeFullMonthlyStatsFromTrades(
   trades: Trade[]
 ): MonthlyStatsAllTrades {
   const monthlyData: MonthlyStatsAllTrades = {};
-  
-  // Process all trades passed (tradesToUse already handles filtering)
+
   trades.forEach((trade) => {
-    
-    const outcome = trade.trade_outcome;
-    
     const tradeDate = new Date(trade.trade_date);
     const monthName = MONTHS[tradeDate.getMonth()];
-    
+
     if (!monthlyData[monthName]) {
-      monthlyData[monthName] = { wins: 0, losses: 0, beWins: 0, beLosses: 0, winRate: 0, winRateWithBE: 0 };
+      monthlyData[monthName] = { wins: 0, losses: 0, breakEven: 0, winRate: 0, winRateWithBE: 0 };
     }
-    
-    const isBreakEven = trade.break_even;
-    
-    if (isBreakEven) {
-      if (outcome === 'Win') {
-        monthlyData[monthName].beWins += 1;
-      } else if (outcome === 'Lose') {
-        monthlyData[monthName].beLosses += 1;
-      }
-    } else {
-      if (outcome === 'Win') {
-        monthlyData[monthName].wins += 1;
-      } else if (outcome === 'Lose') {
-        monthlyData[monthName].losses += 1;
-      }
+
+    if (trade.break_even) {
+      monthlyData[monthName].breakEven += 1;
+    } else if (trade.trade_outcome === 'Win') {
+      monthlyData[monthName].wins += 1;
+    } else if (trade.trade_outcome === 'Lose') {
+      monthlyData[monthName].losses += 1;
     }
   });
-  
-  // Calculate win rates for each month
+
   Object.keys(monthlyData).forEach((month) => {
     const stats = monthlyData[month];
     const nonBETrades = stats.wins + stats.losses;
-    const allTrades = nonBETrades + stats.beWins + stats.beLosses;
-    
+    const total = nonBETrades + stats.breakEven;
+
     stats.winRate = nonBETrades > 0 ? (stats.wins / nonBETrades) * 100 : 0;
-    stats.winRateWithBE = allTrades > 0 ? ((stats.wins + stats.beWins) / allTrades) * 100 : 0;
+    stats.winRateWithBE = total > 0 ? ((stats.wins + stats.breakEven) / total) * 100 : 0;
   });
-  
+
   return monthlyData;
 }
 
@@ -105,19 +90,17 @@ export function MonthlyPerformanceChart({
     const stats = monthlyStatsAllTrades[month] || {
       wins: 0,
       losses: 0,
-      beWins: 0,
-      beLosses: 0,
+      breakEven: 0,
       winRate: 0,
       winRateWithBE: 0,
     };
-    const totalTrades = stats.wins + stats.losses + stats.beWins + stats.beLosses;
+    const totalTrades = stats.wins + stats.losses + stats.breakEven;
     return {
       month,
       totalTrades,
       wins: stats.wins,
       losses: stats.losses,
-      beWins: stats.beWins,
-      beLosses: stats.beLosses,
+      breakEven: stats.breakEven,
       winRate: stats.winRate,
       winRateWithBE: stats.winRateWithBE,
     };
@@ -187,34 +170,34 @@ export function MonthlyPerformanceChart({
     const d = payload[0].payload as (typeof chartData)[number];
 
     return (
-      <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
-        <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-          {d.month} ({d.totalTrades} trades)
-        </div>
-        <div className="space-y-2">
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-50">
+        <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
+        <div className="relative flex flex-col gap-3">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+            {d.month} ({d.totalTrades} trades)
+          </div>
+          <div className="space-y-2">
           <div className="flex items-baseline justify-between gap-4">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
-            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-              {d.wins} {d.beWins > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({d.beWins} BE)</span>}
-            </span>
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
+            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{d.wins}</span>
           </div>
           <div className="flex items-baseline justify-between gap-4">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
-            <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
-              {d.losses} {d.beLosses > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({d.beLosses} BE)</span>}
-            </span>
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
+            <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{d.losses}</span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
+            <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{d.breakEven}</span>
           </div>
           <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
-            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
+            <span className="text-base font-bold text-slate-900 dark:text-slate-100">
               {d.winRate.toFixed(2)}%
-            </div>
+              <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
+                ({d.winRateWithBE.toFixed(2)}% w/BE)
+              </span>
+            </span>
           </div>
-          <div className="flex items-center justify-between gap-4 pt-1">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate (w/ BE):</span>
-            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-              {d.winRateWithBE.toFixed(2)}%
-            </div>
           </div>
         </div>
       </div>
@@ -298,6 +281,12 @@ export function MonthlyPerformanceChart({
                   <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
                   <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
                 </linearGradient>
+                {/* Break Even bar – amber */}
+                <linearGradient id="composedBreakEvenBar" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stopColor="#d97706" stopOpacity={1} />
+                  <stop offset="50%" stopColor="#f59e0b" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.9} />
+                </linearGradient>
               </defs>
 
               <XAxis
@@ -370,9 +359,10 @@ export function MonthlyPerformanceChart({
                 fill="url(#composedTotalArea)"
                 stroke="none"
               />
-              {/* Bars: wins & losses */}
-              <ReBar dataKey="wins" name="Wins" fill="url(#composedWinsBar)" radius={[4, 4, 0, 0]} barSize={20} yAxisId="left" />
-              <ReBar dataKey="losses" name="Losses" fill="url(#composedLossesBar)" radius={[4, 4, 0, 0]} barSize={20} yAxisId="left" />
+              {/* Bars: wins, losses, break even */}
+              <ReBar dataKey="wins" name="Wins" fill="url(#composedWinsBar)" radius={[4, 4, 0, 0]} barSize={18} yAxisId="left" />
+              <ReBar dataKey="losses" name="Losses" fill="url(#composedLossesBar)" radius={[4, 4, 0, 0]} barSize={18} yAxisId="left" />
+              <ReBar dataKey="breakEven" name="Break Even" fill="url(#composedBreakEvenBar)" radius={[4, 4, 0, 0]} barSize={18} yAxisId="left" />
               {/* Line: win rate % */}
               <Line
                 type="monotone"
