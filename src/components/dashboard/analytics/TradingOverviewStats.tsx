@@ -82,8 +82,6 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
   const totalExecutedTrades = useMemo(() => trades.filter((t) => t.executed === true).length, [trades]);
   const nonExecutedTotalTradesCount = useMemo(() => trades.filter((t) => t.executed !== true).length, [trades]);
 
-  console.log('stats', stats);
-
   return (
     <>
       {showTitle && (
