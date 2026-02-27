@@ -166,6 +166,7 @@ import { useCalendarNavigation } from '@/hooks/useCalendarNavigation';
 import { useFilteredStats } from '@/hooks/useFilteredStats';
 import { calculateFilteredMacroStats } from '@/utils/calculateFilteredMacroStats';
 import { calculateStreaksFromTrades } from '@/utils/calculateStreaks';
+import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
 
 ChartJS.register(
   CategoryScale,
@@ -886,19 +887,14 @@ export default function StrategyClient(
     const accountBalance = selection.activeAccount?.account_balance || 1;
     const averagePnLPercentage = accountBalance > 0 ? (totalProfit / accountBalance) * 100 : 0;
     
-    // Calculate partials stats from tradesForProfitCalculations
-    const partialsTrades = tradesForProfitCalculations.filter((t) => t.partials_taken);
-    const partialsWins = partialsTrades.filter((t) => t.trade_outcome === 'Win' && !t.break_even).length;
-    const partialsLosses = partialsTrades.filter((t) => t.trade_outcome === 'Lose' && !t.break_even).length;
-    const partialsBEWins = partialsTrades.filter((t) => t.trade_outcome === 'Win' && t.break_even).length;
-    const partialsBELosses = partialsTrades.filter((t) => t.trade_outcome === 'Lose' && t.break_even).length;
-    const totalPartials = partialsWins + partialsLosses + partialsBEWins + partialsBELosses;
-    const partialWinRate = (partialsWins + partialsLosses) > 0 
-      ? (partialsWins / (partialsWins + partialsLosses)) * 100 
-      : 0;
-    const partialWinRateWithBE = totalPartials > 0 
-      ? ((partialsWins + partialsBEWins) / totalPartials) * 100 
-      : 0;
+    // Calculate partials stats from tradesToUse so the Partial Trades card reflects all partial trades in the current view (date range + market), not only executed ones
+    const partialStatsFromTrades = calculatePartialTradesStats(tradesToUse);
+    const totalPartials = partialStatsFromTrades.totalPartialTradesCount;
+    const partialsWins = partialStatsFromTrades.partialWinningTrades;
+    const partialsLosses = partialStatsFromTrades.partialLosingTrades;
+    const partialBETrades = partialStatsFromTrades.totalPartialsBECount;
+    const partialWinRate = partialStatsFromTrades.partialWinRate;
+    const partialWinRateWithBE = partialStatsFromTrades.partialWinRateWithBE;
     
     // Override tradeQualityIndex and multipleR
     // In date range mode or when filters are applied, set to 0 when there are no executed trades (to reflect filtered data)
@@ -933,14 +929,11 @@ export default function StrategyClient(
       partialsTaken: totalPartials,
       partialsWins,
       partialsLosses,
-      partialsBEWins,
-      partialsBELosses,
+      partialBETrades,
       partialWinRate,
       partialWinRateWithBE,
       partialWinningTrades: partialsWins,
       partialLosingTrades: partialsLosses,
-      beWinPartialTrades: partialsBEWins,
-      beLosingPartialTrades: partialsBELosses,
       tradeQualityIndex,
       multipleR,
     };
@@ -1087,10 +1080,7 @@ export default function StrategyClient(
                 totalPartials: statsToUse.partialsTaken,
                 partialWinningTrades: statsToUse.partialWinningTrades,
                 partialLosingTrades: statsToUse.partialLosingTrades,
-                beWinPartialTrades: statsToUse.beWinPartialTrades,
-                beLosingPartialTrades: statsToUse.beLosingPartialTrades,
-                partialWinRate: statsToUse.partialWinRate,
-                partialWinRateWithBE: statsToUse.partialWinRateWithBE,
+                partialBETrades: statsToUse.partialBETrades,
               },
               initialNonExecutedTotalTradesCount: props?.initialNonExecutedTotalTradesCount,
               directionStats: filteredChartStats ? statsToUseForCharts.directionStats : directionStatsFromTradesToUse,
