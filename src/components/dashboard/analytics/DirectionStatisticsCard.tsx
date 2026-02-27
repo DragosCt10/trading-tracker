@@ -200,43 +200,36 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
             <div className="flex items-center gap-2">
               <div className={cn("h-2 w-2 rounded-full shadow-sm ring-2", colors.dot)}></div>
               <div className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                {data.name} - {percentage.toFixed(1)}% ({data.value} {data.value === 1 ? 'TRADE' : 'TRADES'})
+                {data.name} - {percentage.toFixed(1)}% - {data.value} {data.value === 1 ? 'trade' : 'trades'}
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
                 <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
                   {wins}
-                  {beWins > 0 && (
-                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">
-                      ({beWins} BE)
-                    </span>
-                  )}
                 </span>
               </div>
               <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
                 <span className="text-base font-bold text-rose-600 dark:text-rose-400">
                   {losses}
-                  {beLosses > 0 && (
-                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">
-                      ({beLosses} BE)
-                    </span>
-                  )}
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
+                <span className="text-base font-bold text-amber-600 dark:text-amber-400">
+                  {totalBE}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
-                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                  {winRate.toFixed(2)}%
-                </div>
-              </div>
-              <div className="flex items-center justify-between gap-4 pt-1">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate (w/ BE):</span>
-                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                  {winRateWithBE.toFixed(2)}%
-                </div>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
+                <span className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  {winRate.toFixed(1)}%
+                  <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
+                    {winRateWithBE.toFixed(1)}% w/BE
+                  </span>
+                </span>
               </div>
             </div>
           </div>
