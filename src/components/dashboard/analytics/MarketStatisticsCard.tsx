@@ -46,9 +46,9 @@ export function convertMarketStatsToChartData(
   return marketStats.map((stat) => {
     const totalTrades = stat.total ?? (stat.wins + stat.losses + (stat.breakEven ?? 0));
     const nonBE = stat.wins + stat.losses;
-    // Match MonthlyPerformanceChart: Win Rate = wins/(wins+losses), Win Rate w/BE = (wins+breakEven)/total
+    // Win Rate = wins/(wins+losses). Win Rate w/BE = wins/(wins+losses+breakEven) (BE is not profit).
     const winRate = nonBE > 0 ? (stat.wins / nonBE) * 100 : 0;
-    const winRateWithBE = totalTrades > 0 ? ((stat.wins + (stat.breakEven ?? 0)) / totalTrades) * 100 : 0;
+    const winRateWithBE = totalTrades > 0 ? (stat.wins / totalTrades) * 100 : 0;
     return {
       category: `${stat.market}`,
       wins: stat.wins,
