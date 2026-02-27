@@ -44,16 +44,18 @@ export function convertMarketStatsToChartData(
   includeTotalTrades: boolean = false
 ): TradeStatDatum[] {
   return marketStats.map((stat) => {
-    // Use source total (same as Market Profit Stats: actual trade count) so tooltip total matches
     const totalTrades = stat.total ?? (stat.wins + stat.losses + (stat.breakEven ?? 0));
-    const computedWinRate = totalTrades > 0 ? (stat.wins / totalTrades) * 100 : 0;
+    const nonBE = stat.wins + stat.losses;
+    // Match MonthlyPerformanceChart: Win Rate = wins/(wins+losses), Win Rate w/BE = (wins+breakEven)/total
+    const winRate = nonBE > 0 ? (stat.wins / nonBE) * 100 : 0;
+    const winRateWithBE = totalTrades > 0 ? ((stat.wins + (stat.breakEven ?? 0)) / totalTrades) * 100 : 0;
     return {
       category: `${stat.market}`,
       wins: stat.wins,
       losses: stat.losses,
       breakEven: stat.breakEven ?? 0,
-      winRate: computedWinRate,
-      winRateWithBE: stat.winRateWithBE ?? stat.winRate,
+      winRate,
+      winRateWithBE,
       totalTrades,
     };
   });
@@ -70,22 +72,23 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
     const chartDataRaw = convertMarketStatsToChartData(marketStats, includeTotalTrades);
     // Keep wins/losses as in source (same as Market Profit Stats); total = stat.total (actual trade count)
     const withTotals: TradeStatDatum[] = chartDataRaw.map((d) => {
-      const totalTrades = d.totalTrades ?? (d.wins ?? 0) + (d.losses ?? 0);
-      const hasTradesButNoOutcomes = totalTrades > 0 && (d.wins ?? 0) === 0 && (d.losses ?? 0) === 0;
+      const totalTrades = d.totalTrades ?? (d.wins ?? 0) + (d.losses ?? 0) + (d.breakEven ?? 0);
+      const hasTradesButNoOutcomes = totalTrades > 0 && (d.wins ?? 0) === 0 && (d.losses ?? 0) === 0 && (d.breakEven ?? 0) === 0;
       return {
         ...d,
         totalTrades,
         wins: hasTradesButNoOutcomes ? 0.01 : (d.wins ?? 0),
         losses: d.losses ?? 0,
+        breakEven: d.breakEven ?? 0,
       };
     });
 
     const hasContent = withTotals.some(
-      (d) => (d.totalTrades ?? 0) > 0 || (d.wins ?? 0) > 0 || (d.losses ?? 0) > 0
+      (d) => (d.totalTrades ?? 0) > 0 || (d.wins ?? 0) > 0 || (d.losses ?? 0) > 0 || (d.breakEven ?? 0) > 0
     );
     const axisTextColor = isDark ? '#cbd5e1' : '#64748b';
     const maxTotal = Math.max(
-      ...withTotals.map((d) => (d.wins ?? 0) + (d.losses ?? 0)),
+      ...withTotals.map((d) => (d.wins ?? 0) + (d.losses ?? 0) + (d.breakEven ?? 0)),
       ...withTotals.map((d) => d.totalTrades ?? 0),
       1
     );
@@ -101,43 +104,40 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
       const d = payload[0].payload;
       const wins = d.wins ?? 0;
       const losses = d.losses ?? 0;
-      const beWins = d.beWins ?? 0;
-      const beLosses = d.beLosses ?? 0;
+      const breakEven = d.breakEven ?? 0;
       const winRate = d.winRate ?? 0;
       const winRateWithBE = d.winRateWithBE ?? d.winRate ?? 0;
-      const totalTrades = d.totalTrades ?? wins + losses;
+      const totalTrades = d.totalTrades ?? wins + losses + breakEven;
       return (
-        <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-            {d.category} {typeof totalTrades === 'number' ? `(${totalTrades} trade${totalTrades === 1 ? '' : 's'})` : ''}
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
-              <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                {wins} {beWins > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beWins} BE)</span>}
-              </span>
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-50">
+          <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
+          <div className="relative flex flex-col gap-3">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+              {d.category} {typeof totalTrades === 'number' ? `(${totalTrades} trade${totalTrades === 1 ? '' : 's'})` : ''}
             </div>
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
-              <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
-                {losses} {beLosses > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beLosses} BE)</span>}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
-              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                {winRate.toFixed(2)}%
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
+                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{wins}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
+                <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{losses}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
+                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{breakEven}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
+                <span className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  {winRate.toFixed(2)}%
+                  <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
+                    ({winRateWithBE.toFixed(2)}% w/BE)
+                  </span>
+                </span>
               </div>
             </div>
-            {d.winRateWithBE !== undefined && (
-              <div className="flex items-center justify-between gap-4 pt-1">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate (w/ BE):</span>
-                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                  {winRateWithBE.toFixed(2)}%
-                </div>
-              </div>
-            )}
           </div>
         </div>
       );
@@ -219,6 +219,11 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
                     <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
                     <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
                   </linearGradient>
+                  <linearGradient id="marketStatsBreakEvenBar" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor="#d97706" stopOpacity={1} />
+                    <stop offset="50%" stopColor="#f59e0b" stopOpacity={0.95} />
+                    <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.9} />
+                  </linearGradient>
                 </defs>
                 <XAxis
                   dataKey="category"
@@ -271,8 +276,9 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
                   fill="url(#marketStatsTotalArea)"
                   stroke="none"
                 />
-                <ReBar dataKey="wins" name="Wins" fill="url(#marketStatsWinsBar)" radius={[4, 4, 0, 0]} barSize={20} yAxisId="left" />
-                <ReBar dataKey="losses" name="Losses" fill="url(#marketStatsLossesBar)" radius={[4, 4, 0, 0]} barSize={20} yAxisId="left" />
+                <ReBar dataKey="wins" name="Wins" fill="url(#marketStatsWinsBar)" radius={[4, 4, 0, 0]} barSize={18} yAxisId="left" />
+                <ReBar dataKey="losses" name="Losses" fill="url(#marketStatsLossesBar)" radius={[4, 4, 0, 0]} barSize={18} yAxisId="left" />
+                <ReBar dataKey="breakEven" name="Break Even" fill="url(#marketStatsBreakEvenBar)" radius={[4, 4, 0, 0]} barSize={18} yAxisId="left" />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
