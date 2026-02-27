@@ -893,8 +893,6 @@ export default function StrategyClient(
     const partialsWins = partialStatsFromTrades.partialWinningTrades;
     const partialsLosses = partialStatsFromTrades.partialLosingTrades;
     const partialBETrades = partialStatsFromTrades.totalPartialsBECount;
-    const partialWinRate = partialStatsFromTrades.partialWinRate;
-    const partialWinRateWithBE = partialStatsFromTrades.partialWinRateWithBE;
     
     // Override tradeQualityIndex and multipleR
     // In date range mode or when filters are applied, set to 0 when there are no executed trades (to reflect filtered data)
@@ -930,8 +928,6 @@ export default function StrategyClient(
       partialsWins,
       partialsLosses,
       partialBETrades,
-      partialWinRate,
-      partialWinRateWithBE,
       partialWinningTrades: partialsWins,
       partialLosingTrades: partialsLosses,
       tradeQualityIndex,
