@@ -79,7 +79,7 @@ export function convertFilteredDirectionStatsToChartData(directionStats: Directi
 
 export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = React.memo(
   function DirectionStatisticsCard({ directionStats, isLoading: externalLoading }) {
-    const { mounted, isDark } = useDarkMode();
+    const { mounted } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
 
 
@@ -340,20 +340,10 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      background: isDark
-                        ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)'
-                        : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
-                      backdropFilter: 'blur(16px)',
-                      border: isDark
-                        ? '1px solid rgba(51, 65, 85, 0.6)'
-                        : '1px solid rgba(148, 163, 184, 0.2)',
-                      borderRadius: '16px',
-                      padding: '14px 18px',
-                      color: isDark ? '#e2e8f0' : '#1e293b',
-                      fontSize: 14,
-                      boxShadow: isDark
-                        ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05)'
-                        : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      boxShadow: 'none',
                       minWidth: '160px',
                     }}
                     wrapperStyle={{
