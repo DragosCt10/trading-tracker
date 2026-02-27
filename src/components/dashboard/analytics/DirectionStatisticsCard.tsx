@@ -103,54 +103,30 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
       }
     }, [mounted, externalLoading]);
 
-    // Calculate totals and winrate
+    // Calculate totals
     const totalTrades = directionStats.reduce(
       (sum, stat) => sum + (stat.total ?? (stat.wins ?? 0) + (stat.losses ?? 0)),
       0
     );
 
-    const totalWins = directionStats.reduce((sum, stat) => sum + (stat.wins ?? 0), 0);
-    const totalLosses = directionStats.reduce((sum, stat) => sum + (stat.losses ?? 0), 0);
-
-    // Get Long and Short stats
+    // Long and Short: count and BE only (BE = break-even trades, single number per direction)
     const longStat = directionStats.find((stat) => stat.direction.toLowerCase() === 'long');
     const shortStat = directionStats.find((stat) => stat.direction.toLowerCase() === 'short');
-    
-    // Long stats
-    const longCount = longStat ? (longStat.total ?? (longStat.wins ?? 0) + (longStat.losses ?? 0)) : 0;
-    const longWins = longStat?.wins ?? 0;
-    const longLosses = longStat?.losses ?? 0;
-    const longBEWins = longStat?.beWins ?? 0;
-    const longBELosses = longStat?.beLosses ?? 0;
-    const longBE = longBEWins + longBELosses;
-    const longWinsWithoutBE = longWins - longBEWins;
-    const longLossesWithoutBE = longLosses - longBELosses;
-    const longTradesWithoutBE = longWinsWithoutBE + longLossesWithoutBE;
-    const longWinRate = longTradesWithoutBE > 0 ? (longWinsWithoutBE / longTradesWithoutBE) * 100 : 0;
-    const longWinRateWithBE = longCount > 0 ? (longWins / longCount) * 100 : 0;
-    
-    // Short stats
-    const shortCount = shortStat ? (shortStat.total ?? (shortStat.wins ?? 0) + (shortStat.losses ?? 0)) : 0;
-    const shortWins = shortStat?.wins ?? 0;
-    const shortLosses = shortStat?.losses ?? 0;
-    const shortBEWins = shortStat?.beWins ?? 0;
-    const shortBELosses = shortStat?.beLosses ?? 0;
-    const shortBE = shortBEWins + shortBELosses;
-    const shortWinsWithoutBE = shortWins - shortBEWins;
-    const shortLossesWithoutBE = shortLosses - shortBELosses;
-    const shortTradesWithoutBE = shortWinsWithoutBE + shortLossesWithoutBE;
-    const shortWinRate = shortTradesWithoutBE > 0 ? (shortWinsWithoutBE / shortTradesWithoutBE) * 100 : 0;
-    const shortWinRateWithBE = shortCount > 0 ? (shortWins / shortCount) * 100 : 0;
 
-    // Percentage of BE trades per direction (used in bottom labels)
+    const longCount = longStat ? (longStat.total ?? (longStat.wins ?? 0) + (longStat.losses ?? 0)) : 0;
+    const longBE = longStat ? (longStat.beWins ?? 0) + (longStat.beLosses ?? 0) : 0;
     const longBEPercentage = longCount > 0 ? (longBE / longCount) * 100 : 0;
+
+    const shortCount = shortStat ? (shortStat.total ?? (shortStat.wins ?? 0) + (shortStat.losses ?? 0)) : 0;
+    const shortBE = shortStat ? (shortStat.beWins ?? 0) + (shortStat.beLosses ?? 0) : 0;
     const shortBEPercentage = shortCount > 0 ? (shortBE / shortCount) * 100 : 0;
 
-    // Prepare pie chart data - Long vs Short
+    // Prepare pie chart data - Long vs Short (wins, losses, BE count, win rates from API)
     const pieData = directionStats
       .map((stat) => {
         const total = stat.total ?? (stat.wins ?? 0) + (stat.losses ?? 0);
         const percentage = totalTrades > 0 ? (total / totalTrades) * 100 : 0;
+        const breakEven = (stat.beWins ?? 0) + (stat.beLosses ?? 0);
         return {
           name: stat.direction,
           value: total,
@@ -158,13 +134,12 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
           color: stat.direction.toLowerCase() === 'long' ? 'blue' : 'purple',
           wins: stat.wins ?? 0,
           losses: stat.losses ?? 0,
-          beWins: stat.beWins ?? 0,
-          beLosses: stat.beLosses ?? 0,
+          breakEven,
           winRate: stat.winRate ?? 0,
           winRateWithBE: stat.winRateWithBE ?? 0,
         };
       })
-      .filter((item) => item.value > 0); // Only show segments with values
+      .filter((item) => item.value > 0);
 
     const CustomTooltip = ({ active, payload }: any) => {
       if (!active || !payload || payload.length === 0) return null;
@@ -187,9 +162,7 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
       const percentage = totalTrades > 0 ? (data.value / totalTrades) * 100 : 0;
       const wins = data.wins ?? 0;
       const losses = data.losses ?? 0;
-      const beWins = data.beWins ?? 0;
-      const beLosses = data.beLosses ?? 0;
-      const totalBE = beWins + beLosses;
+      const breakEven = data.breakEven ?? 0;
       const winRate = data.winRate ?? 0;
       const winRateWithBE = data.winRateWithBE ?? 0;
 
@@ -219,7 +192,7 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
               <div className="flex items-baseline justify-between gap-4">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
                 <span className="text-base font-bold text-amber-600 dark:text-amber-400">
-                  {totalBE}
+                  {breakEven}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
