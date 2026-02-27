@@ -587,3 +587,74 @@ export function toFieldMapping(matches: ColumnMatch[]): Record<string, string> {
 export function getSchemaField(key: string): SchemaField | undefined {
   return DB_SCHEMA.find((f) => f.key === key);
 }
+
+/**
+ * Merge fuzzy header matches with value-based pattern matches.
+ *
+ * Both matchers run independently with greedy one-to-one assignment.
+ * This function combines their candidates (fuzzy score 0-100, value
+ * confidence × 100) and re-assigns greedily, preferring value-based
+ * matches on score ties (they are field-content evidence, not name guesses).
+ *
+ * @param fuzzyMatches  Output of matchHeaders()
+ * @param valueBased    Output of matchCsvColumns() from csvColumnMatcher.ts
+ */
+export function applyValueMatches(
+  fuzzyMatches: ColumnMatch[],
+  valueBased: { matches: Record<string, { field: string; confidence: number }> },
+): ColumnMatch[] {
+  type Candidate = { col: string; field: string; score: number; fromValue: boolean };
+  const candidates: Candidate[] = [];
+
+  for (const m of fuzzyMatches) {
+    if (m.dbField) {
+      candidates.push({ col: m.csvHeader, field: m.dbField, score: m.score, fromValue: false });
+    }
+  }
+  for (const [col, match] of Object.entries(valueBased.matches)) {
+    candidates.push({
+      col,
+      field: match.field,
+      score: Math.round(match.confidence * 100),
+      fromValue: true,
+    });
+  }
+
+  // Highest score first; value-based wins ties (content evidence > name guess)
+  candidates.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.fromValue ? -1 : 1;
+  });
+
+  const assignedCols   = new Set<string>();
+  const assignedFields = new Set<string>();
+  const assignments    = new Map<string, { field: string; score: number }>();
+
+  for (const { col, field, score } of candidates) {
+    if (assignedCols.has(col) || assignedFields.has(field)) continue;
+    assignments.set(col, { field, score });
+    assignedCols.add(col);
+    assignedFields.add(field);
+  }
+
+  return fuzzyMatches.map((m) => {
+    const assigned = assignments.get(m.csvHeader);
+    if (!assigned) {
+      return { ...m, dbField: null, score: 0, label: '— Ignore —', required: false, valueType: null };
+    }
+    // Same field as fuzzy — just update score if value-based was higher
+    if (assigned.field === m.dbField) {
+      return { ...m, score: Math.max(m.score, assigned.score) };
+    }
+    // Value-based chose a different (better) field
+    const schemaField = DB_SCHEMA.find((f) => f.key === assigned.field);
+    return {
+      ...m,
+      dbField:   assigned.field,
+      score:     assigned.score,
+      label:     schemaField?.label    ?? assigned.field,
+      required:  schemaField?.required ?? false,
+      valueType: schemaField?.valueType ?? null,
+    };
+  });
+}
