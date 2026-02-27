@@ -242,7 +242,7 @@ export function useCalendarNavigation({
       }
     }
 
-    const targetDate = new Date(year, month, 1);
+    const targetDate = new Date(newDate.getFullYear(), month, 1);
     const monthStart = startOfMonth(targetDate);
     const monthEnd = endOfMonth(targetDate);
 
