@@ -811,11 +811,20 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                       <SelectValue placeholder="Select ratio (1 – 10 or 10+)" />
                     </SelectTrigger>
                     <SelectContent>
-                      {POTENTIAL_RR_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={String(opt.value)}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
+                      {POTENTIAL_RR_OPTIONS.map((opt) => {
+                        const baseValue = Number(trade.risk_reward_ratio ?? 0);
+                        const disabled =
+                          trade.trade_outcome === 'Win' && opt.value <= baseValue;
+                        return (
+                          <SelectItem
+                            key={opt.value}
+                            value={String(opt.value)}
+                            disabled={disabled}
+                          >
+                            {opt.label}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 )}
