@@ -82,6 +82,8 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
   const totalExecutedTrades = useMemo(() => trades.filter((t) => t.executed === true).length, [trades]);
   const nonExecutedTotalTradesCount = useMemo(() => trades.filter((t) => t.executed !== true).length, [trades]);
 
+  console.log('stats', stats);
+
   return (
     <>
       {showTitle && (
@@ -127,10 +129,9 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
       <div className="col-span-full grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TotalTradesChartCard
           totalTrades={stats.totalTrades}
-          totalWins={stats.totalWins}
-          totalLosses={stats.totalLosses}
-          beWins={stats.beWins}
-          beLosses={stats.beLosses}
+          wins={stats.wins}
+          losses={stats.losses}
+          beTrades={stats.beTradesCount}
         />
         <StreakStatisticsCard
           currentStreak={stats.currentStreak}
