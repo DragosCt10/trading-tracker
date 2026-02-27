@@ -252,8 +252,8 @@ export function computeStatsFromTrades(trades: Trade[]) {
     return total > 0 ? (wins / total) * 100 : 0;
   };
 
-  const calculateWinRateWithBE = (wins: number, losses: number, beWins: number, beLosses: number) => {
-    const total = wins + losses + beWins + beLosses;
+  // Win Rate w/BE: (all wins including BE wins) / total — "what % of trades were wins".
+  const calculateWinRateWithBE = (wins: number, _losses: number, beWins: number, _beLosses: number, total: number) => {
     return total > 0 ? ((wins + beWins) / total) * 100 : 0;
   };
   // Win Rate: non-BE wins / (non-BE wins + all losses) so BE losses count (1 win + 1 BE loss → 50%)
@@ -271,7 +271,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
     beWins: stat.beWins,
     beLosses: stat.beLosses,
     winRate: winRateWithAllLosses(stat.wins, stat.losses, stat.beLosses),
-    winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+    winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses, stat.total),
   }));
 
   const liquidityStatsArray = Array.from(liquidityMap.entries()).map(([liquidity, stat]) => ({
@@ -282,7 +282,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
     beWins: stat.beWins,
     beLosses: stat.beLosses,
     winRate: winRateWithAllLosses(stat.wins, stat.losses, stat.beLosses),
-    winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+    winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses, stat.total),
   }));
 
   const directionStatsArray = Array.from(directionMap.entries()).map(([direction, stat]) => ({
@@ -292,8 +292,9 @@ export function computeStatsFromTrades(trades: Trade[]) {
     losses: stat.losses,
     beWins: stat.beWins,
     beLosses: stat.beLosses,
+    breakEven: stat.beWins + stat.beLosses,
     winRate: winRateWithAllLosses(stat.wins, stat.losses, stat.beLosses),
-    winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+    winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses, stat.total),
   }));
 
   const slSizeStatsArray = Array.from(slSizeMap.entries()).map(([market, stat]) => ({
@@ -313,7 +314,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
       beWins: stat.beWins,
       beLosses: stat.beLosses,
       winRate: denom > 0 ? (stat.wins / denom) * 100 : 0,
-      winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+      winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses, stat.total),
     };
   });
 
@@ -325,7 +326,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
     beWins: stat.beWins,
     beLosses: stat.beLosses,
     winRate: winRateWithAllLosses(stat.wins, stat.losses, stat.beLosses),
-    winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+    winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses, stat.total),
   }));
 
   const newsStatsArray = Array.from(newsMap.entries()).map(([news, stat]) => ({
@@ -336,7 +337,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
     beWins: stat.beWins,
     beLosses: stat.beLosses,
     winRate: winRateWithAllLosses(stat.wins, stat.losses, stat.beLosses),
-    winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+    winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses, stat.total),
   }));
 
   const dayStatsArray = Array.from(dayMap.entries()).map(([day, stat]) => ({
@@ -347,7 +348,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
     beWins: stat.beWins,
     beLosses: stat.beLosses,
     winRate: winRateWithAllLosses(stat.wins, stat.losses, stat.beLosses),
-    winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+    winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses, stat.total),
   }));
 
   const marketStatsArray = Array.from(marketMap.entries()).map(([market, stat]) => ({
@@ -358,7 +359,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
     beWins: stat.beWins,
     beLosses: stat.beLosses,
     winRate: winRateWithAllLosses(stat.wins, stat.losses, stat.beLosses),
-    winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+    winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses, stat.total),
   }));
 
   // Calculate local H/L win rates
@@ -381,7 +382,8 @@ export function computeStatsFromTrades(trades: Trade[]) {
         localHLStats.liquidated.wins,
         localHLStats.liquidated.losses,
         localHLStats.liquidated.winsWithBE,
-        localHLStats.liquidated.lossesWithBE
+        localHLStats.liquidated.lossesWithBE,
+        localHLStats.liquidated.total
       ),
     },
     notLiquidated: {
@@ -397,7 +399,8 @@ export function computeStatsFromTrades(trades: Trade[]) {
         localHLStats.notLiquidated.wins,
         localHLStats.notLiquidated.losses,
         localHLStats.notLiquidated.winsWithBE,
-        localHLStats.notLiquidated.lossesWithBE
+        localHLStats.notLiquidated.lossesWithBE,
+        localHLStats.notLiquidated.total
       ),
     },
   };
@@ -406,13 +409,13 @@ export function computeStatsFromTrades(trades: Trade[]) {
   const reentryStatsComputed = {
     ...reentryStats,
     winRate: calculateWinRate(reentryStats.wins, reentryStats.losses),
-    winRateWithBE: calculateWinRateWithBE(reentryStats.wins, reentryStats.losses, reentryStats.beWins, reentryStats.beLosses),
+    winRateWithBE: calculateWinRateWithBE(reentryStats.wins, reentryStats.losses, reentryStats.beWins, reentryStats.beLosses, reentryStats.total),
   };
 
   const breakEvenStatsComputed = {
     ...breakEvenStats,
     winRate: calculateWinRate(breakEvenStats.wins, breakEvenStats.losses),
-    winRateWithBE: calculateWinRateWithBE(breakEvenStats.wins, breakEvenStats.losses, breakEvenStats.beWins, breakEvenStats.beLosses),
+    winRateWithBE: calculateWinRateWithBE(breakEvenStats.wins, breakEvenStats.losses, breakEvenStats.beWins, breakEvenStats.beLosses, breakEvenStats.total),
   };
 
   // Trend stats: same shape as TradeTypeStats for TrendStatisticsCard
@@ -425,7 +428,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
       beWins: stat.beWins,
       beLosses: stat.beLosses,
       winRate: winRateWithAllLosses(stat.wins, stat.losses, stat.beLosses),
-      winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses),
+      winRateWithBE: calculateWinRateWithBE(stat.wins, stat.losses, stat.beWins, stat.beLosses, stat.total),
     }))
     .sort((a, b) => b.total - a.total);
 
