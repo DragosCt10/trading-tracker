@@ -70,31 +70,54 @@ function isTimeInInterval(time: string, start: string, end: string): boolean {
 /**
  * Build stats for a single labeled group of trades.
  * Processes all trades passed (tradesToUse already handles filtering).
- * All trades have Win/Lose outcomes, so we count all trades for total and wins/losses.
+ * Uses BE final result when available so BE trades with a final Win/Lose
+ * are counted correctly in wins/losses, while neutral BEs remain neutral.
  */
 function processGroup(label: string, trades: Trade[]): GroupStats {
-  // Count ALL trades (all trades have outcomes, executed or not)
   const total = trades.length;
 
-  // All trades have Win/Lose outcomes, so count directly from all trades
-  const wins      = trades.filter(t => t.trade_outcome === 'Win').length;
-  const losses    = trades.filter(t => t.trade_outcome === 'Lose').length;
-  const beWins    = trades.filter(t => t.trade_outcome === 'Win'  && t.break_even).length;
-  const beLosses  = trades.filter(t => t.trade_outcome === 'Lose' && t.break_even).length;
+  let wins = 0;
+  let losses = 0;
+  let beWins = 0;
+  let beLosses = 0;
 
-  // Non-BE counts
+  for (const t of trades) {
+    let outcome: 'Win' | 'Lose' | null = null;
+
+    if (t.break_even) {
+      if (t.be_final_result === 'Win' || t.be_final_result === 'Lose') {
+        outcome = t.be_final_result;
+      } else if (t.trade_outcome === 'Win' || t.trade_outcome === 'Lose') {
+        // Legacy BE trades may still encode Win/Lose directly on trade_outcome.
+        outcome = t.trade_outcome as 'Win' | 'Lose';
+      }
+    } else if (t.trade_outcome === 'Win' || t.trade_outcome === 'Lose') {
+      outcome = t.trade_outcome as 'Win' | 'Lose';
+    }
+
+    if (outcome === 'Win') {
+      wins++;
+      if (t.break_even) beWins++;
+    } else if (outcome === 'Lose') {
+      losses++;
+      if (t.break_even) beLosses++;
+    }
+  }
+
   const nonBEWins   = wins - beWins;
   const nonBELosses = losses - beLosses;
   const beCount     = beWins + beLosses;
-  // Win Rate: non-BE wins / (non-BE wins + all losses) so BE losses count (1 win + 1 BE loss → 50%)
-  const denomWinRate = nonBEWins + nonBELosses + beLosses;
-  const winRate     = denomWinRate > 0
+
+  // Win Rate: exclude BE trades entirely from the denominator.
+  const denomWinRate = nonBEWins + nonBELosses;
+  const winRate = denomWinRate > 0
     ? (nonBEWins / denomWinRate) * 100
     : 0;
-  // Win Rate (w/ BE): include BE trades in denominator
-  const denomWithBE   = nonBEWins + nonBELosses + beCount;
+
+  // Win Rate (w/ BE): include BE trades that have a final result.
+  const denomWithBE = nonBEWins + nonBELosses + beCount;
   const winRateWithBE = denomWithBE > 0
-    ? (nonBEWins / denomWithBE) * 100
+    ? ((nonBEWins + beWins) / denomWithBE) * 100
     : 0;
 
   return {
