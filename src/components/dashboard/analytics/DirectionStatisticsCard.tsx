@@ -227,7 +227,7 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
                 <span className="text-base font-bold text-slate-900 dark:text-slate-100">
                   {winRate.toFixed(1)}%
                   <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
-                    {winRateWithBE.toFixed(1)}% w/BE
+                    ({winRateWithBE.toFixed(1)}% w/BE)
                   </span>
                 </span>
               </div>
