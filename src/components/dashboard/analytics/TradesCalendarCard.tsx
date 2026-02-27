@@ -456,103 +456,108 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                       side="top"
                       align="center"
                       className={cn(
-                        'w-48 p-4 text-xs bg-white/95 dark:bg-slate-800/98 border border-slate-200/60 dark:border-slate-600/50 text-slate-900 dark:text-slate-100 shadow-2xl dark:shadow-slate-900/50 rounded-2xl backdrop-blur-xl space-y-1.5'
+                        'p-0 border-0 bg-transparent shadow-none rounded-2xl'
                       )}
                       sideOffset={6}
                     >
-                      {/* Existing list of trades (all breakpoints) */}
-                      {filteredDayTrades.map((trade, i) => (
-                        <button
-                          key={trade.id ?? i}
-                          type="button"
-                          onClick={
-                            onTradeClick
-                              ? (e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  onTradeClick(trade);
-                                }
-                              : undefined
-                          }
-                          disabled={!onTradeClick}
-                          className={cn(
-                            'flex w-full cursor-pointer items-center gap-2 rounded-lg py-1.5 px-1 -mx-1 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-500 focus:ring-offset-1',
-                            onTradeClick &&
-                              'hover:bg-slate-100/80 dark:hover:bg-slate-700/40',
-                            !onTradeClick && 'cursor-default'
-                          )}
-                          title={onTradeClick ? 'View trade details' : undefined}
-                          aria-label={onTradeClick ? `View details for ${trade.market} trade` : undefined}
-                        >
-                          {onTradeClick && (
-                            <Eye className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden />
-                          )}
-                          <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
-                            <span className="font-semibold text-slate-900 dark:text-slate-50 truncate">
-                              {trade.market}
-                            </span>
+                      <div className="relative overflow-hidden rounded-2xl border border-slate-300/80 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/10 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-50 w-56">
+                        <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
+                        <div className="relative space-y-1.5 text-xs">
+                          {/* Existing list of trades (all breakpoints) */}
+                          {filteredDayTrades.map((trade, i) => (
+                            <button
+                              key={trade.id ?? i}
+                              type="button"
+                              onClick={
+                                onTradeClick
+                                  ? (e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      onTradeClick(trade);
+                                    }
+                                  : undefined
+                              }
+                              disabled={!onTradeClick}
+                              className={cn(
+                                'flex w-full cursor-pointer items-center gap-2 rounded-lg py-1.5 px-1 -mx-1 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-500 focus:ring-offset-1',
+                                onTradeClick &&
+                                  'hover:bg-slate-100/80 dark:hover:bg-slate-700/40',
+                                !onTradeClick && 'cursor-default'
+                              )}
+                              title={onTradeClick ? 'View trade details' : undefined}
+                              aria-label={onTradeClick ? `View details for ${trade.market} trade` : undefined}
+                            >
+                              {onTradeClick && (
+                                <Eye className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden />
+                              )}
+                              <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                                <span className="font-semibold text-slate-900 dark:text-slate-50 truncate">
+                                  {trade.market}
+                                </span>
+                                <span
+                                  className={cn(
+                                    'font-semibold shrink-0',
+                                    isBreakEvenTrade(trade)
+                                      ? 'text-slate-500 dark:text-slate-400'
+                                      : trade.calculated_profit &&
+                                        trade.calculated_profit >= 0
+                                      ? 'text-emerald-600 dark:text-emerald-400'
+                                      : 'text-rose-600 dark:text-red-400',
+                                  )}
+                                >
+                                  {isBreakEvenTrade(trade)
+                                    ? (() => {
+                                        const finalOutcome =
+                                          trade.be_final_result ??
+                                          ((trade.trade_outcome === 'Win' ||
+                                            trade.trade_outcome === 'Lose')
+                                            ? trade.trade_outcome
+                                            : null);
+                                        if (finalOutcome === 'Win') return 'W (BE)';
+                                        if (finalOutcome === 'Lose') return 'L (BE)';
+                                        return 'BE';
+                                      })()
+                                    : trade.trade_outcome === 'Win'
+                                    ? 'W'
+                                    : trade.trade_outcome === 'Lose'
+                                    ? 'L'
+                                    : '—'}
+                                  {!isBreakEvenTrade(trade) &&
+                                    trade.pnl_percentage &&
+                                    ` (${trade.pnl_percentage.toFixed(2)}%)`}
+                                </span>
+                              </div>
+                            </button>
+                          ))}
+
+                          <div className="my-2.5 border-t border-slate-200/60 dark:border-slate-600/40 md:hidden" />
+
+                          {/* Summary rows visible only on small screens */}
+                          <div className="flex items-center justify-between md:hidden pt-1">
+                            <span className="font-semibold text-slate-700 dark:text-slate-200">Profit</span>
                             <span
                               className={cn(
-                                'font-semibold shrink-0',
-                                isBreakEvenTrade(trade)
-                                  ? 'text-slate-500 dark:text-slate-400'
-                                  : trade.calculated_profit &&
-                                    trade.calculated_profit >= 0
-                                  ? 'text-emerald-600 dark:text-emerald-400'
-                                  : 'text-rose-600 dark:text-red-400',
+                                'font-semibold',
+                                displayProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-red-400',
                               )}
                             >
-                              {isBreakEvenTrade(trade)
-                                ? (() => {
-                                    const finalOutcome =
-                                      trade.be_final_result ??
-                                      ((trade.trade_outcome === 'Win' ||
-                                        trade.trade_outcome === 'Lose')
-                                        ? trade.trade_outcome
-                                        : null);
-                                    if (finalOutcome === 'Win') return 'W (BE)';
-                                    if (finalOutcome === 'Lose') return 'L (BE)';
-                                    return 'BE';
-                                  })()
-                                : trade.trade_outcome === 'Win'
-                                ? 'W'
-                                : trade.trade_outcome === 'Lose'
-                                ? 'L'
-                                : '—'}
-                              {!isBreakEvenTrade(trade) &&
-                                trade.pnl_percentage &&
-                                ` (${trade.pnl_percentage.toFixed(2)}%)`}
+                              {currencySymbol}
+                              {displayProfit.toFixed(2)}
                             </span>
                           </div>
-                        </button>
-                      ))}
-
-                      <div className="my-2.5 border-t border-slate-200/60 dark:border-slate-600/40 md:hidden" />
-
-                      {/* Summary rows visible only on small screens */}
-                      <div className="flex items-center justify-between md:hidden pt-1">
-                        <span className="font-semibold text-slate-700 dark:text-slate-200">Profit</span>
-                        <span
-                          className={cn(
-                            'font-semibold',
-                            displayProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-red-400',
-                          )}
-                        >
-                          {currencySymbol}
-                          {displayProfit.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between md:hidden pt-1">
-                        <span className="font-semibold text-slate-700 dark:text-slate-200">P&amp;L</span>
-                        <span
-                          className={cn(
-                            'font-semibold',
-                            totalPnLPercentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-red-400',
-                          )}
-                        >
-                          {totalPnLPercentage >= 0 ? '+' : ''}
-                          {totalPnLPercentage.toFixed(2)}%
-                        </span>
+                          <div className="flex items-center justify-between md:hidden pt-1">
+                            <span className="font-semibold text-slate-700 dark:text-slate-200">P&amp;L</span>
+                            <span
+                              className={cn(
+                                'font-semibold',
+                                totalPnLPercentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-red-400',
+                              )}
+                            >
+                              {totalPnLPercentage >= 0 ? '+' : ''}
+                              {totalPnLPercentage.toFixed(2)}%
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </TooltipContent>
                   </Tooltip>
