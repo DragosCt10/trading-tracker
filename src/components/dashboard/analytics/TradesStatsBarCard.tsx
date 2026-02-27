@@ -192,9 +192,9 @@ export function TradeStatsBarCard({
   const withTotals: TradeStatDatum[] = (data || []).map((d) => {
     const totalTrades = d.totalTrades !== undefined 
       ? d.totalTrades 
-      : (((d.wins ?? 0) + (d.losses ?? 0) + (d.beWins ?? 0) + (d.beLosses ?? 0)) || undefined);
+      : (((d.wins ?? 0) + (d.losses ?? 0) + (d.breakEven ?? 0)) || ((d.wins ?? 0) + (d.losses ?? 0) + (d.beWins ?? 0) + (d.beLosses ?? 0)) || undefined);
     
-    // Combine regular wins/losses with break-even wins/losses for bar display
+    // Simple model: wins, losses (bar); breakEven separate
     const totalWins = (d.wins ?? 0) + (d.beWins ?? 0);
     const totalLosses = (d.losses ?? 0) + (d.beLosses ?? 0);
     
@@ -263,9 +263,11 @@ export function TradeStatsBarCard({
     const losses = d.losses ?? 0;
     const beWins = d.beWins ?? 0;
     const beLosses = d.beLosses ?? 0;
+    const breakEven = d.breakEven ?? 0;
     const winRate = d.winRate ?? 0;
     const winRateWithBE = d.winRateWithBE ?? d.winRate ?? 0;
-    const totalTrades = d.totalTrades ?? ((wins + losses) || undefined);
+    const totalTrades = d.totalTrades ?? (wins + losses + breakEven || (wins + losses + beWins + beLosses) || undefined);
+    const useSimpleBE = breakEven > 0;
 
     return (
       <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
@@ -276,15 +278,21 @@ export function TradeStatsBarCard({
           <div className="flex items-baseline justify-between gap-4">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
             <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-              {wins} {beWins > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beWins} BE)</span>}
+              {wins} {!useSimpleBE && beWins > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beWins} BE)</span>}
             </span>
           </div>
           <div className="flex items-baseline justify-between gap-4">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
             <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
-              {losses} {beLosses > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beLosses} BE)</span>}
+              {losses} {!useSimpleBE && beLosses > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beLosses} BE)</span>}
             </span>
           </div>
+          {useSimpleBE && (
+            <div className="flex items-baseline justify-between gap-4">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even:</span>
+              <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{breakEven}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
             <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
