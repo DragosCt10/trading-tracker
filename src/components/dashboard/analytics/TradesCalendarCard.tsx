@@ -372,7 +372,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                   : displayProfit < 0
                   ? 'bg-rose-500/10 dark:bg-rose-500/20 border border-rose-200 dark:border-rose-800 hover:bg-rose-500/15 dark:hover:bg-rose-500/28 hover:border-rose-300 dark:hover:border-rose-700'
                   : onlyBETrades || (hasBE && beOutcome === 'BE')
-                  ? 'bg-orange-100/60 dark:bg-amber-800/25 border border-orange-200/70 dark:border-amber-600/40 hover:bg-orange-100/80 dark:hover:bg-amber-800/30 hover:border-orange-300/70 dark:hover:border-amber-500/45'
+                  ? 'bg-orange-100/60 dark:bg-amber-800/35 border border-orange-200/70 dark:border-amber-600/40 hover:bg-orange-100/80 dark:hover:bg-amber-800/30 hover:border-orange-300/70 dark:hover:border-amber-500/45'
                   : hasBE && beOutcome === 'Win'
                   ? 'bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-500/15 dark:hover:bg-emerald-500/28 hover:border-emerald-300 dark:hover:border-emerald-700'
                   : hasBE && beOutcome === 'Lose'
