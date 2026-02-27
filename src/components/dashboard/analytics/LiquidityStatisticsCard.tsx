@@ -69,13 +69,12 @@ export function convertLiquidityStatsToChartData(
 ): TradeStatDatum[] {
   return liquidityStats.map((stat) => {
     // Always use stat.total so X-axis label (N) and scale match other cards (same tradesToUse)
-    const totalTrades = stat.total ?? (stat.wins + stat.losses + stat.beWins + stat.beLosses);
+    const totalTrades = stat.total ?? (stat.wins + stat.losses + (stat.breakEven ?? 0));
     return {
       category: `${stat.liquidity}`,
       wins: stat.wins,
       losses: stat.losses,
-      beWins: stat.beWins,
-      beLosses: stat.beLosses,
+      breakEven: stat.breakEven ?? 0,
       winRate: stat.winRate ?? 0,
       winRateWithBE: stat.winRateWithBE ?? 0,
       totalTrades,
@@ -93,7 +92,7 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
 
     const chartDataRaw = convertLiquidityStatsToChartData(liquidityStats, includeTotalTrades);
     const withTotals: TradeStatDatum[] = chartDataRaw.map((d) => {
-      const totalTrades = d.totalTrades ?? (d.wins ?? 0) + (d.losses ?? 0) + (d.beWins ?? 0) + (d.beLosses ?? 0);
+      const totalTrades = d.totalTrades ?? (d.wins ?? 0) + (d.losses ?? 0) + (d.breakEven ?? 0);
       const totalWins = (d.wins ?? 0) + (d.beWins ?? 0);
       const totalLosses = (d.losses ?? 0) + (d.beLosses ?? 0);
       const hasTradesButNoOutcomes = totalTrades > 0 && totalWins === 0 && totalLosses === 0;
@@ -128,11 +127,10 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
       const d = payload[0].payload;
       const wins = d.wins ?? 0;
       const losses = d.losses ?? 0;
-      const beWins = d.beWins ?? 0;
-      const beLosses = d.beLosses ?? 0;
+      const breakEven = d.breakEven ?? 0;
       const winRate = d.winRate ?? 0;
       const winRateWithBE = d.winRateWithBE ?? d.winRate ?? 0;
-      const totalTrades = d.totalTrades ?? wins + losses;
+      const totalTrades = d.totalTrades ?? wins + losses + breakEven;
       return (
         <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
@@ -141,16 +139,18 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
           <div className="space-y-2">
             <div className="flex items-baseline justify-between gap-4">
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
-              <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                {wins} {beWins > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beWins} BE)</span>}
-              </span>
+              <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{wins}</span>
             </div>
             <div className="flex items-baseline justify-between gap-4">
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
-              <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
-                {losses} {beLosses > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beLosses} BE)</span>}
-              </span>
+              <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{losses}</span>
             </div>
+            {breakEven > 0 && (
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even:</span>
+                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{breakEven}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
               <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
