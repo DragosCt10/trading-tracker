@@ -49,6 +49,7 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
     fvg_size: trade.fvg_size ?? null,
     confidence_at_entry: trade.confidence_at_entry ?? null,
     mind_state_at_entry: trade.mind_state_at_entry ?? null,
+    be_final_result: trade.be_final_result ?? null,
   };
 }
 
