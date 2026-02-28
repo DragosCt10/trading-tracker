@@ -45,8 +45,13 @@ import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarke
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
 import { MarketCombobox } from '@/components/MarketCombobox';
+import { NewsCombobox } from '@/components/NewsCombobox';
 import { ALLOWED_MARKETS } from '@/constants/allowedMarkets';
 import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
+import { updateAccountSavedNews } from '@/lib/server/accounts';
+import { mergeNewsIntoSaved, normalizeNewsName } from '@/utils/newsUtils';
+import { queryKeys } from '@/lib/queryKeys';
+import type { SavedNewsItem } from '@/types/account-settings';
 
 /** Kept for any legacy reference; market input uses MarketCombobox + ALLOWED_MARKETS. */
 const MARKET_OPTIONS = ALLOWED_MARKETS;
@@ -169,6 +174,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     break_even: false,
     reentry: false,
     news_related: false,
+    news_name: null as string | null,
+    news_intensity: null as number | null,
     mss: '',
     risk_per_trade: undefined as any,
     risk_reward_ratio: undefined as any,
@@ -412,6 +419,22 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
       if (typeof window !== 'undefined') {
         localStorage.removeItem(`new-trade-draft-${selection.mode}`);
+      }
+
+      // Save / update news event in account's saved_news library
+      if (trade.news_related && trade.news_name?.trim() && selection.activeAccount) {
+        const currentSaved = (selection.activeAccount as any).saved_news as SavedNewsItem[] | null;
+        const savedNews = Array.isArray(currentSaved) ? currentSaved : [];
+        const updatedNews = mergeNewsIntoSaved(
+          normalizeNewsName(trade.news_name),
+          trade.news_intensity ?? 1,
+          savedNews
+        );
+        await updateAccountSavedNews(selection.activeAccount.id, updatedNews);
+        // Invalidate accounts cache so the updated saved_news is available next time
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.accounts(userId, selection.mode),
+        });
       }
 
       // Update progress message
@@ -1064,6 +1087,56 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 />
                 <Label htmlFor="news-related" className="text-sm font-normal cursor-pointer">News</Label>
               </div>
+
+              {/* News event + intensity — shown inline when News is checked */}
+              {trade.news_related && (
+                <div className="w-full mt-1 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                  <div className="flex-1 min-w-0">
+                    <NewsCombobox
+                      id="news-name"
+                      value={trade.news_name ?? ''}
+                      onChange={(v) => updateTrade('news_name', v || null)}
+                      onSelect={(item) => {
+                        updateTrade('news_name', item.name);
+                        updateTrade('news_intensity', item.intensity);
+                      }}
+                      savedNews={
+                        Array.isArray((selection.activeAccount as any)?.saved_news)
+                          ? (selection.activeAccount as any).saved_news as SavedNewsItem[]
+                          : []
+                      }
+                      placeholder="e.g. CPI, NFP, FOMC"
+                      className="h-10 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-sm themed-focus text-slate-900 dark:text-slate-50 text-sm"
+                    />
+                  </div>
+                  {/* Star rating 1–3 */}
+                  <div className="flex items-center gap-1 shrink-0" role="group" aria-label="News intensity">
+                    {[1, 2, 3].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() =>
+                          updateTrade('news_intensity', trade.news_intensity === star ? null : star)
+                        }
+                        className={`text-xl leading-none transition-colors cursor-pointer focus:outline-none ${
+                          trade.news_intensity != null && star <= trade.news_intensity
+                            ? 'text-amber-400'
+                            : 'text-slate-300 dark:text-slate-600 hover:text-amber-300'
+                        }`}
+                        title={['Low', 'Medium', 'High'][star - 1]}
+                        aria-pressed={trade.news_intensity != null && star <= trade.news_intensity}
+                      >
+                        ★
+                      </button>
+                    ))}
+                    {trade.news_intensity != null && (
+                      <span className="text-xs text-slate-500 dark:text-slate-400 ml-1">
+                        {['Low', 'Medium', 'High'][trade.news_intensity - 1]}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center space-x-2">
                 <Checkbox
