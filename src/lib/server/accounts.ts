@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import type { Database } from '@/types/supabase';
+import type { SavedNewsItem } from '@/types/account-settings';
 
 export type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -190,6 +191,36 @@ export async function getAllAccountsForUser(userId: string): Promise<AccountRow[
     return [];
   }
   return (data ?? []) as AccountRow[];
+}
+
+/**
+ * Updates the saved_news JSONB column for an account.
+ * Only the owner (from session) can update.
+ */
+export async function updateAccountSavedNews(
+  accountId: string,
+  savedNews: SavedNewsItem[]
+): Promise<{ error: { message: string } | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { error: { message: 'Unauthorized' } };
+  }
+
+  const { error } = await supabase
+    .from('account_settings')
+    .update({ saved_news: savedNews as any })
+    .eq('id', accountId)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error('Error updating saved news:', error);
+    return { error: { message: error.message ?? 'Failed to update saved news' } };
+  }
+  return { error: null };
 }
 
 /**
