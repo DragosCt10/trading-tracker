@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarket';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
+import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
 import { MarketCombobox } from '@/components/MarketCombobox';
 import { ALLOWED_MARKETS } from '@/constants/allowedMarkets';
 import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
@@ -396,6 +397,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         ...trade,
         market: normalizedMarket,
         risk_reward_ratio_long: riskRewardRatioLong,
+        trade_executed_at: tradeDateAndTimeToUtcISO(trade.trade_date, trade.trade_time) ?? undefined,
       } as Trade & { user_id?: string; account_id?: string };
       const { id, user_id, account_id, calculated_profit, pnl_percentage, ...tradePayload } = payload;
       const { error } = await createTrade({
