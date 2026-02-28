@@ -219,7 +219,7 @@ export default function StrategyClient(
   const [calendarTradeDetails, setCalendarTradeDetails] = useState<Trade | null>(null);
 
   // view mode: 'yearly' or 'dateRange'
-  const [viewMode, setViewMode] = useState<'yearly' | 'dateRange'>('yearly');
+  const [viewMode, setViewMode] = useState<'yearly' | 'dateRange'>('dateRange');
 
   // date range + calendar state management
   const {
@@ -294,8 +294,8 @@ export default function StrategyClient(
     
     const mode = props?.initialMode ?? 'live';
     const year = yr ?? new Date().getFullYear();
-    // Default to 'yearly' for initial hydration since that's the default viewMode
-    const initialViewMode: 'yearly' | 'dateRange' = 'yearly';
+    // Default to 'dateRange' for initial hydration since that's the default viewMode
+    const initialViewMode: 'yearly' | 'dateRange' = 'dateRange';
     // For yearly mode, use year boundaries; for dateRange mode, use dr
     const effectiveStartDate = initialViewMode === 'yearly' ? `${year}-01-01` : dr.startDate;
     const effectiveEndDate = initialViewMode === 'yearly' ? `${year}-12-31` : dr.endDate;
