@@ -20,6 +20,7 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
+import { formatPercent } from '@/lib/utils';
 import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
 import { calculateSetupStats as calculateSetupStatsUtil } from '@/utils/calculateCategoryStats';
 import type { SetupStats } from '@/types/dashboard';
@@ -134,9 +135,9 @@ export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.mem
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
                 <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {winRate.toFixed(2)}%
+                  {formatPercent(winRate)}%
                   <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
-                    ({winRateWithBE.toFixed(2)}% w/BE)
+                    ({formatPercent(winRateWithBE)}% w/BE)
                   </span>
                 </span>
               </div>
