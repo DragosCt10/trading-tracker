@@ -10,7 +10,7 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
-import { cn } from '@/lib/utils';
+import { cn, formatPercent } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface TotalTradesChartCardProps {
@@ -281,7 +281,7 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
                   {beTrades}
                   {totalTrades > 0 && (
                     <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">
-                      ({((beTrades / totalTrades) * 100).toFixed(1)}%)
+                      ({formatPercent((beTrades / totalTrades) * 100)}%)
                     </span>
                   )}
                 </div>
