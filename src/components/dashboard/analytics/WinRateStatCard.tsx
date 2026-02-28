@@ -20,19 +20,23 @@ export function formatWinRateWithBEValue(winRateWithBE: number): string {
 interface WinRateStatCardProps {
   winRate: number;
   winRateWithBE: number;
+  /** When false, show placeholder to avoid server/client hydration mismatch. */
+  hydrated?: boolean;
 }
 
 export const WinRateStatCard: React.FC<WinRateStatCardProps> = React.memo(
-  function WinRateStatCard({ winRate, winRateWithBE }) {
+  function WinRateStatCard({ winRate, winRateWithBE, hydrated = true }) {
     return (
       <StatCard
         title="Win Rate"
         value={
-          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-            {formatWinRateValue(winRate)}
-            <span className="text-slate-500 text-sm ml-1">
-              {formatWinRateWithBEValue(winRateWithBE)}
-            </span>
+          <p className="text-2xl font-bold text-slate-900 dark:text-slate-100" suppressHydrationWarning>
+            {hydrated ? formatWinRateValue(winRate) : '—'}
+            {hydrated && (
+              <span className="text-slate-500 text-sm ml-1">
+                {formatWinRateWithBEValue(winRateWithBE)}
+              </span>
+            )}
           </p>
         }
       />
