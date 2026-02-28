@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { X, Check, MoreHorizontal, Wand2, FileText, Mail } from 'lucide-react';
+import { X, Check, Wand2 } from 'lucide-react';
 import { matchHeaders, applyValueMatches, toFieldMapping, DB_SCHEMA, type ColumnMatch, type SchemaField } from '@/lib/columnMatcher';
 import { matchCsvColumns, type ColumnSuggestion } from '@/utils/csvColumnMatcher';
 import { buildAutoNormalizations, normalizeDirection, normalizeOutcome } from '@/lib/tradeNormalizers';
@@ -92,8 +92,6 @@ export default function ImportTradesModal({
     }
   }, [step, errorMessage]);
 
-  // ── "More options" modal for unresolved required fields ─────────────────
-  const [moreOptionsField, setMoreOptionsField] = useState<SchemaField | null>(null);
   const [aiMatchingField, setAiMatchingField] = useState<string | null>(null);
 
   // ── Per-field inline defaults (applied to rows missing that column) ──────
@@ -129,7 +127,6 @@ export default function ImportTradesModal({
     setTranslating(false);
     setTranslations({});
     setSuggestions([]);
-    setMoreOptionsField(null);
     setAiMatchingField(null);
     setFieldDefaults({});
     setAiValueNorms({});
@@ -470,7 +467,6 @@ export default function ImportTradesModal({
       const csvCol = Object.entries(fieldMapping).find(([, dbField]) => dbField === field.key)?.[0];
       if (csvCol) {
         updateMatch(csvCol, field.key);
-        setMoreOptionsField(null);
       }
     } catch {
       // silent
@@ -531,7 +527,7 @@ export default function ImportTradesModal({
       className="bg-slate-50/50 dark:bg-slate-800/30 hover:bg-slate-100/50 dark:hover:bg-slate-700/40"
     >
       {/* CSV header */}
-      <td className="px-3 py-2 font-mono text-slate-800 dark:text-slate-200 whitespace-nowrap max-w-[140px]">
+      <td className="px-3 py-2 font-mono text-slate-800 dark:text-slate-200 whitespace-nowrap min-w-[200px]">
         <span className="truncate block" title={m.csvHeader}>{m.csvHeader}</span>
         <div className="flex items-center gap-1 mt-0.5">
           {m.required && m.dbField && (
@@ -820,11 +816,11 @@ export default function ImportTradesModal({
                               return (
                                 <tr key={`req-missing-${field.key}`} className="bg-slate-50/50 dark:bg-slate-800/30 hover:bg-slate-100/50 dark:hover:bg-slate-700/40">
                                   {/* Col 1 — CSV column picker (mirrors matched-row layout) */}
-                                  <td className="px-3 py-2 max-w-[140px]">
+                                  <td className="px-3 py-2 min-w-[200px]">
                                     <select
                                       defaultValue=""
                                       onChange={(e) => { if (e.target.value) updateMatch(e.target.value, field.key); }}
-                                      className="w-full rounded-md border border-amber-300/80 dark:border-amber-700/60 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-slate-700 dark:text-slate-300 font-mono focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                      className="w-full min-w-[180px] rounded-md border border-amber-300/80 dark:border-amber-700/60 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-slate-700 dark:text-slate-300 font-mono focus:outline-none focus:ring-1 focus:ring-amber-400"
                                     >
                                       <option value="">— Pick a column —</option>
                                       {availableForPicker.map((m) => (
@@ -837,30 +833,12 @@ export default function ImportTradesModal({
                                     </div>
                                   </td>
 
-                                  {/* Col 2 — Samples / default indicator / More options */}
+                                  {/* Col 2 — Samples / default indicator */}
                                   <td className="px-3 py-2">
-                                    {hasDefault ? (
-                                      <div className="flex items-center gap-1 flex-wrap">
-                                        <span className="rounded bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 text-[10px] font-mono text-emerald-700 dark:text-emerald-300">
-                                          default: {fieldDefaults[field.key]}
-                                        </span>
-                                        <button
-                                          type="button"
-                                          onClick={() => setMoreOptionsField(field)}
-                                          className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 underline"
-                                        >
-                                          change
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => setMoreOptionsField(field)}
-                                        className="flex items-center gap-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 px-2 py-1 text-[10px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600 transition-colors"
-                                      >
-                                        <MoreHorizontal className="h-3 w-3" />
-                                        More options
-                                      </button>
+                                    {hasDefault && (
+                                      <span className="rounded bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 text-[10px] font-mono text-emerald-700 dark:text-emerald-300">
+                                        default: {fieldDefaults[field.key]}
+                                      </span>
                                     )}
                                   </td>
 
@@ -1155,172 +1133,6 @@ export default function ImportTradesModal({
         </SheetContent>
       </Sheet>
 
-      {/* ── More Options Modal ─────────────────────────────────────────────── */}
-      {moreOptionsField && (
-        <div
-          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) setMoreOptionsField(null); }}
-        >
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-700/80 overflow-hidden">
-            {/* Header */}
-            <div className="flex items-start justify-between px-5 pt-5 pb-4 border-b border-slate-100 dark:border-slate-800">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-amber-500 mb-0.5">Required field</p>
-                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {moreOptionsField.label}
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{moreOptionsField.description}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setMoreOptionsField(null)}
-                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-800/60 p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            <div className="px-5 py-4 flex flex-col gap-3 max-h-[70vh] overflow-y-auto">
-
-              {/* ── Set a default value ── */}
-              {(moreOptionsField.key === 'risk_per_trade' || moreOptionsField.key === 'risk_reward_ratio') ? (
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3.5">
-                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Set a default value</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Use the <span className="font-medium">Default values</span> section below the mapping table — it already handles {moreOptionsField.label}.
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3.5">
-                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Set a default value</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-2.5">
-                    Applied to every row that doesn&apos;t have this column in the CSV.
-                  </p>
-                  {moreOptionsField.key === 'direction' ? (
-                    <select
-                      value={fieldDefaults[moreOptionsField.key] ?? ''}
-                      onChange={(e) => setFieldDefaults((p) => ({ ...p, [moreOptionsField.key]: e.target.value }))}
-                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="">— No default —</option>
-                      <option value="Long">Long</option>
-                      <option value="Short">Short</option>
-                    </select>
-                  ) : moreOptionsField.key === 'trade_outcome' ? (
-                    <select
-                      value={fieldDefaults[moreOptionsField.key] ?? ''}
-                      onChange={(e) => setFieldDefaults((p) => ({ ...p, [moreOptionsField.key]: e.target.value }))}
-                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="">— No default —</option>
-                      <option value="Win">Win</option>
-                      <option value="Lose">Lose</option>
-                      <option value="Break-Even">Break-Even</option>
-                    </select>
-                  ) : (
-                    <input
-                      type={moreOptionsField.valueType === 'date' ? 'date' : moreOptionsField.valueType === 'time' ? 'time' : 'text'}
-                      value={fieldDefaults[moreOptionsField.key] ?? ''}
-                      onChange={(e) => setFieldDefaults((p) => ({ ...p, [moreOptionsField.key]: e.target.value }))}
-                      placeholder={moreOptionsField.valueType === 'date' ? 'YYYY-MM-DD' : moreOptionsField.valueType === 'time' ? 'HH:MM' : `e.g. EURUSD`}
-                      className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  )}
-                  {fieldDefaults[moreOptionsField.key] && (
-                    <button
-                      type="button"
-                      onClick={() => setFieldDefaults((p) => { const n = { ...p }; delete n[moreOptionsField.key]; return n; })}
-                      className="mt-1.5 text-[10px] text-slate-400 hover:text-red-500 transition-colors"
-                    >
-                      ✕ Clear default
-                    </button>
-                  )}
-                </div>
-              )}
-
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider">or</span>
-                <div className="flex-1 h-px bg-slate-100 dark:bg-slate-800" />
-              </div>
-
-              {/* ── Option 1: Add it yourself ── */}
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3.5 flex items-start gap-3">
-                <div className="shrink-0 w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                  <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">Add it to your CSV</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Open your file, add a <span className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">{moreOptionsField.label}</span> column with values for each row, then re-upload.
-                  </p>
-                </div>
-              </div>
-
-              {/* ── Option 2: Let AI find it ── */}
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3.5 flex items-start gap-3">
-                <div className="shrink-0 w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center">
-                  <Wand2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">Let AI find it</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-2">
-                    AI will scan all your CSV columns and values to find a match for <span className="font-medium">{moreOptionsField.label}</span>.
-                  </p>
-                  <Button
-                    size="sm"
-                    onClick={() => handleAiMatch(moreOptionsField)}
-                    disabled={aiMatchingField === moreOptionsField.key}
-                    className="h-7 px-3 text-xs rounded-lg cursor-pointer bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white border-0 shadow-sm shadow-purple-500/30 disabled:opacity-50"
-                  >
-                    {aiMatchingField === moreOptionsField.key ? (
-                      <>
-                        <svg className="h-3 w-3 mr-1.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                        </svg>
-                        Scanning…
-                      </>
-                    ) : 'Run AI scan'}
-                  </Button>
-                </div>
-              </div>
-
-              {/* ── Option 3: Get help ── */}
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3.5 flex items-start gap-3">
-                <div className="shrink-0 w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
-                  <Mail className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">Get help</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Can&apos;t figure it out? Contact me and I&apos;ll help you set up your import.
-                  </p>
-                  <a
-                    href="mailto:support@tradingtracker.app"
-                    className="mt-1.5 inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
-                  >
-                    support@tradingtracker.app →
-                  </a>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Footer */}
-            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMoreOptionsField(null)}
-                className="h-7 px-3 text-xs rounded-lg cursor-pointer"
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
