@@ -86,8 +86,6 @@ export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.m
       wins,
       losses,
       breakEven,
-      winRate,
-      winRateWithBE,
     } = stats;
 
     // Prepare pie chart data (Wins, Losses, Break Even - one BE bucket)
@@ -282,27 +280,39 @@ export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.m
               </div>
             </div>
           </div>
-          {/* Win rate labels - positioned below the pie chart */}
+          {/* Wins / Losses / BE - same as ReentryTradesChartCard */}
           <div className="w-full px-4 pt-4 mt-2">
             <div className="flex items-center justify-center gap-8">
               <div className="flex flex-col items-center">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  Winrate
+                  Wins
                 </div>
-                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {winRate.toFixed(1)}%
+                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                  {wins}
                 </div>
-                <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Simple</div>
               </div>
-              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
+              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
               <div className="flex flex-col items-center">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  Winrate
+                  Losses
                 </div>
-                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {winRateWithBE.toFixed(1)}%
+                <div className="text-lg font-bold text-rose-600 dark:text-rose-400">
+                  {losses}
                 </div>
-                <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">w/ BE</div>
+              </div>
+              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+              <div className="flex flex-col items-center">
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                  BE
+                </div>
+                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                  {breakEven}
+                  {totalForChart > 0 && (
+                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">
+                      ({((breakEven / totalForChart) * 100).toFixed(1)}%)
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
