@@ -404,16 +404,13 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
                       outline: 'none',
                       zIndex: 1000
                     }}
-                    cursor={{
-                      fill: 'transparent',
-                      radius: 8,
-                    }}
+                    cursor={{ stroke: isDark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.4)', strokeWidth: 1 }}
                     content={<CustomTooltip />}
                   />
 
                   <ReBar
                     dataKey="value"
-                    radius={[0, 8, 8, 0]}
+                    radius={[0, 7, 7, 0]}
                     barSize={18}
                     fill="url(#riskRewardGradient)"
                   />
