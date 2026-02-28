@@ -96,7 +96,7 @@ export const DB_SCHEMA: SchemaField[] = [
     key: 'trade_outcome',
     label: 'Trade Outcome',
     synonyms: [
-      'trade_outcome', 'outcome', 'result', 'win', 'loss', 'win loss',
+      'trade_outcome', 'outcome', 'result', 'win', 'loss', 'be', 'break even', 'win loss',
       'status', 'trade result', 'pnl result', 'win/loss', 'w/l',
       'tradeoutcome', 'winloss', 'win_loss',
       // More journal variants
@@ -105,7 +105,7 @@ export const DB_SCHEMA: SchemaField[] = [
     ],
     required: true,
     valueType: 'string',
-    description: 'Win or Lose',
+    description: 'Win, Lose or BE',
   },
   {
     key: 'risk_per_trade',
