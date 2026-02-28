@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import Papa from 'papaparse';
 import {
@@ -55,6 +55,7 @@ export default function ImportTradesModal({
 }: ImportTradesModalProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const defaultValuesCardRef = useRef<HTMLDivElement>(null);
 
   // ── Core state ──────────────────────────────────────────────────────────
   const [step, setStep] = useState<Step>('upload');
@@ -86,6 +87,11 @@ export default function ImportTradesModal({
   const [customRiskInput, setCustomRiskInput] = useState('');
   const [defaultRR, setDefaultRR] = useState<number | null>(null);
   const [customRRInput, setCustomRRInput] = useState('');
+  const [defaultValuesCardError, setDefaultValuesCardError] = useState(false);
+
+  useEffect(() => {
+    if (defaultRiskPct !== null && defaultRR !== null) setDefaultValuesCardError(false);
+  }, [defaultRiskPct, defaultRR]);
 
   // ── Import result ───────────────────────────────────────────────────────
   const [importProgress, setImportProgress] = useState(0);
@@ -115,6 +121,7 @@ export default function ImportTradesModal({
     setCustomRRInput('');
     setImportProgress(0);
     setImportResult(null);
+    setDefaultValuesCardError(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
@@ -238,6 +245,15 @@ export default function ImportTradesModal({
   // ── Import ───────────────────────────────────────────────────────────────
   async function handleImport() {
     if (!activeAccount) return;
+
+    // Only show danger border on Default values card when user actually presses Import without selecting Risk % / R:R
+    if (defaultRiskPct === null || defaultRR === null) {
+      setDefaultValuesCardError(true);
+      setErrorMessage('');
+      defaultValuesCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    setDefaultValuesCardError(false);
 
     setStep('importing');
     setImportProgress(0);
@@ -519,6 +535,21 @@ export default function ImportTradesModal({
               {/* ── Step: Upload ── */}
               {step === 'upload' && (
                 <div className="flex flex-col gap-4">
+                  {/* How it works */}
+                  <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/30 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/60">
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Tips for a smooth import</p>
+                    </div>
+                    <div className="px-4 py-3 space-y-2">
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">1.</span> We match your columns automatically. Optionally, for better matching you can replace your CSV headers with our required names (e.g. Trade Date, Market / Symbol, Direction, Trade Outcome, Risk Per Trade %, Risk/Reward Ratio).
+                      </p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">2.</span> If you still have issues or something is unclear, <a href="mailto:support@tradingtracker.app" className="text-tc-primary hover:underline font-medium">contact us</a>.
+                      </p>
+                    </div>
+                  </div>
+
                   <div
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
@@ -547,24 +578,7 @@ export default function ImportTradesModal({
                         Drop your CSV here or <span className="text-tc-primary underline">click to browse</span>
                       </p>
                       <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                        Supports MT5, MT4, manual journals — any CSV format
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-800/40 overflow-hidden">
-                    <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/60">
-                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">How it works</p>
-                    </div>
-                    <div className="px-4 py-3 space-y-1.5">
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Columns are matched locally using fuzzy matching — instant, no AI needed for standard exports.
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Foreign-language headers are translated automatically. You can review and adjust every mapping before importing.
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        PnL is computed from Risk % and R:R using your account balance — no need to map Profit columns.
+                        Any CSV file — columns are matched automatically
                       </p>
                     </div>
                   </div>
@@ -639,7 +653,7 @@ export default function ImportTradesModal({
                         {/* ── Section 1: Required fields — matched ── */}
                         {requiredMatched.length > 0 && (
                           <>
-                            <tr className="bg-slate-50/50 dark:bg-slate-800/30">
+                            <tr className="">
                               <td colSpan={4} className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
                                 Required — Matched
                               </td>
@@ -735,7 +749,7 @@ export default function ImportTradesModal({
                         {otherMatches.length > 0 && (
                           <>
                             {(requiredMatched.length > 0 || requiredMissing.length > 0) && (
-                              <tr className="bg-slate-50/50 dark:bg-slate-800/30">
+                              <tr className="">
                                 <td colSpan={4} className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                   Other Columns
                                 </td>
@@ -750,7 +764,14 @@ export default function ImportTradesModal({
                   </div>
 
                   {/* Default Risk % and R:R */}
-                  <div className="rounded-xl border border-slate-200/80 dark:border-slate-700/60 overflow-hidden bg-slate-50/50 dark:bg-slate-800/30">
+                  <div
+                    ref={defaultValuesCardRef}
+                    className={`rounded-xl border overflow-hidden bg-slate-50/50 dark:bg-slate-800/30 transition-colors ${
+                      defaultValuesCardError
+                        ? 'border-red-500 dark:border-red-500 ring-2 ring-red-500/30 dark:ring-red-500/30'
+                        : 'border-slate-200/80 dark:border-slate-700/60'
+                    }`}
+                  >
                     <div className="px-4 py-2.5 border-b border-slate-200/80 dark:border-slate-700/60">
                       <div className="flex items-center gap-2">
                         <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Default values</p>
@@ -944,6 +965,7 @@ export default function ImportTradesModal({
                       setTranslations({});
                       setTranslating(false);
                       setErrorMessage('');
+                      setDefaultValuesCardError(false);
                       setStep('upload');
                       if (fileInputRef.current) fileInputRef.current.value = '';
                     }}
@@ -953,7 +975,7 @@ export default function ImportTradesModal({
                   </Button>
                   <Button
                     onClick={handleImport}
-                    disabled={translating || requiredMissing.length > 0 || !activeAccount || defaultRiskPct === null || defaultRR === null}
+                    disabled={translating || requiredMissing.length > 0 || !activeAccount}
                     className="cursor-pointer rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold border-0 shadow-md shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {translating ? 'Translating…' : `Import ${parsedRowCount} trade${parsedRowCount !== 1 ? 's' : ''}`}
