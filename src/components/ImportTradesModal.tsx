@@ -16,10 +16,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { X, Check, MoreHorizontal, Wand2, FileText, Mail } from 'lucide-react';
 import { matchHeaders, applyValueMatches, toFieldMapping, DB_SCHEMA, type ColumnMatch, type SchemaField } from '@/lib/columnMatcher';
 import { matchCsvColumns, type ColumnSuggestion } from '@/utils/csvColumnMatcher';
-import { buildAutoNormalizations } from '@/lib/tradeNormalizers';
+import { buildAutoNormalizations, normalizeDirection, normalizeOutcome } from '@/lib/tradeNormalizers';
 import {
   extractColumnSamples,
   parseCsvTradesWithNorm,
+  type AiNormalizations,
 } from '@/utils/tradeImportParser';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { importTrades } from '@/lib/server/trades';
@@ -75,6 +76,10 @@ export default function ImportTradesModal({
   // ── Value-based matcher suggestions (combined date/time, ambiguous cols) ─
   const [suggestions, setSuggestions] = useState<ColumnSuggestion[]>([]);
 
+  // ── AI value translation (background, unrecognized categorical values only) ─
+  const [aiValueNorms, setAiValueNorms] = useState<AiNormalizations>({});
+  const [translatingValues, setTranslatingValues] = useState(false);
+
   // ── "More options" modal for unresolved required fields ─────────────────
   const [moreOptionsField, setMoreOptionsField] = useState<SchemaField | null>(null);
   const [aiMatchingField, setAiMatchingField] = useState<string | null>(null);
@@ -115,6 +120,8 @@ export default function ImportTradesModal({
     setMoreOptionsField(null);
     setAiMatchingField(null);
     setFieldDefaults({});
+    setAiValueNorms({});
+    setTranslatingValues(false);
     setDefaultRiskPct(null);
     setCustomRiskInput('');
     setDefaultRR(null);
@@ -128,6 +135,54 @@ export default function ImportTradesModal({
   function handleClose() {
     resetState();
     onClose();
+  }
+
+  // ── Value translation helper ─────────────────────────────────────────────
+  // Collects sample values that the deterministic normalizer cannot resolve for
+  // direction / trade_outcome / be_final_result, then asks the AI to map them
+  // to the canonical English equivalents. Only triggered when unresolved values exist.
+  async function triggerValueTranslation(
+    currentMatches: ColumnMatch[],
+    samples: Record<string, string[]>,
+  ) {
+    const fields: { direction?: string[]; trade_outcome?: string[]; be_final_result?: string[] } = {};
+
+    const candidates: Array<{
+      dbField: 'direction' | 'trade_outcome' | 'be_final_result';
+      isResolved: (v: string) => boolean;
+    }> = [
+      { dbField: 'direction',      isResolved: (v) => normalizeDirection(v) !== null },
+      { dbField: 'trade_outcome',  isResolved: (v) => normalizeOutcome(v) !== null },
+      { dbField: 'be_final_result',isResolved: (v) => normalizeOutcome(v) === 'Win' || normalizeOutcome(v) === 'Lose' },
+    ];
+
+    for (const { dbField, isResolved } of candidates) {
+      const csvHeader = currentMatches.find((m) => m.dbField === dbField)?.csvHeader;
+      if (!csvHeader) continue;
+
+      const unresolved = (samples[csvHeader] ?? []).filter(
+        (v) => !isResolved(v) && /[a-zA-Z]/.test(v), // word-like only; skip numbers/symbols
+      );
+      if (unresolved.length > 0) fields[dbField] = unresolved;
+    }
+
+    if (Object.keys(fields).length === 0) return;
+
+    setTranslatingValues(true);
+    try {
+      const res = await fetch('/api/translate-values', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields }),
+      });
+      if (!res.ok) return;
+      const norms: AiNormalizations = await res.json();
+      setAiValueNorms(norms);
+    } catch {
+      // Silent — keep deterministic-only normalizations
+    } finally {
+      setTranslatingValues(false);
+    }
   }
 
   // ── File handling ────────────────────────────────────────────────────────
@@ -166,8 +221,14 @@ export default function ImportTradesModal({
     // or misleading headers (e.g. "Column A", "Type") by reading the actual values.
     const valueResult = matchCsvColumns(samples);
     setSuggestions(valueResult.suggestions);
-    setMatches(applyValueMatches(initialMatches, valueResult));
+    const currentMatches = applyValueMatches(initialMatches, valueResult);
+    setMatches(currentMatches);
     setStep('map');
+
+    // Step 3b: background value translation — detect unresolved categorical cell values
+    // (direction / trade_outcome / be_final_result) and ask AI to map them to English.
+    // Runs concurrently with header translation; uses post-value-match column assignments.
+    triggerValueTranslation(currentMatches, samples).catch(() => {});
 
     // Step 3: background AI translation for unmatched headers only.
     // Only send headers that contain non-ASCII characters — those are likely
@@ -265,7 +326,15 @@ export default function ImportTradesModal({
 
     try {
       const fieldMapping = toFieldMapping(matches);
-      const normalizations = buildAutoNormalizations(fieldMapping, columnSamples);
+      const baseNorms = buildAutoNormalizations(fieldMapping, columnSamples);
+      // Merge AI-translated value mappings on top of the deterministic normalizations.
+      // Deterministic rules run first (spread order); AI fills the gaps for foreign languages.
+      const normalizations: AiNormalizations = {
+        ...baseNorms,
+        direction:       { ...baseNorms.direction,       ...aiValueNorms.direction },
+        trade_outcome:   { ...baseNorms.trade_outcome,   ...aiValueNorms.trade_outcome },
+        be_final_result: { ...baseNorms.be_final_result, ...aiValueNorms.be_final_result },
+      };
 
       const { rows: rawRows, errors } = parseCsvTradesWithNorm(csvText, fieldMapping, normalizations, {
         ...(defaultRiskPct !== null ? { risk_per_trade: defaultRiskPct } : {}),
@@ -361,13 +430,19 @@ export default function ImportTradesModal({
   const parsedRowCount = useMemo(() => {
     if (!csvText || matches.length === 0) return 0;
     const fieldMapping = toFieldMapping(matches);
-    const normalizations = buildAutoNormalizations(fieldMapping, columnSamples);
+    const baseNorms = buildAutoNormalizations(fieldMapping, columnSamples);
+    const normalizations: AiNormalizations = {
+      ...baseNorms,
+      direction:       { ...baseNorms.direction,       ...aiValueNorms.direction },
+      trade_outcome:   { ...baseNorms.trade_outcome,   ...aiValueNorms.trade_outcome },
+      be_final_result: { ...baseNorms.be_final_result, ...aiValueNorms.be_final_result },
+    };
     const { rows } = parseCsvTradesWithNorm(csvText, fieldMapping, normalizations, {
       ...(defaultRiskPct !== null ? { risk_per_trade: defaultRiskPct } : {}),
       ...(defaultRR !== null ? { risk_reward_ratio: defaultRR } : {}),
     });
     return rows.length;
-  }, [csvText, matches, columnSamples, defaultRiskPct, defaultRR]);
+  }, [csvText, matches, columnSamples, defaultRiskPct, defaultRR, aiValueNorms]);
 
   const mappedCount = matches.filter((m) => m.dbField).length;
 
@@ -619,6 +694,18 @@ export default function ImportTradesModal({
                         <span>·</span>
                         <span className="text-purple-600 dark:text-purple-400">
                           {translationCount} translated by AI
+                        </span>
+                      </>
+                    )}
+                    {translatingValues && (
+                      <>
+                        <span>·</span>
+                        <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
+                          <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                          Translating values…
                         </span>
                       </>
                     )}
@@ -964,6 +1051,8 @@ export default function ImportTradesModal({
                       setColumnSamples({});
                       setTranslations({});
                       setTranslating(false);
+                      setAiValueNorms({});
+                      setTranslatingValues(false);
                       setErrorMessage('');
                       setDefaultValuesCardError(false);
                       setStep('upload');
@@ -975,10 +1064,10 @@ export default function ImportTradesModal({
                   </Button>
                   <Button
                     onClick={handleImport}
-                    disabled={translating || requiredMissing.length > 0 || !activeAccount}
+                    disabled={translating || translatingValues || requiredMissing.length > 0 || !activeAccount}
                     className="cursor-pointer rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold border-0 shadow-md shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {translating ? 'Translating…' : `Import ${parsedRowCount} trade${parsedRowCount !== 1 ? 's' : ''}`}
+                    {translating || translatingValues ? 'Translating…' : `Import ${parsedRowCount} trade${parsedRowCount !== 1 ? 's' : ''}`}
                   </Button>
                 </>
               )}
