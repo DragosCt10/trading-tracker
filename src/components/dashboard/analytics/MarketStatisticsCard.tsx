@@ -276,9 +276,9 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
                   fill="url(#marketStatsTotalArea)"
                   stroke="none"
                 />
-                <ReBar dataKey="wins" name="Wins" fill="url(#marketStatsWinsBar)" radius={[4, 4, 0, 0]} barSize={18} yAxisId="left" />
-                <ReBar dataKey="losses" name="Losses" fill="url(#marketStatsLossesBar)" radius={[4, 4, 0, 0]} barSize={18} yAxisId="left" />
-                <ReBar dataKey="breakEven" name="Break Even" fill="url(#marketStatsBreakEvenBar)" radius={[4, 4, 0, 0]} barSize={18} yAxisId="left" />
+                <ReBar dataKey="wins" name="Wins" fill="url(#marketStatsWinsBar)" radius={[7, 7, 0, 0]} barSize={18} yAxisId="left" />
+                <ReBar dataKey="losses" name="Losses" fill="url(#marketStatsLossesBar)" radius={[7, 7, 0, 0]} barSize={18} yAxisId="left" />
+                <ReBar dataKey="breakEven" name="Break Even" fill="url(#marketStatsBreakEvenBar)" radius={[7, 7, 0, 0]} barSize={18} yAxisId="left" />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
