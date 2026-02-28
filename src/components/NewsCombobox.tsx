@@ -8,6 +8,7 @@ import type { SavedNewsItem } from '@/types/account-settings';
 
 const MAX_SUGGESTIONS = 8;
 const FILTER_THRESHOLD = 30; // loose threshold while typing
+export const NEWS_INPUT_MAX_LENGTH = 20;
 
 /** Renders 1–3 filled stars followed by empty stars up to 3 */
 function StarsIndicator({ intensity }: { intensity: number }) {
@@ -29,6 +30,8 @@ export interface NewsComboboxProps {
   placeholder?: string;
   className?: string;
   id?: string;
+  /** Max characters allowed (default NEWS_INPUT_MAX_LENGTH). */
+  maxLength?: number;
 }
 
 export function NewsCombobox({
@@ -39,6 +42,7 @@ export function NewsCombobox({
   placeholder = 'e.g. CPI, NFP, FOMC',
   className,
   id,
+  maxLength = NEWS_INPUT_MAX_LENGTH,
 }: NewsComboboxProps) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -98,7 +102,9 @@ export function NewsCombobox({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e.target.value);
+    const next = e.target.value;
+    if (maxLength != null && next.length > maxLength) return;
+    onChange(next);
     setOpen(true);
     setActiveIndex(-1);
   };
@@ -141,11 +147,21 @@ export function NewsCombobox({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         autoComplete="off"
-        className={cn(className)}
+        maxLength={maxLength}
+        className={cn(className, maxLength != null && 'pr-12')}
         role="combobox"
         aria-expanded={showDropdown}
         aria-autocomplete="list"
+        aria-describedby={maxLength != null ? `${id ?? 'news-combobox'}-hint` : undefined}
       />
+      {maxLength != null && (
+        <span
+          id={`${id ?? 'news-combobox'}-hint`}
+          className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs text-slate-400 dark:text-slate-500 tabular-nums"
+        >
+          {inputValue.length}/{maxLength}
+        </span>
+      )}
       {showDropdown && (
         <ul
           role="listbox"
