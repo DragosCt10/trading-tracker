@@ -274,66 +274,56 @@ export function AccountOverviewCard({
                     }
                   />
                   
-                  {/* Sleek custom tooltip */}
+                  {/* Tooltip – same style as Long/Short Stats (DirectionStatisticsCard) */}
                   <ReTooltip
-                    contentStyle={{ 
-                      background: isDark 
-                        ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)' 
-                        : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
-                      backdropFilter: 'blur(16px)',
-                      border: isDark 
-                        ? '1px solid rgba(51, 65, 85, 0.6)' 
-                        : '1px solid rgba(148, 163, 184, 0.2)', 
-                      borderRadius: '16px', 
-                      padding: '14px 18px', 
-                      color: isDark ? '#e2e8f0' : '#1e293b', 
-                      fontSize: 14,
-                      boxShadow: isDark
-                        ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05)'
-                        : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-                      minWidth: '160px'
+                    contentStyle={{
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      boxShadow: 'none',
+                      minWidth: '160px',
                     }}
-                    wrapperStyle={{ 
+                    wrapperStyle={{
                       outline: 'none',
-                      zIndex: 1000
+                      zIndex: 1000,
                     }}
-                    cursor={{ 
-                      fill: 'transparent', 
-                      radius: 8,
-                    }}
+                    cursor={{ fill: 'transparent', radius: 8 }}
                     content={({ active, payload }) => {
                       if (!active || !payload || !payload.length) return null;
-                      
+
                       const data = payload[0].payload;
                       const profit = data.profit;
                       const percent = data.profitPercent;
                       const isProfit = profit >= 0;
 
                       return (
-                        <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
-                          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-                            {data.month}
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-baseline justify-between gap-4">
-                              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Profit:</span>
-                              <span className={`text-lg font-bold ${isProfit ? 'text-teal-600 dark:text-teal-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                {currencySymbol}
-                                {profit.toLocaleString('en-US', {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })}
-                              </span>
+                        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-50">
+                          <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
+                          <div className="relative flex flex-col gap-3">
+                            <div className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                              {data.month}
                             </div>
-                            <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Return:</span>
-                              <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold ${
-                                isProfit 
-                                  ? 'bg-teal-500/10 text-teal-600 dark:bg-teal-500/20 dark:text-teal-400' 
-                                  : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
-                              }`}>
-                                {isProfit ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-                                {percent}%
+                            <div className="space-y-2">
+                              <div className="flex items-baseline justify-between gap-4">
+                                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Profit</span>
+                                <span className={`text-base font-bold ${isProfit ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                                  {currencySymbol}
+                                  {profit.toLocaleString('en-US', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Return</span>
+                                <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold ${
+                                  isProfit
+                                    ? 'bg-teal-500/10 text-teal-600 dark:bg-teal-500/20 dark:text-teal-400'
+                                    : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
+                                }`}>
+                                  {isProfit ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                                  {percent}%
+                                </div>
                               </div>
                             </div>
                           </div>
