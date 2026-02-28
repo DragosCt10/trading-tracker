@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { Trade } from '@/types/trade';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import NotesModal from '@/components/NotesModal';
@@ -11,6 +11,7 @@ import { DateRange } from 'react-date-range';
 import { Calendar, Trash2 } from 'lucide-react';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { useColorTheme } from '@/hooks/useColorTheme';
 import { useQueryClient } from '@tanstack/react-query';
 import { getFilteredTrades, deleteTrades } from '@/lib/server/trades';
 import type { Database } from '@/types/supabase';
@@ -116,6 +117,13 @@ export default function ManageTradesClient({
   const pickerRef = useRef<HTMLDivElement>(null);
 
   const [tempRange, setTempRange] = useState<DateRangeState>(initialDateRange);
+
+  const { colorTheme } = useColorTheme();
+  const dateRangeColor = useMemo(() => {
+    if (typeof window === 'undefined') return '#a855f7';
+    const value = getComputedStyle(document.documentElement).getPropertyValue('--tc-primary').trim();
+    return value || '#a855f7';
+  }, [colorTheme]);
 
   type FilterType = 'year' | '15days' | '30days' | 'month' | null;
   const [activeFilter, setActiveFilter] = useState<FilterType>('month');
@@ -591,14 +599,10 @@ export default function ManageTradesClient({
                       ref={pickerRef}
                       className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50 dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-lg shadow-slate-300/30 dark:shadow-slate-900/30"
                     >
-                      {/* Gradient orbs background - dark mode only */}
+                      {/* Gradient orbs background - dark mode only (theme-aware) */}
                       <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl hidden dark:block">
-                        <div
-                          className="absolute -top-40 -left-32 w-[420px] h-[420px] bg-purple-500/10 rounded-full blur-3xl"
-                        />
-                        <div
-                          className="absolute -bottom-40 -right-32 w-[420px] h-[420px] bg-violet-500/10 rounded-full blur-3xl"
-                        />
+                        <div className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl" />
+                        <div className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl" />
                       </div>
 
                       {/* Noise texture overlay - dark mode only */}
@@ -610,8 +614,8 @@ export default function ManageTradesClient({
                         }}
                       />
 
-                      {/* Top accent line - dark mode only */}
-                      <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent opacity-60 hidden dark:block" />
+                      {/* Top accent line - dark mode only (theme-aware) */}
+                      <div className="absolute -top-px left-0 right-0 h-0.5 opacity-60 hidden dark:block" style={{ background: 'linear-gradient(to right, transparent, var(--tc-primary), transparent)' }} />
 
                       <div className="relative p-2">
                         <DateRange
@@ -635,7 +639,7 @@ export default function ManageTradesClient({
                           editableDateInputs={false}
                           maxDate={new Date()}
                           showMonthAndYearPickers
-                          rangeColors={['#a855f7']} // purple-500 for gradient
+                          rangeColors={[dateRangeColor]}
                           direction="vertical"
                         />
 
