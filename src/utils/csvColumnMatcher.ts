@@ -247,7 +247,7 @@ function scoreOutcome(samples: string[]): number {
   const valid = samples.filter((s) => s !== '');
   if (valid.length === 0) return 0;
   const unique = new Set(valid.map((s) => s.toLowerCase().trim()));
-  if ([...unique].every(isOutcome) && unique.size <= 5) return 1;
+  if (Array.from(unique).every(isOutcome) && unique.size <= 5) return 1;
   const matched = valid.filter(isOutcome);
   return matched.length / valid.length;
 }
