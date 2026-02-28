@@ -1074,6 +1074,17 @@ export default function ImportTradesModal({
                   >
                     ← Change file
                   </Button>
+                  {/* ── Debug: why is the button disabled? ── */}
+                  {(translating || translatingValues || requiredMissing.length > 0 || !activeAccount) && (
+                    <div className="flex flex-col gap-0.5 text-[10px] text-right text-red-500 dark:text-red-400">
+                      {translating && <span>⏳ translating headers…</span>}
+                      {translatingValues && <span>⏳ translating values…</span>}
+                      {!activeAccount && <span>❌ no active account</span>}
+                      {requiredMissing.map((f) => (
+                        <span key={f.key}>❌ required field not resolved: <b>{f.label}</b></span>
+                      ))}
+                    </div>
+                  )}
                   <Button
                     onClick={handleImport}
                     disabled={translating || translatingValues || requiredMissing.length > 0 || !activeAccount}
