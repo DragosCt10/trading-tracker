@@ -1213,13 +1213,16 @@ export default function StrategyClient(
         />
       </div>
 
-      {/* Day Stats (wider) & News Stats (narrower) - same height */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-6 my-8 items-stretch">
+      {/* Day Stats - full width */}
+      <div className="my-8">
         <DayStatisticsCard
           dayStats={filteredChartStats ? (statsToUseForCharts.dayStats as DayStatisticsCardProps['dayStats']) : dayStats}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
+      </div>
+      {/* News Stats - full width below Day Stats */}
+      <div className="my-8">
         <NewsStatisticsCard
           newsStats={newsStatsFromTradesToUse}
           isLoading={chartsLoadingState}
