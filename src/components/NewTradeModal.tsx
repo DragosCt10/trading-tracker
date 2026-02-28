@@ -447,18 +447,13 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       // ✅ Invalidate and refetch all queries to ensure analytics updates immediately
       await invalidateAndRefetchTradeQueries();
 
-      // Show success
+      // Show success, then close immediately
       setProgressDialog({ open: true, status: 'success', message: 'Your trade has been added successfully. All charts and statistics have been updated.' });
-
-      // Wait 5 seconds to show success message, then close
-      setTimeout(() => {
-        setProgressDialog({ open: false, status: 'loading', message: '' });
-        setIsSubmitting(false);
-        if (onTradeCreated) onTradeCreated();
-        onClose();
-        // Reset form
-        setTrade(initialTradeState);
-      }, 2000);
+      setProgressDialog({ open: false, status: 'loading', message: '' });
+      setIsSubmitting(false);
+      if (onTradeCreated) onTradeCreated();
+      onClose();
+      setTrade(initialTradeState);
     } catch (err: any) {
       setProgressDialog({ 
         open: true, 
@@ -545,26 +540,14 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   <Label htmlFor="liquidity-taken" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Liquidity Link
                   </Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="liquidity-taken"
-                      type="url"
-                      value={trade.liquidity_taken}
-                      onChange={(e) => updateTrade('liquidity_taken', e.target.value)}
-                      className="h-12 flex-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                      placeholder="https://..."
-                    />
-                    {trade.liquidity_taken && (trade.liquidity_taken.startsWith('http://') || trade.liquidity_taken.startsWith('https://')) && (
-                      <a
-                        href={trade.liquidity_taken}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="shrink-0 text-sm font-medium text-sky-600 dark:text-sky-400 hover:underline"
-                      >
-                        Open
-                      </a>
-                    )}
-                  </div>
+                  <Input
+                    id="liquidity-taken"
+                    type="url"
+                    value={trade.liquidity_taken}
+                    onChange={(e) => updateTrade('liquidity_taken', e.target.value)}
+                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                    placeholder="https://..."
+                  />
                 </div>
               )}
 
@@ -572,26 +555,14 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 <Label htmlFor="trade-link" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Trade Link
                 </Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="trade-link"
-                    type="url"
-                    value={trade.trade_link}
-                    onChange={(e) => updateTrade('trade_link', e.target.value)}
-                    className="h-12 flex-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                    placeholder="https://..."
-                  />
-                  {trade.trade_link && (trade.trade_link.startsWith('http://') || trade.trade_link.startsWith('https://')) && (
-                    <a
-                      href={trade.trade_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 text-sm font-medium text-sky-600 dark:text-sky-400 hover:underline"
-                    >
-                      Open
-                    </a>
-                  )}
-                </div>
+                <Input
+                  id="trade-link"
+                  type="url"
+                  value={trade.trade_link}
+                  onChange={(e) => updateTrade('trade_link', e.target.value)}
+                  className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                  placeholder="https://..."
+                />
               </div>
             </div>
 
