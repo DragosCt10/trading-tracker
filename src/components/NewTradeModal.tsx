@@ -367,6 +367,10 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       setError('Please select Direction and Trade Outcome.');
       return;
     }
+    if (!trade.trade_time || trade.trade_time.trim() === '') {
+      setError('Please select Trade Time (interval).');
+      return;
+    }
     if (isTradingInstitutional && (!trade.setup_type || !trade.liquidity || !trade.mss || !trade.sl_size)) {
       setError('Please fill in all required fields (Setup Type, Liquidity, MSS, SL Size).');
       return;
@@ -614,7 +618,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
               <div className="space-y-2">
                 <Label htmlFor="trade-time-interval" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Trade Time (interval)
+                  Trade Time (interval) *
                 </Label>
                 <Select
                   value={trade.trade_time || ''}
@@ -1115,7 +1119,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               {/* News event + intensity — shown inline when News is checked */}
               {trade.news_related && (
                 <div className="w-full mt-1 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                  <div className="flex-1 min-w-0">
+                  <div className="w-full max-w-[400px] min-w-0">
                     <NewsCombobox
                       id="news-name"
                       value={trade.news_name ?? ''}
