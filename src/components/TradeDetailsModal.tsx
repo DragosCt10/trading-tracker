@@ -758,54 +758,57 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
           <div className="space-y-6">
             {/* Trade Outcome Card - Prominent Display */}
             <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className={`grid grid-cols-1 gap-6 ${editedTrade?.trade_outcome === 'BE' ? 'md:grid-cols-5' : 'md:grid-cols-4'}`}>
                 <div>
                   <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Outcome</label>
                   <div className="mt-2">
                     {!isEditing ? (
-                      renderOutcomeBadges(editedTrade?.trade_outcome as string, editedTrade?.be_final_result)
+                      editedTrade?.trade_outcome === 'BE'
+                        ? renderOutcomeBadge(editedTrade.trade_outcome)
+                        : renderOutcomeBadges(editedTrade?.trade_outcome as string, editedTrade?.be_final_result)
                     ) : (
-                      <>
-                        <Select
-                          value={editedTrade?.trade_outcome ?? ''}
-                          onValueChange={(val) => handleInputChange('trade_outcome', val)}
-                        >
-                          <SelectTrigger className={selectTriggerClass}>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className={selectContentClass}>
-                            <SelectItem value="Win">Win</SelectItem>
-                            <SelectItem value="Lose">Lose</SelectItem>
-                            <SelectItem value="BE">BE</SelectItem>
-                          </SelectContent>
-                        </Select>
-
-                        {editedTrade?.trade_outcome === 'BE' && (
-                          <div className="mt-3">
-                            <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                              Final result <span className="font-normal normal-case tracking-normal">(optional)</span>
-                            </label>
-                            <div className="mt-2">
-                              <Select
-                                value={editedTrade?.be_final_result ?? '__none__'}
-                                onValueChange={(val) => handleInputChange('be_final_result', val === '__none__' ? null : val)}
-                              >
-                                <SelectTrigger className={selectTriggerClass}>
-                                  <SelectValue placeholder="Win or Lose at close" />
-                                </SelectTrigger>
-                                <SelectContent className={selectContentClass}>
-                                  <SelectItem value="__none__">—</SelectItem>
-                                  <SelectItem value="Win">Win</SelectItem>
-                                  <SelectItem value="Lose">Lose</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        )}
-                      </>
+                      <Select
+                        value={editedTrade?.trade_outcome ?? ''}
+                        onValueChange={(val) => handleInputChange('trade_outcome', val)}
+                      >
+                        <SelectTrigger className={selectTriggerClass}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className={selectContentClass}>
+                          <SelectItem value="Win">Win</SelectItem>
+                          <SelectItem value="Lose">Lose</SelectItem>
+                          <SelectItem value="BE">BE</SelectItem>
+                        </SelectContent>
+                      </Select>
                     )}
                   </div>
                 </div>
+                {editedTrade?.trade_outcome === 'BE' && (
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">After BE</label>
+                    <div className="mt-2">
+                      {!isEditing ? (
+                        editedTrade?.be_final_result
+                          ? renderOutcomeBadge(editedTrade.be_final_result)
+                          : <span className="text-sm text-slate-400 dark:text-slate-500">—</span>
+                      ) : (
+                        <Select
+                          value={editedTrade?.be_final_result ?? '__none__'}
+                          onValueChange={(val) => handleInputChange('be_final_result', val === '__none__' ? null : val)}
+                        >
+                          <SelectTrigger className={selectTriggerClass}>
+                            <SelectValue placeholder="Win or Lose at close" />
+                          </SelectTrigger>
+                          <SelectContent className={selectContentClass}>
+                            <SelectItem value="__none__">—</SelectItem>
+                            <SelectItem value="Win">Win</SelectItem>
+                            <SelectItem value="Lose">Lose</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div>
                   <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">P&L %</label>
                   <div className={`mt-2 text-2xl font-bold ${editedTrade?.trade_outcome === 'Lose' ? 'text-red-500 dark:text-red-400' : editedTrade?.trade_outcome === 'BE' ? 'text-orange-600 dark:text-orange-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
