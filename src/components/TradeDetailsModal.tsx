@@ -917,8 +917,8 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Execution</h4>
                   <div className="space-y-3">
                     {isTradingInstitutional && (isEditing || (editedTrade?.mss != null && editedTrade.mss !== '')) && renderField('MSS', 'mss', 'select', MSS_OPTIONS)}
-                    {renderField('Break Even', 'break_even', 'boolean')}
                     {renderField('Re-entry', 'reentry', 'boolean')}
+                    {isTradingInstitutional && renderField('Launch Hour', 'launch_hour', 'boolean')}
                   </div>
                 </div>
 
@@ -928,7 +928,6 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   <div className="space-y-3">
                     {renderField('News Related', 'news_related', 'boolean')}
                     {renderField('Local High/Low', 'local_high_low', 'boolean')}
-                    {isTradingInstitutional && renderField('Launch Hour', 'launch_hour', 'boolean')}
                   </div>
                 </div>
 
