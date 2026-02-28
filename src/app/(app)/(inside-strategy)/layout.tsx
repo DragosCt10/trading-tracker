@@ -68,7 +68,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
       {/* Floating Left Bar - Centered Middle */}
       <div className="fixed left-4 top-1/2 -translate-y-1/2 z-40 hidden lg:block group">
         <div className="relative rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden transition-all duration-300 w-20 hover:w-52">
-          <div className="themed-nav-overlay pointer-events-none absolute inset-0" />
+          <div className="themed-nav-overlay themed-nav-overlay--vertical pointer-events-none absolute inset-0" />
           <div className="relative flex flex-col gap-2 p-3">
             <Button
               variant="ghost"
