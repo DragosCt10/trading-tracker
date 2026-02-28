@@ -707,7 +707,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               {trade.trade_outcome === 'BE' && (
                 <div className="space-y-2">
                   <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Final result <span className="font-normal text-slate-500 dark:text-slate-400">(optional)</span>
+                    After BE
                   </Label>
                   <Select
                     value={trade.be_final_result ?? '__none__'}
