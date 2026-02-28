@@ -252,12 +252,12 @@ function scoreOutcome(samples: string[]): number {
   return matched.length / valid.length;
 }
 
-/** Normalise a raw trade outcome CSV value to "Win" | "Lose" | "Break-Even". */
-export function normalizeOutcome(val: string): 'Win' | 'Lose' | 'Break-Even' | null {
+/** Normalise a raw trade outcome CSV value to "Win" | "Lose" | "BE". */
+export function normalizeOutcome(val: string): 'Win' | 'Lose' | 'BE' | null {
   const lower = val.toLowerCase().trim();
   if (OUTCOME_WIN.has(lower))  return 'Win';
   if (OUTCOME_LOSE.has(lower)) return 'Lose';
-  if (OUTCOME_BE.has(lower))   return 'Break-Even';
+  if (OUTCOME_BE.has(lower))   return 'BE';
   return null;
 }
 
