@@ -25,6 +25,7 @@ export interface Database {
           is_dashboard_public: boolean | null;
           dashboard_hash: string | null;
           description: string | null;
+          saved_news: Json | null;
         };
         Insert: Partial<Database['public']['Tables']['account_settings']['Row']> & {
           user_id: string;
@@ -80,6 +81,8 @@ export interface Database {
           mind_state_at_entry: number | null; // 1–5 mind state at entry
           be_final_result: string | null; // When trade_outcome is BE: 'Win' | 'Lose' | null
           trade_executed_at: string | null; // UTC ISO for session bucketing (NY/UK/Asia)
+          news_name: string | null;
+          news_intensity: number | null; // 1 | 2 | 3
         };
         Insert: Partial<Database['public']['Tables']['live_trades']['Row']> & {
           user_id: string;
@@ -138,6 +141,8 @@ export interface Database {
           mind_state_at_entry: number | null; // 1–5 mind state at entry
           be_final_result: string | null; // When trade_outcome is BE: 'Win' | 'Lose' | null
           trade_executed_at: string | null; // UTC ISO for session bucketing (NY/UK/Asia)
+          news_name: string | null;
+          news_intensity: number | null; // 1 | 2 | 3
         };
         Insert: Partial<Database['public']['Tables']['backtesting_trades']['Row']> & {
           user_id: string;
@@ -196,6 +201,8 @@ export interface Database {
           mind_state_at_entry: number | null; // 1–5 mind state at entry
           be_final_result: string | null; // When trade_outcome is BE: 'Win' | 'Lose' | null
           trade_executed_at: string | null; // UTC ISO for session bucketing (NY/UK/Asia)
+          news_name: string | null;
+          news_intensity: number | null; // 1 | 2 | 3
         };
         Insert: Partial<Database['public']['Tables']['demo_trades']['Row']> & {
           user_id: string;
