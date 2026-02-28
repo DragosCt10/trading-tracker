@@ -40,4 +40,6 @@ export interface Trade {
   confidence_at_entry?: number | null;
   /** Mind state at entry (1–5): 1=very poor, 5=very good. Optional. */
   mind_state_at_entry?: number | null;
+  /** UTC ISO timestamp for session bucketing (NY/UK/Asia); derived from trade_date + trade_time (local). */
+  trade_executed_at?: string | null;
 }
