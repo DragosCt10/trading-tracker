@@ -28,13 +28,7 @@ export function calculateLaunchHourStats(trades: Trade[]) {
   const launchHourTrades = trades.filter((t) => t.launch_hour);
   const totalLaunchHour = launchHourTrades.length;
 
-  const beWins = launchHourTrades.filter(
-    (t) => t.break_even && t.trade_outcome === 'Win',
-  ).length;
-  const beLosses = launchHourTrades.filter(
-    (t) => t.break_even && t.trade_outcome === 'Lose',
-  ).length;
-
+  const breakEven = launchHourTrades.filter((t) => t.break_even).length;
   const wins = launchHourTrades.filter(
     (t) => t.trade_outcome === 'Win' && !t.break_even,
   ).length;
@@ -42,30 +36,20 @@ export function calculateLaunchHourStats(trades: Trade[]) {
     (t) => t.trade_outcome === 'Lose' && !t.break_even,
   ).length;
 
-  const totalWins = wins + beWins;
-  const totalLosses = losses + beLosses;
-  const totalBE = beWins + beLosses;
-
   const tradesWithoutBE = wins + losses;
   const winRate =
     tradesWithoutBE > 0 ? (wins / tradesWithoutBE) * 100 : 0;
 
-  const totalWithBE = wins + losses + beWins + beLosses;
+  const totalWithBE = wins + losses + breakEven;
   const winRateWithBE =
-    totalWithBE > 0 ? ((wins + beWins) / totalWithBE) * 100 : 0;
+    totalWithBE > 0 ? (wins / totalWithBE) * 100 : 0;
 
   return {
     totalLaunchHour,
     wins,
     losses,
-    beWins,
-    beLosses,
-    totalWins,
-    totalLosses,
-    totalBE,
-    tradesWithoutBE,
+    breakEven,
     winRate,
-    totalWithBE,
     winRateWithBE,
   };
 }
@@ -101,54 +85,48 @@ export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.m
       totalLaunchHour,
       wins,
       losses,
-      beWins,
-      beLosses,
-      totalBE,
+      breakEven,
       winRate,
       winRateWithBE,
     } = stats;
 
-    // Prepare pie chart data
-    const totalForChart = wins + losses + totalBE;
+    // Prepare pie chart data (Wins, Losses, Break Even - one BE bucket)
+    const totalForChart = wins + losses + breakEven;
     const pieData = [
       { name: 'Wins', value: wins, color: 'emerald', percentage: totalForChart > 0 ? (wins / totalForChart) * 100 : 0 },
       { name: 'Losses', value: losses, color: 'rose', percentage: totalForChart > 0 ? (losses / totalForChart) * 100 : 0 },
-      { name: 'Break Even', value: totalBE, color: 'amber', percentage: totalForChart > 0 ? (totalBE / totalForChart) * 100 : 0 },
+      { name: 'Break Even', value: breakEven, color: 'amber', percentage: totalForChart > 0 ? (breakEven / totalForChart) * 100 : 0 },
     ].filter((item) => item.value > 0); // Only show segments with values
 
     const CustomTooltip = ({ active, payload }: any) => {
       if (!active || !payload || payload.length === 0) return null;
 
       const data = payload[0].payload;
-      const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
+      const colorMap: Record<string, { text: string; dot: string }> = {
         emerald: {
-          bg: 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200/50 dark:border-emerald-800/30',
           text: 'text-emerald-600 dark:text-emerald-400',
           dot: 'bg-emerald-500 dark:bg-emerald-400 ring-emerald-200/50 dark:ring-emerald-500/30',
         },
         rose: {
-          bg: 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-200/50 dark:border-rose-800/30',
           text: 'text-rose-600 dark:text-rose-400',
           dot: 'bg-rose-500 dark:bg-rose-400 ring-rose-200/50 dark:ring-rose-500/30',
         },
         amber: {
-          bg: 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-800/30',
           text: 'text-amber-600 dark:text-amber-400',
           dot: 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30',
         },
       };
-
       const colors = colorMap[data.color] || colorMap.emerald;
       const percentage = totalForChart > 0 ? (data.value / totalForChart) * 100 : 0;
 
       return (
-        <div className={cn("relative overflow-hidden rounded-xl p-3 border shadow-lg shadow-slate-900/5 dark:shadow-black/40 backdrop-blur-xl", colors.bg)}>
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5 rounded-xl" />
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-3 text-slate-900 dark:text-slate-50">
+          <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
           <div className="relative flex flex-col">
             <div className="flex items-center gap-2">
-              <div className={cn("h-2 w-2 rounded-full shadow-sm ring-2", colors.dot)}></div>
+              <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
               <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                {data.name}: <span className={cn("font-bold", colors.text)}>{data.value}</span>
+                {data.name}: <span className={cn('font-bold', colors.text)}>{data.value}</span>
               </div>
             </div>
             <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 ml-4 font-medium">
