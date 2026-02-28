@@ -32,7 +32,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Loader2, Info, AlertCircle, X, Calendar, Clock } from 'lucide-react';
+import { Loader2, Info, AlertCircle, X, Calendar } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -45,6 +45,7 @@ import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarke
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { MarketCombobox } from '@/components/MarketCombobox';
 import { ALLOWED_MARKETS } from '@/constants/allowedMarkets';
+import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
 
 /** Kept for any legacy reference; market input uses MarketCombobox + ALLOWED_MARKETS. */
 const MARKET_OPTIONS = ALLOWED_MARKETS;
@@ -199,10 +200,16 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
           if (notes && notes.includes('🧠 Emotions:')) {
             notes = NOTES_TEMPLATE;
           }
+          // Normalize legacy trade_time (e.g. "09:30") to interval start (e.g. "08:00") so interval Select and TimeIntervalStatisticsCard both work
+          const rawTime = parsed.trade_time || '';
+          const intervalForTime = rawTime ? getIntervalForTime(rawTime) : null;
+          const tradeTime = intervalForTime ? intervalForTime.start : rawTime;
+
           return {
             ...initialTradeState,
             ...parsed,
             trade_date: dateStr,
+            trade_time: tradeTime,
             day_of_week:
               parsed.day_of_week ||
               WEEKDAY_MAP[new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' })],
@@ -557,20 +564,28 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="trade-time" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Trade Time *
+                <Label htmlFor="trade-time-interval" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Trade Time (interval) *
                 </Label>
-                <div className="relative">
-                  <Input
-                    id="trade-time"
-                    type="time"
-                    value={trade.trade_time}
-                    onChange={(e) => updateTrade('trade_time', e.target.value)}
-                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 pr-12 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-12 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                    required
-                  />
-                  <Clock className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-slate-500 shrink-0" strokeWidth={1.75} />
-                </div>
+                <Select
+                  value={trade.trade_time || ''}
+                  onValueChange={(v) => updateTrade('trade_time', v)}
+                  required
+                >
+                  <SelectTrigger
+                    id="trade-time-interval"
+                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                  >
+                    <SelectValue placeholder="Select time interval" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIME_INTERVALS.map((interval) => (
+                      <SelectItem key={interval.start} value={interval.start}>
+                        {interval.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
