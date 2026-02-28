@@ -789,6 +789,10 @@ html.dark[data-color-theme="ice"] {
 .themed-nav-overlay {
   background: linear-gradient(to right, var(--orb-1), transparent, var(--orb-2));
 }
+/* Vertical variant — only for inside-strategy sidebar */
+.themed-nav-overlay--vertical {
+  background: linear-gradient(to bottom, var(--orb-1), transparent, var(--orb-2));
+}
 
 /* ---- Themed toggle (ViewModeToggle active state) ---- */
 .themed-toggle-active {
