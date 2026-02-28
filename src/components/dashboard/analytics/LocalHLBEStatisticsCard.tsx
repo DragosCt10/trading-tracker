@@ -10,10 +10,17 @@ import {
   CardDescription,
   CardContent,
 } from '@/components/ui/card';
+import {
+  Tooltip as UITooltip,
+  TooltipContent as UITooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { cn } from '@/lib/utils';
 import { isLocalHighLowLiquidated } from '@/utils/calculateCategoryStats';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { Info } from 'lucide-react';
 
 export interface LocalHLBEStatisticsCardProps {
   trades: Trade[];
@@ -21,25 +28,29 @@ export interface LocalHLBEStatisticsCardProps {
 }
 
 /**
- * Compute Local H/L & BE stats from trades (trades that are both Local High/Low liquidated and Break Even)
+ * Compute Local H/L & BE stats from trades (Local High/Low liquidated + Break Even).
+ * Wins/losses use trade_outcome or be_final_result for BE trades.
  */
 function getLocalHLBEStats(trades: Trade[]) {
   const liquidatedBETrades = trades.filter(
     (t) => isLocalHighLowLiquidated(t.local_high_low) && t.break_even,
   );
-  const beWins = liquidatedBETrades.filter((t) => t.trade_outcome === 'Win').length;
-  const beLosses = liquidatedBETrades.filter((t) => t.trade_outcome === 'Lose').length;
+  const wins = liquidatedBETrades.filter((t) => {
+    if (t.trade_outcome === 'BE') return t.be_final_result === 'Win';
+    return t.trade_outcome === 'Win';
+  }).length;
+  const losses = liquidatedBETrades.filter((t) => {
+    if (t.trade_outcome === 'BE') return t.be_final_result === 'Lose';
+    return t.trade_outcome === 'Lose';
+  }).length;
   const totalTrades = liquidatedBETrades.length;
-  const executedCount = beWins + beLosses;
-  const winRate = executedCount > 0 ? (beWins / executedCount) * 100 : 0;
-  const winRateWithBE = winRate;
+  const winRate = wins + losses > 0 ? (wins / (wins + losses)) * 100 : 0;
+  const winRateWithBE = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
 
   return {
     totalTrades,
-    wins: 0,
-    losses: 0,
-    beWins,
-    beLosses,
+    wins,
+    losses,
     winRate,
     winRateWithBE,
   };
@@ -79,67 +90,41 @@ export const LocalHLBEStatisticsCard: React.FC<LocalHLBEStatisticsCardProps> = R
 
     const stats = getLocalHLBEStats(trades);
     const totalTrades = stats.totalTrades;
-    const pieData = totalTrades > 0 ? [{ name: LEGEND_LABEL, value: totalTrades }] : [];
+    // Only Wins and Losses from be_final_result (we're already inside BE trades)
+    const pieData = [
+      { name: 'Wins', value: stats.wins, color: 'emerald', gradientId: 'localHLBEWins', pct: totalTrades > 0 ? (stats.wins / totalTrades) * 100 : 0 },
+      { name: 'Losses', value: stats.losses, color: 'rose', gradientId: 'localHLBELosses', pct: totalTrades > 0 ? (stats.losses / totalTrades) * 100 : 0 },
+    ].filter((d) => d.value > 0);
 
     const CustomTooltip = ({
       active,
       payload,
     }: {
       active?: boolean;
-      payload?: { payload: { name: string; value: number } }[];
+      payload?: { payload: { name: string; value: number; color: string; pct?: number } }[];
     }) => {
       if (!active || !payload?.length) return null;
-      if (isSmallScreen) {
-        return (
-          <div className="relative overflow-hidden rounded-xl p-4 border shadow-lg shadow-slate-900/5 dark:shadow-black/40 backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border-slate-200/60 dark:border-slate-700/60">
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-blue-500/5 via-transparent to-blue-500/5 rounded-xl" />
-            <div className="relative flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full shadow-sm ring-2 bg-blue-500 dark:bg-blue-400 ring-blue-200/50 dark:ring-blue-500/30" />
-                <div className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                  {LEGEND_LABEL} ({totalTrades} {totalTrades === 1 ? 'TRADE' : 'TRADES'})
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-baseline justify-between gap-4">
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
-                  <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-                    {stats.beWins}
-                    {stats.beWins > 0 && (
-                      <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">(BE)</span>
-                    )}
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between gap-4">
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
-                  <span className="text-base font-bold text-rose-600 dark:text-rose-400">
-                    {stats.beLosses}
-                    {stats.beLosses > 0 && (
-                      <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">(BE)</span>
-                    )}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
-                  <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                    {stats.winRate.toFixed(2)}%
-                  </div>
-                </div>
-                <div className="flex items-center justify-between gap-4 pt-1">
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate (w/ BE):</span>
-                  <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                    {stats.winRateWithBE.toFixed(2)}%
-                  </div>
-                </div>
+      const data = payload[0].payload;
+      const colorMap: Record<string, { text: string; dot: string }> = {
+        emerald: { text: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500 dark:bg-emerald-400 ring-emerald-200/50 dark:ring-emerald-500/30' },
+        rose: { text: 'text-rose-600 dark:text-rose-400', dot: 'bg-rose-500 dark:bg-rose-400 ring-rose-200/50 dark:ring-rose-500/30' },
+        amber: { text: 'text-amber-600 dark:text-amber-400', dot: 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30' },
+      };
+      const colors = colorMap[data.color] || colorMap.emerald;
+      const percentage = data.pct ?? (totalTrades > 0 ? (data.value / totalTrades) * 100 : 0);
+      return (
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-3 text-slate-900 dark:text-slate-50">
+          <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
+          <div className="relative flex flex-col">
+            <div className="flex items-center gap-2">
+              <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
+              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {data.name}: <span className={cn('font-bold', colors.text)}>{data.value}</span>
               </div>
             </div>
-          </div>
-        );
-      }
-      return (
-        <div className="rounded-lg border border-slate-200/60 dark:border-slate-700/60 bg-white/95 dark:bg-slate-900/95 px-3 py-2 shadow-md">
-          <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-            {LEGEND_LABEL} · {totalTrades} {totalTrades === 1 ? 'trade' : 'trades'}
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 ml-4 font-medium">
+              {percentage.toFixed(1)}% of total
+            </div>
           </div>
         </div>
       );
@@ -191,9 +176,31 @@ export const LocalHLBEStatisticsCard: React.FC<LocalHLBEStatisticsCardProps> = R
     return (
       <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Local H/L & BE Stats
-          </CardTitle>
+          <div className="flex items-center gap-2 mb-1">
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+              Local H/L & BE Stats
+            </CardTitle>
+            <TooltipProvider>
+              <UITooltip delayDuration={150}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex h-4 w-4 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none shrink-0"
+                    aria-label="Stats accuracy info"
+                  >
+                    <Info className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <UITooltipContent
+                  side="top"
+                  className="max-w-xs text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 p-3"
+                  sideOffset={6}
+                >
+                  For accurate stats, select BE as trade outcome and also set After BE (Win or Lose).
+                </UITooltipContent>
+              </UITooltip>
+            </TooltipProvider>
+          </div>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Analysis of trades marked as both Local High/Low and Break Even
           </CardDescription>
@@ -204,10 +211,15 @@ export const LocalHLBEStatisticsCard: React.FC<LocalHLBEStatisticsCardProps> = R
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <defs>
-                    <linearGradient id="localHLBEGrad0" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
-                      <stop offset="50%" stopColor="#2563eb" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#1d4ed8" stopOpacity={0.9} />
+                    <linearGradient id="localHLBEWins" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+                      <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
+                    </linearGradient>
+                    <linearGradient id="localHLBELosses" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
+                      <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
                     </linearGradient>
                   </defs>
                   <Pie
@@ -220,7 +232,9 @@ export const LocalHLBEStatisticsCard: React.FC<LocalHLBEStatisticsCardProps> = R
                     cornerRadius={5}
                     dataKey="value"
                   >
-                    <Cell key="cell-0" fill="url(#localHLBEGrad0)" stroke="none" />
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={`url(#${entry.gradientId})`} stroke="none" />
+                    ))}
                   </Pie>
                   <Tooltip
                     contentStyle={{
@@ -265,35 +279,18 @@ export const LocalHLBEStatisticsCard: React.FC<LocalHLBEStatisticsCardProps> = R
             <div className="flex items-center justify-center gap-8 flex-wrap">
               <div className="flex flex-col items-center min-w-[4rem]">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Wins</div>
-                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                  {stats.beWins}
-                  {stats.beWins > 0 && (
-                    <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">BE</span>
-                  )}
-                </div>
+                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{stats.wins}</div>
               </div>
               <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
               <div className="flex flex-col items-center min-w-[4rem]">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Losses</div>
-                <div className="text-lg font-bold text-rose-600 dark:text-rose-400">
-                  {stats.beLosses}
-                  {stats.beLosses > 0 && (
-                    <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">BE</span>
-                  )}
-                </div>
+                <div className="text-lg font-bold text-rose-600 dark:text-rose-400">{stats.losses}</div>
               </div>
               <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
               <div className="flex flex-col items-center min-w-[4rem]">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Win Rate</div>
-                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
                   {stats.winRate.toFixed(2)}%
-                </div>
-              </div>
-              <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
-              <div className="flex flex-col items-center min-w-[4rem]">
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Win Rate (w/ BE)</div>
-                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
-                  {stats.winRateWithBE.toFixed(2)}%
                 </div>
               </div>
             </div>
