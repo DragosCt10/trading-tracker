@@ -219,7 +219,7 @@ function scoreDirection(samples: string[]): number {
   if (valid.length === 0) return 0;
   // Strong signal: all unique values must be direction values (tight set)
   const unique = new Set(valid.map((s) => s.toLowerCase().trim()));
-  if ([...unique].every(isDirection) && unique.size <= 4) return 1;
+  if (Array.from(unique).every(isDirection) && unique.size <= 4) return 1;
   const matched = valid.filter(isDirection);
   return matched.length / valid.length;
 }
