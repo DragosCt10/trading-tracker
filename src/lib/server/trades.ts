@@ -51,6 +51,8 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
     mind_state_at_entry: trade.mind_state_at_entry ?? null,
     be_final_result: trade.be_final_result ?? null,
     trade_executed_at: trade.trade_executed_at ?? null,
+    news_name: trade.news_name ?? null,
+    news_intensity: trade.news_intensity ?? null,
   };
 }
 
