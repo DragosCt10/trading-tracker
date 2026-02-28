@@ -19,6 +19,10 @@ export interface Trade {
   break_even: boolean;
   reentry: boolean;
   news_related: boolean;
+  /** Name of the specific news event (e.g. "CPI", "NFP"). Set when news_related is true. */
+  news_name?: string | null;
+  /** News impact rating: 1 = Low, 2 = Medium, 3 = High. Set when news_related is true. */
+  news_intensity?: number | null;
   mss: string;
   risk_reward_ratio: number;
   risk_reward_ratio_long: number;
