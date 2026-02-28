@@ -294,11 +294,10 @@ export default function StrategyClient(
     
     const mode = props?.initialMode ?? 'live';
     const year = yr ?? new Date().getFullYear();
-    // Default to 'dateRange' for initial hydration since that's the default viewMode
+    // Initial hydration uses dateRange mode (default viewMode), so use dr boundaries
     const initialViewMode: 'yearly' | 'dateRange' = 'dateRange';
-    // For yearly mode, use year boundaries; for dateRange mode, use dr
-    const effectiveStartDate = initialViewMode === 'yearly' ? `${year}-01-01` : dr.startDate;
-    const effectiveEndDate = initialViewMode === 'yearly' ? `${year}-12-31` : dr.endDate;
+    const effectiveStartDate = dr.startDate;
+    const effectiveEndDate = dr.endDate;
     
     const queryKeyAllTrades = ['allTrades', mode, acc.id, uid, year, strategyId];
     const queryKeyFilteredTrades = ['filteredTrades', mode, acc.id, uid, initialViewMode, effectiveStartDate, effectiveEndDate, strategyId];
