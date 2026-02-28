@@ -24,6 +24,7 @@ export interface ParseResult {
 export interface AiNormalizations {
   direction?: Record<string, string>;
   trade_outcome?: Record<string, string>;
+  be_final_result?: Record<string, string>;
   market?: Record<string, string>;
   /** Per boolean field: maps every unique raw CSV value to true or false. */
   booleans?: Record<string, Record<string, boolean>>;
@@ -367,9 +368,12 @@ export function parseCsvTradesWithNorm(
     const displacementSize = parseCSVNumber(fieldValues['displacement_size'] ?? '') ?? 0;
     const fvgSize = parseCSVNumber(fieldValues['fvg_size'] ?? '') ?? null;
 
-    const breakEvenFromCsv = applyBoolNorm(normalizations.booleans, 'break_even', fieldValues['break_even'] ?? '');
-    // Outcome BE (or legacy Break-Even) always implies break_even true
-    const breakEven = (tradeOutcome === 'BE' || tradeOutcome === 'Break-Even') ? true : breakEvenFromCsv;
+    // break_even is derived from Trade Outcome (BE) only; no separate CSV column
+    const breakEven = (tradeOutcome === 'BE' || tradeOutcome === 'Break-Even');
+
+    const rawBeFinal = normalizeTrim(fieldValues['be_final_result'] ?? '');
+    const beFinalNorm = rawBeFinal ? applyNorm(normalizations.be_final_result, rawBeFinal) : '';
+    const beFinalResult = (beFinalNorm === 'Win' || beFinalNorm === 'Lose') ? beFinalNorm : null;
 
     const outcomeForPnl = isLose ? 'Lose' : 'Win';
     const computedPnl =
@@ -389,6 +393,7 @@ export function parseCsvTradesWithNorm(
       direction,
       setup_type: normalizeTrim(fieldValues['setup_type'] ?? ''),
       trade_outcome: tradeOutcome,
+      be_final_result: beFinalResult ?? undefined,
       risk_per_trade: riskPerTrade,
       risk_reward_ratio: rrRatio,
       risk_reward_ratio_long: rrLong,
