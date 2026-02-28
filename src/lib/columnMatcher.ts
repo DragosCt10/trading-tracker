@@ -360,18 +360,17 @@ export const DB_SCHEMA: SchemaField[] = [
 
   // ── Optional – boolean ───────────────────────────────────────────────────
   {
-    key: 'break_even',
-    label: 'Break Even',
+    key: 'be_final_result',
+    label: 'After BE',
     synonyms: [
-      'break_even', 'be', 'breakeven', 'moved to be', 'be hit',
-      'break even hit', 'break_even_hit',
+      'be_final_result', 'after be', 'after be result', 'final result', 'be result',
+      'result after be', 'closed after be', 'after break even',
       // More variants
-      'be moved', 'moved be', 'sl moved to be', 'stop to be',
-      'to breakeven', 'be activated', 'be trigger',
+      'after breakeven', 'win lose after be', 'outcome after be',
     ],
     required: false,
-    valueType: 'boolean',
-    description: 'Did trade hit break even?',
+    valueType: 'string',
+    description: 'When trade moved to BE: did it end Win or Lose?',
   },
   {
     key: 'reentry',
