@@ -308,8 +308,10 @@ export default function ImportTradesModal({
   async function handleImport() {
     if (!activeAccount) return;
 
-    // Only show danger border on Default values card when user actually presses Import without selecting Risk % / R:R
-    if (defaultRiskPct === null || defaultRR === null) {
+    // Only require defaults when the respective CSV columns are NOT already mapped
+    const riskIsMapped = matches.some((m) => m.dbField === 'risk_per_trade');
+    const rrIsMapped = matches.some((m) => m.dbField === 'risk_reward_ratio');
+    if ((defaultRiskPct === null && !riskIsMapped) || (defaultRR === null && !rrIsMapped)) {
       setDefaultValuesCardError(true);
       setErrorMessage('');
       defaultValuesCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -463,6 +465,11 @@ export default function ImportTradesModal({
   const accountBalance = activeAccount?.account_balance ?? 0;
   const accountCurrency = activeAccount?.currency ?? 'USD';
   const translationCount = Object.keys(translations).length;
+
+  // Whether defaults are actually needed (fields not mapped from CSV)
+  const defaultsRequired =
+    !matches.some((m) => m.dbField === 'risk_per_trade') ||
+    !matches.some((m) => m.dbField === 'risk_reward_ratio');
 
   // ── Table groupings ───────────────────────────────────────────────────────
   const requiredMatched    = matches.filter((m) => m.required && !!m.dbField);
@@ -864,7 +871,10 @@ export default function ImportTradesModal({
                     <div className="px-4 py-2.5 border-b border-slate-200/80 dark:border-slate-700/60">
                       <div className="flex items-center gap-2">
                         <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Default values</p>
-                        <span className="text-[10px] font-semibold text-red-500 uppercase tracking-wider">required</span>
+                        {defaultsRequired
+                          ? <span className="text-[10px] font-semibold text-red-500 uppercase tracking-wider">required</span>
+                          : <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">optional</span>
+                        }
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Used for rows missing Risk % or R:R in the CSV.</p>
                     </div>
