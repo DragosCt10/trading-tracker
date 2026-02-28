@@ -53,12 +53,15 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
       }
     }, [mounted, externalLoading]);
 
-    const totalTrades = trendStats.reduce((s, d) => s + (d.total ?? 0), 0);
+    const totalTrades = trendStats.reduce(
+      (s, d) => s + (d.total ?? (d.wins ?? 0) + (d.losses ?? 0) + (d.breakEven ?? 0)),
+      0
+    );
     const pieData: PieDatum[] = trendStats
       .filter((d) => (d.total ?? 0) > 0)
       .map((stat, index) => ({
         name: stat.tradeType ?? 'Unknown',
-        value: stat.total ?? 0,
+        value: stat.total ?? (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.breakEven ?? 0),
         percentage: totalTrades > 0 ? ((stat.total ?? 0) / totalTrades) * 100 : 0,
         color: (index === 0 ? 'teal' : 'orange') as 'teal' | 'orange',
         wins: stat.wins ?? 0,
@@ -75,17 +78,9 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
       if (!active || !payload?.length) return null;
 
       const data = payload[0].payload;
-      const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
-        teal: {
-          bg: 'bg-teal-50/80 dark:bg-teal-950/30 border-teal-200/50 dark:border-teal-800/30',
-          text: 'text-teal-600 dark:text-teal-400',
-          dot: 'bg-teal-500 dark:bg-teal-400 ring-teal-200/50 dark:ring-teal-500/30',
-        },
-        orange: {
-          bg: 'bg-orange-50/80 dark:bg-orange-950/30 border-orange-200/50 dark:border-orange-800/30',
-          text: 'text-orange-600 dark:text-orange-400',
-          dot: 'bg-orange-500 dark:bg-orange-400 ring-orange-200/50 dark:ring-orange-500/30',
-        },
+      const colorMap: Record<string, { dot: string }> = {
+        teal: { dot: 'bg-teal-500 dark:bg-teal-400 ring-teal-200/50 dark:ring-teal-500/30' },
+        orange: { dot: 'bg-orange-500 dark:bg-orange-400 ring-orange-200/50 dark:ring-orange-500/30' },
       };
       const colors = colorMap[data.color] ?? colorMap.teal;
       const wins = data.wins ?? 0;
@@ -100,25 +95,23 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
           <div className="relative flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
-              <div className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                {data.name} - {data.percentage.toFixed(1)}% ({data.value} {data.value === 1 ? 'TRADE' : 'TRADES'})
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                {data.name} — {data.percentage.toFixed(1)}% ({data.value} {data.value === 1 ? 'trade' : 'trades'})
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
-                <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">{wins}</span>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
+                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{wins}</span>
               </div>
               <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
-                <span className="text-base font-bold text-rose-600 dark:text-rose-400">{losses}</span>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
+                <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{losses}</span>
               </div>
-              {breakEven > 0 && (
-                <div className="flex items-baseline justify-between gap-4">
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even:</span>
-                  <span className="text-base font-bold text-amber-600 dark:text-amber-400">{breakEven}</span>
-                </div>
-              )}
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
+                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{breakEven}</span>
+              </div>
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
                 <span className="text-base font-bold text-slate-900 dark:text-slate-100">
