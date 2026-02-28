@@ -2,6 +2,7 @@ import { format, parse, parseISO, getMonth, isValid } from 'date-fns';
 import Papa from 'papaparse';
 import type { Trade } from '@/types/trade';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
+import { getIntervalForTime } from '@/constants/analytics';
 
 /** CSV parser to use: PapaParse (default) or built-in. */
 export type CsvParser = 'default' | 'papaparse';
@@ -357,7 +358,10 @@ export function parseCsvTradesWithNorm(
 
     const tradeDate: string | null = dateTrimmed ? normalizedDate : null;
     const rawTime = normalizeTrim(fieldValues['trade_time'] ?? '');
-    const tradeTime = rawTime || '00:00:00';
+    // Snap any specific time (e.g. "11:23") to the matching interval start (e.g. "08:00").
+    // This mirrors the same logic used in NewTradeModal when loading a draft.
+    const tradeInterval = rawTime ? getIntervalForTime(rawTime) : null;
+    const tradeTime = tradeInterval ? tradeInterval.start : (rawTime || '00:00:00');
     // Day of week is always derived from Trade Date (not mapped from CSV)
     const dayOfWeek = parsedDate ? format(parsedDate, 'EEEE') : '';
     const quarter = parsedDate ? deriveQuarter(parsedDate) : normalizeTrim(fieldValues['quarter'] ?? '');
