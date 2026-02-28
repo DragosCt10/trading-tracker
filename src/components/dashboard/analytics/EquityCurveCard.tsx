@@ -37,7 +37,7 @@ function buildEquityChartData(trades: Trade[]): EquityDatum[] {
     const day = toDayKey(t.trade_date);
     profitByDay.set(day, (profitByDay.get(day) ?? 0) + (t.calculated_profit ?? 0));
   }
-  const sortedDays = [...profitByDay.keys()].sort();
+  const sortedDays = Array.from(profitByDay.keys()).sort();
   let cumulative = 0;
   return sortedDays.map((date) => {
     cumulative += profitByDay.get(date) ?? 0;
