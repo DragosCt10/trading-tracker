@@ -17,7 +17,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
-import { cn } from '@/lib/utils';
+import { cn, formatPercent } from '@/lib/utils';
 import { isLocalHighLowLiquidated } from '@/utils/calculateCategoryStats';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { Info } from 'lucide-react';
@@ -290,7 +290,7 @@ export const LocalHLBEStatisticsCard: React.FC<LocalHLBEStatisticsCardProps> = R
               <div className="flex flex-col items-center min-w-[4rem]">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Win Rate</div>
                 <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {stats.winRate.toFixed(2)}%
+                  {formatPercent(stats.winRate)}%
                 </div>
               </div>
             </div>
