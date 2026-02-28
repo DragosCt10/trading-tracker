@@ -361,9 +361,9 @@ export function MonthlyPerformanceChart({
                 stroke="none"
               />
               {/* Bars: wins, losses, break even */}
-              <ReBar dataKey="wins" name="Wins" fill="url(#composedWinsBar)" radius={[4, 4, 0, 0]} barSize={18} yAxisId="left" />
-              <ReBar dataKey="losses" name="Losses" fill="url(#composedLossesBar)" radius={[4, 4, 0, 0]} barSize={18} yAxisId="left" />
-              <ReBar dataKey="breakEven" name="Break Even" fill="url(#composedBreakEvenBar)" radius={[4, 4, 0, 0]} barSize={18} yAxisId="left" />
+              <ReBar dataKey="wins" name="Wins" fill="url(#composedWinsBar)" radius={[7, 7, 0, 0]} barSize={18} yAxisId="left" />
+              <ReBar dataKey="losses" name="Losses" fill="url(#composedLossesBar)" radius={[7, 7, 0, 0]} barSize={18} yAxisId="left" />
+              <ReBar dataKey="breakEven" name="Break Even" fill="url(#composedBreakEvenBar)" radius={[7, 7, 0, 0]} barSize={18} yAxisId="left" />
               {/* Line: win rate % */}
               <Line
                 type="monotone"
