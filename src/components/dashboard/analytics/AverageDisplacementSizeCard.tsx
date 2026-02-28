@@ -206,7 +206,7 @@ export const AverageDisplacementSizeCard: React.FC<AverageDisplacementSizeCardPr
 
                   <ReBar
                     dataKey="value"
-                    radius={[0, 8, 8, 0]}
+                    radius={[7, 7, 7, 7]}
                     barSize={18}
                     fill="url(#dispSizeGradient)"
                   />
