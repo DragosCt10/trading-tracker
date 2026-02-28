@@ -345,7 +345,7 @@ export default function ImportTradesModal({
       });
 
       // Apply inline field defaults to rows that are missing those values
-      const rows = rawRows.map((row) => ({
+      const rowsWithDefaults = rawRows.map((row) => ({
         ...row,
         ...(fieldDefaults.trade_date    && !row.trade_date    ? { trade_date:    fieldDefaults.trade_date }    : {}),
         ...(fieldDefaults.trade_time    && !row.trade_time    ? { trade_time:    fieldDefaults.trade_time }    : {}),
@@ -353,6 +353,16 @@ export default function ImportTradesModal({
         ...(fieldDefaults.direction     && !row.direction     ? { direction:     fieldDefaults.direction }     : {}),
         ...(fieldDefaults.trade_outcome && !row.trade_outcome ? { trade_outcome: fieldDefaults.trade_outcome } : {}),
       }));
+
+      // Validate: reject rows where market is blank after defaults are applied
+      const blankMarketErrors: { row: number; reason: string }[] = [];
+      const rows = rowsWithDefaults.filter((row, i) => {
+        if (!row.market?.trim()) {
+          blankMarketErrors.push({ row: i + 2, reason: 'Market / Symbol is blank' }); // +2: 1-based + header row
+          return false;
+        }
+        return true;
+      });
 
       if (rows.length === 0) {
         clearInterval(progressInterval);
@@ -389,6 +399,7 @@ export default function ImportTradesModal({
 
       const allFailed = [
         ...errors.map((e) => ({ row: e.rowIndex, reason: `${e.field}: ${e.message}` })),
+        ...blankMarketErrors,
         ...(result.failed ?? []),
       ];
 
@@ -1074,18 +1085,7 @@ export default function ImportTradesModal({
                   >
                     ← Change file
                   </Button>
-                  {/* ── Debug: why is the button disabled? ── */}
-                  {(translating || translatingValues || requiredMissing.length > 0 || !activeAccount) && (
-                    <div className="flex flex-col gap-0.5 text-[10px] text-right text-red-500 dark:text-red-400">
-                      {translating && <span>⏳ translating headers…</span>}
-                      {translatingValues && <span>⏳ translating values…</span>}
-                      {!activeAccount && <span>❌ no active account</span>}
-                      {requiredMissing.map((f) => (
-                        <span key={f.key}>❌ required field not resolved: <b>{f.label}</b></span>
-                      ))}
-                    </div>
-                  )}
-                  <Button
+<Button
                     onClick={handleImport}
                     disabled={translating || translatingValues || requiredMissing.length > 0 || !activeAccount}
                     className="cursor-pointer rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold border-0 shadow-md shadow-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
