@@ -367,7 +367,9 @@ export function parseCsvTradesWithNorm(
     const displacementSize = parseCSVNumber(fieldValues['displacement_size'] ?? '') ?? 0;
     const fvgSize = parseCSVNumber(fieldValues['fvg_size'] ?? '') ?? null;
 
-    const breakEven = applyBoolNorm(normalizations.booleans, 'break_even', fieldValues['break_even'] ?? '');
+    const breakEvenFromCsv = applyBoolNorm(normalizations.booleans, 'break_even', fieldValues['break_even'] ?? '');
+    // Outcome Break-Even always implies break_even true
+    const breakEven = tradeOutcome === 'Break-Even' ? true : breakEvenFromCsv;
 
     const outcomeForPnl = isLose ? 'Lose' : 'Win';
     const computedPnl =
