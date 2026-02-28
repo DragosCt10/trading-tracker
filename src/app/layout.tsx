@@ -21,30 +21,37 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} app-gradient min-h-screen relative`}>
-        {/* Theme-aware gradient orbs (use --orb-1 / --orb-2 from color theme) */}
-        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden>
-          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] orb-bg-1 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] orb-bg-2 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-        </div>
+      <head>
+        {/* Apply theme before first paint to avoid flash of default theme on refresh */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 try {
-                  const theme = localStorage.getItem('theme');
-                  const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                  const initialTheme = theme || systemTheme;
-                  if (initialTheme === 'dark') {
+                  var theme = localStorage.getItem('theme');
+                  var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  var isDark = theme ? theme === 'dark' : systemDark;
+                  if (isDark) {
                     document.documentElement.classList.add('dark');
                   } else {
                     document.documentElement.classList.remove('dark');
+                  }
+                  var colorTheme = localStorage.getItem('color-theme');
+                  if (colorTheme) {
+                    document.documentElement.setAttribute('data-color-theme', colorTheme);
                   }
                 } catch (e) {}
               })();
             `,
           }}
         />
+      </head>
+      <body className={`${inter.className} app-gradient min-h-screen relative`}>
+        {/* Theme-aware gradient orbs (use --orb-1 / --orb-2 from color theme) */}
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden>
+          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] orb-bg-1 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] orb-bg-2 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        </div>
         <ThemeProvider>
           <QueryProvider>
             <LoadingProvider>
