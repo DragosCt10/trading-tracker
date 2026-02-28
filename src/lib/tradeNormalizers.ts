@@ -166,7 +166,7 @@ export function normalizeBoolean(raw: string): boolean {
 // ─── Auto-build AiNormalizations ─────────────────────────────────────────────
 
 const BOOLEAN_DB_FIELDS = new Set([
-  'break_even', 'reentry', 'news_related', 'local_high_low',
+  'reentry', 'news_related', 'local_high_low',
   'partials_taken', 'executed', 'launch_hour',
 ]);
 
@@ -222,6 +222,16 @@ export function buildAutoNormalizations(
         if (normalized) result.trade_outcome[raw] = normalized;
       }
       if (Object.keys(result.trade_outcome).length === 0) delete result.trade_outcome;
+      continue;
+    }
+
+    if (dbField === 'be_final_result') {
+      result.be_final_result = {};
+      for (const raw of samples) {
+        const normalized = normalizeOutcome(raw);
+        if (normalized && (normalized === 'Win' || normalized === 'Lose')) result.be_final_result[raw] = normalized;
+      }
+      if (Object.keys(result.be_final_result).length === 0) delete result.be_final_result;
       continue;
     }
 
