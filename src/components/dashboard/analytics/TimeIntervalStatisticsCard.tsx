@@ -24,16 +24,24 @@ import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarC
 import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface TimeIntervalStatisticsCardProps {
+  /** Stats per time interval (same buckets as TIME_INTERVALS). */
   data: TradeStatDatum[];
   isLoading?: boolean;
+  /** Optional: show only this interval (e.g. "08:00 – 11:59"). Legacy trades with simple time are still counted in the correct bucket via data. */
+  selectedIntervalLabel?: string | null;
 }
 
 export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProps> = React.memo(
-  function TimeIntervalStatisticsCard({ data, isLoading }) {
+  function TimeIntervalStatisticsCard({ data, isLoading, selectedIntervalLabel }) {
     const { mounted, isDark } = useDarkMode();
 
+    // When a specific interval is selected, show only that row (data already includes legacy trades bucketed by trade_time)
+    const dataToShow = selectedIntervalLabel
+      ? data.filter((d) => d.category === selectedIntervalLabel)
+      : data;
+
     // BE new flow: wins, losses, breakEven separate; totalTrades = wins + losses + breakEven
-    const withTotals: TradeStatDatum[] = data.map((d) => {
+    const withTotals: TradeStatDatum[] = dataToShow.map((d) => {
       const wins = d.wins ?? 0;
       const losses = d.losses ?? 0;
       const breakEven = d.breakEven ?? 0;
