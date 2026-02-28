@@ -23,6 +23,7 @@ import {
   type AiNormalizations,
 } from '@/utils/tradeImportParser';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
+import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
 import { importTrades } from '@/lib/server/trades';
 import type { Database } from '@/types/supabase';
 
@@ -370,7 +371,8 @@ export default function ImportTradesModal({
           },
           accountBalance,
         );
-        return { ...row, pnl_percentage, calculated_profit };
+        const trade_executed_at = tradeDateAndTimeToUtcISO(row.trade_date ?? '', row.trade_time ?? '') ?? undefined;
+        return { ...row, pnl_percentage, calculated_profit, ...(trade_executed_at != null ? { trade_executed_at } : {}) };
       });
 
       const result = await importTrades({
