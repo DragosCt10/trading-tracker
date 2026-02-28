@@ -360,7 +360,7 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
                 fill="url(#marketProfitTotalArea)"
                 stroke="none"
               />
-              <ReBar dataKey="profit" yAxisId="left" radius={[7, 7, 7, 7]} barSize={32}>
+              <ReBar dataKey="profit" yAxisId="left" radius={[7, 7, 7, 7]} barSize={18}>
                 {chartDataWithScaled.map((stat) => (
                   <Cell key={stat.market} fill={getBarColor(stat.profit)} />
                 ))}
