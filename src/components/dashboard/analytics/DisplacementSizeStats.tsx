@@ -345,7 +345,7 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
 
                   <ReBar
                     dataKey="value"
-                    radius={[0, 8, 8, 0]}
+                    radius={[7, 7, 7, 7]}
                     barSize={18}
                     fill="url(#dispSizeStatsGradient)"
                   />
