@@ -203,6 +203,8 @@ export async function createTrade(params: {
     calculated_profit: params.calculated_profit,
     pnl_percentage: params.pnl_percentage,
   };
+  // Omit columns not present in DB schema (add migration if you add trade_executed_at to DB)
+  delete row.trade_executed_at;
 
   const { error } = await supabase.from(tableName).insert([row] as any);
 
@@ -232,6 +234,7 @@ export async function updateTrade(
 
   const payload = { ...updateData } as Record<string, unknown>;
   delete payload.rr_hit_1_4; // Column removed from DB
+  delete payload.trade_executed_at; // Omit if column not in DB schema
 
   const tableName = `${mode}_trades`;
   const { error } = await supabase
@@ -349,6 +352,7 @@ export async function importTrades(params: {
       account_id: params.account_id,
       strategy_id: params.strategy_id,
     };
+    delete row.trade_executed_at; // Omit if column not in DB schema
     validRows.push({ index, row });
   });
 
