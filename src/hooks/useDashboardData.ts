@@ -111,8 +111,7 @@ export function useDashboardData({
       wins: 0,
       losses: 0,
       winRate: 0,
-      winsWithBE: 0,
-      lossesWithBE: 0,
+      breakEven: 0,
       winRateWithBE: 0,
       total: 0
     },
@@ -120,8 +119,7 @@ export function useDashboardData({
       wins: 0,
       losses: 0,
       winRate: 0,
-      winsWithBE: 0,
-      lossesWithBE: 0,
+      breakEven: 0,
       winRateWithBE: 0,
       total: 0
     }
@@ -556,8 +554,7 @@ export function useDashboardData({
           wins: 0, 
           losses: 0, 
           winRate: 0, 
-          winsWithBE: 0, 
-          lossesWithBE: 0, 
+          breakEven: 0, 
           winRateWithBE: 0, 
           total: 0 
         },
@@ -565,8 +562,7 @@ export function useDashboardData({
           wins: 0, 
           losses: 0, 
           winRate: 0, 
-          winsWithBE: 0, 
-          lossesWithBE: 0, 
+          breakEven: 0, 
           winRateWithBE: 0, 
           total: 0 
         },
