@@ -379,7 +379,7 @@ export default function ImportTradesModal({
   const renderMatchRow = (m: ColumnMatch) => (
     <tr
       key={m.csvHeader}
-      className="bg-white dark:bg-slate-900/50 hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+      className="bg-slate-50/50 dark:bg-slate-800/30 hover:bg-slate-100/50 dark:hover:bg-slate-700/40"
     >
       {/* CSV header */}
       <td className="px-3 py-2 font-mono text-slate-800 dark:text-slate-200 whitespace-nowrap max-w-[140px]">
@@ -624,10 +624,10 @@ export default function ImportTradesModal({
                   )}
 
                   {/* Column mapping table */}
-                  <div className="overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-700/60">
+                  <div className="overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-800/30">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="bg-slate-50/80 dark:bg-slate-800/50 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        <tr className="bg-slate-50/50 dark:bg-slate-800/30 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                           <th className="px-3 py-2.5">CSV Column</th>
                           <th className="px-3 py-2.5">Samples</th>
                           <th className="px-3 py-2.5">DB Field</th>
@@ -639,7 +639,7 @@ export default function ImportTradesModal({
                         {/* ── Section 1: Required fields — matched ── */}
                         {requiredMatched.length > 0 && (
                           <>
-                            <tr className="bg-emerald-50/60 dark:bg-emerald-950/20">
+                            <tr className="bg-slate-50/50 dark:bg-slate-800/30">
                               <td colSpan={4} className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
                                 Required — Matched
                               </td>
@@ -651,7 +651,7 @@ export default function ImportTradesModal({
                         {/* ── Section 2: Required fields — not yet matched ── */}
                         {requiredNotMapped.length > 0 && (
                           <>
-                            <tr className={requiredMissing.length > 0 ? 'bg-amber-50/60 dark:bg-amber-950/20' : 'bg-emerald-50/40 dark:bg-emerald-950/10'}>
+                            <tr className="bg-slate-50/50 dark:bg-slate-800/30">
                               <td colSpan={4} className={`px-3 py-1 text-[10px] font-semibold uppercase tracking-wider ${requiredMissing.length > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                                 Required — Not Matched
                               </td>
@@ -659,7 +659,7 @@ export default function ImportTradesModal({
                             {requiredNotMapped.map((field) => {
                               const hasDefault = !!fieldDefaults[field.key];
                               return (
-                                <tr key={`req-missing-${field.key}`} className="bg-white dark:bg-slate-900/50 hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                                <tr key={`req-missing-${field.key}`} className="bg-slate-50/50 dark:bg-slate-800/30 hover:bg-slate-100/50 dark:hover:bg-slate-700/40">
                                   {/* Col 1 — CSV column picker (mirrors matched-row layout) */}
                                   <td className="px-3 py-2 max-w-[140px]">
                                     <select
@@ -735,7 +735,7 @@ export default function ImportTradesModal({
                         {otherMatches.length > 0 && (
                           <>
                             {(requiredMatched.length > 0 || requiredMissing.length > 0) && (
-                              <tr className="bg-slate-50/80 dark:bg-slate-800/30">
+                              <tr className="bg-slate-50/50 dark:bg-slate-800/30">
                                 <td colSpan={4} className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                   Other Columns
                                 </td>
