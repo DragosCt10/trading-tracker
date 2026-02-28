@@ -50,6 +50,7 @@ import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarke
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { MarketCombobox } from '@/components/MarketCombobox';
 import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
+import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
 
 interface TradeDetailsModalProps {
   trade: Trade | null;
@@ -218,6 +219,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       const updateData = {
         trade_date: editedTrade.trade_date,
         trade_time: normalizedTradeTime,
+        trade_executed_at: tradeDateAndTimeToUtcISO(editedTrade.trade_date, normalizedTradeTime) ?? null,
         day_of_week: editedTrade.day_of_week || '',
         quarter: editedTrade.quarter || '',
         market: normalizeMarket(editedTrade.market),
