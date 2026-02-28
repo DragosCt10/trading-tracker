@@ -53,7 +53,7 @@ export const DB_SCHEMA: SchemaField[] = [
       'close_time', 'fill time', 'execution time', 'trade timestamp',
       'time of entry', 'time entered', 'entry hour',
     ],
-    required: true,
+    required: false,
     valueType: 'time',
     description: 'Trade entry time (HH:mm or HH:mm:ss)',
   },
