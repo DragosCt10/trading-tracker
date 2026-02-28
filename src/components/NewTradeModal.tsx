@@ -351,8 +351,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     setError(null);
 
     const marketError = getMarketValidationError(trade.market);
-    if (marketError || !trade.trade_time) {
-      setError(marketError || 'Please fill in all required fields (including Trade Time).');
+    if (marketError) {
+      setError(marketError);
       return;
     }
     if (!trade.direction || !trade.trade_outcome) {
@@ -565,12 +565,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
               <div className="space-y-2">
                 <Label htmlFor="trade-time-interval" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Trade Time (interval) *
+                  Trade Time (interval)
                 </Label>
                 <Select
                   value={trade.trade_time || ''}
                   onValueChange={(v) => updateTrade('trade_time', v)}
-                  required
                 >
                   <SelectTrigger
                     id="trade-time-interval"
