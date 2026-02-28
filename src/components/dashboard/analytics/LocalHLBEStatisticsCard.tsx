@@ -193,8 +193,8 @@ export const LocalHLBEStatisticsCard: React.FC<LocalHLBEStatisticsCardProps> = R
                 </TooltipTrigger>
                 <UITooltipContent
                   side="top"
-                  className="max-w-xs text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 p-3"
                   sideOffset={6}
+                  className="max-w-xs text-sm rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-3 text-slate-900 dark:text-slate-50"
                 >
                   For accurate stats, select BE as trade outcome and also set After BE (Win or Lose).
                 </UITooltipContent>
