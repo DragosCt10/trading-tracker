@@ -45,8 +45,7 @@ interface PieDatum {
   color: PieColor;
   wins: number;
   losses: number;
-  beWins: number;
-  beLosses: number;
+  breakEven: number;
   winRate: number;
   winRateWithBE: number;
 }
@@ -91,8 +90,7 @@ export const NewsStatisticsCard: React.FC<NewsStatisticsCardProps> = React.memo(
         color: NEWS_COLORS[index % NEWS_COLORS.length],
         wins: stat.wins ?? 0,
         losses: stat.losses ?? 0,
-        beWins: stat.beWins ?? 0,
-        beLosses: stat.beLosses ?? 0,
+        breakEven: stat.breakEven ?? 0,
         winRate: stat.winRate ?? 0,
         winRateWithBE: stat.winRateWithBE ?? 0,
       };
@@ -109,76 +107,40 @@ export const NewsStatisticsCard: React.FC<NewsStatisticsCardProps> = React.memo(
       if (!active || !payload?.length) return null;
 
       const data = payload[0].payload;
-      const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
-        blue: {
-          bg: 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-200/50 dark:border-blue-800/30',
-          text: 'text-blue-600 dark:text-blue-400',
-          dot: 'bg-blue-500 dark:bg-blue-400 ring-blue-200/50 dark:ring-blue-500/30',
-        },
-        purple: {
-          bg: 'bg-purple-50/80 dark:bg-purple-950/30 border-purple-200/50 dark:border-purple-800/30',
-          text: 'text-purple-600 dark:text-purple-400',
-          dot: 'bg-purple-500 dark:bg-purple-400 ring-purple-200/50 dark:ring-purple-500/30',
-        },
-        teal: {
-          bg: 'bg-teal-50/80 dark:bg-teal-950/30 border-teal-200/50 dark:border-teal-800/30',
-          text: 'text-teal-600 dark:text-teal-400',
-          dot: 'bg-teal-500 dark:bg-teal-400 ring-teal-200/50 dark:ring-teal-500/30',
-        },
-        amber: {
-          bg: 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-800/30',
-          text: 'text-amber-600 dark:text-amber-400',
-          dot: 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30',
-        },
-      };
-      const colors = colorMap[data.color] ?? colorMap.blue;
       const wins = data.wins ?? 0;
       const losses = data.losses ?? 0;
-      const beWins = data.beWins ?? 0;
-      const beLosses = data.beLosses ?? 0;
+      const breakEven = data.breakEven ?? 0;
       const winRate = data.winRate ?? 0;
       const winRateWithBE = data.winRateWithBE ?? 0;
 
       return (
-        <div className="relative overflow-hidden rounded-xl p-4 border shadow-lg shadow-slate-900/5 dark:shadow-black/40 backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border-slate-200/60 dark:border-slate-700/60">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5 rounded-xl" />
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-50">
+          <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
           <div className="relative flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
-              <div className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                {data.name} - {data.percentage.toFixed(1)}% ({data.value} {data.value === 1 ? 'TRADE' : 'TRADES'})
-              </div>
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+              {data.name} ({data.value} {data.value === 1 ? 'trade' : 'trades'})
             </div>
             <div className="space-y-2">
               <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
-                <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-                  {wins}
-                  {beWins > 0 && (
-                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">({beWins} BE)</span>
-                  )}
-                </span>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
+                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{wins}</span>
               </div>
               <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
-                <span className="text-base font-bold text-rose-600 dark:text-rose-400">
-                  {losses}
-                  {beLosses > 0 && (
-                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">({beLosses} BE)</span>
-                  )}
-                </span>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
+                <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{losses}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
+                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{breakEven}</span>
               </div>
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
-                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
+                <span className="text-base font-bold text-slate-900 dark:text-slate-100">
                   {winRate.toFixed(2)}%
-                </div>
-              </div>
-              <div className="flex items-center justify-between gap-4 pt-1">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate (w/ BE):</span>
-                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                  {winRateWithBE.toFixed(2)}%
-                </div>
+                  <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
+                    ({winRateWithBE.toFixed(2)}% w/BE)
+                  </span>
+                </span>
               </div>
             </div>
           </div>
