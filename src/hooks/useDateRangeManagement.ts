@@ -3,7 +3,6 @@ import { format, startOfYear, endOfYear } from 'date-fns';
 import {
   type DateRangeState,
   type FilterType,
-  createInitialDateRange,
   createCalendarRangeFromEnd,
   buildPresetRange,
 } from '@/utils/dateRangeHelpers';
