@@ -1241,17 +1241,10 @@ export default function StrategyClient(
             />
           </div>
 
-          {/* Liquidity Stats (wider) & Local H/L Analysis (narrower) - same height */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-6 my-8 items-stretch">
-            {/* Liquidity Stats Card */}
+          {/* Liquidity Stats - full width single row */}
+          <div className="my-8">
             <LiquidityStatisticsCard
               liquidityStats={filteredChartStats ? statsToUseForCharts.liquidityStats : liquidityStatsFromTradesToUse}
-              isLoading={chartsLoadingState}
-              includeTotalTrades={filteredChartStats !== null}
-            />
-            {/* Local H/L Analysis Card - always uses same trades as Core stats row (Long/Short, Partial, Executed/Non-Executed) */}
-            <LocalHLStatisticsCard
-              localHLStats={localHLStatsFromTradesToUse}
               isLoading={chartsLoadingState}
               includeTotalTrades={filteredChartStats !== null}
             />
@@ -1286,7 +1279,13 @@ export default function StrategyClient(
               isLoading={chartsLoadingState}
             />
           </div>
+          {/* Local H/L Analysis & FVG Size Stats */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <LocalHLStatisticsCard
+              localHLStats={localHLStatsFromTradesToUse}
+              isLoading={chartsLoadingState}
+              includeTotalTrades={filteredChartStats !== null}
+            />
             <FvgSizeStats
               trades={tradesToUse}
               isLoading={chartsLoadingState}
