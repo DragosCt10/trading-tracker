@@ -10,7 +10,7 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
-import { cn } from '@/lib/utils';
+import { cn, formatPercent } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface PartialTradesChartCardProps {
@@ -229,38 +229,24 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
               </div>
             </div>
           </div>
-          {/* Wins / Losses / BE labels - positioned below the pie chart */}
+          {/* Win rate | Win rate w/BE - same as ReentryTradesChartCard */}
           <div className="w-full px-4 pt-4 mt-2">
             <div className="flex items-center justify-center gap-8">
               <div className="flex flex-col items-center">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  Wins
+                  Win rate
                 </div>
-                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                  {wins}
-                </div>
-              </div>
-              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
-              <div className="flex flex-col items-center">
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  Losses
-                </div>
-                <div className="text-lg font-bold text-rose-600 dark:text-rose-400">
-                  {losses}
+                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                  {totalPartials > 0 ? formatPercent((wins / totalPartials) * 100) : '0'}%
                 </div>
               </div>
               <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
               <div className="flex flex-col items-center">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  BE
+                  Win rate w/BE
                 </div>
-                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
-                  {be}
-                  {totalPartials > 0 && (
-                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">
-                      ({((be / totalPartials) * 100).toFixed(1)}%)
-                    </span>
-                  )}
+                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                  {totalPartials > 0 ? formatPercent(((wins + be) / totalPartials) * 100) : '0'}%
                 </div>
               </div>
             </div>
