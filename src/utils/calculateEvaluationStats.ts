@@ -7,8 +7,10 @@ export interface EvaluationStat {
   total: number;
   wins: number;
   losses: number;
-  /** Count of trades with outcome BE (break_even). */
+  /** Count of trades with outcome BE (break_even). Same as breakEven for BaseStats compatibility. */
   beTradesCount: number;
+  /** Break-even count (same as beTradesCount); required for EvaluationStats / BaseStats. */
+  breakEven: number;
   /** % excluding BE trades, rounded */
   winRate: number;
   /** Wins as % of all trades (wins / total), rounded */
@@ -60,6 +62,7 @@ export function calculateEvaluationStats(
         wins,
         losses,
         beTradesCount,
+        breakEven: beTradesCount,
         winRate,
         winRateWithBE,
       };
