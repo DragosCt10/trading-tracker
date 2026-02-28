@@ -97,15 +97,13 @@ export function calculateDayStats(trades: Trade[]): DayStats[] {
 export function convertDayStatsToChartData(
   dayStats: DayStatsLike[],
   _includeTotalTrades: boolean = false
-): { category: string; wins: number; losses: number; beWins: number; beLosses: number; winRate: number; winRateWithBE: number; totalTrades?: number }[] {
+): { category: string; wins: number; losses: number; breakEven: number; winRate: number; winRateWithBE: number; totalTrades?: number }[] {
   return dayStats.map((stat) => {
     const totalTrades = (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.breakEven ?? 0);
     return {
       category: `${stat.day}`,
       wins: stat.wins ?? 0,
       losses: stat.losses ?? 0,
-      beWins: stat.beWins ?? 0,
-      beLosses: stat.beLosses ?? 0,
       breakEven: stat.breakEven ?? 0,
       winRate: stat.winRate ?? 0,
       winRateWithBE: stat.winRateWithBE ?? 0,
@@ -165,8 +163,6 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
         totalTrades,
         wins: stats.wins,
         losses: stats.losses,
-        beWins: 0,
-        beLosses: 0,
         breakEven: stats.breakEven,
         winRate: stats.winRate,
         winRateWithBE: stats.winRateWithBE,
@@ -181,8 +177,6 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
         totalTrades,
         wins: stats.wins,
         losses: stats.losses,
-        beWins: 0,
-        beLosses: 0,
         breakEven: stats.breakEven,
         winRate: stats.winRate,
         winRateWithBE: stats.winRateWithBE,
@@ -208,37 +202,33 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
       if (!active || !payload?.length) return null;
       const d = payload[0].payload;
       return (
-        <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-            {d.day} ({d.totalTrades} trades)
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
-              <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                {d.wins}
-              </span>
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-50">
+          <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
+          <div className="relative flex flex-col gap-3">
+            <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+              {d.day} ({d.totalTrades} trades)
             </div>
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
-              <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{d.losses}</span>
-            </div>
-            {(d.breakEven ?? 0) > 0 && (
+            <div className="space-y-2">
               <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even:</span>
-                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{d.breakEven}</span>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
+                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{d.wins}</span>
               </div>
-            )}
-            <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
-              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                {d.winRate.toFixed(2)}%
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
+                <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{d.losses}</span>
               </div>
-            </div>
-            <div className="flex items-center justify-between gap-4 pt-1">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate (w/ BE):</span>
-              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                {d.winRateWithBE.toFixed(2)}%
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
+                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{d.breakEven ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
+                <span className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  {d.winRate.toFixed(2)}%
+                  <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
+                    ({d.winRateWithBE.toFixed(2)}% w/BE)
+                  </span>
+                </span>
               </div>
             </div>
           </div>
@@ -314,7 +304,7 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
     }
 
     const maxTotal = Math.max(
-      ...chartData.map((d) => d.wins + d.losses),
+      ...chartData.map((d) => d.wins + d.losses + (d.breakEven ?? 0)),
       ...chartData.map((d) => d.totalTrades),
       1
     );
@@ -351,6 +341,11 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
                     <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
                     <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
                     <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
+                  </linearGradient>
+                  <linearGradient id="dayComposedBreakEvenBar" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor="#d97706" stopOpacity={1} />
+                    <stop offset="50%" stopColor="#f59e0b" stopOpacity={0.95} />
+                    <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.9} />
                   </linearGradient>
                 </defs>
 
@@ -423,8 +418,9 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
                   fill="url(#dayComposedTotalArea)"
                   stroke="none"
                 />
-                <ReBar dataKey="wins" name="Wins" fill="url(#dayComposedWinsBar)" radius={[4, 4, 0, 0]} barSize={20} yAxisId="left" />
-                <ReBar dataKey="losses" name="Losses" fill="url(#dayComposedLossesBar)" radius={[4, 4, 0, 0]} barSize={20} yAxisId="left" />
+                <ReBar dataKey="wins" name="Wins" fill="url(#dayComposedWinsBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" />
+                <ReBar dataKey="losses" name="Losses" fill="url(#dayComposedLossesBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" />
+                <ReBar dataKey="breakEven" name="Break Even" fill="url(#dayComposedBreakEvenBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" />
                 <Line
                   type="monotone"
                   dataKey="winRate"
