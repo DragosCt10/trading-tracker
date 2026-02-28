@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/card';
 import { Trade } from '@/types/trade';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
+import { formatPercent } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface DisplacementSizeStatsProps {
@@ -181,7 +182,7 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
             <div className="text-xs text-slate-600 dark:text-slate-300 mb-2">
               Overall:{' '}
               <span className="font-semibold text-slate-900 dark:text-slate-100">
-                {rowData.percentage.toFixed(1)}%
+                {formatPercent(rowData.percentage)}%
               </span>{' '}
               ({rowData.totalTradesInBucket}/{rowData.totalTrades} trades)
             </div>
@@ -214,10 +215,10 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
                         {marketData.breakEven}
                       </td>
                       <td className="py-2 px-2 text-right font-bold text-amber-600 dark:text-amber-400">
-                        {marketData.winRate.toFixed(1)}%
+                        {formatPercent(marketData.winRate)}%
                       </td>
                       <td className="py-2 px-2 text-right font-bold text-slate-900 dark:text-slate-100">
-                        {marketData.percentage.toFixed(1)}%
+                        {formatPercent(marketData.percentage)}%
                       </td>
                       <td className="py-2 pl-2 text-right text-slate-600 dark:text-slate-400">
                         {marketData.tradesWithBucket}/{marketData.totalTrades}
