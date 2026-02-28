@@ -91,7 +91,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
         </>
       )}
 
-      <WinRateStatCard winRate={stats.winRate} winRateWithBE={stats.winRateWithBE} />
+      <WinRateStatCard winRate={stats.winRate} winRateWithBE={stats.winRateWithBE} hydrated={hydrated} />
 
       <TotalProfitStatCard
         totalProfit={stats.totalProfit}
