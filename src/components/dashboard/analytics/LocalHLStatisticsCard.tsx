@@ -11,7 +11,7 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
-import { cn } from '@/lib/utils';
+import { cn, formatPercent } from '@/lib/utils';
 import { calculateLocalHLStats as calculateLocalHLStatsUtil } from '@/utils/calculateCategoryStats';
 import type { LocalHLStats } from '@/types/dashboard';
 import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
@@ -46,8 +46,7 @@ interface PieDatum {
   color: PieColor;
   wins: number;
   losses: number;
-  beWins: number;
-  beLosses: number;
+  breakEven: number;
   winRate: number;
   winRateWithBE: number;
 }
@@ -65,26 +64,26 @@ export function convertLocalHLStatsToChartData(
   localHLStats: LocalHLStats,
   includeTotalTrades: boolean = false
 ): TradeStatDatum[] {
+  const liquidated = localHLStats.liquidated;
+  const notLiq = localHLStats.notLiquidated;
   const liquidatedData: TradeStatDatum = {
     category: LOCAL_HL_LABELS.liquidated,
-    wins: localHLStats.liquidated.wins,
-    losses: localHLStats.liquidated.losses,
-    beWins: localHLStats.liquidated.winsWithBE,
-    beLosses: localHLStats.liquidated.lossesWithBE,
-    winRate: localHLStats.liquidated.winRate,
-    winRateWithBE: localHLStats.liquidated.winRateWithBE,
-    totalTrades: localHLStats.liquidated.total ?? (localHLStats.liquidated.wins + localHLStats.liquidated.losses + (localHLStats.liquidated.winsWithBE ?? 0) + (localHLStats.liquidated.lossesWithBE ?? 0)),
+    wins: liquidated.wins,
+    losses: liquidated.losses,
+    breakEven: liquidated.breakEven ?? 0,
+    winRate: liquidated.winRate,
+    winRateWithBE: liquidated.winRateWithBE,
+    totalTrades: liquidated.total ?? (liquidated.wins + liquidated.losses + (liquidated.breakEven ?? 0)),
   };
 
   const notLiquidatedData: TradeStatDatum = {
     category: LOCAL_HL_LABELS.notLiquidated,
-    wins: localHLStats.notLiquidated.wins,
-    losses: localHLStats.notLiquidated.losses,
-    beWins: localHLStats.notLiquidated.winsWithBE,
-    beLosses: localHLStats.notLiquidated.lossesWithBE,
-    winRate: localHLStats.notLiquidated.winRate,
-    winRateWithBE: localHLStats.notLiquidated.winRateWithBE,
-    totalTrades: localHLStats.notLiquidated.total ?? (localHLStats.notLiquidated.wins + localHLStats.notLiquidated.losses + (localHLStats.notLiquidated.winsWithBE ?? 0) + (localHLStats.notLiquidated.lossesWithBE ?? 0)),
+    wins: notLiq.wins,
+    losses: notLiq.losses,
+    breakEven: notLiq.breakEven ?? 0,
+    winRate: notLiq.winRate,
+    winRateWithBE: notLiq.winRateWithBE,
+    totalTrades: notLiq.total ?? (notLiq.wins + notLiq.losses + (notLiq.breakEven ?? 0)),
   };
 
   return [liquidatedData, notLiquidatedData];
@@ -126,12 +125,12 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
 
     // Use stat.total so total matches Executed & Non-Executed card (every trade in the same tradesToUse)
     const totalTrades = statsList.reduce(
-      (sum, { stat }) => sum + (stat.total ?? 0),
+      (sum, { stat }) => sum + (stat.total ?? (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.breakEven ?? 0)),
       0
     );
 
     const pieDataRaw: PieDatum[] = statsList.map(({ stat, label }, index) => {
-      const value = stat.total ?? 0;
+      const value = stat.total ?? (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.breakEven ?? 0);
       return {
         name: label,
         value,
@@ -139,8 +138,7 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
         color: LOCAL_HL_COLORS[index % LOCAL_HL_COLORS.length],
         wins: stat.wins ?? 0,
         losses: stat.losses ?? 0,
-        beWins: stat.winsWithBE ?? 0,
-        beLosses: stat.lossesWithBE ?? 0,
+        breakEven: stat.breakEven ?? 0,
         winRate: stat.winRate ?? 0,
         winRateWithBE: stat.winRateWithBE ?? 0,
       };
@@ -156,66 +154,48 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
       if (!active || !payload?.length) return null;
 
       const data = payload[0].payload;
-      const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
-        teal: {
-          bg: 'bg-teal-50/80 dark:bg-teal-950/30 border-teal-200/50 dark:border-teal-800/30',
-          text: 'text-teal-600 dark:text-teal-400',
-          dot: 'bg-teal-500 dark:bg-teal-400 ring-teal-200/50 dark:ring-teal-500/30',
-        },
-        amber: {
-          bg: 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-800/30',
-          text: 'text-amber-600 dark:text-amber-400',
-          dot: 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30',
-        },
+      const colorMap: Record<string, { dot: string }> = {
+        teal: { dot: 'bg-teal-500 dark:bg-teal-400 ring-teal-200/50 dark:ring-teal-500/30' },
+        amber: { dot: 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30' },
       };
       const colors = colorMap[data.color] ?? colorMap.teal;
       const wins = data.wins ?? 0;
       const losses = data.losses ?? 0;
-      const beWins = data.beWins ?? 0;
-      const beLosses = data.beLosses ?? 0;
+      const breakEven = data.breakEven ?? 0;
       const winRate = data.winRate ?? 0;
       const winRateWithBE = data.winRateWithBE ?? 0;
 
       return (
-        <div className="relative overflow-hidden rounded-xl p-4 border shadow-lg shadow-slate-900/5 dark:shadow-black/40 backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border-slate-200/60 dark:border-slate-700/60">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-teal-500/5 via-transparent to-amber-500/5 rounded-xl" />
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-50">
+          <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
           <div className="relative flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
-              <div className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                {data.name} - {data.percentage.toFixed(1)}% ({data.value} {data.value === 1 ? 'TRADE' : 'TRADES'})
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                {data.name} — {data.percentage.toFixed(1)}% ({data.value} {data.value === 1 ? 'trade' : 'trades'})
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
-                <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-                  {wins}
-                  {beWins > 0 && (
-                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">({beWins} BE)</span>
-                  )}
-                </span>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
+                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{wins}</span>
               </div>
               <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
-                <span className="text-base font-bold text-rose-600 dark:text-rose-400">
-                  {losses}
-                  {beLosses > 0 && (
-                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">({beLosses} BE)</span>
-                  )}
-                </span>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
+                <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{losses}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
+                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{breakEven}</span>
               </div>
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
-                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                  {winRate.toFixed(2)}%
-                </div>
-              </div>
-              <div className="flex items-center justify-between gap-4 pt-1">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate (w/ BE):</span>
-                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-                  {winRateWithBE.toFixed(2)}%
-                </div>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
+                <span className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  {formatPercent(winRate)}%
+                  <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
+                    ({formatPercent(winRateWithBE)}% w/BE)
+                  </span>
+                </span>
               </div>
             </div>
           </div>
