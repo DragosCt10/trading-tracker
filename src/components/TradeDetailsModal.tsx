@@ -268,12 +268,9 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       setProgressDialog({ open: true, status: 'success', message: 'Your trade has been updated successfully. All charts and statistics have been updated.', title: 'Update' });
       setIsEditing(false);
       if (onTradeUpdated) onTradeUpdated();
-
-      setTimeout(() => {
-        setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
-        setIsSaving(false);
-        onClose();
-      }, 2000);
+      setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
+      setIsSaving(false);
+      onClose();
     } catch (err: any) {
       setProgressDialog({ open: true, status: 'error', message: err.message || 'Failed to save trade. Please try again.', title: 'Update' });
       setIsSaving(false);
@@ -302,12 +299,9 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
       setProgressDialog({ open: true, status: 'success', message: 'Your trade has been deleted successfully. All charts and statistics have been updated.', title: 'Delete' });
       if (onTradeUpdated) onTradeUpdated();
-
-      setTimeout(() => {
-        setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
-        setIsDeleting(false);
-        onClose();
-      }, 2000);
+      setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
+      setIsDeleting(false);
+      onClose();
     } catch (err: any) {
       setProgressDialog({ open: true, status: 'error', message: err.message ?? 'Failed to delete trade. Please try again.', title: 'Delete' });
       setIsDeleting(false);
