@@ -79,6 +79,7 @@ export interface Database {
           confidence_at_entry: number | null; // 1–5 confidence at entry
           mind_state_at_entry: number | null; // 1–5 mind state at entry
           be_final_result: string | null; // When trade_outcome is BE: 'Win' | 'Lose' | null
+          trade_executed_at: string | null; // UTC ISO for session bucketing (NY/UK/Asia)
         };
         Insert: Partial<Database['public']['Tables']['live_trades']['Row']> & {
           user_id: string;
@@ -136,6 +137,7 @@ export interface Database {
           confidence_at_entry: number | null; // 1–5 confidence at entry
           mind_state_at_entry: number | null; // 1–5 mind state at entry
           be_final_result: string | null; // When trade_outcome is BE: 'Win' | 'Lose' | null
+          trade_executed_at: string | null; // UTC ISO for session bucketing (NY/UK/Asia)
         };
         Insert: Partial<Database['public']['Tables']['backtesting_trades']['Row']> & {
           user_id: string;
@@ -193,6 +195,7 @@ export interface Database {
           confidence_at_entry: number | null; // 1–5 confidence at entry
           mind_state_at_entry: number | null; // 1–5 mind state at entry
           be_final_result: string | null; // When trade_outcome is BE: 'Win' | 'Lose' | null
+          trade_executed_at: string | null; // UTC ISO for session bucketing (NY/UK/Asia)
         };
         Insert: Partial<Database['public']['Tables']['demo_trades']['Row']> & {
           user_id: string;
