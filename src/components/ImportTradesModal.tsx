@@ -58,6 +58,7 @@ export default function ImportTradesModal({
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const defaultValuesCardRef = useRef<HTMLDivElement>(null);
+  const errorMessageRef = useRef<HTMLParagraphElement>(null);
 
   // ── Core state ──────────────────────────────────────────────────────────
   const [step, setStep] = useState<Step>('upload');
@@ -80,6 +81,16 @@ export default function ImportTradesModal({
   // ── AI value translation (background, unrecognized categorical values only) ─
   const [aiValueNorms, setAiValueNorms] = useState<AiNormalizations>({});
   const [translatingValues, setTranslatingValues] = useState(false);
+
+  // Scroll to error when "No valid rows" is shown on map step
+  useEffect(() => {
+    if (step === 'map' && errorMessage.startsWith('No valid rows to import')) {
+      const t = requestAnimationFrame(() => {
+        errorMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      return () => cancelAnimationFrame(t);
+    }
+  }, [step, errorMessage]);
 
   // ── "More options" modal for unresolved required fields ─────────────────
   const [moreOptionsField, setMoreOptionsField] = useState<SchemaField | null>(null);
@@ -366,7 +377,34 @@ export default function ImportTradesModal({
 
       if (rows.length === 0) {
         clearInterval(progressInterval);
-        setErrorMessage('No valid rows to import. Check the column mapping.');
+        const affectedHeaders = new Set<string>();
+        const marketMatch = matches.find((m) => m.dbField === 'market');
+        if (blankMarketErrors.length > 0) {
+          if (marketMatch) affectedHeaders.add(marketMatch.csvHeader);
+          else affectedHeaders.add('Market / Symbol (no column mapped)');
+        }
+        for (const e of errors) {
+          if (e.field === 'file') continue;
+          const m = matches.find((m) => m.dbField === e.field);
+          if (m) affectedHeaders.add(m.csvHeader);
+          else {
+            const schema = DB_SCHEMA.find((f) => f.key === e.field);
+            affectedHeaders.add(schema ? `${schema.label} (no column mapped)` : e.field);
+          }
+        }
+        const requiredUnmapped = DB_SCHEMA.filter(
+          (f) => f.required && !matches.some((m) => m.dbField === f.key),
+        );
+        for (const f of requiredUnmapped) {
+          affectedHeaders.add(`${f.label} (no column mapped)`);
+        }
+        const affectedList =
+          affectedHeaders.size > 0
+            ? ` Affected column(s): ${Array.from(affectedHeaders).join(', ')}.`
+            : '';
+        setErrorMessage(
+          `No valid rows to import. Check the column mapping.${affectedList}`,
+        );
         setStep('map');
         return;
       }
@@ -980,7 +1018,10 @@ export default function ImportTradesModal({
                   </div>
 
                   {errorMessage && (
-                    <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2.5">
+                    <p
+                      ref={errorMessageRef}
+                      className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2.5"
+                    >
                       {errorMessage}
                     </p>
                   )}
