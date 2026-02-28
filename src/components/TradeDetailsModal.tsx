@@ -1017,6 +1017,12 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                           </div>
                         </div>
                       </a>
+                      <a href={editedTrade.trade_link} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-sky-600 dark:text-sky-400 hover:underline">
+                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Open Trade Chart
+                      </a>
                     </div>
                   ) : null}
 
@@ -1037,6 +1043,12 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                           </div>
                         </div>
                       </a>
+                      <a href={editedTrade.liquidity_taken} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-sky-600 dark:text-sky-400 hover:underline">
+                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Open Liquidity Link
+                      </a>
                     </div>
                   ) : null}
                 </div>
@@ -1044,24 +1056,48 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 <div className="space-y-4">
                   <div>
                     <label className={`${labelClass} mb-2`}>Trade Chart URL</label>
-                    <Input
-                      type="text"
-                      value={editedTrade?.trade_link ?? ''}
-                      onChange={(e) => handleInputChange('trade_link', e.target.value)}
-                      className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
-                      placeholder="https://..."
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="url"
+                        value={editedTrade?.trade_link ?? ''}
+                        onChange={(e) => handleInputChange('trade_link', e.target.value)}
+                        className={`${inputClass} flex-1 placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+                        placeholder="https://..."
+                      />
+                      {editedTrade?.trade_link && (editedTrade.trade_link.startsWith('http://') || editedTrade.trade_link.startsWith('https://')) && (
+                        <a
+                          href={editedTrade.trade_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 text-sm font-medium text-sky-600 dark:text-sky-400 hover:underline"
+                        >
+                          Open
+                        </a>
+                      )}
+                    </div>
                   </div>
                   {isTradingInstitutional && (
                     <div>
                       <label className={`${labelClass} mb-2`}>Liquidity Link URL</label>
-                      <Input
-                        type="text"
-                        value={editedTrade?.liquidity_taken ?? ''}
-                        onChange={(e) => handleInputChange('liquidity_taken', e.target.value)}
-                        className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
-                        placeholder="https://..."
-                      />
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="url"
+                          value={editedTrade?.liquidity_taken ?? ''}
+                          onChange={(e) => handleInputChange('liquidity_taken', e.target.value)}
+                          className={`${inputClass} flex-1 placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+                          placeholder="https://..."
+                        />
+                        {editedTrade?.liquidity_taken && (editedTrade.liquidity_taken.startsWith('http://') || editedTrade.liquidity_taken.startsWith('https://')) && (
+                          <a
+                            href={editedTrade.liquidity_taken}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="shrink-0 text-sm font-medium text-sky-600 dark:text-sky-400 hover:underline"
+                          >
+                            Open
+                          </a>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
