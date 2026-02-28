@@ -164,9 +164,9 @@ const KNOWN_MARKETS = new Set([
 
 /** Strip slashes/dashes/spaces and uppercase — produces canonical form. */
 export function normalizeMarket(val: string): string {
-  // Remove flag emojis (U+1F1E0–U+1F1FF range), then strip separators
+  // Remove flag emojis (U+1F1E0–U+1F1FF; surrogate pair \uD83C[\uDDE0-\uDDFF]), then strip separators
   return val
-    .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
+    .replace(/\uD83C[\uDDE0-\uDDFF]/g, '')
     .toUpperCase()
     .replace(/[\\/\-\s]+/g, '');
 }
