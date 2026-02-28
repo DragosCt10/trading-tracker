@@ -209,6 +209,7 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
               <ComposedChart
                 data={withTotals}
                 margin={{ top: 30, right: 56, left: 56, bottom: 10 }}
+                barCategoryGap="20%"
               >
                 <defs>
                   <linearGradient id="timeIntervalTotalArea" x1="0" y1="0" x2="0" y2="1">
@@ -296,9 +297,9 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
                   fill="url(#timeIntervalTotalArea)"
                   stroke="none"
                 />
-                <ReBar dataKey="wins" name="Wins" fill="url(#timeIntervalWinsBar)" radius={[7, 7, 0, 0]} barSize={18} yAxisId="left" />
-                <ReBar dataKey="losses" name="Losses" fill="url(#timeIntervalLossesBar)" radius={[7, 7, 0, 0]} barSize={18} yAxisId="left" />
-                <ReBar dataKey="breakEven" name="Break Even" fill="url(#timeIntervalBreakEvenBar)" radius={[7, 7, 0, 0]} barSize={18} yAxisId="left" />
+                <ReBar dataKey="wins" name="Wins" fill="url(#timeIntervalWinsBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" stackId="wins" />
+                <ReBar dataKey="losses" name="Losses" fill="url(#timeIntervalLossesBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" stackId="losses" />
+                <ReBar dataKey="breakEven" name="Break Even" fill="url(#timeIntervalBreakEvenBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" stackId="breakEven" />
                 <Line
                   type="monotone"
                   dataKey="winRate"
