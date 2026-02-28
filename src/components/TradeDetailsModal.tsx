@@ -49,6 +49,7 @@ import {
 import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarket';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { MarketCombobox } from '@/components/MarketCombobox';
+import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
 
 interface TradeDetailsModalProps {
   trade: Trade | null;
@@ -212,9 +213,11 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
     try {
       const tradingMode = (editedTrade.mode || selection.mode) as 'live' | 'backtesting' | 'demo';
+      // Normalize trade_time to interval start so Time Interval Stats bucket correctly (legacy "09:30" → "08:00")
+      const normalizedTradeTime = getIntervalForTime(editedTrade.trade_time || '')?.start ?? editedTrade.trade_time ?? '';
       const updateData = {
         trade_date: editedTrade.trade_date,
-        trade_time: editedTrade.trade_time,
+        trade_time: normalizedTradeTime,
         day_of_week: editedTrade.day_of_week || '',
         quarter: editedTrade.quarter || '',
         market: normalizeMarket(editedTrade.market),
@@ -416,10 +419,48 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
           </div>
         );
       }
+      // Time: show interval label (legacy trade_time like "09:30" maps to interval via getIntervalForTime)
+      if (field === 'trade_time') {
+        const interval = getIntervalForTime((value as string) || '');
+        const displayTime = interval ? interval.label : (value as string) || '—';
+        return (
+          <div>
+            <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
+            <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">{displayTime}</dd>
+          </div>
+        );
+      }
       return (
         <div>
           <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
           <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">{value as string}</dd>
+        </div>
+      );
+    }
+
+    // Trade time (interval select – same as NewTradeModal; store interval start so Time Interval Stats bucket correctly)
+    if (field === 'trade_time') {
+      const timeStr = (editedTrade.trade_time as string) || '';
+      const intervalForDisplay = getIntervalForTime(timeStr);
+      const selectValue = intervalForDisplay ? intervalForDisplay.start : timeStr || '';
+      return (
+        <div>
+          <label className={`${labelClass} mb-2`}>{label}</label>
+          <Select
+            value={TIME_INTERVALS.some((i) => i.start === selectValue) ? selectValue : ''}
+            onValueChange={(v) => handleInputChange('trade_time', v)}
+          >
+            <SelectTrigger className={selectTriggerClass}>
+              <SelectValue placeholder="Select time interval" />
+            </SelectTrigger>
+            <SelectContent className={selectContentClass}>
+              {TIME_INTERVALS.map((interval) => (
+                <SelectItem key={interval.start} value={interval.start}>
+                  {interval.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       );
     }
@@ -748,7 +789,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               </div>
             </div>
             <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
-              {editedTrade?.market} {editedTrade?.direction} • {editedTrade?.trade_date} {editedTrade?.trade_time}
+              {editedTrade?.market} {editedTrade?.direction} • {editedTrade?.trade_date} {editedTrade?.trade_time ? (getIntervalForTime(editedTrade.trade_time)?.label ?? editedTrade.trade_time) : ''}
             </AlertDialogDescription>
           </AlertDialogHeader>
         </div>
