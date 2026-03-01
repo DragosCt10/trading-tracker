@@ -9,6 +9,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trade } from '@/types/trade';
 import { cn } from '@/lib/utils';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 /**
  * Parse trade_date string to a local Date object, avoiding timezone issues
@@ -173,6 +174,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
   getDaysInMonth,
   onTradeClick,
 }) => {
+  const { isDark } = useDarkMode();
   const balance = accountBalance || 1;
 
   const [mounted, setMounted] = useState(false);
@@ -455,13 +457,10 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                     <TooltipContent
                       side="top"
                       align="center"
-                      className={cn(
-                        'p-0 border-0 bg-transparent shadow-none rounded-2xl'
-                      )}
+                      className="w-56 rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
                       sideOffset={6}
                     >
-                      <div className="relative overflow-hidden rounded-2xl border border-slate-300/80 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/10 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-50 w-56">
-                        <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
+                      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
                         <div className="relative space-y-1.5 text-xs">
                           {/* Existing list of trades (all breakpoints) */}
                           {filteredDayTrades.map((trade, i) => (
@@ -558,7 +557,6 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                             </span>
                           </div>
                         </div>
-                      </div>
                     </TooltipContent>
                   </Tooltip>
                 );

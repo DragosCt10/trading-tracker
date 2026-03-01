@@ -113,8 +113,8 @@ export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.mem
       const winRateWithBE = d.winRateWithBE ?? d.winRate ?? 0;
       const totalTrades = d.totalTrades ?? wins + losses + breakEven;
       return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-50">
-          <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
+          {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
           <div className="relative flex flex-col gap-3">
             <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
               {d.category} {typeof totalTrades === 'number' ? `(${totalTrades} trade${totalTrades === 1 ? '' : 's'})` : ''}
@@ -305,21 +305,7 @@ export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.mem
                   label={rightAxisLabel}
                 />
                 <ReTooltip
-                  contentStyle={{
-                    background: isDark
-                      ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)'
-                      : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
-                    backdropFilter: 'blur(16px)',
-                    border: isDark ? '1px solid rgba(51, 65, 85, 0.6)' : '1px solid rgba(148, 163, 184, 0.2)',
-                    borderRadius: '16px',
-                    padding: '14px 18px',
-                    color: isDark ? '#e2e8f0' : '#1e293b',
-                    fontSize: 14,
-                    boxShadow: isDark
-                      ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05)'
-                      : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-                    minWidth: '160px',
-                  }}
+                  contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none', minWidth: '160px' }}
                   wrapperStyle={{ outline: 'none', zIndex: 1000 }}
                   cursor={{ stroke: isDark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.4)', strokeWidth: 1 }}
                   content={<CustomTooltip />}

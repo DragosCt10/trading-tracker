@@ -113,8 +113,8 @@ export const LocalHLBEStatisticsCard: React.FC<LocalHLBEStatisticsCardProps> = R
       const colors = colorMap[data.color] || colorMap.emerald;
       const percentage = data.pct ?? (totalTrades > 0 ? (data.value / totalTrades) * 100 : 0);
       return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-transparent backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-3 text-slate-900 dark:text-slate-50">
-          <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-3 text-slate-900 dark:text-slate-100">
+          {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
           <div className="relative flex flex-col">
             <div className="flex items-center gap-2">
               <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
@@ -193,9 +193,11 @@ export const LocalHLBEStatisticsCard: React.FC<LocalHLBEStatisticsCardProps> = R
                 </TooltipTrigger>
                 <UITooltipContent
                   side="top"
+                  align="center"
                   sideOffset={6}
-                  className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-300/80 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/10 dark:shadow-black/40 text-slate-900 dark:text-slate-100 min-w-[160px]"
+                  className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
                 >
+                  {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
                   <div className="relative text-xs sm:text-sm text-slate-400 dark:text-slate-300">For accurate stats, select BE as trade outcome and also set After BE (Win or Lose).</div>
                 </UITooltipContent>
               </UITooltip>
@@ -237,23 +239,7 @@ export const LocalHLBEStatisticsCard: React.FC<LocalHLBEStatisticsCardProps> = R
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{
-                      background: isDark
-                        ? 'linear-gradient(135deg, var(--grad-from) 0%, var(--grad-via) 50%, var(--grad-to) 100%)'
-                        : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
-                      backdropFilter: 'blur(16px)',
-                      border: isDark
-                        ? '1px solid rgba(255, 255, 255, 0.06)'
-                        : '1px solid rgba(148, 163, 184, 0.2)',
-                      borderRadius: '16px',
-                      padding: '14px 18px',
-                      color: isDark ? '#e2e8f0' : '#1e293b',
-                      fontSize: 14,
-                      boxShadow: isDark
-                        ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05)'
-                        : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-                      minWidth: '160px',
-                    }}
+                    contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none', minWidth: '160px' }}
                     wrapperStyle={{ outline: 'none', zIndex: 1000 }}
                     cursor={{ fill: 'transparent', radius: 8 }}
                     content={<CustomTooltip />}

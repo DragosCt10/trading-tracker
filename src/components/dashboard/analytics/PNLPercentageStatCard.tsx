@@ -58,7 +58,7 @@ export const PNLPercentageStatCard: React.FC<PNLPercentageStatCardProps> = React
     return (
       <StatCard
         title="P&L %"
-        tooltipVariant="calendar"
+        tooltipVariant="default"
         tooltipContent={
           <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-300">
             Average P&amp;L % over starting balance.
