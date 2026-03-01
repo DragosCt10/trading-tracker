@@ -265,7 +265,7 @@ export const EvaluationStats: React.FC<EvaluationStatsProps> = React.memo(
                     width={44}
                     tickMargin={8}
                   />
-                  <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={32}>
+                  <Bar dataKey="value" radius={[7, 7, 7, 7]} barSize={18}>
                     {chartData.map((entry, index) => {
                       let gradientId = 'evaluationGradeBar';
                       if (entry.category === 'B') gradientId = 'evaluationGradeB';
