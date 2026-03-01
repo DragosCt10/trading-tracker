@@ -42,7 +42,7 @@ export const AverageDaysBetweenTradesCard: React.FC<AverageDaysBetweenTradesCard
       <StatCard
         title="Avg days between trades"
         tooltipContent={
-          <p className="text-xs sm:text-sm text-slate-500">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             Average number of days between consecutive trade dates in the selected period.
           </p>
         }
