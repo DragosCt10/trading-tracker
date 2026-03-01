@@ -1012,7 +1012,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                         News Related
                       </span>
                       {editedTrade?.news_related && editedTrade.news_name && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium bg-amber-100/70 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-300/80 dark:border-amber-700/50">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium bg-transparent text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700">
                           {editedTrade.news_name}
                           {editedTrade.news_intensity != null && (
                             <span className="flex items-center gap-0.5 ml-0.5">
