@@ -965,53 +965,102 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               </div>
             </div>
 
-            {/* Trade Conditions - Single Card with 3 columns */}
+            {/* Trade Conditions */}
             <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
-<svg className="w-4 h-4 shrink-0" style={{ color: 'var(--tc-primary)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--tc-primary)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
                 Trade Conditions
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Execution */}
-                <div>
-                  <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Execution</h4>
-                  <div className="space-y-3">
-                    {isTradingInstitutional && (isEditing || (editedTrade?.mss != null && editedTrade.mss !== '')) && renderField('MSS', 'mss', 'select', MSS_OPTIONS)}
-                    {renderField('Re-entry', 'reentry', 'boolean')}
-                    {isTradingInstitutional && renderField('Launch Hour', 'launch_hour', 'boolean')}
+
+              {!isEditing ? (
+                /* ── VIEW: chip design ── */
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Execution */}
+                  <div>
+                    <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Execution</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {isTradingInstitutional && editedTrade?.mss && (
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg border text-xs font-medium bg-slate-100 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/50">
+                          MSS: {editedTrade.mss}
+                        </span>
+                      )}
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.reentry ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
+                        {editedTrade?.reentry && <span className="text-[10px]">✓</span>}
+                        Re-entry
+                      </span>
+                      {isTradingInstitutional && (
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.launch_hour ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
+                          {editedTrade?.launch_hour && <span className="text-[10px]">✓</span>}
+                          Launch Hour
+                        </span>
+                      )}
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.executed ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
+                        {editedTrade?.executed && <span className="text-[10px]">✓</span>}
+                        Executed
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Context */}
+                  <div>
+                    <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Context</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.news_related ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
+                        {editedTrade?.news_related && <span className="text-[10px]">✓</span>}
+                        News Related
+                      </span>
+                      {editedTrade?.news_related && editedTrade.news_name && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium bg-amber-100/70 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50">
+                          {editedTrade.news_name}
+                          {editedTrade.news_intensity != null && (
+                            <span className="flex items-center gap-0.5 ml-0.5">
+                              {[1, 2, 3].map((s) => (
+                                <span key={s} className={`text-sm leading-none ${s <= editedTrade.news_intensity! ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600'}`}>★</span>
+                              ))}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.local_high_low ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
+                        {editedTrade?.local_high_low && <span className="text-[10px]">✓</span>}
+                        Local High/Low
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Performance */}
+                  <div>
+                    <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Performance</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.partials_taken ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
+                        {editedTrade?.partials_taken && <span className="text-[10px]">✓</span>}
+                        Partials
+                      </span>
+                    </div>
                   </div>
                 </div>
+              ) : (
+                /* ── EDIT: original 3-column grid with selects ── */
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Execution */}
+                  <div>
+                    <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Execution</h4>
+                    <div className="space-y-3">
+                      {isTradingInstitutional && renderField('MSS', 'mss', 'select', MSS_OPTIONS)}
+                      {renderField('Re-entry', 'reentry', 'boolean')}
+                      {isTradingInstitutional && renderField('Launch Hour', 'launch_hour', 'boolean')}
+                      {renderField('Executed', 'executed', 'boolean')}
+                    </div>
+                  </div>
 
-                {/* Context */}
-                <div>
-                  <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Context</h4>
-                  <div className="space-y-3">
-                    {renderField('News Related', 'news_related', 'boolean')}
-                    {editedTrade?.news_related && (
-                      !isEditing ? (
-                        (editedTrade.news_name || editedTrade.news_intensity != null) ? (
-                          <div>
-                            <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">News Event</dt>
-                            <dd className="mt-1.5 space-y-1">
-                              {editedTrade.news_name && (
-                                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{editedTrade.news_name}</p>
-                              )}
-                              {editedTrade.news_intensity != null && (
-                                <div className="flex items-center gap-0.5">
-                                  {[1, 2, 3].map((star) => (
-                                    <span key={star} className={`text-base ${star <= editedTrade.news_intensity! ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600'}`}>★</span>
-                                  ))}
-                                  <span className="text-xs text-slate-500 dark:text-slate-400 ml-1">
-                                    {['Low', 'Medium', 'High'][(editedTrade.news_intensity ?? 1) - 1]}
-                                  </span>
-                                </div>
-                              )}
-                            </dd>
-                          </div>
-                        ) : null
-                      ) : (
+                  {/* Context */}
+                  <div>
+                    <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Context</h4>
+                    <div className="space-y-3">
+                      {renderField('News Related', 'news_related', 'boolean')}
+                      {editedTrade?.news_related && (
                         <div className="space-y-2">
                           <label className={`${labelClass} mb-1`}>News Event</label>
                           <NewsCombobox
@@ -1056,21 +1105,20 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                             )}
                           </div>
                         </div>
-                      )
-                    )}
-                    {renderField('Local High/Low', 'local_high_low', 'boolean')}
+                      )}
+                      {renderField('Local High/Low', 'local_high_low', 'boolean')}
+                    </div>
                   </div>
-                </div>
 
-                {/* Performance */}
-                <div>
-                  <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Performance</h4>
-                  <div className="space-y-3">
-                    {renderField('Partials', 'partials_taken', 'boolean')}
-                    {renderField('Executed', 'executed', 'boolean')}
+                  {/* Performance */}
+                  <div>
+                    <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Performance</h4>
+                    <div className="space-y-3">
+                      {renderField('Partials', 'partials_taken', 'boolean')}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Trade Screenshots - only show when has link(s) or when editing */}
