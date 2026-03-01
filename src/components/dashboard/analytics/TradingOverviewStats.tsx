@@ -124,8 +124,8 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
 
       <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
 
-      {/* Total Trades Chart, Streak Stats, and BE Stats */}
-      <div className="col-span-full grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Six cards in one grid: same gap horizontally and vertically as outer left/right spacing */}
+      <div className="col-span-full grid grid-cols-1 lg:grid-cols-3 gap-6 [&>*:nth-child(n+4)]:min-h-[340px]">
         <TotalTradesChartCard
           totalTrades={stats.totalTrades}
           wins={stats.wins}
@@ -138,31 +138,29 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
           maxLosingStreak={stats.maxLosingStreak}
         />
         <BEStatisticsCard trades={trades} />
+        {partialRowProps && (
+          <>
+            <DirectionStatisticsCard
+              directionStats={partialRowProps.directionStats}
+              isLoading={partialRowProps.chartsLoadingState}
+              includeTotalTrades={partialRowProps.includeTotalTradesForDirection}
+            />
+            <PartialTradesChartCard
+              totalPartials={partialRowProps.partialStats.totalPartials}
+              partialWinningTrades={partialRowProps.partialStats.partialWinningTrades}
+              partialLosingTrades={partialRowProps.partialStats.partialLosingTrades}
+              partialBETrades={partialRowProps.partialStats.partialBETrades}
+              isLoading={partialRowProps.chartsLoadingState}
+            />
+            <ExecutedNonExecutedTradesCard
+              totalExecutedTrades={totalExecutedTrades}
+              initialNonExecutedTotalTradesCount={partialRowProps.initialNonExecutedTotalTradesCount}
+              nonExecutedTotalTradesCount={nonExecutedTotalTradesCount}
+              isLoading={partialRowProps.chartsLoadingState}
+            />
+          </>
+        )}
       </div>
-
-      {/* Long/Short (left), Partial Trades (middle), Executed/Non-Executed (right) */}
-      {partialRowProps && (
-        <div className="col-span-full grid grid-cols-1 lg:grid-cols-3 gap-6 [&>*]:min-h-[340px]">
-          <DirectionStatisticsCard
-            directionStats={partialRowProps.directionStats}
-            isLoading={partialRowProps.chartsLoadingState}
-            includeTotalTrades={partialRowProps.includeTotalTradesForDirection}
-          />
-          <PartialTradesChartCard
-            totalPartials={partialRowProps.partialStats.totalPartials}
-            partialWinningTrades={partialRowProps.partialStats.partialWinningTrades}
-            partialLosingTrades={partialRowProps.partialStats.partialLosingTrades}
-            partialBETrades={partialRowProps.partialStats.partialBETrades}
-            isLoading={partialRowProps.chartsLoadingState}
-          />
-          <ExecutedNonExecutedTradesCard
-            totalExecutedTrades={totalExecutedTrades}
-            initialNonExecutedTotalTradesCount={partialRowProps.initialNonExecutedTotalTradesCount}
-            nonExecutedTotalTradesCount={nonExecutedTotalTradesCount}
-            isLoading={partialRowProps.chartsLoadingState}
-          />
-        </div>
-      )}
 
       {aboveRiskPerTradeRow && (
         <>
