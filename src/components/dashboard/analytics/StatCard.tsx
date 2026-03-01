@@ -5,8 +5,9 @@ import { Info } from 'lucide-react';
 import { Card, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
-/** When 'calendar', tooltip uses same bg as TradesCalendarCard (white / slate-800/90). Default uses themed overlay. */
+/** When 'calendar', tooltip uses same bg as TradesCalendarCard (white / slate-800/90). Default uses themed overlay in dark mode only. */
 interface StatCardProps {
   title: React.ReactNode;
   value: React.ReactNode;
@@ -27,6 +28,7 @@ export const StatCard: React.FC<StatCardProps> = React.memo(({
   align = 'center',
   tooltipVariant = 'default',
 }) => {
+  const { isDark } = useDarkMode();
   const useCalendarTooltip = tooltipVariant === 'calendar';
   return (
     <Card
@@ -62,7 +64,7 @@ export const StatCard: React.FC<StatCardProps> = React.memo(({
                       className={useCalendarTooltip ? tooltipClassCalendar : tooltipClassDefault}
                       sideOffset={6}
                     >
-                      {!useCalendarTooltip && <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />}
+                      {!useCalendarTooltip && isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
                       <div className="relative">{tooltipContent}</div>
                     </TooltipContent>
                   </Tooltip>
@@ -98,7 +100,7 @@ export const StatCard: React.FC<StatCardProps> = React.memo(({
                           className={useCalendarTooltip ? tooltipClassCalendar : tooltipClassDefault}
                           sideOffset={6}
                         >
-                          {!useCalendarTooltip && <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />}
+                          {!useCalendarTooltip && isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
                           <div className="relative">{tooltipContent}</div>
                         </TooltipContent>
                       </Tooltip>
