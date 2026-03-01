@@ -39,7 +39,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogDescription,
-  AlertDialogFooter,
 } from '@/components/ui/alert-dialog';
 import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarket';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
@@ -147,11 +146,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [progressDialog, setProgressDialog] = useState<{
-    open: boolean;
-    status: 'loading' | 'success' | 'error';
-    message: string;
-  }>({ open: false, status: 'loading', message: '' });
 
   // Prevent hydration mismatch by only rendering on client
   useEffect(() => {
@@ -386,9 +380,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       return;
     }
 
-    // Show progress dialog
     setIsSubmitting(true);
-    setProgressDialog({ open: true, status: 'loading', message: 'Please wait while we save your trade data...' });
 
     try {
       if (notesRef.current) {
@@ -441,25 +433,15 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         });
       }
 
-      // Update progress message
-      setProgressDialog({ open: true, status: 'loading', message: 'Updating analytics and refreshing charts...' });
-
       // ✅ Invalidate and refetch all queries to ensure analytics updates immediately
       await invalidateAndRefetchTradeQueries();
 
-      // Show success, then close immediately
-      setProgressDialog({ open: true, status: 'success', message: 'Your trade has been added successfully. All charts and statistics have been updated.' });
-      setProgressDialog({ open: false, status: 'loading', message: '' });
       setIsSubmitting(false);
       if (onTradeCreated) onTradeCreated();
       onClose();
       setTrade(initialTradeState);
     } catch (err: any) {
-      setProgressDialog({ 
-        open: true, 
-        status: 'error', 
-        message: 'Failed to create trade. Please check your data and try again.'
-      });
+      setError(err?.message ?? 'Failed to create trade. Please check your data and try again.');
       setIsSubmitting(false);
     }
   };
@@ -1311,74 +1293,13 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               >
                 <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
                   {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {isSubmitting ? 'Creating...' : 'Create Trade'}
+                  {isSubmitting ? 'Creating new trade' : 'Create Trade'}
                 </span>
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
               </Button>
             </div>
           </form>
         </div>
-      </AlertDialogContent>
-    </AlertDialog>
-
-    {/* Progress Dialog - matches TradeDetailsModal delete dialog design */}
-    <AlertDialog open={progressDialog.open} onOpenChange={() => {
-      if (progressDialog.status !== 'loading') {
-        setProgressDialog({ open: false, status: 'loading', message: '' });
-      }
-    }}>
-      <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient rounded-2xl">
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            {progressDialog.status === 'loading' && (
-              <span className="themed-heading-accent font-semibold text-lg flex items-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Creating Trade
-              </span>
-            )}
-            {progressDialog.status === 'success' && (
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-lg flex items-center gap-2">
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                Trade Created Successfully
-              </span>
-            )}
-            {progressDialog.status === 'error' && (
-              <span className="text-red-500 dark:text-red-400 font-semibold text-lg flex items-center gap-2">
-                <AlertCircle className="h-5 w-5" />
-                Error Creating Trade
-              </span>
-            )}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            <span className="text-slate-600 dark:text-slate-400">
-              {progressDialog.message}
-            </span>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        
-        {/* Only show footer with button for error state */}
-        {progressDialog.status === 'error' && (
-          <AlertDialogFooter className="flex gap-3">
-            <Button
-              onClick={() => setProgressDialog({ open: false, status: 'loading', message: '' })}
-              className="cursor-pointer rounded-xl border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
-            >
-              Close
-            </Button>
-          </AlertDialogFooter>
-        )}
       </AlertDialogContent>
     </AlertDialog>
     </>
