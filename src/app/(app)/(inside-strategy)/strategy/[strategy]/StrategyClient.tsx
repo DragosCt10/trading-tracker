@@ -101,6 +101,7 @@ import {
   NewsStatisticsCard,
   type NewsStatisticsCardProps,
 } from '@/components/dashboard/analytics/NewsStatisticsCard';
+import { NewsNameChartCard } from '@/components/dashboard/analytics/NewsNameChartCard';
 import {
   MarketStatisticsCard,
   type MarketStatisticsCardProps,
@@ -1220,13 +1221,18 @@ export default function StrategyClient(
           includeTotalTrades={filteredChartStats !== null}
         />
       </div>
-      {/* News Stats - full width below Day Stats */}
-      <div className="my-8">
-        <NewsStatisticsCard
-          newsStats={newsStatsFromTradesToUse}
-          isLoading={chartsLoadingState}
-          includeTotalTrades={filteredChartStats !== null}
-        />
+      {/* News Stats + News by event chart (same row, News by event wider) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 my-8 items-stretch">
+        <div className="lg:col-span-1">
+          <NewsStatisticsCard
+            newsStats={newsStatsFromTradesToUse}
+            isLoading={chartsLoadingState}
+            includeTotalTrades={filteredChartStats !== null}
+          />
+        </div>
+        <div className="lg:col-span-2">
+          <NewsNameChartCard trades={tradesToUse} isLoading={chartsLoadingState} />
+        </div>
       </div>
 
       {isTradingInstitutional && (
