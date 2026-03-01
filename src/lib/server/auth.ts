@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { ensureDefaultAccount } from '@/lib/server/accounts';
 
 export type AuthResult = { error?: string };
 
@@ -19,6 +20,7 @@ export async function loginAction(
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) return { error: error.message };
+  await ensureDefaultAccount();
   return {};
 }
 
@@ -37,6 +39,7 @@ export async function signupAction(
   const { error } = await supabase.auth.signUp({ email, password });
 
   if (error) return { error: error.message };
+  await ensureDefaultAccount();
   return {};
 }
 
