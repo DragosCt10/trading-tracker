@@ -51,6 +51,11 @@ import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { MarketCombobox } from '@/components/MarketCombobox';
 import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
 import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
+import { NewsCombobox } from '@/components/NewsCombobox';
+import { mergeNewsIntoSaved, normalizeNewsName } from '@/utils/newsUtils';
+import { updateAccountSavedNews } from '@/lib/server/accounts';
+import { queryKeys } from '@/lib/queryKeys';
+import type { SavedNewsItem } from '@/types/account-settings';
 
 interface TradeDetailsModalProps {
   trade: Trade | null;
@@ -239,6 +244,8 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         be_final_result: editedTrade.be_final_result,
         reentry: editedTrade.reentry,
         news_related: editedTrade.news_related,
+        news_name: editedTrade.news_related ? (editedTrade.news_name ?? null) : null,
+        news_intensity: editedTrade.news_related ? (editedTrade.news_intensity ?? null) : null,
         local_high_low: editedTrade.local_high_low,
         notes: editedTrade.notes,
         pnl_percentage: editedTrade.pnl_percentage,
@@ -264,6 +271,21 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
       setProgressDialog({ open: true, status: 'loading', message: 'Updating analytics and refreshing charts...', title: 'Update' });
       await invalidateAndRefetchTradeQueries();
+
+      // Save / update news event in account's saved_news library
+      if (editedTrade.news_related && editedTrade.news_name?.trim() && selection.activeAccount) {
+        const currentSaved = (selection.activeAccount as any).saved_news as SavedNewsItem[] | null;
+        const savedNews = Array.isArray(currentSaved) ? currentSaved : [];
+        const updatedNews = mergeNewsIntoSaved(
+          normalizeNewsName(editedTrade.news_name),
+          editedTrade.news_intensity ?? null,
+          savedNews
+        );
+        await updateAccountSavedNews(selection.activeAccount.id, updatedNews);
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.accounts(userId, selection.mode),
+        });
+      }
 
       setProgressDialog({ open: true, status: 'success', message: 'Your trade has been updated successfully. All charts and statistics have been updated.', title: 'Update' });
       setIsEditing(false);
@@ -967,6 +989,75 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Context</h4>
                   <div className="space-y-3">
                     {renderField('News Related', 'news_related', 'boolean')}
+                    {editedTrade?.news_related && (
+                      !isEditing ? (
+                        (editedTrade.news_name || editedTrade.news_intensity != null) ? (
+                          <div>
+                            <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">News Event</dt>
+                            <dd className="mt-1.5 space-y-1">
+                              {editedTrade.news_name && (
+                                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{editedTrade.news_name}</p>
+                              )}
+                              {editedTrade.news_intensity != null && (
+                                <div className="flex items-center gap-0.5">
+                                  {[1, 2, 3].map((star) => (
+                                    <span key={star} className={`text-base ${star <= editedTrade.news_intensity! ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600'}`}>★</span>
+                                  ))}
+                                  <span className="text-xs text-slate-500 dark:text-slate-400 ml-1">
+                                    {['Low', 'Medium', 'High'][(editedTrade.news_intensity ?? 1) - 1]}
+                                  </span>
+                                </div>
+                              )}
+                            </dd>
+                          </div>
+                        ) : null
+                      ) : (
+                        <div className="space-y-2">
+                          <label className={`${labelClass} mb-1`}>News Event</label>
+                          <NewsCombobox
+                            id="news-name"
+                            value={editedTrade.news_name ?? ''}
+                            onChange={(v) => handleInputChange('news_name', v || null)}
+                            onSelect={(item) => {
+                              handleInputChange('news_name', item.name);
+                              handleInputChange('news_intensity', item.intensity);
+                            }}
+                            savedNews={
+                              Array.isArray((selection.activeAccount as any)?.saved_news)
+                                ? (selection.activeAccount as any).saved_news as SavedNewsItem[]
+                                : []
+                            }
+                            placeholder="e.g. CPI, NFP, FOMC"
+                            className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+                          />
+                          <div className="flex items-center gap-1" role="group" aria-label="News intensity">
+                            {[1, 2, 3].map((star) => (
+                              <button
+                                key={star}
+                                type="button"
+                                onClick={() =>
+                                  handleInputChange('news_intensity', editedTrade.news_intensity === star ? null : star)
+                                }
+                                className={`text-xl leading-none transition-colors cursor-pointer focus:outline-none ${
+                                  editedTrade.news_intensity != null && star <= editedTrade.news_intensity
+                                    ? 'text-amber-400'
+                                    : 'text-slate-300 dark:text-slate-600 hover:text-amber-300'
+                                }`}
+                                title={['Low', 'Medium', 'High'][star - 1]}
+                                aria-pressed={editedTrade.news_intensity != null && star <= editedTrade.news_intensity}
+                              >
+                                ★
+                              </button>
+                            ))}
+                            {editedTrade.news_intensity != null && (
+                              <span className="text-xs text-slate-500 dark:text-slate-400 ml-1">
+                                {['Low', 'Medium', 'High'][editedTrade.news_intensity - 1]}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    )}
                     {renderField('Local High/Low', 'local_high_low', 'boolean')}
                   </div>
                 </div>
