@@ -431,7 +431,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         const savedNews = Array.isArray(currentSaved) ? currentSaved : [];
         const updatedNews = mergeNewsIntoSaved(
           normalizeNewsName(trade.news_name),
-          trade.news_intensity ?? 1,
+          trade.news_intensity ?? null,
           savedNews
         );
         await updateAccountSavedNews(selection.activeAccount.id, updatedNews);
@@ -1105,7 +1105,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                           : []
                       }
                       placeholder="e.g. CPI, NFP, FOMC"
-                      className="h-10 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-sm themed-focus text-slate-900 dark:text-slate-50 text-sm"
+                      className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
                     />
                   </div>
                   {/* Star rating 1–3 */}
