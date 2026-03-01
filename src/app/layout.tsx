@@ -47,10 +47,10 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} app-gradient min-h-screen relative`}>
-        {/* Theme-aware gradient orbs (use --orb-1 / --orb-2 from color theme) */}
+        {/* Theme-aware gradient orbs (use --orb-1 / --orb-2 from color theme) — static, no animation */}
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden>
-          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] orb-bg-1 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] orb-bg-2 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] orb-bg-1 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] orb-bg-2 rounded-full blur-3xl" />
         </div>
         <ThemeProvider>
           <QueryProvider>
