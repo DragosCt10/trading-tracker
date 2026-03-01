@@ -793,6 +793,10 @@ html.dark[data-color-theme="ice"] {
 .themed-nav-overlay--vertical {
   background: linear-gradient(to bottom, var(--orb-1), transparent, var(--orb-2));
 }
+/* Diagonal variant — top-left to bottom-right, used for tooltip cards */
+.themed-nav-overlay--diagonal {
+  background: linear-gradient(to bottom right, var(--orb-1), transparent, var(--orb-2));
+}
 
 /* ---- Themed toggle (ViewModeToggle active state) ---- */
 .themed-toggle-active {
