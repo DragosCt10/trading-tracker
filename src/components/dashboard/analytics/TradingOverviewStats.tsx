@@ -8,6 +8,7 @@ import { TotalProfitStatCard } from './TotalProfitStatCard';
 import { AverageProfitStatCard } from './AverageProfitStatCard';
 import { StreakStatisticsCard } from './StreakStatisticsCard';
 import { TotalTradesChartCard } from './TotalTradesChartCard';
+import { BEStatisticsCard } from './BEStatisticsCard';
 import { RRMultipleStatCard } from './RRMultipleStatCard';
 import { BestRRStatCard } from './BestRRStatCard';
 import { PNLPercentageStatCard } from './PNLPercentageStatCard';
@@ -123,8 +124,8 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
 
       <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
 
-      {/* Total Trades Chart and Streak Stats - 2 columns */}
-      <div className="col-span-full grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Total Trades Chart, Streak Stats, and BE Stats */}
+      <div className="col-span-full grid grid-cols-1 lg:grid-cols-3 gap-6">
         <TotalTradesChartCard
           totalTrades={stats.totalTrades}
           wins={stats.wins}
@@ -136,6 +137,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
           maxWinningStreak={stats.maxWinningStreak}
           maxLosingStreak={stats.maxLosingStreak}
         />
+        <BEStatisticsCard trades={trades} />
       </div>
 
       {/* Long/Short (left), Partial Trades (middle), Executed/Non-Executed (right) */}
