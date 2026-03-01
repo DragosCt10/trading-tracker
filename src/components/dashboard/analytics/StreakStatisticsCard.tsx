@@ -59,13 +59,13 @@ export const StreakStatisticsCard: React.FC<StreakStatisticsCardProps> = React.m
         isCurrent: true,
       },
       {
-        name: 'Best Streak',
+        name: 'Best',
         value: maxWinningStreak,
         isPositive: true,
         isCurrent: false,
       },
       {
-        name: 'Worst Streak',
+        name: 'Worst',
         value: maxLosingStreak,
         isPositive: false,
         isCurrent: false,
