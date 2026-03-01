@@ -986,17 +986,17 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                           MSS: {editedTrade.mss}
                         </span>
                       )}
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.reentry ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.reentry ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-transparent' : 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700'}`}>
                         {editedTrade?.reentry && <Check className="w-3 h-3" />}
                         Re-entry
                       </span>
                       {isTradingInstitutional && (
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.launch_hour ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.launch_hour ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-transparent' : 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700'}`}>
                           {editedTrade?.launch_hour && <Check className="w-3 h-3" />}
                           Launch Hour
                         </span>
                       )}
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.executed ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.executed ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-transparent' : 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700'}`}>
                         {editedTrade?.executed && <Check className="w-3 h-3" />}
                         Executed
                       </span>
@@ -1007,12 +1007,12 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   <div>
                     <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Context</h4>
                     <div className="flex flex-wrap gap-2">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.news_related ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.news_related ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-transparent' : 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
                         {editedTrade?.news_related && <Check className="w-3 h-3" />}
                         News Related
                       </span>
                       {editedTrade?.news_related && editedTrade.news_name && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium bg-amber-100/70 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium bg-amber-100/70 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-300/80 dark:border-amber-700/50">
                           {editedTrade.news_name}
                           {editedTrade.news_intensity != null && (
                             <span className="flex items-center gap-0.5 ml-0.5">
@@ -1023,7 +1023,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                           )}
                         </span>
                       )}
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.local_high_low ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.local_high_low ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-transparent' : 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700'}`}>
                         {editedTrade?.local_high_low && <Check className="w-3 h-3" />}
                         Local High/Low
                       </span>
@@ -1034,7 +1034,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   <div>
                     <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Performance</h4>
                     <div className="flex flex-wrap gap-2">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.partials_taken ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.partials_taken ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-transparent' : 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700'}`}>
                         {editedTrade?.partials_taken && <Check className="w-3 h-3" />}
                         Partials
                       </span>
