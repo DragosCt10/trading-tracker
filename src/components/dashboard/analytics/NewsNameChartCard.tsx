@@ -180,14 +180,14 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:flex-shrink-0 pt-0 sm:pt-0.5">
           {/* Show filter — match TradeFiltersBar active style */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-slate-500 dark:text-slate-300 shrink-0">Show</span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 shrink-0">Show</span>
             <Button
               type="button"
               variant={!unnamedOnly ? 'default' : 'outline'}
               size="sm"
               onClick={() => setUnnamedOnly(false)}
               className={cn(
-                'cursor-pointer rounded-xl px-4 py-2 text-sm transition-colors duration-200 relative overflow-hidden group',
+                'cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-200 relative overflow-hidden group',
                 !unnamedOnly ? FILTER_BTN_ACTIVE : FILTER_BTN_INACTIVE
               )}
             >
@@ -202,7 +202,7 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
               size="sm"
               onClick={() => setUnnamedOnly(true)}
               className={cn(
-                'cursor-pointer rounded-xl px-4 py-2 text-sm transition-colors duration-200 relative overflow-hidden group',
+                'cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-200 relative overflow-hidden group',
                 unnamedOnly ? FILTER_BTN_ACTIVE : FILTER_BTN_INACTIVE
               )}
             >
@@ -220,7 +220,7 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
             )}
             aria-disabled={unnamedOnly}
           >
-            <span className="text-sm font-semibold text-slate-500 dark:text-slate-300 shrink-0">Intensity</span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 shrink-0">Intensity</span>
             {INTENSITY_OPTIONS.map((opt) => {
               const isActive = intensityFilter === opt.value;
               return (
@@ -232,7 +232,7 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
                   disabled={unnamedOnly}
                   onClick={() => !unnamedOnly && setIntensityFilter(opt.value)}
                   className={cn(
-                    'cursor-pointer rounded-xl px-4 py-2 text-sm transition-colors duration-200 relative overflow-hidden group',
+                    'cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-200 relative overflow-hidden group',
                     isActive ? FILTER_BTN_ACTIVE : FILTER_BTN_INACTIVE,
                     unnamedOnly && 'cursor-not-allowed'
                   )}
