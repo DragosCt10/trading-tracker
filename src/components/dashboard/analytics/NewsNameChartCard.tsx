@@ -49,9 +49,9 @@ interface ChartDatum {
   winRateWithBE: number;
 }
 
-/** Card className matching DayStatisticsCard (including shadow) */
+/** Card className matching DayStatisticsCard (including shadow); taller on responsive */
 const CARD_CLASS =
-  'relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col';
+  'relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[32rem] sm:h-96 flex flex-col';
 
 const FILTER_BTN_ACTIVE =
   'themed-btn-primary text-white font-semibold shadow-md border-0';
@@ -167,20 +167,20 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     /* Shared header (filter always visible)                               */
     /* ------------------------------------------------------------------ */
     const header = (
-      <CardHeader className="pb-2 flex-shrink-0 flex flex-row items-start justify-between gap-4">
+      <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2 flex-shrink-0 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="flex-1 min-w-0">
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            News Stats
+            News by event
           </CardTitle>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Wins, losses and BE per news event
           </CardDescription>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 flex-shrink-0 pt-0.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto sm:flex-shrink-0 pt-0 sm:pt-0.5">
           {/* Show filter — match TradeFiltersBar active style */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-slate-500 dark:text-slate-300">Show</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold text-slate-500 dark:text-slate-300 shrink-0">Show</span>
             <Button
               type="button"
               variant={!unnamedOnly ? 'default' : 'outline'}
@@ -215,12 +215,12 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
           {/* Intensity filter — same active style; disabled when Unnamed news */}
           <div
             className={cn(
-              'flex items-center gap-2',
+              'flex items-center gap-2 flex-wrap',
               unnamedOnly && 'opacity-50 pointer-events-none'
             )}
             aria-disabled={unnamedOnly}
           >
-            <span className="text-sm font-semibold text-slate-500 dark:text-slate-300">Intensity</span>
+            <span className="text-sm font-semibold text-slate-500 dark:text-slate-300 shrink-0">Intensity</span>
             {INTENSITY_OPTIONS.map((opt) => {
               const isActive = intensityFilter === opt.value;
               return (
@@ -297,8 +297,8 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     return (
       <Card className={CARD_CLASS}>
         {header}
-        <CardContent className="flex-1 flex items-end mt-1">
-          <div className="w-full h-[250px]">
+        <CardContent className="flex-1 flex items-end mt-1 min-h-0 p-4 pt-4 sm:p-6 sm:pt-0 border-t border-slate-200/60 dark:border-slate-700/50 sm:border-t-0">
+          <div className="w-full min-w-0 h-[280px] sm:h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={chartData}
