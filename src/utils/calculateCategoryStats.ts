@@ -1,4 +1,4 @@
-import { DayStats, DirectionStats, IntervalStats, LiquidityStats, LocalHLStats, MarketStats, MssStats, NewsStats, SLSizeStats, TradeTypeStats } from '@/types/dashboard';
+import { DayStats, DirectionStats, IntervalStats, LiquidityStats, LocalHLStats, MarketStats, MssStats, NewsStats, NewsNameStats, SLSizeStats, TradeTypeStats } from '@/types/dashboard';
 import { Trade } from '@/types/trade';
 
 /**
@@ -279,6 +279,48 @@ export function calculateNewsStats(trades: Trade[]): NewsStats[] {
       winRateWithBE: g.winRateWithBE,
       breakEven: g.breakEven
     }));
+}
+
+/**
+ * Stats per news event name (only trades with news_related and news_name).
+ * Includes wins, losses, breakEven and average intensity (1–3).
+ */
+export function calculateNewsNameStats(trades: Trade[]): NewsNameStats[] {
+  const newsTrades = trades.filter(
+    t => t.news_related && t.news_name != null && String(t.news_name).trim() !== ''
+  );
+  if (newsTrades.length === 0) return [];
+
+  const groups: Record<string, Trade[]> = {};
+  newsTrades.forEach(t => {
+    const name = String(t.news_name).trim();
+    if (!groups[name]) groups[name] = [];
+    groups[name].push(t);
+  });
+
+  return Object.entries(groups)
+    .map(([newsName, ts]) => {
+      const g = processGroup(newsName, ts);
+      const intensityValues = ts
+        .map(t => t.news_intensity != null ? Number(t.news_intensity) : null)
+        .filter((v): v is number => v !== null && v >= 1 && v <= 3);
+      const averageIntensity =
+        intensityValues.length > 0
+          ? intensityValues.reduce((a, b) => a + b, 0) / intensityValues.length
+          : null;
+
+      return {
+        newsName,
+        total: g.total,
+        wins: g.wins,
+        losses: g.losses,
+        winRate: g.winRate,
+        winRateWithBE: g.winRateWithBE,
+        breakEven: g.breakEven,
+        averageIntensity: averageIntensity != null ? Math.round(averageIntensity * 10) / 10 : null,
+      };
+    })
+    .sort((a, b) => b.total - a.total);
 }
 
 export function calculateDayStats(trades: Trade[]): DayStats[] {
