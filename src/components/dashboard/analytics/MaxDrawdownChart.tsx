@@ -158,7 +158,7 @@ export const MaxDrawdownChart = React.memo(function MaxDrawdownChart({ maxDrawdo
                 className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
                 sideOffset={6}
               >
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5 rounded-2xl" />
+                {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
                 <div className="relative">{tooltipContent}</div>
               </TooltipContent>
             </UITooltip>
@@ -172,8 +172,8 @@ export const MaxDrawdownChart = React.memo(function MaxDrawdownChart({ maxDrawdo
         {/* Custom Tooltip positioned above chart */}
         {showTooltip && (
           <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="relative overflow-hidden rounded-xl p-3 border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5 rounded-xl" />
+            <div className="relative overflow-hidden rounded-2xl p-4 border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50">
+              <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
               <div className="relative flex flex-col">
               <div className="flex items-center gap-2">
                 <div className={cn("h-2 w-2 rounded-full shadow-sm ring-2", getTooltipDotColor())}></div>
