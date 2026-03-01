@@ -63,8 +63,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
         const percent = parseRiskKey(key);
         const percentNum = percent ?? 0;
         const label = `${percentNum}% Risk`;
-        const tooltip = `Trades risking ${percentNum}% of account. Win Rate = wins / (wins + losses). Win Rate w/BE = wins / (wins + losses + BE).`;
-        return { key, label, tooltip, stats, percentNum };
+        return { key, label, stats, percentNum };
       })
       .sort((a, b) => a.percentNum - b.percentNum);
   }, [allTradesRiskStats]);
@@ -138,7 +137,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
             </div>
           ) : (
           <>
-          {visibleRiskLevels.map(({ key, label, tooltip, stats }) => (
+          {visibleRiskLevels.map(({ key, label, stats }) => (
               <Card
                 key={key}
                 className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm p-4 flex flex-col justify-between shadow-none rounded-2xl"
@@ -148,33 +147,6 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
                       <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">
                         {label}
                       </h4>
-                      <TooltipProvider>
-                        <Tooltip delayDuration={150}>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              className="p-0 m-0 bg-transparent border-0 align-middle leading-none outline-none focus:ring-0 inline-flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
-                              aria-label={`${label} Info`}
-                            >
-                              <Info className="h-3.5 w-3.5" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent
-                            side="top"
-                            align="start"
-                            className="w-72 text-sm rounded-2xl p-4 relative overflow-hidden shadow-lg text-slate-900 dark:text-slate-100 bg-white border border-slate-200/70"
-                            sideOffset={6}
-                            style={isDark ? {
-                              background: 'linear-gradient(135deg, var(--grad-from) 0%, var(--grad-via) 50%, var(--grad-to) 100%)',
-                              backdropFilter: 'blur(16px)',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
-                              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.04)',
-                            } : undefined}
-                          >
-                            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">{tooltip}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
                     </div>
                   <span className="text-xs font-medium px-2.5 py-1 bg-slate-100/80 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 rounded-full border border-slate-200/60 dark:border-slate-600/50">
                     {stats.total} trades
