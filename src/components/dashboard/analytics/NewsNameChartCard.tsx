@@ -12,12 +12,15 @@ import {
 } from 'recharts';
 import {
   Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
   CardContent,
 } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { formatPercent } from '@/lib/utils';
 import { Trade } from '@/types/trade';
-import { calculateNewsNameStats } from '@/utils/calculateCategoryStats';
+import { calculateNewsNameStats, NEWS_NO_EVENT_LABEL } from '@/utils/calculateCategoryStats';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
 export interface NewsNameChartCardProps {
@@ -57,6 +60,7 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading]         = useState(true);
     const [intensityFilter, setIntensityFilter] = useState<IntensityFilter>(null);
+    const [unnamedOnly, setUnnamedOnly]     = useState(false);
 
     useEffect(() => {
       if (externalLoading !== undefined) {
@@ -73,25 +77,32 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     }, [externalLoading]);
 
     const filteredTrades = useMemo(() => {
+      if (unnamedOnly) return trades;
       if (intensityFilter === null) return trades;
       return trades.filter((t) => t.news_intensity === intensityFilter);
-    }, [trades, intensityFilter]);
+    }, [trades, intensityFilter, unnamedOnly]);
 
-    const stats     = useMemo(() => calculateNewsNameStats(filteredTrades), [filteredTrades]);
-    const chartData = useMemo<ChartDatum[]>(
-      () =>
-        stats.map((s) => ({
-          newsName:      s.newsName,
-          category:      s.newsName,
-          wins:          s.wins,
-          losses:        s.losses,
-          breakEven:     s.breakEven,
-          totalTrades:   s.total,
-          winRate:       s.winRate,
-          winRateWithBE: s.winRateWithBE,
-        })),
-      [stats]
+    const stats     = useMemo(
+      () => calculateNewsNameStats(filteredTrades, { includeUnnamed: true }),
+      [filteredTrades]
     );
+    const chartData = useMemo<ChartDatum[]>(() => {
+      const rows = stats.map((s) => ({
+        newsName:      s.newsName,
+        category:      s.newsName,
+        wins:          s.wins,
+        losses:        s.losses,
+        breakEven:     s.breakEven,
+        totalTrades:   s.total,
+        winRate:       s.winRate,
+        winRateWithBE: s.winRateWithBE,
+      }));
+      if (unnamedOnly) {
+        return rows.filter((d) => d.newsName === NEWS_NO_EVENT_LABEL);
+      }
+      // "All" = by event only (exclude unnamed)
+      return rows.filter((d) => d.newsName !== NEWS_NO_EVENT_LABEL);
+    }, [stats, unnamedOnly]);
 
     const hasData  = chartData.length > 0;
     const maxTotal = hasData
@@ -153,38 +164,74 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     /* Shared header (filter always visible)                               */
     /* ------------------------------------------------------------------ */
     const header = (
-      <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-2">
+      <CardHeader className="pb-2 flex-shrink-0 flex flex-row items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             News by event
-          </h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          </CardTitle>
+          <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Wins, losses and BE per news event
-          </p>
+          </CardDescription>
         </div>
 
-        {/* Intensity filter */}
-        <div className="flex items-center gap-1 flex-shrink-0 pt-0.5">
-          <span className="text-xs text-slate-400 dark:text-slate-500 mr-1">Intensity</span>
-          {INTENSITY_OPTIONS.map((opt) => {
-            const isActive = intensityFilter === opt.value;
-            return (
-              <button
-                key={String(opt.value)}
-                onClick={() => setIntensityFilter(opt.value)}
-                className={[
-                  'px-2.5 py-1 rounded-lg text-xs font-medium border transition-all duration-150',
-                  isActive
-                    ? intensityActiveClass(opt.value)
-                    : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-700 dark:hover:text-slate-200',
-                ].join(' ')}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
+        <div className="flex items-center gap-3 flex-shrink-0 pt-0.5">
+          {/* Unnamed news filter */}
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-slate-400 dark:text-slate-500 mr-1">Show</span>
+            <button
+              onClick={() => setUnnamedOnly(false)}
+              className={[
+                'px-2.5 py-1 rounded-lg text-xs font-medium border transition-all duration-150',
+                !unnamedOnly
+                  ? 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-800 border-slate-800 dark:border-slate-100'
+                  : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500',
+              ].join(' ')}
+            >
+              By event
+            </button>
+            <button
+              onClick={() => setUnnamedOnly(true)}
+              className={[
+                'px-2.5 py-1 rounded-lg text-xs font-medium border transition-all duration-150',
+                unnamedOnly
+                  ? 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-800 border-slate-800 dark:border-slate-100'
+                  : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500',
+              ].join(' ')}
+            >
+              Unnamed news
+            </button>
+          </div>
+          {/* Intensity filter (disabled when Unnamed news is selected) */}
+          <div
+            className={[
+              'flex items-center gap-1',
+              unnamedOnly ? 'opacity-50 pointer-events-none' : '',
+            ].join(' ')}
+            aria-disabled={unnamedOnly}
+          >
+            <span className="text-xs text-slate-400 dark:text-slate-500 mr-1">Intensity</span>
+            {INTENSITY_OPTIONS.map((opt) => {
+              const isActive = intensityFilter === opt.value;
+              return (
+                <button
+                  key={String(opt.value)}
+                  onClick={() => !unnamedOnly && setIntensityFilter(opt.value)}
+                  disabled={unnamedOnly}
+                  className={[
+                    'px-2.5 py-1 rounded-lg text-xs font-medium border transition-all duration-150',
+                    isActive
+                      ? intensityActiveClass(opt.value)
+                      : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-700 dark:hover:text-slate-200',
+                    unnamedOnly ? 'cursor-not-allowed' : '',
+                  ].join(' ')}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      </CardHeader>
     );
 
     /* ------------------------------------------------------------------ */
@@ -211,14 +258,18 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
           {header}
           <CardContent className="flex-1 flex flex-col items-center justify-center">
             <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-1">
-              {intensityFilter !== null
-                ? `No trades with ${activeLabel} intensity.`
-                : 'No news-related trades with a news name yet.'}
+              {unnamedOnly
+                ? 'No trades marked as news without an event name.'
+                : intensityFilter !== null
+                  ? `No trades with ${activeLabel} intensity.`
+                  : 'No news-related trades with a news name yet.'}
             </p>
             <p className="text-xs text-slate-400 dark:text-slate-500 text-center max-w-xs">
-              {intensityFilter !== null
-                ? 'Try selecting a different intensity filter.'
-                : 'Mark trades as News and set the event name (e.g. CPI, NFP) to see the chart here.'}
+              {unnamedOnly
+                ? 'Mark trades as News and leave the event name empty to see them here.'
+                : intensityFilter !== null
+                  ? 'Try selecting a different intensity filter.'
+                  : 'Mark trades as News and set the event name (e.g. CPI, NFP) to see the chart here.'}
             </p>
           </CardContent>
         </Card>
@@ -229,14 +280,14 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     /* Chart                                                                */
     /* ------------------------------------------------------------------ */
     return (
-      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col">
+      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         {header}
-        <CardContent className="flex-1 flex items-end mt-1 pb-6">
+        <CardContent className="flex-1 flex items-end mt-1">
           <div className="w-full h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={chartData}
-                margin={{ top: 30, right: 48, left: 56, bottom: 10 }}
+                margin={{ top: 30, right: 56, left: 56, bottom: 10 }}
               >
                 <defs>
                   <linearGradient id="newsNameWinsBar" x1="0" y1="0" x2="0" y2="1">
@@ -284,8 +335,8 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
                     value: 'Wins / Losses',
                     angle: -90,
                     position: 'insideLeft',
-                    offset: -8,
-                    style: { fill: axisTextColor, fontSize: 11, textAnchor: 'middle' },
+                    offset: 0,
+                    style: { fill: axisTextColor, fontSize: 13, textAnchor: 'middle' },
                   }}
                 />
                 <YAxis
@@ -297,14 +348,14 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
                   tickLine={false}
                   tickFormatter={(v: number) => `${v}%`}
                   domain={[0, 100]}
-                  width={44}
+                  width={56}
                   tickMargin={8}
                   label={{
                     value: 'Win Rate',
                     angle: 90,
                     position: 'insideRight',
-                    offset: -4,
-                    style: { fill: axisTextColor, fontSize: 11, textAnchor: 'middle' },
+                    offset: -8,
+                    style: { fill: axisTextColor, fontSize: 13, textAnchor: 'middle' },
                   }}
                 />
                 <ReTooltip
