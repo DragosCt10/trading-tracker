@@ -982,7 +982,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Execution</h4>
                     <div className="flex flex-wrap gap-2">
                       {isTradingInstitutional && editedTrade?.mss && (
-                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg border text-xs font-medium bg-slate-100 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/50">
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg border text-xs font-medium bg-transparent text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700">
                           MSS: {editedTrade.mss}
                         </span>
                       )}
