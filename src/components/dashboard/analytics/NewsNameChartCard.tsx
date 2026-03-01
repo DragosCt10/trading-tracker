@@ -170,7 +170,7 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
       <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2 flex-shrink-0 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="flex-1 min-w-0">
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            News by event
+            News Stats
           </CardTitle>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Wins, losses and BE per news event
