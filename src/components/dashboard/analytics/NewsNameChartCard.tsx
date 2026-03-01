@@ -17,8 +17,9 @@ import {
   CardDescription,
   CardContent,
 } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
-import { formatPercent } from '@/lib/utils';
+import { formatPercent, cn } from '@/lib/utils';
 import { Trade } from '@/types/trade';
 import { calculateNewsNameStats, NEWS_NO_EVENT_LABEL } from '@/utils/calculateCategoryStats';
 import { useDarkMode } from '@/hooks/useDarkMode';
@@ -48,12 +49,14 @@ interface ChartDatum {
   winRateWithBE: number;
 }
 
-function intensityActiveClass(value: IntensityFilter): string {
-  if (value === 1) return 'bg-emerald-500 text-white border-emerald-500';
-  if (value === 2) return 'bg-amber-500  text-white border-amber-500';
-  if (value === 3) return 'bg-rose-500   text-white border-rose-500';
-  return 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-800 border-slate-800 dark:border-slate-100';
-}
+/** Card className matching DayStatisticsCard (including shadow) */
+const CARD_CLASS =
+  'relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col';
+
+const FILTER_BTN_ACTIVE =
+  'themed-btn-primary text-white font-semibold shadow-md border-0';
+const FILTER_BTN_INACTIVE =
+  'border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium';
 
 export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
   function NewsNameChartCard({ trades, isLoading: externalLoading }) {
@@ -167,66 +170,78 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
       <CardHeader className="pb-2 flex-shrink-0 flex flex-row items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            News by event
+            News Stats
           </CardTitle>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Wins, losses and BE per news event
           </CardDescription>
         </div>
 
-        <div className="flex items-center gap-3 flex-shrink-0 pt-0.5">
-          {/* Unnamed news filter */}
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-slate-400 dark:text-slate-500 mr-1">Show</span>
-            <button
+        <div className="flex flex-wrap items-center gap-3 flex-shrink-0 pt-0.5">
+          {/* Show filter — match TradeFiltersBar active style */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-slate-500 dark:text-slate-300">Show</span>
+            <Button
+              type="button"
+              variant={!unnamedOnly ? 'default' : 'outline'}
+              size="sm"
               onClick={() => setUnnamedOnly(false)}
-              className={[
-                'px-2.5 py-1 rounded-lg text-xs font-medium border transition-all duration-150',
-                !unnamedOnly
-                  ? 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-800 border-slate-800 dark:border-slate-100'
-                  : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500',
-              ].join(' ')}
+              className={cn(
+                'cursor-pointer rounded-xl px-4 py-2 text-sm transition-colors duration-200 relative overflow-hidden group',
+                !unnamedOnly ? FILTER_BTN_ACTIVE : FILTER_BTN_INACTIVE
+              )}
             >
-              By event
-            </button>
-            <button
+              <span className="relative z-10">By event</span>
+              {!unnamedOnly && (
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant={unnamedOnly ? 'default' : 'outline'}
+              size="sm"
               onClick={() => setUnnamedOnly(true)}
-              className={[
-                'px-2.5 py-1 rounded-lg text-xs font-medium border transition-all duration-150',
-                unnamedOnly
-                  ? 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-800 border-slate-800 dark:border-slate-100'
-                  : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500',
-              ].join(' ')}
+              className={cn(
+                'cursor-pointer rounded-xl px-4 py-2 text-sm transition-colors duration-200 relative overflow-hidden group',
+                unnamedOnly ? FILTER_BTN_ACTIVE : FILTER_BTN_INACTIVE
+              )}
             >
-              Unnamed news
-            </button>
+              <span className="relative z-10">Unnamed news</span>
+              {unnamedOnly && (
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+              )}
+            </Button>
           </div>
-          {/* Intensity filter (disabled when Unnamed news is selected) */}
+          {/* Intensity filter — same active style; disabled when Unnamed news */}
           <div
-            className={[
-              'flex items-center gap-1',
-              unnamedOnly ? 'opacity-50 pointer-events-none' : '',
-            ].join(' ')}
+            className={cn(
+              'flex items-center gap-2',
+              unnamedOnly && 'opacity-50 pointer-events-none'
+            )}
             aria-disabled={unnamedOnly}
           >
-            <span className="text-xs text-slate-400 dark:text-slate-500 mr-1">Intensity</span>
+            <span className="text-sm font-semibold text-slate-500 dark:text-slate-300">Intensity</span>
             {INTENSITY_OPTIONS.map((opt) => {
               const isActive = intensityFilter === opt.value;
               return (
-                <button
+                <Button
                   key={String(opt.value)}
-                  onClick={() => !unnamedOnly && setIntensityFilter(opt.value)}
+                  type="button"
+                  variant={isActive ? 'default' : 'outline'}
+                  size="sm"
                   disabled={unnamedOnly}
-                  className={[
-                    'px-2.5 py-1 rounded-lg text-xs font-medium border transition-all duration-150',
-                    isActive
-                      ? intensityActiveClass(opt.value)
-                      : 'bg-transparent text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-700 dark:hover:text-slate-200',
-                    unnamedOnly ? 'cursor-not-allowed' : '',
-                  ].join(' ')}
+                  onClick={() => !unnamedOnly && setIntensityFilter(opt.value)}
+                  className={cn(
+                    'cursor-pointer rounded-xl px-4 py-2 text-sm transition-colors duration-200 relative overflow-hidden group',
+                    isActive ? FILTER_BTN_ACTIVE : FILTER_BTN_INACTIVE,
+                    unnamedOnly && 'cursor-not-allowed'
+                  )}
                 >
-                  {opt.label}
-                </button>
+                  <span className="relative z-10">{opt.label}</span>
+                  {isActive && (
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                  )}
+                </Button>
               );
             })}
           </div>
@@ -239,7 +254,7 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     /* ------------------------------------------------------------------ */
     if (!mounted || isLoading) {
       return (
-        <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+<Card className={CARD_CLASS}>
           {header}
           <CardContent className="flex-1 flex justify-center items-center">
             <BouncePulse size="md" />
@@ -254,7 +269,7 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     if (!hasData) {
       const activeLabel = INTENSITY_OPTIONS.find((o) => o.value === intensityFilter)?.label;
       return (
-        <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+        <Card className={CARD_CLASS}>
           {header}
           <CardContent className="flex-1 flex flex-col items-center justify-center">
             <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-1">
@@ -280,7 +295,7 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     /* Chart                                                                */
     /* ------------------------------------------------------------------ */
     return (
-      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+      <Card className={CARD_CLASS}>
         {header}
         <CardContent className="flex-1 flex items-end mt-1">
           <div className="w-full h-[250px]">
@@ -360,14 +375,24 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
                 />
                 <ReTooltip
                   contentStyle={{
-                    background: 'transparent',
-                    border: 'none',
-                    padding: 0,
-                    boxShadow: 'none',
+                    background: isDark
+                      ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)'
+                      : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
+                    backdropFilter: 'blur(16px)',
+                    border: isDark
+                      ? '1px solid rgba(51, 65, 85, 0.6)'
+                      : '1px solid rgba(148, 163, 184, 0.2)',
+                    borderRadius: '16px',
+                    padding: '14px 18px',
+                    color: isDark ? '#e2e8f0' : '#1e293b',
+                    fontSize: 14,
+                    boxShadow: isDark
+                      ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+                      : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
                     minWidth: '180px',
                   }}
                   wrapperStyle={{ outline: 'none', zIndex: 1000 }}
-                  cursor={{ fill: 'transparent', radius: 8 }}
+                  cursor={{ stroke: isDark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.4)', strokeWidth: 1 }}
                   content={<CustomTooltip />}
                 />
 
