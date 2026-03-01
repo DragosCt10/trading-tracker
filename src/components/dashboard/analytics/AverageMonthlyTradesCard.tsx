@@ -57,8 +57,8 @@ export const AverageMonthlyTradesCard: React.FC<AverageMonthlyTradesCardProps> =
       <StatCard
         title="Average Monthly Trades"
         tooltipContent={
-          <div className="space-y-2 text-slate-500">
-            <div className="font-semibold text-slate-800">
+          <div className="space-y-2 text-slate-400 dark:text-slate-400">
+            <div className="font-semibold text-slate-800 dark:text-slate-200">
               Monthly Trading Volume
             </div>
             <p>
