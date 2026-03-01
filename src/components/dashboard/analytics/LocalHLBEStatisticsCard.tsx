@@ -262,18 +262,18 @@ export const LocalHLBEStatisticsCard: React.FC<LocalHLBEStatisticsCardProps> = R
             </div>
           </div>
           <div className="w-full px-4 pt-4 mt-2 hidden sm:block">
-            <div className="flex items-center justify-center gap-8 flex-wrap">
-              <div className="flex flex-col items-center min-w-[4rem]">
+            <div className="flex items-center justify-center gap-8 w-fit mx-auto">
+              <div className="flex flex-col items-center">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Wins</div>
                 <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{stats.wins}</div>
               </div>
-              <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
-              <div className="flex flex-col items-center min-w-[4rem]">
+              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+              <div className="flex flex-col items-center">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Losses</div>
                 <div className="text-lg font-bold text-rose-600 dark:text-rose-400">{stats.losses}</div>
               </div>
-              <div className="h-10 w-px bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
-              <div className="flex flex-col items-center min-w-[4rem]">
+              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+              <div className="flex flex-col items-center">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Win Rate</div>
                 <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
                   {formatPercent(stats.winRate)}%
