@@ -196,7 +196,7 @@ export const StreakStatisticsCard: React.FC<StreakStatisticsCardProps> = React.m
                   />
                   <Bar
                     dataKey="value"
-                    radius={[0, 8, 8, 0]}
+                    radius={[7, 7, 7, 7]}
                     barSize={18}
                   >
                     {chartData.map((entry, index) => {
@@ -221,7 +221,7 @@ export const StreakStatisticsCard: React.FC<StreakStatisticsCardProps> = React.m
           
           {/* Stats summary below chart */}
           <div className="w-full px-4 pt-4 mt-2">
-            <div className="flex items-center justify-center gap-8">
+            <div className="flex items-center justify-center gap-8 w-fit mx-auto">
               <div className="flex flex-col items-center">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                   Current
