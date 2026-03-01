@@ -1,21 +1,8 @@
 'use client';
 
 import React from 'react';
+import { formatPercent } from '@/lib/utils';
 import { StatCard } from '@/components/dashboard/analytics/StatCard';
-
-/**
- * Format win rate value for display
- */
-export function formatWinRateValue(winRate: number): string {
-  return `${winRate.toFixed(2)}%`;
-}
-
-/**
- * Format win rate with BE value for display
- */
-export function formatWinRateWithBEValue(winRateWithBE: number): string {
-  return `(${winRateWithBE.toFixed(2)}% w/ BE)`;
-}
 
 interface WinRateStatCardProps {
   winRate: number;
@@ -31,10 +18,10 @@ export const WinRateStatCard: React.FC<WinRateStatCardProps> = React.memo(
         title="Win Rate"
         value={
           <p className="text-2xl font-bold text-slate-900 dark:text-slate-100" suppressHydrationWarning>
-            {hydrated ? formatWinRateValue(winRate) : '—'}
+            {hydrated ? `${formatPercent(winRate)}%` : '—'}
             {hydrated && (
               <span className="text-slate-500 text-sm ml-1">
-                {formatWinRateWithBEValue(winRateWithBE)}
+                ({formatPercent(winRateWithBE)}% w/ BE)
               </span>
             )}
           </p>
