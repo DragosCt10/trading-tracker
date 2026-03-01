@@ -398,13 +398,10 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
                       boxShadow: isDark
                         ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05)'
                         : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-                      minWidth: '180px'
+                      minWidth: '180px',
                     }}
-                    wrapperStyle={{
-                      outline: 'none',
-                      zIndex: 1000
-                    }}
-                    cursor={{ stroke: isDark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.4)', strokeWidth: 1 }}
+                    wrapperStyle={{ outline: 'none', zIndex: 1000 }}
+                    cursor={{ fill: 'transparent', radius: 8 }}
                     content={<CustomTooltip />}
                   />
 
