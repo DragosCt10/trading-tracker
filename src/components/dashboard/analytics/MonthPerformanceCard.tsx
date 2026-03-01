@@ -257,7 +257,7 @@ export const MonthPerformanceCards: React.FC<MonthPerformanceCardsProps> = ({
   // Show loading skeletons when loading
   if (isLoading) {
     return (
-      <div className={cn('flex flex-col gap-4 sm:flex-row sm:items-stretch', className)}>
+      <div className={cn('flex flex-col gap-6 sm:flex-row sm:items-stretch', className)}>
         <MonthPerformanceCardSkeleton positive />
         <MonthPerformanceCardSkeleton positive={false} />
       </div>
@@ -270,7 +270,7 @@ export const MonthPerformanceCards: React.FC<MonthPerformanceCardsProps> = ({
   }
 
   return (
-    <div className={cn('flex flex-col gap-4 sm:flex-row sm:items-stretch', className)}>
+    <div className={cn('flex flex-col gap-6 sm:flex-row sm:items-stretch', className)}>
       {bestMonth && (
         <MonthPerformanceCard
           title="Best Month"
