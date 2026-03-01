@@ -8,7 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
-import { AlertCircle, Loader2, Info, Check } from 'lucide-react';
+import { Loader2, Info, Check } from 'lucide-react';
 
 // Shared input/select styles to match NewTradeModal (themed, rounded-2xl)
 const inputClass = 'h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300';
@@ -78,12 +78,6 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [progressDialog, setProgressDialog] = useState<{
-    open: boolean;
-    status: 'loading' | 'success' | 'error';
-    message: string;
-    title: 'Update' | 'Delete';
-  }>({ open: false, status: 'loading', message: '', title: 'Update' });
   const queryClient = useQueryClient();
 
   // Auto-dismiss error after 5 seconds
@@ -215,7 +209,6 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     }
 
     setIsSaving(true);
-    setProgressDialog({ open: true, status: 'loading', message: 'Please wait while we save your trade data...', title: 'Update' });
 
     try {
       const tradingMode = (editedTrade.mode || selection.mode) as 'live' | 'backtesting' | 'demo';
@@ -264,12 +257,11 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
       const { error: updateError } = await updateTrade(editedTrade.id, tradingMode, updateData);
 
       if (updateError) {
-        setProgressDialog({ open: true, status: 'error', message: updateError.message ?? 'Failed to update trade. Please try again.', title: 'Update' });
+        setError(updateError.message ?? 'Failed to update trade. Please try again.');
         setIsSaving(false);
         return;
       }
 
-      setProgressDialog({ open: true, status: 'loading', message: 'Updating analytics and refreshing charts...', title: 'Update' });
       await invalidateAndRefetchTradeQueries();
 
       // Save / update news event in account's saved_news library
@@ -287,14 +279,12 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         });
       }
 
-      setProgressDialog({ open: true, status: 'success', message: 'Your trade has been updated successfully. All charts and statistics have been updated.', title: 'Update' });
       setIsEditing(false);
       if (onTradeUpdated) onTradeUpdated();
-      setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
       setIsSaving(false);
       onClose();
     } catch (err: any) {
-      setProgressDialog({ open: true, status: 'error', message: err.message || 'Failed to save trade. Please try again.', title: 'Update' });
+      setError(err?.message ?? 'Failed to save trade. Please try again.');
       setIsSaving(false);
     }
   };
@@ -302,30 +292,27 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const handleDelete = async () => {
     if (!trade || !trade.id) return;
     setShowDeleteConfirm(false);
-    setIsDeleting(true);
     setError(null);
-    setProgressDialog({ open: true, status: 'loading', message: 'Deleting trade...', title: 'Delete' });
+    setIsDeleting(true);
 
     try {
       const tradingMode = (trade.mode || selection.mode) as 'live' | 'backtesting' | 'demo';
       const { error: deleteError } = await deleteTrade(trade.id, tradingMode);
 
       if (deleteError) {
-        setProgressDialog({ open: true, status: 'error', message: deleteError.message ?? 'Failed to delete trade. Please try again.', title: 'Delete' });
+        setError(deleteError.message ?? 'Failed to delete trade. Please try again.');
         setIsDeleting(false);
         return;
       }
 
-      setProgressDialog({ open: true, status: 'loading', message: 'Updating analytics and refreshing charts...', title: 'Delete' });
       await invalidateAndRefetchTradeQueries();
 
-      setProgressDialog({ open: true, status: 'success', message: 'Your trade has been deleted successfully. All charts and statistics have been updated.', title: 'Delete' });
-      if (onTradeUpdated) onTradeUpdated();
-      setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
       setIsDeleting(false);
+      if (onTradeUpdated) onTradeUpdated();
       onClose();
     } catch (err: any) {
-      setProgressDialog({ open: true, status: 'error', message: err.message ?? 'Failed to delete trade. Please try again.', title: 'Delete' });
+      setShowDeleteConfirm(false);
+      setError(err?.message ?? 'Failed to delete trade. Please try again.');
       setIsDeleting(false);
     }
   };
@@ -1336,7 +1323,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             </div>
 
             {/* Delete confirm using AlertDialog */}
-            <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+            <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => { setShowDeleteConfirm(open); if (!open) setError(null); }}>
               <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient rounded-2xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle>
@@ -1351,6 +1338,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     <Button
                       variant="outline"
                       onClick={() => setShowDeleteConfirm(false)}
+                      disabled={isDeleting}
                       className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
                     >
                       Cancel
@@ -1360,63 +1348,12 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     <Button
                       variant="destructive"
                       onClick={handleDelete}
-                      disabled={isDeleting}
-                      className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
+                      className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 flex items-center gap-2"
                     >
-                      {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+                      Yes, Delete
                     </Button>
                   </AlertDialogAction>
                 </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-
-            {/* Progress Dialog - same pattern as NewTradeModal */}
-            <AlertDialog
-              open={progressDialog.open}
-              onOpenChange={() => {
-                if (progressDialog.status !== 'loading') {
-                  setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
-                }
-              }}
-            >
-              <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient rounded-2xl">
-                <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    {progressDialog.status === 'loading' && (
-                      <span className="font-semibold text-lg flex items-center gap-2" style={{ color: 'var(--tc-primary)' }}>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        {progressDialog.title === 'Delete' ? 'Deleting Trade' : 'Updating Trade'}
-                      </span>
-                    )}
-                    {progressDialog.status === 'success' && (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-lg flex items-center gap-2">
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                        {progressDialog.title === 'Delete' ? 'Trade Deleted Successfully' : 'Trade Updated Successfully'}
-                      </span>
-                    )}
-                    {progressDialog.status === 'error' && (
-                      <span className="text-red-500 dark:text-red-400 font-semibold text-lg flex items-center gap-2">
-                        <AlertCircle className="h-5 w-5" />
-                        {progressDialog.title === 'Delete' ? 'Error Deleting Trade' : 'Error Updating Trade'}
-                      </span>
-                    )}
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    <span className="text-slate-600 dark:text-slate-400">{progressDialog.message}</span>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                {progressDialog.status === 'error' && (
-                  <AlertDialogFooter className="flex gap-3">
-                    <Button
-                      onClick={() => setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' })}
-                      className="cursor-pointer rounded-xl border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
-                    >
-                      Close
-                    </Button>
-                  </AlertDialogFooter>
-                )}
               </AlertDialogContent>
             </AlertDialog>
 
@@ -1440,9 +1377,11 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   <Button
                     onClick={() => setShowDeleteConfirm(true)}
                     variant="destructive"
-                    className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
+                    disabled={isDeleting}
+                    className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 flex items-center gap-2"
                   >
-                    Delete Trade
+                    {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {isDeleting ? 'Deleting trade' : 'Delete Trade'}
                   </Button>
                 </>
               ) : (
@@ -1462,7 +1401,10 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     disabled={isSaving}
                     className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-5 py-2 group border-0 disabled:opacity-60"
                   >
-                    <span className="relative z-10">{isSaving ? 'Saving...' : 'Save Changes'}</span>
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {isSaving ? 'Saving changes' : 'Save Changes'}
+                    </span>
                     <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                   </Button>
                 </>
