@@ -73,6 +73,13 @@ export interface NewsStats extends BaseStats {
   news: string;
 }
 
+/** Stats per news event name (e.g. CPI, NFP) with wins, losses, BE and intensity. */
+export interface NewsNameStats extends BaseStats {
+  newsName: string;
+  /** Average intensity 1–3 (Low/Medium/High) for this news event. */
+  averageIntensity: number | null;
+}
+
 export interface MssStats extends BaseStats {
   mss: string;
 }
