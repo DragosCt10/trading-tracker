@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { createAccount, setActiveAccount } from '@/lib/server/accounts';
 import { useUserDetails } from '@/hooks/useUserDetails';
-import { AlertCircle, Loader2, UserPlus } from 'lucide-react';
+import { Loader2, UserPlus } from 'lucide-react';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,6 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogCancel,
-  AlertDialogAction,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
@@ -57,11 +56,6 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
   const [mounted, setMounted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [progressDialog, setProgressDialog] = useState<{
-    open: boolean;
-    status: 'loading' | 'success' | 'error';
-    message: string;
-  }>({ open: false, status: 'loading', message: '' });
 
   const [name, setName] = useState('');
   const [balance, setBalance] = useState('');
@@ -111,7 +105,6 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
     }
 
     setSubmitting(true);
-    setProgressDialog({ open: true, status: 'loading', message: 'Please wait while we save your account...' });
 
     try {
       const { data, error: insertError } = await createAccount({
@@ -123,21 +116,13 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
       });
 
       if (insertError) {
-        setProgressDialog({
-          open: true,
-          status: 'error',
-          message: insertError.message ?? 'Failed to create account. Please try again.',
-        });
+        setError(insertError.message ?? 'Failed to create account. Please try again.');
         setSubmitting(false);
         return;
       }
 
       if (!data) {
-        setProgressDialog({
-          open: true,
-          status: 'error',
-          message: 'Failed to create account. Please try again.',
-        });
+        setError('Failed to create account. Please try again.');
         setSubmitting(false);
         return;
       }
@@ -158,27 +143,13 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
         predicate: (q) => tradeKeys.includes((q.queryKey?.[0] as string) ?? ''),
       });
 
-      setProgressDialog({
-        open: true,
-        status: 'success',
-        message: 'Account created and set as active.',
-      });
-
       onCreated?.(createdAccount);
       await queryClient.invalidateQueries();
       resetForm();
       setOpen(false);
-
-      setTimeout(() => {
-        setProgressDialog({ open: false, status: 'loading', message: '' });
-        setSubmitting(false);
-      }, 2000);
-    } catch {
-      setProgressDialog({
-        open: true,
-        status: 'error',
-        message: 'Failed to create account. Please check your data and try again.',
-      });
+      setSubmitting(false);
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to create account. Please check your data and try again.');
       setSubmitting(false);
     }
   };
@@ -363,98 +334,14 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
                   className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60"
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
-                    {submitting && (
-                      <svg
-                        className="h-4 w-4 animate-spin"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <circle
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                          fill="none"
-                          className="opacity-25"
-                        />
-                        <path
-                          className="opacity-90"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"
-                        />
-                      </svg>
-                    )}
-                    Create Account
+                    {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {submitting ? 'Creating account' : 'Create Account'}
                   </span>
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 </Button>
               </AlertDialogFooter>
             </form>
           </div>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Progress Dialog - same pattern as NewTradeModal */}
-      <AlertDialog
-        open={progressDialog.open}
-        onOpenChange={() => {
-          if (progressDialog.status !== 'loading') {
-            setProgressDialog({ open: false, status: 'loading', message: '' });
-          }
-        }}
-      >
-        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient rounded-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {progressDialog.status === 'loading' && (
-                <span className="font-semibold text-lg flex items-center gap-2" style={{ color: 'var(--tc-primary)' }}>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Creating Account
-                </span>
-              )}
-              {progressDialog.status === 'success' && (
-                <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-lg flex items-center gap-2">
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  Account Created Successfully
-                </span>
-              )}
-              {progressDialog.status === 'error' && (
-                <span className="text-red-500 dark:text-red-400 font-semibold text-lg flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  Error Creating Account
-                </span>
-              )}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              <span className="text-slate-600 dark:text-slate-400">
-                {progressDialog.message}
-              </span>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          {progressDialog.status === 'error' && (
-            <AlertDialogFooter className="flex gap-3">
-              <Button
-                onClick={() => setProgressDialog({ open: false, status: 'loading', message: '' })}
-                className="cursor-pointer rounded-xl border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
-              >
-                Close
-              </Button>
-            </AlertDialogFooter>
-          )}
         </AlertDialogContent>
       </AlertDialog>
     </>
