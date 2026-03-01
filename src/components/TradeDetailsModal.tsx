@@ -8,7 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
-import { AlertCircle, Loader2, Info } from 'lucide-react';
+import { AlertCircle, Loader2, Info, Check } from 'lucide-react';
 
 // Shared input/select styles to match NewTradeModal (themed, rounded-2xl)
 const inputClass = 'h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300';
@@ -987,17 +987,17 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                         </span>
                       )}
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.reentry ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
-                        {editedTrade?.reentry && <span className="text-[10px]">✓</span>}
+                        {editedTrade?.reentry && <Check className="w-3 h-3" />}
                         Re-entry
                       </span>
                       {isTradingInstitutional && (
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.launch_hour ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
-                          {editedTrade?.launch_hour && <span className="text-[10px]">✓</span>}
+                          {editedTrade?.launch_hour && <Check className="w-3 h-3" />}
                           Launch Hour
                         </span>
                       )}
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.executed ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
-                        {editedTrade?.executed && <span className="text-[10px]">✓</span>}
+                        {editedTrade?.executed && <Check className="w-3 h-3" />}
                         Executed
                       </span>
                     </div>
@@ -1008,7 +1008,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Context</h4>
                     <div className="flex flex-wrap gap-2">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.news_related ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
-                        {editedTrade?.news_related && <span className="text-[10px]">✓</span>}
+                        {editedTrade?.news_related && <Check className="w-3 h-3" />}
                         News Related
                       </span>
                       {editedTrade?.news_related && editedTrade.news_name && (
@@ -1024,7 +1024,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                         </span>
                       )}
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.local_high_low ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
-                        {editedTrade?.local_high_low && <span className="text-[10px]">✓</span>}
+                        {editedTrade?.local_high_low && <Check className="w-3 h-3" />}
                         Local High/Low
                       </span>
                     </div>
@@ -1035,7 +1035,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Performance</h4>
                     <div className="flex flex-wrap gap-2">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.partials_taken ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' : 'bg-transparent text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
-                        {editedTrade?.partials_taken && <span className="text-[10px]">✓</span>}
+                        {editedTrade?.partials_taken && <Check className="w-3 h-3" />}
                         Partials
                       </span>
                     </div>
