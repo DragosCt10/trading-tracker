@@ -386,7 +386,7 @@ export default function ImportTradesModal({
           if (m) affectedHeaders.add(m.csvHeader);
           else {
             const schema = DB_SCHEMA.find((f) => f.key === e.field);
-            affectedHeaders.add(schema ? `${schema.label} (no column mapped)` : e.field);
+            if (schema) affectedHeaders.add(`${schema.label} (no column mapped)`);
           }
         }
         const requiredUnmapped = DB_SCHEMA.filter(
@@ -433,9 +433,13 @@ export default function ImportTradesModal({
       setImportProgress(100);
 
       const allFailed = [
-        ...errors.map((e) => ({ row: e.rowIndex, reason: `${e.field}: ${e.message}` })),
+        ...errors.map((e) => {
+          const schema = DB_SCHEMA.find((f) => f.key === e.field);
+          const label = schema?.label ?? 'a required field';
+          return { row: e.rowIndex, reason: `Could not read ${label}` };
+        }),
         ...blankMarketErrors,
-        ...(result.failed ?? []),
+        ...(result.failed ?? []).map((f) => ({ row: f.row, reason: 'Row could not be saved. Please check the data and try again.' })),
       ];
 
       setImportResult({ inserted: result.inserted, failed: allFailed });
@@ -448,7 +452,7 @@ export default function ImportTradesModal({
       }
     } catch (err) {
       clearInterval(progressInterval);
-      setErrorMessage(err instanceof Error ? err.message : 'Import failed. Please try again.');
+      setErrorMessage('Import failed. Please try again.');
       setStep('map');
     }
   }
