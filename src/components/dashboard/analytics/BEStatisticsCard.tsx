@@ -177,9 +177,11 @@ export const BEStatisticsCard: React.FC<BEStatisticsCardProps> = React.memo(
                 </TooltipTrigger>
                 <UITooltipContent
                   side="top"
+                  align="center"
                   sideOffset={6}
-                  className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-300/80 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/10 dark:shadow-black/40 text-slate-900 dark:text-slate-100 min-w-[160px]"
+                  className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
                 >
+                  {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
                   <div className="relative text-xs sm:text-sm text-slate-400 dark:text-slate-300">Break-even trades only. For accurate wins/losses, set trade outcome to BE and specify After BE (Win or Lose).</div>
                 </UITooltipContent>
               </UITooltip>
