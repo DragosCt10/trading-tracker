@@ -266,7 +266,7 @@ export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.m
           </div>
           {/* Wins / Losses / BE - same as ReentryTradesChartCard */}
           <div className="w-full px-4 pt-4 mt-2">
-            <div className="flex items-center justify-center gap-8">
+            <div className="flex items-center justify-center gap-8 w-fit mx-auto">
               <div className="flex flex-col items-center">
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                   Wins
