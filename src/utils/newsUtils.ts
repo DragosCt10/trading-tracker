@@ -42,7 +42,7 @@ export function findSimilarNews(
  */
 export function mergeNewsIntoSaved(
   typedName: string,
-  intensity: number,
+  intensity: number | null,
   savedNews: SavedNewsItem[]
 ): SavedNewsItem[] {
   const canonical = normalizeNewsName(typedName);
@@ -57,7 +57,8 @@ export function mergeNewsIntoSaved(
         !existingAliases.some((a) => normalizeNewsName(a) === canonical);
       return {
         ...item,
-        intensity,
+        // Only overwrite intensity when the user explicitly selected one
+        ...(intensity !== null ? { intensity } : {}),
         aliases: needsAlias ? [...existingAliases, typedName.trim()] : existingAliases,
       };
     });
@@ -66,7 +67,7 @@ export function mergeNewsIntoSaved(
   const newItem: SavedNewsItem = {
     id: crypto.randomUUID(),
     name: typedName.trim(),
-    intensity,
+    intensity: intensity ?? 1,
     aliases: [],
   };
   return [...savedNews, newItem];
