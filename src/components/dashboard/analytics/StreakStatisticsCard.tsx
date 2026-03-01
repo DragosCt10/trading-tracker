@@ -197,7 +197,7 @@ export const StreakStatisticsCard: React.FC<StreakStatisticsCardProps> = React.m
                   <Bar
                     dataKey="value"
                     radius={[0, 8, 8, 0]}
-                    barSize={32}
+                    barSize={18}
                   >
                     {chartData.map((entry, index) => {
                       let gradientId = 'bestWinGradient';
