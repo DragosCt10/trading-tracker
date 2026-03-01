@@ -178,19 +178,9 @@ export const BEStatisticsCard: React.FC<BEStatisticsCardProps> = React.memo(
                 <UITooltipContent
                   side="top"
                   sideOffset={6}
-                  className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden shadow-lg min-w-[160px] text-slate-900 dark:text-slate-100"
-                  style={{
-                    background: isDark
-                      ? 'linear-gradient(135deg, var(--grad-from) 0%, var(--grad-via) 50%, var(--grad-to) 100%)'
-                      : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
-                    backdropFilter: 'blur(16px)',
-                    border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(148, 163, 184, 0.2)',
-                    boxShadow: isDark
-                      ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.04)'
-                      : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-                  }}
+                  className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-300/80 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/10 dark:shadow-black/40 text-slate-900 dark:text-slate-100 min-w-[160px]"
                 >
-                  <div className="relative text-xs sm:text-sm text-slate-500 dark:text-slate-400">Break-even trades only. For accurate wins/losses, set trade outcome to BE and specify After BE (Win or Lose).</div>
+                  <div className="relative text-xs sm:text-sm text-slate-400 dark:text-slate-300">Break-even trades only. For accurate wins/losses, set trade outcome to BE and specify After BE (Win or Lose).</div>
                 </UITooltipContent>
               </UITooltip>
             </TooltipProvider>
