@@ -174,6 +174,37 @@ export async function deleteAccount(
 }
 
 /**
+ * Ensures the user has at least one account across all modes.
+ * If they have none, creates a default "Account1" demo account.
+ * Safe to call on every login/signup — no-ops when accounts already exist.
+ */
+export async function ensureDefaultAccount(): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) return;
+
+  const { count, error } = await supabase
+    .from('account_settings')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+
+  if (error || (count ?? 0) > 0) return;
+
+  await supabase.from('account_settings').insert({
+    user_id: user.id,
+    name: 'Account1',
+    account_balance: 10000,
+    currency: 'USD',
+    mode: 'demo',
+    description: null,
+    is_active: true,
+  });
+}
+
+/**
  * Gets all accounts for a user across all modes (for the ActionBar grouped dropdown).
  */
 export async function getAllAccountsForUser(userId: string): Promise<AccountRow[]> {
