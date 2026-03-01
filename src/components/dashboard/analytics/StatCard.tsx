@@ -72,7 +72,7 @@ export const StatCard: React.FC<StatCardProps> = React.memo(({
                       sideOffset={6}
                       style={!useCalendarTooltip && isDark ? tooltipStyleDark : undefined}
                     >
-                      {!useCalendarTooltip && !isDark && <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5 rounded-2xl" />}
+                      {!useCalendarTooltip && !isDark && <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />}
                       <div className="relative">{tooltipContent}</div>
                     </TooltipContent>
                   </Tooltip>
@@ -109,7 +109,7 @@ export const StatCard: React.FC<StatCardProps> = React.memo(({
                           sideOffset={6}
                           style={!useCalendarTooltip && isDark ? tooltipStyleDark : undefined}
                         >
-                          {!useCalendarTooltip && !isDark && <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5 rounded-2xl" />}
+                          {!useCalendarTooltip && !isDark && <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />}
                           <div className="relative">{tooltipContent}</div>
                         </TooltipContent>
                       </Tooltip>
