@@ -97,7 +97,7 @@ export const BEStatisticsCard: React.FC<BEStatisticsCardProps> = React.memo(
       const colors = colorMap[data.color] || colorMap.emerald;
       const percentage = data.pct ?? (totalTrades > 0 ? (data.value / totalTrades) * 100 : 0);
       return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-3 text-slate-900 dark:text-slate-50">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-white/10 bg-white dark:bg-transparent backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-3 text-slate-900 dark:text-slate-50">
           <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
           <div className="relative flex flex-col">
             <div className="flex items-center gap-2">
@@ -178,9 +178,18 @@ export const BEStatisticsCard: React.FC<BEStatisticsCardProps> = React.memo(
                 <UITooltipContent
                   side="top"
                   sideOffset={6}
-                  className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
+                  className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden shadow-lg min-w-[160px] text-slate-900 dark:text-slate-100"
+                  style={{
+                    background: isDark
+                      ? 'linear-gradient(135deg, var(--grad-from) 0%, var(--grad-via) 50%, var(--grad-to) 100%)'
+                      : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
+                    backdropFilter: 'blur(16px)',
+                    border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(148, 163, 184, 0.2)',
+                    boxShadow: isDark
+                      ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.04)'
+                      : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+                  }}
                 >
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-purple-500/5 via-transparent to-fuchsia-500/5 rounded-2xl" />
                   <div className="relative text-xs sm:text-sm text-slate-500 dark:text-slate-400">Break-even trades only. For accurate wins/losses, set trade outcome to BE and specify After BE (Win or Lose).</div>
                 </UITooltipContent>
               </UITooltip>
@@ -224,11 +233,11 @@ export const BEStatisticsCard: React.FC<BEStatisticsCardProps> = React.memo(
                   <Tooltip
                     contentStyle={{
                       background: isDark
-                        ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%)'
+                        ? 'linear-gradient(135deg, var(--grad-from) 0%, var(--grad-via) 50%, var(--grad-to) 100%)'
                         : 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%)',
                       backdropFilter: 'blur(16px)',
                       border: isDark
-                        ? '1px solid rgba(51, 65, 85, 0.6)'
+                        ? '1px solid rgba(255, 255, 255, 0.06)'
                         : '1px solid rgba(148, 163, 184, 0.2)',
                       borderRadius: '16px',
                       padding: '14px 18px',
