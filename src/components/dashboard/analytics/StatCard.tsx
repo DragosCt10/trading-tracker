@@ -5,9 +5,8 @@ import { Info } from 'lucide-react';
 import { Card, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { useDarkMode } from '@/hooks/useDarkMode';
 
-/** When 'calendar', tooltip uses same bg as TradesCalendarCard (white / slate-800/90). Default uses app gradient in dark. */
+/** When 'calendar', tooltip uses same bg as TradesCalendarCard (white / slate-800/90). Default uses themed overlay. */
 interface StatCardProps {
   title: React.ReactNode;
   value: React.ReactNode;
@@ -17,15 +16,8 @@ interface StatCardProps {
   tooltipVariant?: 'default' | 'calendar';
 }
 
-const tooltipStyleDark = {
-  background: 'linear-gradient(135deg, var(--grad-from) 0%, var(--grad-via) 50%, var(--grad-to) 100%)',
-  backdropFilter: 'blur(16px)',
-  border: '1px solid rgba(255, 255, 255, 0.06)',
-  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.04)',
-};
-
 const tooltipClassCalendar = 'w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-300/80 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/10 dark:shadow-black/40 text-slate-900 dark:text-slate-100';
-const tooltipClassDefault = 'w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 bg-slate-50/80 backdrop-blur-xl shadow-lg shadow-slate-900/5 text-slate-900 dark:text-slate-100';
+const tooltipClassDefault = 'w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100';
 
 export const StatCard: React.FC<StatCardProps> = React.memo(({
   title,
@@ -35,7 +27,6 @@ export const StatCard: React.FC<StatCardProps> = React.memo(({
   align = 'center',
   tooltipVariant = 'default',
 }) => {
-  const { isDark } = useDarkMode();
   const useCalendarTooltip = tooltipVariant === 'calendar';
   return (
     <Card
@@ -70,9 +61,8 @@ export const StatCard: React.FC<StatCardProps> = React.memo(({
                       align="center"
                       className={useCalendarTooltip ? tooltipClassCalendar : tooltipClassDefault}
                       sideOffset={6}
-                      style={!useCalendarTooltip && isDark ? tooltipStyleDark : undefined}
                     >
-                      {!useCalendarTooltip && !isDark && <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />}
+                      {!useCalendarTooltip && <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />}
                       <div className="relative">{tooltipContent}</div>
                     </TooltipContent>
                   </Tooltip>
@@ -107,9 +97,8 @@ export const StatCard: React.FC<StatCardProps> = React.memo(({
                           align="center"
                           className={useCalendarTooltip ? tooltipClassCalendar : tooltipClassDefault}
                           sideOffset={6}
-                          style={!useCalendarTooltip && isDark ? tooltipStyleDark : undefined}
                         >
-                          {!useCalendarTooltip && !isDark && <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />}
+                          {!useCalendarTooltip && <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />}
                           <div className="relative">{tooltipContent}</div>
                         </TooltipContent>
                       </Tooltip>
@@ -117,7 +106,7 @@ export const StatCard: React.FC<StatCardProps> = React.memo(({
                   )}
                 </div>
             </div>
-            <div className="flex flex-col items-end shrink-0">{value}</div> 
+            <div className="flex flex-col items-end shrink-0">{value}</div>
           </div>
         )}
       </div>
