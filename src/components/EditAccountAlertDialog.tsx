@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteAccount, updateAccount } from '@/lib/server/accounts';
 import { getTradeCountForAccount } from '@/lib/server/getTradeCountForAccount';
 import { useUserDetails } from '@/hooks/useUserDetails';
-import { AlertCircle, Info, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { Info, Loader2, Pencil, Trash2 } from 'lucide-react';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -50,8 +50,6 @@ export type AccountSettings = {
   description: string | null;
 };
 
-const SUCCESS_DELAY_MS = 2000;
-
 interface EditAccountAlertDialogProps {
   account: AccountSettings | null;
   onUpdated?: (updated: AccountSettings) => void;
@@ -70,12 +68,6 @@ export function EditAccountAlertDialog({
   const [mounted, setMounted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [progressDialog, setProgressDialog] = useState<{
-    open: boolean;
-    status: 'loading' | 'success' | 'error';
-    message: string;
-    title: string; // "Update" | "Delete" for dialog title
-  }>({ open: false, status: 'loading', message: '', title: 'Update' });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -157,12 +149,6 @@ export function EditAccountAlertDialog({
     }
 
     setSubmitting(true);
-    setProgressDialog({
-      open: true,
-      status: 'loading',
-      message: 'Please wait while we save your account...',
-      title: 'Update',
-    });
 
     try {
       const { data, error: updateError } = await updateAccount(account.id, {
@@ -174,33 +160,16 @@ export function EditAccountAlertDialog({
       });
 
       if (updateError) {
-        setProgressDialog({
-          open: true,
-          status: 'error',
-          message: updateError.message ?? 'Failed to update account. Please try again.',
-          title: 'Update',
-        });
+        setError(updateError.message ?? 'Failed to update account. Please try again.');
         setSubmitting(false);
         return;
       }
 
       if (!data) {
-        setProgressDialog({
-          open: true,
-          status: 'error',
-          message: 'Failed to update account. Please try again.',
-          title: 'Update',
-        });
+        setError('Failed to update account. Please try again.');
         setSubmitting(false);
         return;
       }
-
-      setProgressDialog({
-        open: true,
-        status: 'success',
-        message: 'Account settings saved!',
-        title: 'Update',
-      });
 
       onUpdated?.(data as AccountSettings);
 
@@ -222,18 +191,9 @@ export function EditAccountAlertDialog({
       await queryClient.refetchQueries({ type: 'active' });
 
       setOpen(false);
-
-      setTimeout(() => {
-        setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
-        setSubmitting(false);
-      }, SUCCESS_DELAY_MS);
-    } catch {
-      setProgressDialog({
-        open: true,
-        status: 'error',
-        message: 'Failed to update account. Please check your data and try again.',
-        title: 'Update',
-      });
+      setSubmitting(false);
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to update account. Please check your data and try again.');
       setSubmitting(false);
     }
   };
@@ -241,34 +201,17 @@ export function EditAccountAlertDialog({
   const handleDelete = async () => {
     if (!account) return;
     setDeleteConfirmOpen(false);
+    setError(null);
     setDeleting(true);
-    setProgressDialog({
-      open: true,
-      status: 'loading',
-      message: 'Deleting account...',
-      title: 'Delete',
-    });
 
     try {
       const { error: deleteError } = await deleteAccount(account.id);
 
       if (deleteError) {
-        setProgressDialog({
-          open: true,
-          status: 'error',
-          message: deleteError.message ?? 'Failed to delete account. Please try again.',
-          title: 'Delete',
-        });
+        setError(deleteError.message ?? 'Failed to delete account. Please try again.');
         setDeleting(false);
         return;
       }
-
-      setProgressDialog({
-        open: true,
-        status: 'success',
-        message: 'Account deleted successfully.',
-        title: 'Delete',
-      });
 
       // Clear ActionBar selection if the deleted account was the active one (so dashboard/AccountOverviewCard stops showing it)
       const selectionKey = ['actionBar:selection'] as const;
@@ -281,18 +224,9 @@ export function EditAccountAlertDialog({
       await queryClient.invalidateQueries();
       await queryClient.refetchQueries({ type: 'active' });
       setOpen(false);
-
-      setTimeout(() => {
-        setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
-        setDeleting(false);
-      }, SUCCESS_DELAY_MS);
-    } catch {
-      setProgressDialog({
-        open: true,
-        status: 'error',
-        message: 'Failed to delete account. Please try again.',
-        title: 'Delete',
-      });
+      setDeleting(false);
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to delete account. Please try again.');
       setDeleting(false);
     }
   };
@@ -486,8 +420,8 @@ export function EditAccountAlertDialog({
                     className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 gap-2"
                   >
                     <span className="relative z-10 flex items-center gap-2">
-                      <Trash2 className="h-4 w-4" />
-                      Delete account
+                      {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {deleting ? 'Deleting account' : 'Delete account'}
                     </span>
                     <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                   </Button>
@@ -509,29 +443,8 @@ export function EditAccountAlertDialog({
                     className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60 text-sm"
                   >
                     <span className="relative z-10 flex items-center justify-center gap-2">
-                      {submitting && (
-                        <svg
-                          className="h-4 w-4 animate-spin"
-                          viewBox="0 0 24 24"
-                          aria-hidden="true"
-                        >
-                          <circle
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                            fill="none"
-                            className="opacity-25"
-                          />
-                          <path
-                            className="opacity-90"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"
-                          />
-                        </svg>
-                      )}
-                      Save changes
+                      {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {submitting ? 'Saving changes' : 'Save changes'}
                     </span>
                     <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                   </Button>
@@ -543,7 +456,7 @@ export function EditAccountAlertDialog({
       </AlertDialog>
 
       {/* Delete confirmation - same design as TradeDetailsModal */}
-      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={(open) => { setDeleteConfirmOpen(open); if (!open) setError(null); }}>
         <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -558,6 +471,7 @@ export function EditAccountAlertDialog({
               <Button
                 variant="outline"
                 onClick={() => setDeleteConfirmOpen(false)}
+                disabled={deleting}
                 className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
               >
                 Cancel
@@ -567,76 +481,12 @@ export function EditAccountAlertDialog({
               <Button
                 variant="destructive"
                 onClick={handleDelete}
-                disabled={deleting}
-                className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
+                className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 flex items-center gap-2"
               >
-                {deleting ? 'Deleting...' : 'Yes, Delete'}
+                Yes, Delete
               </Button>
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Progress Dialog - same pattern as CreateAccountModal, 3s success */}
-      <AlertDialog
-        open={progressDialog.open}
-        onOpenChange={() => {
-          if (progressDialog.status !== 'loading') {
-            setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' });
-          }
-        }}
-      >
-        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient rounded-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {progressDialog.status === 'loading' && (
-                <span className="font-semibold text-lg flex items-center gap-2" style={{ color: 'var(--tc-primary)' }}>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  {progressDialog.title === 'Delete' ? 'Deleting Account' : 'Updating Account'}
-                </span>
-              )}
-              {progressDialog.status === 'success' && (
-                <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-lg flex items-center gap-2">
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2.5}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  {progressDialog.title === 'Delete' ? 'Account Deleted Successfully' : 'Account Updated Successfully'}
-                </span>
-              )}
-              {progressDialog.status === 'error' && (
-                <span className="text-red-500 dark:text-red-400 font-semibold text-lg flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  {progressDialog.title === 'Delete' ? 'Error Deleting Account' : 'Error Updating Account'}
-                </span>
-              )}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              <span className="text-slate-600 dark:text-slate-400">
-                {progressDialog.message}
-              </span>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          {progressDialog.status === 'error' && (
-            <AlertDialogFooter className="flex gap-3">
-              <Button
-                onClick={() => setProgressDialog({ open: false, status: 'loading', message: '', title: 'Update' })}
-                className="cursor-pointer rounded-xl border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
-              >
-                Close
-              </Button>
-            </AlertDialogFooter>
-          )}
         </AlertDialogContent>
       </AlertDialog>
     </>
