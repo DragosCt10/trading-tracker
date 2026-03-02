@@ -3,7 +3,7 @@ import { updateSession } from '@/utils/supabase/middleware';
 import { createClient } from '@/utils/supabase/server';
 
 /** Paths that do not require an authenticated user (auth pages). */
-const AUTH_PATHS = ['/login', '/signup', '/reset-password', '/update-password', '/auth'];
+const AUTH_PATHS = ['/login', '/signup', '/reset-password', '/update-password', '/api/auth'];
 
 function isAuthPath(pathname: string): boolean {
   return AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
