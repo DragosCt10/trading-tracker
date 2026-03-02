@@ -9,6 +9,7 @@ import { useUserDetails } from '@/hooks/useUserDetails';
 import { useTheme } from '@/hooks/useTheme';
 import { signupAction } from '@/lib/server/auth';
 import { ThemePickerModal } from '@/components/shared/ThemePickerModal';
+import GoogleButton from '@/components/auth/GoogleButton';
 
 // shadcn/ui imports
 import { Button } from '@/components/ui/button';
@@ -109,12 +110,12 @@ export default function SignupClient() {
       {/* Main content - Full page card */}
       <div className="relative z-10 w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-1000">
         {/* Top accent line — theme-aware */}
-        <div className="absolute -top-20 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[var(--tc-primary)] to-transparent opacity-50" />
+        <div className="absolute -top-2.5 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[var(--tc-primary)] to-transparent opacity-50" />
 
         {/* Content container */}
         <div className="relative">
           {/* Header section */}
-          <div className="flex flex-col items-center space-y-6 mb-10">
+          <div className="flex flex-col items-center space-y-6 my-10">
             {/* Logo with glow — theme-aware */}
             <div className="relative group">
               <div className="absolute -inset-3 rounded-2xl opacity-75 blur-xl group-hover:opacity-100 transition duration-500" style={{ background: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))', opacity: 0.2 }} />
@@ -130,6 +131,16 @@ export default function SignupClient() {
               <p className="text-sm text-muted-foreground font-medium animate-in fade-in slide-in-from-top-2 duration-700 delay-300">
                 Start tracking your trades and improve your performance
               </p>
+            </div>
+          </div>
+
+          {/* Google OAuth */}
+          <div className="mb-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-400">
+            <GoogleButton />
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-border/60" />
+              <span className="text-xs text-muted-foreground font-medium">or continue with email</span>
+              <div className="flex-1 h-px bg-border/60" />
             </div>
           </div>
 
