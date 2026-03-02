@@ -8,9 +8,6 @@ interface GoogleButtonProps {
   redirectTo?: string | null;
 }
 
-const POPUP_WIDTH = 500;
-const POPUP_HEIGHT = 620;
-
 export default function GoogleButton({ redirectTo }: GoogleButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -19,71 +16,16 @@ export default function GoogleButton({ redirectTo }: GoogleButtonProps) {
     const supabase = createClient();
 
     const callbackUrl = new URL('/api/auth/callback', window.location.origin);
-    callbackUrl.searchParams.set('popup', '1');
     if (redirectTo && redirectTo.startsWith('/')) {
       callbackUrl.searchParams.set('next', redirectTo);
     }
 
-    // Get the OAuth URL without triggering a full-page redirect
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: callbackUrl.toString(),
-        skipBrowserRedirect: true,
-      },
+      options: { redirectTo: callbackUrl.toString() },
     });
 
-    if (error || !data.url) {
-      setIsLoading(false);
-      return;
-    }
-
-    // Open a centered popup window pointing at the Google consent screen
-    const left = window.screenX + Math.round((window.outerWidth - POPUP_WIDTH) / 2);
-    const top = window.screenY + Math.round((window.outerHeight - POPUP_HEIGHT) / 2);
-    const popup = window.open(
-      data.url,
-      'google-oauth',
-      `width=${POPUP_WIDTH},height=${POPUP_HEIGHT},left=${left},top=${top},scrollbars=yes,resizable=yes`
-    );
-
-    if (!popup) {
-      // Popup was blocked — fall back to full-page redirect
-      window.location.href = data.url;
-      return;
-    }
-
-    const cleanup = () => {
-      clearInterval(pollClosed);
-      window.removeEventListener('message', handleMessage);
-    };
-
-    // Listen for the callback page to signal success or error
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      const { type, errorMessage } = event.data ?? {};
-
-      if (type === 'GOOGLE_AUTH_SUCCESS') {
-        cleanup();
-        window.location.href = redirectTo ?? '/strategies';
-      } else if (type === 'GOOGLE_AUTH_ERROR') {
-        cleanup();
-        // Surface the error on the login page via query param
-        const url = new URL(window.location.href);
-        url.searchParams.set('error', errorMessage ?? 'Google sign-in failed');
-        window.location.href = url.toString();
-      }
-    };
-
-    // Reset loading if the user closes the popup manually
-    const pollClosed = setInterval(() => {
-      if (popup.closed) {
-        cleanup();
-        setIsLoading(false);
-      }
-    }, 600);
-
-    window.addEventListener('message', handleMessage);
+    if (error) setIsLoading(false);
   };
 
   return (
