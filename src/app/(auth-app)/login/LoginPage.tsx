@@ -9,6 +9,7 @@ import { useUserDetails } from '@/hooks/useUserDetails';
 import { useTheme } from '@/hooks/useTheme';
 import { loginAction } from '@/lib/server/auth';
 import { ThemePickerModal } from '@/components/shared/ThemePickerModal';
+import GoogleButton from '@/components/auth/GoogleButton';
 
 /** Only allow relative path for post-login redirect (prevent open redirect). */
 function safeRedirectPath(path: string | null): string | null {
@@ -35,6 +36,10 @@ export default function LoginPage() {
   const { setIsLoading } = useLoading();
   const { data: userData } = useUserDetails();
   const { theme, toggleTheme, mounted } = useTheme();
+
+  // Error forwarded from the OAuth callback (e.g. user cancelled, account conflict)
+  const oauthError = searchParams.get('error');
+  const redirectTo = safeRedirectPath(searchParams.get('redirectTo'));
 
   useEffect(() => {
     // If user is already logged in, redirect to strategies or redirectTo
@@ -120,12 +125,12 @@ export default function LoginPage() {
       {/* Main content - Full page card */}
       <div className="relative z-10 w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-1000 outline-none border-0">
         {/* Top accent line — theme-aware */}
-        <div className="absolute -top-20 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[var(--tc-primary)] to-transparent opacity-50" />
+        <div className="absolute -top-2.5 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[var(--tc-primary)] to-transparent opacity-50" />
 
         {/* Content container */}
         <div className="relative outline-none border-0">
           {/* Header section */}
-          <div className="flex flex-col items-center space-y-6 mb-10">
+          <div className="flex flex-col items-center space-y-6 my-10">
             {/* Logo with glow — theme-aware */}
             <div className="relative group">
               <div className="absolute -inset-3 rounded-2xl opacity-75 blur-xl group-hover:opacity-100 transition duration-500" style={{ background: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))', opacity: 0.2 }} />
@@ -141,6 +146,16 @@ export default function LoginPage() {
               <p className="text-sm text-muted-foreground font-medium animate-in fade-in slide-in-from-top-2 duration-700 delay-300">
                 Unlock your trading analytics & insights
               </p>
+            </div>
+          </div>
+
+          {/* Google OAuth */}
+          <div className="mb-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-400">
+            <GoogleButton redirectTo={redirectTo} />
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-border/60" />
+              <span className="text-xs text-muted-foreground font-medium">or continue with email</span>
+              <div className="flex-1 h-px bg-border/60" />
             </div>
           </div>
 
