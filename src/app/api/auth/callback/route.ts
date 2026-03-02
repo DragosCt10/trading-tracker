@@ -25,9 +25,12 @@ export async function GET(request: Request) {
 
     if (!exchangeError) {
       await ensureDefaultAccount();
-      const forwardedHost = request.headers.get('x-forwarded-host');
       const isLocal = process.env.NODE_ENV === 'development';
-      const base = isLocal ? origin : forwardedHost ? `https://${forwardedHost}` : origin;
+      const forwardedProto = request.headers.get('x-forwarded-proto');
+      // Use origin (correct host) but upgrade protocol to https when behind a proxy
+      const base = isLocal || !forwardedProto
+        ? origin
+        : origin.replace(/^https?:/, `${forwardedProto}:`);
       return NextResponse.redirect(`${base}${next}`);
     }
 
