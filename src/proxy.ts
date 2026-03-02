@@ -31,16 +31,21 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
 }
 
 export async function proxy(request: NextRequest) {
-  const response = await updateSession(request);
-  const url = new URL(request.url);
-  const pathname = url.pathname;
+  const { pathname } = new URL(request.url);
 
-  // Auth pages: no user check, just add security headers
   if (isAuthPath(pathname)) {
-    return applySecurityHeaders(response);
+    const response = await updateSession(request);
+    // updateSession may redirect to /login if it doesn't recognize this auth path —
+    // override that redirect so the route handler always runs for auth pages.
+    const finalResponse =
+      response.status >= 300 && response.status < 400
+        ? NextResponse.next({ request })
+        : response;
+    return applySecurityHeaders(finalResponse);
   }
 
-  // All other pages: require user
+  // Protected pages: require an authenticated user.
+  const response = await updateSession(request);
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
