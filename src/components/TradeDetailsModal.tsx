@@ -53,9 +53,10 @@ import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
 import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
 import { NewsCombobox } from '@/components/NewsCombobox';
 import { mergeNewsIntoSaved, normalizeNewsName } from '@/utils/newsUtils';
-import { updateAccountSavedNews } from '@/lib/server/accounts';
 import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
+import { useSettings } from '@/hooks/useSettings';
+import { updateSavedNews } from '@/lib/server/settings';
 
 interface TradeDetailsModalProps {
   trade: Trade | null;
@@ -72,6 +73,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const { data: userData } = useUserDetails();
   const userId = userData?.user?.id;
   const { strategies } = useStrategies({ userId });
+  const { settings } = useSettings({ userId });
   const [isEditing, setIsEditing] = useState(false);
   const [editedTrade, setEditedTrade] = useState<Trade | null>(trade);
   const [isSaving, setIsSaving] = useState(false);
@@ -264,18 +266,17 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
       await invalidateAndRefetchTradeQueries();
 
-      // Save / update news event in account's saved_news library
-      if (editedTrade.news_related && editedTrade.news_name?.trim() && selection.activeAccount) {
-        const currentSaved = (selection.activeAccount as any).saved_news as SavedNewsItem[] | null;
-        const savedNews = Array.isArray(currentSaved) ? currentSaved : [];
+      // Save / update news event in the user's saved_news library (user_settings table)
+      if (editedTrade.news_related && editedTrade.news_name?.trim() && userId) {
+        const savedNews = Array.isArray(settings.saved_news) ? settings.saved_news : [];
         const updatedNews = mergeNewsIntoSaved(
           normalizeNewsName(editedTrade.news_name),
           editedTrade.news_intensity ?? null,
           savedNews
         );
-        await updateAccountSavedNews(selection.activeAccount.id, updatedNews);
+        await updateSavedNews(updatedNews);
         await queryClient.invalidateQueries({
-          queryKey: queryKeys.accounts(userId, selection.mode),
+          queryKey: queryKeys.settings(userId),
         });
       }
 
@@ -1058,11 +1059,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                               handleInputChange('news_name', item.name);
                               handleInputChange('news_intensity', item.intensity);
                             }}
-                            savedNews={
-                              Array.isArray((selection.activeAccount as any)?.saved_news)
-                                ? (selection.activeAccount as any).saved_news as SavedNewsItem[]
-                                : []
-                            }
+                            savedNews={settings.saved_news as SavedNewsItem[]}
                             placeholder="e.g. CPI, NFP, FOMC"
                             className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
                           />
