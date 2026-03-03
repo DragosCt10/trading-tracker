@@ -107,6 +107,7 @@ export function SetupCombobox({
   };
 
   const showDropdown = open && suggestions.length > 0;
+  const showNoMatch = open && suggestions.length === 0 && inputValue.trim().length > 0;
 
   return (
     <div ref={containerRef} className="relative">
@@ -153,6 +154,11 @@ export function SetupCombobox({
             </li>
           ))}
         </ul>
+      )}
+      {showNoMatch && (
+        <div className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl border border-slate-200/70 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shadow-lg px-3 py-4 text-sm text-slate-500 dark:text-slate-400">
+          No match in list. You can use your typed value as a custom setup type.
+        </div>
       )}
     </div>
   );
