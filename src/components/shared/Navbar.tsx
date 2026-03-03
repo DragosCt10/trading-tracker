@@ -119,7 +119,7 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <div className="hidden lg:block">
-            <ul className="flex items-center gap-1">
+            <ul className="flex items-center gap-2">
               <li>
                 <Button
                   variant="ghost"
