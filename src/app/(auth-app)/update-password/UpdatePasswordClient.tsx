@@ -98,12 +98,12 @@ export default function UpdatePasswordClient() {
       {/* Main content - Full page card */}
       <div className="relative z-10 w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-1000">
         {/* Top accent line — theme-aware */}
-        <div className="absolute -top-20 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[var(--tc-primary)] to-transparent opacity-50" />
+        <div className="absolute -top-27 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[var(--tc-primary)] to-transparent opacity-50" />
 
         {/* Content container */}
         <div className="relative">
           {/* Header section */}
-          <div className="flex flex-col items-center space-y-6 mb-10">
+          <div className="flex flex-col items-center space-y-6 my-10">
             {/* Logo with glow — theme-aware */}
             <div className="relative group">
               <div className="absolute -inset-3 rounded-2xl opacity-75 blur-xl group-hover:opacity-100 transition duration-500" style={{ background: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))', opacity: 0.2 }} />
