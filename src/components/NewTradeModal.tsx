@@ -58,10 +58,6 @@ import { mergeSetupTypeIntoSaved } from '@/utils/setupUtils';
 /** Kept for any legacy reference; market input uses MarketCombobox + ALLOWED_MARKETS. */
 const MARKET_OPTIONS = ALLOWED_MARKETS;
 
-const SETUP_OPTIONS = [
-  'OG', 'TG', 'TCG', '3G', '3CG', 'MultipleGaps',
-  'SLG+OG', 'SLG+TG', 'SLG+TCG', 'SLG+3G', 'SLG+3CG'
-];
 const LIQUIDITY_OPTIONS = ['Major Liquidity', 'Low Liquidity', 'Local Liquidity', 'HOD', 'LOD'];
 const MSS_OPTIONS = ['Normal', 'Aggressive'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
@@ -333,9 +329,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   const accountBalance = selection.activeAccount?.account_balance ?? 0;
   const currency = selection.activeAccount?.currency === 'EUR' ? '€' : '$';
 
-  const setupOptions = (settings.saved_setup_types?.length
-    ? settings.saved_setup_types
-    : SETUP_OPTIONS);
+  const setupOptions = settings.saved_setup_types ?? [];
 
   const { pnl_percentage: pnlPercentage, calculated_profit: signedProfit } = useMemo(
     () => calculateTradePnl(trade, accountBalance),
