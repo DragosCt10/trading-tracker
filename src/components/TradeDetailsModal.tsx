@@ -21,7 +21,6 @@ const selectContentClass =
 const labelClass = 'block text-sm font-semibold text-slate-700 dark:text-slate-300';
 
 // shadcn UI components
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -83,7 +82,6 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const currentStrategy = strategies.find((s) => s.slug === strategySlug);
   const strategyExtraCards = currentStrategy?.extra_cards ?? [];
   const hasCard = (key: string) => strategyExtraCards.includes(key as any);
-  const hasAnyExtraCard = strategyExtraCards.length > 0;
   const { settings } = useSettings({ userId });
   const [isEditing, setIsEditing] = useState(false);
   const [editedTrade, setEditedTrade] = useState<Trade | null>(trade);
