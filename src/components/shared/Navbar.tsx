@@ -107,7 +107,7 @@ export default function Navbar() {
           <div className="relative flex items-center px-3 py-2 sm:px-4 sm:py-2.5">
             <Link
               href="/"
-              className="mr-2 flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-50"
+              className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-50"
             >
               <Logo width={37} height={37} />
               <span className="hidden sm:inline text-sm font-semibold tracking-tight">
