@@ -697,6 +697,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 onChange={(v) => handleInputChange('setup_type', v)}
                 options={setupOptions}
                 placeholder="Select or type setup"
+                dropdownClassName="z-[100]"
               />
             </div>
           );
@@ -714,6 +715,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                 defaultSuggestions={['HOD', 'LOD']}
                 customValueLabel="conditions / liquidity"
                 placeholder="Select or type conditions / liquidity"
+                dropdownClassName="z-[100]"
               />
             </div>
           );
