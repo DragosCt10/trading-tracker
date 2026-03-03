@@ -1158,15 +1158,17 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 </div>
               )}
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="local-high-low"
-                  checked={trade.local_high_low}
-                  onCheckedChange={(checked) => updateTrade('local_high_low', checked as boolean)}
-                  className="themed-checkbox h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 transition-colors duration-150 data-[state=checked]:!text-white"
-                />
-                <Label htmlFor="local-high-low" className="text-sm font-normal cursor-pointer">Local High/Low</Label>
-              </div>
+              {(hasCard('local_hl_stats') || hasCard('local_hl_be_stats')) && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="local-high-low"
+                    checked={trade.local_high_low}
+                    onCheckedChange={(checked) => updateTrade('local_high_low', checked as boolean)}
+                    className="themed-checkbox h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 transition-colors duration-150 data-[state=checked]:!text-white"
+                  />
+                  <Label htmlFor="local-high-low" className="text-sm font-normal cursor-pointer">Local High/Low</Label>
+                </div>
+              )}
 
               {hasCard('launch_hour') && (
                 <TooltipProvider>
