@@ -993,7 +993,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     <div className="space-y-3">
                       {renderField('Displacement', 'displacement_size', 'number')}
                       {(isEditing || (editedTrade?.fvg_size != null && editedTrade.fvg_size !== undefined)) && renderField('FVG Size', 'fvg_size', 'number')}
-                      {(isEditing || (editedTrade?.liquidity != null && editedTrade.liquidity !== '')) && renderField('Liquidity', 'liquidity', 'select', liquidityOptions)}
+                      {(isEditing || (editedTrade?.liquidity != null && editedTrade.liquidity !== '')) && renderField('Conditions / Liq.', 'liquidity', 'select', liquidityOptions)}
                     </div>
                   )}
                 </div>
@@ -1181,12 +1181,6 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                           </div>
                         </div>
                       </a>
-                      <a href={editedTrade.trade_link} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-sky-600 dark:text-sky-400 hover:underline">
-                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                        Open Trade Chart
-                      </a>
                     </div>
                   ) : null}
 
@@ -1206,12 +1200,6 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                             </svg>
                           </div>
                         </div>
-                      </a>
-                      <a href={editedTrade.liquidity_taken} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-sky-600 dark:text-sky-400 hover:underline">
-                        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                        Open Liquidity Link
                       </a>
                     </div>
                   ) : null}
