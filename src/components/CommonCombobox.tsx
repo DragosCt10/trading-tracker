@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 const MAX_SUGGESTIONS = 20;
 const MAX_CHARS = 12;
+const DROPDOWN_OFFSET = 6;
 
 export interface CommonComboboxProps {
   value: string;
@@ -32,6 +34,7 @@ export function CommonCombobox({
 }: CommonComboboxProps) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const inputValue = value ?? '';
@@ -62,6 +65,31 @@ export function CommonCombobox({
     });
     return [...startsWith, ...contains].slice(0, MAX_SUGGESTIONS);
   }, [inputValue, normalizedOptions, defaultSuggestions]);
+
+  // Portal: measure position when open so dropdown can render above modal/cards (like Select)
+  useLayoutEffect(() => {
+    if (!open) {
+      setDropdownRect(null);
+      return;
+    }
+    const updateRect = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setDropdownRect({
+          top: rect.bottom + DROPDOWN_OFFSET,
+          left: rect.left,
+          width: rect.width,
+        });
+      }
+    };
+    updateRect();
+    window.addEventListener('scroll', updateRect, true);
+    window.addEventListener('resize', updateRect);
+    return () => {
+      window.removeEventListener('scroll', updateRect, true);
+      window.removeEventListener('resize', updateRect);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -124,6 +152,64 @@ export function CommonCombobox({
     inputValue.trim().length > 0 &&
     normalizedOptions.length > 0;
 
+  const dropdownListClass =
+    'max-h-56 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm py-1 z-[100]';
+  const noMatchClass =
+    'rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] shadow-lg backdrop-blur-sm px-3 py-4 text-sm text-slate-600 dark:text-slate-300 z-[100]';
+
+  const portalContent =
+    typeof document !== 'undefined' &&
+    dropdownRect &&
+    (showDropdown || showNoMatch)
+      ? createPortal(
+          showDropdown ? (
+            <ul
+              role="listbox"
+              className={dropdownListClass}
+              style={{
+                position: 'fixed',
+                top: dropdownRect.top,
+                left: dropdownRect.left,
+                width: dropdownRect.width,
+              }}
+            >
+              {suggestions.map((item, idx) => (
+                <li key={item} role="option" aria-selected={idx === activeIndex}>
+                  <button
+                    type="button"
+                    className={cn(
+                      'w-full text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150',
+                      idx === activeIndex
+                        ? 'bg-slate-100 dark:bg-slate-800'
+                        : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                    )}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleSelect(item);
+                    }}
+                  >
+                    {item}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div
+              className={noMatchClass}
+              style={{
+                position: 'fixed',
+                top: dropdownRect.top,
+                left: dropdownRect.left,
+                width: dropdownRect.width,
+              }}
+            >
+              No match in list. You can use your typed value as a custom {customValueLabel}.
+            </div>
+          ),
+          document.body
+        )
+      : null;
+
   return (
     <div ref={containerRef} className="relative">
       <Input
@@ -145,37 +231,7 @@ export function CommonCombobox({
         aria-expanded={showDropdown}
         aria-autocomplete="list"
       />
-      {showDropdown && (
-        <ul
-          role="listbox"
-          className="absolute top-full left-0 right-0 z-50 mt-1.5 max-h-56 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm py-1"
-        >
-          {suggestions.map((item, idx) => (
-            <li key={item} role="option" aria-selected={idx === activeIndex}>
-              <button
-                type="button"
-                className={cn(
-                  'w-full text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150',
-                  idx === activeIndex
-                    ? 'bg-slate-100 dark:bg-slate-800'
-                    : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-                )}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  handleSelect(item);
-                }}
-              >
-                {item}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {showNoMatch && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] shadow-lg backdrop-blur-sm px-3 py-4 text-sm text-slate-600 dark:text-slate-300">
-          No match in list. You can use your typed value as a custom {customValueLabel}.
-        </div>
-      )}
+      {portalContent}
     </div>
   );
 }
