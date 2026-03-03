@@ -16,8 +16,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Logo from '@/components/shared/Logo';
 
+const PASSWORD_RULES = [
+  { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
+  { label: 'Uppercase letter (A–Z)', test: (p: string) => /[A-Z]/.test(p) },
+  { label: 'Lowercase letter (a–z)', test: (p: string) => /[a-z]/.test(p) },
+  { label: 'Number (0–9)', test: (p: string) => /[0-9]/.test(p) },
+  { label: 'Special character (!@#$%…)', test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+];
+
+function getStrength(password: string): number {
+  return PASSWORD_RULES.filter((r) => r.test(password)).length;
+}
+
+const STRENGTH_LABELS = ['', 'Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
+const STRENGTH_COLORS = ['', '#ef4444', '#f97316', '#eab308', '#22c55e', '#16a34a'];
+
 export default function UpdatePasswordClient() {
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [confirmTouched, setConfirmTouched] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -40,8 +57,26 @@ export default function UpdatePasswordClient() {
     });
   }, []);
 
+  const strength = getStrength(password);
+  const allRulesPassed = strength === PASSWORD_RULES.length;
+  const passwordsMatch = password === confirmPassword;
+  const canSubmit = sessionReady && !isLoading && allRulesPassed && passwordsMatch && confirmPassword.length > 0;
+
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!allRulesPassed) {
+      setError('Please meet all password requirements before submitting.');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    if (!passwordsMatch) {
+      setError('Passwords do not match.');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
     setIsLoading(true);
     setGlobalLoading(true);
     setError('');
@@ -153,13 +188,77 @@ export default function UpdatePasswordClient() {
                     type="password"
                     autoComplete="new-password"
                     required
-                    minLength={6}
+                    minLength={8}
                     value={password}
                     placeholder="Create a new password"
                     onChange={(e) => setPassword(e.target.value)}
                     className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-300"
                   />
                 </div>
+
+                {/* Strength meter */}
+                {password.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex gap-1">
+                      {PASSWORD_RULES.map((_, i) => (
+                        <div
+                          key={i}
+                          className="h-1 flex-1 rounded-full transition-all duration-300"
+                          style={{ backgroundColor: i < strength ? STRENGTH_COLORS[strength] : 'var(--border)' }}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs font-medium" style={{ color: STRENGTH_COLORS[strength] }}>
+                      {STRENGTH_LABELS[strength]}
+                    </p>
+                  </div>
+                )}
+
+                {/* Requirements checklist */}
+                {password.length > 0 && (
+                  <ul className="space-y-1 mt-2">
+                    {PASSWORD_RULES.map((rule) => {
+                      const passed = rule.test(password);
+                      return (
+                        <li key={rule.label} className="flex items-center gap-2 text-xs">
+                          <span className={passed ? 'text-green-500' : 'text-muted-foreground'}>
+                            {passed ? '✓' : '○'}
+                          </span>
+                          <span className={passed ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}>
+                            {rule.label}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              {/* Confirm password input */}
+              <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-700 delay-600">
+                <Label htmlFor="confirmPassword" className="block text-sm font-semibold text-foreground">
+                  Confirm new password
+                </Label>
+                <div className="relative group">
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    value={confirmPassword}
+                    placeholder="Repeat your new password"
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onBlur={() => setConfirmTouched(true)}
+                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-300"
+                  />
+                </div>
+                {confirmTouched && confirmPassword.length > 0 && !passwordsMatch && (
+                  <p className="text-xs text-destructive font-medium">Passwords do not match.</p>
+                )}
+                {confirmTouched && confirmPassword.length > 0 && passwordsMatch && (
+                  <p className="text-xs text-green-600 dark:text-green-400 font-medium">Passwords match.</p>
+                )}
               </div>
             </div>
 
@@ -217,7 +316,7 @@ export default function UpdatePasswordClient() {
               <Button
                 size="lg"
                 type="submit"
-                disabled={isLoading || !sessionReady}
+                disabled={!canSubmit}
                 className="relative w-full h-12 overflow-hidden font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 group border-0 disabled:opacity-60 cursor-pointer"
                 style={{
                   background: `linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))`,
