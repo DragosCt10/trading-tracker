@@ -374,7 +374,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       return;
     }
     if (isTradingInstitutional && (!trade.setup_type || !trade.liquidity || !trade.mss || !trade.sl_size)) {
-      setError('Please fill in all required fields (Setup Type, Liquidity, MSS, SL Size).');
+      setError('Please fill in all required fields (Pattern / Setup, Liquidity, MSS, SL Size).');
       return;
     }
 
@@ -635,13 +635,13 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
               {isTradingInstitutional ? (
                 <div className="space-y-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Setup Type *</Label>
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Pattern / Setup *</Label>
                   <SetupCombobox
                     id="setup-type"
                     value={trade.setup_type ?? ''}
                     onChange={(v) => updateTrade('setup_type', v as any)}
                     options={setupOptions}
-                    placeholder="Select or type setup"
+                    placeholder="Select or type pattern / setup"
                   />
                 </div>
               ) : (
