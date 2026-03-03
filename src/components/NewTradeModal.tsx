@@ -666,6 +666,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                     options={setupOptions}
                     customValueLabel="pattern / setup"
                     placeholder="Select or type pattern / setup"
+                    dropdownClassName="z-[100]"
                   />
                 </div>
               ) : (
@@ -802,6 +803,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                       defaultSuggestions={['HOD', 'LOD']}
                       customValueLabel="conditions / liquidity"
                       placeholder="Select or type conditions / liquidity"
+                      dropdownClassName="z-[100]"
                     />
                   </div>
                 )}
