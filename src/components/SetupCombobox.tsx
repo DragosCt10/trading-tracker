@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 const MAX_SUGGESTIONS = 20;
+const MAX_CHARS = 14;
 
 export interface SetupComboboxProps {
   value: string;
@@ -77,14 +78,14 @@ export function SetupCombobox({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const next = e.target.value;
+    const next = e.target.value.slice(0, MAX_CHARS);
     onChange(next);
     setOpen(true);
     setActiveIndex(-1);
   };
 
   const handleSelect = (setup: string) => {
-    onChange(setup);
+    onChange(setup.slice(0, MAX_CHARS));
     setOpen(false);
     setActiveIndex(-1);
   };
@@ -125,6 +126,7 @@ export function SetupCombobox({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         autoComplete="off"
+        maxLength={MAX_CHARS}
         className={cn(
           'h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300',
           className
