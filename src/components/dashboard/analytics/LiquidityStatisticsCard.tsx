@@ -219,10 +219,10 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-              Liquidity Stats
+              Conditions / Liquidity Stats
             </CardTitle>
             <CardDescription className="text-base text-slate-500 dark:text-slate-400">
-              Distribution of trades based on market liquidity conditions
+              Distribution of trades by conditions / liquidity
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex justify-center items-center">
@@ -237,10 +237,10 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-              Liquidity Stats
+              Conditions / Liquidity Stats
             </CardTitle>
             <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-              Distribution of trades based on market liquidity conditions
+              Distribution of trades by conditions / liquidity
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col items-center justify-center">
@@ -259,10 +259,10 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
       <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Liquidity Stats
+            Conditions / Liquidity Stats
           </CardTitle>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-            Distribution of trades based on market liquidity conditions
+            Distribution of trades by conditions / liquidity
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-1 flex items-end mt-1">
