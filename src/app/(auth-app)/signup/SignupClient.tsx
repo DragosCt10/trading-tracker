@@ -259,7 +259,7 @@ export default function SignupClient() {
 
           {/* Footer text */}
           <p className="mt-8 text-center text-xs text-muted-foreground animate-in fade-in duration-700 delay-1200">
-            Join QuantifyX and build a disciplined trading routine
+            Join AlphaStats and build a disciplined trading routine
           </p>
         </div>
       </div>
