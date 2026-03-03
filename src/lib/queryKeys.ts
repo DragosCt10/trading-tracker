@@ -12,6 +12,9 @@
 export const queryKeys = {
   userDetails: () => ['userDetails'] as const,
 
+  settings: (userId?: string) =>
+    ['settings', userId] as const,
+
   accounts: (userId?: string, mode?: string) =>
     ['accounts:list', userId, mode] as const,
 
