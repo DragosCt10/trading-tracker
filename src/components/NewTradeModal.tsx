@@ -45,13 +45,15 @@ import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
 import { MarketCombobox } from '@/components/MarketCombobox';
 import { NewsCombobox } from '@/components/NewsCombobox';
+import { SetupCombobox } from '@/components/SetupCombobox';
 import { ALLOWED_MARKETS } from '@/constants/allowedMarkets';
 import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
 import { mergeNewsIntoSaved, normalizeNewsName } from '@/utils/newsUtils';
 import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
-import { updateSavedNews } from '@/lib/server/settings';
+import { updateSavedNews, updateSavedSetupTypes } from '@/lib/server/settings';
+import { mergeSetupTypeIntoSaved } from '@/utils/setupUtils';
 
 /** Kept for any legacy reference; market input uses MarketCombobox + ALLOWED_MARKETS. */
 const MARKET_OPTIONS = ALLOWED_MARKETS;
@@ -331,6 +333,10 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   const accountBalance = selection.activeAccount?.account_balance ?? 0;
   const currency = selection.activeAccount?.currency === 'EUR' ? '€' : '$';
 
+  const setupOptions = (settings.saved_setup_types?.length
+    ? settings.saved_setup_types
+    : SETUP_OPTIONS);
+
   const { pnl_percentage: pnlPercentage, calculated_profit: signedProfit } = useMemo(
     () => calculateTradePnl(trade, accountBalance),
     [accountBalance, trade.break_even, trade.trade_outcome, trade.risk_per_trade, trade.risk_reward_ratio]
@@ -428,7 +434,19 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
           savedNews
         );
         await updateSavedNews(updatedNews);
-        // Invalidate settings cache so the updated saved_news is available next time
+      }
+
+      // Save / update setup type in the user's saved_setup_types library
+      if (trade.setup_type?.trim() && userId) {
+        const updatedSetups = mergeSetupTypeIntoSaved(
+          trade.setup_type,
+          settings.saved_setup_types ?? []
+        );
+        await updateSavedSetupTypes(updatedSetups);
+      }
+
+      // Invalidate settings cache so updated saved_news / saved_setup_types are available next time
+      if (userId) {
         await queryClient.invalidateQueries({
           queryKey: queryKeys.settings(userId),
         });
@@ -618,16 +636,13 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               {isTradingInstitutional ? (
                 <div className="space-y-2">
                   <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Setup Type *</Label>
-                  <Select value={trade.setup_type} onValueChange={(v) => updateTrade('setup_type', v)}>
-                    <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                      <SelectValue placeholder="Select Setup" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SETUP_OPTIONS.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SetupCombobox
+                    id="setup-type"
+                    value={trade.setup_type ?? ''}
+                    onChange={(v) => updateTrade('setup_type', v as any)}
+                    options={setupOptions}
+                    placeholder="Select or type setup"
+                  />
                 </div>
               ) : (
                 <div className="space-y-2">
