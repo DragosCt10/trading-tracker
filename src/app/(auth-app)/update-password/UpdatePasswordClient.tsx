@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Palette } from 'lucide-react';
@@ -8,6 +8,7 @@ import { useLoading } from '@/context/LoadingContext';
 import { useTheme } from '@/hooks/useTheme';
 import { updatePasswordAction } from '@/lib/server/auth';
 import { ThemePickerModal } from '@/components/shared/ThemePickerModal';
+import { createClient } from '@/utils/supabase/client';
 
 // shadcn/ui imports
 import { Button } from '@/components/ui/button';
@@ -20,10 +21,24 @@ export default function UpdatePasswordClient() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
   const router = useRouter();
   const { setIsLoading: setGlobalLoading } = useLoading();
   const { theme, toggleTheme, mounted } = useTheme();
+
+  useEffect(() => {
+    // The session is established by /api/auth/callback before we arrive here.
+    // Just verify an active session exists.
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setSessionReady(true);
+      } else {
+        setError('expired');
+      }
+    });
+  }, []);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,9 +56,9 @@ export default function UpdatePasswordClient() {
         setError(result.error);
         setTimeout(() => setError(''), 2000);
       } else {
-        setMessage('Password updated successfully. Redirecting to login...');
+        setMessage('Password updated successfully. Redirecting to your strategies...');
         setTimeout(() => {
-          router.push('/login');
+          router.push('/strategies');
         }, 2000);
       }
     } finally {
@@ -149,7 +164,25 @@ export default function UpdatePasswordClient() {
             </div>
 
             {/* Error message */}
-            {error && (
+            {error === 'expired' ? (
+              <div className="rounded-lg bg-destructive/10 backdrop-blur-sm p-4 border border-destructive/20 animate-in fade-in slide-in-from-top-2 duration-300 space-y-3">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 shrink-0 text-destructive" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm font-medium text-destructive">This reset link has expired or already been used.</span>
+                </div>
+                <Link
+                  href="/reset-password"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-destructive underline underline-offset-2 hover:opacity-80 transition-opacity"
+                >
+                  Request a new reset link
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </Link>
+              </div>
+            ) : error ? (
               <div className="rounded-lg bg-destructive/10 backdrop-blur-sm p-4 border border-destructive/20 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="flex items-center gap-2">
                   <svg className="w-5 h-5 text-destructive" fill="currentColor" viewBox="0 0 20 20">
@@ -158,7 +191,7 @@ export default function UpdatePasswordClient() {
                   <span className="text-sm font-medium text-destructive">{error}</span>
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* Success message — theme-aware */}
             {message && (
@@ -184,7 +217,7 @@ export default function UpdatePasswordClient() {
               <Button
                 size="lg"
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || !sessionReady}
                 className="relative w-full h-12 overflow-hidden font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 group border-0 disabled:opacity-60 cursor-pointer"
                 style={{
                   background: `linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))`,
