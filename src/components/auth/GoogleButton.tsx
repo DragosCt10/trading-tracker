@@ -33,7 +33,7 @@ export default function GoogleButton({ redirectTo }: GoogleButtonProps) {
       type="button"
       onClick={handleGoogleSignIn}
       disabled={isLoading}
-      className="relative w-full h-12 flex items-center justify-center gap-3 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 hover:bg-slate-100/70 dark:hover:bg-slate-700/40 transition-all duration-300 font-semibold text-slate-700 dark:text-slate-200 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+      className="relative w-full h-12 flex items-center justify-center gap-3 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 hover:bg-slate-100/70 dark:hover:bg-slate-700/40 transition-all duration-300 font-semibold text-slate-700 dark:text-slate-200 text-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
     >
       {isLoading ? (
         <>
