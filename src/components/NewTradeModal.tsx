@@ -47,10 +47,11 @@ import { MarketCombobox } from '@/components/MarketCombobox';
 import { NewsCombobox } from '@/components/NewsCombobox';
 import { ALLOWED_MARKETS } from '@/constants/allowedMarkets';
 import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
-import { updateAccountSavedNews } from '@/lib/server/accounts';
 import { mergeNewsIntoSaved, normalizeNewsName } from '@/utils/newsUtils';
 import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
+import { useSettings } from '@/hooks/useSettings';
+import { updateSavedNews } from '@/lib/server/settings';
 
 /** Kept for any legacy reference; market input uses MarketCombobox + ALLOWED_MARKETS. */
 const MARKET_OPTIONS = ALLOWED_MARKETS;
@@ -137,6 +138,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   const { selection } = useActionBarSelection();
   const { data: userData } = useUserDetails();
   const userId = userData?.user?.id;
+  const { settings } = useSettings({ userId });
   const { strategies } = useStrategies({ userId });
   const queryClient = useQueryClient();
   
@@ -417,19 +419,18 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         localStorage.removeItem(`new-trade-draft-${selection.mode}`);
       }
 
-      // Save / update news event in account's saved_news library
-      if (trade.news_related && trade.news_name?.trim() && selection.activeAccount) {
-        const currentSaved = (selection.activeAccount as any).saved_news as SavedNewsItem[] | null;
-        const savedNews = Array.isArray(currentSaved) ? currentSaved : [];
+      // Save / update news event in the user's saved_news library (user_settings table)
+      if (trade.news_related && trade.news_name?.trim() && userId) {
+        const savedNews = Array.isArray(settings.saved_news) ? settings.saved_news : [];
         const updatedNews = mergeNewsIntoSaved(
           normalizeNewsName(trade.news_name),
           trade.news_intensity ?? null,
           savedNews
         );
-        await updateAccountSavedNews(selection.activeAccount.id, updatedNews);
-        // Invalidate accounts cache so the updated saved_news is available next time
+        await updateSavedNews(updatedNews);
+        // Invalidate settings cache so the updated saved_news is available next time
         await queryClient.invalidateQueries({
-          queryKey: queryKeys.accounts(userId, selection.mode),
+          queryKey: queryKeys.settings(userId),
         });
       }
 
@@ -1073,7 +1074,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               {trade.news_related && (
                 <div className="w-full mt-1 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                   <div className="w-full max-w-[400px] min-w-0">
-                    <NewsCombobox
+                      <NewsCombobox
                       id="news-name"
                       value={trade.news_name ?? ''}
                       onChange={(v) => updateTrade('news_name', v || null)}
@@ -1081,11 +1082,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                         updateTrade('news_name', item.name);
                         updateTrade('news_intensity', item.intensity);
                       }}
-                      savedNews={
-                        Array.isArray((selection.activeAccount as any)?.saved_news)
-                          ? (selection.activeAccount as any).saved_news as SavedNewsItem[]
-                          : []
-                      }
+                      savedNews={settings.saved_news as SavedNewsItem[]}
                       placeholder="e.g. CPI, NFP, FOMC"
                       className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
                     />
