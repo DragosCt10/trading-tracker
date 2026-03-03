@@ -107,7 +107,11 @@ export function SetupCombobox({
   };
 
   const showDropdown = open && suggestions.length > 0;
-  const showNoMatch = open && suggestions.length === 0 && inputValue.trim().length > 0;
+  const showNoMatch =
+    open &&
+    suggestions.length === 0 &&
+    inputValue.trim().length > 0 &&
+    normalizedOptions.length > 0;
 
   return (
     <div ref={containerRef} className="relative">
