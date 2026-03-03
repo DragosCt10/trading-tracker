@@ -8,6 +8,7 @@ import { normalizeMarket } from '@/utils/validateMarket';
 import { cn } from '@/lib/utils';
 
 const MAX_SUGGESTIONS = 80;
+const MAX_CHARS = 14;
 
 export interface MarketComboboxProps {
   value: string;
@@ -100,7 +101,7 @@ export function MarketCombobox({
   const showDropdown = open && hasInput;
 
   const handleBlur = () => {
-    const normalized = normalizeMarket(inputValue);
+    const normalized = normalizeMarket(inputValue).slice(0, MAX_CHARS);
     if (normalized !== inputValue) {
       setInputValue(normalized);
       onChange(normalized);
@@ -113,15 +114,16 @@ export function MarketCombobox({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value;
+    const v = e.target.value.slice(0, MAX_CHARS);
     setInputValue(v);
     onChange(v);
     setOpen(true);
   };
 
   const handleSelect = (market: string) => {
-    setInputValue(market);
-    onChange(market);
+    const capped = market.slice(0, MAX_CHARS);
+    setInputValue(capped);
+    onChange(capped);
     setOpen(false);
   };
 
@@ -137,6 +139,7 @@ export function MarketCombobox({
         placeholder={placeholder}
         disabled={disabled}
         autoComplete="off"
+        maxLength={MAX_CHARS}
         className={cn(className)}
         role="combobox"
         aria-expanded={showDropdown}
