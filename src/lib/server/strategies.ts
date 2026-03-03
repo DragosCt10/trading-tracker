@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import type { Database } from '@/types/supabase';
 import type { Strategy } from '@/types/strategy';
+import { EXTRA_CARDS } from '@/constants/extraCards';
 
 export type StrategyRow = Database['public']['Tables']['strategies']['Row'];
 
@@ -119,6 +120,7 @@ export async function ensureDefaultStrategy(userId: string): Promise<Strategy | 
       name: 'Liquidity Strategy',
       slug: 'liquidity-strategy',
       is_active: true,
+      extra_cards: EXTRA_CARDS.map(c => c.key),
     })
     .select()
     .single();
