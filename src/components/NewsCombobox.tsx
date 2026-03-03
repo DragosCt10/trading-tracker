@@ -165,17 +165,17 @@ export function NewsCombobox({
       {showDropdown && (
         <ul
           role="listbox"
-          className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl border border-border bg-popover text-popover-foreground shadow-lg max-h-56 overflow-auto py-1"
+          className="absolute top-full left-0 right-0 z-50 mt-1.5 max-h-56 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm py-1"
         >
           {suggestions.map((item, idx) => (
             <li key={item.id} role="option" aria-selected={idx === activeIndex}>
               <button
                 type="button"
                 className={cn(
-                  'w-full flex items-center gap-2 text-left px-3 py-2 text-sm outline-none rounded-lg',
+                  'w-full flex items-center gap-2 text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150',
                   idx === activeIndex
-                    ? 'bg-accent text-accent-foreground'
-                    : 'hover:bg-accent hover:text-accent-foreground'
+                    ? 'bg-slate-100 dark:bg-slate-800'
+                    : 'hover:bg-slate-100 dark:hover:bg-slate-800'
                 )}
                 onMouseDown={(e) => {
                   e.preventDefault();

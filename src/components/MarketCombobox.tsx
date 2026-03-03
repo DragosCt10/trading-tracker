@@ -142,7 +142,7 @@ export function MarketCombobox({
       {open && !usePortal && (
         <div
           className={cn(
-            'absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl border border-slate-200/70 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg max-h-60 overflow-auto py-1',
+            'absolute top-full left-0 right-0 z-50 mt-1.5 max-h-60 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm py-1',
             dropdownClassName
           )}
           role="listbox"
@@ -153,7 +153,7 @@ export function MarketCombobox({
                 <li key={market} role="option">
                   <button
                     type="button"
-                    className="w-full text-left px-3 py-2.5 text-sm text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800 outline-none rounded-lg"
+                    className="w-full text-left px-3 py-2.5 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
                     onMouseDown={(e) => {
                       e.preventDefault();
                       handleSelect(market);
@@ -165,7 +165,7 @@ export function MarketCombobox({
               ))}
             </ul>
           ) : (
-            <div className="px-3 py-4 text-sm text-slate-500 dark:text-slate-400">
+            <div className="px-3 py-4 text-sm text-slate-600 dark:text-slate-300">
               No match in list. You can use your typed value if it matches the format (e.g. EURUSD, EUR/USD).
             </div>
           )}
@@ -184,7 +184,7 @@ export function MarketCombobox({
               data-market-combobox-list
               role="listbox"
               className={cn(
-                'fixed rounded-xl border border-slate-200/70 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg max-h-60 overflow-auto py-1 z-[9999]',
+                'fixed max-h-60 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm py-1 z-[9999]',
                 dropdownClassName
               )}
               style={{
@@ -200,7 +200,7 @@ export function MarketCombobox({
                     <li key={market} role="option">
                       <button
                         type="button"
-                        className="w-full text-left px-3 py-2.5 text-sm text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800 outline-none rounded-lg"
+                        className="w-full text-left px-3 py-2.5 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
                         onMouseDown={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -218,7 +218,7 @@ export function MarketCombobox({
                   ))}
                 </ul>
               ) : (
-                <div className="px-3 py-4 text-sm text-slate-500 dark:text-slate-400">
+                <div className="px-3 py-4 text-sm text-slate-600 dark:text-slate-300">
                   No match in list. You can use your typed value if it matches the format (e.g. EURUSD, EUR/USD).
                 </div>
               )}

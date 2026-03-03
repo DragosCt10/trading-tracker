@@ -132,17 +132,17 @@ export function SetupCombobox({
       {showDropdown && (
         <ul
           role="listbox"
-          className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl border border-slate-200/70 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shadow-lg max-h-56 overflow-auto py-1"
+          className="absolute top-full left-0 right-0 z-50 mt-1.5 max-h-56 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm py-1"
         >
           {suggestions.map((setup, idx) => (
             <li key={setup} role="option" aria-selected={idx === activeIndex}>
               <button
                 type="button"
                 className={cn(
-                  'w-full text-left px-3 py-2 text-sm outline-none rounded-lg',
+                  'w-full text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150',
                   idx === activeIndex
-                    ? 'bg-slate-900/90 text-slate-50 dark:bg-slate-100 dark:text-slate-900'
-                    : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-100'
+                    ? 'bg-slate-100 dark:bg-slate-800'
+                    : 'hover:bg-slate-100 dark:hover:bg-slate-800'
                 )}
                 onMouseDown={(e) => {
                   e.preventDefault();
@@ -156,7 +156,7 @@ export function SetupCombobox({
         </ul>
       )}
       {showNoMatch && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl border border-slate-200/70 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shadow-lg px-3 py-4 text-sm text-slate-500 dark:text-slate-400">
+        <div className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] shadow-lg backdrop-blur-sm px-3 py-4 text-sm text-slate-600 dark:text-slate-300">
           No match in list. You can use your typed value as a custom setup type.
         </div>
       )}
