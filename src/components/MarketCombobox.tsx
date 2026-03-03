@@ -96,6 +96,9 @@ export function MarketCombobox({
     setOpen(true);
   };
 
+  const hasInput = inputValue.trim().length > 0;
+  const showDropdown = open && hasInput;
+
   const handleBlur = () => {
     const normalized = normalizeMarket(inputValue);
     if (normalized !== inputValue) {
@@ -136,10 +139,10 @@ export function MarketCombobox({
         autoComplete="off"
         className={cn(className)}
         role="combobox"
-        aria-expanded={open}
+        aria-expanded={showDropdown}
         aria-autocomplete="list"
       />
-      {open && !usePortal && (
+      {showDropdown && !usePortal && (
         <div
           className={cn(
             'absolute top-full left-0 right-0 z-50 mt-1.5 max-h-60 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm py-1',
@@ -171,7 +174,7 @@ export function MarketCombobox({
           )}
         </div>
       )}
-      {open && usePortal && dropdownRect && typeof document !== 'undefined' &&
+      {showDropdown && usePortal && dropdownRect && typeof document !== 'undefined' &&
         createPortal(
           <>
             {/* Full-screen layer on top so dropdown stacks above dialog; pointer-events-none so only the list gets clicks */}
