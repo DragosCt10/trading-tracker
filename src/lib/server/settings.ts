@@ -6,10 +6,12 @@ import type { SavedNewsItem } from '@/types/account-settings';
 /** User settings row (user_settings table). Extend as you add columns. */
 export interface SettingsRow {
   saved_news: SavedNewsItem[];
+  saved_setup_types: string[];
 }
 
 const DEFAULT_SETTINGS: SettingsRow = {
   saved_news: [],
+  saved_setup_types: [],
 };
 
 /**
@@ -21,7 +23,7 @@ export async function getSettings(userId: string): Promise<SettingsRow> {
   const supabase = await createClient();
   const { data, error } = await (supabase as any)
     .from('user_settings')
-    .select('saved_news')
+    .select('saved_news, saved_setup_types')
     .eq('user_id', userId)
     .single();
 
@@ -32,9 +34,11 @@ export async function getSettings(userId: string): Promise<SettingsRow> {
     return DEFAULT_SETTINGS;
   }
 
-  const raw = (data as { saved_news?: unknown })?.saved_news;
+  const rawNews = (data as { saved_news?: unknown })?.saved_news;
+  const rawSetups = (data as { saved_setup_types?: unknown })?.saved_setup_types;
   return {
-    saved_news: Array.isArray(raw) ? (raw as SavedNewsItem[]) : [],
+    saved_news: Array.isArray(rawNews) ? (rawNews as SavedNewsItem[]) : [],
+    saved_setup_types: Array.isArray(rawSetups) ? (rawSetups as string[]) : [],
   };
 }
 
@@ -67,6 +71,40 @@ export async function updateSavedNews(
   if (error) {
     console.error('Error updating user saved news:', error);
     return { error: { message: error.message ?? 'Failed to update saved news' } };
+  }
+
+  return { error: null };
+}
+
+/**
+ * Updates the current user's saved_setup_types in user_settings.
+ */
+export async function updateSavedSetupTypes(
+  savedSetupTypes: string[]
+): Promise<{ error: { message: string } | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { error: { message: 'Unauthorized' } };
+  }
+
+  const { error } = await (supabase as any)
+    .from('user_settings')
+    .upsert(
+      {
+        user_id: user.id,
+        saved_setup_types: savedSetupTypes as any,
+      },
+      { onConflict: 'user_id' }
+    );
+
+  if (error) {
+    console.error('Error updating user saved setup types:', error);
+    return { error: { message: error.message ?? 'Failed to update saved setup types' } };
   }
 
   return { error: null };
