@@ -22,6 +22,9 @@ export interface CommonComboboxProps {
   placeholder?: string;
   className?: string;
   id?: string;
+  /** Optional class for the dropdown list; when set, dropdown is portaled so it stays above modal/overflow, mirroring MarketCombobox. */
+  dropdownClassName?: string;
+  disabled?: boolean;
 }
 
 export function CommonCombobox({
@@ -33,13 +36,21 @@ export function CommonCombobox({
   placeholder = 'Select or type setup',
   className,
   id,
+  dropdownClassName,
+  disabled,
 }: CommonComboboxProps) {
   const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const [inputValue, setInputValue] = useState(value ?? '');
   const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const inputValue = value ?? '';
+  // Keep input in sync with external value (like MarketCombobox)
+  useEffect(() => {
+    setInputValue(value ?? '');
+  }, [value]);
+
+  const usePortal = Boolean(dropdownClassName);
 
   const normalizedOptions = useMemo(
     () => Array.from(new Set(options.filter(Boolean))).slice(0, MAX_SAVED_TYPES),
@@ -68,83 +79,70 @@ export function CommonCombobox({
     return [...startsWith, ...contains].slice(0, MAX_SUGGESTIONS);
   }, [inputValue, normalizedOptions, defaultSuggestions]);
 
-  // Portal: measure position when open so dropdown can render above modal/cards (like Select)
+  // When portaling: measure trigger and position dropdown; update on scroll/resize when open
   useLayoutEffect(() => {
-    if (!open) {
+    if (!usePortal || !open || !containerRef.current) {
       setDropdownRect(null);
       return;
     }
-    const updateRect = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setDropdownRect({
-          top: rect.bottom + DROPDOWN_OFFSET,
-          left: rect.left,
-          width: rect.width,
-        });
-      }
+    const el = containerRef.current;
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setDropdownRect({
+        top: rect.bottom + DROPDOWN_OFFSET,
+        left: rect.left,
+        width: rect.width,
+      });
     };
-    updateRect();
-    window.addEventListener('scroll', updateRect, true);
-    window.addEventListener('resize', updateRect);
+    update();
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
     return () => {
-      window.removeEventListener('scroll', updateRect, true);
-      window.removeEventListener('resize', updateRect);
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
     };
-  }, [open]);
+  }, [usePortal, open]);
 
+  // Close when clicking outside (mirrors MarketCombobox: custom dropdown, Radix-safe)
   useEffect(() => {
     if (!open) return;
     const handleMouseDown = (e: MouseEvent) => {
-      if (containerRef.current?.contains(e.target as Node)) return;
+      const target = e.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      if ((target as Element).closest?.('[data-common-combobox-list]')) return;
       setOpen(false);
-      setActiveIndex(-1);
     };
     document.addEventListener('mousedown', handleMouseDown, true);
     return () => document.removeEventListener('mousedown', handleMouseDown, true);
   }, [open]);
 
   const handleFocus = () => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+    }
     setOpen(true);
-    setActiveIndex(-1);
   };
 
   const handleBlur = () => {
-    // Slight delay so clicks on suggestions still register
-    setTimeout(() => {
-      setOpen(false);
-      setActiveIndex(-1);
-    }, 150);
+    // When portaled, only close on outside click or option select (not on blur) so dialog focus trap doesn't block clicks
+    if (!usePortal) {
+      blurTimeoutRef.current = setTimeout(() => setOpen(false), 180);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const next = e.target.value.slice(0, MAX_CHARS);
+    setInputValue(next);
     onChange(next);
     setOpen(true);
-    setActiveIndex(-1);
   };
 
   const handleSelect = (item: string) => {
-    onChange(item.slice(0, MAX_CHARS));
+    const next = item.slice(0, MAX_CHARS);
+    setInputValue(next);
+    onChange(next);
     setOpen(false);
-    setActiveIndex(-1);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!open || suggestions.length === 0) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveIndex((i) => (i + 1) % suggestions.length);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
-    } else if (e.key === 'Enter' && activeIndex >= 0) {
-      e.preventDefault();
-      handleSelect(suggestions[activeIndex]);
-    } else if (e.key === 'Escape') {
-      setOpen(false);
-      setActiveIndex(-1);
-    }
   };
 
   const showDropdown = open && suggestions.length > 0;
@@ -154,63 +152,10 @@ export function CommonCombobox({
     inputValue.trim().length > 0 &&
     normalizedOptions.length > 0;
 
-  const dropdownListClass =
-    'max-h-56 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm py-1 z-[100]';
-  const noMatchClass =
-    'rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] shadow-lg backdrop-blur-sm px-3 py-4 text-sm text-slate-600 dark:text-slate-300 z-[100]';
-
-  const portalContent =
-    typeof document !== 'undefined' &&
-    dropdownRect &&
-    (showDropdown || showNoMatch)
-      ? createPortal(
-          showDropdown ? (
-            <ul
-              role="listbox"
-              className={dropdownListClass}
-              style={{
-                position: 'fixed',
-                top: dropdownRect.top,
-                left: dropdownRect.left,
-                width: dropdownRect.width,
-              }}
-            >
-              {suggestions.map((item, idx) => (
-                <li key={item} role="option" aria-selected={idx === activeIndex}>
-                  <button
-                    type="button"
-                    className={cn(
-                      'w-full text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150',
-                      idx === activeIndex
-                        ? 'bg-slate-100 dark:bg-slate-800'
-                        : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-                    )}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      handleSelect(item);
-                    }}
-                  >
-                    {item}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div
-              className={noMatchClass}
-              style={{
-                position: 'fixed',
-                top: dropdownRect.top,
-                left: dropdownRect.left,
-                width: dropdownRect.width,
-              }}
-            >
-              No match in list. You can use your typed value as a custom {customValueLabel}.
-            </div>
-          ),
-          document.body
-        )
-      : null;
+  const baseDropdownClass =
+    'max-h-56 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm py-1';
+  const baseNoMatchClass =
+    'rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] shadow-lg backdrop-blur-sm px-3 py-4 text-sm text-slate-600 dark:text-slate-300';
 
   return (
     <div ref={containerRef} className="relative">
@@ -221,8 +166,8 @@ export function CommonCombobox({
         onChange={handleInputChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
         placeholder={placeholder}
+        disabled={disabled}
         autoComplete="off"
         maxLength={MAX_CHARS}
         className={cn(
@@ -233,7 +178,128 @@ export function CommonCombobox({
         aria-expanded={showDropdown}
         aria-autocomplete="list"
       />
-      {portalContent}
+
+      {/* Non-portal dropdown (used when dropdownClassName not provided) */}
+      {showDropdown && !usePortal && (
+        <div
+          className={cn(
+            'absolute top-full left-0 right-0 z-50 mt-1.5',
+            baseDropdownClass,
+            dropdownClassName
+          )}
+          role="listbox"
+        >
+          <ul>
+            {suggestions.map((item) => (
+              <li key={item} role="option">
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelect(item);
+                  }}
+                >
+                  {item}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {showNoMatch && !usePortal && (
+        <div
+          className={cn(
+            'absolute top-full left-0 right-0 z-50 mt-1.5',
+            baseNoMatchClass,
+            dropdownClassName
+          )}
+        >
+          No match in list. You can use your typed value as a custom {customValueLabel}.
+        </div>
+      )}
+
+      {/* Portaled dropdown: mirrors MarketCombobox behaviour */}
+      {showDropdown && usePortal && dropdownRect && typeof document !== 'undefined' &&
+        createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-[9998]"
+              style={{ pointerEvents: 'none' }}
+              aria-hidden
+            />
+            <div
+              data-common-combobox-list
+              role="listbox"
+              className={cn(
+                'fixed z-[9999]',
+                baseDropdownClass,
+                dropdownClassName
+              )}
+              style={{
+                top: dropdownRect.top,
+                left: dropdownRect.left,
+                width: dropdownRect.width,
+                pointerEvents: 'auto',
+              }}
+            >
+              <ul>
+                {suggestions.map((item) => (
+                  <li key={item} role="option">
+                    <button
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSelect(item);
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSelect(item);
+                      }}
+                    >
+                      {item}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </>,
+          document.body
+        )}
+
+      {showNoMatch && usePortal && dropdownRect && typeof document !== 'undefined' &&
+        createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-[9998]"
+              style={{ pointerEvents: 'none' }}
+              aria-hidden
+            />
+            <div
+              data-common-combobox-list
+              className={cn(
+                'fixed z-[9999]',
+                baseNoMatchClass,
+                dropdownClassName
+              )}
+              style={{
+                top: dropdownRect.top,
+                left: dropdownRect.left,
+                width: dropdownRect.width,
+                pointerEvents: 'auto',
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              No match in list. You can use your typed value as a custom {customValueLabel}.
+            </div>
+          </>,
+          document.body
+        )}
     </div>
   );
 }
