@@ -111,7 +111,7 @@ export default function Navbar() {
             >
               <Logo width={37} height={37} />
               <span className="hidden sm:inline text-sm font-semibold tracking-tight">
-                QuantifyX
+                AlphaStats
               </span>
             </Link>
 
