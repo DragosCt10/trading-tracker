@@ -117,28 +117,13 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     await queryClient.refetchQueries({ type: 'active' });
   };
 
-  const SETUP_OPTIONS = [
-    'OG',
-    'TG',
-    'TCG',
-    '3G',
-    '3CG',
-    'MultipleGaps',
-    'SLG+OG',
-    'SLG+TG',
-    'SLG+TCG',
-    'SLG+3G',
-    'SLG+3CG'
-  ];
   const LIQUIDITY_OPTIONS = ['Major Liquidity', 'Low Liquidity', 'Local Liquidity', 'HOD', 'LOD'];
   const MSS_OPTIONS = ['Normal', 'Aggressive'];
   const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
   const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const TREND_OPTIONS = ['Trend-following', 'Counter-trend'];
 
-  const setupOptions = (settings.saved_setup_types?.length
-    ? settings.saved_setup_types
-    : SETUP_OPTIONS);
+  const setupOptions = settings.saved_setup_types ?? [];
 
   const snapToHalfStep = (num: number) => Math.round(num * 2) / 2;
 
