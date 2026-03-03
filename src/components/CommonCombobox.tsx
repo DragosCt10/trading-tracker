@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils';
 const MAX_SUGGESTIONS = 20;
 const MAX_CHARS = 12;
 const DROPDOWN_OFFSET = 6;
+/** Maximum saved types shown for setup / liquidity (enforced in merge utils when saving). */
+const MAX_SAVED_TYPES = 11;
 
 export interface CommonComboboxProps {
   value: string;
@@ -40,7 +42,7 @@ export function CommonCombobox({
   const inputValue = value ?? '';
 
   const normalizedOptions = useMemo(
-    () => Array.from(new Set(options.filter(Boolean))),
+    () => Array.from(new Set(options.filter(Boolean))).slice(0, MAX_SAVED_TYPES),
     [options]
   );
 
