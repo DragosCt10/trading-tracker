@@ -52,11 +52,13 @@ import { MarketCombobox } from '@/components/MarketCombobox';
 import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
 import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
 import { NewsCombobox } from '@/components/NewsCombobox';
+import { SetupCombobox } from '@/components/SetupCombobox';
 import { mergeNewsIntoSaved, normalizeNewsName } from '@/utils/newsUtils';
 import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
-import { updateSavedNews } from '@/lib/server/settings';
+import { updateSavedNews, updateSavedSetupTypes } from '@/lib/server/settings';
+import { mergeSetupTypeIntoSaved } from '@/utils/setupUtils';
 
 interface TradeDetailsModalProps {
   trade: Trade | null;
@@ -133,6 +135,10 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
   const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const TREND_OPTIONS = ['Trend-following', 'Counter-trend'];
+
+  const setupOptions = (settings.saved_setup_types?.length
+    ? settings.saved_setup_types
+    : SETUP_OPTIONS);
 
   const snapToHalfStep = (num: number) => Math.round(num * 2) / 2;
 
@@ -275,6 +281,19 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
           savedNews
         );
         await updateSavedNews(updatedNews);
+      }
+
+      // Save / update setup type in the user's saved_setup_types library
+      if (editedTrade.setup_type?.trim() && userId) {
+        const updatedSetups = mergeSetupTypeIntoSaved(
+          editedTrade.setup_type,
+          settings.saved_setup_types ?? []
+        );
+        await updateSavedSetupTypes(updatedSetups);
+      }
+
+      // Invalidate settings cache so updated saved_news / saved_setup_types are available next time
+      if (userId) {
         await queryClient.invalidateQueries({
           queryKey: queryKeys.settings(userId),
         });
@@ -665,6 +684,21 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
           </div>
         );
       case 'select':
+        // Special-case: Setup Type uses a combobox for free text + suggestions
+        if (field === 'setup_type') {
+          return (
+            <div>
+              <label className={`${labelClass} mb-2`}>{label}</label>
+              <SetupCombobox
+                id="setup-type-details"
+                value={value != null ? String(value) : ''}
+                onChange={(v) => handleInputChange('setup_type', v)}
+                options={setupOptions}
+                placeholder="Select or type setup"
+              />
+            </div>
+          );
+        }
         return (
           <div>
             <label className={`${labelClass} mb-2`}>{label}</label>
@@ -920,7 +954,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   </div>
                   <div className="space-y-3">
                     {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
-                    {isTradingInstitutional && (isEditing || (editedTrade?.setup_type != null && editedTrade.setup_type !== '')) && renderField('Setup Type', 'setup_type', 'select', SETUP_OPTIONS)}
+                    {isTradingInstitutional && (isEditing || (editedTrade?.setup_type != null && editedTrade.setup_type !== '')) && renderField('Setup Type', 'setup_type', 'select', setupOptions)}
                   </div>
                 </div>
               </div>
