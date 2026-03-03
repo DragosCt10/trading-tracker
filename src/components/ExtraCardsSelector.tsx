@@ -96,7 +96,7 @@ export function ExtraCardsSelector({ selected, onChange, disabled }: ExtraCardsS
                       side="bottom"
                       className="max-w-[220px] rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 px-3 py-2"
                     >
-                      <p className="text-xs leading-snug">{card.tooltip}</p>
+                      <p className="text-xs leading-snug text-slate-600 dark:text-slate-400">{card.tooltip}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
