@@ -12,7 +12,8 @@ import {
   endOfMonth,
   format,
 } from 'date-fns';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import type { ExtraCardKey } from '@/constants/extraCards';
 
 import { Trade } from '@/types/trade';
 import type { AccountSettings } from '@/types/account-settings';
@@ -192,6 +193,7 @@ export type StrategyClientInitialProps = {
   initialMode: 'live' | 'backtesting' | 'demo';
   initialActiveAccount: { id: string; [key: string]: unknown } | null;
   initialStrategyId: string | null;
+  initialExtraCards: ExtraCardKey[];
 };
 
 const defaultInitialRange = createInitialDateRange();
@@ -274,10 +276,9 @@ export default function StrategyClient(
   // Store strategyId from props
   const strategyId = props?.initialStrategyId ?? null;
 
-  // Strategy slug from URL – cards below Market Profit Stats are only for trading-institutional
-  const params = useParams();
-  const strategySlug = (params?.strategy as string | undefined) ?? '';
-  const isTradingInstitutional = strategySlug === 'trading-institutional';
+  // Per-strategy extra cards configuration
+  const extraCards = props?.initialExtraCards ?? [];
+  const hasCard = (key: ExtraCardKey) => extraCards.includes(key);
 
   // Helper function to hydrate React Query cache
   const hydrateQueryCache = useCallback(() => {
@@ -1217,68 +1218,77 @@ export default function StrategyClient(
         <NewsNameChartCard trades={tradesToUse} isLoading={chartsLoadingState} />
       </div>
 
-      {isTradingInstitutional && (
-        <>
-          <div className="my-8">
-            {/* Setup Stats Card */}
-            <SetupStatisticsCard
-              setupStats={filteredChartStats ? statsToUseForCharts.setupStats : setupStatsFromTradesToUse}
-              isLoading={chartsLoadingState}
-              includeTotalTrades={filteredChartStats !== null}
-            />
-          </div>
+      {/* Extra Stats Cards — rendered per strategy configuration */}
+      {hasCard('setup_stats') && (
+        <div className="my-8">
+          <SetupStatisticsCard
+            setupStats={filteredChartStats ? statsToUseForCharts.setupStats : setupStatsFromTradesToUse}
+            isLoading={chartsLoadingState}
+            includeTotalTrades={filteredChartStats !== null}
+          />
+        </div>
+      )}
 
-          {/* Liquidity Stats - full width single row */}
-          <div className="my-8">
-            <LiquidityStatisticsCard
-              liquidityStats={filteredChartStats ? statsToUseForCharts.liquidityStats : liquidityStatsFromTradesToUse}
-              isLoading={chartsLoadingState}
-              includeTotalTrades={filteredChartStats !== null}
-            />
-          </div>
+      {hasCard('liquidity_stats') && (
+        <div className="my-8">
+          <LiquidityStatisticsCard
+            liquidityStats={filteredChartStats ? statsToUseForCharts.liquidityStats : liquidityStatsFromTradesToUse}
+            isLoading={chartsLoadingState}
+            includeTotalTrades={filteredChartStats !== null}
+          />
+        </div>
+      )}
 
-          {/* MSS Stats & Launch Hour Trades - 50/50 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8 items-stretch">
+      {(hasCard('mss_stats') || hasCard('launch_hour')) && (
+        <div className={`grid grid-cols-1 ${hasCard('mss_stats') && hasCard('launch_hour') ? 'lg:grid-cols-2' : ''} gap-6 my-8 items-stretch`}>
+          {hasCard('mss_stats') && (
             <MSSStatisticsCard
               mssStats={mssStatsFromTradesToUse}
               isLoading={chartsLoadingState}
               includeTotalTrades={filteredChartStats !== null}
             />
+          )}
+          {hasCard('launch_hour') && (
             <LaunchHourTradesCard filteredTrades={tradesToUse} isLoading={chartsLoadingState} />
-          </div>
+          )}
+        </div>
+      )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {/* Local H/L & BE Stats */}
+      {(hasCard('local_hl_be_stats') || hasCard('partials_be_stats')) && (
+        <div className={`grid grid-cols-1 ${hasCard('local_hl_be_stats') && hasCard('partials_be_stats') ? 'md:grid-cols-2' : ''} gap-6 mb-8`}>
+          {hasCard('local_hl_be_stats') && (
             <LocalHLBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
-
-            {/* Partials & BE Stats */}
+          )}
+          {hasCard('partials_be_stats') && (
             <PartialsBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <AverageDisplacementSizeCard 
-              trades={tradesToUse} 
-              isLoading={chartsLoadingState}
-            />
+          )}
+        </div>
+      )}
 
-            {/* Displacement Size Profitability by Market and Size Points */}
-            <DisplacementSizeStats 
-              trades={tradesToUse} 
-              isLoading={chartsLoadingState}
-            />
-          </div>
-          {/* Local H/L Analysis & FVG Size Stats */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      {(hasCard('avg_displacement') || hasCard('displacement_size')) && (
+        <div className={`grid grid-cols-1 ${hasCard('avg_displacement') && hasCard('displacement_size') ? 'lg:grid-cols-2' : ''} gap-6 mb-8`}>
+          {hasCard('avg_displacement') && (
+            <AverageDisplacementSizeCard trades={tradesToUse} isLoading={chartsLoadingState} />
+          )}
+          {hasCard('displacement_size') && (
+            <DisplacementSizeStats trades={tradesToUse} isLoading={chartsLoadingState} />
+          )}
+        </div>
+      )}
+
+      {(hasCard('local_hl_stats') || hasCard('fvg_size')) && (
+        <div className={`grid grid-cols-1 ${hasCard('local_hl_stats') && hasCard('fvg_size') ? 'lg:grid-cols-2' : ''} gap-6 mb-8`}>
+          {hasCard('local_hl_stats') && (
             <LocalHLStatisticsCard
               localHLStats={localHLStatsFromTradesToUse}
               isLoading={chartsLoadingState}
               includeTotalTrades={filteredChartStats !== null}
             />
-            <FvgSizeStats
-              trades={tradesToUse}
-              isLoading={chartsLoadingState}
-            />
-          </div>
-        </>
+          )}
+          {hasCard('fvg_size') && (
+            <FvgSizeStats trades={tradesToUse} isLoading={chartsLoadingState} />
+          )}
+        </div>
       )}
     </>
   );

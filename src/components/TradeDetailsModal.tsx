@@ -75,11 +75,15 @@ interface TradeDetailsModalProps {
 export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdated }: TradeDetailsModalProps) {
   const params = useParams();
   const strategySlug = (params?.strategy as string | undefined) ?? '';
-  const isTradingInstitutional = strategySlug === 'trading-institutional';
   const { selection } = useActionBarSelection();
   const { data: userData } = useUserDetails();
   const userId = userData?.user?.id;
   const { strategies } = useStrategies({ userId });
+  // Derive extra_cards from the current strategy
+  const currentStrategy = strategies.find((s) => s.slug === strategySlug);
+  const strategyExtraCards = currentStrategy?.extra_cards ?? [];
+  const hasCard = (key: string) => strategyExtraCards.includes(key as any);
+  const hasAnyExtraCard = strategyExtraCards.length > 0;
   const { settings } = useSettings({ userId });
   const [isEditing, setIsEditing] = useState(false);
   const [editedTrade, setEditedTrade] = useState<Trade | null>(trade);
@@ -971,7 +975,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   </div>
                   <div className="space-y-3">
                     {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
-                    {isTradingInstitutional && (isEditing || (editedTrade?.setup_type != null && editedTrade.setup_type !== '')) && renderField('Pattern / Setup', 'setup_type', 'select', setupOptions)}
+                    {hasCard('setup_stats') && (isEditing || (editedTrade?.setup_type != null && editedTrade.setup_type !== '')) && renderField('Pattern / Setup', 'setup_type', 'select', setupOptions)}
                   </div>
                 </div>
               </div>
@@ -993,11 +997,11 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     {renderField('RR (Long)', 'risk_reward_ratio_long', 'number')}
                     {renderField('SL Size', 'sl_size', 'number')}
                   </div>
-                  {isTradingInstitutional && (
+                  {(hasCard('displacement_size') || hasCard('avg_displacement') || hasCard('fvg_size') || hasCard('liquidity_stats')) && (
                     <div className="space-y-3">
-                      {renderField('Displacement', 'displacement_size', 'number')}
-                      {(isEditing || (editedTrade?.fvg_size != null && editedTrade.fvg_size !== undefined)) && renderField('FVG Size', 'fvg_size', 'number')}
-                      {(isEditing || (editedTrade?.liquidity != null && editedTrade.liquidity !== '')) && renderField('Conditions / Liq.', 'liquidity', 'select', liquidityOptions)}
+                      {(hasCard('displacement_size') || hasCard('avg_displacement')) && renderField('Displacement', 'displacement_size', 'number')}
+                      {hasCard('fvg_size') && (isEditing || (editedTrade?.fvg_size != null && editedTrade.fvg_size !== undefined)) && renderField('FVG Size', 'fvg_size', 'number')}
+                      {hasCard('liquidity_stats') && (isEditing || (editedTrade?.liquidity != null && editedTrade.liquidity !== '')) && renderField('Conditions / Liq.', 'liquidity', 'select', liquidityOptions)}
                     </div>
                   )}
                 </div>
@@ -1020,7 +1024,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   <div>
                     <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Execution</h4>
                     <div className="flex flex-wrap gap-2">
-                      {isTradingInstitutional && editedTrade?.mss && (
+                      {hasCard('mss_stats') && editedTrade?.mss && (
                         <span className="inline-flex items-center px-3 py-1.5 rounded-lg border text-xs font-medium bg-transparent text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700">
                           MSS: {editedTrade.mss}
                         </span>
@@ -1029,7 +1033,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                         {editedTrade?.reentry && <Check className="w-3 h-3" />}
                         Re-entry
                       </span>
-                      {isTradingInstitutional && (
+                      {hasCard('launch_hour') && (
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.launch_hour ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-transparent' : 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700'}`}>
                           {editedTrade?.launch_hour && <Check className="w-3 h-3" />}
                           Launch Hour
@@ -1087,9 +1091,9 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   <div>
                     <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Execution</h4>
                     <div className="space-y-3">
-                      {isTradingInstitutional && renderField('MSS', 'mss', 'select', MSS_OPTIONS)}
+                      {hasCard('mss_stats') && renderField('MSS', 'mss', 'select', MSS_OPTIONS)}
                       {renderField('Re-entry', 'reentry', 'boolean')}
-                      {isTradingInstitutional && renderField('Launch Hour', 'launch_hour', 'boolean')}
+                      {hasCard('launch_hour') && renderField('Launch Hour', 'launch_hour', 'boolean')}
                       {renderField('Executed', 'executed', 'boolean')}
                     </div>
                   </div>
@@ -1157,7 +1161,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
             </div>
 
             {/* Trade Screenshots - only show when has link(s) or when editing */}
-            {(isEditing || editedTrade?.trade_link || (isTradingInstitutional && editedTrade?.liquidity_taken)) && (
+            {(isEditing || editedTrade?.trade_link || (hasCard('liquidity_stats') && editedTrade?.liquidity_taken)) && (
             <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
 <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--tc-primary)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -1188,7 +1192,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     </div>
                   ) : null}
 
-                  {isTradingInstitutional && editedTrade?.liquidity_taken ? (
+                  {hasCard('liquidity_stats') && editedTrade?.liquidity_taken ? (
                     <div>
                       <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Liquidity Link</label>
                       <a href={editedTrade.liquidity_taken} target="_blank" rel="noopener noreferrer" className="block group">
@@ -1232,7 +1236,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                       )}
                     </div>
                   </div>
-                  {isTradingInstitutional && (
+                  {hasCard('liquidity_stats') && (
                     <div>
                       <label className={`${labelClass} mb-2`}>Liquidity Link URL</label>
                       <div className="flex items-center gap-2">

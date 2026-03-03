@@ -25,7 +25,6 @@ export interface Database {
           is_dashboard_public: boolean | null;
           dashboard_hash: string | null;
           description: string | null;
-          saved_news: Json | null;
         };
         Insert: Partial<Database['public']['Tables']['account_settings']['Row']> & {
           user_id: string;
@@ -34,6 +33,28 @@ export interface Database {
           mode: 'live' | 'backtesting' | 'demo';
         };
         Update: Partial<Database['public']['Tables']['account_settings']['Row']>;
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // user_settings (saved filters, feature flags)
+      user_settings: {
+        Row: {
+          user_id: string;
+          saved_news: Json;
+          saved_setup_types: Json;
+          saved_liquidity_types: Json;
+          feature_flags: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          saved_news?: Json;
+          saved_setup_types?: Json;
+          saved_liquidity_types?: Json;
+          feature_flags?: Json;
+        };
+        Update: Partial<Omit<Database['public']['Tables']['user_settings']['Row'], 'user_id'>>;
       };
 
       // ─────────────────────────────────────────────────────────────
@@ -230,12 +251,14 @@ export interface Database {
           created_at: string;
           updated_at: string;
           is_active: boolean;
+          extra_cards: string[];
         };
         Insert: {
           user_id: string;
           name: string;
           slug: string;
           is_active?: boolean;
+          extra_cards?: string[];
         };
         Update: Partial<{
           id: string;
@@ -245,6 +268,7 @@ export interface Database {
           created_at: string;
           updated_at: string;
           is_active: boolean;
+          extra_cards: string[];
         }>;
       };
 

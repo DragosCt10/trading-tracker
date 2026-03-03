@@ -195,7 +195,8 @@ export async function getStrategyBySlug(
  */
 export async function createStrategy(
   userId: string,
-  name: string
+  name: string,
+  extraCards: string[] = []
 ): Promise<{ data: Strategy | null; error: { message: string } | null }> {
   const supabase = await createClient();
 
@@ -238,6 +239,7 @@ export async function createStrategy(
       name: name.trim(),
       slug,
       is_active: true,
+      extra_cards: extraCards,
     })
     .select()
     .single();
@@ -268,7 +270,8 @@ export async function createStrategy(
 export async function updateStrategy(
   strategyId: string,
   userId: string,
-  name: string
+  name: string,
+  extraCards?: string[]
 ): Promise<{ data: Strategy | null; error: { message: string } | null }> {
   const supabase = await createClient();
 
@@ -318,6 +321,7 @@ export async function updateStrategy(
       name: name.trim(),
       slug,
       updated_at: new Date().toISOString(),
+      ...(extraCards !== undefined && { extra_cards: extraCards }),
     })
     .eq('id', strategyId)
     .eq('user_id', userId)

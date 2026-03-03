@@ -5,6 +5,7 @@ import { getActiveAccountForMode } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
 import StrategyClient from './StrategyClient';
 import { Trade } from '@/types/trade';
+import type { ExtraCardKey } from '@/constants/extraCards';
 import type { User } from '@supabase/supabase-js';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,8 +27,9 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
   const yearStart = `${initialSelectedYear}-01-01`;
   const yearEnd = `${initialSelectedYear}-12-31`;
 
-  // Get strategy ID if strategySlug is provided
+  // Get strategy ID and extra_cards if strategySlug is provided
   let strategyId: string | null = null;
+  let initialExtraCards: ExtraCardKey[] = [];
   if (strategySlug) {
     const strategy = await getStrategyBySlug(user.id, strategySlug);
     if (!strategy) {
@@ -44,10 +46,12 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
           initialMode="live"
           initialActiveAccount={null}
           initialStrategyId={null}
+          initialExtraCards={[]}
         />
       );
     }
     strategyId = strategy.id;
+    initialExtraCards = (strategy.extra_cards ?? []) as ExtraCardKey[];
   }
 
   const activeAccount = await getActiveAccountForMode(user.id, 'live');
@@ -65,6 +69,7 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
         initialMode="live"
         initialActiveAccount={null}
         initialStrategyId={strategyId}
+        initialExtraCards={initialExtraCards}
       />
     );
   }
@@ -133,6 +138,7 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
       initialMode="live"
       initialActiveAccount={activeAccount}
       initialStrategyId={strategyId}
+      initialExtraCards={initialExtraCards}
     />
   );
 }

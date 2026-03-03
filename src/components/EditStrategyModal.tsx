@@ -17,6 +17,8 @@ import {
 import { Target } from 'lucide-react';
 import { updateStrategy } from '@/lib/server/strategies';
 import { Strategy } from '@/types/strategy';
+import { ExtraCardsSelector } from '@/components/ExtraCardsSelector';
+import type { ExtraCardKey } from '@/constants/extraCards';
 
 interface EditStrategyModalProps {
   strategy: Strategy | null;
@@ -32,12 +34,14 @@ export function EditStrategyModal({
   onUpdated,
 }: EditStrategyModalProps) {
   const [name, setName] = useState('');
+  const [extraCards, setExtraCards] = useState<ExtraCardKey[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (strategy) {
       setName(strategy.name);
+      setExtraCards(strategy.extra_cards ?? []);
       setError(null);
     }
   }, [strategy, open]);
@@ -53,7 +57,10 @@ export function EditStrategyModal({
       return;
     }
 
-    if (name.trim() === strategy.name) {
+    const extraCardsChanged =
+      JSON.stringify([...extraCards].sort()) !==
+      JSON.stringify([...(strategy.extra_cards ?? [])].sort());
+    if (name.trim() === strategy.name && !extraCardsChanged) {
       onOpenChange(false);
       return;
     }
@@ -63,7 +70,8 @@ export function EditStrategyModal({
       const { data, error: updateError } = await updateStrategy(
         strategy.id,
         strategy.user_id,
-        name.trim()
+        name.trim(),
+        extraCards
       );
 
       if (updateError) {
@@ -85,6 +93,7 @@ export function EditStrategyModal({
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen && !submitting) {
       setName(strategy?.name || '');
+      setExtraCards(strategy?.extra_cards ?? []);
       setError(null);
     }
     onOpenChange(newOpen);
@@ -94,7 +103,7 @@ export function EditStrategyModal({
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl px-6 py-5">
+      <AlertDialogContent className="max-w-lg max-h-[90vh] overflow-y-auto fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl px-6 py-5">
         {/* Gradient orbs background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
           <div
@@ -142,6 +151,12 @@ export function EditStrategyModal({
               />
             </div>
 
+            <ExtraCardsSelector
+              selected={extraCards}
+              onChange={setExtraCards}
+              disabled={submitting}
+            />
+
             {error && (
               <div className="rounded-lg bg-red-500/10 backdrop-blur-sm p-4 border border-red-500/20">
                 <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -159,7 +174,7 @@ export function EditStrategyModal({
               </AlertDialogCancel>
               <Button
                 type="submit"
-                disabled={submitting || !name.trim() || name.trim() === strategy.name}
+                disabled={submitting || !name.trim() || (name.trim() === strategy.name && JSON.stringify([...extraCards].sort()) === JSON.stringify([...(strategy.extra_cards ?? [])].sort()))}
                 className="cursor-pointer relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 via-violet-600 to-fuchsia-600 hover:from-purple-600 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold shadow-md shadow-purple-500/30 dark:shadow-purple-500/20 px-4 py-2 group border-0 disabled:opacity-60"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2 text-sm">

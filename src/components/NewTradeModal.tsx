@@ -141,9 +141,13 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   const { strategies } = useStrategies({ userId });
   const queryClient = useQueryClient();
   
-  // Get strategy slug from URL params – institutional-only fields shown only for trading-institutional
+  // Get strategy slug from URL params and derive extra_cards from the strategy object
   const strategySlug = params?.strategy as string | undefined;
-  const isTradingInstitutional = strategySlug === 'trading-institutional';
+  const currentStrategy = strategies.find((s) => s.slug === strategySlug);
+  const strategyExtraCards = currentStrategy?.extra_cards ?? [];
+  const hasCard = (key: string) => strategyExtraCards.includes(key as any);
+  // Backward compat: treat any extra card being enabled as "institutional" for layout/validation
+  const hasAnyExtraCard = strategyExtraCards.length > 0;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -373,8 +377,20 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       setError('Please select Trade Time (interval).');
       return;
     }
-    if (isTradingInstitutional && (!trade.setup_type || !trade.liquidity || !trade.mss || !trade.sl_size)) {
-      setError('Please fill in all required fields (Pattern / Setup, Liquidity, MSS, SL Size).');
+    if (hasCard('setup_stats') && !trade.setup_type) {
+      setError('Please fill in the Pattern / Setup field.');
+      return;
+    }
+    if (hasCard('liquidity_stats') && !trade.liquidity) {
+      setError('Please fill in the Conditions / Liquidity field.');
+      return;
+    }
+    if (hasCard('mss_stats') && !trade.mss) {
+      setError('Please fill in the MSS field.');
+      return;
+    }
+    if (hasAnyExtraCard && !trade.sl_size) {
+      setError('Please fill in the SL Size field.');
       return;
     }
 
@@ -544,8 +560,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
           <form onSubmit={handleSubmit} className="space-y-5 mt-0">
             {/* Links & Info Section */}
-            <div className={`grid gap-5 ${isTradingInstitutional ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-              {isTradingInstitutional && (
+            <div className={`grid gap-5 ${hasCard('liquidity_stats') ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+              {hasCard('liquidity_stats') && (
                 <div className="space-y-2">
                   <Label htmlFor="liquidity-taken" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                     Liquidity Link
@@ -625,7 +641,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             <Separator />
 
             {/* Market & Setup Section (institutional: Market | Setup; non-institutional: Market | Evaluation + Trend) */}
-            <div className={`grid gap-5 ${isTradingInstitutional ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2'}`}>
+            <div className={`grid gap-5 ${hasCard('setup_stats') ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2'}`}>
               <div className="space-y-2">
                 <Label htmlFor="market" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Market *</Label>
                 <MarketCombobox
@@ -642,7 +658,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 />
               </div>
 
-              {isTradingInstitutional ? (
+              {hasCard('setup_stats') ? (
                 <div className="space-y-2">
                   <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Pattern / Setup *</Label>
                   <CommonCombobox
@@ -775,34 +791,38 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               )}
             </div>
 
-            {isTradingInstitutional && (
+            {(hasCard('liquidity_stats') || hasCard('mss_stats')) && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Conditions / Liquidity *</Label>
-                  <CommonCombobox
-                    id="liquidity"
-                    value={trade.liquidity ?? ''}
-                    onChange={(v) => updateTrade('liquidity', v)}
-                    options={liquidityOptions}
-                    defaultSuggestions={['HOD', 'LOD']}
-                    customValueLabel="conditions / liquidity"
-                    placeholder="Select or type conditions / liquidity"
-                  />
-                </div>
+                {hasCard('liquidity_stats') && (
+                  <div className="space-y-2">
+                    <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Conditions / Liquidity *</Label>
+                    <CommonCombobox
+                      id="liquidity"
+                      value={trade.liquidity ?? ''}
+                      onChange={(v) => updateTrade('liquidity', v)}
+                      options={liquidityOptions}
+                      defaultSuggestions={['HOD', 'LOD']}
+                      customValueLabel="conditions / liquidity"
+                      placeholder="Select or type conditions / liquidity"
+                    />
+                  </div>
+                )}
 
-                <div className="space-y-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">MSS *</Label>
-                  <Select value={trade.mss} onValueChange={(v) => updateTrade('mss', v)}>
-                    <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                      <SelectValue placeholder="Select MSS" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MSS_OPTIONS.map((m) => (
-                        <SelectItem key={m} value={m}>{m}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {hasCard('mss_stats') && (
+                  <div className="space-y-2">
+                    <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">MSS *</Label>
+                    <Select value={trade.mss} onValueChange={(v) => updateTrade('mss', v)}>
+                      <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                        <SelectValue placeholder="Select MSS" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MSS_OPTIONS.map((m) => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             )}
 
@@ -887,7 +907,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
               <div className="space-y-2">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  SL Size {isTradingInstitutional ? '*' : ''}
+                  SL Size {hasAnyExtraCard ? '*' : ''}
                 </Label>
                 <Input
                   type="number"
@@ -897,11 +917,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
                   className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
                   placeholder="e.g. 10"
-                  required={isTradingInstitutional}
+                  required={hasAnyExtraCard}
                 />
               </div>
 
-              {isTradingInstitutional && (
+              {hasCard('fvg_size') && (
                 <div className="space-y-2">
                   <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">FVG Size</Label>
                   <Select
@@ -973,7 +993,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 </div>
               )}
 
-              {isTradingInstitutional && (
+              {(hasCard('displacement_size') || hasCard('avg_displacement')) && (
                 <div className="space-y-2">
                   <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Displacement Size (Points)</Label>
                   <Input
@@ -988,7 +1008,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 </div>
               )}
 
-              {isTradingInstitutional && (
+              {hasAnyExtraCard && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Evaluation Grade</Label>
@@ -1034,7 +1054,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 </div>
               )}
 
-              {isTradingInstitutional && (
+              {hasAnyExtraCard && (
                 <div className="space-y-2">
                   <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Trend</Label>
                   <Select value={trade.trend ?? ''} onValueChange={(v) => updateTrade('trend', v || null)}>
@@ -1150,7 +1170,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 <Label htmlFor="local-high-low" className="text-sm font-normal cursor-pointer">Local High/Low</Label>
               </div>
 
-              {isTradingInstitutional && (
+              {hasCard('launch_hour') && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>

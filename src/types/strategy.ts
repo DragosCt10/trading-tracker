@@ -1,3 +1,5 @@
+import type { ExtraCardKey } from '@/constants/extraCards';
+
 export interface Strategy {
   id: string;
   user_id: string;
@@ -6,4 +8,5 @@ export interface Strategy {
   created_at: string;
   updated_at: string;
   is_active: boolean;
+  extra_cards: ExtraCardKey[];
 }

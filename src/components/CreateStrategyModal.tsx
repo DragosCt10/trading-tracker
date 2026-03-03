@@ -17,6 +17,8 @@ import {
 import { Target } from 'lucide-react';
 import { createStrategy } from '@/lib/server/strategies';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { ExtraCardsSelector } from '@/components/ExtraCardsSelector';
+import type { ExtraCardKey } from '@/constants/extraCards';
 
 interface CreateStrategyModalProps {
   open?: boolean;
@@ -30,6 +32,7 @@ export function CreateStrategyModal({ open: controlledOpen, onOpenChange, onCrea
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen: (value: boolean) => void = onOpenChange || setInternalOpen;
   const [name, setName] = useState('');
+  const [extraCards, setExtraCards] = useState<ExtraCardKey[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { data: userId } = useUserDetails();
@@ -50,7 +53,7 @@ export function CreateStrategyModal({ open: controlledOpen, onOpenChange, onCrea
 
     setSubmitting(true);
     try {
-      const { data, error: createError } = await createStrategy(userId.user.id, name.trim());
+      const { data, error: createError } = await createStrategy(userId.user.id, name.trim(), extraCards);
 
       if (createError) {
         setError(createError.message);
@@ -59,6 +62,7 @@ export function CreateStrategyModal({ open: controlledOpen, onOpenChange, onCrea
 
       if (data) {
         setName('');
+        setExtraCards([]);
         setOpen(false);
         onCreated?.();
       }
@@ -72,6 +76,7 @@ export function CreateStrategyModal({ open: controlledOpen, onOpenChange, onCrea
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen && !submitting) {
       setName('');
+      setExtraCards([]);
       setError(null);
     }
     setOpen(newOpen);
@@ -80,7 +85,7 @@ export function CreateStrategyModal({ open: controlledOpen, onOpenChange, onCrea
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
       {trigger && !controlledOpen && <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>}
-      <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl px-6 py-5">
+      <AlertDialogContent className="max-w-lg max-h-[90vh] overflow-y-auto fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl px-6 py-5">
         {/* Gradient orbs background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
           <div
@@ -127,6 +132,12 @@ export function CreateStrategyModal({ open: controlledOpen, onOpenChange, onCrea
                 disabled={submitting}
               />
             </div>
+
+            <ExtraCardsSelector
+              selected={extraCards}
+              onChange={setExtraCards}
+              disabled={submitting}
+            />
 
             {error && (
               <div className="rounded-lg bg-red-500/10 backdrop-blur-sm p-4 border border-red-500/20">

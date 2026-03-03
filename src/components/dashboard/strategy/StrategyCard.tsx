@@ -22,6 +22,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
+import { EXTRA_CARDS } from '@/constants/extraCards';
 
 interface StrategyCardProps {
   strategy: Strategy;
@@ -262,6 +263,31 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
             Total trades: <span className="font-semibold text-slate-900 dark:text-slate-100">{stats.totalTrades}</span>
           </p>
         </div>
+
+        {/* Extra Cards Badges */}
+        {strategy.extra_cards && strategy.extra_cards.length > 0 && (
+          <div className="mb-4">
+            <p className="text-[10px] uppercase tracking-wider font-medium text-slate-400 dark:text-slate-500 mb-1.5">Extra cards</p>
+            <div className="flex flex-wrap gap-1">
+              {strategy.extra_cards.slice(0, 4).map((key) => {
+                const def = EXTRA_CARDS.find((c) => c.key === key);
+                return def ? (
+                  <span
+                    key={key}
+                    className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/70 dark:border-slate-700/50"
+                  >
+                    {def.label}
+                  </span>
+                ) : null;
+              })}
+              {strategy.extra_cards.length > 4 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-500 border border-slate-200/70 dark:border-slate-700/50">
+                  +{strategy.extra_cards.length - 4} more
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex items-center justify-between gap-2 mt-auto pt-4 border-t border-slate-200/60 dark:border-slate-700/50">
