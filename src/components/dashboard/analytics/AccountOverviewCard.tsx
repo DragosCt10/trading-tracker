@@ -334,7 +334,7 @@ export function AccountOverviewCard({
 
                   <ReBar 
                     dataKey="profit" 
-                    radius={[10, 10, 0, 0]} 
+                    radius={[12, 12, 5, 5]} 
                     barSize={38}
                   >
                     {months.map((month) => {
