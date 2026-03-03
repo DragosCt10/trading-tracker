@@ -49,6 +49,7 @@ export default function SignupClient() {
 
       if (result.error) {
         setError(result.error);
+        setTimeout(() => setError(null), 2000);
         setIsSubmitting(false);
       } else {
         // Full page nav so the next request sends the session cookies set by the action
@@ -57,6 +58,7 @@ export default function SignupClient() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
+      setTimeout(() => setError(null), 2000);
       setIsSubmitting(false);
     } finally {
       setIsLoading(false);

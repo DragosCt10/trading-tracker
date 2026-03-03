@@ -39,6 +39,7 @@ export default function UpdatePasswordClient() {
 
       if (result.error) {
         setError(result.error);
+        setTimeout(() => setError(''), 2000);
       } else {
         setMessage('Password updated successfully. Redirecting to login...');
         setTimeout(() => {

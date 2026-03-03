@@ -38,6 +38,7 @@ export default function ResetPasswordClient() {
 
       if (result.error) {
         setError(result.error);
+        setTimeout(() => setError(''), 2000);
         setIsSubmitting(false);
       } else {
         setMessage('Check your email for the password reset link');
@@ -46,6 +47,7 @@ export default function ResetPasswordClient() {
       }
     } catch (err) {
       setError('An unexpected error occurred');
+      setTimeout(() => setError(''), 2000);
       setIsSubmitting(false);
     } finally {
       setIsLoading(false);

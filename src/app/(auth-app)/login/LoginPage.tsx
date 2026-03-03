@@ -63,6 +63,7 @@ export default function LoginPage() {
 
       if (result.error) {
         setError(result.error);
+        setTimeout(() => setError(''), 2000);
         setIsSubmitting(false);
       } else {
         // Full page nav so the next request sends the session cookies set by the action
@@ -72,6 +73,7 @@ export default function LoginPage() {
       }
     } catch (err) {
       setError('An unexpected error occurred');
+      setTimeout(() => setError(''), 2000);
       setIsSubmitting(false);
     } finally {
       setIsLoading(false);
