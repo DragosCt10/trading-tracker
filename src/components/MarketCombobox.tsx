@@ -8,7 +8,7 @@ import { normalizeMarket } from '@/utils/validateMarket';
 import { cn } from '@/lib/utils';
 
 const MAX_SUGGESTIONS = 80;
-const MAX_CHARS = 14;
+const MAX_CHARS = 8;
 
 export interface MarketComboboxProps {
   value: string;
