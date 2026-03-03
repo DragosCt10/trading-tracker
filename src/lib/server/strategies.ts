@@ -21,7 +21,7 @@ function generateSlug(name: string): string {
 }
 
 /**
- * CRITICAL: Ensures the default "Trading Institutional" strategy exists for a user.
+ * CRITICAL: Ensures the default "Liquidity Strategy" strategy exists for a user.
  * Creates it only if the user has no active strategies. This prevents duplicate
  * default strategies when the original default strategy is renamed.
  */
@@ -116,8 +116,8 @@ export async function ensureDefaultStrategy(userId: string): Promise<Strategy | 
     .from('strategies')
     .insert({
       user_id: userId,
-      name: 'Trading Institutional',
-      slug: 'trading-institutional',
+      name: 'Liquidity Strategy',
+      slug: 'liquidity-strategy',
       is_active: true,
     })
     .select()
