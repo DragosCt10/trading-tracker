@@ -44,6 +44,7 @@ export default function ResetPasswordClient() {
         setMessage('Check your email for the password reset link');
         setEmail('');
         setIsSubmitting(false);
+        setTimeout(() => setMessage(''), 2000);
       }
     } catch (err) {
       setError('An unexpected error occurred');
@@ -53,6 +54,7 @@ export default function ResetPasswordClient() {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-start justify-center px-4 pb-4 pt-15 transition-colors duration-500 bg-transparent">
