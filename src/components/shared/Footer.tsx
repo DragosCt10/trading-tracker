@@ -85,7 +85,7 @@ export function Footer() {
                 className="inline-flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-slate-50 tracking-tight hover:opacity-90 transition-opacity"
               >
                 <Logo width={37} height={37} className="flex-shrink-0" />
-                QuantifyX
+                AlphaStats
               </Link>
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                 Built for traders, by traders. Track performance and journal your trades.
@@ -103,7 +103,7 @@ export function Footer() {
           {/* Bottom bar - copyright centered */}
           <div className="mt-10 pt-6 flex justify-center border-t border-slate-200/70 dark:border-slate-700/70">
             <p className="text-sm text-slate-400 dark:text-slate-500">
-              © {YEAR} QuantifyX. All rights reserved.
+              © {YEAR} AlphaStats. All rights reserved.
             </p>
           </div>
         </div>
