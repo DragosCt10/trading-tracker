@@ -1221,7 +1221,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                           href={editedTrade.trade_link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="shrink-0 text-sm font-medium text-sky-600 dark:text-sky-400 hover:underline"
+                          className="shrink-0 text-sm font-medium text-slate-900 dark:text-slate-100 underline"
                         >
                           Open
                         </a>
@@ -1244,7 +1244,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                             href={editedTrade.liquidity_taken}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="shrink-0 text-sm font-medium text-sky-600 dark:text-sky-400 hover:underline"
+                            className="shrink-0 text-sm font-medium text-slate-900 dark:text-slate-100 underline"
                           >
                             Open
                           </a>
