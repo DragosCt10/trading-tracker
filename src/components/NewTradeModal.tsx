@@ -45,15 +45,16 @@ import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
 import { MarketCombobox } from '@/components/MarketCombobox';
 import { NewsCombobox } from '@/components/NewsCombobox';
-import { SetupCombobox } from '@/components/SetupCombobox';
+import { CommonCombobox } from '@/components/CommonCombobox';
 import { ALLOWED_MARKETS } from '@/constants/allowedMarkets';
 import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
 import { mergeNewsIntoSaved, normalizeNewsName } from '@/utils/newsUtils';
 import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
-import { updateSavedNews, updateSavedSetupTypes } from '@/lib/server/settings';
+import { updateSavedNews, updateSavedSetupTypes, updateSavedLiquidityTypes } from '@/lib/server/settings';
 import { mergeSetupTypeIntoSaved } from '@/utils/setupUtils';
+import { mergeLiquidityTypeIntoSaved } from '@/utils/liquidityUtils';
 
 /** Kept for any legacy reference; market input uses MarketCombobox + ALLOWED_MARKETS. */
 const MARKET_OPTIONS = ALLOWED_MARKETS;
@@ -330,6 +331,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   const currency = selection.activeAccount?.currency === 'EUR' ? '€' : '$';
 
   const setupOptions = settings.saved_setup_types ?? [];
+  /** Liquidity: HOD/LOD always first, then user's saved_liquidity_types (deduplicated). */
+  const liquidityOptions = useMemo(
+    () => Array.from(new Set(['HOD', 'LOD', ...(settings.saved_liquidity_types ?? [])])),
+    [settings.saved_liquidity_types]
+  );
 
   const { pnl_percentage: pnlPercentage, calculated_profit: signedProfit } = useMemo(
     () => calculateTradePnl(trade, accountBalance),
@@ -439,7 +445,16 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         await updateSavedSetupTypes(updatedSetups);
       }
 
-      // Invalidate settings cache so updated saved_news / saved_setup_types are available next time
+      // Save / update liquidity in the user's saved_liquidity_types library
+      if (trade.liquidity?.trim() && userId) {
+        const updatedLiquidity = mergeLiquidityTypeIntoSaved(
+          trade.liquidity,
+          settings.saved_liquidity_types ?? []
+        );
+        await updateSavedLiquidityTypes(updatedLiquidity);
+      }
+
+      // Invalidate settings cache so updated saved_news / saved_setup_types / saved_liquidity_types are available next time
       if (userId) {
         await queryClient.invalidateQueries({
           queryKey: queryKeys.settings(userId),
@@ -630,11 +645,12 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               {isTradingInstitutional ? (
                 <div className="space-y-2">
                   <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Pattern / Setup *</Label>
-                  <SetupCombobox
+                  <CommonCombobox
                     id="setup-type"
                     value={trade.setup_type ?? ''}
                     onChange={(v) => updateTrade('setup_type', v as any)}
                     options={setupOptions}
+                    customValueLabel="pattern / setup"
                     placeholder="Select or type pattern / setup"
                   />
                 </div>
@@ -762,17 +778,16 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             {isTradingInstitutional && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Liquidity *</Label>
-                  <Select value={trade.liquidity} onValueChange={(v) => updateTrade('liquidity', v)}>
-                    <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                      <SelectValue placeholder="Select Liquidity" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LIQUIDITY_OPTIONS.map((l) => (
-                        <SelectItem key={l} value={l}>{l}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Conditions / Liquidity *</Label>
+                  <CommonCombobox
+                    id="liquidity"
+                    value={trade.liquidity ?? ''}
+                    onChange={(v) => updateTrade('liquidity', v)}
+                    options={liquidityOptions}
+                    defaultSuggestions={['HOD', 'LOD']}
+                    customValueLabel="conditions / liquidity"
+                    placeholder="Select or type conditions / liquidity"
+                  />
                 </div>
 
                 <div className="space-y-2">
