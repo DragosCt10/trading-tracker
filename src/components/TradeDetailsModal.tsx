@@ -684,7 +684,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
           </div>
         );
       case 'select':
-        // Special-case: Setup Type uses a combobox for free text + suggestions
+        // Special-case: Pattern / Setup uses a combobox for free text + suggestions
         if (field === 'setup_type') {
           return (
             <div>
@@ -954,7 +954,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   </div>
                   <div className="space-y-3">
                     {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
-                    {isTradingInstitutional && (isEditing || (editedTrade?.setup_type != null && editedTrade.setup_type !== '')) && renderField('Setup Type', 'setup_type', 'select', setupOptions)}
+                    {isTradingInstitutional && (isEditing || (editedTrade?.setup_type != null && editedTrade.setup_type !== '')) && renderField('Pattern / Setup', 'setup_type', 'select', setupOptions)}
                   </div>
                 </div>
               </div>
