@@ -10,7 +10,7 @@ import 'react-date-range/dist/theme/default.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'QuantifyX',
+  title: 'AlphaStats',
   description: 'Built for traders, by traders. Track performance and journal your trades.',
 };
 
