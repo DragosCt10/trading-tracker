@@ -52,13 +52,14 @@ import { MarketCombobox } from '@/components/MarketCombobox';
 import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
 import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
 import { NewsCombobox } from '@/components/NewsCombobox';
-import { SetupCombobox } from '@/components/SetupCombobox';
+import { CommonCombobox } from '@/components/CommonCombobox';
 import { mergeNewsIntoSaved, normalizeNewsName } from '@/utils/newsUtils';
 import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
-import { updateSavedNews, updateSavedSetupTypes } from '@/lib/server/settings';
+import { updateSavedNews, updateSavedSetupTypes, updateSavedLiquidityTypes } from '@/lib/server/settings';
 import { mergeSetupTypeIntoSaved } from '@/utils/setupUtils';
+import { mergeLiquidityTypeIntoSaved } from '@/utils/liquidityUtils';
 
 interface TradeDetailsModalProps {
   trade: Trade | null;
@@ -117,13 +118,14 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
     await queryClient.refetchQueries({ type: 'active' });
   };
 
-  const LIQUIDITY_OPTIONS = ['Major Liquidity', 'Low Liquidity', 'Local Liquidity', 'HOD', 'LOD'];
   const MSS_OPTIONS = ['Normal', 'Aggressive'];
   const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
   const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const TREND_OPTIONS = ['Trend-following', 'Counter-trend'];
 
   const setupOptions = settings.saved_setup_types ?? [];
+  /** Liquidity: HOD/LOD first, then saved_liquidity_types (same as NewTradeModal). */
+  const liquidityOptions = Array.from(new Set(['HOD', 'LOD', ...(settings.saved_liquidity_types ?? [])]));
 
   const snapToHalfStep = (num: number) => Math.round(num * 2) / 2;
 
@@ -277,7 +279,16 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         await updateSavedSetupTypes(updatedSetups);
       }
 
-      // Invalidate settings cache so updated saved_news / saved_setup_types are available next time
+      // Save / update liquidity in the user's saved_liquidity_types library
+      if (editedTrade.liquidity?.trim() && userId) {
+        const updatedLiquidity = mergeLiquidityTypeIntoSaved(
+          editedTrade.liquidity,
+          settings.saved_liquidity_types ?? []
+        );
+        await updateSavedLiquidityTypes(updatedLiquidity);
+      }
+
+      // Invalidate settings cache so updated saved_news / saved_setup_types / saved_liquidity_types are available next time
       if (userId) {
         await queryClient.invalidateQueries({
           queryKey: queryKeys.settings(userId),
@@ -669,17 +680,34 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
           </div>
         );
       case 'select':
-        // Special-case: Pattern / Setup uses a combobox for free text + suggestions
+        // Special-case: Pattern / Setup uses a combobox (saved_setup_types)
         if (field === 'setup_type') {
           return (
             <div>
               <label className={`${labelClass} mb-2`}>{label}</label>
-              <SetupCombobox
+              <CommonCombobox
                 id="setup-type-details"
                 value={value != null ? String(value) : ''}
                 onChange={(v) => handleInputChange('setup_type', v)}
                 options={setupOptions}
                 placeholder="Select or type setup"
+              />
+            </div>
+          );
+        }
+        // Special-case: Liquidity uses a combobox (saved_liquidity_types; default suggestions HOD/LOD)
+        if (field === 'liquidity') {
+          return (
+            <div>
+              <label className={`${labelClass} mb-2`}>{label}</label>
+              <CommonCombobox
+                id="liquidity-details"
+                value={value != null ? String(value) : ''}
+                onChange={(v) => handleInputChange('liquidity', v)}
+                options={liquidityOptions}
+                defaultSuggestions={['HOD', 'LOD']}
+                customValueLabel="conditions / liquidity"
+                placeholder="Select or type conditions / liquidity"
               />
             </div>
           );
@@ -965,7 +993,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     <div className="space-y-3">
                       {renderField('Displacement', 'displacement_size', 'number')}
                       {(isEditing || (editedTrade?.fvg_size != null && editedTrade.fvg_size !== undefined)) && renderField('FVG Size', 'fvg_size', 'number')}
-                      {(isEditing || (editedTrade?.liquidity != null && editedTrade.liquidity !== '')) && renderField('Liquidity', 'liquidity', 'select', LIQUIDITY_OPTIONS)}
+                      {(isEditing || (editedTrade?.liquidity != null && editedTrade.liquidity !== '')) && renderField('Liquidity', 'liquidity', 'select', liquidityOptions)}
                     </div>
                   )}
                 </div>
