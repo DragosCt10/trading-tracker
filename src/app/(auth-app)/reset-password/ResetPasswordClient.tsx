@@ -33,7 +33,7 @@ export default function ResetPasswordClient() {
     try {
       const formData = new FormData();
       formData.set('email', email);
-      formData.set('redirectTo', `${window.location.origin}/update-password`);
+      formData.set('redirectTo', `${window.location.origin}/api/auth/callback?next=/update-password`);
       const result = await resetPasswordAction(null, formData);
 
       if (result.error) {
