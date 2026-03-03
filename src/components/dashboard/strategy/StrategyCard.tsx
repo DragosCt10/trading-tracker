@@ -22,6 +22,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { EXTRA_CARDS } from '@/constants/extraCards';
 
 interface StrategyCardProps {
@@ -281,9 +282,33 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
                 ) : null;
               })}
               {strategy.extra_cards.length > 4 && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-500 border border-slate-200/70 dark:border-slate-700/50">
-                  +{strategy.extra_cards.length - 4} more
-                </span>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-500 border border-slate-200/70 dark:border-slate-700/50 cursor-default">
+                        +{strategy.extra_cards.length - 4} more
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="bottom"
+                      className="max-w-[220px] rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 px-3 py-2"
+                    >
+                      <div className="flex flex-wrap gap-1">
+                        {strategy.extra_cards.slice(4).map((key) => {
+                          const def = EXTRA_CARDS.find((c) => c.key === key);
+                          return def ? (
+                            <span
+                              key={key}
+                              className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200/70 dark:border-slate-600/50"
+                            >
+                              {def.label}
+                            </span>
+                          ) : null;
+                        })}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
           ) : (

@@ -85,23 +85,22 @@ export function CreateStrategyModal({ open: controlledOpen, onOpenChange, onCrea
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
       {trigger && !controlledOpen && <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>}
-      <AlertDialogContent className="max-w-lg max-h-[90vh] overflow-y-auto fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl px-6 py-5">
+      <AlertDialogContent className="max-w-lg max-h-[90vh] flex flex-col fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 rounded-2xl px-6 py-5 overflow-hidden">
         {/* Gradient orbs background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
           <div
-            className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl animate-pulse"
-            style={{ animationDuration: '8s' }}
+            className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl"
           />
           <div
-            className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl animate-pulse"
-            style={{ animationDuration: '10s', animationDelay: '2s' }}
+            className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl"
           />
         </div>
 
         {/* Top accent line */}
         <div className="absolute -top-px left-0 right-0 h-0.5 themed-accent-line rounded-t-2xl" />
 
-        <div className="relative">
+        {/* Scrollable body: only this area scrolls so the footer (and its button) stay pinned at bottom */}
+        <div className="relative flex-1 min-h-0 overflow-y-auto">
           <AlertDialogHeader className="space-y-1.5 mb-4">
             <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
               <div className="p-2 rounded-lg themed-header-icon-box">
@@ -114,7 +113,7 @@ export function CreateStrategyModal({ open: controlledOpen, onOpenChange, onCrea
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <form id="create-strategy-form" onSubmit={handleSubmit} className="space-y-4 mt-2">
             <div className="space-y-1.5">
               <Label
                 htmlFor="strategy-name"
@@ -144,30 +143,32 @@ export function CreateStrategyModal({ open: controlledOpen, onOpenChange, onCrea
                 <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
               </div>
             )}
-
-            <AlertDialogFooter className="gap-2 sm:gap-0">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleOpenChange(false)}
-                disabled={submitting}
-                className="border-slate-200 dark:border-slate-700"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={submitting || !name.trim()}
-                className="relative w-full sm:w-auto overflow-hidden themed-btn-primary text-white font-semibold px-4 py-2 group border-0"
-              >
-                <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
-                  {submitting ? 'Creating...' : 'Create Strategy'}
-                </span>
-                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-              </Button>
-            </AlertDialogFooter>
           </form>
         </div>
+
+        {/* Footer outside scroll area so it stays pinned and button gradient doesn't glitch on scroll */}
+        <AlertDialogFooter className="relative flex-shrink-0 flex items-center justify-between pt-4 mt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+            disabled={submitting}
+            className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="create-strategy-form"
+            disabled={submitting || !name.trim()}
+            className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60 text-sm"
+          >
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              {submitting ? 'Creating...' : 'Create Strategy'}
+            </span>
+            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+          </Button>
+        </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );

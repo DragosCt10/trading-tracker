@@ -253,12 +253,10 @@ export function EditAccountAlertDialog({
           {/* Gradient orbs background */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
             <div
-              className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl animate-pulse"
-              style={{ animationDuration: '8s' }}
+              className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl"
             />
             <div
-              className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl animate-pulse"
-              style={{ animationDuration: '10s', animationDelay: '2s' }}
+              className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl"
             />
           </div>
 
