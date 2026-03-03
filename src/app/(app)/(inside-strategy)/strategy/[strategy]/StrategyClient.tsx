@@ -947,6 +947,56 @@ export default function StrategyClient(
   // Get markets from the trades being used
   const markets = Array.from(new Set(tradesToUse.map((t) => t.market)));
 
+  // Half-width extra cards — rendered dynamically in a 2-column grid
+  const HALF_WIDTH_EXTRA_CARDS: { key: ExtraCardKey; element: React.ReactNode }[] = [
+    {
+      key: 'mss_stats',
+      element: (
+        <MSSStatisticsCard
+          mssStats={mssStatsFromTradesToUse}
+          isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
+        />
+      ),
+    },
+    {
+      key: 'launch_hour',
+      element: <LaunchHourTradesCard filteredTrades={tradesToUse} isLoading={chartsLoadingState} />,
+    },
+    {
+      key: 'local_hl_be_stats',
+      element: <LocalHLBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />,
+    },
+    {
+      key: 'partials_be_stats',
+      element: <PartialsBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />,
+    },
+    {
+      key: 'avg_displacement',
+      element: <AverageDisplacementSizeCard trades={tradesToUse} isLoading={chartsLoadingState} />,
+    },
+    {
+      key: 'displacement_size',
+      element: <DisplacementSizeStats trades={tradesToUse} isLoading={chartsLoadingState} />,
+    },
+    {
+      key: 'local_hl_stats',
+      element: (
+        <LocalHLStatisticsCard
+          localHLStats={localHLStatsFromTradesToUse}
+          isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
+        />
+      ),
+    },
+    {
+      key: 'fvg_size',
+      element: <FvgSizeStats trades={tradesToUse} isLoading={chartsLoadingState} />,
+    },
+  ];
+
+  const selectedHalfWidthCards = HALF_WIDTH_EXTRA_CARDS.filter(c => hasCard(c.key));
+
   return (
     <> 
       {/* View Mode Toggle */}
@@ -1239,55 +1289,12 @@ export default function StrategyClient(
         </div>
       )}
 
-      {(hasCard('mss_stats') || hasCard('launch_hour')) && (
-        <div className={`grid grid-cols-1 ${hasCard('mss_stats') && hasCard('launch_hour') ? 'lg:grid-cols-2' : ''} gap-6 my-8 items-stretch`}>
-          {hasCard('mss_stats') && (
-            <MSSStatisticsCard
-              mssStats={mssStatsFromTradesToUse}
-              isLoading={chartsLoadingState}
-              includeTotalTrades={filteredChartStats !== null}
-            />
-          )}
-          {hasCard('launch_hour') && (
-            <LaunchHourTradesCard filteredTrades={tradesToUse} isLoading={chartsLoadingState} />
-          )}
-        </div>
-      )}
-
-      {(hasCard('local_hl_be_stats') || hasCard('partials_be_stats')) && (
-        <div className={`grid grid-cols-1 ${hasCard('local_hl_be_stats') && hasCard('partials_be_stats') ? 'md:grid-cols-2' : ''} gap-6 mb-8`}>
-          {hasCard('local_hl_be_stats') && (
-            <LocalHLBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
-          )}
-          {hasCard('partials_be_stats') && (
-            <PartialsBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />
-          )}
-        </div>
-      )}
-
-      {(hasCard('avg_displacement') || hasCard('displacement_size')) && (
-        <div className={`grid grid-cols-1 ${hasCard('avg_displacement') && hasCard('displacement_size') ? 'lg:grid-cols-2' : ''} gap-6 mb-8`}>
-          {hasCard('avg_displacement') && (
-            <AverageDisplacementSizeCard trades={tradesToUse} isLoading={chartsLoadingState} />
-          )}
-          {hasCard('displacement_size') && (
-            <DisplacementSizeStats trades={tradesToUse} isLoading={chartsLoadingState} />
-          )}
-        </div>
-      )}
-
-      {(hasCard('local_hl_stats') || hasCard('fvg_size')) && (
-        <div className={`grid grid-cols-1 ${hasCard('local_hl_stats') && hasCard('fvg_size') ? 'lg:grid-cols-2' : ''} gap-6 mb-8`}>
-          {hasCard('local_hl_stats') && (
-            <LocalHLStatisticsCard
-              localHLStats={localHLStatsFromTradesToUse}
-              isLoading={chartsLoadingState}
-              includeTotalTrades={filteredChartStats !== null}
-            />
-          )}
-          {hasCard('fvg_size') && (
-            <FvgSizeStats trades={tradesToUse} isLoading={chartsLoadingState} />
-          )}
+      {/* Half-width extra cards — dynamic grid */}
+      {selectedHalfWidthCards.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
+          {selectedHalfWidthCards.map(({ key, element }) => (
+            <div key={key}>{element}</div>
+          ))}
         </div>
       )}
     </>
