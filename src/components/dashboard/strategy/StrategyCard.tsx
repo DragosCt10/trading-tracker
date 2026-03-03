@@ -265,9 +265,9 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
         </div>
 
         {/* Extra Cards Badges */}
-        {strategy.extra_cards && strategy.extra_cards.length > 0 && (
-          <div className="mb-4">
-            <p className="text-[10px] uppercase tracking-wider font-medium text-slate-400 dark:text-slate-500 mb-1.5">Extra cards</p>
+        <div className="mb-4">
+          <p className="text-[10px] uppercase tracking-wider font-medium text-slate-400 dark:text-slate-500 mb-1.5">Extra stats cards</p>
+          {strategy.extra_cards && strategy.extra_cards.length > 0 ? (
             <div className="flex flex-wrap gap-1">
               {strategy.extra_cards.slice(0, 4).map((key) => {
                 const def = EXTRA_CARDS.find((c) => c.key === key);
@@ -286,8 +286,10 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
                 </span>
               )}
             </div>
-          </div>
-        )}
+          ) : (
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">None selected</p>
+          )}
+        </div>
 
         {/* Action Buttons */}
         <div className="flex items-center justify-between gap-2 mt-auto pt-4 border-t border-slate-200/60 dark:border-slate-700/50">
