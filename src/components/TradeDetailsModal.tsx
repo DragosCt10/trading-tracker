@@ -61,7 +61,8 @@ import { mergeNewsIntoSaved, normalizeNewsName } from '@/utils/newsUtils';
 import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
-import { updateSavedNews, updateSavedSetupTypes, updateSavedLiquidityTypes } from '@/lib/server/settings';
+import { updateSavedNews } from '@/lib/server/settings';
+import { updateStrategySetupTypes, updateStrategyLiquidityTypes } from '@/lib/server/strategies';
 import { mergeSetupTypeIntoSaved } from '@/utils/setupUtils';
 import { mergeLiquidityTypeIntoSaved } from '@/utils/liquidityUtils';
 
@@ -138,9 +139,9 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const TREND_OPTIONS = ['Trend-following', 'Counter-trend'];
 
-  const setupOptions = settings.saved_setup_types ?? [];
-  /** Liquidity: HOD/LOD first, then saved_liquidity_types (same as NewTradeModal). */
-  const liquidityOptions = Array.from(new Set(['HOD', 'LOD', ...(settings.saved_liquidity_types ?? [])]));
+  const setupOptions = currentStrategy?.saved_setup_types ?? [];
+  /** Liquidity: HOD/LOD first, then strategy's saved_liquidity_types (same as NewTradeModal). */
+  const liquidityOptions = Array.from(new Set(['HOD', 'LOD', ...(currentStrategy?.saved_liquidity_types ?? [])]));
 
   const snapToHalfStep = (num: number) => Math.round(num * 2) / 2;
 
@@ -284,29 +285,28 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         await updateSavedNews(updatedNews);
       }
 
-      // Save / update setup type in the user's saved_setup_types library
-      if (editedTrade.setup_type?.trim() && userId) {
+      // Save / update setup type in the strategy's saved_setup_types library
+      if (editedTrade.setup_type?.trim() && userId && currentStrategy) {
         const updatedSetups = mergeSetupTypeIntoSaved(
           editedTrade.setup_type,
-          settings.saved_setup_types ?? []
+          currentStrategy.saved_setup_types ?? []
         );
-        await updateSavedSetupTypes(updatedSetups);
+        await updateStrategySetupTypes(currentStrategy.id, userId, updatedSetups);
       }
 
-      // Save / update liquidity in the user's saved_liquidity_types library
-      if (editedTrade.liquidity?.trim() && userId) {
+      // Save / update liquidity in the strategy's saved_liquidity_types library
+      if (editedTrade.liquidity?.trim() && userId && currentStrategy) {
         const updatedLiquidity = mergeLiquidityTypeIntoSaved(
           editedTrade.liquidity,
-          settings.saved_liquidity_types ?? []
+          currentStrategy.saved_liquidity_types ?? []
         );
-        await updateSavedLiquidityTypes(updatedLiquidity);
+        await updateStrategyLiquidityTypes(currentStrategy.id, userId, updatedLiquidity);
       }
 
-      // Invalidate settings cache so updated saved_news / saved_setup_types / saved_liquidity_types are available next time
+      // Invalidate settings cache (saved_news) and strategies cache (saved_setup_types / saved_liquidity_types)
       if (userId) {
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.settings(userId),
-        });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.settings(userId) });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userId) });
       }
 
       setIsEditing(false);
