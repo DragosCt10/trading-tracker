@@ -1195,15 +1195,15 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             </h3>
 
             {!isEditing ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[320px]">
                 {(editedTrade?.trade_screens ?? []).map((url, i) =>
                   url ? (
-                    <div key={i}>
-                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">
+                    <div key={i} className="flex flex-col min-h-0">
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block shrink-0">
                         Trade Screen {i + 1}
                       </label>
-                      <a href={url} target="_blank" rel="noopener noreferrer" className="block group">
-                        <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300 aspect-video min-h-64">
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="flex flex-col group flex-1 min-h-0">
+                        <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300 flex-1 min-h-64">
                           <img
                             src={url}
                             alt={`Trade Screen ${i + 1}`}
@@ -1211,7 +1211,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                             height={360}
                             loading="lazy"
                             decoding="async"
-                            className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                           />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
                             <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
