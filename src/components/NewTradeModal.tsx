@@ -251,11 +251,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       const decodedSlug = decodeURIComponent(strategySlug);
       // Find strategy by slug
       const strategy = strategies.find((s) => s.slug === decodedSlug);
-      if (strategy && trade.strategy_id !== strategy.id) {
-        setTrade((prev) => ({ ...prev, strategy_id: strategy.id }));
+      if (strategy) {
+        setTrade((prev) => prev.strategy_id === strategy.id ? prev : { ...prev, strategy_id: strategy.id });
       }
     }
-  }, [isOpen, strategySlug, strategies, trade.strategy_id]);
+  }, [isOpen, strategySlug, strategies]);
 
   const notesRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -552,12 +552,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     setIsSubmitting(true);
 
     try {
-      if (notesRef.current) {
-        const latestNotes = notesRef.current.value;
-        if (latestNotes !== trade.notes) {
-          trade.notes = latestNotes;
-        }
-      }
+      const notes = notesRef.current ? notesRef.current.value : trade.notes;
 
       const normalizedMarket = normalizeMarket(trade.market);
       // When outcome is Win and user did not select Potential R:R, use the exact Risk:Reward Ratio
@@ -567,6 +562,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
           : trade.risk_reward_ratio_long;
       const payload = {
         ...trade,
+        notes,
         market: normalizedMarket,
         risk_reward_ratio_long: riskRewardRatioLong,
         trade_executed_at: tradeDateAndTimeToUtcISO(trade.trade_date, trade.trade_time) ?? undefined,
@@ -655,9 +651,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       await invalidateAndRefetchTradeQueries();
 
       setIsSubmitting(false);
+      setTrade(initialTradeState);
       if (onTradeCreated) onTradeCreated();
       onClose();
-      setTrade(initialTradeState);
     } catch (err: any) {
       setError(err?.message ?? 'Failed to create trade. Please check your data and try again.');
       setIsSubmitting(false);
