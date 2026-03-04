@@ -152,8 +152,13 @@ export function CommonCombobox({
     inputValue.trim().length > 0 &&
     normalizedOptions.length > 0;
 
-  const baseDropdownClass =
-    'max-h-56 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm p-1';
+  /** Max height to show ~4 suggestions; inner list scrolls for more */
+  const dropdownWrapClass =
+    'max-h-[10.5rem] flex flex-col overflow-hidden rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm p-1';
+  const listScrollClass =
+    'flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain';
+  /** Stop wheel from bubbling to Radix Dialog so the list actually scrolls */
+  const onListWheel = (e: React.WheelEvent) => e.stopPropagation();
   const baseNoMatchClass =
     'rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] shadow-lg backdrop-blur-sm p-1 text-sm text-slate-600 dark:text-slate-300';
 
@@ -184,27 +189,29 @@ export function CommonCombobox({
         <div
           className={cn(
             'absolute top-full left-0 right-0 z-50 mt-1.5',
-            baseDropdownClass,
+            dropdownWrapClass,
             dropdownClassName
           )}
           role="listbox"
         >
-          <ul>
-            {suggestions.map((item) => (
-              <li key={item} role="option">
-                <button
-                  type="button"
-                  className="w-full text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleSelect(item);
-                  }}
-                >
-                  {item}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className={listScrollClass} onWheel={onListWheel} role="presentation">
+            <ul>
+              {suggestions.map((item) => (
+                <li key={item} role="option">
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleSelect(item);
+                    }}
+                  >
+                    {item}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
 
@@ -234,7 +241,7 @@ export function CommonCombobox({
               role="listbox"
               className={cn(
                 'fixed z-[9999]',
-                baseDropdownClass,
+                dropdownWrapClass,
                 dropdownClassName
               )}
               style={{
@@ -244,28 +251,30 @@ export function CommonCombobox({
                 pointerEvents: 'auto',
               }}
             >
-              <ul>
-                {suggestions.map((item) => (
-                  <li key={item} role="option">
-                    <button
-                      type="button"
-                      className="w-full text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleSelect(item);
-                      }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleSelect(item);
-                      }}
-                    >
-                      {item}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <div className={listScrollClass} onWheel={onListWheel} role="presentation">
+                <ul>
+                  {suggestions.map((item) => (
+                    <li key={item} role="option">
+                      <button
+                        type="button"
+                        className="w-full text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleSelect(item);
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleSelect(item);
+                        }}
+                      >
+                        {item}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </>,
           document.body
