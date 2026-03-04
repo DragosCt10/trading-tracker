@@ -46,7 +46,6 @@ import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
 import { MarketCombobox } from '@/components/MarketCombobox';
 import { NewsCombobox } from '@/components/NewsCombobox';
 import { CommonCombobox } from '@/components/CommonCombobox';
-import { ALLOWED_MARKETS } from '@/constants/allowedMarkets';
 import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
 import {
   mergeLiquidityTypeIntoSaved,
@@ -60,9 +59,6 @@ import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
 import { updateStrategySetupTypes, updateStrategyLiquidityTypes } from '@/lib/server/strategies';
-
-/** Kept for any legacy reference; market input uses MarketCombobox + ALLOWED_MARKETS. */
-const MARKET_OPTIONS = ALLOWED_MARKETS;
 
 const LIQUIDITY_OPTIONS = ['Major Liquidity', 'Low Liquidity', 'Local Liquidity', 'HOD', 'LOD'];
 const MSS_OPTIONS = ['Normal', 'Aggressive'];
@@ -79,7 +75,6 @@ const FVG_SIZE_OPTIONS: { value: number; label: string }[] = [
 ];
 const FVG_SIZE_PRESET_VALUES = [0.5, 1, 1.5, 2, 2.5, 3];
 const FVG_SIZE_CUSTOM_MIN = 3.5; // Custom (3+) values: 3.5, 4, 4.5, ...
-const FVG_SIZE_NONE = '__none__';
 function snapToHalfStep(num: number): number {
   return Math.round(num * 2) / 2;
 }
