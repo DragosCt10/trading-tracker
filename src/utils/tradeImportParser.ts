@@ -286,6 +286,9 @@ export function parseCsvTradesWithNorm(
   const rows: ParsedTrade[] = [];
   const errors: RowError[] = [];
 
+  // Collect all CSV headers mapped to trade_screens (supports multiple columns + multi-URL cells)
+  const tradeScreenHeaders = raw.headers.filter((h) => fieldMapping[h] === 'trade_screens');
+
   for (let i = 0; i < raw.rows.length; i++) {
     const rowIndex = i + 1;
     const row = raw.rows[i];
@@ -411,8 +414,17 @@ export function parseCsvTradesWithNorm(
       launch_hour: applyBoolNorm(normalizations.booleans, 'launch_hour', fieldValues['launch_hour'] ?? ''),
       mss: normalizeTrim(fieldValues['mss'] ?? ''),
       liquidity: normalizeTrim(fieldValues['liquidity'] ?? ''),
-      trade_link: normalizeTrim(fieldValues['trade_link'] ?? ''),
-      liquidity_taken: normalizeTrim(fieldValues['liquidity_taken'] ?? ''),
+      trade_screens: (() => {
+        const urls: string[] = [];
+        for (const h of tradeScreenHeaders) {
+          const val = normalizeTrim(row[h] ?? '');
+          if (!val) continue;
+          // Split multi-URL cells: newline, CR, comma, or whitespace before "http"
+          const parts = val.split(/[\n\r,]|\s+(?=https?:\/\/)/).map(normalizeTrim).filter(Boolean);
+          urls.push(...parts);
+        }
+        return [urls[0] ?? '', urls[1] ?? '', urls[2] ?? '', urls[3] ?? ''];
+      })(),
       evaluation: normalizeTrim(fieldValues['evaluation'] ?? ''),
       notes: normalizeTrim(fieldValues['notes'] ?? '') || undefined,
       quarter,
