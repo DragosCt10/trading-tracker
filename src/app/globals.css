@@ -727,6 +727,21 @@ html.dark[data-color-theme="ice"] {
   color: var(--tc-primary);
 }
 
+/* Active rating pill (Confidence / Mind state 1–5) — same border/ring as themed-focus on notes textarea */
+.themed-rating-active {
+  background-color: color-mix(in srgb, var(--tc-primary) 22%, transparent) !important;
+  border-color: var(--tc-primary) !important;
+  color: var(--tc-text) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--tc-primary) 20%, transparent) !important;
+}
+.dark .themed-rating-active {
+  background-color: color-mix(in srgb, var(--tc-primary) 38%, transparent) !important;
+  color: var(--tc-text-dark) !important;
+  border-color: var(--tc-primary) !important;
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--tc-primary) 20%, transparent) !important;
+}
+
 /* Active nav item — overrides hardcoded purple Tailwind classes */
 .themed-nav-active {
   background-color: var(--tc-subtle) !important;
