@@ -158,8 +158,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   }, []);
 
   const initialTradeState: Trade = {
-    trade_link: '',
-    liquidity_taken: '',
+    trade_screens: ['', '', '', ''],
     trade_time: '',
     trade_date: new Date().toISOString().split('T')[0],
     day_of_week: WEEKDAY_MAP[new Date().toLocaleDateString('en-US', { weekday: 'long' })],
@@ -229,6 +228,16 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     }
     return initialTradeState;
   });
+
+  const [showExtraScreens, setShowExtraScreens] = useState(false);
+
+  // Auto-reveal extra screens if draft has slots 3 or 4 filled
+  useEffect(() => {
+    if (trade.trade_screens?.[2] || trade.trade_screens?.[3]) {
+      setShowExtraScreens(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Automatically set strategy_id from URL slug when modal opens or slug/strategies change
   useEffect(() => {
@@ -557,36 +566,64 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         <div className="relative overflow-y-auto flex-1 px-6 py-5">
 
           <form onSubmit={handleSubmit} className="space-y-5 mt-0">
-            {/* Links & Info Section */}
-            <div className={`grid gap-5 ${hasCard('liquidity_stats') ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-              {hasCard('liquidity_stats') && (
-                <div className="space-y-2">
-                  <Label htmlFor="liquidity-taken" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Liquidity Link
-                  </Label>
-                  <Input
-                    id="liquidity-taken"
-                    type="url"
-                    value={trade.liquidity_taken}
-                    onChange={(e) => updateTrade('liquidity_taken', e.target.value)}
-                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                    placeholder="https://..."
-                  />
+            {/* Trade Screens Section */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {[0, 1].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <Label htmlFor={`trade-screen-${i + 1}`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      Trade Screen {i + 1}
+                    </Label>
+                    <Input
+                      id={`trade-screen-${i + 1}`}
+                      type="url"
+                      value={trade.trade_screens?.[i] ?? ''}
+                      onChange={(e) => {
+                        const screens = [...(trade.trade_screens ?? ['', '', '', ''])];
+                        screens[i] = e.target.value;
+                        updateTrade('trade_screens', screens);
+                      }}
+                      className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                      placeholder="https://..."
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {showExtraScreens && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {[2, 3].map((i) => (
+                    <div key={i} className="space-y-2">
+                      <Label htmlFor={`trade-screen-${i + 1}`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        Trade Screen {i + 1}
+                      </Label>
+                      <Input
+                        id={`trade-screen-${i + 1}`}
+                        type="url"
+                        value={trade.trade_screens?.[i] ?? ''}
+                        onChange={(e) => {
+                          const screens = [...(trade.trade_screens ?? ['', '', '', ''])];
+                          screens[i] = e.target.value;
+                          updateTrade('trade_screens', screens);
+                        }}
+                        className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                        placeholder="https://..."
+                      />
+                    </div>
+                  ))}
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="trade-link" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Trade Link
-                </Label>
-                <Input
-                  id="trade-link"
-                  type="url"
-                  value={trade.trade_link}
-                  onChange={(e) => updateTrade('trade_link', e.target.value)}
-                  className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                  placeholder="https://..."
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  id="need-more-screens"
+                  checked={showExtraScreens}
+                  onCheckedChange={(checked) => setShowExtraScreens(!!checked)}
+                  className="themed-checkbox"
                 />
+                <Label htmlFor="need-more-screens" className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+                  Need more?
+                </Label>
               </div>
             </div>
 
