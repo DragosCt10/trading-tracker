@@ -463,33 +463,56 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         await updateSavedNews(updatedNews);
       }
 
-      // Save / update setup type in the strategy's saved_setup_types library
+      // Compute updated lists and persist to DB; then update React Query cache so suggestion lists show new data without page refresh
+      let updatedSetups: string[] | undefined;
+      let updatedLiquidity: string[] | undefined;
+      let updatedMarkets: string[] | undefined;
+
       if (trade.setup_type?.trim() && userId && currentStrategy) {
-        const updatedSetups = mergeSetupTypeIntoSaved(
+        updatedSetups = mergeSetupTypeIntoSaved(
           trade.setup_type,
           currentStrategy.saved_setup_types ?? []
         );
         await updateStrategySetupTypes(currentStrategy.id, userId, updatedSetups);
       }
 
-      // Save / update liquidity in the strategy's saved_liquidity_types library
       if (trade.liquidity?.trim() && userId && currentStrategy) {
-        const updatedLiquidity = mergeLiquidityTypeIntoSaved(
+        updatedLiquidity = mergeLiquidityTypeIntoSaved(
           trade.liquidity,
           currentStrategy.saved_liquidity_types ?? []
         );
         await updateStrategyLiquidityTypes(currentStrategy.id, userId, updatedLiquidity);
       }
 
-      // Save / update market in the user's saved_markets (user_settings, global)
       if (trade.market?.trim() && userId) {
         const savedMarkets = Array.isArray(settings.saved_markets) ? settings.saved_markets : [];
-        const updatedMarkets = mergeMarketIntoSaved(trade.market, savedMarkets);
+        updatedMarkets = mergeMarketIntoSaved(trade.market, savedMarkets);
         await updateSavedMarkets(updatedMarkets);
       }
 
-      // Invalidate settings cache (saved_news, saved_markets) and strategies cache (saved_setup_types / saved_liquidity_types)
+      // Update cache immediately so next time modal opens, useSettings/useStrategies see fresh data (refetch alone doesn't work because those queries use enabled: !cached)
       if (userId) {
+        const settingsKey = queryKeys.settings(userId);
+        queryClient.setQueryData(settingsKey, (prev: { saved_news?: unknown; saved_markets?: string[] } | undefined) => ({
+          ...prev,
+          saved_news: prev?.saved_news ?? [],
+          saved_markets: updatedMarkets ?? prev?.saved_markets ?? [],
+        }));
+        if (currentStrategy && (updatedSetups !== undefined || updatedLiquidity !== undefined)) {
+          const strategiesKey = queryKeys.strategies(userId);
+          queryClient.setQueryData(strategiesKey, (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[] }[] | undefined) => {
+            if (!prev) return prev;
+            return prev.map((s) =>
+              s.id === currentStrategy.id
+                ? {
+                    ...s,
+                    saved_setup_types: updatedSetups ?? s.saved_setup_types ?? [],
+                    saved_liquidity_types: updatedLiquidity ?? s.saved_liquidity_types ?? [],
+                  }
+                : s
+            );
+          });
+        }
         await queryClient.invalidateQueries({ queryKey: queryKeys.settings(userId) });
         await queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userId) });
       }
