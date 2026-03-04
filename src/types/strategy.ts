@@ -9,4 +9,6 @@ export interface Strategy {
   updated_at: string;
   is_active: boolean;
   extra_cards: ExtraCardKey[];
+  saved_setup_types: string[];
+  saved_liquidity_types: string[];
 }
