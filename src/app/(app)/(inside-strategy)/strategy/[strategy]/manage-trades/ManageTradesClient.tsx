@@ -430,7 +430,7 @@ export default function ManageTradesClient({
     try {
       const headers = [
         'Date', 'Time', 'Day of Week', 'Market', 'Direction', 'Setup', 'Outcome',
-        'Risk %', 'Trade Link', 'Liquidity Taken', 'Local High/Low',
+        'Risk %', 'Trade Screen 1', 'Trade Screen 2', 'Trade Screen 3', 'Trade Screen 4', 'Local High/Low',
         'News Related', 'ReEntry', 'Break Even', 'MSS', 'Risk:Reward Ratio',
         'Risk:Reward Ratio Long', 'SL Size', 'Calculated Profit', 'P/L %',
         'Evaluation', 'Notes', 'Executed', 'Trend', 'FVG Size'
@@ -453,8 +453,10 @@ export default function ManageTradesClient({
           trade.setup_type,
           trade.trade_outcome,
           trade.risk_per_trade,
-          trade.trade_link,
-          trade.liquidity_taken,
+          trade.trade_screens?.[0] ?? '',
+          trade.trade_screens?.[1] ?? '',
+          trade.trade_screens?.[2] ?? '',
+          trade.trade_screens?.[3] ?? '',
           trade.local_high_low ? 'Yes' : 'No',
           trade.news_related ? 'Yes' : 'No',
           trade.reentry ? 'Yes' : 'No',
@@ -857,8 +859,7 @@ export default function ManageTradesClient({
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Setup</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Outcome</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Risk</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Trade</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Liquidity</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Screens</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Notes</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -1014,31 +1015,24 @@ export default function ManageTradesClient({
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">{trade.risk_per_trade}%</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
-                        {trade.trade_link ? (
-                          <a
-                            href={trade.trade_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline font-medium transition-colors"
-                          >
-                            View Trade
-                          </a>
+                        {trade.trade_screens?.some((s) => s) ? (
+                          <div className="flex items-center gap-2">
+                            {trade.trade_screens.map((url, i) =>
+                              url ? (
+                                <a
+                                  key={i}
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline font-medium transition-colors"
+                                >
+                                  #{i + 1}
+                                </a>
+                              ) : null
+                            )}
+                          </div>
                         ) : (
-                          <span className="text-slate-400 dark:text-slate-500">No link</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
-                        {trade.liquidity_taken ? (
-                          <a
-                            href={trade.liquidity_taken}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline font-medium transition-colors"
-                          >
-                            View Liquidity
-                          </a>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-500">-</span>
+                          <span className="text-slate-400 dark:text-slate-500">—</span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
