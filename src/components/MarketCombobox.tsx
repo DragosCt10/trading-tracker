@@ -157,8 +157,13 @@ export function MarketCombobox({
     setOpen(false);
   };
 
-  const baseDropdownClass =
-    'max-h-60 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm p-1';
+  /** Max height to show ~4 suggestions; inner list scrolls for more */
+  const dropdownWrapClass =
+    'max-h-[10.5rem] flex flex-col overflow-hidden rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm p-1';
+  const listScrollClass =
+    'flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain';
+  /** Stop wheel from bubbling to Radix Dialog so the list actually scrolls */
+  const onListWheel = (e: React.WheelEvent) => e.stopPropagation();
   const noMatchMessage =
     'No match in list. You can use your typed value if it matches the format (e.g. EURUSD, EUR/USD).';
 
@@ -182,25 +187,27 @@ export function MarketCombobox({
       />
       {showDropdown && !usePortal && (
         <div
-          className={cn('absolute top-full left-0 right-0 z-50 mt-1.5', baseDropdownClass, dropdownClassName)}
+          className={cn('absolute top-full left-0 right-0 z-50 mt-1.5', dropdownWrapClass, dropdownClassName)}
           role="listbox"
         >
-          <ul>
-            {suggestions.map((market) => (
-              <li key={market} role="option">
-                <button
-                  type="button"
-                  className="w-full text-left px-3 py-2.5 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    handleSelect(market);
-                  }}
-                >
-                  {market}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className={listScrollClass} onWheel={onListWheel} role="presentation">
+            <ul>
+              {suggestions.map((market) => (
+                <li key={market} role="option">
+                  <button
+                    type="button"
+                    className="w-full text-left px-3 py-2.5 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleSelect(market);
+                    }}
+                  >
+                    {market}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
       {showNoMatch && !usePortal && (
@@ -224,7 +231,7 @@ export function MarketCombobox({
             <div
               data-market-combobox-list
               role="listbox"
-              className={cn('fixed z-[9999]', baseDropdownClass, dropdownClassName)}
+              className={cn('fixed z-[9999]', dropdownWrapClass, dropdownClassName)}
               style={{
                 top: dropdownRect.top,
                 left: dropdownRect.left,
@@ -232,28 +239,30 @@ export function MarketCombobox({
                 pointerEvents: 'auto',
               }}
             >
-              <ul>
-                {suggestions.map((market) => (
-                  <li key={market} role="option">
-                    <button
-                      type="button"
-                      className="w-full text-left px-3 py-2.5 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleSelect(market);
-                      }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleSelect(market);
-                      }}
-                    >
-                      {market}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <div className={listScrollClass} onWheel={onListWheel} role="presentation">
+                <ul>
+                  {suggestions.map((market) => (
+                    <li key={market} role="option">
+                      <button
+                        type="button"
+                        className="w-full text-left px-3 py-2.5 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleSelect(market);
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleSelect(market);
+                        }}
+                      >
+                        {market}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </>,
           document.body
