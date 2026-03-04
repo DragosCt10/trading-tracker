@@ -374,6 +374,137 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     return () => clearTimeout(t);
   }, [error]);
 
+  const handleEditSavedMarket = async (oldName: string, newName: string) => {
+    if (!userId) return;
+    const saved = Array.isArray(settings.saved_markets) ? settings.saved_markets : [];
+    const normalize = (m: string) => m.trim().toUpperCase();
+    const oldNorm = normalize(oldName);
+    const newTrimmed = newName.trim();
+    if (!newTrimmed) return;
+    const newNorm = newTrimmed.toUpperCase();
+    const exists = saved.some((m) => normalize(m) === newNorm);
+    let next: string[];
+    if (exists) {
+      next = saved.filter((m) => normalize(m) !== oldNorm);
+    } else {
+      next = saved.map((m) => (normalize(m) === oldNorm ? newTrimmed : m));
+    }
+    if (next.length === saved.length && exists) return;
+    const { error } = await updateSavedMarkets(next);
+    if (error) {
+      console.error('Failed to rename saved market:', error.message ?? error);
+      return;
+    }
+    const settingsKey = queryKeys.settings(userId);
+    queryClient.setQueryData(
+      settingsKey,
+      (prev: { saved_news?: unknown; saved_markets?: string[] } | undefined) => ({
+        ...prev,
+        saved_markets: next,
+      })
+    );
+  };
+
+  const handleEditSavedSetup = async (oldName: string, newName: string) => {
+    if (!userId || !currentStrategy) return;
+    const current = currentStrategy.saved_setup_types ?? [];
+    const normalize = (s: string) => s.trim().toLowerCase();
+    const oldNorm = normalize(oldName);
+    const newTrimmed = newName.trim();
+    if (!newTrimmed) return;
+    const newNorm = newTrimmed.toLowerCase();
+    const exists = current.some((s) => normalize(s) === newNorm);
+    let next: string[];
+    if (exists) {
+      next = current.filter((s) => normalize(s) !== oldNorm);
+    } else {
+      next = current.map((s) => (normalize(s) === oldNorm ? newTrimmed : s));
+    }
+    if (next.length === current.length && exists) return;
+    await updateStrategySetupTypes(currentStrategy.id, userId, next);
+    const strategiesKey = queryKeys.strategies(userId);
+    queryClient.setQueryData(
+      strategiesKey,
+      (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[] }[] | undefined) => {
+        if (!prev) return prev;
+        return prev.map((s) =>
+          s.id === currentStrategy.id
+            ? {
+                ...s,
+                saved_setup_types: next,
+              }
+            : s
+        );
+      }
+    );
+  };
+
+  const handleEditSavedLiquidity = async (oldName: string, newName: string) => {
+    if (!userId || !currentStrategy) return;
+    const current = currentStrategy.saved_liquidity_types ?? [];
+    const normalize = (s: string) => s.trim().toLowerCase();
+    const oldNorm = normalize(oldName);
+    const newTrimmed = newName.trim();
+    if (!newTrimmed) return;
+    const newNorm = newTrimmed.toLowerCase();
+    const exists = current.some((s) => normalize(s) === newNorm);
+    let next: string[];
+    if (exists) {
+      next = current.filter((s) => normalize(s) !== oldNorm);
+    } else {
+      next = current.map((s) => (normalize(s) === oldNorm ? newTrimmed : s));
+    }
+    if (next.length === current.length && exists) return;
+    await updateStrategyLiquidityTypes(currentStrategy.id, userId, next);
+    const strategiesKey = queryKeys.strategies(userId);
+    queryClient.setQueryData(
+      strategiesKey,
+      (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[] }[] | undefined) => {
+        if (!prev) return prev;
+        return prev.map((s) =>
+          s.id === currentStrategy.id
+            ? {
+                ...s,
+                saved_liquidity_types: next,
+              }
+            : s
+        );
+      }
+    );
+  };
+
+  const handleEditSavedNews = async (item: SavedNewsItem, newName: string) => {
+    if (!userId) return;
+    const saved = Array.isArray(settings.saved_news) ? (settings.saved_news as SavedNewsItem[]) : [];
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const updated = saved.map((n) => {
+      if (n.id !== item.id) return n;
+      const aliases = n.aliases ?? [];
+      const prevName = n.name;
+      const nextAliases =
+        prevName && !aliases.includes(prevName) ? [...aliases, prevName] : aliases;
+      return {
+        ...n,
+        name: trimmed,
+        aliases: nextAliases,
+      };
+    });
+    const { error } = await updateSavedNews(updated);
+    if (error) {
+      console.error('Failed to rename saved news:', error.message ?? error);
+      return;
+    }
+    const settingsKey = queryKeys.settings(userId);
+    queryClient.setQueryData(
+      settingsKey,
+      (prev: { saved_news?: unknown; saved_markets?: string[] } | undefined) => ({
+        ...prev,
+        saved_news: updated,
+      })
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -725,6 +856,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   dropdownClassName="z-[100]"
                   defaultSuggestions={settings.saved_markets}
+                  onEditSavedMarket={handleEditSavedMarket}
                 />
               </div>
 
@@ -739,6 +871,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                     customValueLabel="pattern / setup"
                     placeholder="Select or type pattern / setup"
                     dropdownClassName="z-[100]"
+                    onEditSavedOption={handleEditSavedSetup}
                   />
                 </div>
               ) : (
@@ -876,6 +1009,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                       customValueLabel="conditions / liquidity"
                       placeholder="Select or type conditions / liquidity"
                       dropdownClassName="z-[100]"
+                      onEditSavedOption={handleEditSavedLiquidity}
                     />
                   </div>
                 )}
@@ -1190,7 +1324,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               {trade.news_related && (
                 <div className="w-full mt-1 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                   <div className="w-full max-w-[400px] min-w-0">
-                      <NewsCombobox
+                    <NewsCombobox
                       id="news-name"
                       value={trade.news_name ?? ''}
                       onChange={(v) => updateTrade('news_name', v || null)}
@@ -1201,6 +1335,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                       savedNews={settings.saved_news as SavedNewsItem[]}
                       placeholder="e.g. CPI, NFP, FOMC"
                       className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                      onEditSavedNews={handleEditSavedNews}
                     />
                   </div>
                   {/* Star rating 1–3 */}
