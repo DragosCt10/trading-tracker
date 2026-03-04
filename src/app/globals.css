@@ -788,6 +788,13 @@ html.dark[data-color-theme="ice"] {
   box-shadow: 0 0 0 2px color-mix(in oklch, var(--tc-primary) 20%, transparent) !important;
 }
 
+/* Same border/ring as themed-focus — for selected trade card in side view */
+.themed-selected-card {
+  border-color: var(--tc-primary) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--tc-primary) 20%, transparent) !important;
+}
+
 /* ---- Themed live mode badge ---- */
 .themed-badge-live {
   background-color: var(--tc-subtle) !important;
