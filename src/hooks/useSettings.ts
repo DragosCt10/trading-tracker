@@ -10,6 +10,7 @@ interface UseSettingsOptions {
 
 const DEFAULT_SETTINGS: SettingsRow = {
   saved_news: [],
+  saved_markets: [],
 };
 
 export function useSettings({ userId }: UseSettingsOptions) {

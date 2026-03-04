@@ -52,10 +52,11 @@ import { mergeNewsIntoSaved, normalizeNewsName } from '@/utils/newsUtils';
 import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
-import { updateSavedNews } from '@/lib/server/settings';
+import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
 import { updateStrategySetupTypes, updateStrategyLiquidityTypes } from '@/lib/server/strategies';
 import { mergeSetupTypeIntoSaved } from '@/utils/setupUtils';
 import { mergeLiquidityTypeIntoSaved } from '@/utils/liquidityUtils';
+import { mergeMarketIntoSaved } from '@/utils/marketUtils';
 
 /** Kept for any legacy reference; market input uses MarketCombobox + ALLOWED_MARKETS. */
 const MARKET_OPTIONS = ALLOWED_MARKETS;
@@ -480,7 +481,14 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         await updateStrategyLiquidityTypes(currentStrategy.id, userId, updatedLiquidity);
       }
 
-      // Invalidate settings cache (saved_news) and strategies cache (saved_setup_types / saved_liquidity_types)
+      // Save / update market in the user's saved_markets (user_settings, global)
+      if (trade.market?.trim() && userId) {
+        const savedMarkets = Array.isArray(settings.saved_markets) ? settings.saved_markets : [];
+        const updatedMarkets = mergeMarketIntoSaved(trade.market, savedMarkets);
+        await updateSavedMarkets(updatedMarkets);
+      }
+
+      // Invalidate settings cache (saved_news, saved_markets) and strategies cache (saved_setup_types / saved_liquidity_types)
       if (userId) {
         await queryClient.invalidateQueries({ queryKey: queryKeys.settings(userId) });
         await queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userId) });
@@ -690,6 +698,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   placeholder="Type market (e.g. EURUSD, EUR/USD)"
                   className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   dropdownClassName="z-[100]"
+                  defaultSuggestions={settings.saved_markets}
                 />
               </div>
 

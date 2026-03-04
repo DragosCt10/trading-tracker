@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Input } from '@/components/ui/input';
-import { filterAllowedMarkets } from '@/constants/allowedMarkets';
+import { ALLOWED_MARKETS, filterAllowedMarkets } from '@/constants/allowedMarkets';
 import { normalizeMarket } from '@/utils/validateMarket';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +20,8 @@ export interface MarketComboboxProps {
   dropdownClassName?: string;
   id?: string;
   disabled?: boolean;
+  /** When provided (e.g. user_settings.saved_markets), shown first on focus and when typing. Same flow as CommonCombobox defaultSuggestions. */
+  defaultSuggestions?: string[];
 }
 
 export function MarketCombobox({
@@ -31,6 +33,7 @@ export function MarketCombobox({
   dropdownClassName,
   id,
   disabled,
+  defaultSuggestions,
 }: MarketComboboxProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value);
@@ -44,6 +47,36 @@ export function MarketCombobox({
   }, [value]);
 
   const usePortal = Boolean(dropdownClassName);
+
+  // Normalized saved markets (dedupe, keep order) — no cap so users can have as many as they want in the list
+  const normalizedSaved = useMemo(
+    () => Array.from(new Set((defaultSuggestions ?? []).filter(Boolean))),
+    [defaultSuggestions]
+  );
+
+  // Same flow as CommonCombobox: on empty input show defaultSuggestions (saved_markets) first, then allowed; on type filter allowed and put saved matches first
+  const suggestions = useMemo(() => {
+    const q = inputValue.trim().toUpperCase();
+    if (!q) {
+      const allowedSet = new Set(ALLOWED_MARKETS.map((m) => m.toUpperCase()));
+      const savedFirst = normalizedSaved.filter((m) => allowedSet.has(m.toUpperCase()));
+      const rest = ALLOWED_MARKETS.filter((m) => !savedFirst.some((s) => s.toUpperCase() === m.toUpperCase()));
+      return [...savedFirst, ...rest].slice(0, MAX_SUGGESTIONS);
+    }
+    const fromAllowed = filterAllowedMarkets(inputValue, MAX_SUGGESTIONS);
+    const lower = inputValue.trim().toLowerCase();
+    const startsWith: string[] = [];
+    const contains: string[] = [];
+    normalizedSaved.forEach((m) => {
+      const mLower = m.toLowerCase();
+      if (mLower.startsWith(lower)) startsWith.push(m);
+      else if (mLower.includes(lower)) contains.push(m);
+    });
+    const savedMatches = [...startsWith, ...contains];
+    const allowedSet = new Set(fromAllowed.map((x) => x.toUpperCase()));
+    const savedNotInAllowed = savedMatches.filter((m) => !allowedSet.has(m.toUpperCase()));
+    return [...savedNotInAllowed, ...fromAllowed].slice(0, MAX_SUGGESTIONS);
+  }, [inputValue, normalizedSaved]);
 
   // When portaling: measure trigger and position dropdown; update on scroll/resize when open
   useLayoutEffect(() => {
@@ -69,11 +102,6 @@ export function MarketCombobox({
     };
   }, [usePortal, open]);
 
-  const filtered = useMemo(
-    () => filterAllowedMarkets(inputValue, MAX_SUGGESTIONS),
-    [inputValue]
-  );
-
   // Close when clicking outside (custom dropdown avoids Radix focus/portal closing the list)
   // Use capture so we run before other handlers; when target is inside portaled list, don't close
   useEffect(() => {
@@ -98,7 +126,12 @@ export function MarketCombobox({
   };
 
   const hasInput = inputValue.trim().length > 0;
-  const showDropdown = open && hasInput;
+  const showDropdown = open && suggestions.length > 0;
+  const showNoMatch =
+    open &&
+    suggestions.length === 0 &&
+    hasInput &&
+    normalizedSaved.length >= 0;
 
   const handleBlur = () => {
     const normalized = normalizeMarket(inputValue).slice(0, MAX_CHARS);
@@ -127,6 +160,11 @@ export function MarketCombobox({
     setOpen(false);
   };
 
+  const baseDropdownClass =
+    'max-h-60 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm py-1';
+  const noMatchMessage =
+    'No match in list. You can use your typed value if it matches the format (e.g. EURUSD, EUR/USD).';
+
   return (
     <div ref={containerRef} className="relative">
       <Input
@@ -147,40 +185,40 @@ export function MarketCombobox({
       />
       {showDropdown && !usePortal && (
         <div
-          className={cn(
-            'absolute top-full left-0 right-0 z-50 mt-1.5 max-h-60 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm py-1',
-            dropdownClassName
-          )}
+          className={cn('absolute top-full left-0 right-0 z-50 mt-1.5', baseDropdownClass, dropdownClassName)}
           role="listbox"
         >
-          {filtered.length > 0 ? (
-            <ul>
-              {filtered.map((market) => (
-                <li key={market} role="option">
-                  <button
-                    type="button"
-                    className="w-full text-left px-3 py-2.5 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      handleSelect(market);
-                    }}
-                  >
-                    {market}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="px-3 py-4 text-sm text-slate-600 dark:text-slate-300">
-              No match in list. You can use your typed value if it matches the format (e.g. EURUSD, EUR/USD).
-            </div>
+          <ul>
+            {suggestions.map((market) => (
+              <li key={market} role="option">
+                <button
+                  type="button"
+                  className="w-full text-left px-3 py-2.5 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelect(market);
+                  }}
+                >
+                  {market}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {showNoMatch && !usePortal && (
+        <div
+          className={cn(
+            'absolute top-full left-0 right-0 z-50 mt-1.5 max-h-60 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] shadow-lg backdrop-blur-sm py-1 text-sm text-slate-600 dark:text-slate-300 px-3 py-4',
+            dropdownClassName
           )}
+        >
+          {noMatchMessage}
         </div>
       )}
       {showDropdown && usePortal && dropdownRect && typeof document !== 'undefined' &&
         createPortal(
           <>
-            {/* Full-screen layer on top so dropdown stacks above dialog; pointer-events-none so only the list gets clicks */}
             <div
               className="fixed inset-0 z-[9998]"
               style={{ pointerEvents: 'none' }}
@@ -189,8 +227,52 @@ export function MarketCombobox({
             <div
               data-market-combobox-list
               role="listbox"
+              className={cn('fixed z-[9999]', baseDropdownClass, dropdownClassName)}
+              style={{
+                top: dropdownRect.top,
+                left: dropdownRect.left,
+                width: dropdownRect.width,
+                pointerEvents: 'auto',
+              }}
+            >
+              <ul>
+                {suggestions.map((market) => (
+                  <li key={market} role="option">
+                    <button
+                      type="button"
+                      className="w-full text-left px-3 py-2.5 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSelect(market);
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleSelect(market);
+                      }}
+                    >
+                      {market}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </>,
+          document.body
+        )}
+      {showNoMatch && usePortal && dropdownRect && typeof document !== 'undefined' &&
+        createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-[9998]"
+              style={{ pointerEvents: 'none' }}
+              aria-hidden
+            />
+            <div
+              data-market-combobox-list
               className={cn(
-                'fixed max-h-60 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm py-1 z-[9999]',
+                'fixed z-[9999] max-h-60 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] shadow-lg backdrop-blur-sm px-3 py-4 text-sm text-slate-600 dark:text-slate-300',
                 dropdownClassName
               )}
               style={{
@@ -199,35 +281,10 @@ export function MarketCombobox({
                 width: dropdownRect.width,
                 pointerEvents: 'auto',
               }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
             >
-              {filtered.length > 0 ? (
-                <ul>
-                  {filtered.map((market) => (
-                    <li key={market} role="option">
-                      <button
-                        type="button"
-                        className="w-full text-left px-3 py-2.5 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleSelect(market);
-                        }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleSelect(market);
-                        }}
-                      >
-                        {market}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="px-3 py-4 text-sm text-slate-600 dark:text-slate-300">
-                  No match in list. You can use your typed value if it matches the format (e.g. EURUSD, EUR/USD).
-                </div>
-              )}
+              {noMatchMessage}
             </div>
           </>,
           document.body

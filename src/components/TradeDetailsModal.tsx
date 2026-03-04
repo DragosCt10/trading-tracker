@@ -61,10 +61,11 @@ import { mergeNewsIntoSaved, normalizeNewsName } from '@/utils/newsUtils';
 import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
-import { updateSavedNews } from '@/lib/server/settings';
+import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
 import { updateStrategySetupTypes, updateStrategyLiquidityTypes } from '@/lib/server/strategies';
 import { mergeSetupTypeIntoSaved } from '@/utils/setupUtils';
 import { mergeLiquidityTypeIntoSaved } from '@/utils/liquidityUtils';
+import { mergeMarketIntoSaved } from '@/utils/marketUtils';
 
 interface TradeDetailsModalProps {
   trade: Trade | null;
@@ -303,7 +304,14 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         await updateStrategyLiquidityTypes(currentStrategy.id, userId, updatedLiquidity);
       }
 
-      // Invalidate settings cache (saved_news) and strategies cache (saved_setup_types / saved_liquidity_types)
+      // Save / update market in the user's saved_markets (user_settings, global)
+      if (editedTrade.market?.trim() && userId) {
+        const savedMarkets = Array.isArray(settings.saved_markets) ? settings.saved_markets : [];
+        const updatedMarkets = mergeMarketIntoSaved(editedTrade.market, savedMarkets);
+        await updateSavedMarkets(updatedMarkets);
+      }
+
+      // Invalidate settings cache (saved_news, saved_markets) and strategies cache (saved_setup_types / saved_liquidity_types)
       if (userId) {
         await queryClient.invalidateQueries({ queryKey: queryKeys.settings(userId) });
         await queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userId) });
@@ -673,6 +681,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               placeholder="Search or type market (e.g. EURUSD, EUR/USD)"
               className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
               dropdownClassName="z-[100]"
+              defaultSuggestions={settings.saved_markets}
             />
           </div>
         );
