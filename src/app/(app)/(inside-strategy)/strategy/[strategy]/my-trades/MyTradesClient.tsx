@@ -10,15 +10,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, Loader2 } from 'lucide-react';
+import { Eye, Loader2, LayoutGrid, Columns2 } from 'lucide-react';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import { TradeFiltersBar, DateRangeValue } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { getFilteredTrades } from '@/lib/server/trades';
+import { cn } from '@/lib/utils';
 import type { Database } from '@/types/supabase';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
 const ITEMS_PER_LOAD = 12;
+
+type CardViewMode = 'grid-4' | 'grid-2';
 
 type DateRangeState = {
   startDate: string;
@@ -286,6 +289,7 @@ export default function MyTradesClient({
   const [activeFilter, setActiveFilter] = useState<FilterType>('month');
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
   const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'non-executed'>('all');
+  const [cardViewMode, setCardViewMode] = useState<CardViewMode>('grid-4');
   
   // Map executionFilter to TradeFiltersBar's selectedExecution format
   const selectedExecution = useMemo<'all' | 'executed' | 'nonExecuted'>(() => {
@@ -532,8 +536,71 @@ export default function MyTradesClient({
         showAllTradesOption={true}
       />
 
+      {/* View mode toggle + Trade Cards Grid */}
+      <div className="mt-6 flex flex-col gap-4">
+        <div className="flex items-center justify-end gap-1">
+          <span className="text-sm text-slate-500 dark:text-slate-400 mr-2">Cards per row:</span>
+          <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/50 p-0.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => setCardViewMode('grid-2')}
+                  className={cn(
+                    'rounded-md p-2 transition-colors cursor-pointer',
+                    cardViewMode === 'grid-2'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  )}
+                  aria-label="2 cards per row"
+                  aria-pressed={cardViewMode === 'grid-2'}
+                >
+                  <Columns2 className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="bottom"
+                className="max-w-[220px] rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 px-3 py-2"
+              >
+                2 per row
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => setCardViewMode('grid-4')}
+                  className={cn(
+                    'rounded-md p-2 transition-colors cursor-pointer',
+                    cardViewMode === 'grid-4'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  )}
+                  aria-label="4 cards per row"
+                  aria-pressed={cardViewMode === 'grid-4'}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="bottom"
+                className="max-w-[220px] rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 px-3 py-2"
+              >
+                4 per row
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
+
       {/* Trade Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
+      <div
+        className={cn(
+          'grid gap-6',
+          cardViewMode === 'grid-2'
+            ? 'grid-cols-1 sm:grid-cols-2'
+            : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+        )}
+      >
         {!mounted || (filteredTradesLoading && filteredTrades.length === 0) ? (
           // Skeleton loader
           <>
@@ -583,6 +650,7 @@ export default function MyTradesClient({
             )}
           </>
         )}
+      </div>
       </div>
 
       {/* Trade Details Modal */}
