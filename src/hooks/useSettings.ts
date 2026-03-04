@@ -10,8 +10,6 @@ interface UseSettingsOptions {
 
 const DEFAULT_SETTINGS: SettingsRow = {
   saved_news: [],
-  saved_setup_types: [],
-  saved_liquidity_types: [],
 };
 
 export function useSettings({ userId }: UseSettingsOptions) {
