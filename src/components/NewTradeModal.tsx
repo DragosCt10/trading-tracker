@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createTrade } from '@/lib/server/trades';
 import { Trade } from '@/types/trade';
@@ -60,7 +60,6 @@ import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
 import { updateStrategySetupTypes, updateStrategyLiquidityTypes } from '@/lib/server/strategies';
 
-const LIQUIDITY_OPTIONS = ['Major Liquidity', 'Low Liquidity', 'Local Liquidity', 'HOD', 'LOD'];
 const MSS_OPTIONS = ['Normal', 'Aggressive'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 
@@ -157,7 +156,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     setMounted(true);
   }, []);
 
-  const initialTradeState: Trade = {
+  const initialTradeState: Trade = useMemo(() => ({
     trade_screens: ['', '', '', ''],
     trade_time: '',
     trade_date: new Date().toISOString().split('T')[0],
@@ -192,7 +191,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     fvg_size: undefined as any,
     confidence_at_entry: null as number | null,
     mind_state_at_entry: 3, // Preselect Neutral so user sees the scale (1–5) like Confidence
-  };
+  }), [selection.mode]);
 
   const [trade, setTrade] = useState<Trade>(() => {
     if (typeof window !== 'undefined') {
@@ -259,7 +258,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   };
 
   // Helper function to invalidate and refetch ALL queries (ensures analytics updates)
-  const invalidateAndRefetchTradeQueries = async () => {
+  const invalidateAndRefetchTradeQueries = useCallback(async () => {
     // Signal strategy page to skip re-hydrating from stale initialData (so calendar/list show new trade)
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
@@ -318,7 +317,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     
     // Also refetch any other active queries to catch edge cases
     await queryClient.refetchQueries({ type: 'active' });
-  };
+  }, [selection.mode, selection.activeAccount?.id, userId, trade.strategy_id, queryClient]);
 
   // keep weekday + quarter in sync when the committed date changes
   useEffect(() => {
@@ -369,7 +368,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     return () => clearTimeout(t);
   }, [error]);
 
-  const handleEditSavedMarket = async (oldName: string, newName: string) => {
+  const handleEditSavedMarket = useCallback(async (oldName: string, newName: string) => {
     if (!userId) return;
     const saved = Array.isArray(settings.saved_markets) ? settings.saved_markets : [];
     const normalize = (m: string) => m.trim().toUpperCase();
@@ -398,9 +397,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         saved_markets: next,
       })
     );
-  };
+  }, [userId, settings.saved_markets, queryClient]);
 
-  const handleEditSavedSetup = async (oldName: string, newName: string) => {
+  const handleEditSavedSetup = useCallback(async (oldName: string, newName: string) => {
     if (!userId || !currentStrategy) return;
     const current = currentStrategy.saved_setup_types ?? [];
     const normalize = (s: string) => s.trim().toLowerCase();
@@ -432,9 +431,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         );
       }
     );
-  };
+  }, [userId, currentStrategy, queryClient]);
 
-  const handleEditSavedLiquidity = async (oldName: string, newName: string) => {
+  const handleEditSavedLiquidity = useCallback(async (oldName: string, newName: string) => {
     if (!userId || !currentStrategy) return;
     const current = currentStrategy.saved_liquidity_types ?? [];
     const normalize = (s: string) => s.trim().toLowerCase();
@@ -466,9 +465,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         );
       }
     );
-  };
+  }, [userId, currentStrategy, queryClient]);
 
-  const handleEditSavedNews = async (item: SavedNewsItem, newName: string) => {
+  const handleEditSavedNews = useCallback(async (item: SavedNewsItem, newName: string) => {
     if (!userId) return;
     const saved = Array.isArray(settings.saved_news) ? (settings.saved_news as SavedNewsItem[]) : [];
     const trimmed = newName.trim();
@@ -498,9 +497,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         saved_news: updated,
       })
     );
-  };
+  }, [userId, settings.saved_news, queryClient]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -653,7 +652,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       setError(err?.message ?? 'Failed to create trade. Please check your data and try again.');
       setIsSubmitting(false);
     }
-  };
+  }, [trade, hasCard, hasAnyExtraCard, selection, signedProfit, pnlPercentage, userId, settings, currentStrategy, queryClient, invalidateAndRefetchTradeQueries, initialTradeState, onTradeCreated, onClose]);
 
   if (!mounted || !isOpen) return null;
 
