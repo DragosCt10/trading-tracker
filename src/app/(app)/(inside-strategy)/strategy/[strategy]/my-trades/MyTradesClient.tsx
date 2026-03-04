@@ -648,27 +648,29 @@ export default function MyTradesClient({
 
       {/* Split View */}
       {cardViewMode === 'split' ? (
-        <div className="flex rounded-xl border border-slate-200/60 dark:border-slate-700/50 overflow-hidden h-[calc(100vh-280px)] min-h-[500px]">
-          {/* Left: scrollable card list */}
-          <div className="w-72 flex-shrink-0 overflow-y-auto border-r border-slate-200/60 dark:border-slate-700/50 bg-slate-50/30 dark:bg-slate-900/20">
+        <div className="flex flex-col md:flex-row rounded-xl border border-slate-200/60 dark:border-slate-700/50 overflow-hidden md:h-[calc(100vh-100px)] md:min-h-[700px]">
+          {/* Cards: horizontal scroll on mobile, vertical list on desktop */}
+          <div className="flex-shrink-0 h-[340px] md:h-auto md:w-80 overflow-x-auto overflow-y-hidden md:overflow-x-hidden md:overflow-y-auto border-b md:border-b-0 md:border-r border-slate-200/60 dark:border-slate-700/50 bg-slate-50/30 dark:bg-slate-900/20">
             {!mounted || (filteredTradesLoading && filteredTrades.length === 0) ? (
-              <div className="p-3 space-y-3">
+              <div className="flex md:flex-col gap-3 p-3 h-full">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <Card key={`skeleton-split-${i}`} className="relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
-                    <div className="p-3">
-                      <Skeleton className="aspect-video w-full rounded-lg" />
-                    </div>
-                    <CardContent className="px-5 pb-5 pt-0">
-                      <div className="flex items-center justify-between mb-4">
-                        <Skeleton className="h-7 w-24" />
-                        <Skeleton className="h-6 w-16 rounded-full" />
+                  <div key={`skeleton-split-${i}`} className="w-64 md:w-auto flex-shrink-0 md:flex-shrink">
+                    <Card className="relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+                      <div className="p-3">
+                        <Skeleton className="aspect-video w-full rounded-lg" />
                       </div>
-                      <div className="space-y-2.5">
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-4 w-24" />
-                      </div>
-                    </CardContent>
-                  </Card>
+                      <CardContent className="px-5 pb-5 pt-0">
+                        <div className="flex items-center justify-between mb-4">
+                          <Skeleton className="h-7 w-24" />
+                          <Skeleton className="h-6 w-16 rounded-full" />
+                        </div>
+                        <div className="space-y-2.5">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 ))}
               </div>
             ) : displayedTrades.length === 0 ? (
@@ -676,23 +678,24 @@ export default function MyTradesClient({
                 No trades found for the selected period.
               </div>
             ) : (
-              <div className="p-3 space-y-2">
+              <div className="flex md:flex-col gap-2 p-3 h-full md:h-auto">
                 {displayedTrades.map((trade) => (
-                  <TradeCard
-                    key={trade.id}
-                    trade={trade}
-                    onOpenModal={() => {}}
-                    hideDetailsLink
-                    isSelected={selectedTrade?.id === trade.id}
-                    onSelect={(t) => setSelectedTrade(t)}
-                  />
+                  <div key={trade.id} className="w-64 md:w-auto flex-shrink-0 md:flex-shrink">
+                    <TradeCard
+                      trade={trade}
+                      onOpenModal={() => {}}
+                      hideDetailsLink
+                      isSelected={selectedTrade?.id === trade.id}
+                      onSelect={(t) => setSelectedTrade(t)}
+                    />
+                  </div>
                 ))}
                 {hasMore && (
-                  <div ref={observerTarget} className="flex justify-center py-2">
+                  <div ref={observerTarget} className="flex items-center justify-center px-2 md:py-2 flex-shrink-0">
                     {filteredTradesFetching ? (
                       <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
                     ) : (
-                      <div className="h-4" />
+                      <div className="h-4 w-4" />
                     )}
                   </div>
                 )}
@@ -700,8 +703,8 @@ export default function MyTradesClient({
             )}
           </div>
 
-          {/* Right: inline details panel */}
-          <div className="flex-1 flex flex-col overflow-hidden bg-white/50 dark:bg-slate-900/10">
+          {/* Details panel: takes remaining space, interior scroll on mobile */}
+          <div className="flex-1 flex flex-col min-h-[600px] md:min-h-0 overflow-y-auto overflow-x-auto md:overflow-hidden bg-white/50 dark:bg-slate-900/10">
             {liveSelectedTrade ? (
               <TradeDetailsPanel
                 trade={liveSelectedTrade}
