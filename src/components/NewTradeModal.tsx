@@ -875,11 +875,21 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
             {/* Outcome + conditioned fields from extra cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-4">
+              {/* Trade Outcome (now one item in the shared grid) */}
               <div className="space-y-4">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Trade Outcome *</Label>
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Trade Outcome *
+                </Label>
                 <Select
                   value={trade.trade_outcome}
-                  onValueChange={(v) => setTrade(prev => ({ ...prev, trade_outcome: v, break_even: v === 'BE', be_final_result: v === 'BE' ? prev.be_final_result : null }))}
+                  onValueChange={(v) =>
+                    setTrade((prev) => ({
+                      ...prev,
+                      trade_outcome: v,
+                      break_even: v === 'BE',
+                      be_final_result: v === 'BE' ? prev.be_final_result : null,
+                    }))
+                  }
                 >
                   <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
                     <SelectValue placeholder="Select Trade Outcome" />
@@ -898,7 +908,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                     </Label>
                     <Select
                       value={trade.be_final_result ?? '__none__'}
-                      onValueChange={(v) => updateTrade('be_final_result', v === '__none__' ? null : v)}
+                      onValueChange={(v) =>
+                        updateTrade('be_final_result', v === '__none__' ? null : v)
+                      }
                     >
                       <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
                         <SelectValue placeholder="Win or Lose at close" />
@@ -910,61 +922,89 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      How did this trade end after moving to break even? (e.g. closed in profit = Win, stopped out = Lose)
+                      How did this trade end after moving to break even? (e.g. closed in profit =
+                      Win, stopped out = Lose)
                     </p>
                   </div>
                 )}
+              </div>
 
-                {/* Left column: under MSS → next visible hasCard field, then next under that, etc. */}
-                {hasCard('mss_stats') && (
-                  <div className="space-y-2">
-                    <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">MSS *</Label>
-                    <Select value={trade.mss} onValueChange={(v) => updateTrade('mss', v)}>
-                      <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                        <SelectValue placeholder="Select MSS" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MSS_OPTIONS.map((m) => (
-                          <SelectItem key={m} value={m}>{m}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                {hasCard('fvg_size') && (
-                  <div className="space-y-2">
-                    <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">FVG Size</Label>
-                    <Select
-                      value={
-                        trade.fvg_size == null || trade.fvg_size === undefined
-                          ? ''
-                          : FVG_SIZE_PRESET_VALUES.includes(trade.fvg_size)
-                            ? String(trade.fvg_size)
-                            : 'custom'
+              {/* All hasCard-conditioned fields now share this same parent grid so rows realign automatically when cards are enabled/disabled. */}
+              {hasCard('setup_stats') && (
+                <div className="space-y-2">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Pattern / Setup *
+                  </Label>
+                  <CommonCombobox
+                    id="setup-type"
+                    value={trade.setup_type ?? ''}
+                    onChange={(v) => updateTrade('setup_type', v as any)}
+                    options={setupOptions}
+                    customValueLabel="pattern / setup"
+                    placeholder="Select or type pattern / setup"
+                    dropdownClassName="z-[100]"
+                    onEditSavedOption={handleEditSavedSetup}
+                  />
+                </div>
+              )}
+
+              {hasCard('mss_stats') && (
+                <div className="space-y-2">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    MSS *
+                  </Label>
+                  <Select value={trade.mss} onValueChange={(v) => updateTrade('mss', v)}>
+                    <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                      <SelectValue placeholder="Select MSS" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MSS_OPTIONS.map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {m}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {hasCard('fvg_size') && (
+                <div className="space-y-2">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    FVG Size
+                  </Label>
+                  <Select
+                    value={
+                      trade.fvg_size == null || trade.fvg_size === undefined
+                        ? ''
+                        : FVG_SIZE_PRESET_VALUES.includes(trade.fvg_size)
+                        ? String(trade.fvg_size)
+                        : 'custom'
+                    }
+                    onValueChange={(v) => {
+                      if (v === 'custom') {
+                        updateTrade('fvg_size', FVG_SIZE_CUSTOM_MIN);
+                      } else if (v === '') {
+                        updateTrade('fvg_size', undefined as any);
+                      } else {
+                        updateTrade('fvg_size', Number(v));
                       }
-                      onValueChange={(v) => {
-                        if (v === 'custom') {
-                          updateTrade('fvg_size', FVG_SIZE_CUSTOM_MIN);
-                        } else if (v === '') {
-                          updateTrade('fvg_size', undefined as any);
-                        } else {
-                          updateTrade('fvg_size', Number(v));
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                        <SelectValue placeholder="Select FVG Size" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FVG_SIZE_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={String(opt.value)}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="custom">Custom (3+)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {trade.fvg_size != null && !FVG_SIZE_PRESET_VALUES.includes(trade.fvg_size) && (
+                    }}
+                  >
+                    <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                      <SelectValue placeholder="Select FVG Size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FVG_SIZE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={String(opt.value)}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="custom">Custom (3+)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {trade.fvg_size != null &&
+                    !FVG_SIZE_PRESET_VALUES.includes(trade.fvg_size) && (
                       <div className="pt-1">
                         <Input
                           type="number"
@@ -979,79 +1019,75 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                               return;
                             }
                             const snapped = snapToHalfStep(raw);
-                            const clamped = snapped < FVG_SIZE_CUSTOM_MIN ? FVG_SIZE_CUSTOM_MIN : snapped;
+                            const clamped =
+                              snapped < FVG_SIZE_CUSTOM_MIN ? FVG_SIZE_CUSTOM_MIN : snapped;
                             updateTrade('fvg_size', clamped);
                           }}
                           onBlur={(e) => {
                             const raw = parseFloat(e.target.value);
                             if (Number.isNaN(raw) || raw < FVG_SIZE_CUSTOM_MIN) {
-                              updateTrade('fvg_size', trade.fvg_size != null && trade.fvg_size >= FVG_SIZE_CUSTOM_MIN ? trade.fvg_size : FVG_SIZE_CUSTOM_MIN);
+                              updateTrade(
+                                'fvg_size',
+                                trade.fvg_size != null && trade.fvg_size >= FVG_SIZE_CUSTOM_MIN
+                                  ? trade.fvg_size
+                                  : FVG_SIZE_CUSTOM_MIN,
+                              );
                               return;
                             }
                             const snapped = snapToHalfStep(raw);
-                            const clamped = snapped < FVG_SIZE_CUSTOM_MIN ? FVG_SIZE_CUSTOM_MIN : snapped;
+                            const clamped =
+                              snapped < FVG_SIZE_CUSTOM_MIN ? FVG_SIZE_CUSTOM_MIN : snapped;
                             updateTrade('fvg_size', clamped);
                           }}
                           className="h-10 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 themed-focus text-slate-900 dark:text-slate-50"
                           placeholder="e.g. 3.5, 4, 4.5 (0.5 steps only)"
                         />
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          Only 0.5 steps from 3.5 onward (e.g. 3.5, 4, 4.5). Values are rounded to nearest 0.5.
+                          Only 0.5 steps from 3.5 onward (e.g. 3.5, 4, 4.5). Values are rounded to
+                          nearest 0.5.
                         </p>
                       </div>
                     )}
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* Right column: Conditions/Liquidity → Displacement → Pattern/Setup (and any further hasCard fields stacked below) */}
-              <div className="space-y-4">
-                {hasCard('liquidity_stats') && (
-                  <div className="space-y-2">
-                    <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Conditions / Liquidity *</Label>
-                    <CommonCombobox
-                      id="liquidity"
-                      value={trade.liquidity ?? ''}
-                      onChange={(v) => updateTrade('liquidity', v)}
-                      options={liquidityOptions}
-                      defaultSuggestions={['HOD', 'LOD']}
-                      customValueLabel="conditions / liquidity"
-                      placeholder="Select or type conditions / liquidity"
-                      dropdownClassName="z-[100]"
-                      onEditSavedOption={handleEditSavedLiquidity}
-                    />
-                  </div>
-                )}
-                {(hasCard('displacement_size') || hasCard('avg_displacement')) && (
-                  <div className="space-y-2">
-                    <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Displacement Size (Points)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      inputMode="decimal"
-                      value={String(trade.displacement_size ?? '')}
-                      onChange={(e) => updateTrade('displacement_size', parseFloat(e.target.value) || 0)}
-                      className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                      placeholder="Displacement"
-                    />
-                  </div>
-                )}
-                {hasCard('setup_stats') && (
-                  <div className="space-y-2">
-                    <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Pattern / Setup *</Label>
-                    <CommonCombobox
-                      id="setup-type"
-                      value={trade.setup_type ?? ''}
-                      onChange={(v) => updateTrade('setup_type', v as any)}
-                      options={setupOptions}
-                      customValueLabel="pattern / setup"
-                      placeholder="Select or type pattern / setup"
-                      dropdownClassName="z-[100]"
-                      onEditSavedOption={handleEditSavedSetup}
-                    />
-                  </div>
-                )}
-              </div>
+              {hasCard('liquidity_stats') && (
+                <div className="space-y-2">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Conditions / Liquidity *
+                  </Label>
+                  <CommonCombobox
+                    id="liquidity"
+                    value={trade.liquidity ?? ''}
+                    onChange={(v) => updateTrade('liquidity', v)}
+                    options={liquidityOptions}
+                    defaultSuggestions={['HOD', 'LOD']}
+                    customValueLabel="conditions / liquidity"
+                    placeholder="Select or type conditions / liquidity"
+                    dropdownClassName="z-[100]"
+                    onEditSavedOption={handleEditSavedLiquidity}
+                  />
+                </div>
+              )}
+
+              {(hasCard('displacement_size') || hasCard('avg_displacement')) && (
+                <div className="space-y-2">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Displacement Size (Points)
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={String(trade.displacement_size ?? '')}
+                    onChange={(e) =>
+                      updateTrade('displacement_size', parseFloat(e.target.value) || 0)
+                    }
+                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                    placeholder="Displacement"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Risk Management Section */}
