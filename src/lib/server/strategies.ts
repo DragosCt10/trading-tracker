@@ -419,6 +419,46 @@ export async function getInactiveStrategies(userId: string): Promise<Strategy[]>
 }
 
 /**
+ * Updates the saved setup types for a specific strategy.
+ */
+export async function updateStrategySetupTypes(
+  strategyId: string,
+  userId: string,
+  types: string[]
+): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('strategies')
+    .update({ saved_setup_types: types, updated_at: new Date().toISOString() })
+    .eq('id', strategyId)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error updating strategy setup types:', error);
+  }
+}
+
+/**
+ * Updates the saved liquidity types for a specific strategy.
+ */
+export async function updateStrategyLiquidityTypes(
+  strategyId: string,
+  userId: string,
+  types: string[]
+): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('strategies')
+    .update({ saved_liquidity_types: types, updated_at: new Date().toISOString() })
+    .eq('id', strategyId)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error updating strategy liquidity types:', error);
+  }
+}
+
+/**
  * Reactivates a strategy by setting is_active to true.
  */
 export async function reactivateStrategy(
