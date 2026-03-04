@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { Trade } from '@/types/trade';
 import { deleteTrade, updateTrade } from '@/lib/server/trades';
@@ -19,6 +19,15 @@ const selectTriggerClass =
 const selectContentClass =
   'z-[100] max-h-56 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm';
 const labelClass = 'block text-sm font-semibold text-slate-700 dark:text-slate-300';
+
+// Static options for Potential RR (1 – 10 or 10+)
+const POTENTIAL_RR_OPTIONS: { value: number; label: string }[] = [
+  ...Array.from({ length: 19 }, (_, i) => {
+    const v = 1 + i * 0.5;
+    return { value: v, label: String(v) };
+  }),
+  { value: 10.5, label: '10+' },
+];
 
 // shadcn UI components
 import { Button } from "@/components/ui/button";
@@ -105,6 +114,13 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     }
   }, [editedTrade?.id]);
 
+  // Sync editedTrade when trade prop changes (when not editing)
+  useEffect(() => {
+    if (trade && !isEditing && trade !== editedTrade) {
+      setEditedTrade(trade);
+    }
+  }, [trade, isEditing]);
+
   // Auto-dismiss error after 5 seconds
   useEffect(() => {
     if (!error) return;
@@ -113,7 +129,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   }, [error]);
 
   // Helper: invalidate and refetch trade queries (same pattern as NewTradeModal)
-  const invalidateAndRefetchTradeQueries = async () => {
+  const invalidateAndRefetchTradeQueries = useCallback(async () => {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
     }
@@ -132,25 +148,26 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       );
     }});
     await queryClient.refetchQueries({ type: 'active' });
-  };
+  }, [queryClient]);
 
   const MSS_OPTIONS = ['Normal', 'Aggressive'];
   const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
   const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const TREND_OPTIONS = ['Trend-following', 'Counter-trend'];
 
-  const setupOptions = currentStrategy?.saved_setup_types ?? [];
-  const liquidityOptions = Array.from(new Set(['HOD', 'LOD', ...(currentStrategy?.saved_liquidity_types ?? [])]));
+  const setupOptions = useMemo(() => currentStrategy?.saved_setup_types ?? [], [currentStrategy?.saved_setup_types]);
+  const liquidityOptions = useMemo(
+    () => Array.from(new Set(['HOD', 'LOD', ...(currentStrategy?.saved_liquidity_types ?? [])])),
+    [currentStrategy?.saved_liquidity_types]
+  );
+
+  const strategyName = useMemo(
+    () => strategies.find((s) => s.id === editedTrade?.strategy_id)?.name ?? '—',
+    [strategies, editedTrade?.strategy_id]
+  );
 
   const snapToHalfStep = (num: number) => Math.round(num * 2) / 2;
 
-  const POTENTIAL_RR_OPTIONS: { value: number; label: string }[] = [
-    ...Array.from({ length: 19 }, (_, i) => {
-      const v = 1 + i * 0.5;
-      return { value: v, label: String(v) };
-    }),
-    { value: 10.5, label: '10+' },
-  ];
   const formatPotentialRR = (val: number | undefined | null): string => {
     if (val == null || Number.isNaN(Number(val))) return '—';
     const n = Number(val);
@@ -159,12 +176,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
 
   if (!trade) return null;
 
-  // Update editedTrade when trade changes
-  if (trade !== editedTrade && !isEditing) {
-    setEditedTrade(trade);
-  }
-
-  const handleInputChange = (field: keyof Trade, value: any) => {
+  const handleInputChange = useCallback((field: keyof Trade, value: any) => {
     if (!editedTrade) return;
 
     if (field === 'risk_per_trade' || field === 'risk_reward_ratio' || field === 'trade_outcome') {
@@ -203,9 +215,9 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         [field]: value
       });
     }
-  };
+  }, [editedTrade, selection.activeAccount?.account_balance]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!editedTrade || !editedTrade.id) return;
     setError(null);
 
@@ -274,6 +286,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       let updatedLiquidity: string[] | undefined;
       let updatedMarkets: string[] | undefined;
 
+      // Run independent saved-data updates in parallel
+      const savePromises: Promise<void>[] = [];
       if (editedTrade.news_related && editedTrade.news_name?.trim() && userId) {
         const savedNews = Array.isArray(settings.saved_news) ? settings.saved_news : [];
         updatedNews = mergeNewsIntoSaved(
@@ -281,30 +295,28 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
           editedTrade.news_intensity ?? null,
           savedNews
         );
-        await updateSavedNews(updatedNews);
+        savePromises.push(updateSavedNews(updatedNews));
       }
-
       if (editedTrade.setup_type?.trim() && userId && currentStrategy) {
         updatedSetups = mergeSetupTypeIntoSaved(
           editedTrade.setup_type,
           currentStrategy.saved_setup_types ?? []
         );
-        await updateStrategySetupTypes(currentStrategy.id, userId, updatedSetups);
+        savePromises.push(updateStrategySetupTypes(currentStrategy.id, userId, updatedSetups));
       }
-
       if (editedTrade.liquidity?.trim() && userId && currentStrategy) {
         updatedLiquidity = mergeLiquidityTypeIntoSaved(
           editedTrade.liquidity,
           currentStrategy.saved_liquidity_types ?? []
         );
-        await updateStrategyLiquidityTypes(currentStrategy.id, userId, updatedLiquidity);
+        savePromises.push(updateStrategyLiquidityTypes(currentStrategy.id, userId, updatedLiquidity));
       }
-
       if (editedTrade.market?.trim() && userId) {
         const savedMarkets = Array.isArray(settings.saved_markets) ? settings.saved_markets : [];
         updatedMarkets = mergeMarketIntoSaved(editedTrade.market, savedMarkets);
-        await updateSavedMarkets(updatedMarkets);
+        savePromises.push(updateSavedMarkets(updatedMarkets));
       }
+      await Promise.all(savePromises);
 
       if (userId) {
         const settingsKey = queryKeys.settings(userId);
@@ -337,13 +349,26 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       setIsSaving(false);
       // In inline/split mode, stay on the panel after saving; in modal mode, close
       if (!inlineMode) onClose();
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to save trade. Please try again.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save trade. Please try again.';
+      setError(message);
       setIsSaving(false);
     }
-  };
+  }, [
+    editedTrade,
+    selection.mode,
+    currentStrategy,
+    settings.saved_news,
+    settings.saved_markets,
+    userId,
+    queryClient,
+    invalidateAndRefetchTradeQueries,
+    onTradeUpdated,
+    onClose,
+    inlineMode,
+  ]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!trade || !trade.id) return;
     setShowDeleteConfirm(false);
     setError(null);
@@ -364,12 +389,13 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       setIsDeleting(false);
       if (onTradeUpdated) onTradeUpdated();
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setShowDeleteConfirm(false);
-      setError(err?.message ?? 'Failed to delete trade. Please try again.');
+      const message = err instanceof Error ? err.message : 'Failed to delete trade. Please try again.';
+      setError(message);
       setIsDeleting(false);
     }
-  };
+  }, [trade, selection.mode, invalidateAndRefetchTradeQueries, onTradeUpdated, onClose]);
 
   const renderStatusBadge = (value: boolean | string) => {
     const isActive = typeof value === 'boolean' ? value : value === 'Yes';
@@ -830,8 +856,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               <div className="max-w-[200px]">
                 <div className="text-right">
                   <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Strategy</span>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate" title={strategies.find((s) => s.id === editedTrade?.strategy_id)?.name ?? '—'}>
-                    {strategies.find((s) => s.id === editedTrade?.strategy_id)?.name ?? '—'}
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate" title={strategyName}>
+                    {strategyName}
                   </p>
                 </div>
               </div>
@@ -856,6 +882,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
 
       {/* Scrollable content */}
       <div className="relative overflow-y-auto flex-1 px-6 py-5">
+        <TooltipProvider>
         <div className="space-y-6">
           {/* Trade Outcome Card - Prominent Display */}
           <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-6">
@@ -1176,10 +1203,14 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                         Trade Screen {i + 1}
                       </label>
                       <a href={url} target="_blank" rel="noopener noreferrer" className="block group">
-                        <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300">
+                        <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300 aspect-video min-h-64">
                           <img
                             src={url}
                             alt={`Trade Screen ${i + 1}`}
+                            width={640}
+                            height={360}
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
@@ -1290,18 +1321,16 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5">
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Confidence</p>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-3.5 w-3.5 cursor-help text-slate-400 dark:text-slate-500 shrink-0" />
-                      </TooltipTrigger>
-                      <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
-                        <p className="text-xs text-slate-600 dark:text-slate-400">
-                          How sure were you in this trade? From &quot;not at all&quot; to &quot;very confident&quot; in the setup and your decision. Helps you spot overconfidence or doubt when you review later.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3.5 w-3.5 cursor-help text-slate-400 dark:text-slate-500 shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        How sure were you in this trade? From &quot;not at all&quot; to &quot;very confident&quot; in the setup and your decision. Helps you spot overconfidence or doubt when you review later.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {[1, 2, 3, 4, 5].map((value) => (
@@ -1331,18 +1360,16 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5">
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Mind state</p>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-3.5 w-3.5 cursor-help text-slate-400 dark:text-slate-500 shrink-0" />
-                      </TooltipTrigger>
-                      <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
-                        <p className="text-xs text-slate-600 dark:text-slate-400">
-                          How were you when you entered? e.g. calm, focused, stressed, fearful, impatient. 1 = very poor state, 5 = very good state. Helps you see how your state matched the outcome.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3.5 w-3.5 cursor-help text-slate-400 dark:text-slate-500 shrink-0" />
+                    </TooltipTrigger>
+                    <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        How were you when you entered? e.g. calm, focused, stressed, fearful, impatient. 1 = very poor state, 5 = very good state. Helps you see how your state matched the outcome.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {[1, 2, 3, 4, 5].map((value) => (
@@ -1460,6 +1487,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             )}
           </div>
         </div>
+        </TooltipProvider>
       </div>
     </>
   );
