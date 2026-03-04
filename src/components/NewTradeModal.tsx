@@ -619,9 +619,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                   id="need-more-screens"
                   checked={showExtraScreens}
                   onCheckedChange={(checked) => setShowExtraScreens(!!checked)}
-                  className="themed-checkbox"
+                  className="themed-checkbox h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 transition-colors duration-150 data-[state=checked]:!text-white"
                 />
-                <Label htmlFor="need-more-screens" className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+                <Label htmlFor="need-more-screens" className="text-sm font-normal cursor-pointer text-slate-700 dark:text-slate-300 select-none">
                   Need more?
                 </Label>
               </div>
