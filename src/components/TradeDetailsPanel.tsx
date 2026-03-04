@@ -1316,7 +1316,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               className="min-h-[320px] shadow-sm bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-200/60 dark:border-slate-600 disabled:!opacity-100 themed-focus transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100 disabled:cursor-not-allowed read-only:cursor-default"
               placeholder="Add your trade notes here..."
             />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/60 dark:border-slate-600 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50">
               {/* Confidence */}
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5">
@@ -1339,9 +1339,9 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                       type="button"
                       disabled={!isEditing}
                       onClick={() => handleInputChange('confidence_at_entry', value)}
-                      className={`min-w-[2.25rem] px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed ${
+                      className={`min-w-[2.25rem] px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden ${
                         editedTrade?.confidence_at_entry === value
-                          ? 'themed-header-icon-box shadow-sm'
+                          ? 'themed-rating-active'
                           : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                       }`}
                       title={['Very low', 'Low', 'Neutral', 'Good', 'Very confident'][value - 1]}
@@ -1378,9 +1378,9 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                       type="button"
                       disabled={!isEditing}
                       onClick={() => handleInputChange('mind_state_at_entry', value)}
-                      className={`min-w-[2.25rem] px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed ${
+                      className={`min-w-[2.25rem] px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden ${
                         editedTrade?.mind_state_at_entry === value
-                          ? 'themed-header-icon-box shadow-sm'
+                          ? 'themed-rating-active'
                           : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                       }`}
                       title={['Very poor', 'Poor', 'Neutral', 'Good', 'Very good'][value - 1]}
