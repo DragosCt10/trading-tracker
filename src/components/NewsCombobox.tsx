@@ -5,6 +5,7 @@ import * as fuzz from 'fuzzball';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { SavedNewsItem } from '@/types/account-settings';
+import { Pencil, Loader2 } from 'lucide-react';
 
 const MAX_SUGGESTIONS = 8;
 const FILTER_THRESHOLD = 30; // loose threshold while typing
@@ -32,6 +33,8 @@ export interface NewsComboboxProps {
   id?: string;
   /** Max characters allowed (default NEWS_INPUT_MAX_LENGTH). */
   maxLength?: number;
+  /** Optional callback when a saved news item is renamed from the suggestions list. */
+  onEditSavedNews?: (item: SavedNewsItem, newName: string) => Promise<void> | void;
 }
 
 export function NewsCombobox({
@@ -43,11 +46,15 @@ export function NewsCombobox({
   className,
   id,
   maxLength = NEWS_INPUT_MAX_LENGTH,
+  onEditSavedNews,
 }: NewsComboboxProps) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Keep internal value in sync with parent
   const inputValue = value;
@@ -98,6 +105,7 @@ export function NewsCombobox({
   };
 
   const handleBlur = () => {
+    if (editingId) return;
     blurTimeoutRef.current = setTimeout(() => setOpen(false), 180);
   };
 
@@ -114,6 +122,35 @@ export function NewsCombobox({
     onSelect(item);
     setOpen(false);
     setActiveIndex(-1);
+  };
+
+  const startEditNews = (item: SavedNewsItem) => {
+    setEditingId(item.id);
+    setEditingValue(item.name);
+  };
+
+  const cancelEditNews = () => {
+    setEditingId(null);
+    setEditingValue('');
+  };
+
+  const saveEditNews = async (item: SavedNewsItem) => {
+    const trimmed = editingValue.trim();
+    if (!trimmed || trimmed === item.name || isSavingEdit) return;
+
+    try {
+      setIsSavingEdit(true);
+      if (onEditSavedNews) {
+        await onEditSavedNews(item, trimmed);
+      }
+      // If the current input was exactly this name, reflect the new name
+      if (value === item.name) {
+        onChange(trimmed);
+      }
+      cancelEditNews();
+    } finally {
+      setIsSavingEdit(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -169,22 +206,86 @@ export function NewsCombobox({
         >
           {suggestions.map((item, idx) => (
             <li key={item.id} role="option" aria-selected={idx === activeIndex}>
-              <button
-                type="button"
-                className={cn(
-                  'w-full flex items-center gap-2 text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150',
-                  idx === activeIndex
-                    ? 'bg-slate-100 dark:bg-slate-800'
-                    : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-                )}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  handleSelect(item);
-                }}
-              >
-                <span className="flex-1 truncate">{item.name}</span>
-                <StarsIndicator intensity={item.intensity} />
-              </button>
+              {editingId === item.id ? (
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <Input
+                    type="text"
+                    value={editingValue}
+                    autoFocus
+                    maxLength={maxLength}
+                    onChange={(e) => setEditingValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        void saveEditNews(item);
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        cancelEditNews();
+                      }
+                    }}
+                    className="h-8 flex-1 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/60 text-xs"
+                  />
+                  <button
+                    type="button"
+                    className="px-2 py-1 text-xs rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      cancelEditNews();
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="px-3 py-1 text-xs rounded-full text-white font-semibold themed-btn-primary cursor-pointer disabled:opacity-60 shadow-sm"
+                    disabled={
+                      isSavingEdit ||
+                      !editingValue.trim() ||
+                      editingValue.trim() === item.name
+                    }
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      void saveEditNews(item);
+                    }}
+                  >
+                    <span className="flex items-center gap-1">
+                      {isSavingEdit && <Loader2 className="h-3 w-3 animate-spin" />}
+                      {isSavingEdit ? 'Saving...' : 'Save'}
+                    </span>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className={cn(
+                    'w-full flex items-center gap-2 text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150',
+                    idx === activeIndex
+                      ? 'bg-slate-100 dark:bg-slate-800'
+                      : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                  )}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelect(item);
+                  }}
+                >
+                  <span className="flex-1 truncate">{item.name}</span>
+                  {onEditSavedNews && (
+                    <span
+                      role="button"
+                      aria-label="Edit saved news"
+                      className="inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-700"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        startEditNews(item);
+                      }}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </span>
+                  )}
+                  <StarsIndicator intensity={item.intensity} />
+                </button>
+              )}
             </li>
           ))}
         </ul>
