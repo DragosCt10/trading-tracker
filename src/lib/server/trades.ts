@@ -8,6 +8,17 @@ import { getAccountsForMode } from '@/lib/server/accounts';
 import { calculateRRStats } from '@/utils/calculateRMultiple';
  
 /**
+ * Normalizes trade_screens from DB. Falls back to legacy trade_link / liquidity_taken
+ * columns for rows not yet migrated.
+ */
+function normalizeTradeScreens(raw: unknown, fallbackLink?: string, fallbackLiq?: string): string[] {
+  if (Array.isArray(raw) && raw.length > 0) {
+    return [raw[0] ?? '', raw[1] ?? '', raw[2] ?? '', raw[3] ?? ''];
+  }
+  return [fallbackLink ?? '', fallbackLiq ?? '', '', ''];
+}
+
+/**
  * Maps Supabase trade data to Trade type
  */
 function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
@@ -16,8 +27,7 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
     user_id: trade.user_id,
     account_id: trade.account_id,
     mode: mode,
-    trade_link: trade.trade_link,
-    liquidity_taken: trade.liquidity_taken,
+    trade_screens: normalizeTradeScreens(trade.trade_screens, trade.trade_link, trade.liquidity_taken),
     trade_time: trade.trade_time,
     trade_date: trade.trade_date,
     day_of_week: trade.day_of_week,
@@ -205,6 +215,9 @@ export async function createTrade(params: {
   };
   // Omit columns not present in DB schema (add migration if you add trade_executed_at to DB)
   delete row.trade_executed_at;
+  // Remove legacy URL columns (superseded by trade_screens JSONB)
+  delete row.trade_link;
+  delete row.liquidity_taken;
 
   const { error } = await supabase.from(tableName).insert([row] as any);
 
@@ -235,6 +248,8 @@ export async function updateTrade(
   const payload = { ...updateData } as Record<string, unknown>;
   delete payload.rr_hit_1_4; // Column removed from DB
   delete payload.trade_executed_at; // Omit if column not in DB schema
+  delete payload.trade_link; // Superseded by trade_screens
+  delete payload.liquidity_taken; // Superseded by trade_screens
 
   const tableName = `${mode}_trades`;
   const { error } = await supabase
@@ -353,6 +368,8 @@ export async function importTrades(params: {
       strategy_id: params.strategy_id,
     };
     delete row.trade_executed_at; // Omit if column not in DB schema
+    delete row.trade_link; // Superseded by trade_screens
+    delete row.liquidity_taken; // Superseded by trade_screens
     validRows.push({ index, row });
   });
 
