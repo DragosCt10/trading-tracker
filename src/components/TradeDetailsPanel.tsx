@@ -1313,7 +1313,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               onChange={(e) => handleInputChange('notes', e.target.value)}
               disabled={!isEditing}
               readOnly={!isEditing}
-              className="min-h-[320px] shadow-sm bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl border border-slate-200/60 dark:border-slate-600 disabled:!opacity-100 themed-focus transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100 disabled:cursor-not-allowed read-only:cursor-default"
+              className="min-h-[320px] bg-slate-100/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm rounded-xl border border-slate-200/50 dark:border-slate-700/50 disabled:!opacity-100 themed-focus transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100 disabled:cursor-not-allowed read-only:cursor-default"
               placeholder="Add your trade notes here..."
             />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50">
