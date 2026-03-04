@@ -140,10 +140,10 @@ export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.m
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-              Launch Hour Trades
+              Lunch Hour Trades
             </CardTitle>
             <CardDescription className="text-base text-slate-500 dark:text-slate-400">
-              Trades that were executed during the launch hour
+              Trades that were executed during the lunch hour
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex justify-center items-center">
@@ -158,19 +158,19 @@ export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.m
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-              Launch Hour Trades
+              Lunch Hour Trades
             </CardTitle>
             <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-              Trades that were executed during the launch hour
+              Trades that were executed during the lunch hour
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col items-center justify-center">
             <div className="flex flex-col justify-center items-center w-full h-full">
               <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
-                No launch hour trades found
+                No lunch hour trades found
               </div>
               <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
-                No launch hour trades in this period.
+                No lunch hour trades in this period.
               </div>
             </div>
           </CardContent>
@@ -182,10 +182,10 @@ export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.m
       <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Launch Hour Trades
+            Lunch Hour Trades
           </CardTitle>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-            Trades that were executed during the launch hour
+            Trades that were executed during the lunch hour
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col items-center justify-center relative pt-2 pb-4">

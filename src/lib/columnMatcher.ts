@@ -445,7 +445,7 @@ export const DB_SCHEMA: SchemaField[] = [
   },
   {
     key: 'launch_hour',
-    label: 'Launch Hour',
+    label: 'Lunch Hour',
     synonyms: [
       'launch_hour', 'session', 'trading session', 'session open',
       'london open', 'ny open', 'killzone', 'launchhour',
@@ -456,7 +456,7 @@ export const DB_SCHEMA: SchemaField[] = [
     ],
     required: false,
     valueType: 'boolean',
-    description: 'Was trade taken during launch hour/killzone?',
+    description: 'Was trade taken during lunch hour/killzone?',
   },
 ];
 

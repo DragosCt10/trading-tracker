@@ -1034,7 +1034,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                       {hasCard('launch_hour') && (
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.launch_hour ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-transparent' : 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700'}`}>
                           {editedTrade?.launch_hour && <Check className="w-3 h-3" />}
-                          Launch Hour
+                          Lunch Hour
                         </span>
                       )}
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.executed ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-transparent' : 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700'}`}>
@@ -1091,7 +1091,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                     <div className="space-y-3">
                       {hasCard('mss_stats') && renderField('MSS', 'mss', 'select', MSS_OPTIONS)}
                       {renderField('Re-entry', 'reentry', 'boolean')}
-                      {hasCard('launch_hour') && renderField('Launch Hour', 'launch_hour', 'boolean')}
+                      {hasCard('launch_hour') && renderField('Lunch Hour', 'launch_hour', 'boolean')}
                       {renderField('Executed', 'executed', 'boolean')}
                     </div>
                   </div>

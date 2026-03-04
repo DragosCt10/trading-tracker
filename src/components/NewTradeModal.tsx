@@ -1187,7 +1187,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                       </div>
                     </TooltipTrigger>
                     <TooltipContent className="rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-2.5">
-                      <p>Launch Hour</p>
+                      <p>Lunch Hour</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

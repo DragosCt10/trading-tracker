@@ -992,7 +992,7 @@ export default function ManageTradesClient({
                                 </Badge>
                               </TooltipTrigger>
                               <TooltipContent side="top" className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 shadow-xl">
-                                <div className="text-slate-600 dark:text-slate-300">Launch Hour trade</div>  
+                                <div className="text-slate-600 dark:text-slate-300">Lunch Hour trade</div>  
                               </TooltipContent>
                             </Tooltip>
                           )}
