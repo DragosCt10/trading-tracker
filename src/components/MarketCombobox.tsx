@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { ALLOWED_MARKETS, filterAllowedMarkets } from '@/constants/allowedMarkets';
 import { normalizeMarket } from '@/utils/validateMarket';
 import { cn } from '@/lib/utils';
+import { Pencil, Loader2 } from 'lucide-react';
 
 const MAX_SUGGESTIONS = 80;
 const MAX_CHARS = 8;
@@ -22,6 +23,8 @@ export interface MarketComboboxProps {
   disabled?: boolean;
   /** When provided (e.g. user_settings.saved_markets), shown first on focus and when typing. Same flow as CommonCombobox defaultSuggestions. */
   defaultSuggestions?: string[];
+  /** Optional callback when a saved market is renamed from the suggestions list. */
+  onEditSavedMarket?: (oldValue: string, newValue: string) => Promise<void> | void;
 }
 
 export function MarketCombobox({
@@ -34,12 +37,16 @@ export function MarketCombobox({
   id,
   disabled,
   defaultSuggestions,
+  onEditSavedMarket,
 }: MarketComboboxProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value);
   const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [editingMarket, setEditingMarket] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Keep input in sync with value from parent (e.g. when normalized on blur elsewhere)
   useEffect(() => {
@@ -124,6 +131,8 @@ export function MarketCombobox({
 
   const hasInput = inputValue.trim().length > 0;
   const showDropdown = open && suggestions.length > 0;
+  /** When editing, render dropdown inline so the edit input stays inside modal focus scope and can receive typing */
+  const renderDropdownInline = !usePortal || editingMarket !== null;
   const showNoMatch =
     open &&
     suggestions.length === 0 &&
@@ -157,6 +166,36 @@ export function MarketCombobox({
     setOpen(false);
   };
 
+  const startEditMarket = (market: string) => {
+    setEditingMarket(market);
+    setEditingValue(market);
+  };
+
+  const cancelEditMarket = () => {
+    setEditingMarket(null);
+    setEditingValue('');
+  };
+
+  const saveEditMarket = async () => {
+    if (!editingMarket) return;
+    const trimmed = normalizeMarket(editingValue).slice(0, MAX_CHARS);
+    if (!trimmed || trimmed === editingMarket || isSavingEdit) return;
+
+    try {
+      setIsSavingEdit(true);
+      if (onEditSavedMarket) {
+        await onEditSavedMarket(editingMarket, trimmed);
+      }
+      if (value === editingMarket) {
+        setInputValue(trimmed);
+        onChange(trimmed);
+      }
+      cancelEditMarket();
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   /** Max height to show ~4 suggestions; inner list scrolls for more */
   const dropdownWrapClass =
     'max-h-[10.5rem] flex flex-col overflow-hidden rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm p-1';
@@ -185,7 +224,7 @@ export function MarketCombobox({
         aria-expanded={showDropdown}
         aria-autocomplete="list"
       />
-      {showDropdown && !usePortal && (
+      {showDropdown && renderDropdownInline && (
         <div
           className={cn('absolute top-full left-0 right-0 z-50 mt-1.5', dropdownWrapClass, dropdownClassName)}
           role="listbox"
@@ -194,23 +233,89 @@ export function MarketCombobox({
             <ul>
               {suggestions.map((market) => (
                 <li key={market} role="option">
-                  <button
-                    type="button"
-                    className="w-full text-left px-3 py-2.5 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      handleSelect(market);
-                    }}
-                  >
-                    {market}
-                  </button>
+                  {editingMarket === market ? (
+                    <div className="flex items-center gap-2 px-3 py-2.5">
+                      <Input
+                        type="text"
+                        value={editingValue}
+                        autoFocus
+                        maxLength={MAX_CHARS}
+                        onChange={(e) => setEditingValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            void saveEditMarket();
+                          } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            cancelEditMarket();
+                          }
+                        }}
+                        className="h-8 flex-1 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/60 text-xs"
+                      />
+                      <button
+                        type="button"
+                        className="px-2 py-1 text-xs rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          cancelEditMarket();
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-1 text-xs rounded-full text-white font-semibold themed-btn-primary cursor-pointer disabled:opacity-60 shadow-sm"
+                        disabled={
+                          isSavingEdit ||
+                          !editingValue.trim() ||
+                          normalizeMarket(editingValue).slice(0, MAX_CHARS) === editingMarket
+                        }
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          void saveEditMarket();
+                        }}
+                      >
+                        <span className="flex items-center gap-1">
+                          {isSavingEdit && <Loader2 className="h-3 w-3 animate-spin" />}
+                          {isSavingEdit ? 'Saving...' : 'Save'}
+                        </span>
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="w-full text-left px-3 py-2.5 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleSelect(market);
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate">{market}</span>
+                        {onEditSavedMarket && normalizedSaved.includes(market) && (
+                          <span
+                            role="button"
+                            aria-label="Edit saved market"
+                            className="ml-2 inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-700"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              startEditMarket(market);
+                            }}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
           </div>
         </div>
       )}
-      {showNoMatch && !usePortal && (
+      {showNoMatch && renderDropdownInline && (
         <div
           className={cn(
             'absolute top-full left-0 right-0 z-50 mt-1.5 max-h-60 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] shadow-lg backdrop-blur-sm py-1 text-sm text-slate-600 dark:text-slate-300 px-3 py-4',
@@ -220,7 +325,7 @@ export function MarketCombobox({
           {noMatchMessage}
         </div>
       )}
-      {showDropdown && usePortal && dropdownRect && typeof document !== 'undefined' &&
+      {showDropdown && usePortal && !editingMarket && dropdownRect && typeof document !== 'undefined' &&
         createPortal(
           <>
             <div
@@ -243,22 +348,90 @@ export function MarketCombobox({
                 <ul>
                   {suggestions.map((market) => (
                     <li key={market} role="option">
-                      <button
-                        type="button"
-                        className="w-full text-left px-3 py-2.5 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleSelect(market);
-                        }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleSelect(market);
-                        }}
-                      >
-                        {market}
-                      </button>
+                      {editingMarket === market ? (
+                        <div className="flex items-center gap-2 px-3 py-2.5">
+                          <Input
+                            type="text"
+                            value={editingValue}
+                            autoFocus
+                            maxLength={MAX_CHARS}
+                            onChange={(e) => setEditingValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                void saveEditMarket();
+                              } else if (e.key === 'Escape') {
+                                e.preventDefault();
+                                cancelEditMarket();
+                              }
+                            }}
+                            className="h-8 flex-1 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/60 text-xs"
+                          />
+                          <button
+                            type="button"
+                            className="px-2 py-1 text-xs rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              cancelEditMarket();
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className="px-3 py-1 text-xs rounded-full text-white font-semibold themed-btn-primary cursor-pointer disabled:opacity-60 shadow-sm"
+                            disabled={
+                              isSavingEdit ||
+                              !editingValue.trim() ||
+                              normalizeMarket(editingValue).slice(0, MAX_CHARS) === editingMarket
+                            }
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              void saveEditMarket();
+                            }}
+                          >
+                            <span className="flex items-center gap-1">
+                              {isSavingEdit && <Loader2 className="h-3 w-3 animate-spin" />}
+                              {isSavingEdit ? 'Saving...' : 'Save'}
+                            </span>
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="w-full text-left px-3 py-2.5 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleSelect(market);
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleSelect(market);
+                          }}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate">{market}</span>
+                            {onEditSavedMarket && normalizedSaved.includes(market) && (
+                              <span
+                                role="button"
+                                aria-label="Edit saved market"
+                                className="ml-2 inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-700"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  startEditMarket(market);
+                                }}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -267,7 +440,7 @@ export function MarketCombobox({
           </>,
           document.body
         )}
-      {showNoMatch && usePortal && dropdownRect && typeof document !== 'undefined' &&
+      {showNoMatch && usePortal && !editingMarket && dropdownRect && typeof document !== 'undefined' &&
         createPortal(
           <>
             <div
