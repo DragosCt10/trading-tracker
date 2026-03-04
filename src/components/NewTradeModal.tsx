@@ -732,7 +732,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
           <form onSubmit={handleSubmit} className="space-y-5 mt-0">
             {/* Trade Screens Section */}
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {[0, 1].map((i) => (
                   <div key={i} className="space-y-2">
@@ -841,7 +841,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             <Separator />
 
             {/* Market & Direction */}
-            <div className="grid gap-5 grid-cols-1 sm:grid-cols-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-2">
                 <Label htmlFor="market" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Market *</Label>
                 <MarketCombobox
@@ -1437,7 +1437,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 className="min-h-[280px] backdrop-blur-sm shadow-sm bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-slate-200/60 dark:border-slate-600 themed-focus transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100"
                 placeholder="Add your trade notes here..."
               />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/60 dark:border-slate-600 shadow-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 p-5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/60 dark:border-slate-600 shadow-sm">
                 {/* Confidence */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5">
