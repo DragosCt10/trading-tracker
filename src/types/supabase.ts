@@ -41,8 +41,6 @@ export interface Database {
         Row: {
           user_id: string;
           saved_news: Json;
-          saved_setup_types: Json;
-          saved_liquidity_types: Json;
           saved_markets: Json;
           feature_flags: Json;
           created_at: string;
@@ -51,8 +49,6 @@ export interface Database {
         Insert: {
           user_id: string;
           saved_news?: Json;
-          saved_setup_types?: Json;
-          saved_liquidity_types?: Json;
           saved_markets?: Json;
           feature_flags?: Json;
         };
