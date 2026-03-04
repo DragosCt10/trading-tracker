@@ -3,8 +3,7 @@ export interface Trade {
   user_id?: string;
   account_id?: string;  // UUID of the associated account
   mode?: string;  // The trading mode (demo, live, backtesting)
-  trade_link: string;
-  liquidity_taken: string;
+  trade_screens: string[];
   trade_time: string;
   trade_date: string;
   day_of_week: string;
