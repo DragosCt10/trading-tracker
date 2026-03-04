@@ -58,6 +58,7 @@ import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
 import { NewsCombobox } from '@/components/NewsCombobox';
 import { CommonCombobox } from '@/components/CommonCombobox';
 import {
+  mergeLiquidityTypeIntoSaved,
   mergeMarketIntoSaved,
   mergeNewsIntoSaved,
   mergeSetupTypeIntoSaved,
@@ -68,7 +69,6 @@ import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
 import { updateStrategySetupTypes, updateStrategyLiquidityTypes } from '@/lib/server/strategies';
-import { mergeLiquidityTypeIntoSaved } from '@/utils/liquidityUtils';
 
 interface TradeDetailsModalProps {
   trade: Trade | null;

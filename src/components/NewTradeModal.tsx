@@ -49,6 +49,7 @@ import { CommonCombobox } from '@/components/CommonCombobox';
 import { ALLOWED_MARKETS } from '@/constants/allowedMarkets';
 import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
 import {
+  mergeLiquidityTypeIntoSaved,
   mergeMarketIntoSaved,
   mergeNewsIntoSaved,
   mergeSetupTypeIntoSaved,
@@ -59,7 +60,6 @@ import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
 import { updateStrategySetupTypes, updateStrategyLiquidityTypes } from '@/lib/server/strategies';
-import { mergeLiquidityTypeIntoSaved } from '@/utils/liquidityUtils';
 
 /** Kept for any legacy reference; market input uses MarketCombobox + ALLOWED_MARKETS. */
 const MARKET_OPTIONS = ALLOWED_MARKETS;
