@@ -287,7 +287,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       let updatedMarkets: string[] | undefined;
 
       // Run independent saved-data updates in parallel
-      const savePromises: Promise<void>[] = [];
+      const savePromises: Promise<unknown>[] = [];
       if (editedTrade.news_related && editedTrade.news_name?.trim() && userId) {
         const savedNews = Array.isArray(settings.saved_news) ? settings.saved_news : [];
         updatedNews = mergeNewsIntoSaved(
