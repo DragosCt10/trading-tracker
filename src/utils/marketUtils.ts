@@ -1,5 +1,5 @@
 /** High cap so users can save as many markets as they want; prevents unbounded growth. */
-const MAX_SAVED_MARKETS = 500;
+const MAX_SAVED_MARKETS = 100;
 
 /**
  * Merges a selected market into the user's saved_markets list (user_settings).
