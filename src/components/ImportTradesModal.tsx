@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { X, Check, Wand2 } from 'lucide-react';
-import { matchHeaders, applyValueMatches, toFieldMapping, DB_SCHEMA, type ColumnMatch, type SchemaField } from '@/lib/columnMatcher';
+import { matchHeaders, applyValueMatches, toFieldMapping, getSchemaField, DB_SCHEMA, type ColumnMatch, type SchemaField } from '@/lib/columnMatcher';
 import { matchCsvColumns, type ColumnSuggestion } from '@/utils/csvColumnMatcher';
 import { buildAutoNormalizations, normalizeDirection, normalizeOutcome } from '@/lib/tradeNormalizers';
 import {
@@ -291,13 +291,21 @@ export default function ImportTradesModal({
 
   // ── Inline match edit ────────────────────────────────────────────────────
   function updateMatch(csvHeader: string, newDbField: string | null) {
-    setMatches((prev) =>
-      prev.map((m) => {
-        // Enforce one-to-one: clear this field from any other column that already holds it
-        if (newDbField && m.csvHeader !== csvHeader && m.dbField === newDbField) {
+    setMatches((prev) => {
+      const maxAssignments = newDbField ? (getSchemaField(newDbField)?.maxAssignments ?? 1) : 1;
+      const currentCount = newDbField
+        ? prev.filter((m) => m.csvHeader !== csvHeader && m.dbField === newDbField).length
+        : 0;
+
+      return prev.map((m) => {
+        // For single-assignment fields: clear the old column that holds this field (1-to-1 enforcement)
+        // For multi-assignment fields (e.g. trade_screens): skip clearing — allow up to maxAssignments
+        if (newDbField && m.csvHeader !== csvHeader && m.dbField === newDbField && maxAssignments === 1) {
           return { ...m, dbField: null, score: 0, label: '— Ignore —', required: false, valueType: null };
         }
         if (m.csvHeader !== csvHeader) return m;
+        // Reject assignment if already at capacity for a multi-assignment field
+        if (newDbField && maxAssignments > 1 && currentCount >= maxAssignments) return m;
         if (!newDbField) return { ...m, dbField: null, score: 0, label: '— Ignore —' };
         const field = DB_SCHEMA.find((f) => f.key === newDbField);
         return {
@@ -308,8 +316,8 @@ export default function ImportTradesModal({
           required: field?.required ?? false,
           valueType: field?.valueType ?? null,
         };
-      }),
-    );
+      });
+    });
   }
 
   // ── Import ───────────────────────────────────────────────────────────────
