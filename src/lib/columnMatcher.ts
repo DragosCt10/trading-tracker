@@ -17,6 +17,8 @@ export interface SchemaField {
   required: boolean;
   valueType: 'string' | 'number' | 'boolean' | 'date' | 'time';
   description: string;
+  /** How many CSV columns can be assigned to this field. Defaults to 1. */
+  maxAssignments?: number;
 }
 
 /**
@@ -270,21 +272,6 @@ export const DB_SCHEMA: SchemaField[] = [
     description: 'Liquidity level targeted',
   },
   {
-    key: 'liquidity_taken',
-    label: 'Liquidity Taken',
-    synonyms: [
-      'liquidity_taken', 'liq taken', 'taken liquidity', 'sweep',
-      'liquidity swept', 'liquiditytaken',
-      // More variants
-      'swept', 'bsl taken', 'ssl taken', 'liquidity grab',
-      'stop hunt', 'equal highs', 'equal lows',
-      'prev high low', 'previous high low',
-    ],
-    required: false,
-    valueType: 'string',
-    description: 'Which liquidity level was swept',
-  },
-  {
     key: 'mss',
     label: 'MSS',
     synonyms: [
@@ -329,18 +316,28 @@ export const DB_SCHEMA: SchemaField[] = [
     description: 'Overall market trend (Bullish/Bearish)',
   },
   {
-    key: 'trade_link',
-    label: 'Trade Link',
+    key: 'trade_screens',
+    label: 'Trade Screens',
     synonyms: [
-      'trade_link', 'link', 'chart', 'chart link', 'screenshot',
-      'tradingview', 'image', 'url', 'tradelink',
-      // More variants
+      // Generic screen / screenshot variants
+      'trade_screens', 'trade screens', 'screens',
+      // Screen 1 synonyms (covers legacy trade_link)
+      'trade_screen_1', 'trade screen 1', 'screen 1', 'trade_link', 'link',
+      'chart', 'chart link', 'screenshot', 'tradingview', 'image', 'url', 'tradelink',
       'chart url', 'tv link', 'photo', 'image link', 'chart screenshot',
       'tv', 'reference', 'analysis link', 'ref',
+      // Screen 2 synonyms (covers legacy liquidity_taken)
+      'trade_screen_2', 'trade screen 2', 'screen 2', 'liquidity_taken',
+      'liq taken', 'taken liquidity', 'sweep', 'liquidity swept', 'liquiditytaken',
+      'swept', 'bsl taken', 'ssl taken', 'liquidity grab', 'stop hunt',
+      // Screen 3 & 4 synonyms
+      'trade_screen_3', 'trade screen 3', 'screen 3',
+      'trade_screen_4', 'trade screen 4', 'screen 4',
     ],
     required: false,
     valueType: 'string',
-    description: 'URL to chart screenshot',
+    maxAssignments: 4,
+    description: 'URL(s) to chart screenshots (up to 4). Can be comma/newline separated or spread across multiple columns.',
   },
   {
     key: 'notes',
@@ -530,15 +527,17 @@ export function matchHeaders(csvHeaders: string[], threshold = 75): ColumnMatch[
     }
   }
 
-  // Greedy assignment: best score first, each DB field used at most once
+  // Greedy assignment: best score first, each DB field used at most maxAssignments times (default 1)
   pairs.sort((a, b) => b.score - a.score);
-  const usedFields = new Set<number>();
+  const fieldAssignmentCounts = new Map<number, number>();
   const assignments = new Map<number, { fi: number; score: number }>();
 
   for (const { ci, fi, score } of pairs) {
-    if (!assignments.has(ci) && !usedFields.has(fi)) {
+    const max = DB_SCHEMA[fi].maxAssignments ?? 1;
+    const count = fieldAssignmentCounts.get(fi) ?? 0;
+    if (!assignments.has(ci) && count < max) {
       assignments.set(ci, { fi, score });
-      usedFields.add(fi);
+      fieldAssignmentCounts.set(fi, count + 1);
     }
   }
 
