@@ -1020,7 +1020,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                   {renderField('Risk/Reward', 'risk_reward_ratio', 'number')}
                 </div>
                 <div className="space-y-3">
-                  {renderField('RR (Long)', 'risk_reward_ratio_long', 'number')}
+                  {renderField('Potential RR', 'risk_reward_ratio_long', 'number')}
                   {renderField('SL Size', 'sl_size', 'number')}
                 </div>
                 {(hasCard('displacement_size') || hasCard('avg_displacement') || hasCard('fvg_size') || hasCard('liquidity_stats')) && (
