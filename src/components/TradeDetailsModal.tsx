@@ -49,6 +49,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Checkbox } from "@/components/ui/checkbox";
 import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarket';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { MarketCombobox } from '@/components/MarketCombobox';
@@ -1264,14 +1265,16 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
                   )}
 
                   <div className="flex items-center gap-3">
-                    <input
+                    <Checkbox
                       id="tdm-need-more-screens"
-                      type="checkbox"
                       checked={showExtraScreens}
-                      onChange={(e) => setShowExtraScreens(e.target.checked)}
-                      className="themed-checkbox h-4 w-4 rounded"
+                      onCheckedChange={(checked) => setShowExtraScreens(!!checked)}
+                      className="themed-checkbox h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 transition-colors duration-150 data-[state=checked]:!text-white"
                     />
-                    <label htmlFor="tdm-need-more-screens" className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+                    <label
+                      htmlFor="tdm-need-more-screens"
+                      className="text-sm font-normal cursor-pointer text-slate-700 dark:text-slate-300 select-none"
+                    >
                       Need more?
                     </label>
                   </div>
