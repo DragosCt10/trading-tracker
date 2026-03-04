@@ -1339,7 +1339,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                       type="button"
                       disabled={!isEditing}
                       onClick={() => handleInputChange('confidence_at_entry', value)}
-                      className={`min-w-[2.25rem] px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden ${
+                      className={`min-w-[2.25rem] px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden ${
                         editedTrade?.confidence_at_entry === value
                           ? 'themed-rating-active'
                           : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -1378,7 +1378,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                       type="button"
                       disabled={!isEditing}
                       onClick={() => handleInputChange('mind_state_at_entry', value)}
-                      className={`min-w-[2.25rem] px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden ${
+                      className={`min-w-[2.25rem] px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden ${
                         editedTrade?.mind_state_at_entry === value
                           ? 'themed-rating-active'
                           : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
