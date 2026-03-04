@@ -89,7 +89,15 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showExtraScreens, setShowExtraScreens] = useState(false);
   const queryClient = useQueryClient();
+
+  // Auto-reveal extra screens if trade has slots 3 or 4 filled
+  useEffect(() => {
+    if (editedTrade?.trade_screens?.[2] || editedTrade?.trade_screens?.[3]) {
+      setShowExtraScreens(true);
+    }
+  }, [editedTrade?.id]);
 
   // Auto-dismiss error after 5 seconds
   useEffect(() => {
@@ -231,8 +239,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         trade_outcome: editedTrade.trade_outcome,
         risk_reward_ratio: editedTrade.risk_reward_ratio,
         risk_reward_ratio_long: (editedTrade.trade_outcome === 'Lose' || editedTrade.trade_outcome === 'BE') ? 0 : editedTrade.risk_reward_ratio_long,
-        trade_link: editedTrade.trade_link,
-        liquidity_taken: editedTrade.liquidity_taken,
+        trade_screens: editedTrade.trade_screens,
         mss: editedTrade.mss,
         break_even: editedTrade.break_even,
         be_final_result: editedTrade.be_final_result,
@@ -1158,106 +1165,116 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
               )}
             </div>
 
-            {/* Trade Screenshots - only show when has link(s) or when editing */}
-            {(isEditing || editedTrade?.trade_link || (hasCard('liquidity_stats') && editedTrade?.liquidity_taken)) && (
+            {/* Trade Screenshots - show when any screen has a URL, or when editing */}
+            {(isEditing || editedTrade?.trade_screens?.some((s) => s)) && (
             <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
-<svg className="w-4 h-4 shrink-0" style={{ color: 'var(--tc-primary)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--tc-primary)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 Trade Screenshots
               </h3>
-              
+
               {!isEditing ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {editedTrade?.trade_link ? (
-                    <div>
-                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Trade Chart</label>
-                      <a href={editedTrade.trade_link} target="_blank" rel="noopener noreferrer" className="block group">
-                        <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300">
-                          <img 
-                            src={editedTrade.trade_link} 
-                            alt="Trade Chart" 
-                            className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
-                            <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
+                  {(editedTrade?.trade_screens ?? []).map((url, i) =>
+                    url ? (
+                      <div key={i}>
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">
+                          Trade Screen {i + 1}
+                        </label>
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="block group">
+                          <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300">
+                            <img
+                              src={url}
+                              alt={`Trade Screen ${i + 1}`}
+                              className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+                              <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </div>
                           </div>
-                        </div>
-                      </a>
-                    </div>
-                  ) : null}
-
-                  {hasCard('liquidity_stats') && editedTrade?.liquidity_taken ? (
-                    <div>
-                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Liquidity Link</label>
-                      <a href={editedTrade.liquidity_taken} target="_blank" rel="noopener noreferrer" className="block group">
-                        <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300">
-                          <img 
-                            src={editedTrade.liquidity_taken} 
-                            alt="Liquidity Link" 
-                            className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
-                            <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                          </div>
-                        </div>
-                      </a>
-                    </div>
-                  ) : null}
+                        </a>
+                      </div>
+                    ) : null
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div>
-                    <label className={`${labelClass} mb-2`}>Trade Chart URL</label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="url"
-                        value={editedTrade?.trade_link ?? ''}
-                        onChange={(e) => handleInputChange('trade_link', e.target.value)}
-                        className={`${inputClass} flex-1 placeholder:text-slate-400 dark:placeholder:text-slate-600`}
-                        placeholder="https://..."
-                      />
-                      {editedTrade?.trade_link && (editedTrade.trade_link.startsWith('http://') || editedTrade.trade_link.startsWith('https://')) && (
-                        <a
-                          href={editedTrade.trade_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="shrink-0 text-sm font-medium text-slate-900 dark:text-slate-100 underline"
-                        >
-                          Open
-                        </a>
-                      )}
-                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    {[0, 1].map((i) => {
+                      const url = editedTrade?.trade_screens?.[i] ?? '';
+                      return (
+                        <div key={i}>
+                          <label className={`${labelClass} mb-2`}>Trade Screen {i + 1}</label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="url"
+                              value={url}
+                              onChange={(e) => {
+                                const screens = [...(editedTrade?.trade_screens ?? ['', '', '', ''])];
+                                screens[i] = e.target.value;
+                                handleInputChange('trade_screens', screens);
+                              }}
+                              className={`${inputClass} flex-1 placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+                              placeholder="https://..."
+                            />
+                            {url && (url.startsWith('http://') || url.startsWith('https://')) && (
+                              <a href={url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-sm font-medium text-slate-900 dark:text-slate-100 underline">
+                                Open
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  {hasCard('liquidity_stats') && (
-                    <div>
-                      <label className={`${labelClass} mb-2`}>Liquidity Link URL</label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="url"
-                          value={editedTrade?.liquidity_taken ?? ''}
-                          onChange={(e) => handleInputChange('liquidity_taken', e.target.value)}
-                          className={`${inputClass} flex-1 placeholder:text-slate-400 dark:placeholder:text-slate-600`}
-                          placeholder="https://..."
-                        />
-                        {editedTrade?.liquidity_taken && (editedTrade.liquidity_taken.startsWith('http://') || editedTrade.liquidity_taken.startsWith('https://')) && (
-                          <a
-                            href={editedTrade.liquidity_taken}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="shrink-0 text-sm font-medium text-slate-900 dark:text-slate-100 underline"
-                          >
-                            Open
-                          </a>
-                        )}
-                      </div>
+
+                  {showExtraScreens && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      {[2, 3].map((i) => {
+                        const url = editedTrade?.trade_screens?.[i] ?? '';
+                        return (
+                          <div key={i}>
+                            <label className={`${labelClass} mb-2`}>Trade Screen {i + 1}</label>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="url"
+                                value={url}
+                                onChange={(e) => {
+                                  const screens = [...(editedTrade?.trade_screens ?? ['', '', '', ''])];
+                                  screens[i] = e.target.value;
+                                  handleInputChange('trade_screens', screens);
+                                }}
+                                className={`${inputClass} flex-1 placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+                                placeholder="https://..."
+                              />
+                              {url && (url.startsWith('http://') || url.startsWith('https://')) && (
+                                <a href={url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-sm font-medium text-slate-900 dark:text-slate-100 underline">
+                                  Open
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
+
+                  <div className="flex items-center gap-3">
+                    <input
+                      id="tdm-need-more-screens"
+                      type="checkbox"
+                      checked={showExtraScreens}
+                      onChange={(e) => setShowExtraScreens(e.target.checked)}
+                      className="themed-checkbox h-4 w-4 rounded"
+                    />
+                    <label htmlFor="tdm-need-more-screens" className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+                      Need more?
+                    </label>
+                  </div>
                 </div>
               )}
             </div>
