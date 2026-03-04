@@ -48,15 +48,18 @@ import { NewsCombobox } from '@/components/NewsCombobox';
 import { CommonCombobox } from '@/components/CommonCombobox';
 import { ALLOWED_MARKETS } from '@/constants/allowedMarkets';
 import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
-import { mergeNewsIntoSaved, normalizeNewsName } from '@/utils/newsUtils';
+import {
+  mergeMarketIntoSaved,
+  mergeNewsIntoSaved,
+  mergeSetupTypeIntoSaved,
+  normalizeNewsName,
+} from '@/utils/savedFeatures';
 import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
 import { updateStrategySetupTypes, updateStrategyLiquidityTypes } from '@/lib/server/strategies';
-import { mergeSetupTypeIntoSaved } from '@/utils/setupUtils';
 import { mergeLiquidityTypeIntoSaved } from '@/utils/liquidityUtils';
-import { mergeMarketIntoSaved } from '@/utils/marketUtils';
 
 /** Kept for any legacy reference; market input uses MarketCombobox + ALLOWED_MARKETS. */
 const MARKET_OPTIONS = ALLOWED_MARKETS;

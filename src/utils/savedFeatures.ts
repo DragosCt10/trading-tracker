@@ -1,6 +1,33 @@
 import * as fuzz from 'fuzzball';
 import type { SavedNewsItem } from '@/types/account-settings';
 
+// ─── Markets (saved_markets, user_settings) ─────────────────────────────────
+
+/** High cap so users can save as many markets as they want; prevents unbounded growth. */
+const MAX_SAVED_MARKETS = 100;
+
+/**
+ * Merges a selected market into the user's saved_markets list (user_settings).
+ * Adds to the front (most recent first), case-insensitive deduplication.
+ * Capped at MAX_SAVED_MARKETS.
+ */
+export function mergeMarketIntoSaved(
+  market: string,
+  savedMarkets: string[]
+): string[] {
+  const trimmed = market.trim();
+  if (!trimmed) return savedMarkets;
+
+  const upper = trimmed.toUpperCase();
+  const without = savedMarkets.filter(
+    (m) => m.trim().toUpperCase() !== upper
+  );
+  const merged = [trimmed, ...without].slice(0, MAX_SAVED_MARKETS);
+  return merged;
+}
+
+// ─── News (saved_news, user_settings) ───────────────────────────────────────
+
 /** Trim, lowercase, collapse whitespace */
 export function normalizeNewsName(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, ' ');
@@ -71,4 +98,32 @@ export function mergeNewsIntoSaved(
     aliases: [],
   };
   return [...savedNews, newItem];
+}
+
+// ─── Setup types (saved_setup_types, strategies) ─────────────────────────────
+
+const MAX_SAVED_SETUP_TYPES = 11;
+
+/**
+ * Merges a typed setup type into the user's saved setup types list.
+ * Case-insensitive deduplication — appends only if not already present.
+ * Maximum 11 saved types; no-op if already at limit.
+ * Returns the updated list (does not mutate the original).
+ */
+export function mergeSetupTypeIntoSaved(
+  typedName: string,
+  savedSetupTypes: string[]
+): string[] {
+  const trimmed = typedName.trim();
+  if (!trimmed) return savedSetupTypes;
+  if (savedSetupTypes.length >= MAX_SAVED_SETUP_TYPES) return savedSetupTypes;
+
+  const lower = trimmed.toLowerCase();
+  const alreadyExists = savedSetupTypes.some(
+    (s) => s.trim().toLowerCase() === lower
+  );
+
+  if (alreadyExists) return savedSetupTypes;
+
+  return [...savedSetupTypes, trimmed];
 }

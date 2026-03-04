@@ -57,15 +57,18 @@ import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
 import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
 import { NewsCombobox } from '@/components/NewsCombobox';
 import { CommonCombobox } from '@/components/CommonCombobox';
-import { mergeNewsIntoSaved, normalizeNewsName } from '@/utils/newsUtils';
+import {
+  mergeMarketIntoSaved,
+  mergeNewsIntoSaved,
+  mergeSetupTypeIntoSaved,
+  normalizeNewsName,
+} from '@/utils/savedFeatures';
 import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
 import { updateStrategySetupTypes, updateStrategyLiquidityTypes } from '@/lib/server/strategies';
-import { mergeSetupTypeIntoSaved } from '@/utils/setupUtils';
 import { mergeLiquidityTypeIntoSaved } from '@/utils/liquidityUtils';
-import { mergeMarketIntoSaved } from '@/utils/marketUtils';
 
 interface TradeDetailsModalProps {
   trade: Trade | null;
