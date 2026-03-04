@@ -275,21 +275,21 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
 
       await invalidateAndRefetchTradeQueries();
 
-      // Save / update news event in the user's saved_news library (user_settings table)
+      // Compute updated lists and persist to DB; then update React Query cache so suggestion lists show new data without page refresh
+      let updatedNews: SavedNewsItem[] | undefined;
+      let updatedSetups: string[] | undefined;
+      let updatedLiquidity: string[] | undefined;
+      let updatedMarkets: string[] | undefined;
+
       if (editedTrade.news_related && editedTrade.news_name?.trim() && userId) {
         const savedNews = Array.isArray(settings.saved_news) ? settings.saved_news : [];
-        const updatedNews = mergeNewsIntoSaved(
+        updatedNews = mergeNewsIntoSaved(
           normalizeNewsName(editedTrade.news_name),
           editedTrade.news_intensity ?? null,
           savedNews
         );
         await updateSavedNews(updatedNews);
       }
-
-      // Compute updated lists and persist to DB; then update React Query cache so suggestion lists show new data without page refresh
-      let updatedSetups: string[] | undefined;
-      let updatedLiquidity: string[] | undefined;
-      let updatedMarkets: string[] | undefined;
 
       if (editedTrade.setup_type?.trim() && userId && currentStrategy) {
         updatedSetups = mergeSetupTypeIntoSaved(
@@ -318,7 +318,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         const settingsKey = queryKeys.settings(userId);
         queryClient.setQueryData(settingsKey, (prev: { saved_news?: unknown; saved_markets?: string[] } | undefined) => ({
           ...prev,
-          saved_news: prev?.saved_news ?? [],
+          saved_news: updatedNews ?? prev?.saved_news ?? [],
           saved_markets: updatedMarkets ?? prev?.saved_markets ?? [],
         }));
         if (currentStrategy && (updatedSetups !== undefined || updatedLiquidity !== undefined)) {
