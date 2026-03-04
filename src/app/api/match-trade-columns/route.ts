@@ -28,10 +28,7 @@ const OPTIONAL_FIELDS = [
   { name: 'launch_hour', description: 'Launch hour trade (boolean).' },
   { name: 'mss', description: 'Market structure shift. Also look for: MSS, Structure, CHoCH, Break of Structure' },
   { name: 'liquidity', description: 'Liquidity type. Also look for: Liq, Liquidity Level' },
-  { name: 'trade_screen_1', description: 'URL to primary trade screenshot or chart. Also look for: Trade Link, Link, Chart, Screenshot, URL' },
-  { name: 'trade_screen_2', description: 'URL to secondary trade screenshot. Also look for: Trade Screen 2, Liquidity Link, Liquidity Taken' },
-  { name: 'trade_screen_3', description: 'URL to third trade screenshot. Also look for: Trade Screen 3, Screen 3' },
-  { name: 'trade_screen_4', description: 'URL to fourth trade screenshot. Also look for: Trade Screen 4, Screen 4' },
+  { name: 'trade_screens', description: 'URL(s) to chart screenshots (up to 4). A single column may contain multiple comma/newline-separated URLs, or multiple separate columns can each map to this field. Also look for: Trade Link, Link, Chart, Screenshot, URL, Liquidity Taken, Screen 1/2/3/4' },
   { name: 'evaluation', description: 'Trade evaluation or grade. Also look for: Grade, Score, Quality, Rating' },
   { name: 'notes', description: 'Trade notes or comments. Also look for: Comments, Note, Remarks, Description' },
   { name: 'calculated_profit', description: 'Calculated profit/loss dollar amount. Also look for: P&L, Profit, PnL, Net P&L, Gain/Loss' },
@@ -129,7 +126,7 @@ Return this exact JSON structure:
 }
 
 Rules:
-1. fieldMapping: Each CSV header maps to exactly one DB field name, or null. Each DB field appears at most once.
+1. fieldMapping: Each CSV header maps to exactly one DB field name, or null. Each DB field appears at most once, EXCEPT "trade_screens" which can be assigned to up to 4 separate CSV columns (one URL per column).
 2. normalizations.direction: For EACH unique raw CSV value in the direction column samples, output one key-value pair. The key is the exact raw value, the value is "Long" or "Short".
    - Raw values meaning Long: buy, BUY, B, long, LONG, Long, Buy → "Long"
    - Raw values meaning Short: sell, SELL, S, short, SHORT, Short, Sell → "Short"
