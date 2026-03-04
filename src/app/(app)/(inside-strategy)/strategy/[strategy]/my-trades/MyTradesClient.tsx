@@ -703,8 +703,8 @@ export default function MyTradesClient({
             )}
           </div>
 
-          {/* Details panel: takes remaining space, interior scroll on mobile */}
-          <div className="flex-1 flex flex-col min-h-[600px] md:min-h-0 overflow-y-auto overflow-x-auto md:overflow-hidden bg-white/50 dark:bg-slate-900/10">
+          {/* Details panel: same bg as card scroll (left) in light mode */}
+          <div className="flex-1 flex flex-col min-h-[600px] md:min-h-0 overflow-y-auto overflow-x-auto md:overflow-hidden bg-slate-50/30 dark:bg-slate-900/20">
             {liveSelectedTrade ? (
               <TradeDetailsPanel
                 trade={liveSelectedTrade}
