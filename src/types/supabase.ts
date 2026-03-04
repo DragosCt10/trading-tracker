@@ -249,6 +249,8 @@ export interface Database {
           updated_at: string;
           is_active: boolean;
           extra_cards: string[];
+          saved_setup_types: string[];
+          saved_liquidity_types: string[];
         };
         Insert: {
           user_id: string;
@@ -256,6 +258,8 @@ export interface Database {
           slug: string;
           is_active?: boolean;
           extra_cards?: string[];
+          saved_setup_types?: string[];
+          saved_liquidity_types?: string[];
         };
         Update: Partial<{
           id: string;
@@ -266,6 +270,8 @@ export interface Database {
           updated_at: string;
           is_active: boolean;
           extra_cards: string[];
+          saved_setup_types: string[];
+          saved_liquidity_types: string[];
         }>;
       };
 
