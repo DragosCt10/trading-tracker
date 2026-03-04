@@ -10,8 +10,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, Loader2, LayoutGrid, Columns2 } from 'lucide-react';
+import { Eye, Loader2, LayoutGrid, Columns2, PanelLeft } from 'lucide-react';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
+import TradeDetailsPanel from '@/components/TradeDetailsPanel';
 import { TradeFiltersBar, DateRangeValue } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { cn } from '@/lib/utils';
@@ -21,7 +22,7 @@ type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
 const ITEMS_PER_LOAD = 12;
 
-type CardViewMode = 'grid-4' | 'grid-2';
+type CardViewMode = 'grid-4' | 'grid-2' | 'split';
 
 type DateRangeState = {
   startDate: string;
@@ -88,16 +89,29 @@ function isCustomDateRange(range: DateRangeState): boolean {
 }
 
 // ─── Per-card image carousel component ───────────────────────────────────────
-function TradeCard({ trade, onOpenModal }: { trade: Trade; onOpenModal: (t: Trade) => void }) {
+function TradeCard({ trade, onOpenModal, hideDetailsLink, isSelected, onSelect }: {
+  trade: Trade;
+  onOpenModal: (t: Trade) => void;
+  hideDetailsLink?: boolean;
+  isSelected?: boolean;
+  onSelect?: (t: Trade) => void;
+}) {
   const screens = useMemo(() => (trade.trade_screens ?? []).filter(Boolean), [trade.trade_screens]);
   const [activeIdx, setActiveIdx] = useState(0);
   const hasMultiple = screens.length > 1;
   const activeScreen = screens[activeIdx] ?? null;
 
   return (
-    <Card className="relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm hover:shadow-xl hover:shadow-slate-300/50 dark:hover:shadow-slate-900/50 transition-all duration-300">
+    <Card
+      onClick={onSelect ? () => onSelect(trade) : undefined}
+      className={cn(
+        'relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm hover:shadow-xl hover:shadow-slate-300/50 dark:hover:shadow-slate-900/50 transition-all duration-300',
+        onSelect && 'cursor-pointer',
+        isSelected && 'ring-2 ring-[color:var(--tc-primary,theme(colors.emerald.500))] border-transparent'
+      )}
+    >
       {/* Image container */}
-      <div className="p-3">
+      <div className="p-4">
         {activeScreen ? (
           <div className="relative">
             <a
@@ -178,7 +192,7 @@ function TradeCard({ trade, onOpenModal }: { trade: Trade; onOpenModal: (t: Trad
         )}
       </div>
       {/* Content area */}
-      <CardContent className="px-5 pb-5 pt-0">
+      <CardContent className="px-5 pb-6 pt-0">
         {/* Header row */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -246,13 +260,15 @@ function TradeCard({ trade, onOpenModal }: { trade: Trade; onOpenModal: (t: Trad
           </div>
         </div>
         {/* View details link */}
-        <button
-          onClick={() => onOpenModal(trade)}
-          className="inline-flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline underline-offset-4 decoration-slate-300 dark:decoration-slate-600 hover:decoration-slate-500 dark:hover:decoration-slate-400 transition-colors cursor-pointer group"
-        >
-          <Eye className="w-4 h-4 mr-1.5 shrink-0" />
-          Trade Details
-        </button>
+        {!hideDetailsLink && (
+          <button
+            onClick={() => onOpenModal(trade)}
+            className="inline-flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline underline-offset-4 decoration-slate-300 dark:decoration-slate-600 hover:decoration-slate-500 dark:hover:decoration-slate-400 transition-colors cursor-pointer group"
+          >
+            <Eye className="w-4 h-4 mr-1.5 shrink-0" />
+            Trade Details
+          </button>
+        )}
       </CardContent>
     </Card>
   );
@@ -470,6 +486,20 @@ export default function MyTradesClient({
 
   const hasMore = displayedCount < trades.length;
 
+  // In split mode, keep selectedTrade in sync with fresh query data (so edits are reflected live)
+  const selectedTradeId = selectedTrade?.id ?? null;
+  const liveSelectedTrade = useMemo(
+    () => (selectedTradeId ? trades.find((t) => t.id === selectedTradeId) ?? null : null),
+    [selectedTradeId, trades]
+  );
+
+  // Auto-select first trade when entering split mode with no selection
+  useEffect(() => {
+    if (cardViewMode === 'split' && displayedTrades.length > 0 && !selectedTrade) {
+      setSelectedTrade(displayedTrades[0]);
+    }
+  }, [cardViewMode, displayedTrades, selectedTrade]);
+
   // Intersection Observer for infinite scroll (only on client)
   useEffect(() => {
     if (!mounted) return;
@@ -589,68 +619,174 @@ export default function MyTradesClient({
                 4 per row
               </TooltipContent>
             </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => setCardViewMode('split')}
+                  className={cn(
+                    'rounded-md p-2 transition-colors cursor-pointer',
+                    cardViewMode === 'split'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  )}
+                  aria-label="Split view"
+                  aria-pressed={cardViewMode === 'split'}
+                >
+                  <PanelLeft className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="bottom"
+                className="max-w-[220px] rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 px-3 py-2"
+              >
+                Split view
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
-      {/* Trade Cards Grid */}
-      <div
-        className={cn(
-          'grid gap-6',
-          cardViewMode === 'grid-2'
-            ? 'grid-cols-1 sm:grid-cols-2'
-            : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-        )}
-      >
-        {!mounted || (filteredTradesLoading && filteredTrades.length === 0) ? (
-          // Skeleton loader
-          <>
-            {Array.from({ length: 12 }).map((_, index) => (
-              <Card key={`skeleton-${index}`} className="relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
-                {/* Image container with padding */}
-                <div className="p-3">
-                  <Skeleton className="aspect-video w-full rounded-lg" />
-                </div>
-                {/* Content area */}
-                <CardContent className="px-5 pb-5 pt-0">
-                  <div className="flex items-center justify-between mb-4">
-                    <Skeleton className="h-7 w-24" />
-                    <Skeleton className="h-6 w-16 rounded-full" />
+      {/* Split View */}
+      {cardViewMode === 'split' ? (
+        <div className="flex rounded-xl border border-slate-200/60 dark:border-slate-700/50 overflow-hidden h-[calc(100vh-280px)] min-h-[500px]">
+          {/* Left: scrollable card list */}
+          <div className="w-72 flex-shrink-0 overflow-y-auto border-r border-slate-200/60 dark:border-slate-700/50 bg-slate-50/30 dark:bg-slate-900/20">
+            {!mounted || (filteredTradesLoading && filteredTrades.length === 0) ? (
+              <div className="p-3 space-y-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Card key={`skeleton-split-${i}`} className="relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+                    <div className="p-3">
+                      <Skeleton className="aspect-video w-full rounded-lg" />
+                    </div>
+                    <CardContent className="px-5 pb-5 pt-0">
+                      <div className="flex items-center justify-between mb-4">
+                        <Skeleton className="h-7 w-24" />
+                        <Skeleton className="h-6 w-16 rounded-full" />
+                      </div>
+                      <div className="space-y-2.5">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : displayedTrades.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-slate-500 text-sm p-6 text-center">
+                No trades found for the selected period.
+              </div>
+            ) : (
+              <div className="p-3 space-y-2">
+                {displayedTrades.map((trade) => (
+                  <TradeCard
+                    key={trade.id}
+                    trade={trade}
+                    onOpenModal={() => {}}
+                    hideDetailsLink
+                    isSelected={selectedTrade?.id === trade.id}
+                    onSelect={(t) => setSelectedTrade(t)}
+                  />
+                ))}
+                {hasMore && (
+                  <div ref={observerTarget} className="flex justify-center py-2">
+                    {filteredTradesFetching ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                    ) : (
+                      <div className="h-4" />
+                    )}
                   </div>
-                  <div className="space-y-2.5 mb-5">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-4 w-24" />
-                  </div>
-                  <Skeleton className="h-4 w-36" />
-                </CardContent>
-              </Card>
-            ))}
-          </>
-        ) : displayedTrades.length === 0 ? (
-          <div className="col-span-full text-center py-12">
-            <p className="text-slate-500">No trades found for the selected period.</p>
-          </div>
-        ) : (
-          <>
-            {displayedTrades.map((trade) => (
-              <TradeCard key={trade.id} trade={trade} onOpenModal={openModal} />
-            ))}
-            
-            {/* Infinite scroll trigger */}
-            {hasMore && (
-              <div ref={observerTarget} className="col-span-full flex justify-center py-4">
-                {filteredTradesFetching ? (
-                  <div className="flex items-center gap-2 text-slate-500">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm">Loading more trades...</span>
-                  </div>
-                ) : (
-                  <div className="h-4" /> // Spacer for intersection observer
                 )}
               </div>
             )}
-          </>
-        )}
-      </div>
+          </div>
+
+          {/* Right: inline details panel */}
+          <div className="flex-1 flex flex-col overflow-hidden bg-white/50 dark:bg-slate-900/10">
+            {liveSelectedTrade ? (
+              <TradeDetailsPanel
+                trade={liveSelectedTrade}
+                onClose={() => setSelectedTrade(null)}
+                onTradeUpdated={async () => {
+                  await queryClient.invalidateQueries({
+                    predicate: (query) =>
+                      query.queryKey[0] === 'filteredTrades' ||
+                      query.queryKey[0] === 'allTrades' ||
+                      query.queryKey[0] === 'discoverTrades',
+                  });
+                }}
+                inlineMode
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <div className="text-center space-y-2">
+                  <Eye className="h-8 w-8 mx-auto text-slate-300 dark:text-slate-600" />
+                  <p className="text-sm text-slate-400 dark:text-slate-500">Select a trade to view details</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Trade Cards Grid */
+        <div
+          className={cn(
+            'grid gap-6',
+            cardViewMode === 'grid-2'
+              ? 'grid-cols-1 sm:grid-cols-2'
+              : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+          )}
+        >
+          {!mounted || (filteredTradesLoading && filteredTrades.length === 0) ? (
+            // Skeleton loader
+            <>
+              {Array.from({ length: 12 }).map((_, index) => (
+                <Card key={`skeleton-${index}`} className="relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+                  {/* Image container with padding */}
+                  <div className="p-3">
+                    <Skeleton className="aspect-video w-full rounded-lg" />
+                  </div>
+                  {/* Content area */}
+                  <CardContent className="px-5 pb-5 pt-0">
+                    <div className="flex items-center justify-between mb-4">
+                      <Skeleton className="h-7 w-24" />
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                    </div>
+                    <div className="space-y-2.5 mb-5">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                    <Skeleton className="h-4 w-36" />
+                  </CardContent>
+                </Card>
+              ))}
+            </>
+          ) : displayedTrades.length === 0 ? (
+            <div className="col-span-full text-center py-12">
+              <p className="text-slate-500">No trades found for the selected period.</p>
+            </div>
+          ) : (
+            <>
+              {displayedTrades.map((trade) => (
+                <TradeCard key={trade.id} trade={trade} onOpenModal={openModal} />
+              ))}
+
+              {/* Infinite scroll trigger */}
+              {hasMore && (
+                <div ref={observerTarget} className="col-span-full flex justify-center py-4">
+                  {filteredTradesFetching ? (
+                    <div className="flex items-center gap-2 text-slate-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">Loading more trades...</span>
+                    </div>
+                  ) : (
+                    <div className="h-4" /> // Spacer for intersection observer
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
       </div>
 
       {/* Trade Details Modal */}
