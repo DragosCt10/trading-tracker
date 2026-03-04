@@ -4,6 +4,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import { createPortal } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { Pencil, Loader2 } from 'lucide-react';
 
 const MAX_SUGGESTIONS = 20;
 const MAX_CHARS = 12;
@@ -25,6 +26,8 @@ export interface CommonComboboxProps {
   /** Optional class for the dropdown list; when set, dropdown is portaled so it stays above modal/overflow, mirroring MarketCombobox. */
   dropdownClassName?: string;
   disabled?: boolean;
+  /** Optional callback when a saved option is renamed from the suggestions list. */
+  onEditSavedOption?: (oldValue: string, newValue: string) => Promise<void> | void;
 }
 
 export function CommonCombobox({
@@ -38,12 +41,16 @@ export function CommonCombobox({
   id,
   dropdownClassName,
   disabled,
+  onEditSavedOption,
 }: CommonComboboxProps) {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value ?? '');
   const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [editingOption, setEditingOption] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Keep input in sync with external value (like MarketCombobox)
   useEffect(() => {
@@ -145,7 +152,40 @@ export function CommonCombobox({
     setOpen(false);
   };
 
+  const startEditOption = (item: string) => {
+    setEditingOption(item);
+    setEditingValue(item);
+  };
+
+  const cancelEditOption = () => {
+    setEditingOption(null);
+    setEditingValue('');
+  };
+
+  const saveEditOption = async () => {
+    if (!editingOption) return;
+    const trimmed = editingValue.trim();
+    if (!trimmed || trimmed === editingOption || isSavingEdit) return;
+
+    try {
+      setIsSavingEdit(true);
+      if (onEditSavedOption) {
+        await onEditSavedOption(editingOption, trimmed);
+      }
+      // If the currently selected value was this option, reflect the new name in the input
+      if (value === editingOption) {
+        setInputValue(trimmed);
+        onChange(trimmed);
+      }
+      cancelEditOption();
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const showDropdown = open && suggestions.length > 0;
+  /** When editing, render dropdown inline so the edit input stays inside modal focus scope and can receive typing */
+  const renderDropdownInline = !usePortal || editingOption !== null;
   const showNoMatch =
     open &&
     suggestions.length === 0 &&
@@ -184,8 +224,8 @@ export function CommonCombobox({
         aria-autocomplete="list"
       />
 
-      {/* Non-portal dropdown (used when dropdownClassName not provided) */}
-      {showDropdown && !usePortal && (
+      {/* Inline dropdown (when no portal, or when editing so focus stays inside modal) */}
+      {showDropdown && renderDropdownInline && (
         <div
           className={cn(
             'absolute top-full left-0 right-0 z-50 mt-1.5',
@@ -198,16 +238,82 @@ export function CommonCombobox({
             <ul>
               {suggestions.map((item) => (
                 <li key={item} role="option">
-                  <button
-                    type="button"
-                    className="w-full text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      handleSelect(item);
-                    }}
-                  >
-                    {item}
-                  </button>
+                  {editingOption === item ? (
+                    <div className="flex items-center gap-2 px-3 py-2">
+                      <Input
+                        type="text"
+                        value={editingValue}
+                        autoFocus
+                        maxLength={MAX_CHARS}
+                        onChange={(e) => setEditingValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            void saveEditOption();
+                          } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            cancelEditOption();
+                          }
+                        }}
+                        className="h-8 flex-1 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/60 text-xs"
+                      />
+                      <button
+                        type="button"
+                        className="px-2 py-1 text-xs rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          cancelEditOption();
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-1 text-xs rounded-full text-white font-semibold themed-btn-primary cursor-pointer disabled:opacity-60 shadow-sm"
+                        disabled={
+                          isSavingEdit ||
+                          !editingValue.trim() ||
+                          editingValue.trim() === editingOption
+                        }
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          void saveEditOption();
+                        }}
+                      >
+                        <span className="flex items-center gap-1">
+                          {isSavingEdit && <Loader2 className="h-3 w-3 animate-spin" />}
+                          {isSavingEdit ? 'Saving...' : 'Save'}
+                        </span>
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleSelect(item);
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate">{item}</span>
+                        {onEditSavedOption && (
+                          <span
+                            role="button"
+                            aria-label={`Edit ${customValueLabel}`}
+                            className="ml-2 inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-700"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              startEditOption(item);
+                            }}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -215,7 +321,7 @@ export function CommonCombobox({
         </div>
       )}
 
-      {showNoMatch && !usePortal && (
+      {showNoMatch && renderDropdownInline && (
         <div
           className={cn(
             'absolute top-full left-0 right-0 z-50 mt-1.5',
@@ -227,8 +333,8 @@ export function CommonCombobox({
         </div>
       )}
 
-      {/* Portaled dropdown: mirrors MarketCombobox behaviour */}
-      {showDropdown && usePortal && dropdownRect && typeof document !== 'undefined' &&
+      {/* Portaled dropdown (only when not editing, so modal focus trap doesn't steal focus from edit input) */}
+      {showDropdown && usePortal && !editingOption && dropdownRect && typeof document !== 'undefined' &&
         createPortal(
           <>
             <div
@@ -255,22 +361,90 @@ export function CommonCombobox({
                 <ul>
                   {suggestions.map((item) => (
                     <li key={item} role="option">
-                      <button
-                        type="button"
-                        className="w-full text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleSelect(item);
-                        }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleSelect(item);
-                        }}
-                      >
-                        {item}
-                      </button>
+                      {editingOption === item ? (
+                        <div className="flex items-center gap-2 px-3 py-2">
+                          <Input
+                            type="text"
+                            value={editingValue}
+                            autoFocus
+                            maxLength={MAX_CHARS}
+                            onChange={(e) => setEditingValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                void saveEditOption();
+                              } else if (e.key === 'Escape') {
+                                e.preventDefault();
+                                cancelEditOption();
+                              }
+                            }}
+                            className="h-8 flex-1 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/60 text-xs"
+                          />
+                          <button
+                            type="button"
+                            className="px-2 py-1 text-xs rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              cancelEditOption();
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            className="px-3 py-1 text-xs rounded-full text-white font-semibold themed-btn-primary cursor-pointer disabled:opacity-60 shadow-sm"
+                            disabled={
+                              isSavingEdit ||
+                              !editingValue.trim() ||
+                              editingValue.trim() === editingOption
+                            }
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              void saveEditOption();
+                            }}
+                          >
+                            <span className="flex items-center gap-1">
+                              {isSavingEdit && <Loader2 className="h-3 w-3 animate-spin" />}
+                              {isSavingEdit ? 'Saving...' : 'Save'}
+                            </span>
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm outline-none rounded-lg text-slate-900 dark:text-slate-50 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleSelect(item);
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleSelect(item);
+                          }}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate">{item}</span>
+                            {onEditSavedOption && (
+                              <span
+                                role="button"
+                                aria-label={`Edit ${customValueLabel}`}
+                                className="ml-2 inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-700"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  startEditOption(item);
+                                }}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>
