@@ -54,14 +54,11 @@ export function MarketCombobox({
     [defaultSuggestions]
   );
 
-  // Same flow as CommonCombobox: on empty input show defaultSuggestions (saved_markets) first, then allowed; on type filter allowed and put saved matches first
+  // On focus (empty input): show only saved_markets (defaultSuggestions). When typing: filter allowed markets and put saved matches first.
   const suggestions = useMemo(() => {
     const q = inputValue.trim().toUpperCase();
     if (!q) {
-      const allowedSet = new Set(ALLOWED_MARKETS.map((m) => m.toUpperCase()));
-      const savedFirst = normalizedSaved.filter((m) => allowedSet.has(m.toUpperCase()));
-      const rest = ALLOWED_MARKETS.filter((m) => !savedFirst.some((s) => s.toUpperCase() === m.toUpperCase()));
-      return [...savedFirst, ...rest].slice(0, MAX_SUGGESTIONS);
+      return normalizedSaved.slice(0, MAX_SUGGESTIONS);
     }
     const fromAllowed = filterAllowedMarkets(inputValue, MAX_SUGGESTIONS);
     const lower = inputValue.trim().toLowerCase();
@@ -161,7 +158,7 @@ export function MarketCombobox({
   };
 
   const baseDropdownClass =
-    'max-h-60 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm py-1';
+    'max-h-60 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm p-1';
   const noMatchMessage =
     'No match in list. You can use your typed value if it matches the format (e.g. EURUSD, EUR/USD).';
 
