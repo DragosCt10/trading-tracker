@@ -874,9 +874,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             </div>
 
             {/* Outcome + conditioned fields from extra cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {/* Trade Outcome (now one item in the shared grid) */}
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Trade Outcome *
                 </Label>
@@ -1093,153 +1093,191 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             {/* Risk Management Section */}
             <Separator />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Risk per Trade (%) *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  inputMode="decimal"
-                  value={String(trade.risk_per_trade ?? '')}
-                  onChange={(e) => updateTrade('risk_per_trade', parseFloat(e.target.value) || 0)}
-                  className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                  placeholder="e.g. 1.5"
-                  required
-                />
+            <div className="space-y-5">
+              {/* Row 1: core risk inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Risk per Trade (%) *
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={String(trade.risk_per_trade ?? '')}
+                    onChange={(e) =>
+                      updateTrade('risk_per_trade', parseFloat(e.target.value) || 0)
+                    }
+                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                    placeholder="e.g. 1.5"
+                    required
+                  />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Risk:Reward Ratio *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  inputMode="decimal"
-                  value={String(trade.risk_reward_ratio ?? '')}
-                  onChange={(e) => updateTrade('risk_reward_ratio', parseFloat(e.target.value) || 0)}
-                  className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                  placeholder="e.g. 2"
-                  required
-                />
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Risk:Reward Ratio *
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={String(trade.risk_reward_ratio ?? '')}
+                    onChange={(e) =>
+                      updateTrade('risk_reward_ratio', parseFloat(e.target.value) || 0)
+                    }
+                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                    placeholder="e.g. 2"
+                    required
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Potential Risk:Reward Ratio</Label>
-                {trade.trade_outcome === 'Lose' || trade.trade_outcome === 'BE' ? (
+              {/* Row 2: potential R:R + SL size */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Potential Risk:Reward Ratio
+                  </Label>
+                  {trade.trade_outcome === 'Lose' || trade.trade_outcome === 'BE' ? (
+                    <Input
+                      type="text"
+                      value="0"
+                      readOnly
+                      className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-200/50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-not-allowed"
+                    />
+                  ) : (
+                    <Select
+                      value={
+                        trade.risk_reward_ratio_long && trade.risk_reward_ratio_long > 0
+                          ? String(trade.risk_reward_ratio_long)
+                          : undefined
+                      }
+                      onValueChange={(v) =>
+                        updateTrade(
+                          'risk_reward_ratio_long',
+                          v === '' || v === '__none__' ? (undefined as any) : Number(v),
+                        )
+                      }
+                    >
+                      <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                        <SelectValue placeholder="Select ratio (1 – 10 or 10+)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">No potential R:R</SelectItem>
+                        {POTENTIAL_RR_OPTIONS.map((opt) => {
+                          const baseValue = Number(trade.risk_reward_ratio ?? 0);
+                          const disabled =
+                            trade.trade_outcome === 'Win' && opt.value <= baseValue;
+                          return (
+                            <SelectItem
+                              key={opt.value}
+                              value={String(opt.value)}
+                              disabled={disabled}
+                            >
+                              {opt.label}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    SL Size {hasAnyExtraCard ? '*' : ''}
+                  </Label>
                   <Input
-                    type="text"
-                    value="0"
-                    readOnly
-                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-200/50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-not-allowed"
+                    type="number"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={String(trade.sl_size ?? '')}
+                    onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
+                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                    placeholder="e.g. 10"
+                    required={hasAnyExtraCard}
                   />
-                ) : (
-                  <Select
-                    value={
-                      trade.risk_reward_ratio_long && trade.risk_reward_ratio_long > 0
-                        ? String(trade.risk_reward_ratio_long)
-                        : undefined
-                    }
-                    onValueChange={(v) =>
-                      updateTrade(
-                        'risk_reward_ratio_long',
-                        v === '' || v === '__none__' ? (undefined as any) : Number(v),
-                      )
-                    }
-                  >
+                </div>
+              </div>
+
+              {/* Row 3: evaluation + trend */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      Evaluation Grade
+                    </Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 cursor-help text-slate-500 dark:text-slate-400" />
+                        </TooltipTrigger>
+                        <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
+                          <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2.5">
+                            Grade guide
+                          </p>
+                          <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-6 h-6 rounded-md bg-blue-500/15 dark:bg-blue-400/20 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400 shrink-0">
+                                A+
+                              </span>
+                              <span>Perfect execution</span>
+                            </li>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-6 h-6 rounded-md bg-emerald-500/15 dark:bg-emerald-400/20 flex items-center justify-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                                A
+                              </span>
+                              <span>Excellent trade</span>
+                            </li>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-6 h-6 rounded-md bg-amber-500/15 dark:bg-amber-400/20 flex items-center justify-center text-[10px] font-bold text-amber-600 dark:text-amber-400 shrink-0">
+                                B
+                              </span>
+                              <span>Good trade</span>
+                            </li>
+                            <li className="flex items-center gap-2.5">
+                              <span className="w-6 h-6 rounded-md bg-orange-500/15 dark:bg-orange-400/20 flex items-center justify-center text-[10px] font-bold text-orange-600 dark:text-orange-400 shrink-0">
+                                C
+                              </span>
+                              <span>Poor execution</span>
+                            </li>
+                          </ul>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <Select value={trade.evaluation} onValueChange={(v) => updateTrade('evaluation', v)}>
                     <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                      <SelectValue placeholder="Select ratio (1 – 10 or 10+)" />
+                      <SelectValue placeholder="Select Grade" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">No potential R:R</SelectItem>
-                      {POTENTIAL_RR_OPTIONS.map((opt) => {
-                        const baseValue = Number(trade.risk_reward_ratio ?? 0);
-                        const disabled =
-                          trade.trade_outcome === 'Win' && opt.value <= baseValue;
-                        return (
-                          <SelectItem
-                            key={opt.value}
-                            value={String(opt.value)}
-                            disabled={disabled}
-                          >
-                            {opt.label}
-                          </SelectItem>
-                        );
-                      })}
+                      {EVALUATION_OPTIONS.map((e) => (
+                        <SelectItem key={e} value={e}>
+                          {e}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  SL Size {hasAnyExtraCard ? '*' : ''}
-                </Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  inputMode="decimal"
-                  value={String(trade.sl_size ?? '')}
-                  onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
-                  className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                  placeholder="e.g. 10"
-                  required={hasAnyExtraCard}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Evaluation Grade</Label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 cursor-help text-slate-500 dark:text-slate-400" />
-                      </TooltipTrigger>
-                      <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
-                        <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2.5">Grade guide</p>
-                        <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
-                          <li className="flex items-center gap-2.5">
-                            <span className="w-6 h-6 rounded-md bg-blue-500/15 dark:bg-blue-400/20 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400 shrink-0">A+</span>
-                            <span>Perfect execution</span>
-                          </li>
-                          <li className="flex items-center gap-2.5">
-                            <span className="w-6 h-6 rounded-md bg-emerald-500/15 dark:bg-emerald-400/20 flex items-center justify-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">A</span>
-                            <span>Excellent trade</span>
-                          </li>
-                          <li className="flex items-center gap-2.5">
-                            <span className="w-6 h-6 rounded-md bg-amber-500/15 dark:bg-amber-400/20 flex items-center justify-center text-[10px] font-bold text-amber-600 dark:text-amber-400 shrink-0">B</span>
-                            <span>Good trade</span>
-                          </li>
-                          <li className="flex items-center gap-2.5">
-                            <span className="w-6 h-6 rounded-md bg-orange-500/15 dark:bg-orange-400/20 flex items-center justify-center text-[10px] font-bold text-orange-600 dark:text-orange-400 shrink-0">C</span>
-                            <span>Poor execution</span>
-                          </li>
-                        </ul>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
                 </div>
-                <Select value={trade.evaluation} onValueChange={(v) => updateTrade('evaluation', v)}>
-                  <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                    <SelectValue placeholder="Select Grade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EVALUATION_OPTIONS.map((e) => (
-                      <SelectItem key={e} value={e}>{e}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
-              <div className="space-y-2">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Trend</Label>
-                <Select value={trade.trend ?? ''} onValueChange={(v) => updateTrade('trend', v || null)}>
-                  <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                    <SelectValue placeholder="Select Trend" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Trend-following">Trend-following</SelectItem>
-                    <SelectItem value="Counter-trend">Counter-trend</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Trend
+                  </Label>
+                  <Select
+                    value={trade.trend ?? ''}
+                    onValueChange={(v) => updateTrade('trend', v || null)}
+                  >
+                    <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                      <SelectValue placeholder="Select Trend" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Trend-following">Trend-following</SelectItem>
+                      <SelectItem value="Counter-trend">Counter-trend</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
