@@ -455,7 +455,10 @@ export default function ImportTradesModal({
 
       if (result.inserted > 0) {
         queryClient.invalidateQueries({
-          predicate: (q) => (q.queryKey?.[0] as string) === 'allTrades',
+          predicate: (q) => {
+            const first = q.queryKey?.[0] as string | undefined;
+            return first === 'allTrades' || first === 'filteredTrades' || first === 'nonExecutedTrades';
+          },
         });
       }
     } catch (err) {

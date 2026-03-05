@@ -22,6 +22,7 @@ import { useUserDetails } from '@/hooks/useUserDetails';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 
 import {
   Chart as ChartJS,
@@ -296,8 +297,16 @@ export default function StrategyClient(
     const effectiveStartDate = dr.startDate;
     const effectiveEndDate = dr.endDate;
     
-    const queryKeyAllTrades = ['allTrades', mode, acc.id, uid, year, strategyId];
-    const queryKeyFilteredTrades = ['filteredTrades', mode, acc.id, uid, initialViewMode, effectiveStartDate, effectiveEndDate, strategyId];
+    const queryKeyAllTrades = queryKeys.trades.all(mode, acc.id, uid, year, strategyId);
+    const queryKeyFilteredTrades = queryKeys.trades.filtered(
+      mode,
+      acc.id,
+      uid,
+      initialViewMode,
+      effectiveStartDate,
+      effectiveEndDate,
+      strategyId,
+    );
     
     // Only hydrate if data doesn't already exist AND we haven't recently invalidated trade data
     // This prevents stale initialData from being used after a trade's strategy_id changes
@@ -308,7 +317,15 @@ export default function StrategyClient(
       queryClient.setQueryData(queryKeyFilteredTrades, props?.initialFilteredTrades ?? []);
       queryClient.setQueryData(queryKeyAllTrades, props?.initialAllTrades ?? []);
       queryClient.setQueryData(
-        ['nonExecutedTrades', mode, acc.id, uid, initialViewMode, effectiveStartDate, effectiveEndDate, strategyId],
+        queryKeys.trades.nonExecuted(
+          mode,
+          acc.id,
+          uid,
+          initialViewMode,
+          effectiveStartDate,
+          effectiveEndDate,
+          strategyId,
+        ),
         props?.initialNonExecutedTrades ?? []
       );
       // Note: nonExecutedTotalTradesCount is now derived from allTrades, no need to hydrate separately

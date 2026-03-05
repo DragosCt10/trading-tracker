@@ -257,17 +257,23 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     setTrade((prev) => (prev[key] === value ? prev : { ...prev, [key]: value }));
   };
 
-  // Helper function to invalidate and refetch ALL queries (ensures analytics updates)
-  const invalidateAndRefetchTradeQueries = useCallback(async () => {
+  // Helper function to invalidate and refetch trade queries (ensures analytics updates)
+  const invalidateAndRefetchTradeQueries = useCallback(async (params?: {
+    mode?: typeof selection.mode;
+    accountId?: string | undefined;
+    userId?: string | undefined;
+    strategyId?: string | null;
+  }) => {
     // Signal strategy page to skip re-hydrating from stale initialData (so calendar/list show new trade)
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
     }
     
     // Get current context for explicit refetch
-    const mode = selection.mode;
-    const accountId = selection.activeAccount?.id;
-    const strategyId = trade.strategy_id;
+    const mode = params?.mode ?? selection.mode;
+    const accountId = params?.accountId ?? selection.activeAccount?.id;
+    const strategyId = params?.strategyId ?? trade.strategy_id;
+    const effectiveUserId = params?.userId ?? userId;
     
     // Invalidate all trade-related queries (marks as stale but keeps them so refetch works)
     await queryClient.invalidateQueries({ predicate: (query) => {
@@ -286,7 +292,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     
     // Explicitly refetch queries for the current strategy (ensures calendar updates immediately)
     // This is critical: we refetch BEFORE any removeQueries so the queries still exist
-    if (accountId && userId && strategyId) {
+    if (accountId && effectiveUserId && strategyId) {
       await queryClient.refetchQueries({ 
         predicate: (query) => {
           const key = query.queryKey;
@@ -300,7 +306,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             // nonExecutedTrades: same structure as filteredTrades - strategyId at index 7
             const matchesMode = key[1] === mode;
             const matchesAccount = key[2] === accountId;
-            const matchesUser = key[3] === userId;
+            const matchesUser = key[3] === effectiveUserId;
             // Strategy ID is at index 5 for allTrades, index 7 for filteredTrades/nonExecutedTrades
             let matchesStrategy = false;
             if (firstKey === 'allTrades' && key.length > 5) {
@@ -315,9 +321,24 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       });
     }
     
-    // Also refetch any other active queries to catch edge cases
-    await queryClient.refetchQueries({ type: 'active' });
-  }, [selection.mode, selection.activeAccount?.id, userId, trade.strategy_id, queryClient]);
+    // Compatibility/safety: refetch only active *trade-related* queries (avoid global active refetch)
+    await queryClient.refetchQueries({
+      predicate: (query) => {
+        const key = query.queryKey;
+        if (!Array.isArray(key)) return false;
+        const firstKey = key[0];
+        return (
+          firstKey === 'allTrades' ||
+          firstKey === 'filteredTrades' ||
+          firstKey === 'nonExecutedTrades' ||
+          firstKey === 'discoverTrades' ||
+          firstKey === 'all-strategy-trades' ||
+          firstKey === 'all-strategy-stats'
+        );
+      },
+      type: 'active',
+    });
+  }, [selection.mode, selection.activeAccount?.id, trade.strategy_id, userId, queryClient]);
 
   // keep weekday + quarter in sync when the committed date changes
   useEffect(() => {
@@ -546,6 +567,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     setIsSubmitting(true);
 
     try {
+      const tradeSnapshot = trade;
+      const currentStrategySnapshot = currentStrategy;
+      const settingsSnapshot = settings;
+      const userIdSnapshot = userId;
+
       const notes = notesRef.current ? notesRef.current.value : trade.notes;
 
       const normalizedMarket = normalizeMarket(trade.market);
@@ -576,78 +602,108 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         localStorage.removeItem(`new-trade-draft-${selection.mode}`);
       }
 
-      // Compute updated lists and persist to DB; then update React Query cache so suggestion lists show new data without page refresh
-      let updatedNews: SavedNewsItem[] | undefined;
-      let updatedSetups: string[] | undefined;
-      let updatedLiquidity: string[] | undefined;
-      let updatedMarkets: string[] | undefined;
-
-      if (trade.news_related && trade.news_name?.trim() && userId) {
-        const savedNews = Array.isArray(settings.saved_news) ? settings.saved_news : [];
-        updatedNews = mergeNewsIntoSaved(
-          normalizeNewsName(trade.news_name),
-          trade.news_intensity ?? null,
-          savedNews
-        );
-        await updateSavedNews(updatedNews);
-      }
-
-      if (trade.setup_type?.trim() && userId && currentStrategy) {
-        updatedSetups = mergeSetupTypeIntoSaved(
-          trade.setup_type,
-          currentStrategy.saved_setup_types ?? []
-        );
-        await updateStrategySetupTypes(currentStrategy.id, userId, updatedSetups);
-      }
-
-      if (trade.liquidity?.trim() && userId && currentStrategy) {
-        updatedLiquidity = mergeLiquidityTypeIntoSaved(
-          trade.liquidity,
-          currentStrategy.saved_liquidity_types ?? []
-        );
-        await updateStrategyLiquidityTypes(currentStrategy.id, userId, updatedLiquidity);
-      }
-
-      if (trade.market?.trim() && userId) {
-        const savedMarkets = Array.isArray(settings.saved_markets) ? settings.saved_markets : [];
-        updatedMarkets = mergeMarketIntoSaved(trade.market, savedMarkets);
-        await updateSavedMarkets(updatedMarkets);
-      }
-
-      // Update cache immediately so next time modal opens, useSettings/useStrategies see fresh data (refetch alone doesn't work because those queries use enabled: !cached)
-      if (userId) {
-        const settingsKey = queryKeys.settings(userId);
-        queryClient.setQueryData(settingsKey, (prev: { saved_news?: unknown; saved_markets?: string[] } | undefined) => ({
-          ...prev,
-          saved_news: updatedNews ?? prev?.saved_news ?? [],
-          saved_markets: updatedMarkets ?? prev?.saved_markets ?? [],
-        }));
-        if (currentStrategy && (updatedSetups !== undefined || updatedLiquidity !== undefined)) {
-          const strategiesKey = queryKeys.strategies(userId);
-          queryClient.setQueryData(strategiesKey, (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[] }[] | undefined) => {
-            if (!prev) return prev;
-            return prev.map((s) =>
-              s.id === currentStrategy.id
-                ? {
-                    ...s,
-                    saved_setup_types: updatedSetups ?? s.saved_setup_types ?? [],
-                    saved_liquidity_types: updatedLiquidity ?? s.saved_liquidity_types ?? [],
-                  }
-                : s
-            );
-          });
-        }
-        await queryClient.invalidateQueries({ queryKey: queryKeys.settings(userId) });
-        await queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userId) });
-      }
-
-      // ✅ Invalidate and refetch all queries to ensure analytics updates immediately
-      await invalidateAndRefetchTradeQueries();
-
       setIsSubmitting(false);
       setTrade(initialTradeState);
       if (onTradeCreated) onTradeCreated();
       onClose();
+
+      // Post-insert sync work (saved lists + query refresh) — do not block UI close.
+      void (async () => {
+        try {
+          // Compute updated lists and persist to DB; then update React Query cache so suggestion lists show new data without page refresh
+          let updatedNews: SavedNewsItem[] | undefined;
+          let updatedSetups: string[] | undefined;
+          let updatedLiquidity: string[] | undefined;
+          let updatedMarkets: string[] | undefined;
+
+          const savePromises: Promise<unknown>[] = [];
+
+          if (tradeSnapshot.news_related && tradeSnapshot.news_name?.trim() && userIdSnapshot) {
+            const savedNews = Array.isArray(settingsSnapshot.saved_news) ? settingsSnapshot.saved_news : [];
+            updatedNews = mergeNewsIntoSaved(
+              normalizeNewsName(tradeSnapshot.news_name),
+              tradeSnapshot.news_intensity ?? null,
+              savedNews,
+            );
+            savePromises.push(updateSavedNews(updatedNews));
+          }
+
+          if (tradeSnapshot.setup_type?.trim() && userIdSnapshot && currentStrategySnapshot) {
+            updatedSetups = mergeSetupTypeIntoSaved(
+              tradeSnapshot.setup_type,
+              currentStrategySnapshot.saved_setup_types ?? [],
+            );
+            savePromises.push(updateStrategySetupTypes(currentStrategySnapshot.id, userIdSnapshot, updatedSetups));
+          }
+
+          if (tradeSnapshot.liquidity?.trim() && userIdSnapshot && currentStrategySnapshot) {
+            updatedLiquidity = mergeLiquidityTypeIntoSaved(
+              tradeSnapshot.liquidity,
+              currentStrategySnapshot.saved_liquidity_types ?? [],
+            );
+            savePromises.push(updateStrategyLiquidityTypes(currentStrategySnapshot.id, userIdSnapshot, updatedLiquidity));
+          }
+
+          if (tradeSnapshot.market?.trim() && userIdSnapshot) {
+            const savedMarkets = Array.isArray(settingsSnapshot.saved_markets) ? settingsSnapshot.saved_markets : [];
+            updatedMarkets = mergeMarketIntoSaved(tradeSnapshot.market, savedMarkets);
+            savePromises.push(updateSavedMarkets(updatedMarkets));
+          }
+
+          await Promise.all(savePromises);
+
+          // Update cache immediately so next time modal opens, useSettings/useStrategies see fresh data (refetch alone doesn't work because those queries use enabled: !cached)
+          if (userIdSnapshot) {
+            const settingsKey = queryKeys.settings(userIdSnapshot);
+            queryClient.setQueryData(
+              settingsKey,
+              (prev: { saved_news?: unknown; saved_markets?: string[] } | undefined) => ({
+                ...prev,
+                saved_news: updatedNews ?? prev?.saved_news ?? [],
+                saved_markets: updatedMarkets ?? prev?.saved_markets ?? [],
+              }),
+            );
+
+            if (currentStrategySnapshot && (updatedSetups !== undefined || updatedLiquidity !== undefined)) {
+              const strategiesKey = queryKeys.strategies(userIdSnapshot);
+              queryClient.setQueryData(
+                strategiesKey,
+                (prev:
+                  | { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[] }[]
+                  | undefined) => {
+                  if (!prev) return prev;
+                  return prev.map((s) =>
+                    s.id === currentStrategySnapshot.id
+                      ? {
+                          ...s,
+                          saved_setup_types: updatedSetups ?? s.saved_setup_types ?? [],
+                          saved_liquidity_types: updatedLiquidity ?? s.saved_liquidity_types ?? [],
+                        }
+                      : s,
+                  );
+                },
+              );
+            }
+
+            // Keep existing behavior: mark cached settings/strategies stale so any consumers refetch if needed.
+            await queryClient.invalidateQueries({ queryKey: queryKeys.settings(userIdSnapshot) });
+            await queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userIdSnapshot) });
+          }
+
+          // ✅ Invalidate and refetch trade queries so analytics updates immediately (but don't block the modal close)
+          // Use the same helper; it uses current selection + trade.strategy_id.
+          // If the user navigated in the meantime, it'll still be safe (it only refetches trade-related keys).
+          await invalidateAndRefetchTradeQueries({
+            mode: selection.mode,
+            accountId: selection.activeAccount?.id,
+            userId: userIdSnapshot,
+            strategyId: tradeSnapshot.strategy_id ?? null,
+          });
+        } catch (syncErr) {
+          console.error('Post-create trade sync failed:', syncErr);
+          // Do not surface UI error here — trade was created successfully.
+        }
+      })();
     } catch (err: any) {
       setError(err?.message ?? 'Failed to create trade. Please check your data and try again.');
       setIsSubmitting(false);

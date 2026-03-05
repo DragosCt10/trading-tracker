@@ -147,7 +147,24 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         firstKey === 'all-strategy-stats'
       );
     }});
-    await queryClient.refetchQueries({ type: 'active' });
+
+    // Refetch only active trade-related queries (avoid refetching all active queries globally)
+    await queryClient.refetchQueries({
+      predicate: (query) => {
+        const key = query.queryKey;
+        if (!Array.isArray(key)) return false;
+        const firstKey = key[0];
+        return (
+          firstKey === 'allTrades' ||
+          firstKey === 'filteredTrades' ||
+          firstKey === 'nonExecutedTrades' ||
+          firstKey === 'discoverTrades' ||
+          firstKey === 'all-strategy-trades' ||
+          firstKey === 'all-strategy-stats'
+        );
+      },
+      type: 'active',
+    });
   }, [queryClient]);
 
   const MSS_OPTIONS = ['Normal', 'Aggressive'];

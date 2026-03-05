@@ -17,6 +17,7 @@ import { TradeFiltersBar, DateRangeValue } from '@/components/dashboard/analytic
 import { getFilteredTrades } from '@/lib/server/trades';
 import { cn } from '@/lib/utils';
 import type { Database } from '@/types/supabase';
+import { queryKeys } from '@/lib/queryKeys';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -368,15 +369,15 @@ export default function MyTradesClient({
     isLoading: filteredTradesLoading,
     isFetching: filteredTradesFetching,
   } = useQuery<Trade[]>({
-    queryKey: [
-      'filteredTrades',
+    queryKey: queryKeys.trades.filtered(
       selection.mode,
       activeAccount?.id,
       userId,
+      'dateRange',
       dateRange.startDate,
       dateRange.endDate,
       initialStrategyId,
-    ],
+    ),
     queryFn: async () => {
       if (!userId || !activeAccount?.id) return [];
       return getFilteredTrades({
@@ -405,14 +406,13 @@ export default function MyTradesClient({
   const {
     data: rawAllTrades,
   } = useQuery<Trade[]>({
-    queryKey: [
-      'allTrades',
+    queryKey: queryKeys.trades.all(
       selection.mode,
       activeAccount?.id,
       userId,
       selectedYear,
       initialStrategyId,
-    ],
+    ),
     queryFn: async () => {
       if (!userId || !activeAccount?.id) return [];
       const currentYear = new Date().getFullYear();

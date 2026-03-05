@@ -15,6 +15,7 @@ import { useColorTheme } from '@/hooks/useColorTheme';
 import { useQueryClient } from '@tanstack/react-query';
 import { getFilteredTrades, deleteTrades } from '@/lib/server/trades';
 import type { Database } from '@/types/supabase';
+import { queryKeys } from '@/lib/queryKeys';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -228,15 +229,15 @@ export default function ManageTradesClient({
     isLoading: allTradesLoading,
     error: allTradesError,
   } = useQuery<Trade[]>({
-    queryKey: [
-      'allTrades',
+    queryKey: queryKeys.trades.filtered(
       selection.mode,
       activeAccount?.id,
       userId,
+      'dateRange',
       dateRange.startDate,
       dateRange.endDate,
       initialStrategyId,
-    ],
+    ),
     queryFn: async () => {
       if (!userId || !activeAccount?.id) return [];
       return getFilteredTrades({
@@ -415,7 +416,17 @@ export default function ManageTradesClient({
       }
       setSelectedIds(new Set());
       setShowBulkDeleteConfirm(false);
-      queryClient.invalidateQueries({ predicate: (q) => (q.queryKey?.[0] as string) === 'allTrades' });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.trades.filtered(
+          selection.mode,
+          activeAccount?.id,
+          userId,
+          'dateRange',
+          dateRange.startDate,
+          dateRange.endDate,
+          initialStrategyId,
+        ),
+      });
     } finally {
       setBulkDeleting(false);
     }
@@ -1118,7 +1129,17 @@ export default function ManageTradesClient({
               onClose={closeModal}
               trade={selectedTrade}
               onTradeUpdated={() => {
-                queryClient.invalidateQueries({ predicate: (q) => (q.queryKey?.[0] as string) === 'allTrades' });
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.trades.filtered(
+                    selection.mode,
+                    activeAccount?.id,
+                    userId,
+                    'dateRange',
+                    dateRange.startDate,
+                    dateRange.endDate,
+                    initialStrategyId,
+                  ),
+                });
               }}
             />
           )}

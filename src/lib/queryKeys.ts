@@ -47,9 +47,11 @@ export const queryKeys = {
       mode: string,
       accountId: string | undefined,
       userId: string | undefined,
-      year: number,
+      viewMode: string,
+      startDate: string,
+      endDate: string,
       strategyId?: string | null
-    ) => ['nonExecutedTrades', mode, accountId, userId, year, strategyId] as const,
+    ) => ['nonExecutedTrades', mode, accountId, userId, viewMode, startDate, endDate, strategyId] as const,
   },
 
   allStrategyTrades: (

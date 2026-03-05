@@ -3,6 +3,7 @@ import { Trade } from '@/types/trade';
 import { AccountSettings } from '@/types/account-settings';
 import { useQuery } from '@tanstack/react-query';
 import { getFilteredTrades } from '@/lib/server/trades';
+import { queryKeys } from '@/lib/queryKeys';
 import { calculateMonthlyStats } from '@/utils/calculateMonthlyState';
 import { calculateMacroStats } from '@/utils/calculateMacroStats';
 import { calculateWinRates } from '@/utils/calculateWinRates';
@@ -157,7 +158,13 @@ export function useDashboardData({
     data: allTrades = [],
     isFetching: allTradesLoading,
   } = useQuery<Trade[]>({
-    queryKey: ['allTrades', mode, activeAccount?.id, session?.user?.id, selectedYear, strategyId],
+    queryKey: queryKeys.trades.all(
+      mode,
+      activeAccount?.id,
+      session?.user?.id,
+      selectedYear,
+      strategyId,
+    ),
     queryFn: async () => {
       if (!session?.user?.id || !activeAccount?.id) {
         return [];
@@ -203,16 +210,15 @@ export function useDashboardData({
     data: nonExecutedTradesFromQuery = [],
     isFetching: nonExecutedTradesLoading,
   } = useQuery<Trade[]>({
-    queryKey: [
-      'nonExecutedTrades',
+    queryKey: queryKeys.trades.nonExecuted(
       mode,
       activeAccount?.id,
       session?.user?.id,
-      viewMode,
+      viewMode ?? 'dateRange',
       effectiveDateRange.startDate,
       effectiveDateRange.endDate,
       strategyId,
-    ],
+    ),
     queryFn: async () => {
       if (!session?.user?.id || !activeAccount?.id) return [];
       try {
@@ -273,16 +279,15 @@ export function useDashboardData({
     data: filteredTradesFromQuery = [],
     isFetching: filteredTradesLoading,
   } = useQuery<Trade[]>({
-    queryKey: [
-      'filteredTrades',
+    queryKey: queryKeys.trades.filtered(
       mode,
       activeAccount?.id,
       session?.user?.id,
-      viewMode,
+      viewMode ?? 'dateRange',
       effectiveDateRange.startDate,
       effectiveDateRange.endDate,
       strategyId,
-    ],
+    ),
     queryFn: async () => {
       if (!session?.user?.id || !activeAccount?.id) return [];
       try {
