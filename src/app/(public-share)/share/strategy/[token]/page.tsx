@@ -78,7 +78,7 @@ export default async function ShareStrategyPage({ params }: PageProps) {
   const accountBalance = typedAccount?.account_balance ?? null;
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen max-w-(--breakpoint-xl) mx-auto w-full">
       <ShareStrategyClient
         trades={await (async () => {
           // Lazily import to avoid circular dependency at module evaluation.
