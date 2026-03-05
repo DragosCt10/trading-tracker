@@ -84,9 +84,6 @@ import {
   LocalHLBEStatisticsCard,
 } from '@/components/dashboard/analytics/LocalHLBEStatisticsCard';
 import {
-  PartialsBEStatisticsCard,
-} from '@/components/dashboard/analytics/PartialsBEStatisticsCard';
-import {
   AverageDisplacementSizeCard,
 } from '@/components/dashboard/analytics/AverageDisplacementSizeCard';
 import {
@@ -404,10 +401,6 @@ export default function ShareStrategyClient({
       trades.some(
         (t) => isLocalHighLowLiquidated(t.local_high_low) && t.break_even === true
       ),
-    [trades]
-  );
-  const hasPartialsBEData = useMemo(
-    () => trades.some((t) => t.break_even === true && t.partials_taken === true),
     [trades]
   );
   const hasAvgDisplacementData = useMemo(
@@ -742,15 +735,9 @@ export default function ShareStrategyClient({
           </div>
         )}
 
-        {((hasCard('local_hl_be_stats') && hasLocalHLBEData) ||
-          (hasCard('partials_be_stats') && hasPartialsBEData)) && (
+        {hasCard('local_hl_be_stats') && hasLocalHLBEData && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
-            {hasCard('local_hl_be_stats') && hasLocalHLBEData && (
-              <LocalHLBEStatisticsCard trades={trades} isLoading={false} />
-            )}
-            {hasCard('partials_be_stats') && hasPartialsBEData && (
-              <PartialsBEStatisticsCard trades={trades} isLoading={false} />
-            )}
+            <LocalHLBEStatisticsCard trades={trades} isLoading={false} />
           </div>
         )}
 
