@@ -1,12 +1,17 @@
 'use client';
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo, useTransition, useEffect } from 'react';
 import { DateRange } from 'react-date-range';
 import { format } from 'date-fns';
 import { CalendarIcon, Link as LinkIcon, Loader2, Share2 } from 'lucide-react';
 import { Trade } from '@/types/trade';
 import type { Strategy } from '@/types/strategy';
-import { createStrategyShareAction } from '@/lib/server/publicShares';
+import {
+  createStrategyShareAction,
+  getStrategySharesAction,
+  setStrategyShareActiveAction,
+  type StrategyShareRow,
+} from '@/lib/server/publicShares';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -55,6 +60,9 @@ export function ShareStrategyModal({
   const [copyLabel, setCopyLabel] = useState<'Copy' | 'Copied!'>('Copy');
   const [isPending, startTransition] = useTransition();
   const [showCalendar, setShowCalendar] = useState(false);
+  const [existingShares, setExistingShares] = useState<StrategyShareRow[]>([]);
+  const [loadingShares, setLoadingShares] = useState(false);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
 
   const hasRange = Boolean(dateRange.startDate && dateRange.endDate);
 
@@ -139,12 +147,55 @@ export function ShareStrategyModal({
     } in this period, total P&L ${currencySymbol}${totalProfit.toFixed(2)}.`;
   })();
 
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      setLoadingShares(true);
+      try {
+        const shares = await getStrategySharesAction({
+          strategyId: strategy.id,
+          userId,
+          accountId,
+          mode,
+        });
+        if (!cancelled) {
+          setExistingShares(shares);
+        }
+      } finally {
+        if (!cancelled) setLoadingShares(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, strategy.id, userId, accountId, mode]);
+
   const handleClose = (next: boolean) => {
     if (!next) {
       setShareUrl(null);
       setCopyLabel('Copy');
     }
     onOpenChange(next);
+  };
+
+  const handleToggleShareActive = async (share: StrategyShareRow) => {
+    const nextActive = !share.active;
+    setRevokingId(share.id);
+    try {
+      const { error } = await setStrategyShareActiveAction({
+        shareId: share.id,
+        userId,
+        active: nextActive,
+      });
+      if (!error) {
+        setExistingShares((prev) =>
+          prev.map((s) => (s.id === share.id ? { ...s, active: nextActive } : s))
+        );
+      }
+    } finally {
+      setRevokingId(null);
+    }
   };
 
   return (
@@ -328,6 +379,59 @@ export function ShareStrategyModal({
             </div>
           </div>
         </div>
+
+        {existingShares.length > 0 && (
+          <div className="space-y-2 pt-4 border-t border-slate-200/60 dark:border-slate-700/50">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Active share links
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-500 mb-1">
+              Turn a link off to immediately make it private.
+            </p>
+            <div className="space-y-2">
+              {existingShares.map((share) => {
+                const rangeLabel = `${share.start_date} ~ ${share.end_date}`;
+                const createdLabel = new Date(share.created_at).toLocaleDateString();
+                const isRevoking = revokingId === share.id;
+                return (
+                  <div
+                    key={share.id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/70 dark:bg-slate-900/40 px-3 py-2"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-xs font-medium text-slate-800 dark:text-slate-100">
+                        {rangeLabel}
+                      </span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Created {createdLabel}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleShareActive(share)}
+                      disabled={isRevoking}
+                      className={cn(
+                        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer border',
+                        share.active
+                          ? 'bg-emerald-500/90 border-emerald-400/80'
+                          : 'bg-slate-500/40 border-slate-400/60',
+                        isRevoking && 'opacity-60 cursor-wait'
+                      )}
+                      aria-label={share.active ? 'Disable public link' : 'Enable public link'}
+                    >
+                      <span
+                        className={cn(
+                          'inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200',
+                          share.active ? 'translate-x-[22px]' : 'translate-x-[4px]'
+                        )}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Footer pinned at bottom */}
         <AlertDialogFooter className="relative flex-shrink-0 flex items-center justify-end pt-4 mt-2 border-t border-slate-200/50 dark:border-slate-700/50">
