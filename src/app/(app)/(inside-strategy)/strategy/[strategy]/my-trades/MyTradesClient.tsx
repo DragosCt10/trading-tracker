@@ -653,7 +653,7 @@ export default function MyTradesClient({
       {cardViewMode === 'split' ? (
         <div className="flex flex-col md:flex-row rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-transparent shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden md:h-[calc(100vh-100px)] md:min-h-[700px]">
           {/* Cards: horizontal scroll on mobile, vertical list on desktop */}
-          <div className="flex-shrink-0 h-[340px] md:h-auto md:w-80 overflow-x-auto overflow-y-hidden md:overflow-x-hidden md:overflow-y-auto border-b md:border-b-0 md:border-r border-slate-200/60 dark:border-slate-700/50 bg-slate-50/30 dark:bg-slate-900/20">
+          <div className="flex-shrink-0 md:w-80 overflow-x-auto overflow-y-hidden md:overflow-x-hidden md:overflow-y-auto border-b md:border-b-0 md:border-r border-slate-200/60 dark:border-slate-700/50 bg-slate-50/30 dark:bg-slate-900/20">
             {!mounted || (filteredTradesLoading && filteredTrades.length === 0) ? (
               <div className="flex md:flex-col gap-3 p-3 h-full">
                 {Array.from({ length: 6 }).map((_, i) => (
