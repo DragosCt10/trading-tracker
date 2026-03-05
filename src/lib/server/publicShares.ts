@@ -79,7 +79,7 @@ function mapSupabaseTradeToTrade(trade: any, mode: ShareMode): Trade {
   };
 }
 
-export async function createStrategyShare(params: {
+async function createStrategyShare(params: {
   strategyId: string;
   accountId: string;
   mode: ShareMode;
@@ -193,7 +193,7 @@ export async function getShareByToken(
   return data as StrategyShareRow;
 }
 
-export async function getStrategySharesForUser(params: {
+async function getStrategySharesForUser(params: {
   strategyId: string;
   userId: string;
   accountId?: string;
