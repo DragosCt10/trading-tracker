@@ -33,6 +33,15 @@ import {
   getDaysInMonthForDate,
   buildWeeklyStats,
 } from '@/components/dashboard/analytics/TradesCalendarCard';
+import {
+  calculateDirectionStats,
+  calculateReentryStats,
+  calculateBreakEvenStats,
+  calculateTrendStats,
+} from '@/utils/calculateCategoryStats';
+import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
+import { calculateEvaluationStats } from '@/utils/calculateEvaluationStats';
+import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Lock, Share2 } from 'lucide-react';
 
@@ -198,6 +207,51 @@ export default function ShareStrategyClient({
     [currentDate, calendarMonthTrades, accountBalance]
   );
 
+  const directionStats = useMemo(() => calculateDirectionStats(trades), [trades]);
+  const partialStatsFromTrades = useMemo(
+    () => calculatePartialTradesStats(trades),
+    [trades]
+  );
+
+  const partialRowProps = useMemo(
+    () => ({
+      partialStats: {
+        totalPartials: partialStatsFromTrades.totalPartialTradesCount,
+        partialWinningTrades: partialStatsFromTrades.partialWinningTrades,
+        partialLosingTrades: partialStatsFromTrades.partialLosingTrades,
+        partialBETrades: partialStatsFromTrades.partialBETrades,
+      },
+      initialNonExecutedTotalTradesCount: null as number | null,
+      directionStats,
+      includeTotalTradesForDirection: true,
+      chartsLoadingState: false,
+    }),
+    [
+      partialStatsFromTrades,
+      directionStats,
+    ]
+  );
+
+  const evaluationStats = useMemo(
+    () => calculateEvaluationStats(trades) as EvaluationStat[],
+    [trades]
+  );
+  const reentryStats = useMemo(() => calculateReentryStats(trades), [trades]);
+  const breakEvenStats = useMemo(() => calculateBreakEvenStats(trades), [trades]);
+  const trendStats = useMemo(() => calculateTrendStats(trades), [trades]);
+
+  const aboveRiskPerTradeRow = useMemo(
+    () => ({
+      evaluationStats,
+      reentryStats,
+      breakEvenStats,
+      trendStats,
+      chartsLoadingState: false,
+      includeTotalTrades: true,
+    }),
+    [evaluationStats, reentryStats, breakEvenStats, trendStats]
+  );
+
   return (
     <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-50 w-full">
       <main className="flex-1 w-full px-4 sm:px-6 py-8 sm:py-10 space-y-12">
@@ -262,6 +316,7 @@ export default function ShareStrategyClient({
             monthlyStatsAllTrades={monthlyProfitStats}
             isYearDataLoading={false}
             tradesCount={trades.length}
+            fallbackAccountName="Read-only Account"
           />
         </section>
 
@@ -302,6 +357,9 @@ export default function ShareStrategyClient({
               accountBalance={accountBalance ?? undefined}
               viewMode="dateRange"
               showTitle={false}
+              partialRowProps={partialRowProps}
+              aboveRiskPerTradeRow={aboveRiskPerTradeRow}
+              hideEmptyChartCards
             />
           </div>
         </section>
