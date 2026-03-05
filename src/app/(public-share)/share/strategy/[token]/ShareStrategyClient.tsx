@@ -42,6 +42,8 @@ import {
   calculateReentryStats,
   calculateBreakEvenStats,
   calculateTrendStats,
+  calculateMarketStats,
+  calculateSLSizeStats,
 } from '@/utils/calculateCategoryStats';
 import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
 import { calculateEvaluationStats } from '@/utils/calculateEvaluationStats';
@@ -55,6 +57,10 @@ import { SharpeRatioChart } from '@/components/dashboard/analytics/SharpeRatioCh
 import { TQIChart } from '@/components/dashboard/analytics/TQIChart';
 import { computeStrategyStatsFromTrades } from '@/utils/computeStrategyStatsFromTrades';
 import { calculateFilteredMacroStats } from '@/utils/calculateFilteredMacroStats';
+import { chartOptions } from '@/utils/chartConfig';
+import { MarketStatisticsCard } from '@/components/dashboard/analytics/MarketStatisticsCard';
+import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketProfitStats';
+import { SLSizeStatisticsCard } from '@/components/dashboard/analytics/SLSizeStatisticsCard';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Lock, Share2 } from 'lucide-react';
 
@@ -130,6 +136,15 @@ export default function ShareStrategyClient({
     () => (hasLiquidityCard ? calculateLiquidityStats(trades) : []),
     [hasLiquidityCard, trades]
   );
+
+  const marketStats = useMemo(
+    () => calculateMarketStats(trades, accountBalance ?? 0),
+    [trades, accountBalance]
+  );
+
+  const slSizeStats = useMemo(() => calculateSLSizeStats(trades), [trades]);
+
+  const getCurrencySymbol = () => currencySymbol;
 
   // Monthly profit stats for the shared period (date range)
   const monthlyProfitStats = useMemo(
@@ -499,9 +514,11 @@ export default function ShareStrategyClient({
 
         <section className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Monthly performance</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              Wins, losses, break-even trades, and win rates by calendar month.
+            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-2">
+              Trade Performance Analysis
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 mb-6">
+              See your trading performance metrics and statistics.
             </p>
           </div>
           <MonthlyPerformanceChart
@@ -509,6 +526,23 @@ export default function ShareStrategyClient({
             months={MONTHS}
           />
         </section>
+
+        <div className="my-8">
+          <MarketStatisticsCard
+            marketStats={marketStats}
+            isLoading={false}
+            includeTotalTrades
+          />
+        </div>
+
+        <div className="my-8">
+          <MarketProfitStatisticsCard
+            trades={trades}
+            marketStats={marketStats}
+            chartOptions={chartOptions}
+            getCurrencySymbol={getCurrencySymbol}
+          />
+        </div>
 
         <section className="space-y-4">
           <div>
@@ -518,7 +552,15 @@ export default function ShareStrategyClient({
             </p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {hasCard('potential_rr') && <RiskRewardStats trades={trades} />}
+            {hasCard('potential_rr') && (
+              <RiskRewardStats trades={trades} isLoading={false} />
+            )}
+            {hasCard('sl_size_stats') && (
+              <SLSizeStatisticsCard
+                slSizeStats={slSizeStats}
+                isLoading={false}
+              />
+            )}
             {hasSetupCard && (
               <SetupStatisticsCard setupStats={setupStats} includeTotalTrades />
             )}
