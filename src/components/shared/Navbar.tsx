@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import {
   Menu,
   X,
@@ -28,7 +28,12 @@ import { cn } from '@/lib/utils';
 import Logo from '../shared/Logo';
 import { ThemePickerModal } from './ThemePickerModal';
 
-export default function Navbar() {
+interface NavbarProps {
+  /** Rendered in the navbar center on responsive (< lg); e.g. ActionBar */
+  centerContent?: ReactNode;
+}
+
+export default function Navbar({ centerContent }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: userData } = useUserDetails();
@@ -137,6 +142,13 @@ export default function Navbar() {
               </li>
             </ul>
           </div>
+
+          {/* Responsive: center slot (e.g. ActionBar) — only on < lg */}
+          {centerContent ? (
+            <div className="flex-1 flex justify-center items-center min-w-0 overflow-hidden px-2 lg:hidden">
+              {centerContent}
+            </div>
+          ) : null}
 
           {/* Right actions — same style as Edit btn (EditAccountAlertDialog), icon only */}
           <div className="ml-auto hidden items-center gap-2 lg:flex">
