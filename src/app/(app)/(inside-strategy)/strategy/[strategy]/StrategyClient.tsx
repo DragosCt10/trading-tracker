@@ -1062,23 +1062,6 @@ export default function StrategyClient(
 
       <hr className="col-span-full my-10 border-t border-slate-200 dark:border-slate-700" />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
-        {/* Potential Risk/Reward Ratio Stats — extra card */}
-        {hasCard('potential_rr') && (
-          <RiskRewardStats
-            trades={tradesToUse}
-            isLoading={chartsLoadingState}
-          />
-        )}
-        {/* Stop Loss Size Stats Card — extra card */}
-        {hasCard('sl_size_stats') && (
-          <SLSizeStatisticsCard
-            slSizeStats={filteredChartStats ? statsToUseForCharts.slSizeStats : slSizeStatsFromTradesToUse}
-            isLoading={chartsLoadingState}
-          />
-        )}
-      </div>
-
       <div className="my-8">
         <TimeIntervalStatisticsCard
           data={timeIntervalChartDataToUse}
@@ -1097,6 +1080,22 @@ export default function StrategyClient(
       {/* News by event - full width */}
       <div className="my-8">
         <NewsNameChartCard trades={tradesToUse} isLoading={chartsLoadingState} />
+      </div>
+
+      {/* Potential Risk/Reward Ratio Stats & Stop Loss Size Stats — extra cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+        {hasCard('potential_rr') && (
+          <RiskRewardStats
+            trades={tradesToUse}
+            isLoading={chartsLoadingState}
+          />
+        )}
+        {hasCard('sl_size_stats') && (
+          <SLSizeStatisticsCard
+            slSizeStats={filteredChartStats ? statsToUseForCharts.slSizeStats : slSizeStatsFromTradesToUse}
+            isLoading={chartsLoadingState}
+          />
+        )}
       </div>
 
       {/* Extra Stats Cards — rendered per strategy configuration */}
