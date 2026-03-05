@@ -75,6 +75,10 @@ interface TradingOverviewStatsProps {
     trendStats: TradeTypeStats[];
     chartsLoadingState?: boolean;
     includeTotalTrades: boolean;
+    /** When false, Evaluation card is hidden (extra card not enabled for strategy). Default true. */
+    showEvaluationCard?: boolean;
+    /** When false, Trend card is hidden (extra card not enabled for strategy). Default true. */
+    showTrendCard?: boolean;
   } | null;
   /** When true, only render chart cards that have data and use a single auto-arranging grid (e.g. share view). */
   hideEmptyChartCards?: boolean;
@@ -257,12 +261,14 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
       )}
 
       {aboveRiskPerTradeRow && (() => {
+        const showEvaluationCard = aboveRiskPerTradeRow.showEvaluationCard !== false;
+        const showTrendCard = aboveRiskPerTradeRow.showTrendCard !== false;
         const evalTotal = aboveRiskPerTradeRow.evaluationStats.reduce((s, e) => s + e.total, 0);
         const reentryTotal = aboveRiskPerTradeRow.reentryStats.reduce((s, r) => s + (r.total ?? 0), 0);
         const trendTotal = aboveRiskPerTradeRow.trendStats.reduce((s, t) => s + (t.total ?? 0), 0);
-        const showEval = !hideEmptyChartCards || evalTotal > 0;
+        const showEval = showEvaluationCard && (!hideEmptyChartCards || evalTotal > 0);
         const showReentry = !hideEmptyChartCards || reentryTotal > 0;
-        const showTrend = !hideEmptyChartCards || trendTotal > 0;
+        const showTrend = showTrendCard && (!hideEmptyChartCards || trendTotal > 0);
         const hasAny = showEval || showReentry || showTrend;
         if (!hasAny) return null;
         const gridClass = hideEmptyChartCards
