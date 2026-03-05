@@ -37,9 +37,6 @@ import {
   ArcElement,
 } from 'chart.js';
 import { RiskRewardStats } from '@/components/dashboard/analytics/RiskRewardStats';
-import {
-  LocalHLBEStatisticsCard,
-} from '@/components/dashboard/analytics/LocalHLBEStatisticsCard';
 import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketProfitStats';
 import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
 import { 
@@ -784,10 +781,6 @@ export default function StrategyClient(
     {
       key: 'launch_hour',
       element: <LaunchHourTradesCard filteredTrades={tradesToUse} isLoading={chartsLoadingState} />,
-    },
-    {
-      key: 'local_hl_be_stats',
-      element: <LocalHLBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />,
     },
     {
       key: 'avg_displacement',
