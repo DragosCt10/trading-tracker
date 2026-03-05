@@ -960,32 +960,37 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                   {typeof editedTrade?.calculated_profit === 'number' ? editedTrade.calculated_profit.toFixed(2) : '0.00'}
                 </div>
               </div>
-              {(isEditing || (editedTrade?.evaluation != null && editedTrade.evaluation !== '')) && (
-                <div>
-                  <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Evaluation</label>
-                  <div className="mt-2">
-                    {!isEditing ? (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold themed-badge-live">
-                        {editedTrade?.evaluation}
-                      </span>
-                    ) : (
-                      <Select
-                        value={editedTrade?.evaluation ?? ''}
-                        onValueChange={(val) => handleInputChange('evaluation', val)}
-                      >
-                        <SelectTrigger className={selectTriggerClass}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className={selectContentClass}>
-                          {EVALUATION_OPTIONS.map((opt) => (
-                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
+              {hasCard('evaluation_stats') &&
+                (isEditing || (editedTrade?.evaluation != null && editedTrade.evaluation !== '')) && (
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      Evaluation
+                    </label>
+                    <div className="mt-2">
+                      {!isEditing ? (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold themed-badge-live">
+                          {editedTrade?.evaluation}
+                        </span>
+                      ) : (
+                        <Select
+                          value={editedTrade?.evaluation ?? ''}
+                          onValueChange={(val) => handleInputChange('evaluation', val)}
+                        >
+                          <SelectTrigger className={selectTriggerClass}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className={selectContentClass}>
+                            {EVALUATION_OPTIONS.map((opt) => (
+                              <SelectItem key={opt} value={opt}>
+                                {opt}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           </div>
 
@@ -1004,7 +1009,9 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 <div className="space-y-3">
                   {renderField('Date', 'trade_date')}
                   {renderField('Time', 'trade_time')}
-                  {(isEditing || (editedTrade?.trend != null && editedTrade.trend !== '')) && renderField('Trend', 'trend', 'select', TREND_OPTIONS)}
+                  {hasCard('trend_stats') &&
+                    (isEditing || (editedTrade?.trend != null && editedTrade.trend !== '')) &&
+                    renderField('Trend', 'trend', 'select', TREND_OPTIONS)}
                 </div>
                 <div className="space-y-3">
                   {(isEditing || (editedTrade?.day_of_week != null && editedTrade.day_of_week !== '')) && renderField('Day', 'day_of_week', 'select', DAY_OF_WEEK_OPTIONS)}
@@ -1031,8 +1038,15 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                   {renderField('Risk/Reward', 'risk_reward_ratio', 'number')}
                 </div>
                 <div className="space-y-3">
-                  {renderField('Potential RR', 'risk_reward_ratio_long', 'number')}
-                  {renderField('SL Size', 'sl_size', 'number')}
+                  {hasCard('potential_rr') &&
+                    (isEditing ||
+                      (editedTrade?.risk_reward_ratio_long != null &&
+                        editedTrade.risk_reward_ratio_long !== undefined)) &&
+                    renderField('Potential RR', 'risk_reward_ratio_long', 'number')}
+                  {hasCard('sl_size_stats') &&
+                    (isEditing ||
+                      (editedTrade?.sl_size != null && editedTrade.sl_size !== undefined)) &&
+                    renderField('SL Size', 'sl_size', 'number')}
                 </div>
                 {(hasCard('displacement_size') || hasCard('avg_displacement') || hasCard('fvg_size') || hasCard('liquidity_stats')) && (
                   <div className="space-y-3">
