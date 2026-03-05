@@ -194,49 +194,66 @@ export function ShareStrategyModal({
                 </Badge>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowCalendar((v) => !v)}
-                className="w-full rounded-xl border border-slate-200/70 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 px-3 py-2.5 text-left text-sm text-slate-700 dark:text-slate-200 shadow-sm flex items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4 text-slate-500" />
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                    {hasRange
-                      ? `${dateRange.startDate} ~ ${dateRange.endDate}`
-                      : 'Select date range'}
-                  </span>
-                </div>
-              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowCalendar((v) => !v)}
+                  className="w-full rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-900/40 px-3 py-2.5 text-left text-sm text-slate-700 dark:text-slate-200 shadow-sm flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4 text-slate-500" />
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                      {hasRange
+                        ? `${dateRange.startDate} ~ ${dateRange.endDate}`
+                        : 'Select date range'}
+                    </span>
+                  </div>
+                </button>
 
-              {showCalendar && (
-                <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/70 dark:bg-slate-900/30 p-2">
-                  <DateRange
-                    ranges={[
-                      {
-                        startDate: new Date(dateRange.startDate),
-                        endDate: new Date(dateRange.endDate),
-                        key: 'selection',
-                      },
-                    ]}
-                    onChange={(ranges) => {
-                      const { startDate, endDate } = ranges.selection;
-                      const safeStart = startDate ?? initialFrom;
-                      const safeEnd = endDate ?? safeStart;
-                      setDateRange({
-                        startDate: format(safeStart, 'yyyy-MM-dd'),
-                        endDate: format(safeEnd, 'yyyy-MM-dd'),
-                      });
-                    }}
-                    moveRangeOnFirstSelection={false}
-                    editableDateInputs={false}
-                    maxDate={new Date()}
-                    showMonthAndYearPickers
-                    rangeColors={['var(--tc-primary, #8b5cf6)']}
-                    direction="horizontal"
-                  />
-                </div>
-              )}
+                {showCalendar && (
+                  <div className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50 dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-lg shadow-slate-300/30 dark:shadow-slate-900/30">
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl hidden dark:block">
+                      <div className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl" />
+                      <div className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl" />
+                    </div>
+                    <div
+                      className="absolute inset-0 opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl hidden dark:block"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                        backgroundRepeat: 'repeat',
+                      }}
+                    />
+                    <div className="absolute -top-px left-0 right-0 h-0.5 opacity-60 hidden dark:block" style={{ background: 'linear-gradient(to right, transparent, var(--tc-primary), transparent)' }} />
+
+                    <div className="relative p-2">
+                      <DateRange
+                        ranges={[
+                          {
+                            startDate: new Date(dateRange.startDate),
+                            endDate: new Date(dateRange.endDate),
+                            key: 'selection',
+                          },
+                        ]}
+                        onChange={(ranges) => {
+                          const { startDate, endDate } = ranges.selection;
+                          const safeStart = startDate ?? initialFrom;
+                          const safeEnd = endDate ?? safeStart;
+                          setDateRange({
+                            startDate: format(safeStart, 'yyyy-MM-dd'),
+                            endDate: format(safeEnd, 'yyyy-MM-dd'),
+                          });
+                        }}
+                        moveRangeOnFirstSelection={false}
+                        editableDateInputs={false}
+                        maxDate={new Date()}
+                        showMonthAndYearPickers
+                        rangeColors={['var(--tc-primary, #8b5cf6)']}
+                        direction="horizontal"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <p
                 className={cn(
