@@ -117,6 +117,28 @@ export async function createStrategyShare(params: {
     };
   }
 
+  // If a share already exists for the same period, strategy, account and mode,
+  // reuse it instead of creating a duplicate.
+  const { data: existingShares, error: existingError } = await supabase
+    .from('strategy_shares')
+    .select('*')
+    .eq('strategy_id', params.strategyId)
+    .eq('account_id', params.accountId)
+    .eq('mode', params.mode)
+    .eq('start_date', params.startDate)
+    .eq('end_date', params.endDate)
+    .eq('created_by', user.id)
+    .limit(1);
+
+  if (!existingError && existingShares && existingShares.length > 0) {
+    const existing = existingShares[0] as StrategyShareRow;
+    return {
+      shareToken: existing.share_token,
+      shareRow: existing,
+      error: null,
+    };
+  }
+
   const { data, error } = await supabase
     .from('strategy_shares')
     .insert({
