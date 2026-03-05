@@ -145,7 +145,6 @@ import {
 import { EquityCurveCard } from '@/components/dashboard/analytics/EquityCurveCard';
 import { ConfidenceStatsCard, MindStateStatsCard } from '@/components/dashboard/analytics/ConfidenceMindStateCards';
 import { chartOptions } from '@/utils/chartConfig';
-import { TIME_INTERVALS } from '@/constants/analytics';
 import {
   calculateLiquidityStats,
   calculateDirectionStats,
@@ -164,7 +163,10 @@ import { useDateRangeManagement } from '@/hooks/useDateRangeManagement';
 import { useCalendarNavigation } from '@/hooks/useCalendarNavigation';
 import { useFilteredStats } from '@/hooks/useFilteredStats';
 import { calculateFilteredMacroStats } from '@/utils/calculateFilteredMacroStats';
-import { computeStrategyStatsFromTrades } from '@/utils/computeStrategyStatsFromTrades';
+import {
+  computeStrategyStatsFromTrades,
+  convertIntervalStatsToChartData,
+} from '@/utils/computeStrategyStatsFromTrades';
 
 ChartJS.register(
   CategoryScale,
@@ -465,28 +467,7 @@ export default function StrategyClient(
 
   const setupChartData: TradeStatDatum[] = convertSetupStatsToChartData(setupStats);
 
-  const timeIntervalChartData: TradeStatDatum[] = TIME_INTERVALS.map((interval) => {
-    const stat =
-      intervalStats.find((s) => s.label === interval.label) ?? {
-        wins: 0,
-        losses: 0,
-        breakEven: 0,
-        winRate: 0,
-        winRateWithBE: 0,
-      };
-
-    const totalTrades = stat.wins + stat.losses + (stat.breakEven ?? 0);
-
-    return {
-      category: `${interval.label}`,
-      wins: stat.wins,
-      losses: stat.losses,
-      breakEven: stat.breakEven ?? 0,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-      totalTrades,
-    };
-  });
+  const timeIntervalChartData: TradeStatDatum[] = convertIntervalStatsToChartData(intervalStats);
 
 
   // Use correct market stats based on view mode
@@ -589,25 +570,9 @@ export default function StrategyClient(
   // Recompute chart data arrays using filtered stats when filters are applied
   const setupChartDataFiltered: TradeStatDatum[] = convertFilteredSetupStatsToChartData(statsToUseForCharts.setupStats);
 
-  const timeIntervalChartDataFiltered: TradeStatDatum[] = TIME_INTERVALS.map((interval) => {
-    const stat =
-      statsToUseForCharts.intervalStats.find((s) => s.label === interval.label) ?? {
-        wins: 0,
-        losses: 0,
-        breakEven: 0,
-        winRate: 0,
-        winRateWithBE: 0,
-      };
-    return {
-      category: `${interval.label}`,
-      wins: stat.wins,
-      losses: stat.losses,
-      breakEven: stat.breakEven ?? 0,
-      winRate: stat.winRate,
-      winRateWithBE: stat.winRateWithBE,
-      totalTrades: stat.wins + stat.losses + (stat.breakEven ?? 0),
-    };
-  });
+  const timeIntervalChartDataFiltered: TradeStatDatum[] = convertIntervalStatsToChartData(
+    statsToUseForCharts.intervalStats
+  );
 
   // Use filtered chart data when filters are applied, otherwise use original
   const setupChartDataToUse = filteredChartStats ? setupChartDataFiltered : setupChartData;
