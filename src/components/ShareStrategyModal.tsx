@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useTransition, useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DateRange } from 'react-date-range';
 import { format } from 'date-fns';
 import { CalendarIcon, Link as LinkIcon, Loader2, Share2 } from 'lucide-react';
@@ -13,6 +14,7 @@ import {
   deleteStrategyShareAction,
   type StrategyShareRow,
 } from '@/lib/server/publicShares';
+import { queryKeys } from '@/lib/queryKeys';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -61,9 +63,20 @@ export function ShareStrategyModal({
   const [copyLabel, setCopyLabel] = useState<'Copy' | 'Copied!'>('Copy');
   const [isPending, startTransition] = useTransition();
   const [showCalendar, setShowCalendar] = useState(false);
-  const [existingShares, setExistingShares] = useState<StrategyShareRow[]>([]);
-  const [loadingShares, setLoadingShares] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const sharesQueryKey = queryKeys.strategyShares(strategy.id, userId, accountId, mode);
+
+  const {
+    data: existingShares = [],
+    isLoading: loadingShares,
+  } = useQuery({
+    queryKey: sharesQueryKey,
+    queryFn: () =>
+      getStrategySharesAction({ strategyId: strategy.id, userId, accountId, mode }),
+    enabled: open,
+    staleTime: 5 * 60 * 1000, // 5 min cache so reopening modal or coming back to page shows list instantly
+  });
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const dateRangeTriggerRef = useRef<HTMLButtonElement | null>(null);
   const pickerRef = useRef<HTMLDivElement | null>(null);
@@ -122,11 +135,9 @@ export function ShareStrategyModal({
       }
       setShareUrl(url);
       if (share) {
-        // Ensure we don't add duplicates if a share for this range already existed
-        setExistingShares((prev) => {
-          if (prev.some((s) => s.id === share.id)) {
-            return prev;
-          }
+        queryClient.setQueryData<StrategyShareRow[]>(sharesQueryKey, (prev) => {
+          if (!prev) return [share];
+          if (prev.some((s) => s.id === share.id)) return prev;
           return [share, ...prev];
         });
       }
@@ -176,30 +187,6 @@ export function ShareStrategyModal({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showCalendar]);
 
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    (async () => {
-      setLoadingShares(true);
-      try {
-        const shares = await getStrategySharesAction({
-          strategyId: strategy.id,
-          userId,
-          accountId,
-          mode,
-        });
-        if (!cancelled) {
-          setExistingShares(shares);
-        }
-      } finally {
-        if (!cancelled) setLoadingShares(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, strategy.id, userId, accountId, mode]);
-
   const handleClose = (next: boolean) => {
     if (!next) {
       setShareUrl(null);
@@ -218,8 +205,8 @@ export function ShareStrategyModal({
         active: nextActive,
       });
       if (!error) {
-        setExistingShares((prev) =>
-          prev.map((s) => (s.id === share.id ? { ...s, active: nextActive } : s))
+        queryClient.setQueryData<StrategyShareRow[]>(sharesQueryKey, (prev) =>
+          prev?.map((s) => (s.id === share.id ? { ...s, active: nextActive } : s)) ?? []
         );
       }
     } finally {
@@ -236,7 +223,9 @@ export function ShareStrategyModal({
         userId,
       });
       if (!error) {
-        setExistingShares((prev) => prev.filter((s) => s.id !== share.id));
+        queryClient.setQueryData<StrategyShareRow[]>(sharesQueryKey, (prev) =>
+          prev?.filter((s) => s.id !== share.id) ?? []
+        );
       }
     } finally {
       setDeletingId(null);
