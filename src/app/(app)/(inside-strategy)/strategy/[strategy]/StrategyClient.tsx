@@ -987,6 +987,8 @@ export default function StrategyClient(
               trendStats: statsToUseForCharts.trendStats ?? [],
               chartsLoadingState: chartsLoadingState,
               includeTotalTrades: filteredChartStats !== null,
+              showEvaluationCard: hasCard('evaluation_stats'),
+              showTrendCard: hasCard('trend_stats'),
             }}
             allTradesRiskStats={
               (viewMode === 'yearly'
@@ -1096,16 +1098,20 @@ export default function StrategyClient(
       <hr className="col-span-full my-10 border-t border-slate-200 dark:border-slate-700" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
-        {/* Potential Risk/Reward Ratio Stats */}
-        <RiskRewardStats
-          trades={tradesToUse}
-          isLoading={chartsLoadingState}
-        />
-        {/* Stop Loss Size Stats Card */}
-        <SLSizeStatisticsCard
-          slSizeStats={filteredChartStats ? statsToUseForCharts.slSizeStats : slSizeStatsFromTradesToUse}
-          isLoading={chartsLoadingState}
-        />
+        {/* Potential Risk/Reward Ratio Stats — extra card */}
+        {hasCard('potential_rr') && (
+          <RiskRewardStats
+            trades={tradesToUse}
+            isLoading={chartsLoadingState}
+          />
+        )}
+        {/* Stop Loss Size Stats Card — extra card */}
+        {hasCard('sl_size_stats') && (
+          <SLSizeStatisticsCard
+            slSizeStats={filteredChartStats ? statsToUseForCharts.slSizeStats : slSizeStatsFromTradesToUse}
+            isLoading={chartsLoadingState}
+          />
+        )}
       </div>
 
       <div className="my-8">
