@@ -44,6 +44,7 @@ import {
   calculateTrendStats,
   calculateMarketStats,
   calculateSLSizeStats,
+  calculateDayStats,
 } from '@/utils/calculateCategoryStats';
 import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
 import { calculateEvaluationStats } from '@/utils/calculateEvaluationStats';
@@ -55,12 +56,19 @@ import { MaxDrawdownChart } from '@/components/dashboard/analytics/MaxDrawdownCh
 import { ProfitFactorChart } from '@/components/dashboard/analytics/ProfitFactorChart';
 import { SharpeRatioChart } from '@/components/dashboard/analytics/SharpeRatioChart';
 import { TQIChart } from '@/components/dashboard/analytics/TQIChart';
-import { computeStrategyStatsFromTrades } from '@/utils/computeStrategyStatsFromTrades';
+import {
+  computeStrategyStatsFromTrades,
+  computeTimeIntervalChartData,
+} from '@/utils/computeStrategyStatsFromTrades';
 import { calculateFilteredMacroStats } from '@/utils/calculateFilteredMacroStats';
 import { chartOptions } from '@/utils/chartConfig';
 import { MarketStatisticsCard } from '@/components/dashboard/analytics/MarketStatisticsCard';
 import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketProfitStats';
 import { SLSizeStatisticsCard } from '@/components/dashboard/analytics/SLSizeStatisticsCard';
+import { TimeIntervalStatisticsCard } from '@/components/dashboard/analytics/TimeIntervalStatisticsCard';
+import {
+  DayStatisticsCard,
+} from '@/components/dashboard/analytics/DayStatisticsCard';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Lock, Share2 } from 'lucide-react';
 
@@ -143,6 +151,13 @@ export default function ShareStrategyClient({
   );
 
   const slSizeStats = useMemo(() => calculateSLSizeStats(trades), [trades]);
+
+  const { timeIntervalChartData } = useMemo(
+    () => computeTimeIntervalChartData(trades),
+    [trades]
+  );
+
+  const dayStats = useMemo(() => calculateDayStats(trades), [trades]);
 
   const getCurrencySymbol = () => currencySymbol;
 
@@ -541,6 +556,21 @@ export default function ShareStrategyClient({
             marketStats={marketStats}
             chartOptions={chartOptions}
             getCurrencySymbol={getCurrencySymbol}
+          />
+        </div>
+
+        <div className="my-8">
+          <TimeIntervalStatisticsCard
+            data={timeIntervalChartData}
+            isLoading={false}
+          />
+        </div>
+
+        <div className="my-8">
+          <DayStatisticsCard
+            dayStats={dayStats}
+            isLoading={false}
+            includeTotalTrades
           />
         </div>
 
