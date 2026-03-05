@@ -432,7 +432,7 @@ export default function ShareStrategyClient({
   );
 
   return (
-    <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-50 w-full">
+    <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-50 w-full p-2 sm:p-0">
       <main className="flex-1 w-full mt-12">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-3">
@@ -528,7 +528,7 @@ export default function ShareStrategyClient({
               </p>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full [&>*]:min-w-0">
             <TradingOverviewStats
               trades={trades}
               currencySymbol={currencySymbol}
@@ -671,7 +671,7 @@ export default function ShareStrategyClient({
         {(hasCard('potential_rr') && hasPotentialRRData) ||
         (hasCard('sl_size_stats') && hasSLSizeData) ? (
           <section className="my-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full [&>*]:min-w-0">
               {hasCard('potential_rr') && hasPotentialRRData && (
                 <RiskRewardStats trades={trades} isLoading={false} />
               )}
@@ -711,7 +711,7 @@ export default function ShareStrategyClient({
           (hasCard('displacement_size') && hasDisplacementSizeData) ||
           (hasCard('local_hl_stats') && hasLocalHLData) ||
           (hasCard('fvg_size') && hasFvgSizeData)) && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8 w-full [&>*]:min-w-0">
             {hasCard('mss_stats') && hasMssData && (
               <MSSStatisticsCard
                 mssStats={mssStats}
