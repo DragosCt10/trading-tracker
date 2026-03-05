@@ -21,7 +21,13 @@ import {
   LiquidityStatisticsCard,
   calculateLiquidityStats,
 } from '@/components/dashboard/analytics/LiquidityStatisticsCard';
-import { MONTHS } from '@/components/dashboard/analytics/AccountOverviewCard';
+import {
+  AccountOverviewCard,
+  MONTHS,
+  computeMonthlyStatsFromTrades,
+  calculateTotalYearProfit,
+  calculateUpdatedBalance,
+} from '@/components/dashboard/analytics/AccountOverviewCard';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Lock, Share2 } from 'lucide-react';
 
@@ -98,9 +104,25 @@ export default function ShareStrategyClient({
     [hasLiquidityCard, trades]
   );
 
+  // Monthly profit stats for the shared period (date range)
+  const monthlyProfitStats = useMemo(
+    () => computeMonthlyStatsFromTrades(trades),
+    [trades]
+  );
+
+  const totalRangeProfit = useMemo(
+    () => calculateTotalYearProfit(monthlyProfitStats),
+    [monthlyProfitStats]
+  );
+
+  const updatedBalance = useMemo(
+    () => calculateUpdatedBalance(accountBalance ?? 0, totalRangeProfit),
+    [accountBalance, totalRangeProfit]
+  );
+
   return (
-    <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-50">
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10 space-y-12">
+    <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-50 w-full">
+      <main className="flex-1 w-full px-4 sm:px-6 py-8 sm:py-10 space-y-12">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium shadow-sm themed-badge-live">
@@ -140,6 +162,30 @@ export default function ShareStrategyClient({
         </header>
 
         <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
+
+        <section className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+                Account overview
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Balance and P&amp;L over this shared period.
+              </p>
+            </div>
+          </div>
+          <AccountOverviewCard
+            accountName={null}
+            currencySymbol={currencySymbol}
+            updatedBalance={updatedBalance}
+            totalYearProfit={totalRangeProfit}
+            accountBalance={accountBalance ?? 0}
+            months={MONTHS}
+            monthlyStatsAllTrades={monthlyProfitStats}
+            isYearDataLoading={false}
+            tradesCount={trades.length}
+          />
+        </section>
 
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3">
