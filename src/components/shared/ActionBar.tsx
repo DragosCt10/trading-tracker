@@ -36,9 +36,11 @@ export interface ActionBarInitialData {
 
 interface ActionBarProps {
   initialData?: ActionBarInitialData | null;
+  /** When false, hide the Add account button (e.g. when it is shown in the mobile lateral menu). Default true. */
+  showAddButton?: boolean;
 }
 
-export default function ActionBar({ initialData }: ActionBarProps) {
+export default function ActionBar({ initialData, showAddButton = true }: ActionBarProps) {
   const queryClient = useQueryClient();
   const hydratedRef = useRef(false);
 
@@ -211,12 +213,14 @@ export default function ActionBar({ initialData }: ActionBarProps) {
         }}
       />
 
-      {/* Add Account */}
-      <CreateAccountAlertDialog
-        onCreated={async () => {
-          refetchAccounts();
-        }}
-      />
+      {/* Add Account — hidden when shown in mobile lateral menu */}
+      {showAddButton && (
+        <CreateAccountAlertDialog
+          onCreated={async () => {
+            refetchAccounts();
+          }}
+        />
+      )}
     </div>
   );
 }
