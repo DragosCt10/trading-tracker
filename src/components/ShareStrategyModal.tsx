@@ -10,6 +10,7 @@ import {
   createStrategyShareAction,
   getStrategySharesAction,
   setStrategyShareActiveAction,
+  deleteStrategyShareAction,
   type StrategyShareRow,
 } from '@/lib/server/publicShares';
 import {
@@ -63,6 +64,7 @@ export function ShareStrategyModal({
   const [existingShares, setExistingShares] = useState<StrategyShareRow[]>([]);
   const [loadingShares, setLoadingShares] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const hasRange = Boolean(dateRange.startDate && dateRange.endDate);
 
@@ -105,7 +107,7 @@ export function ShareStrategyModal({
     if (!hasRange) return;
     startTransition(async () => {
       setCopyLabel('Copy');
-      const { url, error } = await createStrategyShareAction({
+      const { url, share, error } = await createStrategyShareAction({
         strategyId: strategy.id,
         accountId,
         mode,
@@ -117,6 +119,10 @@ export function ShareStrategyModal({
         return;
       }
       setShareUrl(url);
+      if (share) {
+        // Prepend the new share so it appears instantly without another request
+        setExistingShares((prev) => [share, ...prev]);
+      }
     });
   };
 
@@ -195,6 +201,22 @@ export function ShareStrategyModal({
       }
     } finally {
       setRevokingId(null);
+    }
+  };
+
+  const handleDeleteShare = async (share: StrategyShareRow) => {
+    if (deletingId) return;
+    setDeletingId(share.id);
+    try {
+      const { error } = await deleteStrategyShareAction({
+        shareId: share.id,
+        userId,
+      });
+      if (!error) {
+        setExistingShares((prev) => prev.filter((s) => s.id !== share.id));
+      }
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -393,6 +415,7 @@ export function ShareStrategyModal({
                 const rangeLabel = `${share.start_date} ~ ${share.end_date}`;
                 const createdLabel = new Date(share.created_at).toLocaleDateString();
                 const isRevoking = revokingId === share.id;
+                const isDeleting = deletingId === share.id;
                 return (
                   <div
                     key={share.id}
@@ -406,26 +429,42 @@ export function ShareStrategyModal({
                         Created {createdLabel}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleShareActive(share)}
-                      disabled={isRevoking}
-                      className={cn(
-                        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer border',
-                        share.active
-                          ? 'bg-emerald-500/90 border-emerald-400/80'
-                          : 'bg-slate-500/40 border-slate-400/60',
-                        isRevoking && 'opacity-60 cursor-wait'
-                      )}
-                      aria-label={share.active ? 'Disable public link' : 'Enable public link'}
-                    >
-                      <span
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleShareActive(share)}
+                        disabled={isRevoking || isDeleting}
                         className={cn(
-                          'inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200',
-                          share.active ? 'translate-x-[22px]' : 'translate-x-[4px]'
+                          'relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 cursor-pointer border',
+                          share.active
+                            ? 'bg-emerald-500/90 border-emerald-400/80'
+                            : 'bg-slate-500/40 border-slate-400/60',
+                          (isRevoking || isDeleting) && 'opacity-60 cursor-wait'
                         )}
-                      />
-                    </button>
+                        aria-label={share.active ? 'Disable public link' : 'Enable public link'}
+                      >
+                        <span
+                          className={cn(
+                            'inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200',
+                            share.active ? 'translate-x-[22px]' : 'translate-x-[4px]'
+                          )}
+                        />
+                      </button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteShare(share)}
+                        disabled={isDeleting || isRevoking}
+                        className="h-7 w-7 rounded-full text-[11px] text-red-500 hover:text-red-600 hover:bg-red-500/10 disabled:opacity-60"
+                      >
+                        {isDeleting ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          '×'
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
