@@ -1069,7 +1069,7 @@ export default function StrategyClient(
       </div>
 
       {/* Potential Risk/Reward Ratio Stats & Stop Loss Size Stats — extra cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8 w-full [&>*]:min-w-0">
         {hasCard('potential_rr') && (
           <RiskRewardStats
             trades={tradesToUse}
@@ -1107,7 +1107,7 @@ export default function StrategyClient(
 
       {/* Half-width extra cards — dynamic grid */}
       {selectedHalfWidthCards.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8 w-full [&>*]:min-w-0">
           {selectedHalfWidthCards.map(({ key, element }) => (
             <div key={key}>{element}</div>
           ))}
