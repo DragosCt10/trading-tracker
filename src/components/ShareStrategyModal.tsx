@@ -149,7 +149,7 @@ export function ShareStrategyModal({
 
   return (
     <AlertDialog open={open} onOpenChange={handleClose}>
-      <AlertDialogContent className="max-w-lg max-h-[90vh] flex flex-col fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl px-6 py-5 overflow-hidden">
+      <AlertDialogContent className="max-w-lg max-h-[90vh] flex flex-col fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl px-6 py-5">
         {/* Gradient orbs background (match CreateStrategyModal) */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
           <div className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl" />
@@ -159,8 +159,8 @@ export function ShareStrategyModal({
         {/* Top accent line */}
         <div className="absolute -top-px left-0 right-0 h-0.5 themed-accent-line rounded-t-2xl" />
 
-        {/* Scrollable body */}
-        <div className="relative flex-1 min-h-0 overflow-y-auto">
+        {/* Body (no internal scroll so dropdown calendar is fully visible) */}
+        <div className="relative flex-1 min-h-0">
           <AlertDialogHeader className="space-y-1.5 mb-4">
             <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
               <div className="p-2 rounded-lg themed-header-icon-box">
@@ -248,7 +248,7 @@ export function ShareStrategyModal({
                         maxDate={new Date()}
                         showMonthAndYearPickers
                         rangeColors={['var(--tc-primary, #8b5cf6)']}
-                        direction="horizontal"
+                        direction="vertical"
                       />
                     </div>
                   </div>
