@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useTransition } from 'react';
+import { DateRange } from 'react-date-range';
 import { format } from 'date-fns';
 import { CalendarIcon, Link as LinkIcon, Loader2, Share2 } from 'lucide-react';
 import { Trade } from '@/types/trade';
@@ -17,8 +18,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import type { DateRangeValue } from '@/components/dashboard/analytics/TradeFiltersBar';
 
 type ShareStrategyModalProps = {
   open: boolean;
@@ -31,11 +32,6 @@ type ShareStrategyModalProps = {
   userId: string;
 };
 
-type DateRange = {
-  from: Date | undefined;
-  to: Date | undefined;
-};
-
 export function ShareStrategyModal({
   open,
   onOpenChange,
@@ -46,20 +42,26 @@ export function ShareStrategyModal({
   mode,
   userId,
 }: ShareStrategyModalProps) {
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: trades.length ? new Date(trades[trades.length - 1].trade_date) : undefined,
-    to: trades.length ? new Date(trades[0].trade_date) : undefined,
+  const initialFrom = trades.length
+    ? new Date(trades[trades.length - 1].trade_date)
+    : new Date();
+  const initialTo = trades.length ? new Date(trades[0].trade_date) : initialFrom;
+
+  const [dateRange, setDateRange] = useState<DateRangeValue>({
+    startDate: format(initialFrom, 'yyyy-MM-dd'),
+    endDate: format(initialTo, 'yyyy-MM-dd'),
   });
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copyLabel, setCopyLabel] = useState<'Copy' | 'Copied!'>('Copy');
   const [isPending, startTransition] = useTransition();
+  const [showCalendar, setShowCalendar] = useState(false);
 
-  const hasRange = Boolean(dateRange.from && dateRange.to);
+  const hasRange = Boolean(dateRange.startDate && dateRange.endDate);
 
   const filteredTrades = useMemo(() => {
-    if (!hasRange || !dateRange.from || !dateRange.to) return [];
-    const from = dateRange.from;
-    const to = dateRange.to;
+    if (!hasRange || !dateRange.startDate || !dateRange.endDate) return [];
+    const from = new Date(dateRange.startDate);
+    const to = new Date(dateRange.endDate);
     const fromTime = new Date(
       from.getFullYear(),
       from.getMonth(),
@@ -82,7 +84,7 @@ export function ShareStrategyModal({
       const d = new Date(t.trade_date).getTime();
       return d >= fromTime && d <= toTime;
     });
-  }, [trades, hasRange, dateRange.from, dateRange.to]);
+  }, [trades, hasRange, dateRange.startDate, dateRange.endDate]);
 
   const executedTradesCount = useMemo(
     () => filteredTrades.filter((t) => t.executed !== false).length,
@@ -92,15 +94,15 @@ export function ShareStrategyModal({
   const canGenerate = hasRange && executedTradesCount > 0 && !isPending;
 
   const handleGenerate = () => {
-    if (!hasRange || !dateRange.from || !dateRange.to) return;
+    if (!hasRange) return;
     startTransition(async () => {
       setCopyLabel('Copy');
       const { url, error } = await createStrategyShareAction({
         strategyId: strategy.id,
         accountId,
         mode,
-        startDate: format(dateRange.from!, 'yyyy-MM-dd'),
-        endDate: format(dateRange.to!, 'yyyy-MM-dd'),
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
         userId,
       });
       if (error || !url) {
@@ -194,45 +196,47 @@ export function ShareStrategyModal({
 
               <button
                 type="button"
-                onClick={() => undefined}
+                onClick={() => setShowCalendar((v) => !v)}
                 className="w-full rounded-xl border border-slate-200/70 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 px-3 py-2.5 text-left text-sm text-slate-700 dark:text-slate-200 shadow-sm flex items-center justify-between gap-3"
               >
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="h-4 w-4 text-slate-500" />
                   <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                    {hasRange && dateRange.from && dateRange.to
-                      ? `${format(dateRange.from, 'MMM d, yyyy')} – ${format(
-                          dateRange.to,
-                          'MMM d, yyyy'
-                        )}`
-                      : 'Choose a date range'}
+                    {hasRange
+                      ? `${dateRange.startDate} ~ ${dateRange.endDate}`
+                      : 'Select date range'}
                   </span>
                 </div>
               </button>
 
-              <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/70 dark:bg-slate-900/30 p-2">
-                <Calendar
-                  mode="range"
-                  selected={{
-                    from: dateRange.from,
-                    to: dateRange.to,
-                  }}
-                  onSelect={(range) =>
-                    setDateRange({
-                      from: range?.from,
-                      to: range?.to ?? range?.from,
-                    })
-                  }
-                  numberOfMonths={2}
-                  className="rounded-xl bg-transparent"
-                  classNames={{
-                    day_selected:
-                      'bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white',
-                    day_range_middle:
-                      'bg-emerald-500/10 text-slate-900 dark:text-slate-50',
-                  }}
-                />
-              </div>
+              {showCalendar && (
+                <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/70 dark:bg-slate-900/30 p-2">
+                  <DateRange
+                    ranges={[
+                      {
+                        startDate: new Date(dateRange.startDate),
+                        endDate: new Date(dateRange.endDate),
+                        key: 'selection',
+                      },
+                    ]}
+                    onChange={(ranges) => {
+                      const { startDate, endDate } = ranges.selection;
+                      const safeStart = startDate ?? initialFrom;
+                      const safeEnd = endDate ?? safeStart;
+                      setDateRange({
+                        startDate: format(safeStart, 'yyyy-MM-dd'),
+                        endDate: format(safeEnd, 'yyyy-MM-dd'),
+                      });
+                    }}
+                    moveRangeOnFirstSelection={false}
+                    editableDateInputs={false}
+                    maxDate={new Date()}
+                    showMonthAndYearPickers
+                    rangeColors={['var(--tc-primary, #8b5cf6)']}
+                    direction="horizontal"
+                  />
+                </div>
+              )}
 
               <p
                 className={cn(
