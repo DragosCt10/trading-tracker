@@ -5,8 +5,15 @@ import { createClient } from '@/utils/supabase/server';
 /** Paths that do not require an authenticated user (auth pages). */
 const AUTH_PATHS = ['/login', '/signup', '/reset-password', '/update-password', '/api/auth'];
 
+/** Public, read-only paths that should never force login (e.g. shared analytics). */
+const PUBLIC_PATHS = ['/share'];
+
 function isAuthPath(pathname: string): boolean {
   return AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 /** Only allow relative path for redirectTo to prevent open redirects. */
@@ -33,10 +40,10 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
 export async function proxy(request: NextRequest) {
   const { pathname } = new URL(request.url);
 
-  if (isAuthPath(pathname)) {
+  if (isAuthPath(pathname) || isPublicPath(pathname)) {
     const response = await updateSession(request);
     // updateSession may redirect to /login if it doesn't recognize this auth path —
-    // override that redirect so the route handler always runs for auth pages.
+    // override that redirect so the route handler always runs for auth/public pages.
     const finalResponse =
       response.status >= 300 && response.status < 400
         ? NextResponse.next({ request })

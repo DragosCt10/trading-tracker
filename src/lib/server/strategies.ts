@@ -1,11 +1,39 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import type { Database } from '@/types/supabase';
 import type { Strategy } from '@/types/strategy';
 import { EXTRA_CARDS } from '@/constants/extraCards';
 
 export type StrategyRow = Database['public']['Tables']['strategies']['Row'];
+
+/**
+ * Fetches a strategy by id using the service role client.
+ * Used for public share pages where there is no authenticated user
+ * but we still need the strategy name and extra_cards.
+ */
+export async function getStrategyById(
+  strategyId: string
+): Promise<Strategy | null> {
+  const supabase = createServiceRoleClient();
+
+  const { data, error } = await supabase
+    .from('strategies')
+    .select('*')
+    .eq('id', strategyId)
+    .single();
+
+  if (error) {
+    if ((error as any).code === 'PGRST116') {
+      return null;
+    }
+    console.error('Error fetching strategy by id with service role:', error);
+    return null;
+  }
+
+  return data as Strategy;
+}
 
 /**
  * Generates a URL-friendly slug from a strategy name.

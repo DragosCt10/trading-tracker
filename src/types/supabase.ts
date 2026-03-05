@@ -274,6 +274,31 @@ export interface Database {
       };
 
       // ─────────────────────────────────────────────────────────────
+      // Public share links for strategy analytics
+      strategy_shares: {
+        Row: {
+          id: string;
+          share_token: string;
+          strategy_id: string;
+          account_id: string;
+          mode: 'live' | 'backtesting' | 'demo';
+          start_date: string; // date
+          end_date: string; // date
+          created_by: string;
+          created_at: string;
+        };
+        Insert: Partial<Database['public']['Tables']['strategy_shares']['Row']> & {
+          strategy_id: string;
+          account_id: string;
+          mode: 'live' | 'backtesting' | 'demo';
+          start_date: string;
+          end_date: string;
+          created_by: string;
+        };
+        Update: Partial<Database['public']['Tables']['strategy_shares']['Row']>;
+      };
+
+      // ─────────────────────────────────────────────────────────────
       // Notes table
       notes: {
         Row: {

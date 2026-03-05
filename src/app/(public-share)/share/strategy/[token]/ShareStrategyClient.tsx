@@ -1,0 +1,216 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { format } from 'date-fns';
+import type { Trade } from '@/types/trade';
+import type { ExtraCardKey } from '@/constants/extraCards';
+import type { StrategyShareRow } from '@/lib/server/publicShares';
+import { TradingOverviewStats } from '@/components/dashboard/analytics/TradingOverviewStats';
+import { EquityCurveCard } from '@/components/dashboard/analytics/EquityCurveCard';
+import {
+  MonthlyPerformanceChart,
+  computeFullMonthlyStatsFromTrades,
+} from '@/components/dashboard/analytics/MonthlyPerformanceChart';
+import { RiskRewardStats } from '@/components/dashboard/analytics/RiskRewardStats';
+import {
+  SetupStatisticsCard,
+  calculateSetupStats,
+} from '@/components/dashboard/analytics/SetupStatisticsCard';
+import {
+  LiquidityStatisticsCard,
+  calculateLiquidityStats,
+} from '@/components/dashboard/analytics/LiquidityStatisticsCard';
+import { MONTHS } from '@/components/dashboard/analytics/AccountOverviewCard';
+import { Badge } from '@/components/ui/badge';
+import { ExternalLink, Lock, Share2 } from 'lucide-react';
+
+type ShareStrategyClientProps = {
+  trades: Trade[];
+  strategy: {
+    name: string;
+    extra_cards: ExtraCardKey[];
+  };
+  shareData: StrategyShareRow;
+  currencySymbol: string;
+};
+
+export default function ShareStrategyClient({
+  trades,
+  strategy,
+  shareData,
+  currencySymbol,
+}: ShareStrategyClientProps) {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+
+  const dateRangeLabel = useMemo(() => {
+    const start = new Date(shareData.start_date);
+    const end = new Date(shareData.end_date);
+    const sameYear = start.getFullYear() === end.getFullYear();
+    const sameMonth = sameYear && start.getMonth() === end.getMonth();
+
+    if (sameYear && sameMonth) {
+      return `${format(start, 'MMM d')} – ${format(end, 'd, yyyy')}`;
+    }
+    if (sameYear) {
+      return `${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')}`;
+    }
+    return `${format(start, 'MMM d, yyyy')} – ${format(end, 'MMM d, yyyy')}`;
+  }, [shareData.start_date, shareData.end_date]);
+
+  const monthlyStatsAllTrades = useMemo(
+    () => computeFullMonthlyStatsFromTrades(trades),
+    [trades]
+  );
+
+  const hasSetupCard = strategy.extra_cards.includes('setup_stats');
+  const hasLiquidityCard = strategy.extra_cards.includes('liquidity_stats');
+  const setupStats = useMemo(
+    () => (hasSetupCard ? calculateSetupStats(trades) : []),
+    [hasSetupCard, trades]
+  );
+  const liquidityStats = useMemo(
+    () => (hasLiquidityCard ? calculateLiquidityStats(trades) : []),
+    [hasLiquidityCard, trades]
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-50 flex flex-col">
+      <div className="relative overflow-hidden border-b border-slate-800/70 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        <div className="absolute inset-0 opacity-60 bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(129,140,248,0.18),_transparent_55%)]" />
+        <header className="relative max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-200 shadow-sm shadow-emerald-500/20">
+              <Share2 className="h-3.5 w-3.5" />
+              <span>Read-only shared view</span>
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-50">
+                {strategy.name}
+              </h1>
+              <p className="mt-2 text-sm text-slate-300 max-w-xl">
+                Public snapshot of this strategy&apos;s performance for the selected period. Trades
+                and notes are hidden; only aggregated statistics are shown.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col items-start sm:items-end gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge
+                variant="outline"
+                className="border-sky-400/60 bg-sky-500/10 text-sky-100 text-[11px] font-medium uppercase tracking-wide"
+              >
+                {shareData.mode.toUpperCase()} MODE
+              </Badge>
+              <Badge
+                variant="outline"
+                className="border-slate-400/60 bg-slate-800/80 text-slate-100 text-[11px] font-medium uppercase tracking-wide"
+              >
+                {dateRangeLabel}
+              </Badge>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-700/80 bg-slate-900/80 px-3 py-1 text-[11px] text-slate-300">
+              <Lock className="h-3.5 w-3.5 text-slate-400" />
+              <span>Viewer cannot edit or see individual trades</span>
+            </div>
+          </div>
+        </header>
+      </div>
+
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10 space-y-12">
+        <section className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-50">Core statistics</h2>
+              <p className="text-sm text-slate-400">
+                Win rate, profit, R-multiples, streaks, and more computed from this shared period.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <TradingOverviewStats
+              trades={trades}
+              currencySymbol={currencySymbol}
+              hydrated={hydrated}
+              viewMode="dateRange"
+              showTitle={false}
+            />
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-50">Equity curve</h2>
+            <p className="text-sm text-slate-400">
+              Cumulative P&amp;L over the shared period, starting from zero.
+            </p>
+          </div>
+          <EquityCurveCard trades={trades} currencySymbol={currencySymbol} />
+        </section>
+
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-50">Monthly performance</h2>
+            <p className="text-sm text-slate-400">
+              Wins, losses, break-even trades, and win rates by calendar month.
+            </p>
+          </div>
+          <MonthlyPerformanceChart
+            monthlyStatsAllTrades={monthlyStatsAllTrades}
+            months={MONTHS}
+          />
+        </section>
+
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-50">Risk / Reward distribution</h2>
+            <p className="text-sm text-slate-400">
+              How often you hit different potential R:R levels by market, based on this snapshot.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <RiskRewardStats trades={trades} />
+            {hasSetupCard && (
+              <SetupStatisticsCard setupStats={setupStats} includeTotalTrades />
+            )}
+          </div>
+        </section>
+
+        {hasLiquidityCard && (
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-50">Liquidity profile</h2>
+              <p className="text-sm text-slate-400">
+                Distribution of trades by liquidity conditions for this strategy.
+              </p>
+            </div>
+            <LiquidityStatisticsCard
+              liquidityStats={liquidityStats}
+              isLoading={false}
+              includeTotalTrades
+            />
+          </section>
+        )}
+
+        <footer className="pt-6 border-t border-slate-800/70 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-500">
+          <div className="flex items-center gap-2">
+            <span>Powered by</span>
+            <a
+              href="https://tradingtracker.app"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-full border border-slate-700/80 bg-slate-900/80 px-3 py-1 text-xs font-medium text-slate-200 hover:border-slate-500 hover:text-white transition-colors"
+            >
+              <span>Trading Tracker</span>
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
+          <div className="text-[11px] text-slate-500">
+            This page is read-only and may not reflect the owner&apos;s most recent trades.
+          </div>
+        </footer>
+      </main>
+    </div>
+  );
+}
+

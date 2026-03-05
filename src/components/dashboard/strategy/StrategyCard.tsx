@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip as ReTooltip } from 'recharts';
-import { Trash2, Pencil, ChartBar } from 'lucide-react';
+import { Trash2, Pencil, ChartBar, Share2 } from 'lucide-react';
 import { Strategy } from '@/types/strategy';
 import { Trade } from '@/types/trade';
 import { calculateWinRates } from '@/utils/calculateWinRates';
@@ -24,6 +24,7 @@ import {
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { EXTRA_CARDS } from '@/constants/extraCards';
+import { ShareStrategyModal } from '@/components/ShareStrategyModal';
 
 interface StrategyCardProps {
   strategy: Strategy;
@@ -53,6 +54,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -168,10 +170,22 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
   return (
     <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm">
       <div className="relative p-6 flex flex-col h-full">
-        {/* Strategy Name */}
-        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4">
-          {strategy.name}
-        </h3>
+        {/* Strategy Name + Share button (top-right) */}
+        <div className="flex items-start justify-between mb-4 gap-3">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+            {strategy.name}
+          </h3>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setIsShareOpen(true)}
+            disabled={!hasTrades || !isChartReady}
+            className="h-8 w-8 shrink-0 rounded-full border-slate-200/80 bg-slate-50/80 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-50 disabled:opacity-60 disabled:pointer-events-none"
+            aria-label="Share strategy stats"
+          >
+            <Share2 className="h-4 w-4" />
+          </Button>
+        </div>
 
         {/* Performance Graph */}
         <div className="h-32 mb-4">
@@ -318,30 +332,32 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
 
         {/* Action Buttons */}
         <div className="flex items-center justify-between gap-2 mt-auto pt-4 border-t border-slate-200/60 dark:border-slate-700/50">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onEdit(strategy)}
-            disabled={!isChartReady}
-            className="cursor-pointer relative w-full sm:w-auto h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 text-xs font-medium transition-colors duration-200 gap-2 disabled:opacity-60 disabled:pointer-events-none"
-          >
-            <Pencil className="h-4 w-4" />
-            <span>Edit</span>
-          </Button>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEdit(strategy)}
+              disabled={!isChartReady}
+              className="cursor-pointer relative h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 text-xs font-medium transition-colors duration-200 gap-2 disabled:opacity-60 disabled:pointer-events-none"
+            >
+              <Pencil className="h-4 w-4" />
+              <span>Edit</span>
+            </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={handleAnalytics}
               disabled={!isChartReady}
-              className="cursor-pointer relative w-full sm:w-auto h-8 overflow-hidden rounded-xl themed-btn-primary text-white font-semibold group border-0 text-xs disabled:opacity-60 disabled:pointer-events-none [&_svg]:text-white"
+              className="cursor-pointer relative h-8 overflow-hidden rounded-xl themed-btn-primary text-white font-semibold group border-0 text-xs disabled:opacity-60 disabled:pointer-events-none [&_svg]:text-white px-3"
             >
               <span className="relative z-10 flex items-center justify-center gap-2 group-hover:text-white">
                 <ChartBar className="h-4 w-4 group-hover:text-white" />
-                <span className="group-hover:text-white">Analytics</span>
+                <span className="hidden sm:inline group-hover:text-white">Analytics</span>
               </span>
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
             </Button>
+          </div>
+          <div className="flex items-center gap-2">
             <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -412,6 +428,17 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
               </AlertDialog>
           </div>
         </div>
+
+        <ShareStrategyModal
+          open={isShareOpen}
+          onOpenChange={setIsShareOpen}
+          strategy={strategy}
+          trades={trades}
+          currencySymbol={currencySymbol}
+          accountId={trades[0]?.account_id ?? ''}
+          mode={(trades[0]?.mode as 'live' | 'backtesting' | 'demo') ?? 'live'}
+          userId={trades[0]?.user_id ?? ''}
+        />
       </div>
     </Card>
   );

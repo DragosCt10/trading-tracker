@@ -37,7 +37,6 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Allow auth pages without a user; redirect is handled in proxy so we don't duplicate logic
   const pathname = request.nextUrl.pathname
   const isAuthPath =
     pathname.startsWith('/login') ||
@@ -46,7 +45,12 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/update-password') ||
     pathname.startsWith('/auth')
 
-  if (!user && !isAuthPath) {
+  // Public share pages should be accessible without auth.
+  const isPublicSharePath = pathname.startsWith('/share')
+
+  // Allow auth pages and public share pages without a user;
+  // redirect for auth pages is handled in proxy so we don't duplicate logic.
+  if (!user && !isAuthPath && !isPublicSharePath) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
