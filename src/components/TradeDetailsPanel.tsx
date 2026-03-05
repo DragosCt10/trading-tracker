@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Trade } from '@/types/trade';
 import { deleteTrade, updateTrade } from '@/lib/server/trades';
@@ -28,6 +28,11 @@ const POTENTIAL_RR_OPTIONS: { value: number; label: string }[] = [
   }),
   { value: 10.5, label: '10+' },
 ];
+
+const MSS_OPTIONS = ['Normal', 'Aggressive'];
+const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
+const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const TREND_OPTIONS = ['Trend-following', 'Counter-trend'];
 
 // shadcn UI components
 import { Button } from "@/components/ui/button";
@@ -94,9 +99,15 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const userId = userData?.user?.id;
   const { strategies } = useStrategies({ userId });
   // Derive extra_cards from the current strategy
-  const currentStrategy = strategies.find((s) => s.slug === strategySlug);
+  const currentStrategy = useMemo(
+    () => strategies.find((s) => s.slug === strategySlug),
+    [strategies, strategySlug]
+  );
   const strategyExtraCards = currentStrategy?.extra_cards ?? [];
-  const hasCard = (key: string) => strategyExtraCards.includes(key as any);
+  const hasCard = useCallback(
+    (key: string) => strategyExtraCards.includes(key as any),
+    [strategyExtraCards]
+  );
   const { settings } = useSettings({ userId });
   const [isEditing, setIsEditing] = useState(false);
   const [editedTrade, setEditedTrade] = useState<Trade | null>(trade);
@@ -106,6 +117,12 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const [error, setError] = useState<string | null>(null);
   const [showExtraScreens, setShowExtraScreens] = useState(false);
   const queryClient = useQueryClient();
+
+  const accountBalanceRef = useRef(selection.activeAccount?.account_balance || 0);
+  accountBalanceRef.current = selection.activeAccount?.account_balance || 0;
+
+  const editedTradeRef = useRef(editedTrade);
+  editedTradeRef.current = editedTrade;
 
   // Auto-reveal extra screens if trade has slots 3 or 4 filled
   useEffect(() => {
@@ -128,28 +145,13 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     return () => clearTimeout(t);
   }, [error]);
 
-  // Helper: invalidate and refetch trade queries (same pattern as NewTradeModal)
+  // Helper: invalidate trade queries (same pattern as NewTradeModal)
   const invalidateAndRefetchTradeQueries = useCallback(async () => {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
     }
-
-    await queryClient.invalidateQueries({ predicate: (query) => {
-      const key = query.queryKey;
-      if (!Array.isArray(key)) return false;
-      const firstKey = key[0];
-      return (
-        firstKey === 'allTrades' ||
-        firstKey === 'filteredTrades' ||
-        firstKey === 'nonExecutedTrades' ||
-        firstKey === 'discoverTrades' ||
-        firstKey === 'all-strategy-trades' ||
-        firstKey === 'all-strategy-stats'
-      );
-    }});
-
-    // Refetch only active trade-related queries (avoid refetching all active queries globally)
-    await queryClient.refetchQueries({
+    // Single call: invalidate (marks stale) — React Query refetches active queries automatically
+    await queryClient.invalidateQueries({
       predicate: (query) => {
         const key = query.queryKey;
         if (!Array.isArray(key)) return false;
@@ -163,14 +165,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
           firstKey === 'all-strategy-stats'
         );
       },
-      type: 'active',
     });
   }, [queryClient]);
-
-  const MSS_OPTIONS = ['Normal', 'Aggressive'];
-  const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
-  const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const TREND_OPTIONS = ['Trend-following', 'Counter-trend'];
 
   const setupOptions = useMemo(() => currentStrategy?.saved_setup_types ?? [], [currentStrategy?.saved_setup_types]);
   const liquidityOptions = useMemo(
@@ -194,47 +190,47 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   if (!trade) return null;
 
   const handleInputChange = useCallback((field: keyof Trade, value: any) => {
-    if (!editedTrade) return;
+    setEditedTrade((prev) => {
+      if (!prev) return prev;
 
-    if (field === 'risk_per_trade' || field === 'risk_reward_ratio' || field === 'trade_outcome') {
-      const newRisk = field === 'risk_per_trade' ? value : editedTrade.risk_per_trade;
-      const newRR = field === 'risk_reward_ratio' ? value : editedTrade.risk_reward_ratio;
-      const newOutcome = field === 'trade_outcome' ? value : editedTrade.trade_outcome;
-      const nextBreakEven = field === 'trade_outcome' ? value === 'BE' : editedTrade.break_even;
+      if (field === 'risk_per_trade' || field === 'risk_reward_ratio' || field === 'trade_outcome') {
+        const newRisk = field === 'risk_per_trade' ? value : prev.risk_per_trade;
+        const newRR = field === 'risk_reward_ratio' ? value : prev.risk_reward_ratio;
+        const newOutcome = field === 'trade_outcome' ? value : prev.trade_outcome;
+        const nextBreakEven = field === 'trade_outcome' ? value === 'BE' : prev.break_even;
 
-      const { pnl_percentage, calculated_profit } = calculateTradePnl(
-        {
-          trade_outcome: newOutcome,
-          risk_per_trade: Number(newRisk),
-          risk_reward_ratio: Number(newRR),
-          break_even: nextBreakEven,
-        },
-        selection.activeAccount?.account_balance || 0
-      );
+        const { pnl_percentage, calculated_profit } = calculateTradePnl(
+          {
+            trade_outcome: newOutcome,
+            risk_per_trade: Number(newRisk),
+            risk_reward_ratio: Number(newRR),
+            break_even: nextBreakEven,
+          },
+          accountBalanceRef.current
+        );
 
-      const nextState = {
-        ...editedTrade,
-        [field]: value,
-        calculated_profit,
-        pnl_percentage,
-      };
-      if (field === 'trade_outcome' && (value === 'Lose' || value === 'BE')) {
-        nextState.risk_reward_ratio_long = 0;
+        const nextState: Trade = {
+          ...prev,
+          [field]: value,
+          calculated_profit,
+          pnl_percentage,
+        };
+        if (field === 'trade_outcome' && (value === 'Lose' || value === 'BE')) {
+          nextState.risk_reward_ratio_long = 0;
+        }
+        if (field === 'trade_outcome') {
+          nextState.break_even = value === 'BE';
+          if (value !== 'BE') nextState.be_final_result = null;
+        }
+        return nextState;
+      } else {
+        return { ...prev, [field]: value };
       }
-      if (field === 'trade_outcome') {
-        nextState.break_even = value === 'BE';
-        if (value !== 'BE') nextState.be_final_result = null;
-      }
-      setEditedTrade(nextState);
-    } else {
-      setEditedTrade({
-        ...editedTrade,
-        [field]: value
-      });
-    }
-  }, [editedTrade, selection.activeAccount?.account_balance]);
+    });
+  }, []); // stable: no deps needed
 
   const handleSave = useCallback(async () => {
+    const editedTrade = editedTradeRef.current;
     if (!editedTrade || !editedTrade.id) return;
     setError(null);
 
@@ -296,7 +292,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         return;
       }
 
-      await invalidateAndRefetchTradeQueries();
+      // Fire-and-forget: update already succeeded, don't block UI on cache refresh
+      invalidateAndRefetchTradeQueries();
 
       let updatedNews: SavedNewsItem[] | undefined;
       let updatedSetups: string[] | undefined;
@@ -357,8 +354,6 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             );
           });
         }
-        await queryClient.invalidateQueries({ queryKey: queryKeys.settings(userId) });
-        await queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userId) });
       }
 
       setIsEditing(false);
@@ -372,7 +367,6 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       setIsSaving(false);
     }
   }, [
-    editedTrade,
     selection.mode,
     currentStrategy,
     settings.saved_news,
@@ -455,7 +449,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     return renderOutcomeBadge(outcome);
   };
 
-  const renderField = (
+  const renderField = useCallback((
     label: string,
     field: keyof Trade,
     type: 'text' | 'number' | 'select' | 'boolean' | 'outcome' | 'market' = 'text',
@@ -857,7 +851,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
           </div>
         );
     }
-  };
+  }, [isEditing, editedTrade, handleInputChange, settings.saved_markets, setupOptions, liquidityOptions]);
 
   return (
     <>
