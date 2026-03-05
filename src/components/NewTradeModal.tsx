@@ -193,40 +193,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     mind_state_at_entry: 3, // Preselect Neutral so user sees the scale (1–5) like Confidence
   }), [selection.mode]);
 
-  const [trade, setTrade] = useState<Trade>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`new-trade-draft-${selection.mode}`);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          const dateStr = parsed.trade_date || new Date().toISOString().split('T')[0];
-          // Migrate notes: legacy RO → English; any notes with old "🧠 Emotions:" section → new template without it
-          let notes = parsed.notes === NOTES_TEMPLATE_LEGACY_RO ? NOTES_TEMPLATE : (parsed.notes ?? initialTradeState.notes);
-          if (notes && notes.includes('🧠 Emotions:')) {
-            notes = NOTES_TEMPLATE;
-          }
-          // Normalize legacy trade_time (e.g. "09:30") to interval start (e.g. "08:00") so interval Select and TimeIntervalStatisticsCard both work
-          const rawTime = parsed.trade_time || '';
-          const intervalForTime = rawTime ? getIntervalForTime(rawTime) : null;
-          const tradeTime = intervalForTime ? intervalForTime.start : rawTime;
-
-          return {
-            ...initialTradeState,
-            ...parsed,
-            trade_date: dateStr,
-            trade_time: tradeTime,
-            day_of_week:
-              parsed.day_of_week ||
-              WEEKDAY_MAP[new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' })],
-            quarter: parsed.quarter || getQuarter(dateStr),
-            notes,
-            mind_state_at_entry: parsed.mind_state_at_entry ?? 3, // Preselect 3 (Neutral) when missing so scale is clear
-          };
-        } catch { }
-      }
-    }
-    return initialTradeState;
-  });
+  const [trade, setTrade] = useState<Trade>(initialTradeState);
 
   const [showExtraScreens, setShowExtraScreens] = useState(false);
 
@@ -374,13 +341,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     () => calculateTradePnl(trade, accountBalance),
     [accountBalance, trade.break_even, trade.trade_outcome, trade.risk_per_trade, trade.risk_reward_ratio]
   );
-
-  // Save trade draft to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(`new-trade-draft-${selection.mode}`, JSON.stringify(trade));
-    } catch { }
-  }, [trade, selection.mode]);
 
   // Auto-dismiss error after 3 seconds
   useEffect(() => {
@@ -597,10 +557,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       });
 
       if (error) throw new Error(error.message);
-
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem(`new-trade-draft-${selection.mode}`);
-      }
 
       setIsSubmitting(false);
       setTrade(initialTradeState);
