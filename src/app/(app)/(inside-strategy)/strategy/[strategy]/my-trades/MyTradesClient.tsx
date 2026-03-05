@@ -18,6 +18,7 @@ import { getFilteredTrades } from '@/lib/server/trades';
 import { cn } from '@/lib/utils';
 import type { Database } from '@/types/supabase';
 import { queryKeys } from '@/lib/queryKeys';
+import { getIntervalForTime } from '@/constants/analytics';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -102,6 +103,14 @@ function TradeCard({ trade, onOpenModal, hideDetailsLink, isSelected, onSelect, 
   const [activeIdx, setActiveIdx] = useState(0);
   const hasMultiple = screens.length > 1;
   const activeScreen = screens[activeIdx] ?? null;
+  const timeDisplay = useMemo(() => {
+    const raw = trade.trade_time ?? '';
+    if (!raw) return '';
+    const interval = getIntervalForTime(raw);
+    if (interval?.label) return interval.label;
+    // Fallback: first 5 chars (HH:MM) when it's a simple time string
+    return typeof raw === 'string' && raw.length >= 5 ? raw.substring(0, 5) : String(raw);
+  }, [trade.trade_time]);
 
   return (
     <Card
@@ -260,7 +269,7 @@ function TradeCard({ trade, onOpenModal, hideDetailsLink, isSelected, onSelect, 
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-2.5 text-slate-500 dark:text-slate-300">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
             </svg>
-            <span className="font-medium">{trade.trade_time.substring(0, 5)}</span>
+            <span className="font-medium">{timeDisplay}</span>
           </div>
         </div>
         {/* View details link */}
