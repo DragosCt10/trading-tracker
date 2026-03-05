@@ -120,8 +120,13 @@ export function ShareStrategyModal({
       }
       setShareUrl(url);
       if (share) {
-        // Prepend the new share so it appears instantly without another request
-        setExistingShares((prev) => [share, ...prev]);
+        // Ensure we don't add duplicates if a share for this range already existed
+        setExistingShares((prev) => {
+          if (prev.some((s) => s.id === share.id)) {
+            return prev;
+          }
+          return [share, ...prev];
+        });
       }
     });
   };
@@ -144,13 +149,9 @@ export function ShareStrategyModal({
     if (executedTradesCount === 0) {
       return 'No executed trades in this period. Select a different range to enable sharing.';
     }
-    const totalProfit = filteredTrades.reduce(
-      (sum, t) => sum + (t.calculated_profit ?? 0),
-      0
-    );
     return `${executedTradesCount} executed trade${
       executedTradesCount === 1 ? '' : 's'
-    } in this period, total P&L ${currencySymbol}${totalProfit.toFixed(2)}.`;
+    } in this period.`;
   })();
 
   useEffect(() => {
@@ -234,37 +235,39 @@ export function ShareStrategyModal({
 
         {/* Body (no internal scroll so dropdown calendar is fully visible) */}
         <div className="relative flex-1 min-h-0">
-          <AlertDialogHeader className="space-y-1.5 mb-4">
-            <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-              <div className="p-2 rounded-lg themed-header-icon-box">
-                <Share2 className="h-5 w-5" />
+          <AlertDialogHeader className="mb-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1.5">
+                <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                  <div className="p-2 rounded-lg themed-header-icon-box">
+                    <Share2 className="h-5 w-5" />
+                  </div>
+                  <span>Share strategy stats</span>
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
+                  Generate a public, read-only link for this strategy&apos;s performance over a
+                  specific date range. Viewers can&apos;t edit or see individual trades.
+                </AlertDialogDescription>
               </div>
-              <span>Share strategy stats</span>
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
-              Generate a public, read-only link for this strategy&apos;s performance over a specific
-              date range. Viewers can&apos;t edit or see individual trades.
-            </AlertDialogDescription>
+              <Badge
+                variant="outline"
+                className="text-[11px] border-slate-300/70 dark:border-slate-700 whitespace-nowrap self-start"
+              >
+                {mode.toUpperCase()} MODE
+              </Badge>
+            </div>
           </AlertDialogHeader>
 
           <div className="space-y-6">
             {/* Step 1: Date range selection */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                    Step 1 · Select date range
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Only trades in this window will be included in the shared analytics.
-                  </p>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="text-[11px] border-slate-300/70 dark:border-slate-700"
-                >
-                  {mode.toUpperCase()} MODE
-                </Badge>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Step 1 · Select date range
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Only trades in this window will be included in the shared analytics.
+                </p>
               </div>
 
               <div className="relative">
@@ -348,22 +351,23 @@ export function ShareStrategyModal({
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   type="button"
-                  size="sm"
                   onClick={handleGenerate}
                   disabled={!canGenerate}
-                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium h-9"
+                  size="sm"
+                  className="themed-btn-primary cursor-pointer w-full sm:w-auto relative overflow-hidden rounded-xl text-white font-semibold border-0 px-4 py-2 group [&_svg]:text-white disabled:opacity-60"
                 >
                   {isPending ? (
                     <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span>Generating…</span>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">Generating…</span>
                     </>
                   ) : (
                     <>
-                      <LinkIcon className="h-3.5 w-3.5" />
-                      <span>Generate Link</span>
+                      <LinkIcon className="h-4 w-4" />
+                      <span className="text-sm">Generate Link</span>
                     </>
                   )}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 </Button>
               </div>
 
@@ -461,7 +465,19 @@ export function ShareStrategyModal({
                         {isDeleting ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
-                          '×'
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-3.5 h-3.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                          </svg>
                         )}
                       </Button>
                     </div>
