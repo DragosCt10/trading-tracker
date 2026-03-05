@@ -118,6 +118,7 @@ export async function createStrategyShare(params: {
       start_date: params.startDate,
       end_date: params.endDate,
       created_by: user.id,
+      active: true,
     })
     .select('share_token')
     .single();
@@ -142,6 +143,7 @@ export async function getShareByToken(
     .from('strategy_shares')
     .select('*')
     .eq('share_token', token)
+    .eq('active', true)
     .single();
 
   if (error) {
@@ -154,6 +156,47 @@ export async function getShareByToken(
   }
 
   return data as StrategyShareRow;
+}
+
+export async function getStrategySharesForUser(params: {
+  strategyId: string;
+  userId: string;
+  accountId?: string;
+  mode?: ShareMode;
+}): Promise<StrategyShareRow[]> {
+  const supabase = await createSupabaseServerClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user || user.id !== params.userId) {
+    return [];
+  }
+
+  let query = supabase
+    .from('strategy_shares')
+    .select('*')
+    .eq('strategy_id', params.strategyId)
+    .eq('created_by', user.id)
+    .order('created_at', { ascending: false });
+
+  if (params.accountId) {
+    query = query.eq('account_id', params.accountId);
+  }
+  if (params.mode) {
+    query = query.eq('mode', params.mode);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error fetching strategy shares for user:', error);
+    return [];
+  }
+
+  return (data ?? []) as StrategyShareRow[];
 }
 
 export async function getPublicTradesForShare(params: {
@@ -243,5 +286,44 @@ export async function createStrategyShareAction(input: {
   // Build an absolute-ish path; the client can prepend origin if needed.
   const url = `/share/strategy/${shareToken}`;
   return { url, error: null };
+}
+
+export async function getStrategySharesAction(input: {
+  strategyId: string;
+  userId: string;
+  accountId?: string;
+  mode?: ShareMode;
+}): Promise<StrategyShareRow[]> {
+  return getStrategySharesForUser(input);
+}
+
+export async function revokeStrategyShareAction(input: {
+  shareId: string;
+  userId: string;
+}): Promise<{ error: string | null }> {
+  const supabase = await createSupabaseServerClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user || user.id !== input.userId) {
+    return { error: 'Unauthorized' };
+  }
+
+  // Only allow the creator to deactivate (policy also enforces this).
+  const { error } = await supabase
+    .from('strategy_shares')
+    .update({ active: false })
+    .eq('id', input.shareId)
+    .eq('created_by', user.id);
+
+  if (error) {
+    console.error('Error revoking strategy share:', error);
+    return { error: 'Failed to revoke share link. Please try again.' };
+  }
+
+  return { error: null };
 }
 
