@@ -4,7 +4,7 @@ import { useState, useMemo, useTransition, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DateRange } from 'react-date-range';
 import { format } from 'date-fns';
-import { CalendarIcon, Link as LinkIcon, Loader2, Share2 } from 'lucide-react';
+import { CalendarIcon, Copy, Link as LinkIcon, Loader2, Share2 } from 'lucide-react';
 import { Trade } from '@/types/trade';
 import type { Strategy } from '@/types/strategy';
 import {
@@ -65,6 +65,7 @@ export function ShareStrategyModal({
   const [isPending, startTransition] = useTransition();
   const [showCalendar, setShowCalendar] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const sharesQueryKey = queryKeys.strategyShares(strategy.id, userId, accountId, mode);
   const { colorTheme } = useColorTheme();
@@ -235,6 +236,22 @@ export function ShareStrategyModal({
       }
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleCopyShareLink = async (share: StrategyShareRow) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const path = `/share/strategy/${share.share_token}`;
+    let fullUrl = path.startsWith('http') ? path : `${origin}${path}`;
+    if (colorTheme != null) {
+      fullUrl += `${fullUrl.includes('?') ? '&' : '?'}theme=${encodeURIComponent(colorTheme)}`;
+    }
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      setCopiedShareId(share.id);
+      setTimeout(() => setCopiedShareId(null), 2000);
+    } catch {
+      // ignore
     }
   };
 
@@ -460,6 +477,23 @@ export function ShareStrategyModal({
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopyShareLink(share)}
+                        className="cursor-pointer rounded-lg border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 h-7 px-2.5 text-xs font-medium gap-1.5"
+                        title="Copy share link"
+                      >
+                        {copiedShareId === share.id ? (
+                          'Copied!'
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5" />
+                            Copy link
+                          </>
+                        )}
+                      </Button>
                       <button
                         type="button"
                         onClick={() => handleToggleShareActive(share)}
