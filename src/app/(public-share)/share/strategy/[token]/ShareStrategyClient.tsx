@@ -45,6 +45,7 @@ import {
   calculateMarketStats,
   calculateSLSizeStats,
   calculateMssStats,
+  calculateLocalHLStats,
   calculateDayStats,
 } from '@/utils/calculateCategoryStats';
 import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
@@ -83,6 +84,18 @@ import {
 import {
   PartialsBEStatisticsCard,
 } from '@/components/dashboard/analytics/PartialsBEStatisticsCard';
+import {
+  AverageDisplacementSizeCard,
+} from '@/components/dashboard/analytics/AverageDisplacementSizeCard';
+import {
+  DisplacementSizeStats,
+} from '@/components/dashboard/analytics/DisplacementSizeStats';
+import {
+  LocalHLStatisticsCard,
+} from '@/components/dashboard/analytics/LocalHLStatisticsCard';
+import {
+  FvgSizeStats,
+} from '@/components/dashboard/analytics/FvgSizeStats';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Lock, Share2 } from 'lucide-react';
 
@@ -174,6 +187,8 @@ export default function ShareStrategyClient({
   const dayStats = useMemo(() => calculateDayStats(trades), [trades]);
 
   const mssStats = useMemo(() => calculateMssStats(trades), [trades]);
+
+  const localHLStats = useMemo(() => calculateLocalHLStats(trades), [trades]);
 
   const getCurrencySymbol = () => currencySymbol;
 
@@ -647,6 +662,32 @@ export default function ShareStrategyClient({
             )}
             {hasCard('partials_be_stats') && (
               <PartialsBEStatisticsCard trades={trades} isLoading={false} />
+            )}
+          </div>
+        )}
+
+        {(hasCard('avg_displacement') || hasCard('displacement_size')) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
+            {hasCard('avg_displacement') && (
+              <AverageDisplacementSizeCard trades={trades} isLoading={false} />
+            )}
+            {hasCard('displacement_size') && (
+              <DisplacementSizeStats trades={trades} isLoading={false} />
+            )}
+          </div>
+        )}
+
+        {(hasCard('local_hl_stats') || hasCard('fvg_size')) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
+            {hasCard('local_hl_stats') && (
+              <LocalHLStatisticsCard
+                localHLStats={localHLStats}
+                isLoading={false}
+                includeTotalTrades
+              />
+            )}
+            {hasCard('fvg_size') && (
+              <FvgSizeStats trades={trades} isLoading={false} />
             )}
           </div>
         )}
