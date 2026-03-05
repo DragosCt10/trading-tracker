@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { DateRangeValue } from '@/components/dashboard/analytics/TradeFiltersBar';
+import { useColorTheme } from '@/hooks/useColorTheme';
 
 type ShareStrategyModalProps = {
   open: boolean;
@@ -66,6 +67,7 @@ export function ShareStrategyModal({
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const sharesQueryKey = queryKeys.strategyShares(strategy.id, userId, accountId, mode);
+  const { colorTheme } = useColorTheme();
 
   const {
     data: existingShares = [],
@@ -133,7 +135,11 @@ export function ShareStrategyModal({
       if (error || !url) {
         return;
       }
-      setShareUrl(url);
+      const finalUrl =
+        colorTheme != null
+          ? `${url}${url.includes('?') ? '&' : '?'}theme=${encodeURIComponent(colorTheme)}`
+          : url;
+      setShareUrl(finalUrl);
       if (share) {
         queryClient.setQueryData<StrategyShareRow[]>(sharesQueryKey, (prev) => {
           if (!prev) return [share];
