@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useTransition, useEffect } from 'react';
+import { useState, useMemo, useTransition, useEffect, useRef } from 'react';
 import { DateRange } from 'react-date-range';
 import { format } from 'date-fns';
 import { CalendarIcon, Link as LinkIcon, Loader2, Share2 } from 'lucide-react';
@@ -65,6 +65,8 @@ export function ShareStrategyModal({
   const [loadingShares, setLoadingShares] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const dateRangeTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const pickerRef = useRef<HTMLDivElement | null>(null);
 
   const hasRange = Boolean(dateRange.startDate && dateRange.endDate);
 
@@ -153,6 +155,26 @@ export function ShareStrategyModal({
       executedTradesCount === 1 ? '' : 's'
     } in this period.`;
   })();
+
+  // Click-outside to close date picker (same approach as TradeFiltersBar)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!showCalendar) return;
+
+      const target = event.target as Node;
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(target) &&
+        dateRangeTriggerRef.current &&
+        !dateRangeTriggerRef.current.contains(target)
+      ) {
+        setShowCalendar(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCalendar]);
 
   useEffect(() => {
     if (!open) return;
@@ -272,6 +294,7 @@ export function ShareStrategyModal({
 
               <div className="relative">
                 <button
+                  ref={dateRangeTriggerRef}
                   type="button"
                   onClick={() => setShowCalendar((v) => !v)}
                   className="w-full rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-900/40 px-3 py-2.5 text-left text-sm text-slate-700 dark:text-slate-200 shadow-sm flex items-center justify-between gap-3"
@@ -287,7 +310,10 @@ export function ShareStrategyModal({
                 </button>
 
                 {showCalendar && (
-                  <div className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50 dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-lg shadow-slate-300/30 dark:shadow-slate-900/30">
+                  <div
+                    ref={pickerRef}
+                    className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50 dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-lg shadow-slate-300/30 dark:shadow-slate-900/30"
+                  >
                     <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl hidden dark:block">
                       <div className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl" />
                       <div className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl" />
