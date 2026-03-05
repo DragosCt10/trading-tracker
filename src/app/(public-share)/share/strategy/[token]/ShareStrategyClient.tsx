@@ -512,7 +512,7 @@ export default function ShareStrategyClient({
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section className="my-8">
           <div>
             <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-2">
               Trade Performance Analysis
@@ -544,13 +544,7 @@ export default function ShareStrategyClient({
           />
         </div>
 
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Risk / Reward distribution</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              How often you hit different potential R:R levels by market, based on this snapshot.
-            </p>
-          </div>
+        <section className="my-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {hasCard('potential_rr') && (
               <RiskRewardStats trades={trades} isLoading={false} />
@@ -568,7 +562,7 @@ export default function ShareStrategyClient({
         </section>
 
         {hasLiquidityCard && (
-          <section className="space-y-4">
+          <section className="my-8">
             <div>
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Liquidity profile</h2>
               <p className="text-sm text-slate-600 dark:text-slate-400">
