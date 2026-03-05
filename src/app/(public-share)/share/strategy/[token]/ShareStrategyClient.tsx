@@ -97,7 +97,8 @@ import {
   FvgSizeStats,
 } from '@/components/dashboard/analytics/FvgSizeStats';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Lock, Share2 } from 'lucide-react';
+import { Footer } from '@/components/shared/Footer';
+import { Lock, Share2 } from 'lucide-react';
 
 type ShareStrategyClientProps = {
   trades: Trade[];
@@ -384,7 +385,7 @@ export default function ShareStrategyClient({
 
   return (
     <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-50 w-full">
-      <main className="flex-1 w-full px-4 sm:px-6 py-8 sm:py-10 space-y-12">
+      <main className="flex-1 w-full mt-12">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium shadow-sm themed-badge-live">
@@ -692,23 +693,7 @@ export default function ShareStrategyClient({
           </div>
         )}
 
-        <footer className="pt-6 border-t border-slate-200/70 dark:border-slate-800/70 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
-          <div className="flex items-center gap-2">
-            <span>Powered by</span>
-            <a
-              href="https://tradingtracker.app"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-full border border-slate-300/70 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-900/80 px-3 py-1 text-xs font-medium text-slate-700 dark:text-slate-200 hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
-            >
-              <span>Trading Tracker</span>
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">
-            This page is read-only and may not reflect the owner&apos;s most recent trades.
-          </div>
-        </footer>
+        <Footer />
       </main>
     </div>
   );
