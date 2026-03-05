@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
+import { useSearchParams } from 'next/navigation';
 import type { Trade } from '@/types/trade';
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { StrategyShareRow } from '@/lib/server/publicShares';
@@ -44,6 +45,27 @@ export default function ShareStrategyClient({
 }: ShareStrategyClientProps) {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
+
+  const searchParams = useSearchParams();
+
+  // Ensure the public share page applies the owner-selected color theme
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const themeFromUrl = searchParams.get('theme');
+    if (!themeFromUrl) return;
+
+    const allowedThemes = ['cyan', 'purple', 'emerald', 'gold', 'ice'] as const;
+    if (!allowedThemes.includes(themeFromUrl as (typeof allowedThemes)[number])) {
+      return;
+    }
+
+    try {
+      document.documentElement.setAttribute('data-color-theme', themeFromUrl);
+      window.localStorage.setItem('color-theme', themeFromUrl);
+    } catch {
+      // ignore storage errors
+    }
+  }, [searchParams]);
 
   const dateRangeLabel = useMemo(() => {
     const start = new Date(shareData.start_date);
