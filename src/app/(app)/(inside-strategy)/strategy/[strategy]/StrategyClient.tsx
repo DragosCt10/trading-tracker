@@ -113,9 +113,6 @@ import {
   LaunchHourTradesCard,
 } from '@/components/dashboard/analytics/LaunchHourTradesCard';
 import {
-  PartialsBEStatisticsCard,
-} from '@/components/dashboard/analytics/PartialsBEStatisticsCard';
-import {
   DisplacementSizeStats,
 } from '@/components/dashboard/analytics/DisplacementSizeStats';
 import {
@@ -791,10 +788,6 @@ export default function StrategyClient(
     {
       key: 'local_hl_be_stats',
       element: <LocalHLBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />,
-    },
-    {
-      key: 'partials_be_stats',
-      element: <PartialsBEStatisticsCard trades={tradesToUse} isLoading={chartsLoadingState} />,
     },
     {
       key: 'avg_displacement',
