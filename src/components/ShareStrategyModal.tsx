@@ -410,7 +410,12 @@ export function ShareStrategyModal({
                             }${shareUrl}`
                         : 'Link will appear here after generation'
                     }
-                    className="text-xs rounded-2xl border-slate-200/70 dark:border-slate-800/70 bg-slate-50/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200"
+                    className={cn(
+                      'rounded-2xl border-slate-200/70 dark:border-slate-800/70 bg-slate-50/60 dark:bg-slate-900/40',
+                      shareUrl
+                        ? 'text-xs text-slate-700 dark:text-slate-200'
+                        : 'text-[11px] text-slate-400 dark:text-slate-500 italic'
+                    )}
                   />
                   <Button
                     type="button"
@@ -418,7 +423,7 @@ export function ShareStrategyModal({
                     size="sm"
                     onClick={handleCopy}
                     disabled={!shareUrl}
-                    className="rounded-xl text-xs h-9"
+                    className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200 h-9 disabled:opacity-60"
                   >
                     {copyLabel}
                   </Button>
@@ -486,7 +491,7 @@ export function ShareStrategyModal({
                         size="icon"
                         onClick={() => handleDeleteShare(share)}
                         disabled={isDeleting || isRevoking}
-                        className="h-7 w-7 rounded-full text-[11px] text-red-500 hover:text-red-600 hover:bg-red-500/10 disabled:opacity-60"
+                        className="h-7 w-7 cursor-pointer rounded-full text-[11px] text-red-500 hover:text-red-600 hover:bg-red-500/10 disabled:opacity-60"
                       >
                         {isDeleting ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
