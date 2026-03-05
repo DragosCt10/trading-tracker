@@ -1627,9 +1627,10 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
               <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
                 <SelectValue placeholder="Select Trend" />
               </SelectTrigger>
-              <SelectContent>
+                <SelectContent>
                 <SelectItem value="Trend-following">Trend-following</SelectItem>
                 <SelectItem value="Counter-trend">Counter-trend</SelectItem>
+                <SelectItem value="Consolidation">Consolidation</SelectItem>
               </SelectContent>
             </Select>
           </div>
