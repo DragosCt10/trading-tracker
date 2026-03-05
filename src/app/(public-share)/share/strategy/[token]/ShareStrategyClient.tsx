@@ -111,7 +111,7 @@ export default function ShareStrategyClient({
               <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
                 {strategy.name}
               </h1>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 max-w-xl">
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 max-w-xl">
                 Public snapshot of this strategy&apos;s performance for the selected period. Trades
                 and notes are hidden; only aggregated statistics are shown.
               </p>
