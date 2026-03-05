@@ -999,7 +999,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 </div>
               )}
 
-              {(hasCard('local_hl_stats') || hasCard('local_hl_be_stats')) && (
+              {hasCard('local_hl_stats') && (
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="local-high-low"
