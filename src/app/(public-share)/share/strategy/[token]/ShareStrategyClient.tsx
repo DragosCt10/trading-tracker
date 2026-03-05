@@ -706,7 +706,11 @@ export default function ShareStrategyClient({
         )}
 
         {((hasCard('mss_stats') && hasMssData) ||
-          (hasCard('launch_hour') && hasLaunchHourData)) && (
+          (hasCard('launch_hour') && hasLaunchHourData) ||
+          (hasCard('avg_displacement') && hasAvgDisplacementData) ||
+          (hasCard('displacement_size') && hasDisplacementSizeData) ||
+          (hasCard('local_hl_stats') && hasLocalHLData) ||
+          (hasCard('fvg_size') && hasFvgSizeData)) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
             {hasCard('mss_stats') && hasMssData && (
               <MSSStatisticsCard
@@ -721,24 +725,12 @@ export default function ShareStrategyClient({
                 isLoading={false}
               />
             )}
-          </div>
-        )}
-
-        {((hasCard('avg_displacement') && hasAvgDisplacementData) ||
-          (hasCard('displacement_size') && hasDisplacementSizeData)) && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
             {hasCard('avg_displacement') && hasAvgDisplacementData && (
               <AverageDisplacementSizeCard trades={trades} isLoading={false} />
             )}
             {hasCard('displacement_size') && hasDisplacementSizeData && (
               <DisplacementSizeStats trades={trades} isLoading={false} />
             )}
-          </div>
-        )}
-
-        {((hasCard('local_hl_stats') && hasLocalHLData) ||
-          (hasCard('fvg_size') && hasFvgSizeData)) && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
             {hasCard('local_hl_stats') && hasLocalHLData && (
               <LocalHLStatisticsCard
                 localHLStats={localHLStats}
