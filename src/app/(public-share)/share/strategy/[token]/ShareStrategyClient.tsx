@@ -644,17 +644,23 @@ export default function ShareStrategyClient({
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
-          <MSSStatisticsCard
-            mssStats={mssStats}
-            isLoading={false}
-            includeTotalTrades
-          />
-          <LaunchHourTradesCard
-            filteredTrades={trades}
-            isLoading={false}
-          />
-        </div>
+        {(hasCard('mss_stats') || hasCard('launch_hour')) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
+            {hasCard('mss_stats') && (
+              <MSSStatisticsCard
+                mssStats={mssStats}
+                isLoading={false}
+                includeTotalTrades
+              />
+            )}
+            {hasCard('launch_hour') && (
+              <LaunchHourTradesCard
+                filteredTrades={trades}
+                isLoading={false}
+              />
+            )}
+          </div>
+        )}
 
         {(hasCard('local_hl_be_stats') || hasCard('partials_be_stats')) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
