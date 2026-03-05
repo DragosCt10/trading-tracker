@@ -297,12 +297,13 @@ export async function getStrategySharesAction(input: {
   return getStrategySharesForUser(input);
 }
 
-export async function revokeStrategyShareAction(input: {
+export async function setStrategyShareActiveAction(input: {
   shareId: string;
   userId: string;
+  active: boolean;
 }): Promise<{ error: string | null }> {
+  // First, verify the caller is the same authed user we expect.
   const supabase = await createSupabaseServerClient();
-
   const {
     data: { user },
     error: authError,
@@ -312,16 +313,21 @@ export async function revokeStrategyShareAction(input: {
     return { error: 'Unauthorized' };
   }
 
-  // Only allow the creator to deactivate (policy also enforces this).
-  const { error } = await supabase
+  // Use the service role client so this works even if RLS
+  // on strategy_shares is misconfigured, while still
+  // restricting updates to rows created by this user.
+  const serviceClient = createServiceRoleClient();
+  const { data, error } = await (serviceClient as any)
     .from('strategy_shares')
-    .update({ active: false })
+    .update({ active: input.active })
     .eq('id', input.shareId)
-    .eq('created_by', user.id);
+    .eq('created_by', user.id)
+    .select('id, active')
+    .single();
 
-  if (error) {
-    console.error('Error revoking strategy share:', error);
-    return { error: 'Failed to revoke share link. Please try again.' };
+  if (error || !data) {
+    console.error('Error updating strategy share active flag:', error);
+    return { error: 'Failed to update share link. Please try again.' };
   }
 
   return { error: null };
