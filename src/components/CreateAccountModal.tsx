@@ -29,6 +29,7 @@ import {
   AlertDialogCancel,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
 
 type Mode = 'live' | 'backtesting' | 'demo';
 type Currency = 'EUR' | 'USD' | 'GBP';
@@ -46,9 +47,11 @@ export type AccountSettings = {
 
 interface CreateAccountAlertDialogProps {
   onCreated?: (created: AccountSettings) => void;
+  /** Optional extra class for the trigger button (e.g. w-full justify-start for lateral menu). */
+  triggerClassName?: string;
 }
 
-export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialogProps) {
+export function CreateAccountAlertDialog({ onCreated, triggerClassName }: CreateAccountAlertDialogProps) {
   const queryClient = useQueryClient();
   const { data: userId } = useUserDetails();
 
@@ -163,7 +166,10 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
           <Button
             type="button"
             size="sm"
-            className="themed-btn-primary cursor-pointer w-auto shrink-0 h-8 relative overflow-hidden rounded-xl text-white font-semibold border-0 px-2.5 group [&_svg]:text-white"
+            className={cn(
+              'themed-btn-primary cursor-pointer w-auto shrink-0 h-8 relative overflow-hidden rounded-xl text-white font-semibold border-0 px-2.5 group [&_svg]:text-white',
+              triggerClassName
+            )}
           >
             <span className="relative z-10 flex items-center justify-center gap-1.5 text-xs">
               <UserPlus className="h-3.5 w-3.5" />
