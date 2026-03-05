@@ -528,6 +528,27 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       setError('Please fill in the MSS field.');
       return;
     }
+    if (
+      hasCard('potential_rr') &&
+      currentTrade.trade_outcome === 'Win' &&
+      (currentTrade.risk_reward_ratio_long == null ||
+        currentTrade.risk_reward_ratio_long === undefined)
+    ) {
+      setError('Please select Potential Risk:Reward Ratio.');
+      return;
+    }
+    if (hasCard('evaluation_stats') && !currentTrade.evaluation?.trim()) {
+      setError('Please select Evaluation Grade.');
+      return;
+    }
+    if (hasCard('trend_stats') && !currentTrade.trend?.trim()) {
+      setError('Please select Trend.');
+      return;
+    }
+    if (hasCard('fvg_size') && (currentTrade.fvg_size == null || currentTrade.fvg_size === undefined)) {
+      setError('Please fill in the FVG Size field.');
+      return;
+    }
     if (hasAnyExtraCard && !currentTrade.sl_size) {
       setError('Please fill in the SL Size field.');
       return;
@@ -876,6 +897,10 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               fvgSize={trade.fvg_size}
               liquidity={trade.liquidity}
               displacementSize={trade.displacement_size}
+              riskRewardRatio={trade.risk_reward_ratio}
+              riskRewardRatioLong={trade.risk_reward_ratio_long}
+              evaluation={trade.evaluation}
+              trend={trade.trend}
               hasCard={hasCard}
               hasAnyExtraCard={hasAnyExtraCard}
               setupOptions={setupOptions}
@@ -894,12 +919,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             <RiskSection
               riskPerTrade={trade.risk_per_trade}
               riskRewardRatio={trade.risk_reward_ratio}
-              riskRewardRatioLong={trade.risk_reward_ratio_long}
               slSize={trade.sl_size}
-              tradeOutcome={trade.trade_outcome}
               hasAnyExtraCard={hasAnyExtraCard}
-              evaluation={trade.evaluation}
-              trend={trade.trend}
               pnlPercentage={pnlPercentage}
               signedProfit={signedProfit}
               currency={currency}
@@ -1174,6 +1195,10 @@ interface MarketAndSetupSectionProps {
   fvgSize: Trade['fvg_size'];
   liquidity: Trade['liquidity'];
   displacementSize: Trade['displacement_size'];
+  riskRewardRatio: Trade['risk_reward_ratio'];
+  riskRewardRatioLong: Trade['risk_reward_ratio_long'];
+  evaluation: Trade['evaluation'];
+  trend: Trade['trend'];
   hasCard: (key: string) => boolean;
   hasAnyExtraCard: boolean;
   setupOptions: string[];
@@ -1196,6 +1221,10 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
   fvgSize,
   liquidity,
   displacementSize,
+  riskRewardRatio,
+  riskRewardRatioLong,
+  evaluation,
+  trend,
   hasCard,
   hasAnyExtraCard,
   setupOptions,
@@ -1335,7 +1364,7 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
         {hasCard('fvg_size') && (
           <div className="space-y-2">
             <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-              FVG Size
+              FVG Size *
             </Label>
             <Select
               value={
@@ -1452,87 +1481,11 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
             />
           </div>
         )}
-      </div>
-    </>
-  );
-});
 
-interface RiskSectionProps {
-  riskPerTrade: Trade['risk_per_trade'];
-  riskRewardRatio: Trade['risk_reward_ratio'];
-  riskRewardRatioLong: Trade['risk_reward_ratio_long'];
-  slSize: Trade['sl_size'];
-  tradeOutcome: Trade['trade_outcome'];
-  hasAnyExtraCard: boolean;
-  evaluation: Trade['evaluation'];
-  trend: Trade['trend'];
-  pnlPercentage: number;
-  signedProfit: number;
-  currency: string;
-  updateTrade: <K extends keyof Trade>(key: K, value: Trade[K]) => void;
-}
-
-const RiskSection = React.memo(function RiskSection({
-  riskPerTrade,
-  riskRewardRatio,
-  riskRewardRatioLong,
-  slSize,
-  tradeOutcome,
-  hasAnyExtraCard,
-  evaluation,
-  trend,
-  pnlPercentage,
-  signedProfit,
-  currency,
-  updateTrade,
-}: RiskSectionProps) {
-  return (
-    <>
-      <div className="space-y-5">
-        {/* Row 1: core risk inputs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        {hasCard('potential_rr') && (
           <div className="space-y-2">
             <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-              Risk per Trade (%) *
-            </Label>
-            <Input
-              type="number"
-              step="0.01"
-              inputMode="decimal"
-              value={String(riskPerTrade ?? '')}
-              onChange={(e) =>
-                updateTrade('risk_per_trade', parseFloat(e.target.value) || 0)
-              }
-              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-              placeholder="e.g. 1.5"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-              Risk:Reward Ratio *
-            </Label>
-            <Input
-              type="number"
-              step="0.01"
-              inputMode="decimal"
-              value={String(riskRewardRatio ?? '')}
-              onChange={(e) =>
-                updateTrade('risk_reward_ratio', parseFloat(e.target.value) || 0)
-              }
-              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-              placeholder="e.g. 2"
-              required
-            />
-          </div>
-        </div>
-
-        {/* Row 2: potential R:R + SL size */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div className="space-y-2">
-            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-              Potential Risk:Reward Ratio
+              Potential R:R *
             </Label>
             {tradeOutcome === 'Lose' || tradeOutcome === 'BE' ? (
               <Input
@@ -1578,30 +1531,13 @@ const RiskSection = React.memo(function RiskSection({
               </Select>
             )}
           </div>
+        )}
 
-          <div className="space-y-2">
-            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-              SL Size {hasAnyExtraCard ? '*' : ''}
-            </Label>
-            <Input
-              type="number"
-              step="0.01"
-              inputMode="decimal"
-              value={String(slSize ?? '')}
-              onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
-              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-              placeholder="e.g. 10"
-              required={hasAnyExtraCard}
-            />
-          </div>
-        </div>
-
-        {/* Row 3: evaluation + trend */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        {hasCard('evaluation_stats') && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Evaluation Grade
+                Evaluation Grade *
               </Label>
               <TooltipProvider>
                 <Tooltip>
@@ -1655,10 +1591,12 @@ const RiskSection = React.memo(function RiskSection({
               </SelectContent>
             </Select>
           </div>
+        )}
 
+        {hasCard('trend_stats') && (
           <div className="space-y-2">
             <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-              Trend
+              Trend *
             </Label>
             <Select
               value={trend ?? ''}
@@ -1672,6 +1610,92 @@ const RiskSection = React.memo(function RiskSection({
                 <SelectItem value="Counter-trend">Counter-trend</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+        )}
+      </div>
+    </>
+  );
+});
+
+interface RiskSectionProps {
+  riskPerTrade: Trade['risk_per_trade'];
+  riskRewardRatio: Trade['risk_reward_ratio'];
+  slSize: Trade['sl_size'];
+  hasAnyExtraCard: boolean;
+  pnlPercentage: number;
+  signedProfit: number;
+  currency: string;
+  updateTrade: <K extends keyof Trade>(key: K, value: Trade[K]) => void;
+}
+
+const RiskSection = React.memo(function RiskSection({
+  riskPerTrade,
+  riskRewardRatio,
+  slSize,
+  hasAnyExtraCard,
+  pnlPercentage,
+  signedProfit,
+  currency,
+  updateTrade,
+}: RiskSectionProps) {
+  return (
+    <>
+      <div className="space-y-5">
+        {/* Row 1: core risk inputs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="space-y-2">
+            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Risk per Trade (%) *
+            </Label>
+            <Input
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              value={String(riskPerTrade ?? '')}
+              onChange={(e) =>
+                updateTrade('risk_per_trade', parseFloat(e.target.value) || 0)
+              }
+              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              placeholder="e.g. 1.5"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              R:R Ratio *
+            </Label>
+            <Input
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              value={String(riskRewardRatio ?? '')}
+              onChange={(e) =>
+                updateTrade('risk_reward_ratio', parseFloat(e.target.value) || 0)
+              }
+              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              placeholder="e.g. 2"
+              required
+            />
+          </div>
+        </div>
+
+        {/* Row 2: SL size */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="space-y-2">
+            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              SL Size {hasAnyExtraCard ? '*' : ''}
+            </Label>
+            <Input
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              value={String(slSize ?? '')}
+              onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
+              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              placeholder="e.g. 10"
+              required={hasAnyExtraCard}
+            />
           </div>
         </div>
       </div>
