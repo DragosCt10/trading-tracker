@@ -103,6 +103,8 @@ interface AccountOverviewCardProps {
   isYearDataLoading?: boolean;
   /** Number of trades in the period. When set, "No trades found" is shown only when this is 0 (so BE-only trades still show the chart). */
   tradesCount?: number;
+  /** Optional fallback label when accountName is null/empty (defaults to "No Active Account"). */
+  fallbackAccountName?: string;
 }
 
 export function AccountOverviewCard({
@@ -115,6 +117,7 @@ export function AccountOverviewCard({
   monthlyStatsAllTrades,
   isYearDataLoading = false,
   tradesCount,
+  fallbackAccountName,
 }: AccountOverviewCardProps) {
   const { mounted, isDark } = useDarkMode();
 
@@ -140,7 +143,8 @@ export function AccountOverviewCard({
   const showEmptyState = !isYearDataLoading && (!hasAnyTrades || !hasNonZeroProfit);
   const emptyStateNoTrades = !hasAnyTrades;
 
-  const displayName = mounted ? (accountName || 'No Active Account') : '\u00A0';
+  const effectiveFallbackName = fallbackAccountName ?? 'No Active Account';
+  const displayName = mounted ? (accountName || effectiveFallbackName) : '\u00A0';
   const displayBalanceStr = mounted
     ? `${currencySymbol}${updatedBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     : '\u00A0';
