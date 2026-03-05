@@ -86,7 +86,11 @@ export async function createStrategyShare(params: {
   startDate: string;
   endDate: string;
   userId: string;
-}): Promise<{ shareToken: string | null; error: string | null }> {
+}): Promise<{
+  shareToken: string | null;
+  shareRow: StrategyShareRow | null;
+  error: string | null;
+}> {
   const supabase = await createSupabaseServerClient();
 
   const {
@@ -95,7 +99,7 @@ export async function createStrategyShare(params: {
   } = await supabase.auth.getUser();
 
   if (authError || !user || user.id !== params.userId) {
-    return { shareToken: null, error: 'Unauthorized' };
+    return { shareToken: null, shareRow: null, error: 'Unauthorized' };
   }
 
   // Optional defense-in-depth: ensure the strategy being shared belongs to this user.
@@ -106,7 +110,11 @@ export async function createStrategyShare(params: {
     .single();
 
   if (strategyError || !strategyRow || strategyRow.user_id !== user.id) {
-    return { shareToken: null, error: 'Strategy not found or access denied' };
+    return {
+      shareToken: null,
+      shareRow: null,
+      error: 'Strategy not found or access denied',
+    };
   }
 
   const { data, error } = await supabase
@@ -120,18 +128,23 @@ export async function createStrategyShare(params: {
       created_by: user.id,
       active: true,
     })
-    .select('share_token')
+    .select('*')
     .single();
 
   if (error || !data) {
     console.error('Error creating strategy share:', error);
     return {
       shareToken: null,
+      shareRow: null,
       error: 'Failed to generate share link. Please try again.',
     };
   }
 
-  return { shareToken: data.share_token, error: null };
+  return {
+    shareToken: (data as StrategyShareRow).share_token,
+    shareRow: data as StrategyShareRow,
+    error: null,
+  };
 }
 
 export async function getShareByToken(
@@ -276,16 +289,20 @@ export async function createStrategyShareAction(input: {
   startDate: string;
   endDate: string;
   userId: string;
-}): Promise<{ url: string | null; error: string | null }> {
-  const { shareToken, error } = await createStrategyShare(input);
+}): Promise<{
+  url: string | null;
+  share: StrategyShareRow | null;
+  error: string | null;
+}> {
+  const { shareToken, shareRow, error } = await createStrategyShare(input);
 
-  if (error || !shareToken) {
-    return { url: null, error };
+  if (error || !shareToken || !shareRow) {
+    return { url: null, share: null, error };
   }
 
   // Build an absolute-ish path; the client can prepend origin if needed.
   const url = `/share/strategy/${shareToken}`;
-  return { url, error: null };
+  return { url, share: shareRow, error: null };
 }
 
 export async function getStrategySharesAction(input: {
@@ -328,6 +345,36 @@ export async function setStrategyShareActiveAction(input: {
   if (error || !data) {
     console.error('Error updating strategy share active flag:', error);
     return { error: 'Failed to update share link. Please try again.' };
+  }
+
+  return { error: null };
+}
+
+export async function deleteStrategyShareAction(input: {
+  shareId: string;
+  userId: string;
+}): Promise<{ error: string | null }> {
+  // Verify the caller matches the expected user.
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user || user.id !== input.userId) {
+    return { error: 'Unauthorized' };
+  }
+
+  const serviceClient = createServiceRoleClient();
+  const { error } = await (serviceClient as any)
+    .from('strategy_shares')
+    .delete()
+    .eq('id', input.shareId)
+    .eq('created_by', user.id);
+
+  if (error) {
+    console.error('Error deleting strategy share:', error);
+    return { error: 'Failed to delete share link. Please try again.' };
   }
 
   return { error: null };
