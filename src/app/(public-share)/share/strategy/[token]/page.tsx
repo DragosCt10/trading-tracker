@@ -66,14 +66,15 @@ export default async function ShareStrategyPage({ params }: PageProps) {
   const supabase = createServiceRoleClient();
   const { data: account } = await supabase
     .from('account_settings')
-    .select('currency')
+    .select('currency, account_balance')
     .eq('id', share.account_id)
     .single();
 
   const currencySymbol = getCurrencySymbolFromCode(account?.currency ?? 'USD');
+  const accountBalance = account?.account_balance ?? null;
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-50">
+    <main className="min-h-screen">
       <ShareStrategyClient
         trades={await (async () => {
           // Lazily import to avoid circular dependency at module evaluation.
@@ -92,6 +93,7 @@ export default async function ShareStrategyPage({ params }: PageProps) {
         }}
         shareData={share as StrategyShareRow}
         currencySymbol={currencySymbol}
+        accountBalance={accountBalance}
       />
     </main>
   );
