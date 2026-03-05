@@ -432,7 +432,7 @@ export default function ShareStrategyClient({
   );
 
   return (
-    <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-50 w-full p-2 sm:p-0">
+    <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-50 w-full">
       <main className="flex-1 w-full mt-12">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-3">

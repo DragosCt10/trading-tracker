@@ -505,9 +505,9 @@ export default function ManageTradesClient({
   return (
     <TooltipProvider>
       <div className="max-w-7xl mx-auto">
-          {/* Header Section */}
+          {/* Header Section - on responsive buttons under title */}
           <div className="mb-8">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
               <div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
                   Manage Trades
@@ -516,7 +516,7 @@ export default function ManageTradesClient({
                   Viewing trades for {selection.mode} mode
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <Button
                   onClick={() => setIsImportModalOpen(true)}
                   variant="outline"
@@ -535,18 +535,21 @@ export default function ManageTradesClient({
             </div>
           </div>
 
-          {/* Filters Section - Reorganized for better UX */}
+          {/* Filters Section - dimensions aligned with TradeFiltersBar */}
           <div className="mb-6 space-y-4">
-            {/* Row 1: Primary Filters - Market and Sort */}
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <label htmlFor="market-filter" className="text-sm font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap shrink-0">Market:</label>
+            {/* Row 1: Market and Sort (same dimensions as TradeFiltersBar) */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
+                  Market:
+                </span>
                 <Select value={selectedMarket} onValueChange={setSelectedMarket}>
                   <SelectTrigger
                     id="market-filter"
-                    className="w-full sm:w-48 h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                    className="flex w-28 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                    suppressHydrationWarning
                   >
-                    <SelectValue placeholder="Market" />
+                    <SelectValue placeholder="All Markets" />
                   </SelectTrigger>
                   <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
                     <SelectItem value="all">All Markets</SelectItem>
@@ -557,8 +560,10 @@ export default function ManageTradesClient({
                 </Select>
               </div>
 
-              <div className="flex items-center gap-2 flex-1 min-w-0 sm:justify-end">
-                <label htmlFor="sort-by" className="text-sm font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap shrink-0">Sort by:</label>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
+                  Sort by:
+                </span>
                 <Select value={sortConfig.field} onValueChange={value => {
                   const field = value as 'trade_date' | 'market' | 'outcome';
                   setSortConfig(prev => ({
@@ -566,8 +571,8 @@ export default function ManageTradesClient({
                     direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
                   }));
                 }}>
-                  <SelectTrigger id="sort-by" className="w-full sm:w-48 h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                    <SelectValue placeholder="Sort by" />
+                  <SelectTrigger id="sort-by" className="flex w-28 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300" suppressHydrationWarning>
+                    <SelectValue placeholder="Date" />
                   </SelectTrigger>
                   <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
                     <SelectItem value="trade_date">Date</SelectItem>
@@ -578,37 +583,39 @@ export default function ManageTradesClient({
               </div>
             </div>
 
-            {/* Row 2: Date Range and Quick Filters */}
+            {/* Row 2: Date Range (left) and Quick Filters (right, with title) */}
             <div className="flex flex-col md:flex-row gap-4 items-start md:items-end justify-between">
-              <div className="w-full md:max-w-xs sm:max-w-sm">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  Date Range
-                </label>
-                <div className="relative w-full">
-                  <Input
-                    ref={inputRef}
-                    placeholder="Select date range"
-                    type="text"
-                    className="pr-12 w-full h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                    value={`${dateRange.startDate} ~ ${dateRange.endDate}`}
-                    readOnly
-                    onClick={e => {
-                      e.preventDefault();
-                      setShowDatePicker(true);
-                    }}
-                    onFocus={e => {
-                      e.preventDefault();
-                      setShowDatePicker(true);
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowDatePicker((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer p-1.5 rounded-lg hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20"
-                    aria-label="Open date picker"
-                  >
-                    <Calendar className="h-5 w-5 text-slate-500 dark:text-slate-400" />
-                  </button>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
+                  Period:
+                </span>
+                <div className="relative w-64">
+                  <div className="relative">
+                    <Input
+                      ref={inputRef}
+                      placeholder="Select date range"
+                      type="text"
+                      className="w-full cursor-pointer h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 pr-8"
+                      value={`${dateRange.startDate} ~ ${dateRange.endDate}`}
+                      readOnly
+                      onClick={e => {
+                        e.preventDefault();
+                        setShowDatePicker(true);
+                      }}
+                      onFocus={e => {
+                        e.preventDefault();
+                        setShowDatePicker(true);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowDatePicker((v) => !v)}
+                      className="themed-focus absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer p-0.5 rounded hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none"
+                      aria-label="Open date picker"
+                    >
+                      <Calendar className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                    </button>
+                  </div>
                   {showDatePicker && (
                     <div
                       ref={pickerRef}
@@ -658,7 +665,7 @@ export default function ManageTradesClient({
                           direction="vertical"
                         />
 
-                        <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-transparent dark:bg-transparent px-4 py-3">
+                        <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-transparent dark:bg-transparent px-3 py-2">
                           <Button
                             type="button"
                             variant="outline"
@@ -667,7 +674,7 @@ export default function ManageTradesClient({
                               setTempRange({ ...dateRange });
                               setShowDatePicker(false);
                             }}
-                            className="cursor-pointer rounded-xl px-4 py-2 text-sm transition-colors duration-200 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium"
+                            className="cursor-pointer rounded-xl h-8 px-3 text-xs transition-colors duration-200 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium"
                           >
                             Cancel
                           </Button>
@@ -700,7 +707,7 @@ export default function ManageTradesClient({
                               setCurrentPage(1);
                               setShowDatePicker(false);
                             }}
-                            className="cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 border-0 themed-btn-primary text-white"
+                            className="cursor-pointer rounded-xl h-8 px-3 text-xs font-semibold transition-all duration-200 border-0 themed-btn-primary text-white shadow-sm"
                           >
                             Apply
                           </Button>
@@ -710,36 +717,40 @@ export default function ManageTradesClient({
                   )}
                 </div>
               </div>
-              <div className="w-full md:w-auto md:ml-auto">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  Quick Filters
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {(['year', '15days', '30days', 'month'] as const).map((filterType) => {
-                    const isActive = activeFilter === filterType && !isCustomDateRange();
-                    const labels: Record<Exclude<FilterType, null>, string> = {
-                      year: 'Current Year',
-                      '15days': 'Last 15 Days',
-                      '30days': 'Last 30 Days',
-                      month: 'Current Month',
-                    };
-                    return (
-                      <Button
-                        key={filterType}
-                        variant={isActive ? 'default' : 'outline'}
-                        onClick={() => handleFilter(filterType)}
-                        className={cn(
-                          'cursor-pointer rounded-xl px-4 py-2 text-sm transition-all duration-200',
-                          isActive
-                            ? 'themed-btn-primary text-white border-0'
-                            : 'border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80'
-                        )}
-                      >
-                        {labels[filterType]}
-                      </Button>
-                    );
-                  })}
-                </div>
+
+              <div className="w-full md:w-auto md:ml-auto flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap mr-0.5">
+                  Quick Filters:
+                </span>
+                {(['year', '15days', '30days', 'month'] as const).map((filterType) => {
+                  const isActive = activeFilter === filterType && !isCustomDateRange();
+                  const labels: Record<Exclude<FilterType, null>, string> = {
+                    year: 'Current Year',
+                    '15days': 'Last 15 Days',
+                    '30days': 'Last 30 Days',
+                    month: 'Current Month',
+                  };
+                  return (
+                    <Button
+                      key={filterType}
+                      type="button"
+                      variant={isActive ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleFilter(filterType)}
+                      className={cn(
+                        'cursor-pointer rounded-xl h-8 px-3 text-xs transition-colors duration-200 relative overflow-hidden group',
+                        isActive
+                          ? 'themed-btn-primary text-white font-semibold shadow-sm border-0'
+                          : 'border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium',
+                      )}
+                    >
+                      <span className="relative z-10">{labels[filterType]}</span>
+                      {isActive && (
+                        <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                      )}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
 

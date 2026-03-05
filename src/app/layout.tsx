@@ -55,7 +55,7 @@ export default function RootLayout({
         <ThemeProvider>
           <QueryProvider>
             <LoadingProvider>
-              <main className="relative z-10 mx-auto">
+              <main className="relative z-10 mx-auto p-4 sm:p-0">
                 {children}
               </main>
             </LoadingProvider>
