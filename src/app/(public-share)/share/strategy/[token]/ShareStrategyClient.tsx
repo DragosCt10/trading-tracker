@@ -44,6 +44,7 @@ import {
   calculateTrendStats,
   calculateMarketStats,
   calculateSLSizeStats,
+  calculateMssStats,
   calculateDayStats,
 } from '@/utils/calculateCategoryStats';
 import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
@@ -70,6 +71,18 @@ import {
   DayStatisticsCard,
 } from '@/components/dashboard/analytics/DayStatisticsCard';
 import { NewsNameChartCard } from '@/components/dashboard/analytics/NewsNameChartCard';
+import {
+  MSSStatisticsCard,
+} from '@/components/dashboard/analytics/MSSStatisticsCard';
+import {
+  LaunchHourTradesCard,
+} from '@/components/dashboard/analytics/LaunchHourTradesCard';
+import {
+  LocalHLBEStatisticsCard,
+} from '@/components/dashboard/analytics/LocalHLBEStatisticsCard';
+import {
+  PartialsBEStatisticsCard,
+} from '@/components/dashboard/analytics/PartialsBEStatisticsCard';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Lock, Share2 } from 'lucide-react';
 
@@ -136,13 +149,14 @@ export default function ShareStrategyClient({
   );
 
   const hasSetupCard = strategy.extra_cards.includes('setup_stats');
+  const hasLiquidityCard = strategy.extra_cards.includes('liquidity_stats');
   const setupStats = useMemo(
     () => (hasSetupCard ? calculateSetupStats(trades) : []),
     [hasSetupCard, trades]
   );
   const liquidityStats = useMemo(
-    () => calculateLiquidityStats(trades),
-    [trades]
+    () => (hasLiquidityCard ? calculateLiquidityStats(trades) : []),
+    [hasLiquidityCard, trades]
   );
 
   const marketStats = useMemo(
@@ -158,6 +172,8 @@ export default function ShareStrategyClient({
   );
 
   const dayStats = useMemo(() => calculateDayStats(trades), [trades]);
+
+  const mssStats = useMemo(() => calculateMssStats(trades), [trades]);
 
   const getCurrencySymbol = () => currencySymbol;
 
@@ -602,13 +618,38 @@ export default function ShareStrategyClient({
           </div>
         </section>
 
-        <div className="my-8">
-          <LiquidityStatisticsCard
-            liquidityStats={liquidityStats}
+        {hasLiquidityCard && (
+          <div className="my-8">
+            <LiquidityStatisticsCard
+              liquidityStats={liquidityStats}
+              isLoading={false}
+              includeTotalTrades
+            />
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
+          <MSSStatisticsCard
+            mssStats={mssStats}
             isLoading={false}
             includeTotalTrades
           />
+          <LaunchHourTradesCard
+            filteredTrades={trades}
+            isLoading={false}
+          />
         </div>
+
+        {(hasCard('local_hl_be_stats') || hasCard('partials_be_stats')) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
+            {hasCard('local_hl_be_stats') && (
+              <LocalHLBEStatisticsCard trades={trades} isLoading={false} />
+            )}
+            {hasCard('partials_be_stats') && (
+              <PartialsBEStatisticsCard trades={trades} isLoading={false} />
+            )}
+          </div>
+        )}
 
         <footer className="pt-6 border-t border-slate-200/70 dark:border-slate-800/70 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-2">
