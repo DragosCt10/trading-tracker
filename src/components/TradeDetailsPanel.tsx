@@ -32,7 +32,7 @@ const POTENTIAL_RR_OPTIONS: { value: number; label: string }[] = [
 const MSS_OPTIONS = ['Normal', 'Aggressive'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const TREND_OPTIONS = ['Trend-following', 'Counter-trend'];
+const TREND_OPTIONS = ['Trend-following', 'Counter-trend', 'Consolidation'];
 
 // shadcn UI components
 import { Button } from "@/components/ui/button";
