@@ -47,6 +47,14 @@ import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats
 import { calculateEvaluationStats } from '@/utils/calculateEvaluationStats';
 import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
 import { calculateRiskPerTradeStats } from '@/utils/calculateRiskPerTrade';
+import { ConsistencyScoreChart } from '@/components/dashboard/analytics/ConsistencyScoreChart';
+import { AverageDrawdownChart } from '@/components/dashboard/analytics/AverageDrawdownChart';
+import { MaxDrawdownChart } from '@/components/dashboard/analytics/MaxDrawdownChart';
+import { ProfitFactorChart } from '@/components/dashboard/analytics/ProfitFactorChart';
+import { SharpeRatioChart } from '@/components/dashboard/analytics/SharpeRatioChart';
+import { TQIChart } from '@/components/dashboard/analytics/TQIChart';
+import { computeStrategyStatsFromTrades } from '@/utils/computeStrategyStatsFromTrades';
+import { calculateFilteredMacroStats } from '@/utils/calculateFilteredMacroStats';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Lock, Share2 } from 'lucide-react';
 
@@ -246,6 +254,37 @@ export default function ShareStrategyClient({
   const trendStats = useMemo(() => calculateTrendStats(trades), [trades]);
   const allTradesRiskStats = useMemo(() => calculateRiskPerTradeStats(trades), [trades]);
 
+  // Same calculation as StrategyClient: statsToUse and macroStatsToUse for Consistency & drawdown and Performance ratios
+  const statsToUse = useMemo(
+    () =>
+      computeStrategyStatsFromTrades({
+        tradesToUse: trades,
+        accountBalance: accountBalance ?? 0,
+        selectedExecution: null,
+        viewMode: 'dateRange',
+        selectedMarket: 'all',
+        statsFromHook: {},
+      }),
+    [trades, accountBalance]
+  );
+
+  const macroStatsToUse = useMemo(
+    () =>
+      calculateFilteredMacroStats({
+        viewMode: 'dateRange',
+        selectedMarket: 'all',
+        tradesToUse: trades,
+        statsToUse,
+        monthlyStatsToUse: monthlyProfitStats,
+        nonExecutedTrades: null,
+        nonExecutedTotalTradesCount: 0,
+        yearlyPartialTradesCount: 0,
+        yearlyPartialsBECount: 0,
+        macroStats: {},
+      }),
+    [trades, statsToUse, monthlyProfitStats]
+  );
+
   const hasConfidenceData = useMemo(
     () =>
       trades.some(
@@ -421,6 +460,38 @@ export default function ShareStrategyClient({
             </p>
           </div>
           <EquityCurveCard trades={trades} currencySymbol={currencySymbol} />
+        </section>
+
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Consistency &amp; drawdown</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Consistency and capital preservation metrics over this shared period.
+            </p>
+          </div>
+          <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
+            <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} />
+            <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} />
+            <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} />
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Performance ratios</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Return and risk-adjusted metrics.
+            </p>
+          </div>
+          <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
+            <ProfitFactorChart
+              tradesToUse={trades}
+              totalWins={statsToUse.totalWins}
+              totalLosses={statsToUse.totalLosses}
+            />
+            <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} />
+            <TQIChart tradesToUse={trades} />
+          </div>
         </section>
 
         <section className="space-y-4">
