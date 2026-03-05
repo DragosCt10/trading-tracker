@@ -1044,7 +1044,7 @@ export default function StrategyClient(
         />
       )}
 
-      <hr className="my-14 border-t border-slate-200 dark:border-slate-700" />
+      <hr className="my-10 border-t border-slate-200 dark:border-slate-700" />
 
       {/* Overview & monthly highlights */}
       <div className="flex items-center justify-between mt-8 mb-2">
