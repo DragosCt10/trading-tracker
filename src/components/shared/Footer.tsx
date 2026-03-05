@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import Logo from "@/components/shared/Logo";
+import Link from "next/link";
 
 const YEAR = new Date().getFullYear();
 
@@ -30,16 +30,16 @@ function FooterLink({
   children: React.ReactNode;
   className?: string;
 }) {
+  // Render as plain text styled as a link, but not actually a link
   return (
-    <Link
-      href={href}
+    <span
       className={cn(
-        "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors text-sm",
+        "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors text-sm cursor-default",
         className
       )}
     >
       {children}
-    </Link>
+    </span>
   );
 }
 
@@ -82,7 +82,8 @@ export function Footer() {
             <div className="lg:max-w-xs">
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-slate-50 tracking-tight hover:opacity-90 transition-opacity"
+                className="inline-flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-slate-50 tracking-tight hover:opacity-90 transition-opacity cursor-pointer"
+                aria-label="AlphaStats Home"
               >
                 <Logo width={37} height={37} className="flex-shrink-0" />
                 AlphaStats
