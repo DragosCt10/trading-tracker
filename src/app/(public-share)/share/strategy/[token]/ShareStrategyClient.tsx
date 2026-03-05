@@ -117,8 +117,8 @@ export default function ShareStrategyClient({
           </div>
         </header>
 
-        <div className="mt-6 border-t border-slate-200/70 dark:border-slate-800/70" />
-
+        <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
+        
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
