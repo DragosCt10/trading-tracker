@@ -175,20 +175,69 @@ export function calculateSLSizeStats(trades: Trade[]): SLSizeStats[] {
 }
 
 /**
- * Convenience wrappers for all your category stats:
+ * Canonical liquidity keys for grouping (aligned with LiquidityStatisticsCard display labels).
+ * All variants (long name, short name, different casing) map to one key so they merge in the chart.
+ */
+const CANONICAL_LIQUIDITY: Record<string, string> = {
+  'local liquidity': 'Local Liq.',
+  'local liq.': 'Local Liq.',
+  'local liq': 'Local Liq.',
+  'major liquidity': 'Major Liq.',
+  'major liq.': 'Major Liq.',
+  'major liq': 'Major Liq.',
+  'low liquidity': 'Low Liq.',
+  'low liq.': 'Low Liq.',
+  'low liq': 'Low Liq.',
+  'lod': 'LOD',
+  'hod': 'HOD',
+  'unknown': 'Unknown',
+};
+
+/**
+ * Returns a canonical key for liquidity so "Local Liquidity", "Local Liq.", "local liq." etc.
+ * all group together. Known options use the short label; custom values use lowercase so
+ * "Thin Market" and "thin market" merge into one bucket. Display name stays the most frequent raw.
+ */
+function getCanonicalLiquidityKey(value: string | null | undefined): string {
+  const s = (value ?? '').trim();
+  if (!s) return 'Unknown';
+  const lower = s.toLowerCase();
+  return CANONICAL_LIQUIDITY[lower] ?? lower;
+}
+
+/**
+ * Convenience wrappers for all your category stats.
+ * Liquidity is grouped by canonical key so long/short/casing variants (e.g. "Local Liquidity"
+ * and "Local Liq.") merge into one bucket. Display name is the most frequently used raw value.
  */
 export function calculateLiquidityStats(trades: Trade[]): LiquidityStats[] {
   if (trades.length === 0) return [];
-  return calculateGroupedStats(trades, t => t.liquidity || 'Unknown')
-    .map(g => ({
-      liquidity:   g.type,
-      total:       g.total,
-      wins:        g.wins,
-      losses:      g.losses,
-      winRate:     g.winRate,
-      winRateWithBE: g.winRateWithBE,
-      breakEven:   g.breakEven
-    }));
+  const groups: Record<string, { displayCounts: Record<string, number>; trades: Trade[] }> = {};
+  for (const t of trades) {
+    const raw = (t.liquidity ?? '').trim() || 'Unknown';
+    const key = getCanonicalLiquidityKey(t.liquidity);
+    if (!groups[key]) {
+      groups[key] = { displayCounts: {}, trades: [] };
+    }
+    groups[key].displayCounts[raw] = (groups[key].displayCounts[raw] ?? 0) + 1;
+    groups[key].trades.push(t);
+  }
+  return Object.entries(groups)
+    .map(([, { displayCounts, trades: ts }]) => {
+      const displayName =
+        Object.entries(displayCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? 'Unknown';
+      const g = processGroup(displayName, ts);
+      return {
+        liquidity: g.type,
+        total: g.total,
+        wins: g.wins,
+        losses: g.losses,
+        winRate: g.winRate,
+        winRateWithBE: g.winRateWithBE,
+        breakEven: g.breakEven,
+      };
+    })
+    .sort((a, b) => (b.total ?? 0) - (a.total ?? 0));
 }
 
 export function calculateSetupStats(trades: Trade[]) {

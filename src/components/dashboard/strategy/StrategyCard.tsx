@@ -173,7 +173,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
         {/* Strategy Name + Share button (top-right) */}
         <div className="flex items-start justify-between mb-4 gap-3">
           <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-            {strategy.name}
+            {strategy.name} 
           </h3>
           <Button
             variant="outline"
