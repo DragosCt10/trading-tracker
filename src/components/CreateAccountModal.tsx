@@ -163,10 +163,10 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
           <Button
             type="button"
             size="sm"
-            className="themed-btn-primary cursor-pointer w-full lg:w-auto relative overflow-hidden rounded-xl text-white font-semibold border-0 px-4 py-2 group [&_svg]:text-white"
+            className="themed-btn-primary cursor-pointer w-auto shrink-0 h-8 relative overflow-hidden rounded-xl text-white font-semibold border-0 px-2.5 group [&_svg]:text-white"
           >
-            <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
-              <UserPlus className="h-4 w-4" />
+            <span className="relative z-10 flex items-center justify-center gap-1.5 text-xs">
+              <UserPlus className="h-3.5 w-3.5" />
               <span>Add</span>
             </span>
             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
