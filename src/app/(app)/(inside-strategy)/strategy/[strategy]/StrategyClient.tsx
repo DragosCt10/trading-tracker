@@ -164,8 +164,7 @@ import { useDateRangeManagement } from '@/hooks/useDateRangeManagement';
 import { useCalendarNavigation } from '@/hooks/useCalendarNavigation';
 import { useFilteredStats } from '@/hooks/useFilteredStats';
 import { calculateFilteredMacroStats } from '@/utils/calculateFilteredMacroStats';
-import { calculateStreaksFromTrades } from '@/utils/calculateStreaks';
-import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
+import { computeStrategyStatsFromTrades } from '@/utils/computeStrategyStatsFromTrades';
 
 ChartJS.register(
   CategoryScale,
@@ -770,173 +769,17 @@ export default function StrategyClient(
   // Compute stats from tradesToUse when filters are applied or in date range mode
   // In date range mode, always compute from tradesToUse to reflect the selected date range
   // In yearly mode with no filters, use hook stats
+  // Uses shared computeStrategyStatsFromTrades (same as ShareStrategyClient for Consistency & drawdown and Performance ratios)
   const filteredStats = useMemo(() => {
-    // Always calculate drawdowns from tradesToUse to ensure consistency between yearly and date range modes
-    // Even in yearly mode, we need to recalculate to ensure averageDrawdown is computed correctly
-    // The hook's stats.maxDrawdown might use different calculation logic
-
-    // Compute stats from tradesToUse
-    // When execution filter is set to "nonExecuted", tradesToUse includes non-executed trades
-    // In that case, use tradesToUse directly for calculations (non-executed trades may have calculated_profit)
-    // Otherwise, filter to executed trades only for profit-based calculations
-    const tradesForProfitCalculations = selectedExecution === 'nonExecuted' 
-      ? tradesToUse 
-      : tradesToUse.filter((t) => t.executed === true);
-    
-    const nonBETrades = tradesForProfitCalculations.filter((t) => !t.break_even);
-    const beTrades = tradesForProfitCalculations.filter((t) => t.break_even);
-    
-    const wins = nonBETrades.filter((t) => t.trade_outcome === 'Win').length;
-    const losses = nonBETrades.filter((t) => t.trade_outcome === 'Lose').length;
-    const beWins = beTrades.filter((t) => t.trade_outcome === 'Win').length;
-    const beLosses = beTrades.filter((t) => t.trade_outcome === 'Lose').length;
-    
-    // Total trades should include all trades, including non-executed ones (for display purposes)
-    const totalTrades = tradesToUse.length;
-    const totalWins = wins + beWins;
-    const totalLosses = losses + beLosses;
-    
-    // Calculate profit from tradesForProfitCalculations
-    // When execution filter is "nonExecuted", this includes non-executed trades (which may have calculated_profit)
-    // Otherwise, this is filtered to executed trades only
-    const totalProfit = tradesForProfitCalculations.reduce((sum, t) => sum + (t.calculated_profit || 0), 0);
-    const tradesForProfitCount = tradesForProfitCalculations.length;
-    const averageProfit = tradesForProfitCount > 0 ? totalProfit / tradesForProfitCount : 0;
-    
-    const nonBETotal = wins + losses;
-    const winRate = nonBETotal > 0 ? (wins / nonBETotal) * 100 : 0;
-    const winRateWithBE = totalTrades > 0 ? (totalWins / totalTrades) * 100 : 0;
-    
-    // Streaks: include BE, sort by date only, only Win/Lose count (non-executed skipped; last trade walk-back handled in helper)
-    const { currentStreak, maxWinningStreak, maxLosingStreak } = calculateStreaksFromTrades(tradesForProfitCalculations, {
-      excludeBreakEven: false,
-      sortByTime: false,
-      countNonOutcomeAsLoss: false,
+    const computed = computeStrategyStatsFromTrades({
+      tradesToUse,
+      accountBalance: selection.activeAccount?.account_balance || 0,
+      selectedExecution,
+      viewMode,
+      selectedMarket,
+      statsFromHook: { tradeQualityIndex: stats.tradeQualityIndex, multipleR: stats.multipleR },
     });
-    
-    // Sort trades by date for drawdown and average days calculation
-    const sortedTrades = [...tradesForProfitCalculations].sort((a, b) => 
-      new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime()
-    );
-    
-    // Calculate average days between trades
-    let averageDaysBetweenTrades = 0;
-    if (sortedTrades.length > 1) {
-      const daysBetween: number[] = [];
-      for (let i = 1; i < sortedTrades.length; i++) {
-        const prevDate = new Date(sortedTrades[i - 1].trade_date);
-        const currDate = new Date(sortedTrades[i].trade_date);
-        const diffTime = Math.abs(currDate.getTime() - prevDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        daysBetween.push(diffDays);
-      }
-      averageDaysBetweenTrades = daysBetween.length > 0
-        ? daysBetween.reduce((sum, days) => sum + days, 0) / daysBetween.length
-        : 0;
-    }
-    
-    // Calculate max drawdown and average drawdown
-    // IMPORTANT: For consistency between yearly and date range modes, we always calculate
-    // from tradesToUse using the same logic. The key is ensuring tradesToUse contains the
-    // same trades in both modes when viewing the same period.
-    let maxDrawdown = 0;
-    const currentBalance = selection.activeAccount?.account_balance || 0;
-    
-    // Calculate initial balance at the START of the period
-    // Note: account_balance is the CURRENT balance (includes all profits up to now)
-    // For a historical period, we need: initialBalance = endBalance - totalProfit
-    // where endBalance is the balance at the END of the period
-    // Since we don't have easy access to future trades, we approximate:
-    // initialBalance = currentBalance - totalProfit
-    // This works if currentBalance represents the balance after all trades up to now,
-    // and we're viewing a period that ends before now. For periods ending at "now",
-    // this is accurate. For earlier periods, it's an approximation but ensures consistency.
-    const initialBalance = Math.max(0, currentBalance - totalProfit);
-    let peak = initialBalance; // Start peak at initial balance
-    let runningBalance = initialBalance;
-    const drawdowns: number[] = [];
-    
-    // Track drawdown at each trade point
-    sortedTrades.forEach((trade, index) => {
-      const balanceBefore = runningBalance;
-      runningBalance += trade.calculated_profit || 0;
-      const oldPeak = peak;
-      
-      // Update peak if we hit a new high
-      if (runningBalance > peak) {
-        peak = runningBalance;
-      }
-      
-      // Calculate drawdown only when we have a valid peak
-      if (peak > 0) {
-        const drawdown = ((peak - runningBalance) / peak) * 100;
-        
-        // Track all positive drawdowns for average calculation
-        // Use a small epsilon (0.0001) to handle floating point precision issues
-        if (drawdown > 0.0001) {
-          drawdowns.push(drawdown);
-        }
-        maxDrawdown = Math.max(maxDrawdown, drawdown);
-      }
-    });
-    
-    // Calculate average drawdown from all tracked drawdown values
-    // If we have a max drawdown but no drawdowns in array, it means we only had one drawdown point
-    // In that case, use maxDrawdown as the average
-    const averageDrawdown = drawdowns.length > 0
-      ? drawdowns.reduce((sum, dd) => sum + dd, 0) / drawdowns.length
-      : (maxDrawdown > 0 ? maxDrawdown : 0);
-    
-    // Calculate average P&L percentage
-    const accountBalance = selection.activeAccount?.account_balance || 1;
-    const averagePnLPercentage = accountBalance > 0 ? (totalProfit / accountBalance) * 100 : 0;
-    
-    // Calculate partials stats from tradesToUse so the Partial Trades card reflects all partial trades in the current view (date range + market), not only executed ones
-    const partialStatsFromTrades = calculatePartialTradesStats(tradesToUse);
-    const totalPartials = partialStatsFromTrades.totalPartialTradesCount;
-    const partialsWins = partialStatsFromTrades.partialWinningTrades;
-    const partialsLosses = partialStatsFromTrades.partialLosingTrades;
-    const partialBETrades = partialStatsFromTrades.totalPartialsBECount;
-    
-    // Override tradeQualityIndex and multipleR
-    // In date range mode or when filters are applied, set to 0 when there are no executed trades (to reflect filtered data)
-    // Otherwise, use hook values (they're computed from the appropriate dataset)
-    // Use executedTradesCount already defined above (line 740) - it counts all executed trades
-    // For TQI and multipleR checks, we want to count only trades with outcomes (Win/Lose)
-    const executedTradesWithOutcomes = wins + losses + beWins + beLosses;
-    const isFiltered = viewMode === 'dateRange' || selectedMarket !== 'all' || selectedExecution === 'nonExecuted' || selectedExecution === 'all';
-    const tradeQualityIndex = (isFiltered && executedTradesWithOutcomes === 0) ? 0 : (stats.tradeQualityIndex || 0);
-    const multipleR = (isFiltered && executedTradesWithOutcomes === 0) ? 0 : (stats.multipleR || 0);
-
-    return {
-      ...stats, // Keep other stats from hook
-      totalTrades,
-      wins,
-      losses,
-      beWins,
-      beLosses,
-      totalWins,
-      totalLosses,
-      totalProfit,
-      averageProfit,
-      winRate,
-      winRateWithBE,
-      currentStreak,
-      maxWinningStreak,
-      maxLosingStreak,
-      averageDaysBetweenTrades,
-      maxDrawdown,
-      averageDrawdown,
-      averagePnLPercentage,
-      partialsTaken: totalPartials,
-      partialsWins,
-      partialsLosses,
-      partialBETrades,
-      partialWinningTrades: partialsWins,
-      partialLosingTrades: partialsLosses,
-      tradeQualityIndex,
-      multipleR,
-    };
+    return { ...stats, ...computed };
   }, [viewMode, tradesToUse, selectedMarket, selectedExecution, stats, selection.activeAccount?.account_balance]);
 
   // Always use filteredStats to ensure consistent drawdown calculations between yearly and date range modes
