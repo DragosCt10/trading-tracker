@@ -144,7 +144,10 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   const strategySlug = params?.strategy as string | undefined;
   const currentStrategy = strategies.find((s) => s.slug === strategySlug);
   const strategyExtraCards = currentStrategy?.extra_cards ?? [];
-  const hasCard = (key: string) => strategyExtraCards.includes(key as any);
+  const hasCard = useCallback(
+    (key: string) => strategyExtraCards.includes(key as any),
+    [strategyExtraCards],
+  );
   // Backward compat: treat any extra card being enabled as "institutional" for layout/validation
   const hasAnyExtraCard = strategyExtraCards.length > 0;
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -219,10 +222,24 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   }, [isOpen, strategySlug, strategies]);
 
   const notesRef = useRef<HTMLTextAreaElement | null>(null);
+  const tradeRef = useRef<Trade>(initialTradeState);
+
+  useEffect(() => {
+    tradeRef.current = trade;
+  }, [trade]);
 
   const updateTrade = useCallback(<K extends keyof Trade>(key: K, value: Trade[K]) => {
     setTrade((prev) => (prev[key] === value ? prev : { ...prev, [key]: value }));
-  }, [setTrade]);
+  }, []);
+
+  const handleTradeOutcomeChange = useCallback((v: Trade['trade_outcome']) => {
+    setTrade((prev) => ({
+      ...prev,
+      trade_outcome: v,
+      break_even: v === 'BE',
+      be_final_result: v === 'BE' ? prev.be_final_result : null,
+    }));
+  }, []);
 
   // Helper function to invalidate and refetch trade queries (ensures analytics updates)
   const invalidateAndRefetchTradeQueries = useCallback(async (params?: {
@@ -239,7 +256,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     // Get current context for explicit refetch
     const mode = params?.mode ?? selection.mode;
     const accountId = params?.accountId ?? selection.activeAccount?.id;
-    const strategyId = params?.strategyId ?? trade.strategy_id;
+    const strategyId = params?.strategyId ?? null;
     const effectiveUserId = params?.userId ?? userId;
     
     // Invalidate all trade-related queries (marks as stale but keeps them so refetch works)
@@ -305,7 +322,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       },
       type: 'active',
     });
-  }, [selection.mode, selection.activeAccount?.id, trade.strategy_id, userId, queryClient]);
+  }, [selection.mode, selection.activeAccount?.id, userId, queryClient]);
 
   // keep weekday + quarter in sync when the committed date changes
   useEffect(() => {
@@ -484,37 +501,39 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     e.preventDefault();
     setError(null);
 
-    const marketError = getMarketValidationError(trade.market);
+    const currentTrade = tradeRef.current;
+
+    const marketError = getMarketValidationError(currentTrade.market);
     if (marketError) {
       setError(marketError);
       return;
     }
-    if (!trade.direction || !trade.trade_outcome) {
+    if (!currentTrade.direction || !currentTrade.trade_outcome) {
       setError('Please select Direction and Trade Outcome.');
       return;
     }
-    if (!trade.trade_time || trade.trade_time.trim() === '') {
+    if (!currentTrade.trade_time || currentTrade.trade_time.trim() === '') {
       setError('Please select Trade Time (interval).');
       return;
     }
-    if (hasCard('setup_stats') && !trade.setup_type) {
+    if (hasCard('setup_stats') && !currentTrade.setup_type) {
       setError('Please fill in the Pattern / Setup field.');
       return;
     }
-    if (hasCard('liquidity_stats') && !trade.liquidity) {
+    if (hasCard('liquidity_stats') && !currentTrade.liquidity) {
       setError('Please fill in the Conditions / Liquidity field.');
       return;
     }
-    if (hasCard('mss_stats') && !trade.mss) {
+    if (hasCard('mss_stats') && !currentTrade.mss) {
       setError('Please fill in the MSS field.');
       return;
     }
-    if (hasAnyExtraCard && !trade.sl_size) {
+    if (hasAnyExtraCard && !currentTrade.sl_size) {
       setError('Please fill in the SL Size field.');
       return;
     }
 
-    if (!trade.strategy_id) {
+    if (!currentTrade.strategy_id) {
       setError('Strategy not found. Please navigate to a valid strategy page.');
       return;
     }
@@ -527,32 +546,37 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     setIsSubmitting(true);
 
     try {
-      const tradeSnapshot = trade;
+      const tradeSnapshot = currentTrade;
       const currentStrategySnapshot = currentStrategy;
       const settingsSnapshot = settings;
       const userIdSnapshot = userId;
 
-      const notes = notesRef.current ? notesRef.current.value : trade.notes;
+      const notes = notesRef.current ? notesRef.current.value : currentTrade.notes;
 
-      const normalizedMarket = normalizeMarket(trade.market);
+      const normalizedMarket = normalizeMarket(currentTrade.market);
       // When outcome is Win and user did not select Potential R:R, use the exact Risk:Reward Ratio
       const riskRewardRatioLong =
-        trade.trade_outcome === 'Win' && (trade.risk_reward_ratio_long == null || trade.risk_reward_ratio_long === undefined)
-          ? (Number(trade.risk_reward_ratio) || 0)
-          : trade.risk_reward_ratio_long;
+        currentTrade.trade_outcome === 'Win' && (currentTrade.risk_reward_ratio_long == null || currentTrade.risk_reward_ratio_long === undefined)
+          ? (Number(currentTrade.risk_reward_ratio) || 0)
+          : currentTrade.risk_reward_ratio_long;
       const payload = {
-        ...trade,
+        ...currentTrade,
         notes,
         market: normalizedMarket,
         risk_reward_ratio_long: riskRewardRatioLong,
-        trade_executed_at: tradeDateAndTimeToUtcISO(trade.trade_date, trade.trade_time) ?? undefined,
+        trade_executed_at: tradeDateAndTimeToUtcISO(currentTrade.trade_date, currentTrade.trade_time) ?? undefined,
       } as Trade & { user_id?: string; account_id?: string };
       const { id, user_id, account_id, calculated_profit, pnl_percentage, ...tradePayload } = payload;
+
+      const accountBalanceForSubmit = selection.activeAccount.account_balance ?? 0;
+      const { pnl_percentage: submitPnlPercentage, calculated_profit: submitCalculatedProfit } =
+        calculateTradePnl(currentTrade, accountBalanceForSubmit);
+
       const { error } = await createTrade({
         mode: selection.mode,
         account_id: selection.activeAccount.id,
-        calculated_profit: signedProfit,
-        pnl_percentage: pnlPercentage,
+        calculated_profit: submitCalculatedProfit,
+        pnl_percentage: submitPnlPercentage,
         trade: tradePayload,
       });
 
@@ -664,7 +688,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       setError(err?.message ?? 'Failed to create trade. Please check your data and try again.');
       setIsSubmitting(false);
     }
-  }, [trade, hasCard, hasAnyExtraCard, selection, signedProfit, pnlPercentage, userId, settings, currentStrategy, queryClient, invalidateAndRefetchTradeQueries, initialTradeState, onTradeCreated, onClose]);
+  }, [hasCard, hasAnyExtraCard, selection, userId, settings, currentStrategy, queryClient, invalidateAndRefetchTradeQueries, initialTradeState, onTradeCreated, onClose]);
 
   if (!mounted || !isOpen) return null;
 
@@ -858,14 +882,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               liquidityOptions={liquidityOptions}
               savedMarkets={settings.saved_markets}
               updateTrade={updateTrade}
-              onTradeOutcomeChange={(v) =>
-                setTrade((prev) => ({
-                  ...prev,
-                  trade_outcome: v,
-                  break_even: v === 'BE',
-                  be_final_result: v === 'BE' ? prev.be_final_result : null,
-                }))
-              }
+              onTradeOutcomeChange={handleTradeOutcomeChange}
               onEditSavedMarket={handleEditSavedMarket}
               onEditSavedSetup={handleEditSavedSetup}
               onEditSavedLiquidity={handleEditSavedLiquidity}
