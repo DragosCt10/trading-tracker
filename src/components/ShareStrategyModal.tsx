@@ -297,7 +297,7 @@ export function ShareStrategyModal({
                   ref={dateRangeTriggerRef}
                   type="button"
                   onClick={() => setShowCalendar((v) => !v)}
-                  className="w-full rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-900/40 px-3 py-2.5 text-left text-sm text-slate-700 dark:text-slate-200 shadow-sm flex items-center justify-between gap-3"
+                  className="w-full cursor-pointer rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-900/40 px-3 py-2.5 text-left text-sm text-slate-700 dark:text-slate-200 shadow-sm flex items-center justify-between gap-3"
                 >
                   <div className="flex items-center gap-2">
                     <CalendarIcon className="h-4 w-4 text-slate-500" />
