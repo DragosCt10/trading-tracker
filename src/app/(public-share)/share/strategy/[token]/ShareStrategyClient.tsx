@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, addMonths } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
 import type { Trade } from '@/types/trade';
 import type { ExtraCardKey } from '@/constants/extraCards';
@@ -28,6 +28,11 @@ import {
   calculateTotalYearProfit,
   calculateUpdatedBalance,
 } from '@/components/dashboard/analytics/AccountOverviewCard';
+import {
+  TradesCalendarCard,
+  getDaysInMonthForDate,
+  buildWeeklyStats,
+} from '@/components/dashboard/analytics/TradesCalendarCard';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Lock, Share2 } from 'lucide-react';
 
@@ -120,6 +125,79 @@ export default function ShareStrategyClient({
     [accountBalance, totalRangeProfit]
   );
 
+  // Calendar state: current month within the shared range
+  const [currentDate, setCurrentDate] = useState(() => {
+    // Start from the start_date month
+    return startOfMonth(new Date(shareData.start_date));
+  });
+
+  const firstMonth = useMemo(
+    () => startOfMonth(new Date(shareData.start_date)),
+    [shareData.start_date]
+  );
+  const lastMonth = useMemo(
+    () => startOfMonth(new Date(shareData.end_date)),
+    [shareData.end_date]
+  );
+
+  const canNavigateMonth = useMemo(
+    () =>
+      (direction: 'prev' | 'next') => {
+        if (direction === 'prev') {
+          const prev = startOfMonth(addMonths(currentDate, -1));
+          return prev >= firstMonth;
+        }
+        const next = startOfMonth(addMonths(currentDate, 1));
+        return next <= lastMonth;
+      },
+    [currentDate, firstMonth, lastMonth]
+  );
+
+  const handleMonthNavigate = (direction: 'prev' | 'next') => {
+    if (!canNavigateMonth(direction)) return;
+    setCurrentDate((prev) =>
+      direction === 'prev' ? startOfMonth(addMonths(prev, -1)) : startOfMonth(addMonths(prev, 1))
+    );
+  };
+
+  const daysInMonth = useMemo(
+    () => getDaysInMonthForDate(currentDate),
+    [currentDate]
+  );
+
+  // Filter trades to the currently visible calendar month (respecting share date range)
+  const calendarMonthTrades = useMemo(() => {
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+
+    const monthStartStr = format(monthStart, 'yyyy-MM-dd');
+    const monthEndStr = format(monthEnd, 'yyyy-MM-dd');
+
+    return trades.filter((trade) => {
+      let tradeDate: Date;
+      if (typeof trade.trade_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(trade.trade_date)) {
+        const [year, month, day] = trade.trade_date.split('-').map(Number);
+        tradeDate = new Date(year, month - 1, day);
+      } else {
+        tradeDate = new Date(trade.trade_date);
+      }
+
+      const tradeDateStr = format(tradeDate, 'yyyy-MM-dd');
+      return tradeDateStr >= monthStartStr && tradeDateStr <= monthEndStr;
+    });
+  }, [currentDate, trades]);
+
+  const weeklyStats = useMemo(
+    () =>
+      buildWeeklyStats(
+        currentDate,
+        calendarMonthTrades,
+        'all',
+        accountBalance ?? 0
+      ),
+    [currentDate, calendarMonthTrades, accountBalance]
+  );
+
   return (
     <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-50 w-full">
       <main className="flex-1 w-full px-4 sm:px-6 py-8 sm:py-10 space-y-12">
@@ -184,6 +262,26 @@ export default function ShareStrategyClient({
             monthlyStatsAllTrades={monthlyProfitStats}
             isYearDataLoading={false}
             tradesCount={trades.length}
+          />
+        </section>
+
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Trades calendar</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              See how trades are distributed across days and weeks in this shared period.
+            </p>
+          </div>
+          <TradesCalendarCard
+            currentDate={currentDate}
+            onMonthNavigate={handleMonthNavigate}
+            canNavigateMonth={canNavigateMonth}
+            weeklyStats={weeklyStats}
+            calendarMonthTrades={calendarMonthTrades}
+            selectedMarket="all"
+            currencySymbol={currencySymbol}
+            accountBalance={accountBalance ?? 0}
+            getDaysInMonth={() => daysInMonth}
           />
         </section>
 
