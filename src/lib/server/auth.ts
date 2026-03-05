@@ -30,13 +30,22 @@ export async function signupAction(
 ): Promise<AuthResult> {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
+  const redirectTo = formData.get('redirectTo') as string;
 
   if (!email || !password) {
     return { error: 'Email and password are required' };
   }
 
+  if (!redirectTo) {
+    return { error: 'Redirect URL is required' };
+  }
+
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({ email, password });
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: redirectTo },
+  });
 
   if (error) return { error: error.message };
   await ensureDefaultAccount();
