@@ -70,8 +70,12 @@ export default async function ShareStrategyPage({ params }: PageProps) {
     .eq('id', share.account_id)
     .single();
 
-  const currencySymbol = getCurrencySymbolFromCode(account?.currency ?? 'USD');
-  const accountBalance = account?.account_balance ?? null;
+  const typedAccount = account as
+    | { currency?: string | null; account_balance?: number | null }
+    | null;
+
+  const currencySymbol = getCurrencySymbolFromCode(typedAccount?.currency ?? 'USD');
+  const accountBalance = typedAccount?.account_balance ?? null;
 
   return (
     <main className="min-h-screen">
