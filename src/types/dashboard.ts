@@ -97,6 +97,12 @@ export interface LocalHLStats {
     breakEven: number;
     winRateWithBE: number;
     total: number;
+    /** BE breakdown from be_final_result: wins among break-even trades */
+    beWins?: number;
+    /** BE breakdown from be_final_result: losses among break-even trades */
+    beLosses?: number;
+    /** Win rate among BE trades (when be_final_result is set) */
+    beWinRate?: number;
   }
 }
 
