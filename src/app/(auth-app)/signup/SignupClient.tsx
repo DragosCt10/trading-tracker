@@ -45,6 +45,7 @@ export default function SignupClient() {
       const formData = new FormData();
       formData.set('email', email);
       formData.set('password', password);
+      formData.set('redirectTo', `${window.location.origin}/api/auth/callback?next=/strategies`);
       const result = await signupAction(null, formData);
 
       if (result.error) {
