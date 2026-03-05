@@ -220,9 +220,9 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
   const notesRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const updateTrade = <K extends keyof Trade>(key: K, value: Trade[K]) => {
+  const updateTrade = useCallback(<K extends keyof Trade>(key: K, value: Trade[K]) => {
     setTrade((prev) => (prev[key] === value ? prev : { ...prev, [key]: value }));
-  };
+  }, [setTrade]);
 
   // Helper function to invalidate and refetch trade queries (ensures analytics updates)
   const invalidateAndRefetchTradeQueries = useCallback(async (params?: {
@@ -842,468 +842,52 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
             <Separator />
 
-            {/* Market & Direction */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <Label htmlFor="market" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Market *</Label>
-                <MarketCombobox
-                  id="market"
-                  value={trade.market}
-                  onChange={(v) => updateTrade('market', v)}
-                  onBlur={() => {
-                    const normalized = normalizeMarket(trade.market);
-                    if (normalized !== trade.market) updateTrade('market', normalized);
-                  }}
-                  placeholder="Type market (e.g. EURUSD, EUR/USD)"
-                  className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                  dropdownClassName="z-[100]"
-                  defaultSuggestions={settings.saved_markets}
-                  onEditSavedMarket={handleEditSavedMarket}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Direction *</Label>
-                <Select value={trade.direction} onValueChange={(v) => updateTrade('direction', v as 'Long' | 'Short')}>
-                  <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                    <SelectValue placeholder="Select Direction" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Long">Long</SelectItem>
-                    <SelectItem value="Short">Short</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Outcome + conditioned fields from extra cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {/* Trade Outcome (now one item in the shared grid) */}
-              <div className="space-y-2">
-                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Trade Outcome *
-                </Label>
-                <Select
-                  value={trade.trade_outcome}
-                  onValueChange={(v) =>
-                    setTrade((prev) => ({
-                      ...prev,
-                      trade_outcome: v,
-                      break_even: v === 'BE',
-                      be_final_result: v === 'BE' ? prev.be_final_result : null,
-                    }))
-                  }
-                >
-                  <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                    <SelectValue placeholder="Select Trade Outcome" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Win">Win</SelectItem>
-                    <SelectItem value="Lose">Lose</SelectItem>
-                    <SelectItem value="BE">BE</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                {trade.trade_outcome === 'BE' && (
-                  <div className="space-y-2">
-                    <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      After BE
-                    </Label>
-                    <Select
-                      value={trade.be_final_result ?? '__none__'}
-                      onValueChange={(v) =>
-                        updateTrade('be_final_result', v === '__none__' ? null : v)
-                      }
-                    >
-                      <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                        <SelectValue placeholder="Win or Lose at close" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">—</SelectItem>
-                        <SelectItem value="Win">Win</SelectItem>
-                        <SelectItem value="Lose">Lose</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      How did this trade end after moving to break even? (e.g. closed in profit =
-                      Win, stopped out = Lose)
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* All hasCard-conditioned fields now share this same parent grid so rows realign automatically when cards are enabled/disabled. */}
-              {hasCard('setup_stats') && (
-                <div className="space-y-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Pattern / Setup *
-                  </Label>
-                  <CommonCombobox
-                    id="setup-type"
-                    value={trade.setup_type ?? ''}
-                    onChange={(v) => updateTrade('setup_type', v as any)}
-                    options={setupOptions}
-                    customValueLabel="pattern / setup"
-                    placeholder="Select or type pattern / setup"
-                    dropdownClassName="z-[100]"
-                    onEditSavedOption={handleEditSavedSetup}
-                  />
-                </div>
-              )}
-
-              {hasCard('mss_stats') && (
-                <div className="space-y-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    MSS *
-                  </Label>
-                  <Select value={trade.mss} onValueChange={(v) => updateTrade('mss', v)}>
-                    <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                      <SelectValue placeholder="Select MSS" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MSS_OPTIONS.map((m) => (
-                        <SelectItem key={m} value={m}>
-                          {m}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {hasCard('fvg_size') && (
-                <div className="space-y-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    FVG Size
-                  </Label>
-                  <Select
-                    value={
-                      trade.fvg_size == null || trade.fvg_size === undefined
-                        ? ''
-                        : FVG_SIZE_PRESET_VALUES.includes(trade.fvg_size)
-                        ? String(trade.fvg_size)
-                        : 'custom'
-                    }
-                    onValueChange={(v) => {
-                      if (v === 'custom') {
-                        updateTrade('fvg_size', FVG_SIZE_CUSTOM_MIN);
-                      } else if (v === '') {
-                        updateTrade('fvg_size', undefined as any);
-                      } else {
-                        updateTrade('fvg_size', Number(v));
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                      <SelectValue placeholder="Select FVG Size" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {FVG_SIZE_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={String(opt.value)}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="custom">Custom (3+)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {trade.fvg_size != null &&
-                    !FVG_SIZE_PRESET_VALUES.includes(trade.fvg_size) && (
-                      <div className="pt-1">
-                        <Input
-                          type="number"
-                          step="0.5"
-                          min={FVG_SIZE_CUSTOM_MIN}
-                          inputMode="decimal"
-                          value={String(trade.fvg_size)}
-                          onChange={(e) => {
-                            const raw = parseFloat(e.target.value);
-                            if (Number.isNaN(raw)) {
-                              updateTrade('fvg_size', FVG_SIZE_CUSTOM_MIN);
-                              return;
-                            }
-                            const snapped = snapToHalfStep(raw);
-                            const clamped =
-                              snapped < FVG_SIZE_CUSTOM_MIN ? FVG_SIZE_CUSTOM_MIN : snapped;
-                            updateTrade('fvg_size', clamped);
-                          }}
-                          onBlur={(e) => {
-                            const raw = parseFloat(e.target.value);
-                            if (Number.isNaN(raw) || raw < FVG_SIZE_CUSTOM_MIN) {
-                              updateTrade(
-                                'fvg_size',
-                                trade.fvg_size != null && trade.fvg_size >= FVG_SIZE_CUSTOM_MIN
-                                  ? trade.fvg_size
-                                  : FVG_SIZE_CUSTOM_MIN,
-                              );
-                              return;
-                            }
-                            const snapped = snapToHalfStep(raw);
-                            const clamped =
-                              snapped < FVG_SIZE_CUSTOM_MIN ? FVG_SIZE_CUSTOM_MIN : snapped;
-                            updateTrade('fvg_size', clamped);
-                          }}
-                          className="h-10 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 themed-focus text-slate-900 dark:text-slate-50"
-                          placeholder="e.g. 3.5, 4, 4.5 (0.5 steps only)"
-                        />
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          Only 0.5 steps from 3.5 onward (e.g. 3.5, 4, 4.5). Values are rounded to
-                          nearest 0.5.
-                        </p>
-                      </div>
-                    )}
-                </div>
-              )}
-
-              {hasCard('liquidity_stats') && (
-                <div className="space-y-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Conditions / Liquidity *
-                  </Label>
-                  <CommonCombobox
-                    id="liquidity"
-                    value={trade.liquidity ?? ''}
-                    onChange={(v) => updateTrade('liquidity', v)}
-                    options={liquidityOptions}
-                    defaultSuggestions={['HOD', 'LOD']}
-                    customValueLabel="conditions / liquidity"
-                    placeholder="Select or type conditions / liquidity"
-                    dropdownClassName="z-[100]"
-                    onEditSavedOption={handleEditSavedLiquidity}
-                  />
-                </div>
-              )}
-
-              {(hasCard('displacement_size') || hasCard('avg_displacement')) && (
-                <div className="space-y-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Displacement Size (Points)
-                  </Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    inputMode="decimal"
-                    value={String(trade.displacement_size ?? '')}
-                    onChange={(e) =>
-                      updateTrade('displacement_size', parseFloat(e.target.value) || 0)
-                    }
-                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                    placeholder="Displacement"
-                  />
-                </div>
-              )}
-            </div>
+            <MarketAndSetupSection
+              market={trade.market}
+              direction={trade.direction}
+              tradeOutcome={trade.trade_outcome}
+              beFinalResult={trade.be_final_result}
+              setupType={trade.setup_type}
+              mss={trade.mss}
+              fvgSize={trade.fvg_size}
+              liquidity={trade.liquidity}
+              displacementSize={trade.displacement_size}
+              hasCard={hasCard}
+              hasAnyExtraCard={hasAnyExtraCard}
+              setupOptions={setupOptions}
+              liquidityOptions={liquidityOptions}
+              savedMarkets={settings.saved_markets}
+              updateTrade={updateTrade}
+              onTradeOutcomeChange={(v) =>
+                setTrade((prev) => ({
+                  ...prev,
+                  trade_outcome: v,
+                  break_even: v === 'BE',
+                  be_final_result: v === 'BE' ? prev.be_final_result : null,
+                }))
+              }
+              onEditSavedMarket={handleEditSavedMarket}
+              onEditSavedSetup={handleEditSavedSetup}
+              onEditSavedLiquidity={handleEditSavedLiquidity}
+            />
 
             {/* Risk Management Section */}
             <Separator />
 
-            <div className="space-y-5">
-              {/* Row 1: core risk inputs */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Risk per Trade (%) *
-                  </Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    inputMode="decimal"
-                    value={String(trade.risk_per_trade ?? '')}
-                    onChange={(e) =>
-                      updateTrade('risk_per_trade', parseFloat(e.target.value) || 0)
-                    }
-                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                    placeholder="e.g. 1.5"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Risk:Reward Ratio *
-                  </Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    inputMode="decimal"
-                    value={String(trade.risk_reward_ratio ?? '')}
-                    onChange={(e) =>
-                      updateTrade('risk_reward_ratio', parseFloat(e.target.value) || 0)
-                    }
-                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                    placeholder="e.g. 2"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Row 2: potential R:R + SL size */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Potential Risk:Reward Ratio
-                  </Label>
-                  {trade.trade_outcome === 'Lose' || trade.trade_outcome === 'BE' ? (
-                    <Input
-                      type="text"
-                      value="0"
-                      readOnly
-                      className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-200/50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-not-allowed"
-                    />
-                  ) : (
-                    <Select
-                      value={
-                        trade.risk_reward_ratio_long && trade.risk_reward_ratio_long > 0
-                          ? String(trade.risk_reward_ratio_long)
-                          : undefined
-                      }
-                      onValueChange={(v) =>
-                        updateTrade(
-                          'risk_reward_ratio_long',
-                          v === '' || v === '__none__' ? (undefined as any) : Number(v),
-                        )
-                      }
-                    >
-                      <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                        <SelectValue placeholder="Select ratio (1 – 10 or 10+)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">No potential R:R</SelectItem>
-                        {POTENTIAL_RR_OPTIONS.map((opt) => {
-                          const baseValue = Number(trade.risk_reward_ratio ?? 0);
-                          const disabled =
-                            trade.trade_outcome === 'Win' && opt.value <= baseValue;
-                          return (
-                            <SelectItem
-                              key={opt.value}
-                              value={String(opt.value)}
-                              disabled={disabled}
-                            >
-                              {opt.label}
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    SL Size {hasAnyExtraCard ? '*' : ''}
-                  </Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    inputMode="decimal"
-                    value={String(trade.sl_size ?? '')}
-                    onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
-                    className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                    placeholder="e.g. 10"
-                    required={hasAnyExtraCard}
-                  />
-                </div>
-              </div>
-
-              {/* Row 3: evaluation + trend */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      Evaluation Grade
-                    </Label>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-4 w-4 cursor-help text-slate-500 dark:text-slate-400" />
-                        </TooltipTrigger>
-                        <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
-                          <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2.5">
-                            Grade guide
-                          </p>
-                          <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
-                            <li className="flex items-center gap-2.5">
-                              <span className="w-6 h-6 rounded-md bg-blue-500/15 dark:bg-blue-400/20 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400 shrink-0">
-                                A+
-                              </span>
-                              <span>Perfect execution</span>
-                            </li>
-                            <li className="flex items-center gap-2.5">
-                              <span className="w-6 h-6 rounded-md bg-emerald-500/15 dark:bg-emerald-400/20 flex items-center justify-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                                A
-                              </span>
-                              <span>Excellent trade</span>
-                            </li>
-                            <li className="flex items-center gap-2.5">
-                              <span className="w-6 h-6 rounded-md bg-amber-500/15 dark:bg-amber-400/20 flex items-center justify-center text-[10px] font-bold text-amber-600 dark:text-amber-400 shrink-0">
-                                B
-                              </span>
-                              <span>Good trade</span>
-                            </li>
-                            <li className="flex items-center gap-2.5">
-                              <span className="w-6 h-6 rounded-md bg-orange-500/15 dark:bg-orange-400/20 flex items-center justify-center text-[10px] font-bold text-orange-600 dark:text-orange-400 shrink-0">
-                                C
-                              </span>
-                              <span>Poor execution</span>
-                            </li>
-                          </ul>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <Select value={trade.evaluation} onValueChange={(v) => updateTrade('evaluation', v)}>
-                    <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                      <SelectValue placeholder="Select Grade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EVALUATION_OPTIONS.map((e) => (
-                        <SelectItem key={e} value={e}>
-                          {e}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                    Trend
-                  </Label>
-                  <Select
-                    value={trade.trend ?? ''}
-                    onValueChange={(v) => updateTrade('trend', v || null)}
-                  >
-                    <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                      <SelectValue placeholder="Select Trend" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Trend-following">Trend-following</SelectItem>
-                      <SelectItem value="Counter-trend">Counter-trend</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {/* P&L Display */}
-            <div className="p-5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/60 dark:border-slate-600 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">Calculated P&L:</span>
-                <div className="flex items-center gap-3">
-                  <Badge 
-                    variant={pnlPercentage >= 0 ? 'default' : 'destructive'} 
-                    className={`text-sm font-bold px-2.5 py-1 focus:ring-0 focus-visible:ring-0 hover:ring-0 ${
-                      pnlPercentage >= 0 
-                        ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-500/10 hover:dark:bg-emerald-500/20' 
-                        : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800 hover:bg-rose-500/10 hover:dark:bg-rose-500/20'
-                    }`}
-                  >
-                    {pnlPercentage >= 0 ? '+' : ''}{pnlPercentage.toFixed(2)}%
-                  </Badge>
-                  <span className={`text-xl font-bold ${pnlPercentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                    {currency}{signedProfit.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            </div>
+            <RiskSection
+              riskPerTrade={trade.risk_per_trade}
+              riskRewardRatio={trade.risk_reward_ratio}
+              riskRewardRatioLong={trade.risk_reward_ratio_long}
+              slSize={trade.sl_size}
+              tradeOutcome={trade.trade_outcome}
+              hasAnyExtraCard={hasAnyExtraCard}
+              evaluation={trade.evaluation}
+              trend={trade.trend}
+              pnlPercentage={pnlPercentage}
+              signedProfit={signedProfit}
+              currency={currency}
+              updateTrade={updateTrade}
+            />
 
             {/* Additional Options - Checkboxes */}
             <div className="flex flex-wrap gap-5">
@@ -1562,3 +1146,546 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     </>
   );
 }
+
+interface MarketAndSetupSectionProps {
+  market: Trade['market'];
+  direction: Trade['direction'];
+  tradeOutcome: Trade['trade_outcome'];
+  beFinalResult: Trade['be_final_result'];
+  setupType: Trade['setup_type'];
+  mss: Trade['mss'];
+  fvgSize: Trade['fvg_size'];
+  liquidity: Trade['liquidity'];
+  displacementSize: Trade['displacement_size'];
+  hasCard: (key: string) => boolean;
+  hasAnyExtraCard: boolean;
+  setupOptions: string[];
+  liquidityOptions: string[];
+  savedMarkets: string[] | undefined;
+  updateTrade: <K extends keyof Trade>(key: K, value: Trade[K]) => void;
+  onTradeOutcomeChange: (value: Trade['trade_outcome']) => void;
+  onEditSavedMarket: (oldName: string, newName: string) => void | Promise<void>;
+  onEditSavedSetup: (oldName: string, newName: string) => void | Promise<void>;
+  onEditSavedLiquidity: (oldName: string, newName: string) => void | Promise<void>;
+}
+
+const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
+  market,
+  direction,
+  tradeOutcome,
+  beFinalResult,
+  setupType,
+  mss,
+  fvgSize,
+  liquidity,
+  displacementSize,
+  hasCard,
+  hasAnyExtraCard,
+  setupOptions,
+  liquidityOptions,
+  savedMarkets,
+  updateTrade,
+  onTradeOutcomeChange,
+  onEditSavedMarket,
+  onEditSavedSetup,
+  onEditSavedLiquidity,
+}: MarketAndSetupSectionProps) {
+  return (
+    <>
+      {/* Market & Direction */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="space-y-2">
+          <Label htmlFor="market" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+            Market *
+          </Label>
+          <MarketCombobox
+            id="market"
+            value={market}
+            onChange={(v) => updateTrade('market', v)}
+            onBlur={() => {
+              const normalized = normalizeMarket(market);
+              if (normalized !== market) updateTrade('market', normalized);
+            }}
+            placeholder="Type market (e.g. EURUSD, EUR/USD)"
+            className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+            dropdownClassName="z-[100]"
+            defaultSuggestions={savedMarkets}
+            onEditSavedMarket={onEditSavedMarket}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Direction *</Label>
+          <Select value={direction} onValueChange={(v) => updateTrade('direction', v as 'Long' | 'Short')}>
+            <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+              <SelectValue placeholder="Select Direction" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Long">Long</SelectItem>
+              <SelectItem value="Short">Short</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Outcome + conditioned fields from extra cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        {/* Trade Outcome (now one item in the shared grid) */}
+        <div className="space-y-2">
+          <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+            Trade Outcome *
+          </Label>
+          <Select
+            value={tradeOutcome}
+            onValueChange={(v) => onTradeOutcomeChange(v as Trade['trade_outcome'])}
+          >
+            <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+              <SelectValue placeholder="Select Trade Outcome" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Win">Win</SelectItem>
+              <SelectItem value="Lose">Lose</SelectItem>
+              <SelectItem value="BE">BE</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {tradeOutcome === 'BE' && (
+            <div className="space-y-2">
+              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                After BE
+              </Label>
+              <Select
+                value={beFinalResult ?? '__none__'}
+                onValueChange={(v) =>
+                  updateTrade('be_final_result', v === '__none__' ? null : v)
+                }
+              >
+                <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                  <SelectValue placeholder="Win or Lose at close" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">—</SelectItem>
+                  <SelectItem value="Win">Win</SelectItem>
+                  <SelectItem value="Lose">Lose</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                How did this trade end after moving to break even? (e.g. closed in profit =
+                Win, stopped out = Lose)
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* All hasCard-conditioned fields now share this same parent grid so rows realign automatically when cards are enabled/disabled. */}
+        {hasCard('setup_stats') && (
+          <div className="space-y-2">
+            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Pattern / Setup *
+            </Label>
+            <CommonCombobox
+              id="setup-type"
+              value={setupType ?? ''}
+              onChange={(v) => updateTrade('setup_type', v as any)}
+              options={setupOptions}
+              customValueLabel="pattern / setup"
+              placeholder="Select or type pattern / setup"
+              dropdownClassName="z-[100]"
+              onEditSavedOption={onEditSavedSetup}
+            />
+          </div>
+        )}
+
+        {hasCard('mss_stats') && (
+          <div className="space-y-2">
+            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              MSS *
+            </Label>
+            <Select value={mss} onValueChange={(v) => updateTrade('mss', v)}>
+              <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                <SelectValue placeholder="Select MSS" />
+              </SelectTrigger>
+              <SelectContent>
+                {MSS_OPTIONS.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {hasCard('fvg_size') && (
+          <div className="space-y-2">
+            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              FVG Size
+            </Label>
+            <Select
+              value={
+                fvgSize == null || fvgSize === undefined
+                  ? ''
+                  : FVG_SIZE_PRESET_VALUES.includes(fvgSize)
+                  ? String(fvgSize)
+                  : 'custom'
+              }
+              onValueChange={(v) => {
+                if (v === 'custom') {
+                  updateTrade('fvg_size', FVG_SIZE_CUSTOM_MIN);
+                } else if (v === '') {
+                  updateTrade('fvg_size', undefined as any);
+                } else {
+                  updateTrade('fvg_size', Number(v));
+                }
+              }}
+            >
+              <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                <SelectValue placeholder="Select FVG Size" />
+              </SelectTrigger>
+              <SelectContent>
+                {FVG_SIZE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={String(opt.value)}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+                <SelectItem value="custom">Custom (3+)</SelectItem>
+              </SelectContent>
+            </Select>
+            {fvgSize != null &&
+              !FVG_SIZE_PRESET_VALUES.includes(fvgSize) && (
+                <div className="pt-1">
+                  <Input
+                    type="number"
+                    step="0.5"
+                    min={FVG_SIZE_CUSTOM_MIN}
+                    inputMode="decimal"
+                    value={String(fvgSize)}
+                    onChange={(e) => {
+                      const raw = parseFloat(e.target.value);
+                      if (Number.isNaN(raw)) {
+                        updateTrade('fvg_size', FVG_SIZE_CUSTOM_MIN);
+                        return;
+                      }
+                      const snapped = snapToHalfStep(raw);
+                      const clamped =
+                        snapped < FVG_SIZE_CUSTOM_MIN ? FVG_SIZE_CUSTOM_MIN : snapped;
+                      updateTrade('fvg_size', clamped);
+                    }}
+                    onBlur={(e) => {
+                      const raw = parseFloat(e.target.value);
+                      if (Number.isNaN(raw) || raw < FVG_SIZE_CUSTOM_MIN) {
+                        updateTrade(
+                          'fvg_size',
+                          fvgSize != null && fvgSize >= FVG_SIZE_CUSTOM_MIN
+                            ? fvgSize
+                            : FVG_SIZE_CUSTOM_MIN,
+                        );
+                        return;
+                      }
+                      const snapped = snapToHalfStep(raw);
+                      const clamped =
+                        snapped < FVG_SIZE_CUSTOM_MIN ? FVG_SIZE_CUSTOM_MIN : snapped;
+                      updateTrade('fvg_size', clamped);
+                    }}
+                    className="h-10 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 themed-focus text-slate-900 dark:text-slate-50"
+                    placeholder="e.g. 3.5, 4, 4.5 (0.5 steps only)"
+                  />
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Only 0.5 steps from 3.5 onward (e.g. 3.5, 4, 4.5). Values are rounded to
+                    nearest 0.5.
+                  </p>
+                </div>
+              )}
+          </div>
+        )}
+
+        {hasCard('liquidity_stats') && (
+          <div className="space-y-2">
+            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Conditions / Liquidity *
+            </Label>
+            <CommonCombobox
+              id="liquidity"
+              value={liquidity ?? ''}
+              onChange={(v) => updateTrade('liquidity', v)}
+              options={liquidityOptions}
+              defaultSuggestions={['HOD', 'LOD']}
+              customValueLabel="conditions / liquidity"
+              placeholder="Select or type conditions / liquidity"
+              dropdownClassName="z-[100]"
+              onEditSavedOption={onEditSavedLiquidity}
+            />
+          </div>
+        )}
+
+        {(hasCard('displacement_size') || hasCard('avg_displacement')) && (
+          <div className="space-y-2">
+            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Displacement Size (Points)
+            </Label>
+            <Input
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              value={String(displacementSize ?? '')}
+              onChange={(e) =>
+                updateTrade('displacement_size', parseFloat(e.target.value) || 0)
+              }
+              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              placeholder="Displacement"
+            />
+          </div>
+        )}
+      </div>
+    </>
+  );
+});
+
+interface RiskSectionProps {
+  riskPerTrade: Trade['risk_per_trade'];
+  riskRewardRatio: Trade['risk_reward_ratio'];
+  riskRewardRatioLong: Trade['risk_reward_ratio_long'];
+  slSize: Trade['sl_size'];
+  tradeOutcome: Trade['trade_outcome'];
+  hasAnyExtraCard: boolean;
+  evaluation: Trade['evaluation'];
+  trend: Trade['trend'];
+  pnlPercentage: number;
+  signedProfit: number;
+  currency: string;
+  updateTrade: <K extends keyof Trade>(key: K, value: Trade[K]) => void;
+}
+
+const RiskSection = React.memo(function RiskSection({
+  riskPerTrade,
+  riskRewardRatio,
+  riskRewardRatioLong,
+  slSize,
+  tradeOutcome,
+  hasAnyExtraCard,
+  evaluation,
+  trend,
+  pnlPercentage,
+  signedProfit,
+  currency,
+  updateTrade,
+}: RiskSectionProps) {
+  return (
+    <>
+      <div className="space-y-5">
+        {/* Row 1: core risk inputs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="space-y-2">
+            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Risk per Trade (%) *
+            </Label>
+            <Input
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              value={String(riskPerTrade ?? '')}
+              onChange={(e) =>
+                updateTrade('risk_per_trade', parseFloat(e.target.value) || 0)
+              }
+              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              placeholder="e.g. 1.5"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Risk:Reward Ratio *
+            </Label>
+            <Input
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              value={String(riskRewardRatio ?? '')}
+              onChange={(e) =>
+                updateTrade('risk_reward_ratio', parseFloat(e.target.value) || 0)
+              }
+              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              placeholder="e.g. 2"
+              required
+            />
+          </div>
+        </div>
+
+        {/* Row 2: potential R:R + SL size */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="space-y-2">
+            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Potential Risk:Reward Ratio
+            </Label>
+            {tradeOutcome === 'Lose' || tradeOutcome === 'BE' ? (
+              <Input
+                type="text"
+                value="0"
+                readOnly
+                className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-200/50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 cursor-not-allowed"
+              />
+            ) : (
+              <Select
+                value={
+                  riskRewardRatioLong && riskRewardRatioLong > 0
+                    ? String(riskRewardRatioLong)
+                    : undefined
+                }
+                onValueChange={(v) =>
+                  updateTrade(
+                    'risk_reward_ratio_long',
+                    v === '' || v === '__none__' ? (undefined as any) : Number(v),
+                  )
+                }
+              >
+                <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                  <SelectValue placeholder="Select ratio (1 – 10 or 10+)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">No potential R:R</SelectItem>
+                  {POTENTIAL_RR_OPTIONS.map((opt) => {
+                    const baseValue = Number(riskRewardRatio ?? 0);
+                    const disabled =
+                      tradeOutcome === 'Win' && opt.value <= baseValue;
+                    return (
+                      <SelectItem
+                        key={opt.value}
+                        value={String(opt.value)}
+                        disabled={disabled}
+                      >
+                        {opt.label}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              SL Size {hasAnyExtraCard ? '*' : ''}
+            </Label>
+            <Input
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              value={String(slSize ?? '')}
+              onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
+              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              placeholder="e.g. 10"
+              required={hasAnyExtraCard}
+            />
+          </div>
+        </div>
+
+        {/* Row 3: evaluation + trend */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Evaluation Grade
+              </Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 cursor-help text-slate-500 dark:text-slate-400" />
+                  </TooltipTrigger>
+                  <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
+                    <p className="text-[10px] font-medium uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2.5">
+                      Grade guide
+                    </p>
+                    <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                      <li className="flex items-center gap-2.5">
+                        <span className="w-6 h-6 rounded-md bg-blue-500/15 dark:bg-blue-400/20 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400 shrink-0">
+                          A+
+                        </span>
+                        <span>Perfect execution</span>
+                      </li>
+                      <li className="flex items-center gap-2.5">
+                        <span className="w-6 h-6 rounded-md bg-emerald-500/15 dark:bg-emerald-400/20 flex items-center justify-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                          A
+                        </span>
+                        <span>Excellent trade</span>
+                      </li>
+                      <li className="flex items-center gap-2.5">
+                        <span className="w-6 h-6 rounded-md bg-amber-500/15 dark:bg-amber-400/20 flex items-center justify-center text-[10px] font-bold text-amber-600 dark:text-amber-400 shrink-0">
+                          B
+                        </span>
+                        <span>Good trade</span>
+                      </li>
+                      <li className="flex items-center gap-2.5">
+                        <span className="w-6 h-6 rounded-md bg-orange-500/15 dark:bg-orange-400/20 flex items-center justify-center text-[10px] font-bold text-orange-600 dark:text-orange-400 shrink-0">
+                          C
+                        </span>
+                        <span>Poor execution</span>
+                      </li>
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Select value={evaluation} onValueChange={(v) => updateTrade('evaluation', v)}>
+              <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                <SelectValue placeholder="Select Grade" />
+              </SelectTrigger>
+              <SelectContent>
+                {EVALUATION_OPTIONS.map((e) => (
+                  <SelectItem key={e} value={e}>
+                    {e}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Trend
+            </Label>
+            <Select
+              value={trend ?? ''}
+              onValueChange={(v) => updateTrade('trend', v || null)}
+            >
+              <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                <SelectValue placeholder="Select Trend" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Trend-following">Trend-following</SelectItem>
+                <SelectItem value="Counter-trend">Counter-trend</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* P&L Display */}
+      <div className="p-5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/60 dark:border-slate-600 shadow-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">Calculated P&L:</span>
+          <div className="flex items-center gap-3">
+            <Badge
+              variant={pnlPercentage >= 0 ? 'default' : 'destructive'}
+              className={`text-sm font-bold px-2.5 py-1 focus:ring-0 focus-visible:ring-0 hover:ring-0 ${
+                pnlPercentage >= 0
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-500/10 hover:dark:bg-emerald-500/20'
+                  : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800 hover:bg-rose-500/10 hover:dark:bg-rose-500/20'
+              }`}
+            >
+              {pnlPercentage >= 0 ? '+' : ''}
+              {pnlPercentage.toFixed(2)}%
+            </Badge>
+            <span
+              className={`text-xl font-bold ${
+                pnlPercentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+              }`}
+            >
+              {currency}
+              {signedProfit.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+});
