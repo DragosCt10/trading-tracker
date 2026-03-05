@@ -549,7 +549,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       setError('Please fill in the FVG Size field.');
       return;
     }
-    if (hasAnyExtraCard && !currentTrade.sl_size) {
+    if ((hasCard('displacement_size') || hasCard('avg_displacement')) && (currentTrade.displacement_size == null || currentTrade.displacement_size === undefined)) {
+      setError('Please fill in the Displacement Size (Points) field.');
+      return;
+    }
+    if (hasCard('sl_size_stats') && (currentTrade.sl_size == null || currentTrade.sl_size === undefined)) {
       setError('Please fill in the SL Size field.');
       return;
     }
@@ -901,6 +905,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               riskRewardRatioLong={trade.risk_reward_ratio_long}
               evaluation={trade.evaluation}
               trend={trade.trend}
+              slSize={trade.sl_size}
               hasCard={hasCard}
               hasAnyExtraCard={hasAnyExtraCard}
               setupOptions={setupOptions}
@@ -919,8 +924,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             <RiskSection
               riskPerTrade={trade.risk_per_trade}
               riskRewardRatio={trade.risk_reward_ratio}
-              slSize={trade.sl_size}
-              hasAnyExtraCard={hasAnyExtraCard}
               pnlPercentage={pnlPercentage}
               signedProfit={signedProfit}
               currency={currency}
@@ -1199,6 +1202,7 @@ interface MarketAndSetupSectionProps {
   riskRewardRatioLong: Trade['risk_reward_ratio_long'];
   evaluation: Trade['evaluation'];
   trend: Trade['trend'];
+  slSize: Trade['sl_size'];
   hasCard: (key: string) => boolean;
   hasAnyExtraCard: boolean;
   setupOptions: string[];
@@ -1225,6 +1229,7 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
   riskRewardRatioLong,
   evaluation,
   trend,
+  slSize,
   hasCard,
   hasAnyExtraCard,
   setupOptions,
@@ -1466,7 +1471,7 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
         {(hasCard('displacement_size') || hasCard('avg_displacement')) && (
           <div className="space-y-2">
             <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-              Displacement Size (Points)
+              Displacement Size (Points) *
             </Label>
             <Input
               type="number"
@@ -1478,6 +1483,23 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
               }
               className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
               placeholder="Displacement"
+            />
+          </div>
+        )}
+
+        {hasCard('sl_size_stats') && (
+          <div className="space-y-2">
+            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              SL Size *
+            </Label>
+            <Input
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              value={String(slSize ?? '')}
+              onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
+              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              placeholder="e.g. 10"
             />
           </div>
         )}
@@ -1620,8 +1642,6 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
 interface RiskSectionProps {
   riskPerTrade: Trade['risk_per_trade'];
   riskRewardRatio: Trade['risk_reward_ratio'];
-  slSize: Trade['sl_size'];
-  hasAnyExtraCard: boolean;
   pnlPercentage: number;
   signedProfit: number;
   currency: string;
@@ -1631,8 +1651,6 @@ interface RiskSectionProps {
 const RiskSection = React.memo(function RiskSection({
   riskPerTrade,
   riskRewardRatio,
-  slSize,
-  hasAnyExtraCard,
   pnlPercentage,
   signedProfit,
   currency,
@@ -1676,25 +1694,6 @@ const RiskSection = React.memo(function RiskSection({
               className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
               placeholder="e.g. 2"
               required
-            />
-          </div>
-        </div>
-
-        {/* Row 2: SL size */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div className="space-y-2">
-            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-              SL Size {hasAnyExtraCard ? '*' : ''}
-            </Label>
-            <Input
-              type="number"
-              step="0.01"
-              inputMode="decimal"
-              value={String(slSize ?? '')}
-              onChange={(e) => updateTrade('sl_size', parseFloat(e.target.value) || 0)}
-              className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-              placeholder="e.g. 10"
-              required={hasAnyExtraCard}
             />
           </div>
         </div>
