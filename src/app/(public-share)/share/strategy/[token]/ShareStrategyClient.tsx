@@ -136,14 +136,13 @@ export default function ShareStrategyClient({
   );
 
   const hasSetupCard = strategy.extra_cards.includes('setup_stats');
-  const hasLiquidityCard = strategy.extra_cards.includes('liquidity_stats');
   const setupStats = useMemo(
     () => (hasSetupCard ? calculateSetupStats(trades) : []),
     [hasSetupCard, trades]
   );
   const liquidityStats = useMemo(
-    () => (hasLiquidityCard ? calculateLiquidityStats(trades) : []),
-    [hasLiquidityCard, trades]
+    () => calculateLiquidityStats(trades),
+    [trades]
   );
 
   const marketStats = useMemo(
@@ -603,21 +602,13 @@ export default function ShareStrategyClient({
           </div>
         </section>
 
-        {hasLiquidityCard && (
-          <section className="my-8">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Liquidity profile</h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Distribution of trades by liquidity conditions for this strategy.
-              </p>
-            </div>
-            <LiquidityStatisticsCard
-              liquidityStats={liquidityStats}
-              isLoading={false}
-              includeTotalTrades
-            />
-          </section>
-        )}
+        <div className="my-8">
+          <LiquidityStatisticsCard
+            liquidityStats={liquidityStats}
+            isLoading={false}
+            includeTotalTrades
+          />
+        </div>
 
         <footer className="pt-6 border-t border-slate-200/70 dark:border-slate-800/70 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-2">
