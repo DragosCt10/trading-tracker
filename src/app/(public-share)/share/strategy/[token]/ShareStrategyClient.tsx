@@ -610,16 +610,6 @@ export default function ShareStrategyClient({
           <NewsNameChartCard trades={trades} isLoading={false} />
         </div>
 
-        {hasSetupCard && (
-          <div className="my-8">
-            <SetupStatisticsCard
-              setupStats={setupStats}
-              isLoading={false}
-              includeTotalTrades
-            />
-          </div>
-        )}
-
         <section className="my-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {hasCard('potential_rr') && (
@@ -633,6 +623,16 @@ export default function ShareStrategyClient({
             )}
           </div>
         </section>
+
+        {hasSetupCard && (
+          <div className="my-8">
+            <SetupStatisticsCard
+              setupStats={setupStats}
+              isLoading={false}
+              includeTotalTrades
+            />
+          </div>
+        )}
 
         {hasLiquidityCard && (
           <div className="my-8">
