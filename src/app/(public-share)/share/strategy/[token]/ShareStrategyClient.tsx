@@ -103,7 +103,7 @@ export default function ShareStrategyClient({
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10 space-y-12">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-200 shadow-sm shadow-emerald-500/20">
+            <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium shadow-sm themed-badge-live">
               <Share2 className="h-3.5 w-3.5" />
               <span>Read-only shared view</span>
             </div>
@@ -121,18 +121,18 @@ export default function ShareStrategyClient({
             <div className="flex flex-wrap items-center gap-2">
               <Badge
                 variant="outline"
-                className="border-sky-400/60 bg-sky-50/80 text-sky-700 dark:bg-sky-500/10 dark:text-sky-100 text-[11px] font-medium uppercase tracking-wide"
+                className="themed-badge-live text-[11px] font-semibold uppercase tracking-wide px-3 py-1 rounded-full"
               >
                 {shareData.mode.toUpperCase()} MODE
               </Badge>
               <Badge
                 variant="outline"
-                className="border-slate-300/70 bg-slate-50/80 text-slate-700 dark:border-slate-400/60 dark:bg-slate-800/80 dark:text-slate-100 text-[11px] font-medium uppercase tracking-wide"
+                className="text-[11px] font-medium uppercase tracking-wide rounded-full border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-200 px-3 py-1 backdrop-blur-sm"
               >
                 {dateRangeLabel}
               </Badge>
             </div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-300/70 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-900/80 px-3 py-1 text-[11px] text-slate-600 dark:text-slate-300">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 px-3 py-1 text-[11px] text-slate-600 dark:text-slate-300 backdrop-blur-sm">
               <Lock className="h-3.5 w-3.5 text-slate-400" />
               <span>Viewer cannot edit or see individual trades</span>
             </div>
@@ -140,7 +140,7 @@ export default function ShareStrategyClient({
         </header>
 
         <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
-        
+
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
