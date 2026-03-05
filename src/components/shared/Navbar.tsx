@@ -31,9 +31,11 @@ import { ThemePickerModal } from './ThemePickerModal';
 interface NavbarProps {
   /** Rendered in the navbar center on responsive (< lg); e.g. ActionBar */
   centerContent?: ReactNode;
+  /** Rendered inside the mobile lateral menu (e.g. Add account button). */
+  mobileMenuExtra?: ReactNode;
 }
 
-export default function Navbar({ centerContent }: NavbarProps) {
+export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: userData } = useUserDetails();
@@ -96,7 +98,7 @@ export default function Navbar({ centerContent }: NavbarProps) {
   return (
     <>
       <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-(--breakpoint-xl) px-4 sm:px-0">
-        <div className="relative rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden">
+        <div className="relative rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40">
           <div className="themed-nav-overlay pointer-events-none absolute inset-0" />
           <div className="relative flex items-center px-3 py-2 sm:px-4 sm:py-2.5">
             <Link
@@ -143,9 +145,9 @@ export default function Navbar({ centerContent }: NavbarProps) {
             </ul>
           </div>
 
-          {/* Responsive: center slot (e.g. ActionBar) — only on < lg */}
+          {/* Responsive: center slot (e.g. ActionBar) — only on < lg; py allows button shadow space */}
           {centerContent ? (
-            <div className="flex-1 flex justify-center items-center min-w-0 overflow-hidden px-2 lg:hidden">
+            <div className="flex-1 flex justify-center items-center min-w-0 px-2 py-1.5 lg:hidden">
               {centerContent}
             </div>
           ) : null}
@@ -284,6 +286,12 @@ export default function Navbar({ centerContent }: NavbarProps) {
                 </Button>
 
                 <Separator className="my-2" />
+
+                {mobileMenuExtra ? (
+                  <div className="w-full">{mobileMenuExtra}</div>
+                ) : null}
+
+                {mobileMenuExtra ? <Separator className="my-2" /> : null}
 
                 {/* Mobile color theme picker */}
                 <button
