@@ -286,6 +286,7 @@ export interface Database {
           end_date: string; // date
           created_by: string;
           created_at: string;
+          active: boolean;
         };
         Insert: Partial<Database['public']['Tables']['strategy_shares']['Row']> & {
           strategy_id: string;
