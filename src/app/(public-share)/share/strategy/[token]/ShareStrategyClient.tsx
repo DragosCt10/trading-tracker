@@ -69,6 +69,7 @@ import { TimeIntervalStatisticsCard } from '@/components/dashboard/analytics/Tim
 import {
   DayStatisticsCard,
 } from '@/components/dashboard/analytics/DayStatisticsCard';
+import { NewsNameChartCard } from '@/components/dashboard/analytics/NewsNameChartCard';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Lock, Share2 } from 'lucide-react';
 
@@ -574,6 +575,20 @@ export default function ShareStrategyClient({
           />
         </div>
 
+        <div className="my-8">
+          <NewsNameChartCard trades={trades} isLoading={false} />
+        </div>
+
+        {hasSetupCard && (
+          <div className="my-8">
+            <SetupStatisticsCard
+              setupStats={setupStats}
+              isLoading={false}
+              includeTotalTrades
+            />
+          </div>
+        )}
+
         <section className="my-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {hasCard('potential_rr') && (
@@ -584,9 +599,6 @@ export default function ShareStrategyClient({
                 slSizeStats={slSizeStats}
                 isLoading={false}
               />
-            )}
-            {hasSetupCard && (
-              <SetupStatisticsCard setupStats={setupStats} includeTotalTrades />
             )}
           </div>
         </section>
