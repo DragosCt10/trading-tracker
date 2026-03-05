@@ -391,7 +391,7 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
 
                   <ReBar
                     dataKey="value"
-                    radius={[0, 7, 7, 0]}
+                    radius={[7, 7, 7, 7]}
                     barSize={18}
                     fill="url(#riskRewardGradient)"
                   />
