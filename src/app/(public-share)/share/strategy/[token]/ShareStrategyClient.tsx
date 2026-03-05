@@ -34,6 +34,10 @@ import {
   buildWeeklyStats,
 } from '@/components/dashboard/analytics/TradesCalendarCard';
 import {
+  ConfidenceStatsCard,
+  MindStateStatsCard,
+} from '@/components/dashboard/analytics/ConfidenceMindStateCards';
+import {
   calculateDirectionStats,
   calculateReentryStats,
   calculateBreakEvenStats,
@@ -42,6 +46,7 @@ import {
 import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
 import { calculateEvaluationStats } from '@/utils/calculateEvaluationStats';
 import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
+import { calculateRiskPerTradeStats } from '@/utils/calculateRiskPerTrade';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Lock, Share2 } from 'lucide-react';
 
@@ -239,6 +244,28 @@ export default function ShareStrategyClient({
   const reentryStats = useMemo(() => calculateReentryStats(trades), [trades]);
   const breakEvenStats = useMemo(() => calculateBreakEvenStats(trades), [trades]);
   const trendStats = useMemo(() => calculateTrendStats(trades), [trades]);
+  const allTradesRiskStats = useMemo(() => calculateRiskPerTradeStats(trades), [trades]);
+
+  const hasConfidenceData = useMemo(
+    () =>
+      trades.some(
+        (t) =>
+          t.confidence_at_entry != null &&
+          t.confidence_at_entry >= 1 &&
+          t.confidence_at_entry <= 5
+      ),
+    [trades]
+  );
+  const hasMindStateData = useMemo(
+    () =>
+      trades.some(
+        (t) =>
+          t.mind_state_at_entry != null &&
+          t.mind_state_at_entry >= 1 &&
+          t.mind_state_at_entry <= 5
+      ),
+    [trades]
+  );
 
   const aboveRiskPerTradeRow = useMemo(
     () => ({
@@ -359,10 +386,32 @@ export default function ShareStrategyClient({
               showTitle={false}
               partialRowProps={partialRowProps}
               aboveRiskPerTradeRow={aboveRiskPerTradeRow}
+              allTradesRiskStats={allTradesRiskStats}
               hideEmptyChartCards
             />
           </div>
         </section>
+
+        {(hasConfidenceData || hasMindStateData) && (
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Psychological Factors</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Confidence and mind state at entry across these shared trades.
+              </p>
+            </div>
+            <div
+              className={
+                hasConfidenceData && hasMindStateData
+                  ? 'grid grid-cols-1 md:grid-cols-2 gap-6'
+                  : 'grid grid-cols-1 gap-6'
+              }
+            >
+              {hasConfidenceData && <ConfidenceStatsCard trades={trades} isLoading={false} />}
+              {hasMindStateData && <MindStateStatsCard trades={trades} isLoading={false} />}
+            </div>
+          </section>
+        )}
 
         <section className="space-y-4">
           <div>
