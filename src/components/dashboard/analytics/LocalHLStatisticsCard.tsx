@@ -10,7 +10,14 @@ import {
   CardDescription,
   CardContent,
 } from '@/components/ui/card';
+import {
+  Tooltip as UITooltip,
+  TooltipContent as UITooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
+import { Info } from 'lucide-react';
 import { cn, formatPercent } from '@/lib/utils';
 import { calculateLocalHLStats as calculateLocalHLStatsUtil } from '@/utils/calculateCategoryStats';
 import type { LocalHLStats } from '@/types/dashboard';
@@ -49,6 +56,10 @@ interface PieDatum {
   breakEven: number;
   winRate: number;
   winRateWithBE: number;
+  /** BE breakdown from be_final_result for tooltip */
+  beWins?: number;
+  beLosses?: number;
+  beWinRate?: number;
 }
 
 type PieColor = 'teal' | 'amber';
@@ -141,6 +152,9 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
         breakEven: stat.breakEven ?? 0,
         winRate: stat.winRate ?? 0,
         winRateWithBE: stat.winRateWithBE ?? 0,
+        beWins: stat.beWins,
+        beLosses: stat.beLosses,
+        beWinRate: stat.beWinRate,
       };
     });
     const pieData = pieDataRaw.filter((item) => item.value > 0);
@@ -164,6 +178,10 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
       const breakEven = data.breakEven ?? 0;
       const winRate = data.winRate ?? 0;
       const winRateWithBE = data.winRateWithBE ?? 0;
+      const beWins = data.beWins ?? 0;
+      const beLosses = data.beLosses ?? 0;
+      const beWinRate = data.beWinRate;
+      const hasBEBreakdown = (beWins + beLosses) > 0 && beWinRate != null;
 
       return (
         <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
@@ -186,7 +204,14 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
               </div>
               <div className="flex items-baseline justify-between gap-4">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
-                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{breakEven}</span>
+                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                  {breakEven}
+                  {hasBEBreakdown && (
+                    <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">
+                      ({beWins} w, {beLosses} l, {formatPercent(beWinRate!)}% wr)
+                    </span>
+                  )}
+                </span>
               </div>
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
@@ -254,9 +279,33 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
     return (
       <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Local H/L Stats
-          </CardTitle>
+          <div className="flex items-center gap-2 mb-1">
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+              Local H/L Stats
+            </CardTitle>
+            <TooltipProvider>
+              <UITooltip delayDuration={150}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex h-4 w-4 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none shrink-0"
+                    aria-label="Local H/L stats info"
+                  >
+                    <Info className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <UITooltipContent
+                  side="top"
+                  align="center"
+                  sideOffset={6}
+                  className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
+                >
+                  {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+                  <div className="relative text-xs sm:text-sm text-slate-400 dark:text-slate-300">If you complete After BE (Win or Lose) for your break-even trades, the BE stats in parentheses (wins, losses, win rate) will be accurate.</div>
+                </UITooltipContent>
+              </UITooltip>
+            </TooltipProvider>
+          </div>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Trades based on local high/low status
           </CardDescription>
