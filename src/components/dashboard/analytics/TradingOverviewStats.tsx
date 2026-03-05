@@ -158,7 +158,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
     if (cards.length === 0) return null;
 
     return (
-      <div className="col-span-full grid grid-cols-2 lg:grid-cols-3 gap-6 [&>*]:min-h-[340px]">
+      <div className="col-span-full grid grid-cols-1 lg:grid-cols-3 gap-6 w-full [&>*]:min-h-[340px] [&>*]:min-w-0">
         {cards}
       </div>
     );
@@ -203,7 +203,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
       <BestRRStatCard tradesToUse={trades} />
 
       {/* Key metrics: RR Multiple, P&L %, Average Days Between Trades; in year mode also Average Monthly Trades */}
-      <div className={`col-span-full grid grid-cols-1 gap-6 ${viewMode === 'yearly' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
+      <div className={`col-span-full grid grid-cols-1 gap-6 w-full [&>*]:min-w-0 ${viewMode === 'yearly' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
         <RRMultipleStatCard tradesToUse={trades} />
         <PNLPercentageStatCard tradesToUse={trades} accountBalance={accountBalance} />
         <AverageDaysBetweenTradesCard
@@ -222,7 +222,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
       {hideEmptyChartCards ? (
         chartCardsSection
       ) : (
-        <div className="col-span-full grid grid-cols-1 lg:grid-cols-3 gap-6 [&>*:nth-child(n+4)]:min-h-[340px]">
+        <div className="col-span-full grid grid-cols-1 lg:grid-cols-3 gap-6 w-full [&>*]:min-w-0 [&>*:nth-child(n+4)]:min-h-[340px]">
           <TotalTradesChartCard
             totalTrades={stats.totalTrades}
             wins={stats.wins}
