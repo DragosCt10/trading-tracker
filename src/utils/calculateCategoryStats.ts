@@ -239,7 +239,7 @@ export function calculateLocalHLStats(trades: Trade[]): LocalHLStats {
     t => (isLocalHighLowLiquidated(t.local_high_low) ? LOCAL_HL_KEYS.liquidated : LOCAL_HL_KEYS.notLiquidated)
   );
 
-  return groups.reduce<LocalHLStats>((acc, g) => {
+  const result = groups.reduce<LocalHLStats>((acc, g) => {
     acc[g.type] = {
       wins:           g.wins,
       losses:         g.losses,
@@ -250,6 +250,32 @@ export function calculateLocalHLStats(trades: Trade[]): LocalHLStats {
     };
     return acc;
   }, { ...ZERO });
+
+  // BE breakdown from be_final_result per category (for tooltip: wins, losses, win rate among BE trades)
+  trades.forEach((t) => {
+    const key = isLocalHighLowLiquidated(t.local_high_low) ? LOCAL_HL_KEYS.liquidated : LOCAL_HL_KEYS.notLiquidated;
+    if (!t.break_even) return;
+    const bucket = result[key];
+    if (!bucket) return;
+    const beFinal = t.be_final_result == null ? null : String(t.be_final_result).trim();
+    if (beFinal === 'Win') {
+      bucket.beWins = (bucket.beWins ?? 0) + 1;
+    } else if (beFinal === 'Lose') {
+      bucket.beLosses = (bucket.beLosses ?? 0) + 1;
+    }
+  });
+  (['liquidated', 'notLiquidated'] as const).forEach((key) => {
+    const bucket = result[key];
+    if (!bucket) return;
+    const beWins = bucket.beWins ?? 0;
+    const beLosses = bucket.beLosses ?? 0;
+    const beTotal = beWins + beLosses;
+    if (beTotal > 0) {
+      bucket.beWinRate = (beWins / beTotal) * 100;
+    }
+  });
+
+  return result;
 }
 export function calculateMssStats(trades: Trade[]): MssStats[] {
   if (trades.length === 0) return [];
