@@ -306,6 +306,7 @@ export default function ShareStrategyClient({
     [trades]
   );
 
+  const hasCard = (key: ExtraCardKey) => strategy.extra_cards.includes(key);
   const aboveRiskPerTradeRow = useMemo(
     () => ({
       evaluationStats,
@@ -314,8 +315,10 @@ export default function ShareStrategyClient({
       trendStats,
       chartsLoadingState: false,
       includeTotalTrades: true,
+      showEvaluationCard: hasCard('evaluation_stats'),
+      showTrendCard: hasCard('trend_stats'),
     }),
-    [evaluationStats, reentryStats, breakEvenStats, trendStats]
+    [evaluationStats, reentryStats, breakEvenStats, trendStats, strategy.extra_cards]
   );
 
   return (
@@ -515,7 +518,7 @@ export default function ShareStrategyClient({
             </p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <RiskRewardStats trades={trades} />
+            {hasCard('potential_rr') && <RiskRewardStats trades={trades} />}
             {hasSetupCard && (
               <SetupStatisticsCard setupStats={setupStats} includeTotalTrades />
             )}
