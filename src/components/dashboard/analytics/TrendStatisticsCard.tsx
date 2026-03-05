@@ -24,13 +24,19 @@ interface PieDatum {
   name: string;
   value: number;
   percentage: number;
-  color: 'teal' | 'orange';
+  color: 'teal' | 'orange' | 'violet';
   wins: number;
   losses: number;
   breakEven: number;
   winRate: number;
   winRateWithBE: number;
 }
+
+const TREND_SHORT_LABELS: Record<string, string> = {
+  'Trend-following': 'Trend',
+  'Counter-trend': 'Counter',
+  Consolidation: 'Consol',
+};
 
 export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.memo(
   function TrendStatisticsCard({ trendStats, isLoading: externalLoading, includeTotalTrades = false }) {
@@ -57,13 +63,14 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
       (s, d) => s + (d.total ?? (d.wins ?? 0) + (d.losses ?? 0) + (d.breakEven ?? 0)),
       0
     );
+    const TREND_COLORS: ('teal' | 'orange' | 'violet')[] = ['teal', 'orange', 'violet'];
     const pieData: PieDatum[] = trendStats
       .filter((d) => (d.total ?? 0) > 0)
       .map((stat, index) => ({
         name: stat.tradeType ?? 'Unknown',
         value: stat.total ?? (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.breakEven ?? 0),
         percentage: totalTrades > 0 ? ((stat.total ?? 0) / totalTrades) * 100 : 0,
-        color: (index === 0 ? 'teal' : 'orange') as 'teal' | 'orange',
+        color: TREND_COLORS[index % TREND_COLORS.length],
         wins: stat.wins ?? 0,
         losses: stat.losses ?? 0,
         breakEven: stat.breakEven ?? 0,
@@ -73,6 +80,7 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
 
     const trendFollowingCount = pieData.find((d) => d.name === 'Trend-following')?.value ?? 0;
     const counterTrendCount = pieData.find((d) => d.name === 'Counter-trend')?.value ?? 0;
+    const consolidationCount = pieData.find((d) => d.name === 'Consolidation')?.value ?? 0;
 
     const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: { payload: PieDatum }[] }) => {
       if (!active || !payload?.length) return null;
@@ -81,6 +89,7 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
       const colorMap: Record<string, { dot: string }> = {
         teal: { dot: 'bg-teal-500 dark:bg-teal-400 ring-teal-200/50 dark:ring-teal-500/30' },
         orange: { dot: 'bg-orange-500 dark:bg-orange-400 ring-orange-200/50 dark:ring-orange-500/30' },
+        violet: { dot: 'bg-violet-500 dark:bg-violet-400 ring-violet-200/50 dark:ring-violet-500/30' },
       };
       const colors = colorMap[data.color] ?? colorMap.teal;
       const wins = data.wins ?? 0;
@@ -96,7 +105,7 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
             <div className="flex items-center gap-2">
               <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
               <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-                {data.name} — {data.percentage.toFixed(1)}% ({data.value} {data.value === 1 ? 'trade' : 'trades'})
+                {TREND_SHORT_LABELS[data.name] ?? data.name} — {data.percentage.toFixed(1)}% ({data.value} {data.value === 1 ? 'trade' : 'trades'})
               </div>
             </div>
             <div className="space-y-2">
@@ -196,6 +205,11 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
                       <stop offset="50%" stopColor="#ea580c" stopOpacity={0.95} />
                       <stop offset="100%" stopColor="#c2410c" stopOpacity={0.9} />
                     </linearGradient>
+                    <linearGradient id="trendStatConsolidation" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity={1} />
+                      <stop offset="50%" stopColor="#7c3aed" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#6d28d9" stopOpacity={0.9} />
+                    </linearGradient>
                   </defs>
                   <Pie
                     data={pieData}
@@ -208,7 +222,12 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
                     dataKey="value"
                   >
                     {pieData.map((entry, index) => {
-                      const gradientId = entry.color === 'teal' ? 'trendStatTrendFollowing' : 'trendStatCounterTrend';
+                      const gradientId =
+                        entry.color === 'teal'
+                          ? 'trendStatTrendFollowing'
+                          : entry.color === 'orange'
+                            ? 'trendStatCounterTrend'
+                            : 'trendStatConsolidation';
                       return <Cell key={`cell-${index}`} fill={`url(#${gradientId})`} stroke="none" />;
                     })}
                   </Pie>
@@ -242,15 +261,20 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
             </div>
           </div>
           <div className="w-full px-4 pt-4 mt-2">
-            <div className="flex items-center justify-center gap-8">
+            <div className="flex items-center justify-center gap-6 flex-wrap">
               <div className="flex flex-col items-center">
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Trend-following</div>
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{TREND_SHORT_LABELS['Trend-following']}</div>
                 <div className="text-lg font-bold text-teal-600 dark:text-teal-400">{trendFollowingCount}</div>
               </div>
-              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
               <div className="flex flex-col items-center">
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Counter-trend</div>
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{TREND_SHORT_LABELS['Counter-trend']}</div>
                 <div className="text-lg font-bold text-orange-600 dark:text-orange-400">{counterTrendCount}</div>
+              </div>
+              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
+              <div className="flex flex-col items-center">
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">{TREND_SHORT_LABELS['Consolidation']}</div>
+                <div className="text-lg font-bold text-violet-600 dark:text-violet-400">{consolidationCount}</div>
               </div>
             </div>
           </div>
