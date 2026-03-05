@@ -12,7 +12,7 @@ import {
   MonthlyPerformanceChart,
   computeFullMonthlyStatsFromTrades,
 } from '@/components/dashboard/analytics/MonthlyPerformanceChart';
-import { RiskRewardStats } from '@/components/dashboard/analytics/RiskRewardStats';
+import { RiskRewardStats, DISPLAY_RATIOS } from '@/components/dashboard/analytics/RiskRewardStats';
 import {
   SetupStatisticsCard,
   calculateSetupStats,
@@ -47,6 +47,8 @@ import {
   calculateMssStats,
   calculateLocalHLStats,
   calculateDayStats,
+  calculateNewsNameStats,
+  isLocalHighLowLiquidated,
 } from '@/utils/calculateCategoryStats';
 import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
 import { calculateEvaluationStats } from '@/utils/calculateEvaluationStats';
@@ -369,6 +371,69 @@ export default function ShareStrategyClient({
   );
 
   const hasCard = (key: ExtraCardKey) => strategy.extra_cards.includes(key);
+
+  // Only show cards when trades have data for that card type
+  const newsNameStats = useMemo(
+    () => calculateNewsNameStats(trades, { includeUnnamed: true }),
+    [trades]
+  );
+  const hasNewsNameData = newsNameStats.length > 0;
+  const hasPotentialRRData = useMemo(
+    () =>
+      trades.some(
+        (t) =>
+          typeof t.risk_reward_ratio_long === 'number' &&
+          DISPLAY_RATIOS.includes(t.risk_reward_ratio_long)
+      ),
+    [trades]
+  );
+  const hasSLSizeData = slSizeStats.length > 0;
+  const hasMarketData = marketStats.length > 0;
+  const hasTimeIntervalData = useMemo(
+    () => timeIntervalChartData.some((d) => (d.totalTrades ?? 0) > 0),
+    [timeIntervalChartData]
+  );
+  const hasDayStatsData = dayStats.length > 0;
+  const hasMssData = mssStats.length > 0;
+  const hasLaunchHourData = useMemo(
+    () => trades.some((t) => t.launch_hour === true),
+    [trades]
+  );
+  const hasLocalHLBEData = useMemo(
+    () =>
+      trades.some(
+        (t) => isLocalHighLowLiquidated(t.local_high_low) && t.break_even === true
+      ),
+    [trades]
+  );
+  const hasPartialsBEData = useMemo(
+    () => trades.some((t) => t.break_even === true && t.partials_taken === true),
+    [trades]
+  );
+  const hasAvgDisplacementData = useMemo(
+    () =>
+      trades.some(
+        (t) => typeof t.displacement_size === 'number' && t.displacement_size > 0
+      ),
+    [trades]
+  );
+  const hasDisplacementSizeData = useMemo(
+    () => trades.some((t) => typeof t.displacement_size === 'number'),
+    [trades]
+  );
+  const hasLocalHLData = useMemo(
+    () =>
+      (localHLStats.liquidated?.total ?? 0) > 0 ||
+      (localHLStats.notLiquidated?.total ?? 0) > 0,
+    [localHLStats]
+  );
+  const hasFvgSizeData = useMemo(
+    () => trades.some((t) => typeof t.fvg_size === 'number'),
+    [trades]
+  );
+  const hasSetupData = setupStats.length > 0;
+  const hasLiquidityData = liquidityStats.length > 0;
+
   const aboveRiskPerTradeRow = useMemo(
     () => ({
       evaluationStats,
@@ -377,8 +442,9 @@ export default function ShareStrategyClient({
       trendStats,
       chartsLoadingState: false,
       includeTotalTrades: true,
-      showEvaluationCard: hasCard('evaluation_stats'),
-      showTrendCard: hasCard('trend_stats'),
+      showEvaluationCard:
+        hasCard('evaluation_stats') && evaluationStats.length > 0,
+      showTrendCard: hasCard('trend_stats') && trendStats.length > 0,
     }),
     [evaluationStats, reentryStats, breakEvenStats, trendStats, strategy.extra_cards]
   );
@@ -574,57 +640,70 @@ export default function ShareStrategyClient({
           />
         </section>
 
-        <div className="my-8">
-          <MarketStatisticsCard
-            marketStats={marketStats}
-            isLoading={false}
-            includeTotalTrades
-          />
-        </div>
-
-        <div className="my-8">
-          <MarketProfitStatisticsCard
-            trades={trades}
-            marketStats={marketStats}
-            chartOptions={chartOptions}
-            getCurrencySymbol={getCurrencySymbol}
-          />
-        </div>
-
-        <div className="my-8">
-          <TimeIntervalStatisticsCard
-            data={timeIntervalChartData}
-            isLoading={false}
-          />
-        </div>
-
-        <div className="my-8">
-          <DayStatisticsCard
-            dayStats={dayStats}
-            isLoading={false}
-            includeTotalTrades
-          />
-        </div>
-
-        <div className="my-8">
-          <NewsNameChartCard trades={trades} isLoading={false} />
-        </div>
-
-        <section className="my-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {hasCard('potential_rr') && (
-              <RiskRewardStats trades={trades} isLoading={false} />
-            )}
-            {hasCard('sl_size_stats') && (
-              <SLSizeStatisticsCard
-                slSizeStats={slSizeStats}
-                isLoading={false}
-              />
-            )}
+        {hasMarketData && (
+          <div className="my-8">
+            <MarketStatisticsCard
+              marketStats={marketStats}
+              isLoading={false}
+              includeTotalTrades
+            />
           </div>
-        </section>
+        )}
 
-        {hasSetupCard && (
+        {hasMarketData && (
+          <div className="my-8">
+            <MarketProfitStatisticsCard
+              trades={trades}
+              marketStats={marketStats}
+              chartOptions={chartOptions}
+              getCurrencySymbol={getCurrencySymbol}
+            />
+          </div>
+        )}
+
+        {hasTimeIntervalData && (
+          <div className="my-8">
+            <TimeIntervalStatisticsCard
+              data={timeIntervalChartData}
+              isLoading={false}
+            />
+          </div>
+        )}
+
+        {hasDayStatsData && (
+          <div className="my-8">
+            <DayStatisticsCard
+              dayStats={dayStats}
+              isLoading={false}
+              includeTotalTrades
+            />
+          </div>
+        )}
+
+        {hasNewsNameData && (
+          <div className="my-8">
+            <NewsNameChartCard trades={trades} isLoading={false} />
+          </div>
+        )}
+
+        {(hasCard('potential_rr') && hasPotentialRRData) ||
+        (hasCard('sl_size_stats') && hasSLSizeData) ? (
+          <section className="my-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {hasCard('potential_rr') && hasPotentialRRData && (
+                <RiskRewardStats trades={trades} isLoading={false} />
+              )}
+              {hasCard('sl_size_stats') && hasSLSizeData && (
+                <SLSizeStatisticsCard
+                  slSizeStats={slSizeStats}
+                  isLoading={false}
+                />
+              )}
+            </div>
+          </section>
+        ) : null}
+
+        {hasSetupCard && hasSetupData && (
           <div className="my-8">
             <SetupStatisticsCard
               setupStats={setupStats}
@@ -634,7 +713,7 @@ export default function ShareStrategyClient({
           </div>
         )}
 
-        {hasLiquidityCard && (
+        {hasLiquidityCard && hasLiquidityData && (
           <div className="my-8">
             <LiquidityStatisticsCard
               liquidityStats={liquidityStats}
@@ -644,16 +723,17 @@ export default function ShareStrategyClient({
           </div>
         )}
 
-        {(hasCard('mss_stats') || hasCard('launch_hour')) && (
+        {((hasCard('mss_stats') && hasMssData) ||
+          (hasCard('launch_hour') && hasLaunchHourData)) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
-            {hasCard('mss_stats') && (
+            {hasCard('mss_stats') && hasMssData && (
               <MSSStatisticsCard
                 mssStats={mssStats}
                 isLoading={false}
                 includeTotalTrades
               />
             )}
-            {hasCard('launch_hour') && (
+            {hasCard('launch_hour') && hasLaunchHourData && (
               <LaunchHourTradesCard
                 filteredTrades={trades}
                 isLoading={false}
@@ -662,38 +742,41 @@ export default function ShareStrategyClient({
           </div>
         )}
 
-        {(hasCard('local_hl_be_stats') || hasCard('partials_be_stats')) && (
+        {((hasCard('local_hl_be_stats') && hasLocalHLBEData) ||
+          (hasCard('partials_be_stats') && hasPartialsBEData)) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
-            {hasCard('local_hl_be_stats') && (
+            {hasCard('local_hl_be_stats') && hasLocalHLBEData && (
               <LocalHLBEStatisticsCard trades={trades} isLoading={false} />
             )}
-            {hasCard('partials_be_stats') && (
+            {hasCard('partials_be_stats') && hasPartialsBEData && (
               <PartialsBEStatisticsCard trades={trades} isLoading={false} />
             )}
           </div>
         )}
 
-        {(hasCard('avg_displacement') || hasCard('displacement_size')) && (
+        {((hasCard('avg_displacement') && hasAvgDisplacementData) ||
+          (hasCard('displacement_size') && hasDisplacementSizeData)) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
-            {hasCard('avg_displacement') && (
+            {hasCard('avg_displacement') && hasAvgDisplacementData && (
               <AverageDisplacementSizeCard trades={trades} isLoading={false} />
             )}
-            {hasCard('displacement_size') && (
+            {hasCard('displacement_size') && hasDisplacementSizeData && (
               <DisplacementSizeStats trades={trades} isLoading={false} />
             )}
           </div>
         )}
 
-        {(hasCard('local_hl_stats') || hasCard('fvg_size')) && (
+        {((hasCard('local_hl_stats') && hasLocalHLData) ||
+          (hasCard('fvg_size') && hasFvgSizeData)) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
-            {hasCard('local_hl_stats') && (
+            {hasCard('local_hl_stats') && hasLocalHLData && (
               <LocalHLStatisticsCard
                 localHLStats={localHLStats}
                 isLoading={false}
                 includeTotalTrades
               />
             )}
-            {hasCard('fvg_size') && (
+            {hasCard('fvg_size') && hasFvgSizeData && (
               <FvgSizeStats trades={trades} isLoading={false} />
             )}
           </div>
