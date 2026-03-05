@@ -8,6 +8,7 @@ import { ReactNode } from 'react';
 import Navbar from '@/components/shared/Navbar';
 import { Footer } from '@/components/shared/Footer';
 import ActionBar from '@/components/shared/ActionBar';
+import { CreateAccountAlertDialog } from '@/components/CreateAccountModal';
 
 export type InitialUserDetails = { user: { id: string } | null; session: object | null };
 
@@ -54,10 +55,19 @@ export default function AppLayout({
   return (
     <>
       <div className="mt-48 max-w-(--breakpoint-xl) mx-auto flex min-h-screen flex-col">
-        <Navbar centerContent={showActionBar ? <ActionBar /> : undefined} />
+        <Navbar
+          centerContent={showActionBar ? <ActionBar showAddButton={false} /> : undefined}
+          mobileMenuExtra={
+            showActionBar ? (
+              <CreateAccountAlertDialog
+                triggerClassName="w-full justify-start h-9 px-3 text-sm"
+              />
+            ) : undefined
+          }
+        />
         {showActionBar && (
           <div className="hidden lg:block fixed top-20 left-1/2 z-40 w-auto max-w-[calc(100vw-2rem)] -translate-x-1/2 transform">
-            <div className="inline-block mx-2 sm:mx-4 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-2 sm:px-3 pb-2 pt-2">
+            <div className="inline-block mx-2 sm:mx-4 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 sm:px-4 py-3">
               <ActionBar />
             </div>
           </div>
