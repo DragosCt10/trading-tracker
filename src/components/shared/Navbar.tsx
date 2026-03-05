@@ -25,9 +25,6 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-import { CreateAccountAlertDialog } from '../CreateAccountModal';
-import { useActionBarSelection } from '@/hooks/useActionBarSelection';
-import { useAccounts } from '@/hooks/useAccounts';
 import Logo from '../shared/Logo';
 import { ThemePickerModal } from './ThemePickerModal';
 
@@ -41,14 +38,6 @@ export default function Navbar() {
   const [themePickerOpen, setThemePickerOpen] = useState(false);
   const queryClient = useQueryClient();
   const { theme, toggleTheme, mounted } = useTheme();
-
-  const { selection } = useActionBarSelection();
-
-  // 👇 useAccounts here ONLY to get refetch; same key as ActionBar
-  const { refetch: refetchAccounts } = useAccounts({
-    userId: userData?.user?.id,
-    pendingMode: selection.mode,
-  });
 
   useEffect(() => {
     if (userData?.user) setIsSigningOut(false);
@@ -200,13 +189,6 @@ export default function Navbar() {
               )}
             </Button>
 
-            <CreateAccountAlertDialog
-              onCreated={async () => {
-                // refresh accounts list used by ActionBar
-                await refetchAccounts();
-              }}
-            />
-
             <Button
               variant="destructive"
               size="sm"
@@ -339,14 +321,6 @@ export default function Navbar() {
                     </svg>
                   )}
                 </Button>
-
-                <CreateAccountAlertDialog
-                  onCreated={async () => {
-                    await queryClient.invalidateQueries({
-                      predicate: (q) => q.queryKey[0] === 'accounts', // or your exact key
-                    });
-                  }}
-                />
 
                 <Button
                   variant="destructive"

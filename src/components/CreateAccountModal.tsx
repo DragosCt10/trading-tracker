@@ -167,7 +167,7 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
           >
             <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
               <UserPlus className="h-4 w-4" />
-              <span>New Account</span>
+              <span>Add</span>
             </span>
             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
           </Button>

@@ -12,6 +12,7 @@ import { STATIC_DATA } from '@/constants/queryConfig';
 
 import { AccountModePopover, type Mode } from '@/components/shared/AccountModePopover';
 import { EditAccountAlertDialog } from '../EditAccountAlertDialog';
+import { CreateAccountAlertDialog } from '../CreateAccountModal';
 
 const MODE_LABELS: Record<Mode, string> = {
   live: 'Live',
@@ -161,6 +162,18 @@ export default function ActionBar({ initialData }: ActionBarProps) {
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 min-w-0">
+      {/* Mode badge — left of account selector */}
+      <div
+        title={`Current mode: ${activeMode}`}
+        className={clsx(
+          'flex items-center justify-center h-8 rounded-xl border px-2 sm:px-4 pointer-events-none shrink-0',
+          'text-xs sm:text-sm font-medium',
+          MODE_BADGE[activeMode]
+        )}
+      >
+        <span className="leading-none">{MODE_LABELS[activeMode]}</span>
+      </div>
+
       <AccountModePopover
         userId={userId}
         value={{
@@ -198,17 +211,12 @@ export default function ActionBar({ initialData }: ActionBarProps) {
         }}
       />
 
-      {/* Mode badge — same size and style as Edit button */}
-      <div
-        title={`Current mode: ${activeMode}`}
-        className={clsx(
-          'flex items-center justify-center h-8 rounded-xl border px-2 sm:px-4 pointer-events-none shrink-0',
-          'text-xs sm:text-sm font-medium',
-          MODE_BADGE[activeMode]
-        )}
-      >
-        <span className="leading-none">{MODE_LABELS[activeMode]}</span>
-      </div>
+      {/* Add Account */}
+      <CreateAccountAlertDialog
+        onCreated={async () => {
+          refetchAccounts();
+        }}
+      />
     </div>
   );
 }
