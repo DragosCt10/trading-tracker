@@ -140,7 +140,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
                 onFocus={() => setShowDatePicker(true)}
                 onClick={() => setShowDatePicker(true)}
                 placeholder="Select date range"
-                className="w-full cursor-pointer h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-sm themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 pr-8"
+                className="w-full cursor-pointer h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 pr-8"
               />
               <button
                 type="button"
@@ -264,7 +264,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
             onValueChange={onSelectedMarketChange}
           >
             <SelectTrigger
-              className="flex w-28 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-sm themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              className="flex w-28 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
               suppressHydrationWarning
             >
               <SelectValue placeholder="All Markets" />
@@ -290,7 +290,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
             onValueChange={onSelectedExecutionChange}
           >
             <SelectTrigger
-              className="flex w-28 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-sm themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              className="flex w-28 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
               suppressHydrationWarning
             >
               <SelectValue placeholder={showAllTradesOption ? "All" : "Executed"} />
