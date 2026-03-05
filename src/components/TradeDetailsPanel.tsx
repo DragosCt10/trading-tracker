@@ -1116,10 +1116,12 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                         )}
                       </span>
                     )}
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.local_high_low ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-transparent' : 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700'}`}>
-                      {editedTrade?.local_high_low && <Check className="w-3 h-3" />}
-                      Local High/Low
-                    </span>
+                    {(hasCard('local_hl_stats') || hasCard('local_hl_be_stats')) && (
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.local_high_low ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-transparent' : 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700'}`}>
+                        {editedTrade?.local_high_low && <Check className="w-3 h-3" />}
+                        Local High/Low
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -1127,10 +1129,12 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 <div>
                   <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Performance</h4>
                   <div className="flex flex-wrap gap-2">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.partials_taken ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-transparent' : 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700'}`}>
-                      {editedTrade?.partials_taken && <Check className="w-3 h-3" />}
-                      Partials
-                    </span>
+                    {hasCard('partials_be_stats') && (
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.partials_taken ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-transparent' : 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-300 dark:border-slate-700'}`}>
+                        {editedTrade?.partials_taken && <Check className="w-3 h-3" />}
+                        Partials
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1194,7 +1198,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                         </div>
                       </div>
                     )}
-                    {renderField('Local High/Low', 'local_high_low', 'boolean')}
+                    {(hasCard('local_hl_stats') || hasCard('local_hl_be_stats')) &&
+                      renderField('Local High/Low', 'local_high_low', 'boolean')}
                   </div>
                 </div>
 
@@ -1202,7 +1207,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 <div>
                   <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Performance</h4>
                   <div className="space-y-3">
-                    {renderField('Partials', 'partials_taken', 'boolean')}
+                    {hasCard('partials_be_stats') && renderField('Partials', 'partials_taken', 'boolean')}
                   </div>
                 </div>
               </div>
