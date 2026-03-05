@@ -89,12 +89,13 @@ function isCustomDateRange(range: DateRangeState): boolean {
 }
 
 // ─── Per-card image carousel component ───────────────────────────────────────
-function TradeCard({ trade, onOpenModal, hideDetailsLink, isSelected, onSelect }: {
+function TradeCard({ trade, onOpenModal, hideDetailsLink, isSelected, onSelect, hideImage }: {
   trade: Trade;
   onOpenModal: (t: Trade) => void;
   hideDetailsLink?: boolean;
   isSelected?: boolean;
   onSelect?: (t: Trade) => void;
+  hideImage?: boolean;
 }) {
   const screens = useMemo(() => (trade.trade_screens ?? []).filter(Boolean), [trade.trade_screens]);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -111,6 +112,7 @@ function TradeCard({ trade, onOpenModal, hideDetailsLink, isSelected, onSelect }
       )}
     >
       {/* Image container */}
+      {!hideImage && (
       <div className="p-4">
         {activeScreen ? (
           <div className="relative">
@@ -191,8 +193,9 @@ function TradeCard({ trade, onOpenModal, hideDetailsLink, isSelected, onSelect }
           </div>
         )}
       </div>
+      )}
       {/* Content area */}
-      <CardContent className="px-5 pb-6 pt-0">
+      <CardContent className={cn('px-5 pb-6', hideImage ? 'pt-5' : 'pt-0')}>
         {/* Header row */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
@@ -245,7 +248,7 @@ function TradeCard({ trade, onOpenModal, hideDetailsLink, isSelected, onSelect }
           </div>
         </div>
         {/* Date and time info */}
-        <div className="space-y-2.5 mb-5">
+        <div className={cn('space-y-2.5', hideImage ? 'mb-0' : 'mb-5')}>
           <div className="flex items-center text-slate-500 dark:text-slate-300 text-sm">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-2.5 text-slate-500 dark:text-slate-300">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
@@ -656,10 +659,7 @@ export default function MyTradesClient({
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={`skeleton-split-${i}`} className="w-64 md:w-auto flex-shrink-0 md:flex-shrink">
                     <Card className="relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
-                      <div className="p-3">
-                        <Skeleton className="aspect-video w-full rounded-lg" />
-                      </div>
-                      <CardContent className="px-5 pb-5 pt-0">
+                      <CardContent className="px-5 py-5">
                         <div className="flex items-center justify-between mb-4">
                           <Skeleton className="h-7 w-24" />
                           <Skeleton className="h-6 w-16 rounded-full" />
@@ -685,6 +685,7 @@ export default function MyTradesClient({
                       trade={trade}
                       onOpenModal={() => {}}
                       hideDetailsLink
+                      hideImage
                       isSelected={selectedTrade?.id === trade.id}
                       onSelect={(t) => setSelectedTrade(t)}
                     />
