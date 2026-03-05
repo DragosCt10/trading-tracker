@@ -1,6 +1,54 @@
 import { Trade } from '@/types/trade';
+import type { IntervalStats } from '@/types/dashboard';
+import type { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
+import { TIME_INTERVALS } from '@/constants/analytics';
+import { calculateIntervalStats } from '@/utils/calculateCategoryStats';
 import { calculateStreaksFromTrades } from '@/utils/calculateStreaks';
 import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
+
+export interface TimeIntervalChartResult {
+  intervalStats: IntervalStats[];
+  timeIntervalChartData: TradeStatDatum[];
+}
+
+/**
+ * Convert interval stats (from calculateIntervalStats) to chart data for TimeIntervalStatisticsCard.
+ * Used by StrategyClient for both unfiltered and filtered chart data.
+ */
+export function convertIntervalStatsToChartData(
+  intervalStats: IntervalStats[]
+): TradeStatDatum[] {
+  return TIME_INTERVALS.map((interval) => {
+    const stat =
+      intervalStats.find((s) => s.label === interval.label) ?? {
+        wins: 0,
+        losses: 0,
+        breakEven: 0,
+        winRate: 0,
+        winRateWithBE: 0,
+      };
+    const totalTrades = stat.wins + stat.losses + (stat.breakEven ?? 0);
+    return {
+      category: `${interval.label}`,
+      wins: stat.wins,
+      losses: stat.losses,
+      breakEven: stat.breakEven ?? 0,
+      winRate: stat.winRate,
+      winRateWithBE: stat.winRateWithBE,
+      totalTrades,
+    };
+  });
+}
+
+/**
+ * Compute interval stats and time-interval chart data from trades.
+ * Used by ShareStrategyClient and can be used by StrategyClient when building from a trades array.
+ */
+export function computeTimeIntervalChartData(trades: Trade[]): TimeIntervalChartResult {
+  const intervalStats = calculateIntervalStats(trades, TIME_INTERVALS);
+  const timeIntervalChartData = convertIntervalStatsToChartData(intervalStats);
+  return { intervalStats, timeIntervalChartData };
+}
 
 export interface ComputeStrategyStatsParams {
   tradesToUse: Trade[];
