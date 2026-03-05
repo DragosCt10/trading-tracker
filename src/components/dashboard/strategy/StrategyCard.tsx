@@ -175,7 +175,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
           <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
             {strategy.name}
           </h3>
-          {/* <Button
+          <Button
             variant="outline"
             size="icon"
             onClick={() => setIsShareOpen(true)}
@@ -184,7 +184,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
             aria-label="Share strategy stats"
           >
             <Share2 className="h-4 w-4" />
-          </Button> */}
+          </Button>
         </div>
 
         {/* Performance Graph */}
