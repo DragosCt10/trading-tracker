@@ -1,11 +1,12 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
+import { QueryClient, dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { getActiveAccountForMode } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
 import { createAllTimeRange } from '@/utils/dateRangeHelpers';
+import { queryKeys } from '@/lib/queryKeys';
 import MyTradesClient from './MyTradesClient';
-import { Trade } from '@/types/trade';
 import { MyTradesSkeleton } from './MyTradesSkeleton';
 import type { User } from '@supabase/supabase-js';
 
@@ -25,10 +26,8 @@ async function MyTradesDataFetcher({
   const initialStrategyId = strategy.id;
 
   const today = new Date();
-  // Default to "All Trades" range so UI (All Trades selected) and data match on first load
   const initialDateRange = createAllTimeRange(today);
 
-  // If no account, return empty data - client will handle "No Active Account" UI
   if (!activeAccount) {
     return (
       <MyTradesClient
@@ -42,31 +41,36 @@ async function MyTradesDataFetcher({
     );
   }
 
-  let initialFilteredTrades: Trade[] = [];
-
-  try {
-    initialFilteredTrades = await getFilteredTrades({
-      userId: user.id,
-      accountId: activeAccount.id,
-      mode: 'live',
-      startDate: initialDateRange.startDate,
-      endDate: initialDateRange.endDate,
-      includeNonExecuted: true,
-      strategyId: initialStrategyId,
-    });
-  } catch (error) {
-    console.error('Error fetching initial trades:', error);
-  }
+  // Single getFilteredTrades call: prefetch for client cache so client useQuery uses hydrated data (no duplicate fetch)
+  const queryClient = new QueryClient();
+  const key = queryKeys.myTradesAll('live', activeAccount.id, user.id, initialStrategyId);
+  await queryClient.prefetchQuery({
+    queryKey: key,
+    queryFn: async () => {
+      const { startDate, endDate } = createAllTimeRange(today);
+      return getFilteredTrades({
+        userId: user.id,
+        accountId: activeAccount.id,
+        mode: 'live',
+        startDate,
+        endDate,
+        includeNonExecuted: true,
+        strategyId: initialStrategyId,
+      });
+    },
+    staleTime: 2 * 60 * 1000,
+  });
 
   return (
-    <MyTradesClient
-      initialUserId={user.id}
-      initialFilteredTrades={initialFilteredTrades}
-      initialDateRange={initialDateRange}
-      initialMode="live"
-      initialActiveAccount={activeAccount}
-      initialStrategyId={initialStrategyId}
-    />
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <MyTradesClient
+        initialUserId={user.id}
+        initialDateRange={initialDateRange}
+        initialMode="live"
+        initialActiveAccount={activeAccount}
+        initialStrategyId={initialStrategyId}
+      />
+    </HydrationBoundary>
   );
 }
 
