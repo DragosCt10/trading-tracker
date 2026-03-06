@@ -18,7 +18,7 @@ export function useDateRangeManagement(initialRange: DateRangeState) {
   const [selectedYear, setSelectedYear] = useState(
     () => new Date(initialRange.endDate).getFullYear()
   );
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('year');
   const prevViewModeRef = useRef<'yearly' | 'dateRange'>('yearly');
 
   // update calendar when main date range changes (without allTrades dependency - handled separately)
@@ -48,11 +48,11 @@ export function useDateRangeManagement(initialRange: DateRangeState) {
   const resetFilterOnModeSwitch = useCallback((viewMode: 'yearly' | 'dateRange') => {
     // Only reset if switching FROM yearly TO dateRange
     if (viewMode === 'dateRange' && prevViewModeRef.current === 'yearly') {
-      // Reset activeFilter to 'all' and set dateRange to default "All Trades"
-      setActiveFilter('all');
+      // Reset activeFilter to 'year' and set dateRange to default "Current Year"
+      setActiveFilter('year');
       const today = new Date();
       const { dateRange: defaultRange, calendarRange, currentDate } =
-        buildPresetRange('all', today);
+        buildPresetRange('year', today);
       setDateRange(defaultRange);
       setCurrentDate(currentDate);
       setCalendarDateRange(calendarRange);
