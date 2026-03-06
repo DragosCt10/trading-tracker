@@ -1,7 +1,9 @@
 import { Suspense } from 'react';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
+import { redirect } from 'next/navigation';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { getActiveAccountForMode } from '@/lib/server/accounts';
+import { getStrategyBySlug } from '@/lib/server/strategies';
 import MyTradesClient from './MyTradesClient';
 import { Trade } from '@/types/trade';
 import { MyTradesSkeleton } from './MyTradesSkeleton';
@@ -11,11 +13,15 @@ const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 
 async function MyTradesDataFetcher({
   user,
-  initialStrategyId,
+  strategySlug,
 }: {
   user: User;
-  initialStrategyId: string;
+  strategySlug: string;
 }) {
+  const strategy = await getStrategyBySlug(user.id, strategySlug);
+  if (!strategy) redirect('/strategies');
+  const initialStrategyId = strategy.id;
+
   const today = new Date();
   const initialDateRange = {
     startDate: fmt(startOfMonth(today)),
@@ -86,13 +92,13 @@ async function MyTradesDataFetcher({
 
 interface MyTradesDataProps {
   user: User;
-  initialStrategyId: string;
+  strategySlug: string;
 }
 
-export default function MyTradesData({ user, initialStrategyId }: MyTradesDataProps) {
+export default function MyTradesData({ user, strategySlug }: MyTradesDataProps) {
   return (
     <Suspense fallback={<MyTradesSkeleton />}>
-      <MyTradesDataFetcher user={user} initialStrategyId={initialStrategyId} />
+      <MyTradesDataFetcher user={user} strategySlug={strategySlug} />
     </Suspense>
   );
 }
