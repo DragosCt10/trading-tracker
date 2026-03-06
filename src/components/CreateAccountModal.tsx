@@ -140,17 +140,20 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
         activeAccount: createdAccount,
       });
 
-      // Clear cached trades so they refetch for the new account
-      const tradeKeys = ['allTrades', 'filteredTrades', 'nonExecutedTrades'];
-      queryClient.removeQueries({
-        predicate: (q) => tradeKeys.includes((q.queryKey?.[0] as string) ?? ''),
-      });
-
       onCreated?.(createdAccount);
-      await queryClient.invalidateQueries();
+
+      // Close immediately — don't block on background refetches
       resetForm();
       setOpen(false);
       setSubmitting(false);
+
+      // Refresh account-list queries in the background (new account must appear in dropdowns)
+      queryClient.invalidateQueries({
+        predicate: (q) => {
+          const key = q.queryKey?.[0] as string;
+          return key === 'accounts' || key === 'accounts:all' || key === 'accounts:list';
+        },
+      });
     } catch (err: any) {
       setError(err?.message ?? 'Failed to create account. Please check your data and try again.');
       setSubmitting(false);
