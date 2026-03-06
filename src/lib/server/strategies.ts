@@ -372,10 +372,55 @@ export async function updateStrategy(
 }
 
 /**
- * Deletes a strategy. Related trades (live, backtesting, demo) are removed
- * automatically by the database via ON DELETE CASCADE on strategy_id.
+ * Soft deletes a strategy by setting is_active to false.
+ * Trades keep their strategy_id reference for historical data integrity.
+ * Note: If the default strategy is deleted, it will be automatically reactivated
+ * by ensureDefaultStrategy when getUserStrategies is called.
  */
 export async function deleteStrategy(
+  strategyId: string,
+  userId: string
+): Promise<{ error: { message: string } | null }> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user || user.id !== userId) {
+    return { error: { message: 'Unauthorized' } };
+  }
+
+  const { data: existing } = await supabase
+    .from('strategies')
+    .select('slug')
+    .eq('id', strategyId)
+    .eq('user_id', userId)
+    .single();
+
+  if (!existing) {
+    return { error: { message: 'Strategy not found' } };
+  }
+
+  const { error } = await supabase
+    .from('strategies')
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq('id', strategyId)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error deleting strategy:', error);
+    return { error: { message: error.message ?? 'Failed to delete strategy' } };
+  }
+
+  return { error: null };
+}
+
+/**
+ * Permanently deletes a strategy. Related trades (live, backtesting, demo) are
+ * removed automatically by the database via ON DELETE CASCADE on strategy_id.
+ */
+export async function permanentlyDeleteStrategy(
   strategyId: string,
   userId: string
 ): Promise<{ error: { message: string } | null }> {
