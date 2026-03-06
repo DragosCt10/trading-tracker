@@ -176,110 +176,112 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
 
   return (
     <Card className="mb-4 z-1 relative border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
-      <div className="flex flex-wrap items-center gap-3 px-4 py-2.5">
-        {/* Date range input + picker */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
-            Period:
-          </span>
-          <div className="relative w-64">
-            <div className="relative">
-              <Input
-                ref={inputRef}
-                readOnly
-                value={displayRange}
-                onFocus={() => setShowDatePicker(true)}
-                onClick={() => setShowDatePicker(true)}
-                placeholder="Select date range"
-                className="w-full cursor-pointer h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 pr-8"
-              />
-              <button
-                type="button"
-                onClick={() => setShowDatePicker((v) => !v)}
-                className="themed-focus absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer p-0.5 rounded hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none"
-                aria-label="Open date picker"
-              >
-                <Calendar className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-              </button>
-            </div>
-
-            {showDatePicker && (
-                <div
-                  ref={pickerRef}
-                  className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50 dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-lg shadow-slate-300/30 dark:shadow-slate-900/30"
+      <div className="flex flex-wrap items-start gap-3 px-4 py-2.5">
+        {/* Left: Period (label + input) and preset buttons stacked */}
+        <div className="flex flex-col gap-2">
+          {/* Period: prefix + date input */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
+              Period:
+            </span>
+            <div className="relative w-64">
+              <div className="relative">
+                <Input
+                  ref={inputRef}
+                  readOnly
+                  value={displayRange}
+                  onFocus={() => setShowDatePicker(true)}
+                  onClick={() => setShowDatePicker(true)}
+                  placeholder="Select date range"
+                  className="w-full cursor-pointer h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 pr-8"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowDatePicker((v) => !v)}
+                  className="themed-focus absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer p-0.5 rounded hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none"
+                  aria-label="Open date picker"
                 >
-                  {/* Gradient orbs background - dark mode only */}
-                  <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl hidden dark:block">
-                    <div className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl" />
-                    <div className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl" />
-                  </div>
+                  <Calendar className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                </button>
+              </div>
 
-                  {/* Noise texture overlay - dark mode only */}
+              {showDatePicker && (
                   <div
-                    className="absolute inset-0 opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl hidden dark:block"
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-                      backgroundRepeat: 'repeat',
-                    }}
-                  />
+                    ref={pickerRef}
+                    className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50 dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-lg shadow-slate-300/30 dark:shadow-slate-900/30"
+                  >
+                    {/* Gradient orbs background - dark mode only */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl hidden dark:block">
+                      <div className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl" />
+                      <div className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl" />
+                    </div>
 
-                  {/* Top accent line - dark mode only */}
-                  <div className="absolute -top-px left-0 right-0 h-0.5 opacity-60 hidden dark:block" style={{ background: 'linear-gradient(to right, transparent, var(--tc-primary), transparent)' }} />
-
-                  <div className="relative p-2">
-                    <DateRange
-                    ranges={[
-                      {
-                        startDate: new Date(tempRange.startDate),
-                        endDate: new Date(tempRange.endDate),
-                        key: 'selection',
-                      },
-                    ]}
-                    onChange={(ranges) => {
-                      const { startDate, endDate } = ranges.selection;
-                      const safeStart = startDate || new Date();
-                      const safeEnd = endDate || safeStart;
-
-                      setTempRange({
-                        startDate: format(safeStart, 'yyyy-MM-dd'),
-                        endDate: format(safeEnd, 'yyyy-MM-dd'),
-                      });
-                    }}
-                    moveRangeOnFirstSelection={false}
-                    editableDateInputs={false}
-                    maxDate={new Date()}
-                    showMonthAndYearPickers
-                    rangeColors={[rangeColor]}
-                    direction="vertical"
+                    {/* Noise texture overlay - dark mode only */}
+                    <div
+                      className="absolute inset-0 opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl hidden dark:block"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                        backgroundRepeat: 'repeat',
+                      }}
                     />
 
-                    <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-transparent dark:bg-transparent px-3 py-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCancel}
-                      className="cursor-pointer rounded-xl h-8 px-3 text-xs transition-colors duration-200 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={handleApply}
-                      className="themed-btn-primary cursor-pointer rounded-xl h-8 px-3 text-xs font-semibold transition-all duration-200 border-0 text-white shadow-sm"
-                    >
-                      Apply
-                    </Button>
+                    {/* Top accent line - dark mode only */}
+                    <div className="absolute -top-px left-0 right-0 h-0.5 opacity-60 hidden dark:block" style={{ background: 'linear-gradient(to right, transparent, var(--tc-primary), transparent)' }} />
+
+                    <div className="relative p-2">
+                      <DateRange
+                      ranges={[
+                        {
+                          startDate: new Date(tempRange.startDate),
+                          endDate: new Date(tempRange.endDate),
+                          key: 'selection',
+                        },
+                      ]}
+                      onChange={(ranges) => {
+                        const { startDate, endDate } = ranges.selection;
+                        const safeStart = startDate || new Date();
+                        const safeEnd = endDate || safeStart;
+
+                        setTempRange({
+                          startDate: format(safeStart, 'yyyy-MM-dd'),
+                          endDate: format(safeEnd, 'yyyy-MM-dd'),
+                        });
+                      }}
+                      moveRangeOnFirstSelection={false}
+                      editableDateInputs={false}
+                      maxDate={new Date()}
+                      showMonthAndYearPickers
+                      rangeColors={[rangeColor]}
+                      direction="vertical"
+                      />
+
+                      <div className="flex justify-end gap-2 border-t border-slate-200/60 dark:border-slate-700/50 bg-transparent dark:bg-transparent px-3 py-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancel}
+                        className="cursor-pointer rounded-xl h-8 px-3 text-xs transition-colors duration-200 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handleApply}
+                        className="themed-btn-primary cursor-pointer rounded-xl h-8 px-3 text-xs font-semibold transition-all duration-200 border-0 text-white shadow-sm"
+                      >
+                        Apply
+                      </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Period filters */}
-        <div className="flex flex-wrap gap-1.5">
+          {/* Preset filter buttons under Period input */}
+          <div className="flex flex-wrap gap-2 mt-2">
             {presets.map((preset) => {
               const isActive = activeFilter === preset.key && !isCustomRange;
               return (
@@ -303,10 +305,13 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
                 </Button>
               );
             })}
+          </div>
         </div>
 
+        {/* Right: Market and Execution filters (unchanged position) */}
+        <div className="ml-auto flex flex-wrap items-center gap-3">
         {/* Market filter */}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
             Market:
           </span>
@@ -354,6 +359,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
               <SelectItem value="nonExecuted">Non Executed</SelectItem>
             </SelectContent>
           </Select>
+        </div>
         </div>
 
         {/* <button
