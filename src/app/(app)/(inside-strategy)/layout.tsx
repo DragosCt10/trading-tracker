@@ -3,16 +3,10 @@
 import { ReactNode, useState, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { FileText, PlusCircle, TrendingUp, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
-// Dynamically import NewTradeModal with SSR disabled to prevent hydration errors
-const NewTradeModal = dynamic(() => import('@/components/NewTradeModal'), {
-  ssr: false,
-  loading: () => null,
-});
+import { NewTradeModal } from '@/components/dynamicComponents';
 
 interface InsideStrategyLayoutProps {
   children: ReactNode;
