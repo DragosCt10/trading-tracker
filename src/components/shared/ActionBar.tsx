@@ -110,13 +110,9 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
           (accountId ? allAccounts.find((a) => a.id === accountId) ?? null : null);
         setSelection({ mode, activeAccount: resolved });
 
-        const keysToNuke = ['allTrades', 'filteredTrades', 'nonExecutedTrades'];
-        queryClient.removeQueries({
-          predicate: (q) => keysToNuke.includes((q.queryKey?.[0] as string) ?? ''),
-        });
-        queryClient.refetchQueries({
-          predicate: (q) => keysToNuke.includes((q.queryKey?.[0] as string) ?? ''),
-          type: 'active',
+        const keysToInvalidate = ['allTrades', 'filteredTrades', 'nonExecutedTrades'];
+        queryClient.invalidateQueries({
+          predicate: (q) => keysToInvalidate.includes((q.queryKey?.[0] as string) ?? ''),
         });
         refetchAccounts();
       } finally {
