@@ -11,6 +11,8 @@ interface UseSettingsOptions {
 const DEFAULT_SETTINGS: SettingsRow = {
   saved_news: [],
   saved_markets: [],
+  strategies_page_title: null,
+  strategies_page_description: null,
 };
 
 export function useSettings({ userId }: UseSettingsOptions) {
