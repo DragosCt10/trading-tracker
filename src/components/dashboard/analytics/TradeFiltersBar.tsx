@@ -18,7 +18,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useColorTheme } from '@/hooks/useColorTheme';
 
-type PresetKey = 'year' | '15days' | '30days' | 'month';
+type PresetKey = 'year' | '15days' | '30days' | 'month' | 'all';
 
 export interface DateRangeValue {
   startDate: string; // yyyy-MM-dd
@@ -48,6 +48,8 @@ type FullTradeFiltersBarProps = {
   onSelectedExecutionChange: (execution: 'all' | 'executed' | 'nonExecuted') => void;
   /** Show "All" option in execution filter (for my-trades page) */
   showAllTradesOption?: boolean;
+  /** Override the start date shown in the period input (e.g. actual first trade date instead of 2000-01-01) */
+  displayStartDate?: string;
 };
 
 type MarketOnlyTradeFiltersBarProps = {
@@ -115,6 +117,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
     selectedExecution,
     onSelectedExecutionChange,
     showAllTradesOption = false,
+    displayStartDate,
   } = props;
 
   const [showDatePicker, setShowDatePicker] = React.useState(false);
@@ -152,6 +155,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
   }, [showDatePicker, dateRange]);
 
   const presets: { key: PresetKey; label: string }[] = [
+    { key: 'all', label: 'All Trades' },
     { key: 'year', label: 'Current Year' },
     { key: '15days', label: 'Last 15 Days' },
     { key: '30days', label: 'Last 30 Days' },
@@ -168,7 +172,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
     setShowDatePicker(false);
   };
 
-  const displayRange = `${dateRange.startDate} ~ ${dateRange.endDate}`;
+  const displayRange = `${displayStartDate ?? dateRange.startDate} ~ ${dateRange.endDate}`;
 
   return (
     <Card className="mb-4 z-1 relative border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">

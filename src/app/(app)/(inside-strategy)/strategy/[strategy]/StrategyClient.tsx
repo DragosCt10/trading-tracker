@@ -495,6 +495,11 @@ export default function StrategyClient(
     return filtered;
   }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedMarket, selectedExecution]);
 
+  const earliestTradeDate = useMemo(() => {
+    if (activeFilter !== 'all' || filteredTrades.length === 0) return undefined;
+    return filteredTrades.reduce((min, t) => t.trade_date < min ? t.trade_date : min, filteredTrades[0].trade_date);
+  }, [activeFilter, filteredTrades]);
+
   // Always calculate setup, liquidity, direction, and localHL stats from tradesToUse to ensure consistency
   const setupStatsFromTradesToUse = useMemo(() => {
     return calculateSetupStats(tradesToUse);
@@ -839,6 +844,7 @@ export default function StrategyClient(
             // Analytics page doesn't support 'all' option, so map it to 'executed'
             setSelectedExecution(execution === 'all' ? 'executed' : execution);
           }}
+          displayStartDate={earliestTradeDate}
         />
       )}
 

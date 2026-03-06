@@ -128,7 +128,7 @@ export default function ManageTradesClient({
     return value || '#a855f7';
   }, [colorTheme]);
 
-  type FilterType = 'year' | '15days' | '30days' | 'month' | null;
+  type FilterType = 'year' | '15days' | '30days' | 'month' | 'all' | null;
   const [activeFilter, setActiveFilter] = useState<FilterType>('month');
 
   // Check if current date range is custom
@@ -144,6 +144,7 @@ export default function ManageTradesClient({
     const monthEnd = fmt(endOfMonth(today));
 
     const presets = [
+      { startDate: '2000-01-01', endDate: fmt(today) },
       { startDate: yearStart, endDate: yearEnd },
       { startDate: last15Start, endDate: fmt(today) },
       { startDate: last30Start, endDate: fmt(today) },
@@ -167,7 +168,9 @@ export default function ManageTradesClient({
     const monthEnd = fmt(endOfMonth(today));
 
     let newFilter: FilterType = null;
-    if (dateRange.startDate === yearStart && dateRange.endDate === yearEnd) {
+    if (dateRange.startDate === '2000-01-01' && dateRange.endDate === fmt(today)) {
+      newFilter = 'all';
+    } else if (dateRange.startDate === yearStart && dateRange.endDate === yearEnd) {
       newFilter = 'year';
     } else if (dateRange.startDate === last15Start && dateRange.endDate === fmt(today)) {
       newFilter = '15days';
@@ -194,7 +197,10 @@ export default function ManageTradesClient({
     let startDate: string;
     let endDate: string;
 
-    if (type === 'year') {
+    if (type === 'all') {
+      startDate = '2000-01-01';
+      endDate = fmt(today);
+    } else if (type === 'year') {
       startDate = fmt(startOfYear(today));
       endDate = fmt(endOfYear(today));
     } else if (type === '15days') {
@@ -715,9 +721,10 @@ export default function ManageTradesClient({
                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap mr-0.5">
                   Quick Filters:
                 </span>
-                {(['year', '15days', '30days', 'month'] as const).map((filterType) => {
+                {(['all', 'year', '15days', '30days', 'month'] as const).map((filterType) => {
                   const isActive = activeFilter === filterType && !isCustomDateRange();
                   const labels: Record<Exclude<FilterType, null>, string> = {
+                    all: 'All Trades',
                     year: 'Current Year',
                     '15days': 'Last 15 Days',
                     '30days': 'Last 30 Days',

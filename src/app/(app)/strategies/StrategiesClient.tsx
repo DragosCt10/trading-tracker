@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { format } from 'date-fns';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
@@ -16,6 +17,7 @@ import { deleteStrategy, getInactiveStrategies, reactivateStrategy } from '@/lib
 import { Strategy } from '@/types/strategy';
 import { Trade } from '@/types/trade';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { Target, Archive, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,7 +54,7 @@ export function StrategiesClient() {
   const endDate = new Date().toISOString().split('T')[0]; // Today's date
 
 
-  // Fetch trades for all strategies using a single query (for all years)
+  // Fetch all trades in a single bulk request, then group by strategy_id in memory
   const {
     data: allStrategyTrades,
     isFetching: tradesLoading,
@@ -60,32 +62,45 @@ export function StrategiesClient() {
     queryKey: ['all-strategy-trades', userId, activeAccount?.id, mode, 'all-years'],
     queryFn: async () => {
       if (!userId || !activeAccount?.id || strategies.length === 0) return {};
-      
-      const tradesMap: Record<string, Trade[]> = {};
-      await Promise.all(
-        strategies.map(async (strategy) => {
-          try {
-            const trades = await getFilteredTrades({
-              userId,
-              accountId: activeAccount.id,
-              mode,
-              startDate,
-              endDate,
-              strategyId: strategy.id,
-            });
-            tradesMap[strategy.id] = trades;
-          } catch (err) {
-            console.error(`Error fetching trades for strategy ${strategy.id}:`, err);
-            tradesMap[strategy.id] = [];
-          }
-        })
-      );
-      return tradesMap;
+
+      const rawTrades = await getFilteredTrades({
+        userId,
+        accountId: activeAccount.id,
+        mode,
+        startDate,
+        endDate,
+      });
+
+      return rawTrades.reduce((acc, trade) => {
+        const key = trade.strategy_id ?? '__none__';
+        (acc[key] ??= []).push(trade);
+        return acc;
+      }, {} as Record<string, Trade[]>);
     },
     enabled: !!userId && !!activeAccount?.id && !!mode && strategies.length > 0,
     staleTime: 0,
     gcTime: 5 * 60_000,
   });
+
+  // Seed per-strategy filtered-trades cache so strategy pages get a cache hit for "All Trades"
+  const seedStrategyCaches = useCallback(() => {
+    if (!allStrategyTrades || !userId || !activeAccount?.id) return;
+    const today = format(new Date(), 'yyyy-MM-dd');
+
+    Object.entries(allStrategyTrades).forEach(([strategyId, trades]) => {
+      if (strategyId === '__none__') return;
+      const key = queryKeys.trades.filtered(
+        mode, activeAccount.id, userId, 'dateRange', '2000-01-01', today, strategyId
+      );
+      if (queryClient.getQueryData(key) === undefined) {
+        queryClient.setQueryData(key, trades);
+      }
+    });
+  }, [allStrategyTrades, userId, activeAccount?.id, mode, queryClient]);
+
+  useEffect(() => {
+    seedStrategyCaches();
+  }, [seedStrategyCaches]);
 
   // Fetch aggregated stats from trades table for all strategies (dynamically based on mode)
   const {
