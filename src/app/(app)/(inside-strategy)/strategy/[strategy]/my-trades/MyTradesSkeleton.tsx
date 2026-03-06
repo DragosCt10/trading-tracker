@@ -34,8 +34,24 @@ export function MyTradesSkeleton() {
         onSelectedExecutionChange={() => {}}
       />
 
+      {/* Cards per row toolbar - skeleton for consistency with TradeCardsView */}
+      <div className="mt-6 flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <div className="flex items-center justify-end gap-1">
+            <span className="text-sm text-slate-500 dark:text-slate-400 mr-2 whitespace-nowrap">
+              Cards per row:
+            </span>
+            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/50 p-0.5 gap-0.5">
+              <Skeleton className="h-8 w-8 rounded-md shrink-0" aria-hidden />
+              <Skeleton className="h-8 w-8 rounded-md shrink-0 bg-slate-200/80 dark:bg-slate-600/50" aria-hidden />
+              <Skeleton className="h-8 w-8 rounded-md shrink-0" aria-hidden />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Skeleton only for trade cards grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-4">
         {Array.from({ length: 12 }).map((_, index) => (
           <Card key={`skeleton-${index}`} className="relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
             {/* Image container with padding */}
