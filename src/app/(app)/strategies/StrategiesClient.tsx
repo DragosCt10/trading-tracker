@@ -19,14 +19,17 @@ import { Strategy } from '@/types/strategy';
 import { Trade } from '@/types/trade';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
-import { Target, Archive, RotateCcw } from 'lucide-react';
+import { Target, Archive, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogDescription,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
@@ -43,6 +46,7 @@ export function StrategiesClient() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isArchivedSheetOpen, setIsArchivedSheetOpen] = useState(false);
   const [reactivatingStrategyId, setReactivatingStrategyId] = useState<string | null>(null);
+  const [deletingStrategyId, setDeletingStrategyId] = useState<string | null>(null);
 
   // Get active account
   const activeAccount = accounts.find((a) => a.is_active) ?? accounts[0] ?? null;
@@ -260,13 +264,6 @@ export function StrategiesClient() {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
 
-                {/* Disclaimer */}
-                <div className="mb-4 p-3 rounded-xl border backdrop-blur-sm bg-[var(--tc-subtle)] border-[var(--tc-border)]">
-                  <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
-                    <span className="font-semibold themed-heading-accent">Important:</span> Archived strategies will be permanently removed after 30 days if not reactivated. All associated trade data will be preserved.
-                  </p>
-                </div>
-
                 <div className="flex-1 overflow-y-auto pr-2 -mr-2">
                   <div className="space-y-3">
                     {archivedLoading ? (
@@ -294,40 +291,124 @@ export function StrategiesClient() {
                               Archived on {new Date(strategy.updated_at).toLocaleDateString()}
                             </p>
                           </div>
-                          <Button
-                            onClick={() => handleReactivate(strategy.id)}
-                            disabled={reactivatingStrategyId === strategy.id}
-                            className="ml-4 flex-shrink-0 cursor-pointer relative overflow-hidden rounded-xl themed-btn-primary text-white font-semibold px-4 py-2 group/btn border-0 disabled:opacity-60 [&_svg]:text-white"
-                          >
-                            <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
-                              {reactivatingStrategyId === strategy.id ? (
-                                <svg
-                                  className="h-4 w-4 animate-spin"
-                                  viewBox="0 0 24 24"
-                                  aria-hidden="true"
+                          <div className="ml-4 flex-shrink-0 flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleReactivate(strategy.id)}
+                              disabled={reactivatingStrategyId === strategy.id || deletingStrategyId === strategy.id}
+                              className="cursor-pointer relative h-8 overflow-hidden rounded-xl themed-btn-primary text-white font-semibold group/btn border-0 text-xs disabled:opacity-60 disabled:pointer-events-none [&_svg]:text-white px-3"
+                            >
+                              <span className="relative z-10 flex items-center justify-center gap-2 group-hover/btn:text-white">
+                                {reactivatingStrategyId === strategy.id ? (
+                                  <svg
+                                    className="h-4 w-4 animate-spin"
+                                    viewBox="0 0 24 24"
+                                    aria-hidden="true"
+                                  >
+                                    <circle
+                                      cx="12"
+                                      cy="12"
+                                      r="10"
+                                      stroke="currentColor"
+                                      strokeWidth="4"
+                                      fill="none"
+                                      className="opacity-25"
+                                    />
+                                    <path
+                                      className="opacity-90"
+                                      fill="currentColor"
+                                      d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"
+                                    />
+                                  </svg>
+                                ) : (
+                                  <RotateCcw className="h-4 w-4" />
+                                )}
+                                <span>Reactivate</span>
+                              </span>
+                              <div className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  disabled={reactivatingStrategyId === strategy.id || deletingStrategyId === strategy.id}
+                                  className="relative cursor-pointer p-2 px-4.5 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 disabled:pointer-events-none h-8 w-8"
                                 >
-                                  <circle
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                    fill="none"
-                                    className="opacity-25"
-                                  />
-                                  <path
-                                    className="opacity-90"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"
-                                  />
-                                </svg>
-                              ) : (
-                                <RotateCcw className="h-4 w-4" />
-                              )}
-                              <span>Reactivate</span>
-                            </span>
-                            <div className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-                          </Button>
+                                  <span className="relative z-10 flex items-center justify-center">
+                                    {deletingStrategyId === strategy.id ? (
+                                      <svg
+                                        className="h-4 w-4 animate-spin"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <circle
+                                          className="opacity-25"
+                                          cx="12"
+                                          cy="12"
+                                          r="10"
+                                          stroke="currentColor"
+                                          strokeWidth="4"
+                                        />
+                                        <path
+                                          className="opacity-75"
+                                          fill="currentColor"
+                                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        />
+                                      </svg>
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </span>
+                                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient !rounded-2xl">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    <span className="text-red-500 dark:text-red-400 font-semibold text-lg">Confirm Delete</span>
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    <span className="text-slate-600 dark:text-slate-400">Are you sure you want to permanently delete &quot;{strategy.name}&quot;? This will also delete all trades linked to this strategy. This action cannot be undone.</span>
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter className="flex gap-3">
+                                  <AlertDialogCancel asChild>
+                                    <Button
+                                      variant="outline"
+                                      disabled={deletingStrategyId === strategy.id}
+                                      className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction asChild>
+                                    <Button
+                                      variant="destructive"
+                                      disabled={deletingStrategyId === strategy.id}
+                                      onClick={async () => {
+                                        if (!userId) return;
+                                        setDeletingStrategyId(strategy.id);
+                                        const result = await deleteStrategy(strategy.id, userId);
+                                        setDeletingStrategyId(null);
+                                        if (!result.error) {
+                                          refetchStrategies();
+                                          refetchArchived();
+                                          queryClient.invalidateQueries({ queryKey: ['strategy-trades'] });
+                                          queryClient.invalidateQueries({ queryKey: ['all-strategy-trades'] });
+                                        }
+                                      }}
+                                      className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 flex items-center gap-2"
+                                    >
+                                      Yes, Delete
+                                    </Button>
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </div>
                       ))
                     ) : (
