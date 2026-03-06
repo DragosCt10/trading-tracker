@@ -46,9 +46,12 @@ export default function AppLayout({
   if (userId != null && initialAllAccounts != null && queryClient.getQueryData(['accounts:all', userId]) === undefined) {
     queryClient.setQueryData(['accounts:all', userId], initialAllAccounts);
   }
-  // Always apply server initial selection on first paint when available, so client matches server and avoids hydration mismatch (client cache may already hold a different mode from a previous session)
+  // Hydrate selection on first paint only when the cache is empty — avoids overwriting a mode the user already switched to (e.g. after an error boundary remount with stale server props)
   if (userId != null && initialActiveAccount !== undefined && !actionBarSelectionHydratedRef.current) {
-    queryClient.setQueryData(['actionBar:selection'], { mode: initialActiveAccountMode, activeAccount: initialActiveAccount ?? null });
+    const existing = queryClient.getQueryData<{ mode: string; activeAccount: unknown }>(['actionBar:selection']);
+    if (!existing?.activeAccount) {
+      queryClient.setQueryData(['actionBar:selection'], { mode: initialActiveAccountMode, activeAccount: initialActiveAccount ?? null });
+    }
     actionBarSelectionHydratedRef.current = true;
   }
 

@@ -277,10 +277,16 @@ export function useCalendarNavigation({
           });
         }
 
-        const targetDate = new Date(targetYear, targetMonth, 1);
-        setCurrentDate(targetDate);
-        setSelectedYear(targetYear);
-        setCalendarDateRange(createCalendarRangeFromEnd(targetDate));
+        // Guard: only call setState if the target month/year is actually different.
+        // Without this, when there are no trades, targetDate equals currentDate but as a
+        // new object reference — causing the effect to re-fire endlessly (infinite loop).
+        const targetMonthKey = `${targetYear}-${targetMonth}`;
+        if (targetMonthKey !== currentMonthKey) {
+          const targetDate = new Date(targetYear, targetMonth, 1);
+          setCurrentDate(targetDate);
+          setSelectedYear(targetYear);
+          setCalendarDateRange(createCalendarRangeFromEnd(targetDate));
+        }
       }
 
       lastFilterKeyRef.current = filterKey;
