@@ -78,7 +78,7 @@ export function StrategiesClient() {
       }, {} as Record<string, Trade[]>);
     },
     enabled: !!userId && !!activeAccount?.id && !!mode && strategies.length > 0,
-    staleTime: 0,
+    staleTime: 2 * 60_000, // 2 min — avoid refetch on every strategies list visit
     gcTime: 5 * 60_000,
   });
 
@@ -132,7 +132,7 @@ export function StrategiesClient() {
       return statsMap;
     },
     enabled: !!userId && !!activeAccount?.id && !!mode && strategies.length > 0,
-    staleTime: 0,
+    staleTime: 2 * 60_000, // 2 min — avoid N refetches on every visit
     gcTime: 5 * 60_000,
   });
 
@@ -148,7 +148,7 @@ export function StrategiesClient() {
       return getInactiveStrategies(userId);
     },
     enabled: !!userId && isArchivedSheetOpen,
-    staleTime: 0,
+    staleTime: 2 * 60_000, // 2 min — avoid refetch when reopening archived sheet
   });
 
   // Ensure default strategy exists on mount

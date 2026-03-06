@@ -1,15 +1,13 @@
 import { Suspense } from 'react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { redirect } from 'next/navigation';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { getActiveAccountForMode } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
+import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import ManageTradesClient from './ManageTradesClient';
 import { Trade } from '@/types/trade';
 import { ManageTradesSkeleton } from './ManageTradesSkeleton';
 import type { User } from '@supabase/supabase-js';
-
-const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 
 async function TradesDataFetcher({
   user,
@@ -18,16 +16,14 @@ async function TradesDataFetcher({
   user: User;
   strategySlug: string;
 }) {
-  const strategy = await getStrategyBySlug(user.id, strategySlug);
+  const [strategy, activeAccount] = await Promise.all([
+    getStrategyBySlug(user.id, strategySlug),
+    getActiveAccountForMode(user.id, 'live'),
+  ]);
   if (!strategy) redirect('/strategies');
   const initialStrategyId = strategy.id;
   const today = new Date();
-  const initialDateRange = {
-    startDate: fmt(startOfMonth(today)),
-    endDate: fmt(endOfMonth(today)),
-  };
-
-  const activeAccount = await getActiveAccountForMode(user.id, 'live');
+  const initialDateRange = createAllTimeRange(today);
 
   if (!activeAccount) {
     return (

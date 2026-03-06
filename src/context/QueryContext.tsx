@@ -7,12 +7,12 @@ interface ProvidersProps {
   children: ReactNode;
 }
 
+const ONE_MINUTE = 60_000;
+
 const client = new QueryClient({
   defaultOptions: {
     queries: {
-      // v5 names
-      // gcTime: Infinity,          // never garbage-collect
-      // staleTime: Infinity,       // never mark stale (no auto refetch)
+      staleTime: ONE_MINUTE, // default: avoid redundant refetches for queries that don't set staleTime
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       refetchOnMount: false,

@@ -3,7 +3,6 @@
 import {
   useState,
   useEffect,
-  useRef,
   useMemo,
   useCallback,
 } from 'react';
@@ -252,22 +251,18 @@ export default function StrategyClient(
         ? candidateAccount
         : null;
 
-  // Sync ActionBar selection from server only once on mount so dashboard matches initial load.
-  // After that, the client selection (user's Apply in ActionBar) is the source of truth.
-  const hasSyncedSelectionFromServerRef = useRef(false);
+  // Sync ActionBar selection from server only when there is no existing selection.
+  // AppLayout pre-populates the selection on first paint; this effect is a fallback for
+  // edge cases (e.g. no accounts). Using !selection.activeAccount prevents overwriting
+  // a mode the user explicitly chose in the ActionBar when navigating between strategies.
   useEffect(() => {
-    if (hasSyncedSelectionFromServerRef.current) return;
-    if (props?.initialActiveAccount && props.initialMode) {
-      hasSyncedSelectionFromServerRef.current = true;
+    if (props?.initialActiveAccount && !selection.activeAccount && props.initialMode) {
       setSelection({
         mode: props.initialMode,
         activeAccount: props.initialActiveAccount as Parameters<typeof setSelection>[0]['activeAccount'],
       });
     }
-    // Ensure useEffect dependencies are safe: props is optional so access defensively
-    // Also, props?.initialMode and setSelection will not change across renders (setSelection is from a hook)
-    // so this effect will run only when initialActiveAccount or initialMode change
-  }, [props?.initialActiveAccount, props?.initialMode, setSelection]);
+  }, [props?.initialActiveAccount, props?.initialMode, setSelection, selection.activeAccount]);
 
   // Store strategyId from props
   const strategyId = props?.initialStrategyId ?? null;

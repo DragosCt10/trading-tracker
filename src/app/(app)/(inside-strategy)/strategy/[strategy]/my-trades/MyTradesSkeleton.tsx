@@ -1,22 +1,12 @@
 'use client';
 
-import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
-
-const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
-
-function getDefaultDateRange() {
-  const today = new Date();
-  return {
-    startDate: fmt(startOfMonth(today)),
-    endDate: fmt(endOfMonth(today)),
-  };
-}
+import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 
 export function MyTradesSkeleton() {
-  const defaultDateRange = getDefaultDateRange();
+  const defaultDateRange = createAllTimeRange();
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-4">
@@ -34,13 +24,13 @@ export function MyTradesSkeleton() {
       <TradeFiltersBar
         dateRange={defaultDateRange}
         onDateRangeChange={() => {}}
-        activeFilter="month"
+        activeFilter="all"
         onFilterChange={() => {}}
         isCustomRange={false}
         selectedMarket="all"
         onSelectedMarketChange={() => {}}
         markets={[]}
-        selectedExecution="executed"
+        selectedExecution="all"
         onSelectedExecutionChange={() => {}}
       />
 

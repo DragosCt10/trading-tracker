@@ -1,12 +1,19 @@
 'use client';
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Trade } from '@/types/trade';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import NotesModal from '@/components/NotesModal';
 import ImportTradesModal from '@/components/ImportTradesModal';
 import { useQuery } from '@tanstack/react-query';
-import { format, endOfMonth, startOfMonth, startOfYear, endOfYear, subDays } from 'date-fns';
+import { format } from 'date-fns';
+import {
+  isCustomDateRange,
+  buildPresetRange,
+  createAllTimeRange,
+  DateRangeState,
+  FilterType,
+} from '@/utils/dateRangeHelpers';
 import { DateRange } from 'react-date-range';
 import { Calendar, Trash2 } from 'lucide-react';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
@@ -61,7 +68,6 @@ function formatTradeTimeForDisplay(value: string | Date | unknown): string {
   return String(value);
 }
 
-type DateRangeState = { startDate: string; endDate: string };
 
 interface ManageTradesClientProps {
   initialUserId: string;
@@ -114,11 +120,7 @@ export default function ManageTradesClient({
     }
   }, [initialActiveAccount, initialMode, selection.activeAccount, setSelection]);
 
-  // Default to "All Trades" (same range as handleFilter('all'))
-  const defaultAllRange = useMemo(() => {
-    const today = new Date();
-    return { startDate: '2000-01-01', endDate: format(today, 'yyyy-MM-dd') };
-  }, []);
+  const defaultAllRange = createAllTimeRange();
 
   const [dateRange, setDateRange] = useState<DateRangeState>(defaultAllRange);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -134,107 +136,26 @@ export default function ManageTradesClient({
     return value || '#a855f7';
   }, [colorTheme]);
 
-  type FilterType = 'year' | '15days' | '30days' | 'month' | 'all' | null;
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [activeFilter, setActiveFilter] = useState<FilterType | null>('all');
 
-  // Check if current date range is custom
-  const isCustomDateRange = () => {
-    const today = new Date();
-    const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
-    
-    const yearStart = fmt(startOfYear(today));
-    const yearEnd = fmt(endOfYear(today));
-    const last15Start = fmt(subDays(today, 14));
-    const last30Start = fmt(subDays(today, 29));
-    const monthStart = fmt(startOfMonth(today));
-    const monthEnd = fmt(endOfMonth(today));
-
-    const presets = [
-      { startDate: '2000-01-01', endDate: fmt(today) },
-      { startDate: yearStart, endDate: yearEnd },
-      { startDate: last15Start, endDate: fmt(today) },
-      { startDate: last30Start, endDate: fmt(today) },
-      { startDate: monthStart, endDate: monthEnd },
-    ];
-
-    return !presets.some(
-      (p) => p.startDate === dateRange.startDate && p.endDate === dateRange.endDate
-    );
-  };
-
-  // Update activeFilter when dateRange changes externally (only if it doesn't match current filter)
+  // When the user applies a custom date range (not matching any preset), clear the active preset highlight
   useEffect(() => {
-    const today = new Date();
-    const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
-    const yearStart = fmt(startOfYear(today));
-    const yearEnd = fmt(endOfYear(today));
-    const last15Start = fmt(subDays(today, 14));
-    const last30Start = fmt(subDays(today, 29));
-    const monthStart = fmt(startOfMonth(today));
-    const monthEnd = fmt(endOfMonth(today));
-
-    let newFilter: FilterType = null;
-    if (dateRange.startDate === '2000-01-01' && dateRange.endDate === fmt(today)) {
-      newFilter = 'all';
-    } else if (dateRange.startDate === yearStart && dateRange.endDate === yearEnd) {
-      newFilter = 'year';
-    } else if (dateRange.startDate === last15Start && dateRange.endDate === fmt(today)) {
-      newFilter = '15days';
-    } else if (dateRange.startDate === last30Start && dateRange.endDate === fmt(today)) {
-      newFilter = '30days';
-    } else if (dateRange.startDate === monthStart && dateRange.endDate === monthEnd) {
-      newFilter = 'month';
+    if (isCustomDateRange(dateRange)) {
+      setActiveFilter(null);
     }
-
-    // Only update if the filter actually changed
-    setActiveFilter((currentFilter) => {
-      if (newFilter !== currentFilter) {
-        return newFilter;
-      }
-      return currentFilter;
-    });
-  }, [dateRange.startDate, dateRange.endDate]);
+  }, [dateRange]);
 
   // Handle preset filter changes
-  const handleFilter = (type: Exclude<FilterType, null>) => {
-    const today = new Date();
-    const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
-
-    let startDate: string;
-    let endDate: string;
-
-    if (type === 'all') {
-      startDate = '2000-01-01';
-      endDate = fmt(today);
-    } else if (type === 'year') {
-      startDate = fmt(startOfYear(today));
-      endDate = fmt(endOfYear(today));
-    } else if (type === '15days') {
-      endDate = fmt(today);
-      startDate = fmt(subDays(today, 14));
-    } else if (type === '30days') {
-      endDate = fmt(today);
-      startDate = fmt(subDays(today, 29));
-    } else {
-      // current month
-      startDate = fmt(startOfMonth(today));
-      endDate = fmt(endOfMonth(today));
-    }
-
+  const handleFilter = useCallback((type: Exclude<FilterType, null>) => {
+    const { dateRange: newRange } = buildPresetRange(type);
     setActiveFilter(type);
-    setDateRange({ startDate, endDate });
+    setDateRange(newRange);
     setCurrentPage(1);
-  };
+  }, []);
 
   const isInitialContext =
     selection.mode === initialMode &&
-    activeAccount?.id === initialActiveAccount?.id &&
-    dateRange.startDate === initialDateRange.startDate &&
-    dateRange.endDate === initialDateRange.endDate;
-
-  // Check if trade data was recently invalidated (to skip stale initialData)
-  const wasInvalidated = typeof window !== 'undefined' && sessionStorage.getItem('trade-data-invalidated');
-  const shouldSkipInitialData = wasInvalidated && (Date.now() - parseInt(wasInvalidated, 10)) < 30000; // Skip initialData for 30 seconds after invalidation
+    activeAccount?.id === initialActiveAccount?.id;
 
   const {
     data: rawTrades,
@@ -245,37 +166,31 @@ export default function ManageTradesClient({
       selection.mode,
       activeAccount?.id,
       userId,
-      'dateRange',
-      dateRange.startDate,
-      dateRange.endDate,
+      'all',
+      defaultAllRange.startDate,
+      defaultAllRange.endDate,
       initialStrategyId,
     ),
     queryFn: async () => {
       if (!userId || !activeAccount?.id) return [];
+      const allTime = createAllTimeRange();
       return getFilteredTrades({
         userId,
         accountId: activeAccount.id,
         mode: selection.mode,
-        startDate: dateRange.startDate,
-        endDate: dateRange.endDate,
+        startDate: allTime.startDate,
+        endDate: allTime.endDate,
         includeNonExecuted: true,
         strategyId: initialStrategyId,
       });
     },
-    initialData: isInitialContext && !shouldSkipInitialData ? initialTrades : undefined,
+    initialData: isInitialContext ? initialTrades : undefined,
     enabled: !!userId && !!activeAccount?.id,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
   });
 
-  // Clear invalidation flag after checking (if it was set)
-  useEffect(() => {
-    if (shouldSkipInitialData && typeof window !== 'undefined') {
-      sessionStorage.removeItem('trade-data-invalidated');
-    }
-  }, [shouldSkipInitialData]);
-
-  const allTradesData = rawTrades ?? (isInitialContext && !shouldSkipInitialData ? initialTrades : []);
+  const allTradesData = rawTrades ?? (isInitialContext ? initialTrades : []);
 
   // When "All Trades" is active, show the actual first trade date in the Period input (same as StrategyClient / MyTradesClient)
   const earliestTradeDate = useMemo(() => {
@@ -288,56 +203,58 @@ export default function ManageTradesClient({
     );
   }, [activeFilter, allTradesData]);
 
-  // Market options
-  const tradesForMarketDropdown = allTradesData || [];
-  const uniqueMarkets = Array.from(new Set(tradesForMarketDropdown.map(trade => trade.market))).filter(Boolean);
+  // Market options — memoized so it only recalculates when the data changes
+  const uniqueMarkets = useMemo(
+    () => Array.from(new Set((allTradesData ?? []).map((t) => t.market))).filter(Boolean) as string[],
+    [allTradesData]
+  );
 
-  // Table data and pagination logic
-  const allTrades = allTradesData || [];
-  const filteredTrades = allTrades.filter(trade => {
-    // Apply market filter
-    if (selectedMarket !== 'all' && trade.market !== selectedMarket) {
-      return false;
-    }
-    // Apply non-executed filter
-    if (showNonExecuted && trade.executed !== false) {
-      return false;
-    }
-    // Apply partial trades filter
-    if (showPartialTrades && !trade.partials_taken) {
-      return false;
-    }
-    return true;
-  });
+  // All client-side filtering including date range — no extra DB calls when filters change
+  const filteredTrades = useMemo(() => {
+    const trades = allTradesData ?? [];
+    return trades.filter((trade) => {
+      // Date range filter (client-side)
+      const tradeDate =
+        typeof trade.trade_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(trade.trade_date)
+          ? trade.trade_date
+          : format(new Date(trade.trade_date), 'yyyy-MM-dd');
+      if (tradeDate < dateRange.startDate || tradeDate > dateRange.endDate) return false;
+      // Market filter
+      if (selectedMarket !== 'all' && trade.market !== selectedMarket) return false;
+      // Non-executed filter
+      if (showNonExecuted && trade.executed !== false) return false;
+      // Partial trades filter
+      if (showPartialTrades && !trade.partials_taken) return false;
+      return true;
+    });
+  }, [allTradesData, dateRange.startDate, dateRange.endDate, selectedMarket, showNonExecuted, showPartialTrades]);
 
-  // Apply sorting
-  const sortedTrades = [...filteredTrades].sort((a, b) => {
-    if (sortConfig.field === 'outcome') {
-      const getOutcomeValue = (trade: Trade) => {
-        if (trade.break_even) return 'BE';
-        return trade.trade_outcome;
-      };
-      const aValue = getOutcomeValue(a);
-      const bValue = getOutcomeValue(b);
-      if (sortConfig.direction === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
+  const getOutcomeValue = useCallback((trade: Trade) => {
+    if (trade.break_even) return 'BE';
+    return trade.trade_outcome;
+  }, []);
+
+  const sortedTrades = useMemo(() => {
+    return [...filteredTrades].sort((a, b) => {
+      if (sortConfig.field === 'outcome') {
+        const aValue = getOutcomeValue(a);
+        const bValue = getOutcomeValue(b);
+        return sortConfig.direction === 'asc'
+          ? aValue > bValue ? 1 : -1
+          : aValue < bValue ? 1 : -1;
       }
-    }
-    const aValue = a[sortConfig.field];
-    const bValue = b[sortConfig.field];
-    if (sortConfig.field === 'trade_date') {
+      const aValue = a[sortConfig.field];
+      const bValue = b[sortConfig.field];
+      if (sortConfig.field === 'trade_date') {
+        return sortConfig.direction === 'asc'
+          ? new Date(bValue).getTime() - new Date(aValue).getTime()
+          : new Date(aValue).getTime() - new Date(bValue).getTime();
+      }
       return sortConfig.direction === 'asc'
-        ? new Date(bValue).getTime() - new Date(aValue).getTime()
-        : new Date(aValue).getTime() - new Date(bValue).getTime();
-    }
-    if (sortConfig.direction === 'asc') {
-      return aValue > bValue ? 1 : -1;
-    } else {
-      return aValue < bValue ? 1 : -1;
-    }
-  });
+        ? aValue > bValue ? 1 : -1
+        : aValue < bValue ? 1 : -1;
+    });
+  }, [filteredTrades, sortConfig, getOutcomeValue]);
 
   const paginatedTotalCount = sortedTrades.length;
   const paginatedTotalPages = Math.ceil(paginatedTotalCount / ITEMS_PER_PAGE);
@@ -368,12 +285,8 @@ export default function ManageTradesClient({
   }, [showDatePicker]);
 
   const clearFilters = () => {
-    const today = new Date();
-    const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
-    setDateRange({
-      startDate: fmt(startOfMonth(today)),
-      endDate: fmt(endOfMonth(today)),
-    });
+    const { dateRange: monthRange } = buildPresetRange('month');
+    setDateRange(monthRange);
     setActiveFilter('month');
     setCurrentPage(1);
     setSelectedMarket('all');
@@ -385,30 +298,30 @@ export default function ManageTradesClient({
     setCurrentPage(1);
   }, [selectedMarket]);
 
-  const openModal = (trade: Trade) => {
+  const openModal = useCallback((trade: Trade) => {
     setSelectedTrade(trade);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setSelectedTrade(null);
     setIsModalOpen(false);
-  };
+  }, []);
 
-  const openNotesModal = (notes: string) => {
+  const openNotesModal = useCallback((notes: string) => {
     setSelectedNotes(notes);
     setIsNotesModalOpen(true);
-  };
+  }, []);
 
-  const closeNotesModal = () => {
+  const closeNotesModal = useCallback(() => {
     setIsNotesModalOpen(false);
     setSelectedNotes('');
-  };
+  }, []);
 
   const mode = selection.mode ?? initialMode;
   const pageIds = paginatedTrades.map((t) => t.id).filter((id): id is string => !!id);
   const allOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
-  const toggleSelectAll = () => {
+  const toggleSelectAll = useCallback(() => {
     if (allOnPageSelected) {
       setSelectedIds((prev) => {
         const next = new Set(prev);
@@ -418,15 +331,15 @@ export default function ManageTradesClient({
     } else {
       setSelectedIds((prev) => new Set([...Array.from(prev), ...pageIds]));
     }
-  };
-  const toggleSelectOne = (id: string) => {
+  }, [allOnPageSelected, pageIds]);
+  const toggleSelectOne = useCallback((id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  }, []);
   const handleBulkDelete = async () => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
@@ -444,9 +357,9 @@ export default function ManageTradesClient({
           selection.mode,
           activeAccount?.id,
           userId,
-          'dateRange',
-          dateRange.startDate,
-          dateRange.endDate,
+          'all',
+          defaultAllRange.startDate,
+          defaultAllRange.endDate,
           initialStrategyId,
         ),
       });
@@ -525,6 +438,31 @@ export default function ManageTradesClient({
   };
 
 
+  const handleSortChange = useCallback((value: string) => {
+    const field = value as 'trade_date' | 'market' | 'outcome';
+    setSortConfig((prev) => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  }, []);
+
+  const handleApplyDateRange = useCallback(() => {
+    setDateRange(tempRange);
+    setCurrentPage(1);
+    setShowDatePicker(false);
+  }, [tempRange]);
+
+  const handleCancelDatePicker = useCallback(() => {
+    setTempRange(dateRange);
+    setShowDatePicker(false);
+  }, [dateRange]);
+
+  const handlePrevPage = useCallback(() => setCurrentPage((p) => Math.max(p - 1, 1)), []);
+  const handleNextPage = useCallback(
+    () => setCurrentPage((p) => Math.min(p + 1, paginatedTotalPages)),
+    [paginatedTotalPages]
+  );
+
   return (
     <TooltipProvider>
       <div className="max-w-7xl mx-auto">
@@ -580,13 +518,7 @@ export default function ManageTradesClient({
                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
                   Sort by:
                 </span>
-                <Select value={sortConfig.field} onValueChange={value => {
-                  const field = value as 'trade_date' | 'market' | 'outcome';
-                  setSortConfig(prev => ({
-                    field,
-                    direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
-                  }));
-                }}>
+                <Select value={sortConfig.field} onValueChange={handleSortChange}>
                   <SelectTrigger id="sort-by" className="flex w-28 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300" suppressHydrationWarning>
                     <SelectValue placeholder="Date" />
                   </SelectTrigger>
@@ -686,10 +618,7 @@ export default function ManageTradesClient({
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              setTempRange({ ...dateRange });
-                              setShowDatePicker(false);
-                            }}
+                            onClick={handleCancelDatePicker}
                             className="cursor-pointer rounded-xl h-8 px-3 text-xs transition-colors duration-200 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium"
                           >
                             Cancel
@@ -697,32 +626,7 @@ export default function ManageTradesClient({
                           <Button
                             type="button"
                             size="sm"
-                            onClick={() => {
-                              setDateRange({ ...tempRange });
-                              // Check if the selected range matches a preset, otherwise reset filter
-                              const today = new Date();
-                              const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
-                              const yearStart = fmt(startOfYear(today));
-                              const yearEnd = fmt(endOfYear(today));
-                              const last15Start = fmt(subDays(today, 14));
-                              const last30Start = fmt(subDays(today, 29));
-                              const monthStart = fmt(startOfMonth(today));
-                              const monthEnd = fmt(endOfMonth(today));
-
-                              if (tempRange.startDate === yearStart && tempRange.endDate === yearEnd) {
-                                setActiveFilter('year');
-                              } else if (tempRange.startDate === last15Start && tempRange.endDate === fmt(today)) {
-                                setActiveFilter('15days');
-                              } else if (tempRange.startDate === last30Start && tempRange.endDate === fmt(today)) {
-                                setActiveFilter('30days');
-                              } else if (tempRange.startDate === monthStart && tempRange.endDate === monthEnd) {
-                                setActiveFilter('month');
-                              } else {
-                                setActiveFilter(null);
-                              }
-                              setCurrentPage(1);
-                              setShowDatePicker(false);
-                            }}
+                            onClick={handleApplyDateRange}
                             className="cursor-pointer rounded-xl h-8 px-3 text-xs font-semibold transition-all duration-200 border-0 themed-btn-primary text-white shadow-sm"
                           >
                             Apply
@@ -739,7 +643,7 @@ export default function ManageTradesClient({
                   Quick Filters:
                 </span>
                 {(['all', 'year', '15days', '30days', 'month'] as const).map((filterType) => {
-                  const isActive = activeFilter === filterType && !isCustomDateRange();
+                  const isActive = activeFilter === filterType && !isCustomDateRange(dateRange);
                   const labels: Record<Exclude<FilterType, null>, string> = {
                     all: 'All Trades',
                     year: 'Current Year',
@@ -914,7 +818,7 @@ export default function ManageTradesClient({
                         </div>
                       </td>
                     </tr>
-                  ) : allTradesLoading && allTrades.length === 0 ? (
+                  ) : allTradesLoading && allTradesData.length === 0 ? (
                     // Skeleton rows
                     Array.from({ length: 6 }).map((_, index) => (
                       <tr key={`skeleton-${index}`}>
@@ -1133,14 +1037,14 @@ export default function ManageTradesClient({
             <div className="flex space-x-2">
               <Button
                 variant="outline"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                onClick={handlePrevPage}
                 disabled={paginatedCurrentPage === 1}
                 className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200 disabled:opacity-50"
               >
                 Previous
               </Button>
               <Button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, paginatedTotalPages))}
+                onClick={handleNextPage}
                 disabled={paginatedCurrentPage === paginatedTotalPages}
                 className="cursor-pointer relative overflow-hidden rounded-xl themed-btn-primary text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60 [&_svg]:text-white"
               >
