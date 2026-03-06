@@ -16,7 +16,11 @@ async function MyTradesDataFetcher({
   user: User;
   strategySlug: string;
 }) {
-  const strategy = await getStrategyBySlug(user.id, strategySlug);
+  const [strategy, activeAccount] = await Promise.all([
+    getStrategyBySlug(user.id, strategySlug),
+    getActiveAccountForMode(user.id, 'live'),
+  ]);
+
   if (!strategy) redirect('/strategies');
   const initialStrategyId = strategy.id;
 
@@ -24,15 +28,12 @@ async function MyTradesDataFetcher({
   // Default to "All Trades" range so UI (All Trades selected) and data match on first load
   const initialDateRange = createAllTimeRange(today);
 
-  const activeAccount = await getActiveAccountForMode(user.id, 'live');
-
   // If no account, return empty data - client will handle "No Active Account" UI
   if (!activeAccount) {
     return (
       <MyTradesClient
         initialUserId={user.id}
         initialFilteredTrades={[]}
-        initialAllTrades={[]}
         initialDateRange={initialDateRange}
         initialMode="live"
         initialActiveAccount={null}
@@ -41,12 +42,9 @@ async function MyTradesDataFetcher({
     );
   }
 
-  // Fetch initial trades server-side (filtered by strategy)
   let initialFilteredTrades: Trade[] = [];
-  let initialAllTrades: Trade[] = [];
 
   try {
-    // Fetch filtered trades for the initial date range (All Trades: 2000-01-01 to today; include non-executed)
     initialFilteredTrades = await getFilteredTrades({
       userId: user.id,
       accountId: activeAccount.id,
@@ -56,28 +54,14 @@ async function MyTradesDataFetcher({
       includeNonExecuted: true,
       strategyId: initialStrategyId,
     });
-
-    // Fetch all trades for the current year to get markets list (include non-executed trades)
-    const currentYear = today.getFullYear();
-    initialAllTrades = await getFilteredTrades({
-      userId: user.id,
-      accountId: activeAccount.id,
-      mode: 'live',
-      startDate: `${currentYear}-01-01`,
-      endDate: `${currentYear}-12-31`,
-      includeNonExecuted: true,
-      strategyId: initialStrategyId,
-    });
   } catch (error) {
     console.error('Error fetching initial trades:', error);
-    // Return empty arrays on error - client will handle loading states
   }
 
   return (
     <MyTradesClient
       initialUserId={user.id}
       initialFilteredTrades={initialFilteredTrades}
-      initialAllTrades={initialAllTrades}
       initialDateRange={initialDateRange}
       initialMode="live"
       initialActiveAccount={activeAccount}
