@@ -401,7 +401,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
                       <span className="text-red-500 dark:text-red-400 font-semibold text-lg">Confirm Delete</span>
                     </AlertDialogTitle>
                   <AlertDialogDescription>
-                    <span className="text-slate-600 dark:text-slate-400">Are you sure you want to delete "{strategy.name}"? This action cannot be undone. All trades associated with this strategy will keep their strategy reference for historical data integrity.</span>
+                    <span className="text-slate-600 dark:text-slate-400">Are you sure you want to permanently delete "{strategy.name}"? This will also delete all trades (live, backtesting, and demo) linked to this strategy. This action cannot be undone.</span>
                   </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter className="flex gap-3">
