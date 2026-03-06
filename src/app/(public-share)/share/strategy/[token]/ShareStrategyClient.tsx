@@ -93,7 +93,7 @@ import {
 } from '@/components/dashboard/analytics/FvgSizeStats';
 import { Badge } from '@/components/ui/badge';
 import { Footer } from '@/components/shared/Footer';
-import { Lock, Share2 } from 'lucide-react';
+import { Lock, Share2, TrendingUp, BarChart3 } from 'lucide-react';
 
 type ShareStrategyClientProps = {
   trades: Trade[];
@@ -114,6 +114,7 @@ export default function ShareStrategyClient({
   accountBalance,
 }: ShareStrategyClientProps) {
   const [hydrated, setHydrated] = useState(false);
+  const [activeView, setActiveView] = useState<'trades' | 'analytics'>('trades');
   useEffect(() => setHydrated(true), []);
 
   const searchParams = useSearchParams();
@@ -469,11 +470,44 @@ export default function ShareStrategyClient({
               <Lock className="h-3.5 w-3.5 text-slate-400" />
               <span>Viewer cannot edit or see individual trades</span>
             </div>
+            <div
+              className="inline-flex items-center gap-1 rounded-full border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 p-1 text-[11px] backdrop-blur-sm"
+              aria-label="Shared strategy view"
+            >
+              <button
+                type="button"
+                onClick={() => setActiveView('trades')}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-semibold uppercase tracking-wide transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
+                  activeView === 'trades'
+                    ? 'bg-emerald-500 text-white shadow shadow-emerald-500/20'
+                    : 'text-slate-600 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/50'
+                }`}
+                aria-pressed={activeView === 'trades'}
+              >
+                <TrendingUp className="h-3.5 w-3.5" strokeWidth={2} />
+                <span>My trades</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveView('analytics')}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-semibold uppercase tracking-wide transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
+                  activeView === 'analytics'
+                    ? 'bg-emerald-500 text-white shadow shadow-emerald-500/20'
+                    : 'text-slate-600 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/50'
+                }`}
+                aria-pressed={activeView === 'analytics'}
+              >
+                <BarChart3 className="h-3.5 w-3.5" strokeWidth={2} />
+                <span>Analytics</span>
+              </button>
+            </div>
           </div>
         </header>
 
         <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
 
+        {activeView === 'analytics' && (
+        <>
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -742,6 +776,8 @@ export default function ShareStrategyClient({
               <FvgSizeStats trades={trades} isLoading={false} />
             )}
           </div>
+        )}
+        </>
         )}
 
         <Footer />
