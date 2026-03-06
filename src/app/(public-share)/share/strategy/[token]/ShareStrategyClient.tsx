@@ -6,7 +6,6 @@ import { useSearchParams } from 'next/navigation';
 import type { Trade } from '@/types/trade';
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { StrategyShareRow } from '@/lib/server/publicShares';
-import { TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { TradeCardsView } from '@/components/trades/TradeCardsView';
 import { TradingOverviewStats } from '@/components/dashboard/analytics/TradingOverviewStats';
 import { EquityCurveCard } from '@/components/dashboard/analytics/EquityCurveCard';
@@ -132,19 +131,17 @@ function SharedMyTradesView({ trades, strategyName }: { trades: Trade[]; strateg
 
   return (
     <div className="max-w-7xl mx-auto">
-      <TradeFiltersBar
-        variant="marketOnly"
-        selectedMarket={selectedMarket}
-        onSelectedMarketChange={setSelectedMarket}
-        markets={markets}
-      />
-
       <TradeCardsView
         trades={filteredTrades}
         readOnly
         strategyName={strategyName}
         resetKey={selectedMarket}
         emptyMessage="No trades found."
+        marketFilter={{
+          selectedMarket,
+          onSelectedMarketChange: setSelectedMarket,
+          markets,
+        }}
       />
     </div>
   );
