@@ -77,6 +77,12 @@ export default async function ShareStrategyPage({ params }: PageProps) {
   const currencySymbol = getCurrencySymbolFromCode(typedAccount?.currency ?? 'USD');
   const accountBalance = typedAccount?.account_balance ?? null;
 
+  // Extend end date to today so the same share link shows new trades on refresh
+  // without creating a new share (start_date stays as set when share was created).
+  const today = new Date().toISOString().slice(0, 10);
+  const endDate =
+    share.end_date >= today ? share.end_date : today;
+
   return (
     <main className="min-h-screen max-w-(--breakpoint-xl) mx-auto w-full">
       <ShareStrategyClient
@@ -88,7 +94,7 @@ export default async function ShareStrategyPage({ params }: PageProps) {
             mode: share.mode,
             strategyId: share.strategy_id,
             startDate: share.start_date,
-            endDate: share.end_date,
+            endDate,
           });
         })()}
         strategy={{
