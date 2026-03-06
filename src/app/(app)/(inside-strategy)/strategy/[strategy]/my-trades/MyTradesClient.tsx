@@ -37,8 +37,8 @@ export default function MyTradesClient({
   initialActiveAccount,
   initialStrategyId,
 }: MyTradesClientProps) {
-  const [dateRange, setDateRange] = useState<DateRangeState>(initialDateRange);
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [dateRange, setDateRange] = useState<DateRangeState>(() => buildPresetRange('year').dateRange);
+  const [activeFilter, setActiveFilter] = useState<FilterType>('year');
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
   const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'nonExecuted'>('all');
 
