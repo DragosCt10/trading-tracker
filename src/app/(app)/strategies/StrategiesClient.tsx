@@ -14,7 +14,7 @@ import { AddStrategyCard } from '@/components/dashboard/strategy/AddStrategyCard
 import { Card } from '@/components/ui/card';
 import { CreateStrategyModal } from '@/components/CreateStrategyModal';
 import { EditStrategyModal } from '@/components/EditStrategyModal';
-import { permanentlyDeleteStrategy, getInactiveStrategies, reactivateStrategy } from '@/lib/server/strategies';
+import { deleteStrategy, permanentlyDeleteStrategy, getInactiveStrategies, reactivateStrategy } from '@/lib/server/strategies';
 import { Strategy } from '@/types/strategy';
 import { Trade } from '@/types/trade';
 import { useQueryClient } from '@tanstack/react-query';
@@ -162,7 +162,7 @@ export function StrategiesClient() {
 
   const handleDelete = async (strategyId: string): Promise<void> => {
     if (!userId) return;
-    const result = await permanentlyDeleteStrategy(strategyId, userId);
+    const result = await deleteStrategy(strategyId, userId);
     if (!result.error) {
       refetchStrategies();
       refetchArchived();
