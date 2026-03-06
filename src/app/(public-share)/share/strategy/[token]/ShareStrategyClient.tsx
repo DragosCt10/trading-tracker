@@ -6,6 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import type { Trade } from '@/types/trade';
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { StrategyShareRow } from '@/lib/server/publicShares';
+import { TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
+import { TradeCardsView } from '@/components/trades/TradeCardsView';
 import { TradingOverviewStats } from '@/components/dashboard/analytics/TradingOverviewStats';
 import { EquityCurveCard } from '@/components/dashboard/analytics/EquityCurveCard';
 import {
@@ -92,8 +94,17 @@ import {
   FvgSizeStats,
 } from '@/components/dashboard/analytics/FvgSizeStats';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Footer } from '@/components/shared/Footer';
-import { Lock, Share2, TrendingUp, BarChart3 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { getIntervalForTime } from '@/constants/analytics';
+import {
+  BarChart3,
+  Eye,
+  Lock,
+  Share2,
+  TrendingUp,
+} from 'lucide-react';
 
 type ShareStrategyClientProps = {
   trades: Trade[];
@@ -105,6 +116,39 @@ type ShareStrategyClientProps = {
   currencySymbol: string;
   accountBalance: number | null;
 };
+
+function SharedMyTradesView({ trades, strategyName }: { trades: Trade[]; strategyName: string }) {
+  const [selectedMarket, setSelectedMarket] = useState<string>('all');
+
+  const markets = useMemo(
+    () => Array.from(new Set(trades.map((t) => t.market).filter(Boolean))),
+    [trades]
+  );
+
+  const filteredTrades = useMemo(() => {
+    if (selectedMarket === 'all') return trades;
+    return trades.filter((t) => t.market === selectedMarket);
+  }, [trades, selectedMarket]);
+
+  return (
+    <div className="max-w-7xl mx-auto">
+      <TradeFiltersBar
+        variant="marketOnly"
+        selectedMarket={selectedMarket}
+        onSelectedMarketChange={setSelectedMarket}
+        markets={markets}
+      />
+
+      <TradeCardsView
+        trades={filteredTrades}
+        readOnly
+        strategyName={strategyName}
+        resetKey={selectedMarket}
+        emptyMessage="No trades found."
+      />
+    </div>
+  );
+}
 
 export default function ShareStrategyClient({
   trades,
@@ -505,6 +549,8 @@ export default function ShareStrategyClient({
         </header>
 
         <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
+
+        {activeView === 'trades' && <SharedMyTradesView trades={trades} strategyName={strategy.name} />}
 
         {activeView === 'analytics' && (
         <>
