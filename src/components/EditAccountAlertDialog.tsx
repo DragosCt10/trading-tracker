@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteAccount, updateAccount } from '@/lib/server/accounts';
 import { getTradeCountForAccount } from '@/lib/server/trades';
 import { useUserDetails } from '@/hooks/useUserDetails';
-import { Info, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { Info, Loader2, Pencil } from 'lucide-react';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -65,7 +65,6 @@ export function EditAccountAlertDialog({
   const { data: userId } = useUserDetails();
 
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -76,11 +75,6 @@ export function EditAccountAlertDialog({
   const [currency, setCurrency] = useState<Currency>('EUR');
   const [mode, setMode] = useState<Mode>('live');
   const [description, setDescription] = useState('');
-
-  // Prevent hydration mismatch
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Helper: reset form from the current account
   const resetFormFromAccount = React.useCallback(() => {
@@ -188,8 +182,6 @@ export function EditAccountAlertDialog({
       if (currentSelection?.activeAccount?.id === account.id) {
         queryClient.setQueryData(selectionKey, { ...currentSelection, activeAccount: data });
       }
-      await queryClient.refetchQueries({ type: 'active' });
-
       setOpen(false);
       setSubmitting(false);
     } catch (err: any) {
@@ -221,8 +213,22 @@ export function EditAccountAlertDialog({
       }
 
       onDeleted?.();
-      await queryClient.invalidateQueries();
-      await queryClient.refetchQueries({ type: 'active' });
+      await queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey;
+          if (!Array.isArray(key)) return false;
+          const first = key[0] as string;
+          return (
+            first === 'accounts:list' ||
+            first === 'accounts:all' ||
+            first === 'allTrades' ||
+            first === 'filteredTrades' ||
+            first === 'nonExecutedTrades' ||
+            first === 'all-strategy-trades' ||
+            first === 'all-strategy-stats'
+          );
+        },
+      });
       setOpen(false);
       setDeleting(false);
     } catch (err: any) {
@@ -230,8 +236,6 @@ export function EditAccountAlertDialog({
       setDeleting(false);
     }
   };
-
-  if (!mounted) return null;
 
   return (
     <>
