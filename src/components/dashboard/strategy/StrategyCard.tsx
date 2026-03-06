@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip as ReTooltip } from 'recharts';
-import { Trash2, Pencil, ChartBar, Share2 } from 'lucide-react';
+import { Archive, Pencil, ChartBar, Share2 } from 'lucide-react';
 import { Strategy } from '@/types/strategy';
 import { Trade } from '@/types/trade';
 import { calculateWinRates } from '@/utils/calculateWinRates';
@@ -389,7 +389,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
                           />
                         </svg>
                       ) : (
-                        <Trash2 className="h-4 w-4" />
+                        <Archive className="h-4 w-4" />
                       )}
                     </span>
                     <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
@@ -398,10 +398,10 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
                 <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] rounded-2xl">
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      <span className="text-red-500 dark:text-red-400 font-semibold text-lg">Confirm Delete</span>
+                      <span className="text-slate-900 dark:text-slate-50 font-semibold text-lg">Archive strategy</span>
                     </AlertDialogTitle>
                   <AlertDialogDescription>
-                    <span className="text-slate-600 dark:text-slate-400">Are you sure you want to delete "{strategy.name}"? This action cannot be undone. All trades associated with this strategy will keep their strategy reference for historical data integrity.</span>
+                    <span className="text-slate-600 dark:text-slate-400">Move &quot;{strategy.name}&quot; to Archived? You can reactivate it later from the Archived list. Your trades will be kept.</span>
                   </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter className="flex gap-3">
@@ -415,12 +415,12 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
                     </AlertDialogCancel>
                     <AlertDialogAction asChild>
                       <Button
-                        variant="destructive"
+                        variant="outline"
                         onClick={handleDelete}
                         disabled={isDeleting}
-                        className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
+                        className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-700/60 group border disabled:opacity-60"
                       >
-                        {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+                        {isDeleting ? 'Archiving...' : 'Yes, Archive'}
                       </Button>
                     </AlertDialogAction>
                   </AlertDialogFooter>
