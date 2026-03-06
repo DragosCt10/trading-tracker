@@ -122,12 +122,12 @@ export default function ManageTradesClient({
 
   const defaultAllRange = createAllTimeRange();
 
-  const [dateRange, setDateRange] = useState<DateRangeState>(defaultAllRange);
+  const [dateRange, setDateRange] = useState<DateRangeState>(() => buildPresetRange('year').dateRange);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  const [tempRange, setTempRange] = useState<DateRangeState>(defaultAllRange);
+  const [tempRange, setTempRange] = useState<DateRangeState>(() => buildPresetRange('year').dateRange);
 
   const { colorTheme } = useColorTheme();
   const dateRangeColor = useMemo(() => {
@@ -136,7 +136,7 @@ export default function ManageTradesClient({
     return value || '#a855f7';
   }, [colorTheme]);
 
-  const [activeFilter, setActiveFilter] = useState<FilterType | null>('all');
+  const [activeFilter, setActiveFilter] = useState<FilterType | null>('year');
 
   // When the user applies a custom date range (not matching any preset), clear the active preset highlight
   useEffect(() => {
