@@ -16,7 +16,7 @@ export type FilterType = 'year' | '15days' | '30days' | 'month' | 'all';
 
 /** Small helpers for dates & ranges */
 
-const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
+export const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 
 export function createInitialDateRange(today = new Date()): DateRangeState {
   return {
