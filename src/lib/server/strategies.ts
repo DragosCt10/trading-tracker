@@ -372,10 +372,8 @@ export async function updateStrategy(
 }
 
 /**
- * Soft deletes a strategy by setting is_active to false.
- * Trades keep their strategy_id reference for historical data integrity.
- * Note: If the default strategy is deleted, it will be automatically reactivated
- * by ensureDefaultStrategy when getUserStrategies is called.
+ * Deletes a strategy. Related trades (live, backtesting, demo) are removed
+ * automatically by the database via ON DELETE CASCADE on strategy_id.
  */
 export async function deleteStrategy(
   strategyId: string,
@@ -383,7 +381,6 @@ export async function deleteStrategy(
 ): Promise<{ error: { message: string } | null }> {
   const supabase = await createClient();
 
-  // Verify user is authenticated
   const {
     data: { user },
     error: authError,
@@ -392,10 +389,9 @@ export async function deleteStrategy(
     return { error: { message: 'Unauthorized' } };
   }
 
-  // Verify strategy belongs to user
   const { data: existing } = await supabase
     .from('strategies')
-    .select('slug')
+    .select('id')
     .eq('id', strategyId)
     .eq('user_id', userId)
     .single();
@@ -404,16 +400,15 @@ export async function deleteStrategy(
     return { error: { message: 'Strategy not found' } };
   }
 
-  // Soft delete: set is_active to false instead of deleting
-  const { error } = await supabase
+  const { error: deleteError } = await supabase
     .from('strategies')
-    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .delete()
     .eq('id', strategyId)
     .eq('user_id', userId);
 
-  if (error) {
-    console.error('Error deleting strategy:', error);
-    return { error: { message: error.message ?? 'Failed to delete strategy' } };
+  if (deleteError) {
+    console.error('Error deleting strategy:', deleteError);
+    return { error: { message: deleteError.message ?? 'Failed to delete strategy' } };
   }
 
   return { error: null };
