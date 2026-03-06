@@ -375,6 +375,7 @@ export default function StrategyClient(
   const {
     allTrades,
     filteredTrades,
+    calendarMonthTrades,
     filteredTradesLoading,
     allTradesLoading,
     stats,
@@ -662,7 +663,10 @@ export default function StrategyClient(
   // Get trades for the current calendar month based on view mode
   const calendarMonthTradesToUse = useMemo(() => {
     // Get base trades based on view mode
-    let tradesSource: Trade[] = viewMode === 'yearly' ? allTrades : filteredTrades;
+    // In yearly mode: use allTrades (full year).
+    // In dateRange mode: use calendarMonthTrades (allTrades filtered by calendar month),
+    // so trades outside the date-range filter window but within the calendar month still appear.
+    let tradesSource: Trade[] = viewMode === 'yearly' ? allTrades : calendarMonthTrades;
     
     // Apply execution filter in dateRange mode
     if (viewMode === 'dateRange') {
