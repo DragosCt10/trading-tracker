@@ -9,8 +9,7 @@ import { getTradesForNoteLinking } from '@/lib/server/trades';
 import type { TradeRef } from '@/types/note';
 import { AccountModePopover, type AccountModeSelection } from '@/components/shared/AccountModePopover';
 import { FileText, X, Link2, Loader2 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { MarkdownRenderer } from '@/components/dynamicComponents';
 
 // shadcn/ui
 import { Input } from '@/components/ui/input';
@@ -407,16 +406,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
                 {isPreview ? (
                   <div className="min-h-[400px] p-4 prose prose-slate dark:prose-invert max-w-none [&_a]:underline [&_a]:[color:var(--tc-text)] dark:[&_a]:[color:var(--tc-text-dark)] [&_a]:decoration-[var(--tc-primary)]/50 hover:[&_a]:decoration-[var(--tc-primary)]">
                     {note.content ? (
-                      <ReactMarkdown 
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          a: ({ node, ...props }) => (
-                            <a {...props} className="underline decoration-[var(--tc-primary)]/50 hover:decoration-[var(--tc-primary)] text-[var(--tc-text)] dark:text-[var(--tc-text-dark)]" />
-                          ),
-                        }}
-                      >
-                        {note.content}
-                      </ReactMarkdown>
+                      <MarkdownRenderer content={note.content} />
                     ) : (
                       <span className="text-slate-400 dark:text-slate-600">No content yet...</span>
                     )}
