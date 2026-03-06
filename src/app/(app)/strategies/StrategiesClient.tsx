@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useQuery } from '@tanstack/react-query';
-import { getFilteredTrades, getStrategyStatsFromTrades } from '@/lib/server/trades';
+import { getFilteredTrades } from '@/lib/server/trades';
+import { computeStrategyStatsRowFromTrades, type StrategyStatsRow } from '@/utils/calculateRMultiple';
 import { StrategyCard } from '@/components/dashboard/strategy/StrategyCard';
 import { AddStrategyCard } from '@/components/dashboard/strategy/AddStrategyCard';
 import { Card } from '@/components/ui/card';
@@ -102,39 +103,16 @@ export function StrategiesClient() {
     seedStrategyCaches();
   }, [seedStrategyCaches]);
 
-  // Fetch aggregated stats from trades table for all strategies (dynamically based on mode)
-  const {
-    data: allStrategyStats,
-    isFetching: statsLoading,
-  } = useQuery<Record<string, { totalTrades: number; winRate: number; avgRR: number; totalRR: number }>>({
-    queryKey: ['all-strategy-stats', userId, activeAccount?.id, mode, strategies.map(s => s.id).join(',')],
-    queryFn: async () => {
-      if (!userId || !activeAccount?.id || !mode || strategies.length === 0) return {};
-      
-      const statsMap: Record<string, { totalTrades: number; winRate: number; avgRR: number; totalRR: number }> = {};
-      await Promise.all(
-        strategies.map(async (strategy) => {
-          try {
-            const stats = await getStrategyStatsFromTrades({
-              userId,
-              accountId: activeAccount.id,
-              strategyId: strategy.id,
-              mode: mode as 'live' | 'backtesting' | 'demo',
-            });
-            if (stats) {
-              statsMap[strategy.id] = stats;
-            }
-          } catch (err) {
-            console.error(`Error fetching stats for strategy ${strategy.id}:`, err);
-          }
-        })
-      );
-      return statsMap;
-    },
-    enabled: !!userId && !!activeAccount?.id && !!mode && strategies.length > 0,
-    staleTime: 2 * 60_000, // 2 min — avoid N refetches on every visit
-    gcTime: 5 * 60_000,
-  });
+  // Derive stats from the same all-strategy-trades cache (single source of truth, no extra fetch)
+  const allStrategyStats = useMemo<Record<string, StrategyStatsRow>>(() => {
+    if (!allStrategyTrades || strategies.length === 0) return {};
+    const out: Record<string, StrategyStatsRow> = {};
+    for (const strategy of strategies) {
+      const trades = allStrategyTrades[strategy.id] ?? [];
+      out[strategy.id] = computeStrategyStatsRowFromTrades(trades);
+    }
+    return out;
+  }, [allStrategyTrades, strategies]);
 
   // Fetch archived (inactive) strategies
   const {
@@ -164,7 +142,6 @@ export function StrategiesClient() {
     refetchStrategies();
     queryClient.invalidateQueries({ queryKey: ['strategy-trades'] });
     queryClient.invalidateQueries({ queryKey: ['all-strategy-trades'] });
-    queryClient.invalidateQueries({ queryKey: ['all-strategy-stats'] });
   };
 
   const handleEdit = (strategy: Strategy) => {
@@ -177,7 +154,6 @@ export function StrategiesClient() {
     setEditingStrategy(null);
     refetchStrategies();
     queryClient.invalidateQueries({ queryKey: ['strategy-trades'] });
-    queryClient.invalidateQueries({ queryKey: ['all-strategy-stats'] });
   };
 
   const handleDelete = async (strategyId: string): Promise<void> => {
@@ -188,7 +164,6 @@ export function StrategiesClient() {
       refetchArchived();
       queryClient.invalidateQueries({ queryKey: ['strategy-trades'] });
       queryClient.invalidateQueries({ queryKey: ['all-strategy-trades'] });
-      queryClient.invalidateQueries({ queryKey: ['all-strategy-stats'] });
     }
   };
 
@@ -202,7 +177,6 @@ export function StrategiesClient() {
         refetchArchived();
         queryClient.invalidateQueries({ queryKey: ['strategy-trades'] });
         queryClient.invalidateQueries({ queryKey: ['all-strategy-trades'] });
-        queryClient.invalidateQueries({ queryKey: ['all-strategy-stats'] });
       }
     } finally {
       setReactivatingStrategyId(null);
@@ -422,8 +396,8 @@ export function StrategiesClient() {
               const trades = allStrategyTrades?.[strategy.id] ?? [];
               // Use aggregated stats from trades table (dynamically based on mode)
               const aggregatedStats = allStrategyStats?.[strategy.id];
-              // Show loading state if trades or stats are still loading
-              const isLoading = tradesLoading || statsLoading;
+              // Loading from single source (all-strategy-trades); stats are derived from it
+              const isLoading = tradesLoading;
 
               return (
                 <StrategyCard
