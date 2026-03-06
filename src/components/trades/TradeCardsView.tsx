@@ -6,6 +6,13 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -32,6 +39,15 @@ export type TradeCardsViewProps = {
   onTradeUpdated?: () => void | Promise<void>;
   emptyMessage?: string;
   initialViewMode?: CardViewMode;
+  /**
+   * Optional inline market filter rendered next to "Cards per row".
+   * Useful for the public share page where we don't want the full filters bar.
+   */
+  marketFilter?: {
+    selectedMarket: string;
+    onSelectedMarketChange: (market: string) => void;
+    markets: string[];
+  };
 };
 
 export function TradeCardsView({
@@ -45,6 +61,7 @@ export function TradeCardsView({
   onTradeUpdated,
   emptyMessage = 'No trades found for the selected period.',
   initialViewMode = 'grid-4',
+  marketFilter,
 }: TradeCardsViewProps) {
   const [mounted, setMounted] = useState(false);
   const [displayedCount, setDisplayedCount] = useState(itemsPerLoad);
@@ -115,9 +132,36 @@ export function TradeCardsView({
   return (
     <TooltipProvider>
       <div className="mt-6 flex flex-col gap-4">
-        <div className="flex items-center justify-end gap-1">
-          <span className="text-sm text-slate-500 dark:text-slate-400 mr-2">Cards per row:</span>
-          <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/50 p-0.5">
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {marketFilter && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                Market:
+              </span>
+              <Select
+                value={marketFilter.selectedMarket}
+                onValueChange={marketFilter.onSelectedMarketChange}
+              >
+                <SelectTrigger className="flex w-32 h-9 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/50 shadow-none themed-focus text-slate-900 dark:text-slate-50">
+                  <SelectValue placeholder="All Markets" />
+                </SelectTrigger>
+                <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+                  <SelectItem value="all">All Markets</SelectItem>
+                  {marketFilter.markets.map((market) => (
+                    <SelectItem key={market} value={market}>
+                      {market}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-1">
+            <span className="text-sm text-slate-500 dark:text-slate-400 mr-2 whitespace-nowrap">
+              Cards per row:
+            </span>
+            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/50 p-0.5">
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -190,6 +234,7 @@ export function TradeCardsView({
                 Split view
               </TooltipContent>
             </Tooltip>
+          </div>
           </div>
         </div>
 
