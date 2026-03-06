@@ -518,13 +518,6 @@ export default function ManageTradesClient({
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <Button
-                  onClick={() => setIsImportModalOpen(true)}
-                  variant="outline"
-                  className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 font-semibold transition-colors duration-200"
-                >
-                  Import Trades
-                </Button>
-                <Button
                   onClick={exportToCSV}
                   className="cursor-pointer relative overflow-hidden rounded-xl themed-btn-primary text-white font-semibold px-4 py-2 group border-0 [&_svg]:text-white"
                 >
