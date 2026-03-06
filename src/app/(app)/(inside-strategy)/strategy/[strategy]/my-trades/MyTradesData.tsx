@@ -1,15 +1,13 @@
 import { Suspense } from 'react';
-import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { redirect } from 'next/navigation';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { getActiveAccountForMode } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
+import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import MyTradesClient from './MyTradesClient';
 import { Trade } from '@/types/trade';
 import { MyTradesSkeleton } from './MyTradesSkeleton';
 import type { User } from '@supabase/supabase-js';
-
-const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 
 async function MyTradesDataFetcher({
   user,
@@ -23,10 +21,8 @@ async function MyTradesDataFetcher({
   const initialStrategyId = strategy.id;
 
   const today = new Date();
-  const initialDateRange = {
-    startDate: fmt(startOfMonth(today)),
-    endDate: fmt(endOfMonth(today)),
-  };
+  // Default to "All Trades" range so UI (All Trades selected) and data match on first load
+  const initialDateRange = createAllTimeRange(today);
 
   const activeAccount = await getActiveAccountForMode(user.id, 'live');
 
@@ -50,7 +46,7 @@ async function MyTradesDataFetcher({
   let initialAllTrades: Trade[] = [];
 
   try {
-    // Fetch filtered trades for the current month (include non-executed trades)
+    // Fetch filtered trades for the initial date range (All Trades: 2000-01-01 to today; include non-executed)
     initialFilteredTrades = await getFilteredTrades({
       userId: user.id,
       accountId: activeAccount.id,
