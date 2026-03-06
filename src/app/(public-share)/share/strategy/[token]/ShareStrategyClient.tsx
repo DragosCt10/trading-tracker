@@ -246,20 +246,41 @@ export default function ShareStrategyClient({
     [accountBalance, totalRangeProfit]
   );
 
-  // Calendar state: current month within the shared range
-  const [currentDate, setCurrentDate] = useState(() => {
-    // Start from the start_date month
-    return startOfMonth(new Date(shareData.start_date));
-  });
+  // Calendar range: only months that have at least one trade (so we don't show empty months)
+  const calendarRange = useMemo(() => {
+    const monthKeys = new Set<string>();
+    trades.forEach((t) => {
+      const dateStr =
+        typeof t.trade_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t.trade_date)
+          ? t.trade_date
+          : format(new Date(t.trade_date), 'yyyy-MM-dd');
+      monthKeys.add(dateStr.slice(0, 7)); // "YYYY-MM"
+    });
+    const sorted = Array.from(monthKeys).sort();
+    if (sorted.length === 0) {
+      const fallback = startOfMonth(new Date(shareData.start_date));
+      return { firstMonth: fallback, lastMonth: fallback, initialCalendarMonth: fallback };
+    }
+    const [fy, fm] = sorted[0].split('-').map(Number);
+    const [ly, lm] = sorted[sorted.length - 1].split('-').map(Number);
+    const firstMonth = new Date(fy, fm - 1, 1);
+    const lastMonth = new Date(ly, lm - 1, 1);
+    return { firstMonth, lastMonth, initialCalendarMonth: lastMonth };
+  }, [trades, shareData.start_date]);
 
-  const firstMonth = useMemo(
-    () => startOfMonth(new Date(shareData.start_date)),
-    [shareData.start_date]
-  );
-  const lastMonth = useMemo(
-    () => startOfMonth(new Date(shareData.end_date)),
-    [shareData.end_date]
-  );
+  const { firstMonth, lastMonth } = calendarRange;
+
+  const [currentDate, setCurrentDate] = useState(calendarRange.initialCalendarMonth);
+
+  // When trades change, keep current month within the new range (only months with trades)
+  useEffect(() => {
+    const currentKey = format(currentDate, 'yyyy-MM');
+    const firstKey = format(firstMonth, 'yyyy-MM');
+    const lastKey = format(lastMonth, 'yyyy-MM');
+    if (currentKey < firstKey || currentKey > lastKey) {
+      setCurrentDate(lastMonth);
+    }
+  }, [firstMonth, lastMonth, currentDate]);
 
   const canNavigateMonth = useMemo(
     () =>
