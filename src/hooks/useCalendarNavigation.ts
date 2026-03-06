@@ -251,7 +251,13 @@ export function useCalendarNavigation({
       startDate: format(monthStart, 'yyyy-MM-dd'),
       endDate: format(monthEnd, 'yyyy-MM-dd'),
     });
-  }, [canNavigateMonth, currentDate, viewMode, selectedYear, getFilteredTradesForCalendar, dateRange, setCurrentDate, setCalendarDateRange]);
+    // In dateRange mode: sync selectedYear so allTrades is fetched for the viewed year.
+    // allTrades is fetched per-year; calendarMonthTrades filters allTrades by the visible month,
+    // so we must load the year we're viewing or past months (e.g. 2025) show no trades.
+    if (viewMode === 'dateRange') {
+      setSelectedYear(targetDate.getFullYear());
+    }
+  }, [canNavigateMonth, currentDate, viewMode, selectedYear, getFilteredTradesForCalendar, dateRange, setCurrentDate, setCalendarDateRange, setSelectedYear]);
 
   // update calendar for yearly mode after filtered trades are available
   useEffect(() => {
