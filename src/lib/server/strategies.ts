@@ -489,6 +489,49 @@ export async function getInactiveStrategies(userId: string): Promise<Strategy[]>
 }
 
 /**
+ * Permanently deletes archived strategies that have been inactive for more than 30 days.
+ * Uses permanentlyDeleteStrategy for each so related trades are removed via CASCADE.
+ * Call when the strategies page loads to purge old archived strategies.
+ */
+export async function deleteArchivedStrategiesOlderThan30Days(
+  userId: string
+): Promise<{ error: { message: string } | null }> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user || user.id !== userId) {
+    return { error: { message: 'Unauthorized' } };
+  }
+
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const thirtyDaysAgoISO = thirtyDaysAgo.toISOString();
+
+  const { data: oldArchived, error: fetchError } = await supabase
+    .from('strategies')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('is_active', false)
+    .lt('updated_at', thirtyDaysAgoISO);
+
+  if (fetchError) {
+    console.error('Error fetching archived strategies older than 30 days:', fetchError);
+    return { error: { message: fetchError.message ?? 'Failed to fetch old archived strategies' } };
+  }
+
+  const ids = (oldArchived ?? []).map((row) => row.id);
+  for (const strategyId of ids) {
+    const result = await permanentlyDeleteStrategy(strategyId, userId);
+    if (result.error) return result;
+  }
+
+  return { error: null };
+}
+
+/**
  * Updates the saved setup types for a specific strategy.
  */
 export async function updateStrategySetupTypes(

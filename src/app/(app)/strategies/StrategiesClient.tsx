@@ -14,7 +14,7 @@ import { AddStrategyCard } from '@/components/dashboard/strategy/AddStrategyCard
 import { Card } from '@/components/ui/card';
 import { CreateStrategyModal } from '@/components/CreateStrategyModal';
 import { EditStrategyModal } from '@/components/EditStrategyModal';
-import { deleteStrategy, permanentlyDeleteStrategy, getInactiveStrategies, reactivateStrategy } from '@/lib/server/strategies';
+import { deleteStrategy, permanentlyDeleteStrategy, getInactiveStrategies, reactivateStrategy, deleteArchivedStrategiesOlderThan30Days } from '@/lib/server/strategies';
 import { Strategy } from '@/types/strategy';
 import { Trade } from '@/types/trade';
 import { useQueryClient } from '@tanstack/react-query';
@@ -140,6 +140,12 @@ export function StrategiesClient() {
       refetchStrategies();
     }
   }, [userId, strategiesLoading, strategies.length, refetchStrategies]);
+
+  // Purge archived strategies older than 30 days (permanent delete via permanentlyDeleteStrategy)
+  useEffect(() => {
+    if (!userId) return;
+    deleteArchivedStrategiesOlderThan30Days(userId);
+  }, [userId]);
 
   const handleCreateSuccess = () => {
     setIsCreateModalOpen(false);
