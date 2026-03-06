@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
-import { format, subDays } from 'date-fns';
 import { getFilteredTrades } from '@/lib/server/trades';
+import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import { getActiveAccountForMode } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
 import StrategyClient from './StrategyClient';
@@ -9,18 +9,9 @@ import type { ExtraCardKey } from '@/constants/extraCards';
 import type { User } from '@supabase/supabase-js';
 import { StrategySkeleton } from '@/components/skeletons/StrategySkeleton';
 
-const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
-
-function createInitialDateRange(today = new Date()) {
-  return {
-    startDate: fmt(subDays(today, 29)),
-    endDate: fmt(today),
-  };
-}
-
 async function StrategyDataFetcher({ user, strategySlug }: { user: User; strategySlug: string }) {
   const today = new Date();
-  const initialDateRange = createInitialDateRange(today);
+  const initialDateRange = createAllTimeRange(today);
   const initialSelectedYear = today.getFullYear();
   const yearStart = `${initialSelectedYear}-01-01`;
   const yearEnd = `${initialSelectedYear}-12-31`;

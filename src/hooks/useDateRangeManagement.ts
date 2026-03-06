@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { format, startOfYear, endOfYear } from 'date-fns';
 import {
   type DateRangeState,
@@ -18,7 +18,7 @@ export function useDateRangeManagement(initialRange: DateRangeState) {
   const [selectedYear, setSelectedYear] = useState(
     () => new Date(initialRange.endDate).getFullYear()
   );
-  const [activeFilter, setActiveFilter] = useState<FilterType>('30days');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const prevViewModeRef = useRef<'yearly' | 'dateRange'>('yearly');
 
   // update calendar when main date range changes (without allTrades dependency - handled separately)
@@ -48,11 +48,11 @@ export function useDateRangeManagement(initialRange: DateRangeState) {
   const resetFilterOnModeSwitch = useCallback((viewMode: 'yearly' | 'dateRange') => {
     // Only reset if switching FROM yearly TO dateRange
     if (viewMode === 'dateRange' && prevViewModeRef.current === 'yearly') {
-      // Reset activeFilter to '30days' and set dateRange to default "Last 30 Days"
-      setActiveFilter('30days');
+      // Reset activeFilter to 'all' and set dateRange to default "All Trades"
+      setActiveFilter('all');
       const today = new Date();
       const { dateRange: defaultRange, calendarRange, currentDate } =
-        buildPresetRange('30days', today);
+        buildPresetRange('all', today);
       setDateRange(defaultRange);
       setCurrentDate(currentDate);
       setCalendarDateRange(calendarRange);

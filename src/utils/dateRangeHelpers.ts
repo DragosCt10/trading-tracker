@@ -12,7 +12,7 @@ export type DateRangeState = {
   endDate: string;   // yyyy-MM-dd
 };
 
-export type FilterType = 'year' | '15days' | '30days' | 'month';
+export type FilterType = 'year' | '15days' | '30days' | 'month' | 'all';
 
 /** Small helpers for dates & ranges */
 
@@ -43,7 +43,10 @@ export function buildPresetRange(
   let startDate: string;
   let endDate: string;
 
-  if (type === 'year') {
+  if (type === 'all') {
+    startDate = '2000-01-01';
+    endDate = fmt(today);
+  } else if (type === 'year') {
     startDate = fmt(startOfYear(today));
     endDate = fmt(endOfYear(today));
   } else if (type === '15days') {
@@ -67,6 +70,10 @@ export function buildPresetRange(
   };
 }
 
+export function createAllTimeRange(today = new Date()): DateRangeState {
+  return { startDate: '2000-01-01', endDate: fmt(today) };
+}
+
 export function isCustomDateRange(range: DateRangeState): boolean {
   const today = new Date();
 
@@ -78,6 +85,7 @@ export function isCustomDateRange(range: DateRangeState): boolean {
   const monthEnd = fmt(endOfMonth(today));
 
   const presets: DateRangeState[] = [
+    { startDate: '2000-01-01', endDate: fmt(today) },
     { startDate: yearStart, endDate: yearEnd },
     { startDate: last15Start, endDate: fmt(today) },
     { startDate: last30Start, endDate: fmt(today) },

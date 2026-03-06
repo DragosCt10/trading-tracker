@@ -19,7 +19,7 @@ type DateRangeState = {
   endDate: string;
 };
 
-type FilterType = 'year' | '15days' | '30days' | 'month';
+type FilterType = 'year' | '15days' | '30days' | 'month' | 'all';
 
 const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 
@@ -33,7 +33,10 @@ function buildPresetRange(
   let startDate: string;
   let endDate: string;
 
-  if (type === 'year') {
+  if (type === 'all') {
+    startDate = '2000-01-01';
+    endDate = fmt(today);
+  } else if (type === 'year') {
     startDate = fmt(startOfYear(today));
     endDate = fmt(endOfYear(today));
   } else if (type === '15days') {
@@ -67,6 +70,7 @@ function isCustomDateRange(range: DateRangeState): boolean {
   const monthEnd = fmt(endOfMonth(today));
 
   const presets: DateRangeState[] = [
+    { startDate: '2000-01-01', endDate: fmt(today) },
     { startDate: yearStart, endDate: yearEnd },
     { startDate: last15Start, endDate: fmt(today) },
     { startDate: last30Start, endDate: fmt(today) },
@@ -102,7 +106,7 @@ export default function MyTradesClient({
 
   const [dateRange, setDateRange] = useState<DateRangeState>(initialDateRange);
   const [selectedYear] = useState(new Date().getFullYear());
-  const [activeFilter, setActiveFilter] = useState<FilterType>('month');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
   const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'non-executed'>('all');
   
@@ -246,6 +250,11 @@ export default function MyTradesClient({
     setDateRange(nextRange);
   };
 
+  const earliestTradeDate = useMemo(() => {
+    if (activeFilter !== 'all' || !filteredTrades || filteredTrades.length === 0) return undefined;
+    return filteredTrades.reduce((min, t) => t.trade_date < min ? t.trade_date : min, filteredTrades[0].trade_date);
+  }, [activeFilter, filteredTrades]);
+
   // Filter by market and execution status (client-side: date-range data is already loaded)
   const trades = useMemo(() => {
     let list = filteredTrades || [];
@@ -291,6 +300,7 @@ export default function MyTradesClient({
         selectedExecution={selectedExecution}
         onSelectedExecutionChange={handleExecutionChange}
         showAllTradesOption={true}
+        displayStartDate={earliestTradeDate}
       />
 
       <TradeCardsView
