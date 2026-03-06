@@ -114,12 +114,18 @@ export default function ManageTradesClient({
     }
   }, [initialActiveAccount, initialMode, selection.activeAccount, setSelection]);
 
-  const [dateRange, setDateRange] = useState<DateRangeState>(initialDateRange);
+  // Default to "All Trades" (same range as handleFilter('all'))
+  const defaultAllRange = useMemo(() => {
+    const today = new Date();
+    return { startDate: '2000-01-01', endDate: format(today, 'yyyy-MM-dd') };
+  }, []);
+
+  const [dateRange, setDateRange] = useState<DateRangeState>(defaultAllRange);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  const [tempRange, setTempRange] = useState<DateRangeState>(initialDateRange);
+  const [tempRange, setTempRange] = useState<DateRangeState>(defaultAllRange);
 
   const { colorTheme } = useColorTheme();
   const dateRangeColor = useMemo(() => {
@@ -129,7 +135,7 @@ export default function ManageTradesClient({
   }, [colorTheme]);
 
   type FilterType = 'year' | '15days' | '30days' | 'month' | 'all' | null;
-  const [activeFilter, setActiveFilter] = useState<FilterType>('month');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
   // Check if current date range is custom
   const isCustomDateRange = () => {
@@ -270,6 +276,17 @@ export default function ManageTradesClient({
   }, [shouldSkipInitialData]);
 
   const allTradesData = rawTrades ?? (isInitialContext && !shouldSkipInitialData ? initialTrades : []);
+
+  // When "All Trades" is active, show the actual first trade date in the Period input (same as StrategyClient / MyTradesClient)
+  const earliestTradeDate = useMemo(() => {
+    if (activeFilter !== 'all' || !allTradesData?.length) return undefined;
+    const toStr = (v: string | Date): string =>
+      typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : format(new Date(v), 'yyyy-MM-dd');
+    return allTradesData.reduce(
+      (acc, t) => (toStr(t.trade_date) < acc ? toStr(t.trade_date) : acc),
+      toStr(allTradesData[0].trade_date)
+    );
+  }, [activeFilter, allTradesData]);
 
   // Market options
   const tradesForMarketDropdown = allTradesData || [];
@@ -595,7 +612,7 @@ export default function ManageTradesClient({
                       placeholder="Select date range"
                       type="text"
                       className="w-full cursor-pointer h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 pr-8"
-                      value={`${dateRange.startDate} ~ ${dateRange.endDate}`}
+                      value={`${(activeFilter === 'all' && earliestTradeDate) ? earliestTradeDate : dateRange.startDate} ~ ${dateRange.endDate}`}
                       readOnly
                       onClick={e => {
                         e.preventDefault();
