@@ -76,4 +76,12 @@ export const queryKeys = {
     accountId: string,
     mode: string
   ) => ['strategy-shares', strategyId, userId, accountId, mode] as const,
+
+  /** My Trades page: all trades for strategy/account/mode (filtering is client-side) */
+  myTradesAll: (
+    mode: string,
+    accountId: string | undefined,
+    userId: string | undefined,
+    strategyId: string
+  ) => ['myTrades-all', mode, accountId, userId, strategyId] as const,
 } as const;
