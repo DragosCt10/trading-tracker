@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import {
   Menu,
   X,
@@ -39,7 +39,6 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
   const pathname = usePathname();
   const router = useRouter();
   const { data: userData } = useUserDetails();
-  const supabase = createClient();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
@@ -50,16 +49,13 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
     if (userData?.user) setIsSigningOut(false);
   }, [userData?.user]);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     try {
       setIsSigningOut(true);
-      
-      // ✅ Clear all queries from cache to ensure no user data persists after logout
+
       queryClient.clear();
-      
-      // Clear any localStorage items related to trades/drafts and analytics
+
       if (typeof window !== 'undefined') {
-        // Clear trade draft data
         const keysToRemove: string[] = [];
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
@@ -67,33 +63,46 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
             keysToRemove.push(key);
           }
         }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
+        keysToRemove.forEach((key) => localStorage.removeItem(key));
       }
-      
+
+      const supabase = createClient();
       await supabase.auth.signOut();
       router.replace('/');
     } catch (error) {
       console.error('Error signing out:', error);
       setIsSigningOut(false);
     }
-  };
+  }, [queryClient, router]);
 
-  const isActive = (path: string) => {
-    if (path === '/strategies') {
-      return pathname.startsWith('/strategies');
-    }
-    if (path === '/insight-vault') {
-      return pathname.startsWith('/insight-vault');
-    }
+  const isActive = useCallback((path: string) => {
+    if (path === '/strategies') return pathname.startsWith('/strategies');
+    if (path === '/insight-vault') return pathname.startsWith('/insight-vault');
     return pathname === path;
-  };
-  const navButtonClass = (active: boolean) =>
-    cn(
-      'gap-2 rounded-xl border transition-all duration-200',
-      'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 hover:border-slate-300/70',
-      'dark:text-slate-200 dark:hover:text-slate-50 dark:hover:bg-slate-800/70 dark:hover:border-slate-700/70',
-      active && 'themed-nav-active'
-    );
+  }, [pathname]);
+
+  const navButtonClass = useCallback((active: boolean) => cn(
+    'gap-2 rounded-xl border transition-all duration-200',
+    'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 hover:border-slate-300/70',
+    'dark:text-slate-200 dark:hover:text-slate-50 dark:hover:bg-slate-800/70 dark:hover:border-slate-700/70',
+    active && 'themed-nav-active'
+  ), []);
+
+  const openThemePicker = useCallback(() => setThemePickerOpen(true), []);
+  const closeThemePicker = useCallback(() => setThemePickerOpen(false), []);
+  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
+  const openThemePickerAndCloseMenu = useCallback(() => {
+    setMobileMenuOpen(false);
+    setThemePickerOpen(true);
+  }, []);
+
+  const handleSignOutMobile = useCallback(async () => {
+    setMobileMenuOpen(false);
+    await handleSignOut();
+  }, [handleSignOut]);
+
+  const isStrategiesActive = useMemo(() => isActive('/strategies'), [isActive]);
+  const isInsightVaultActive = useMemo(() => isActive('/insight-vault'), [isActive]);
 
   return (
     <>
@@ -121,7 +130,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   variant="ghost"
                   asChild
                   size="sm"
-                  className={navButtonClass(isActive('/strategies'))}
+                  className={navButtonClass(isStrategiesActive)}
                 >
                   <Link href="/strategies">
                     <Target className="h-4 w-4" />
@@ -134,7 +143,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   variant="ghost"
                   asChild
                   size="sm"
-                  className={navButtonClass(isActive('/insight-vault'))}
+                  className={navButtonClass(isInsightVaultActive)}
                 >
                   <Link href="/insight-vault">
                     <Lightbulb className="h-4 w-4" />
@@ -158,7 +167,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               type="button"
               size="sm"
               variant="ghost"
-              onClick={() => setThemePickerOpen(true)}
+              onClick={openThemePicker}
               className="cursor-pointer h-8 w-8 rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 p-0 flex items-center justify-center transition-colors duration-200"
               aria-label="Color theme"
             >
@@ -266,9 +275,9 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                 <Button
                   variant="ghost"
                   asChild
-                  className={cn('w-full justify-start', navButtonClass(isActive('/strategies')))}
+                  className={cn('w-full justify-start', navButtonClass(isStrategiesActive))}
                 >
-                  <Link href="/strategies" onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/strategies" onClick={closeMobileMenu}>
                     <Target className="h-4 w-4" />
                     My Strategies
                   </Link>
@@ -277,9 +286,9 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                 <Button
                   variant="ghost"
                   asChild
-                  className={cn('w-full justify-start', navButtonClass(isActive('/insight-vault')))}
+                  className={cn('w-full justify-start', navButtonClass(isInsightVaultActive))}
                 >
-                  <Link href="/insight-vault" onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/insight-vault" onClick={closeMobileMenu}>
                     <Lightbulb className="h-4 w-4" />
                     Insight Vault
                   </Link>
@@ -295,7 +304,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
 
                 {/* Mobile color theme picker */}
                 <button
-                  onClick={() => { setMobileMenuOpen(false); setThemePickerOpen(true); }}
+                  onClick={openThemePickerAndCloseMenu}
                   className="w-full flex items-center gap-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/60 dark:bg-slate-900/60 px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition-all"
                 >
                   <Palette className="h-4 w-4" />
@@ -345,10 +354,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                 <Button
                   variant="destructive"
                   className="relative h-9 px-4 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
-                  onClick={async () => {
-                    setMobileMenuOpen(false);
-                    await handleSignOut();
-                  }}
+                  onClick={handleSignOutMobile}
                   disabled={isSigningOut}
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
@@ -387,7 +393,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
       </div>
       </nav>
 
-      <ThemePickerModal open={themePickerOpen} onClose={() => setThemePickerOpen(false)} />
+      <ThemePickerModal open={themePickerOpen} onClose={closeThemePicker} />
     </>
   );
 }

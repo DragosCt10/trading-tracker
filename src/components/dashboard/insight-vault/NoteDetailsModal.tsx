@@ -9,8 +9,7 @@ import { useStrategies } from '@/hooks/useStrategies';
 import { getTradesForNoteLinking } from '@/lib/server/trades';
 import { AccountModePopover, type AccountModeSelection } from '@/components/shared/AccountModePopover';
 import { AlertCircle, Pencil, Trash2, Pin, X, FileText, Link2, Loader2 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { MarkdownRenderer } from '@/components/dynamicComponents';
 
 // shadcn UI components
 import { Button } from '@/components/ui/button';
@@ -529,22 +528,7 @@ export default function NoteDetailsModal({
                   <div className="border border-slate-200/60 dark:border-slate-600 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm">
                     {isPreview ? (
                       <div className="min-h-[400px] p-4 prose prose-slate dark:prose-invert max-w-none break-words [overflow-wrap:anywhere] [&_a]:underline [&_a]:[color:var(--tc-text)] dark:[&_a]:[color:var(--tc-text-dark)] [&_a]:decoration-[var(--tc-primary)]/50 hover:[&_a]:decoration-[var(--tc-primary)] [&_*]:break-words [&_*]:[overflow-wrap:anywhere]">
-                        <ReactMarkdown 
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            a: ({ node, ...props }) => (
-                              <a {...props} className="underline text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] decoration-[var(--tc-primary)]/50 hover:decoration-[var(--tc-primary)] break-words [overflow-wrap:anywhere]" />
-                            ),
-                            p: ({ node, ...props }) => (
-                              <p {...props} className="break-words [overflow-wrap:anywhere]" />
-                            ),
-                            code: ({ node, ...props }) => (
-                              <code {...props} className="break-words [overflow-wrap:anywhere]" />
-                            ),
-                          }}
-                        >
-                          {editedNote.content}
-                        </ReactMarkdown>
+                        <MarkdownRenderer content={editedNote.content} />
                       </div>
                     ) : (
                       <Textarea
@@ -701,22 +685,7 @@ export default function NoteDetailsModal({
 
                 {/* Content */}
                 <div className="prose prose-slate dark:prose-invert max-w-none min-h-[200px] p-4 bg-slate-50/50 dark:bg-slate-900/30 rounded-xl border border-slate-200/70 dark:border-slate-800/70 break-words [overflow-wrap:anywhere] [&_a]:underline [&_a]:[color:var(--tc-text)] dark:[&_a]:[color:var(--tc-text-dark)] [&_a]:decoration-[var(--tc-primary)]/50 hover:[&_a]:decoration-[var(--tc-primary)] [&_*]:break-words [&_*]:[overflow-wrap:anywhere]">
-                  <ReactMarkdown 
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      a: ({ node, ...props }) => (
-                        <a {...props} className="underline text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] decoration-[var(--tc-primary)]/50 hover:decoration-[var(--tc-primary)] break-words [overflow-wrap:anywhere]" />
-                      ),
-                      p: ({ node, ...props }) => (
-                        <p {...props} className="break-words [overflow-wrap:anywhere]" />
-                      ),
-                      code: ({ node, ...props }) => (
-                        <code {...props} className="break-words [overflow-wrap:anywhere]" />
-                      ),
-                    }}
-                  >
-                    {editedNote.content}
-                  </ReactMarkdown>
+                  <MarkdownRenderer content={editedNote.content} />
                 </div>
               </div>
             )}

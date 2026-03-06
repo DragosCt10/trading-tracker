@@ -16,13 +16,15 @@ import {
   DateRangeState,
   FilterType,
 } from '@/utils/dateRangeHelpers';
+import { queryKeys } from '@/lib/queryKeys';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
 interface MyTradesClientProps {
   /** User id from server (fallback when useUserDetails cache not yet hydrated) */
   initialUserId: string;
-  initialFilteredTrades: Trade[];
+  /** Only passed when there is no active account (empty array); otherwise data comes from prefetched cache */
+  initialFilteredTrades?: Trade[];
   initialDateRange: DateRangeState;
   initialMode: 'live' | 'backtesting' | 'demo';
   initialActiveAccount: AccountRow | null;
@@ -60,40 +62,38 @@ export default function MyTradesClient({
   // Resolve account: use selection when set, else initial from server (so query can run before action bar hydrates)
   const activeAccount = selection.activeAccount ?? initialActiveAccount;
 
-  // Initial server data is valid as long as mode + account match — date range is filtered client-side
-  const isInitialContext =
-    selection.mode === initialMode &&
-    activeAccount?.id === initialActiveAccount?.id;
-
-  // Single query: always fetch all trades for this strategy/account/mode.
+  // Single query: prefetched on server (one getFilteredTrades), so client uses hydrated cache when key matches.
   // Date range, market, and execution filtering all happen client-side on this dataset.
-  // Re-query only when mode or account changes.
   const {
     data: allTrades,
     isLoading: tradesLoading,
     isFetching: tradesFetching,
   } = useQuery<Trade[]>({
-    queryKey: ['myTrades-all', selection.mode, activeAccount?.id, userId, initialStrategyId],
+    queryKey: queryKeys.myTradesAll(
+      selection.mode ?? initialMode,
+      activeAccount?.id,
+      userId,
+      initialStrategyId
+    ),
     queryFn: async () => {
       if (!userId || !activeAccount?.id) return [];
       const { startDate, endDate } = createAllTimeRange();
       return getFilteredTrades({
         userId,
         accountId: activeAccount.id,
-        mode: selection.mode,
+        mode: (selection.mode ?? initialMode) as 'live' | 'backtesting' | 'demo',
         startDate,
         endDate,
         includeNonExecuted: true,
         strategyId: initialStrategyId,
       });
     },
-    initialData: isInitialContext ? initialFilteredTrades : undefined,
     enabled: !!userId && !!activeAccount?.id,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
   });
 
-  const baseList = allTrades ?? (isInitialContext ? initialFilteredTrades : []);
+  const baseList = allTrades ?? initialFilteredTrades ?? [];
 
   // Markets are derived from the full unfiltered dataset so the dropdown stays stable
   const markets = useMemo(
