@@ -15,17 +15,18 @@ import { useDarkMode } from '@/hooks/useDarkMode';
  * Parse trade_date string to a local Date object, avoiding timezone issues
  * Handles both ISO strings and date-only strings (YYYY-MM-DD)
  */
-function parseTradeDate(tradeDate: string | Date): Date {
+function parseTradeDate(tradeDate: string | Date | null | undefined): Date {
+  if (!tradeDate) return new Date();
   if (tradeDate instanceof Date) {
     return tradeDate;
   }
-  
+
   // If it's a date-only string (YYYY-MM-DD), parse it as local date
   if (typeof tradeDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(tradeDate)) {
     const [year, month, day] = tradeDate.split('-').map(Number);
     return new Date(year, month - 1, day);
   }
-  
+
   // For ISO strings with time, parse normally
   return new Date(tradeDate);
 }

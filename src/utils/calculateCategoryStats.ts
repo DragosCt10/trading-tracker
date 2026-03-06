@@ -130,7 +130,7 @@ export function calculateIntervalStats(
   return intervals.map(({ label, start, end }) => {
     // pull out the trades in this bucket
     const bucket = trades.filter(t =>
-      isTimeInInterval(normalizeTimeToHHMM(t.trade_time), start, end)
+      isTimeInInterval(normalizeTimeToHHMM(t.trade_time ?? '00:00'), start, end)
     );
 
     const breakEven = bucket.filter(t => t.break_even).length;
