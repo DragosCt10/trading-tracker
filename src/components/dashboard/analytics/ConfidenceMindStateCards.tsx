@@ -79,14 +79,6 @@ function NeedlePieChart({
     { name: 'empty', value: empty, fill: `url(#${emptyGradId})` },
   ];
 
-  const needleAngle = 180 - (clamped / 100) * 180;
-  const rad = (needleAngle * Math.PI) / 180;
-  const needleLen = 32;
-  const needleCx = 40;
-  const needleCy = 38;
-  const needleEndX = needleCx + needleLen * Math.cos(rad);
-  const needleEndY = needleCy - needleLen * Math.sin(rad);
-
   return (
     <div className="w-full h-full max-h-[200px] relative">
       <ResponsiveContainer width="100%" height="100%">
@@ -122,21 +114,9 @@ function NeedlePieChart({
           </Pie>
         </PieChart>
       </ResponsiveContainer>
-      {/* Center overlay: needle + value + label (avoids Recharts Label not rendering with percentage cx/cy) */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center pt-[18%] pointer-events-none">
-        <svg width={80} height={48} className="flex-shrink-0" aria-hidden>
-          <line
-            x1={needleCx}
-            y1={needleCy}
-            x2={needleEndX}
-            y2={needleEndY}
-            stroke={isDark ? '#e2e8f0' : '#334155'}
-            strokeWidth={2.5}
-            strokeLinecap="round"
-          />
-          <circle cx={needleCx} cy={needleCy} r={5} fill={isDark ? '#64748b' : '#94a3b8'} />
-        </svg>
-        <div className="text-center mt-0.5">
+      {/* Center overlay: value + label only (no needle) */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center pt-[6%] pointer-events-none">
+        <div className="text-center">
           <div
             className="text-xl font-bold tabular-nums"
             style={{ color: isDark ? '#e2e8f0' : '#1e293b' }}
