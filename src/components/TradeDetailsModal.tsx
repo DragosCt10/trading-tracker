@@ -13,9 +13,13 @@ interface TradeDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTradeUpdated?: () => void;
+  /** When true, panel is read-only (no edit/delete). Used on public share. */
+  readOnly?: boolean;
+  /** Strategy name to show in panel header (e.g. shared strategy name). */
+  strategyName?: string;
 }
 
-export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdated }: TradeDetailsModalProps) {
+export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdated, readOnly, strategyName }: TradeDetailsModalProps) {
   if (!isOpen || !trade) return null;
 
   return (
@@ -40,7 +44,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         <div className="absolute -top-px left-0 right-0 h-0.5 themed-accent-line rounded-t-2xl" />
 
         <AlertDialogTitle className="sr-only">Trade Details</AlertDialogTitle>
-        <TradeDetailsPanel trade={trade} onClose={onClose} onTradeUpdated={onTradeUpdated} />
+        <TradeDetailsPanel trade={trade} onClose={onClose} onTradeUpdated={onTradeUpdated} readOnly={readOnly} strategyName={strategyName} />
       </AlertDialogContent>
     </AlertDialog>
   );

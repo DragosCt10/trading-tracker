@@ -54,7 +54,7 @@ export default function AppLayout({
 
   return (
     <>
-      <div className="mt-48 max-w-(--breakpoint-xl) mx-auto flex min-h-screen flex-col">
+      <div className="mt-30 sm:mt-48 max-w-(--breakpoint-xl) mx-auto flex min-h-screen flex-col">
         <Navbar
           centerContent={showActionBar ? <ActionBar showAddButton={false} /> : undefined}
           mobileMenuExtra={

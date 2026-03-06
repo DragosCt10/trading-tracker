@@ -180,7 +180,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
             size="icon"
             onClick={() => setIsShareOpen(true)}
             disabled={!hasTrades || !isChartReady}
-            className="h-8 w-8 shrink-0 rounded-full border-slate-200/80 bg-slate-50/80 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-50 disabled:opacity-60 disabled:pointer-events-none"
+            className="h-8 w-8 cursor-pointer shrink-0 rounded-full border-slate-200/80 bg-slate-50/80 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-50 disabled:opacity-60 disabled:pointer-events-none"
             aria-label="Share strategy stats"
           >
             <Share2 className="h-4 w-4" />

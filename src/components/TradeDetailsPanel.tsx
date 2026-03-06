@@ -89,9 +89,13 @@ interface TradeDetailsPanelProps {
   onTradeUpdated?: () => void;
   /** When true, the panel stays open after saving (split-view mode) */
   inlineMode?: boolean;
+  /** When true, no edit/delete actions; view-only (e.g. public share). */
+  readOnly?: boolean;
+  /** Strategy name to show in top-right header (e.g. shared strategy name). */
+  strategyName?: string;
 }
 
-export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inlineMode }: TradeDetailsPanelProps) {
+export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inlineMode, readOnly = false, strategyName: strategyNameProp }: TradeDetailsPanelProps) {
   const params = useParams();
   const strategySlug = (params?.strategy as string | undefined) ?? '';
   const { selection } = useActionBarSelection();
@@ -174,10 +178,13 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     [currentStrategy?.saved_liquidity_types]
   );
 
-  const strategyName = useMemo(
+  const strategyNameFromStrategies = useMemo(
     () => strategies.find((s) => s.id === editedTrade?.strategy_id)?.name ?? '—',
     [strategies, editedTrade?.strategy_id]
   );
+  const strategyName = readOnly && strategyNameProp != null ? strategyNameProp : strategyNameFromStrategies;
+
+  const effectiveIsEditing = readOnly ? false : isEditing;
 
   const snapToHalfStep = (num: number) => Math.round(num * 2) / 2;
 
@@ -458,7 +465,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     if (!editedTrade) return null;
     const value = editedTrade[field];
 
-    if (!isEditing) {
+    if (!effectiveIsEditing) {
       if (type === 'boolean') {
         return (
           <div>
@@ -578,7 +585,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     if (field === 'risk_per_trade') {
       const numValue = typeof value === 'number' && !isNaN(value) ? value : 0;
       const displayValue = numValue.toFixed(2);
-      if (isEditing) {
+      if (effectiveIsEditing) {
         const num = value != null && !isNaN(Number(value)) ? Number(value) : null;
         return (
           <div>
@@ -662,8 +669,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               handleInputChange(field, val === '' ? '' : parseFloat(val));
             }}
             className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
-            disabled={!isEditing}
-            readOnly={!isEditing}
+            disabled={!effectiveIsEditing}
+            readOnly={!effectiveIsEditing}
           />
         </div>
       );
@@ -703,8 +710,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               }
             }}
             className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
-            disabled={!isEditing}
-            readOnly={!isEditing}
+            disabled={!effectiveIsEditing}
+            readOnly={!effectiveIsEditing}
           />
         </div>
       );
@@ -851,7 +858,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
           </div>
         );
     }
-  }, [isEditing, editedTrade, handleInputChange, settings.saved_markets, setupOptions, liquidityOptions]);
+  }, [effectiveIsEditing, editedTrade, handleInputChange, settings.saved_markets, setupOptions, liquidityOptions]);
 
   return (
     <>
@@ -863,7 +870,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               Trade Details
             </h2>
             <div className="flex items-center gap-3">
-              {/* Strategy name (read-only in view and edit) */}
+              {/* Strategy name in top-right (from prop when readOnly, else from strategies) */}
               <div className="max-w-[200px]">
                 <div className="text-right">
                   <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Strategy</span>
@@ -901,7 +908,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               <div>
                 <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Outcome</label>
                 <div className="mt-2">
-                  {!isEditing ? (
+                  {!effectiveIsEditing ? (
                     editedTrade?.trade_outcome === 'BE'
                       ? renderOutcomeBadge(editedTrade.trade_outcome)
                       : renderOutcomeBadges(editedTrade?.trade_outcome as string, editedTrade?.be_final_result)
@@ -926,7 +933,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 <div>
                   <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">After BE</label>
                   <div className="mt-2">
-                    {!isEditing ? (
+                    {!effectiveIsEditing ? (
                       editedTrade?.be_final_result
                         ? renderOutcomeBadge(editedTrade.be_final_result)
                         : <span className="text-sm text-slate-400 dark:text-slate-500">—</span>
@@ -961,13 +968,13 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 </div>
               </div>
               {hasCard('evaluation_stats') &&
-                (isEditing || (editedTrade?.evaluation != null && editedTrade.evaluation !== '')) && (
+                (effectiveIsEditing || (editedTrade?.evaluation != null && editedTrade.evaluation !== '')) && (
                   <div>
                     <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       Evaluation
                     </label>
                     <div className="mt-2">
-                      {!isEditing ? (
+                      {!effectiveIsEditing ? (
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold themed-badge-live">
                           {editedTrade?.evaluation}
                         </span>
@@ -1010,16 +1017,16 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                   {renderField('Date', 'trade_date')}
                   {renderField('Time', 'trade_time')}
                   {hasCard('trend_stats') &&
-                    (isEditing || (editedTrade?.trend != null && editedTrade.trend !== '')) &&
+                    (effectiveIsEditing || (editedTrade?.trend != null && editedTrade.trend !== '')) &&
                     renderField('Trend', 'trend', 'select', TREND_OPTIONS)}
                 </div>
                 <div className="space-y-3">
-                  {(isEditing || (editedTrade?.day_of_week != null && editedTrade.day_of_week !== '')) && renderField('Day', 'day_of_week', 'select', DAY_OF_WEEK_OPTIONS)}
+                  {(effectiveIsEditing || (editedTrade?.day_of_week != null && editedTrade.day_of_week !== '')) && renderField('Day', 'day_of_week', 'select', DAY_OF_WEEK_OPTIONS)}
                   {renderField('Market', 'market', 'market')}
                 </div>
                 <div className="space-y-3">
                   {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
-                  {hasCard('setup_stats') && (isEditing || (editedTrade?.setup_type != null && editedTrade.setup_type !== '')) && renderField('Pattern / Setup', 'setup_type', 'select', setupOptions)}
+                  {hasCard('setup_stats') && (effectiveIsEditing || (editedTrade?.setup_type != null && editedTrade.setup_type !== '')) && renderField('Pattern / Setup', 'setup_type', 'select', setupOptions)}
                 </div>
               </div>
             </div>
@@ -1039,20 +1046,20 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 </div>
                 <div className="space-y-3">
                   {hasCard('potential_rr') &&
-                    (isEditing ||
+                    (effectiveIsEditing ||
                       (editedTrade?.risk_reward_ratio_long != null &&
                         editedTrade.risk_reward_ratio_long !== undefined)) &&
                     renderField('Potential RR', 'risk_reward_ratio_long', 'number')}
                   {hasCard('sl_size_stats') &&
-                    (isEditing ||
+                    (effectiveIsEditing ||
                       (editedTrade?.sl_size != null && editedTrade.sl_size !== undefined)) &&
                     renderField('SL Size', 'sl_size', 'number')}
                 </div>
                 {(hasCard('displacement_size') || hasCard('avg_displacement') || hasCard('fvg_size') || hasCard('liquidity_stats')) && (
                   <div className="space-y-3">
                     {(hasCard('displacement_size') || hasCard('avg_displacement')) && renderField('Displacement', 'displacement_size', 'number')}
-                    {hasCard('fvg_size') && (isEditing || (editedTrade?.fvg_size != null && editedTrade.fvg_size !== undefined)) && renderField('FVG Size', 'fvg_size', 'number')}
-                    {hasCard('liquidity_stats') && (isEditing || (editedTrade?.liquidity != null && editedTrade.liquidity !== '')) && renderField('Conditions / Liq.', 'liquidity', 'select', liquidityOptions)}
+                    {hasCard('fvg_size') && (effectiveIsEditing || (editedTrade?.fvg_size != null && editedTrade.fvg_size !== undefined)) && renderField('FVG Size', 'fvg_size', 'number')}
+                    {hasCard('liquidity_stats') && (effectiveIsEditing || (editedTrade?.liquidity != null && editedTrade.liquidity !== '')) && renderField('Conditions / Liq.', 'liquidity', 'select', liquidityOptions)}
                   </div>
                 )}
               </div>
@@ -1068,7 +1075,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               Trade Conditions
             </h3>
 
-            {!isEditing ? (
+            {!effectiveIsEditing ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Execution */}
                 <div>
@@ -1213,7 +1220,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
           </div>
 
           {/* Trade Screenshots */}
-          {(isEditing || editedTrade?.trade_screens?.some((s) => s)) && (
+          {(effectiveIsEditing || editedTrade?.trade_screens?.some((s) => s)) && (
           <div className="rounded-xl bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 p-5">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
               <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--tc-primary)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -1222,7 +1229,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               Trade Screenshots
             </h3>
 
-            {!isEditing ? (
+            {!effectiveIsEditing ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[320px]">
                 {(editedTrade?.trade_screens ?? []).map((url, i) =>
                   url ? (
@@ -1339,8 +1346,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             <Textarea
               value={editedTrade?.notes ?? ''}
               onChange={(e) => handleInputChange('notes', e.target.value)}
-              disabled={!isEditing}
-              readOnly={!isEditing}
+              disabled={!effectiveIsEditing}
+              readOnly={!effectiveIsEditing}
               className="min-h-[320px] bg-slate-100/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm rounded-xl border border-slate-200/50 dark:border-slate-700/50 disabled:!opacity-100 themed-focus transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100 disabled:cursor-not-allowed read-only:cursor-default"
               placeholder="Add your trade notes here..."
             />
@@ -1365,7 +1372,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                     <button
                       key={value}
                       type="button"
-                      disabled={!isEditing}
+                      disabled={!effectiveIsEditing}
                       onClick={() => handleInputChange('confidence_at_entry', value)}
                       className={`min-w-[2.25rem] px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden ${
                         editedTrade?.confidence_at_entry === value
@@ -1404,7 +1411,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                     <button
                       key={value}
                       type="button"
-                      disabled={!isEditing}
+                      disabled={!effectiveIsEditing}
                       onClick={() => handleInputChange('mind_state_at_entry', value)}
                       className={`min-w-[2.25rem] px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden ${
                         editedTrade?.mind_state_at_entry === value
@@ -1426,7 +1433,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             </div>
           </div>
 
-          {/* Delete confirm AlertDialog */}
+          {/* Delete confirm AlertDialog (hidden in read-only mode) */}
+          {!readOnly && (
           <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => { setShowDeleteConfirm(open); if (!open) setError(null); }}>
             <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient !rounded-2xl">
               <AlertDialogHeader>
@@ -1460,6 +1468,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          )}
 
           {error && (
             <div className="rounded-lg bg-red-500/10 backdrop-blur-sm p-3 border border-red-500/20">
@@ -1467,9 +1476,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             </div>
           )}
 
-          {/* Action Buttons */}
+          {/* Action Buttons (hidden in read-only mode) */}
+          {!readOnly && (
           <div className="flex justify-end gap-3 pt-2">
-            {!isEditing ? (
+            {!effectiveIsEditing ? (
               <>
                 <Button
                   onClick={() => setIsEditing(true)}
@@ -1514,6 +1524,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               </>
             )}
           </div>
+          )}
         </div>
         </TooltipProvider>
       </div>

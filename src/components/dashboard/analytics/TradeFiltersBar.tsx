@@ -25,7 +25,9 @@ export interface DateRangeValue {
   endDate: string;   // yyyy-MM-dd
 }
 
-interface TradeFiltersBarProps {
+type FullTradeFiltersBarProps = {
+  /** default */
+  variant?: 'full';
   dateRange: DateRangeValue;
   onDateRangeChange: (range: DateRangeValue) => void;
 
@@ -46,21 +48,20 @@ interface TradeFiltersBarProps {
   onSelectedExecutionChange: (execution: 'all' | 'executed' | 'nonExecuted') => void;
   /** Show "All" option in execution filter (for my-trades page) */
   showAllTradesOption?: boolean;
-}
+};
 
-export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
-  dateRange,
-  onDateRangeChange,
-  activeFilter,
-  onFilterChange,
-  isCustomRange,
-  selectedMarket,
-  onSelectedMarketChange,
-  markets,
-  selectedExecution,
-  onSelectedExecutionChange,
-  showAllTradesOption = false,
-}) => {
+type MarketOnlyTradeFiltersBarProps = {
+  variant: 'marketOnly';
+
+  /** market dropdown */
+  selectedMarket: string;
+  onSelectedMarketChange: (market: string) => void;
+  markets: string[];
+};
+
+type TradeFiltersBarProps = FullTradeFiltersBarProps | MarketOnlyTradeFiltersBarProps;
+
+export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
   const { colorTheme } = useColorTheme();
   const rangeColor = React.useMemo(() => {
     if (typeof window === 'undefined') return '#a855f7';
@@ -69,6 +70,52 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = ({
       .trim();
     return value || '#a855f7';
   }, [colorTheme]);
+
+  if (props.variant === 'marketOnly') {
+    const { selectedMarket, onSelectedMarketChange, markets } = props;
+    return (
+      <Card className="mb-4 z-1 relative border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+        <div className="flex flex-wrap items-center gap-3 px-4 py-2.5">
+          {/* Market filter */}
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
+              Market:
+            </span>
+            <Select value={selectedMarket} onValueChange={onSelectedMarketChange}>
+              <SelectTrigger
+                className="flex w-28 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                suppressHydrationWarning
+              >
+                <SelectValue placeholder="All Markets" />
+              </SelectTrigger>
+              <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+                <SelectItem value="all">All Markets</SelectItem>
+                {markets.map((market) => (
+                  <SelectItem key={market} value={market}>
+                    {market}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  const {
+    dateRange,
+    onDateRangeChange,
+    activeFilter,
+    onFilterChange,
+    isCustomRange,
+    selectedMarket,
+    onSelectedMarketChange,
+    markets,
+    selectedExecution,
+    onSelectedExecutionChange,
+    showAllTradesOption = false,
+  } = props;
 
   const [showDatePicker, setShowDatePicker] = React.useState(false);
   const [tempRange, setTempRange] = React.useState<DateRangeValue>(dateRange);

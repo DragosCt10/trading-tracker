@@ -1,5 +1,6 @@
 'use server';
 
+import { cache } from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import type { Database } from '@/types/supabase';
@@ -193,11 +194,12 @@ export async function getUserStrategies(userId: string): Promise<Strategy[]> {
  * Gets a strategy by slug for a specific user.
  * Validates ownership to ensure users can only access their own strategies.
  * Returns both active and inactive strategies (allows access to historical analytics).
+ * Memoized per-request with React cache() to avoid duplicate DB calls within one render.
  */
-export async function getStrategyBySlug(
+export const getStrategyBySlug = cache(async (
   userId: string,
   slug: string
-): Promise<Strategy | null> {
+): Promise<Strategy | null> => {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -217,7 +219,7 @@ export async function getStrategyBySlug(
   }
 
   return data as Strategy;
-}
+});
 
 /**
  * Creates a new strategy for the current user.

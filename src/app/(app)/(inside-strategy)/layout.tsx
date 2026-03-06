@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 // Dynamically import NewTradeModal with SSR disabled to prevent hydration errors
 const NewTradeModal = dynamic(() => import('@/components/NewTradeModal'), {
   ssr: false,
+  loading: () => null,
 });
 
 interface InsideStrategyLayoutProps {
