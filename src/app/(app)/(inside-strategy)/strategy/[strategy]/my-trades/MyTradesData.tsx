@@ -44,7 +44,8 @@ async function MyTradesDataFetcher({
 
   // Single getFilteredTrades call: prefetch for client cache so client useQuery uses hydrated data (no duplicate fetch)
   const queryClient = new QueryClient();
-  const key = queryKeys.myTradesAll('live', activeAccount.id, user.id, initialStrategyId);
+  // Use the same key shape that StrategiesClient seeds — guarantees a cache hit when navigating from Strategies
+  const key = queryKeys.trades.filtered('live', activeAccount.id, user.id, 'dateRange', '2000-01-01', initialDateRange.endDate, initialStrategyId);
   await queryClient.prefetchQuery({
     queryKey: key,
     queryFn: async () => {

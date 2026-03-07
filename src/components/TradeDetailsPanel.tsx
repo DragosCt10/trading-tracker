@@ -170,7 +170,6 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         // Per-strategy queries — only invalidate the affected strategy/ies
         if (firstKey === 'allTrades') return affectedStrategyIds.has((key[5] ?? null) as string | null);
         if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return affectedStrategyIds.has((key[7] ?? null) as string | null);
-        if (firstKey === 'myTrades-all') return affectedStrategyIds.has((key[4] ?? null) as string | null);
         return false;
       },
     });

@@ -269,7 +269,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       // Per-strategy queries — only invalidate the affected strategy
       if (firstKey === 'allTrades') return (key[5] ?? null) === strategyId;
       if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return (key[7] ?? null) === strategyId;
-      if (firstKey === 'myTrades-all') return (key[4] ?? null) === strategyId;
       return false;
     }});
     
@@ -313,7 +312,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         if (firstKey === 'all-strategy-trades' || firstKey === 'all-strategy-stats') return true;
         if (firstKey === 'allTrades') return (key[5] ?? null) === strategyId;
         if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return (key[7] ?? null) === strategyId;
-        if (firstKey === 'myTrades-all') return (key[4] ?? null) === strategyId;
         return false;
       },
       type: 'active',
