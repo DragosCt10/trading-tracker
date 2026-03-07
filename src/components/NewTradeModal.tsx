@@ -343,6 +343,19 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     }
   }, [trade.trade_outcome, trade.risk_reward_ratio_long]);
 
+  // When Win outcome: clear Potential R:R if the current selection is no longer valid
+  // (i.e. it's <= the R:R ratio, meaning it must be at least RR + 0.5)
+  useEffect(() => {
+    if (
+      trade.trade_outcome === 'Win' &&
+      trade.risk_reward_ratio_long != null &&
+      Number(trade.risk_reward_ratio_long) > 0 &&
+      Number(trade.risk_reward_ratio_long) <= Number(trade.risk_reward_ratio ?? 0)
+    ) {
+      setTrade((prev) => ({ ...prev, risk_reward_ratio_long: undefined as any }));
+    }
+  }, [trade.risk_reward_ratio, trade.trade_outcome]);
+
   // -------- Derived calculations --------
   const accountBalance = selection.activeAccount?.account_balance ?? 0;
   const currency = selection.activeAccount?.currency === 'EUR' ? '€' : '$';
@@ -526,15 +539,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     }
     if (hasCard('mss_stats') && !currentTrade.mss) {
       setError('Please fill in the MSS field.');
-      return;
-    }
-    if (
-      hasCard('potential_rr') &&
-      currentTrade.trade_outcome === 'Win' &&
-      (currentTrade.risk_reward_ratio_long == null ||
-        currentTrade.risk_reward_ratio_long === undefined)
-    ) {
-      setError('Please select Potential Risk:Reward Ratio.');
       return;
     }
     if (hasCard('evaluation_stats') && !currentTrade.evaluation?.trim()) {
@@ -1518,6 +1522,7 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
               />
             ) : (
               <Select
+                disabled={!tradeOutcome || Number(riskRewardRatio ?? 0) <= 0}
                 value={
                   riskRewardRatioLong && riskRewardRatioLong > 0
                     ? String(riskRewardRatioLong)
@@ -1530,25 +1535,30 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
                   )
                 }
               >
-                <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                  <SelectValue placeholder="Select ratio (1 – 10 or 10+)" />
+                <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <SelectValue placeholder={
+                    !tradeOutcome
+                      ? 'Select Trade Outcome first'
+                      : Number(riskRewardRatio ?? 0) <= 0
+                      ? 'Set R:R Ratio first'
+                      : 'Select ratio (1 – 10 or 10+)'
+                  } />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">No potential R:R</SelectItem>
-                  {POTENTIAL_RR_OPTIONS.map((opt) => {
-                    const baseValue = Number(riskRewardRatio ?? 0);
-                    const disabled =
-                      tradeOutcome === 'Win' && opt.value <= baseValue;
-                    return (
-                      <SelectItem
-                        key={opt.value}
-                        value={String(opt.value)}
-                        disabled={disabled}
-                      >
+                  {POTENTIAL_RR_OPTIONS
+                    .filter((opt) => {
+                      if (tradeOutcome !== 'Win') return true;
+                      const baseValue = Number(riskRewardRatio ?? 0);
+                      // Only show options strictly higher than the RR ratio (minimum +0.5).
+                      // When RR is not set (0), no preset options are valid yet.
+                      return baseValue > 0 && opt.value > baseValue;
+                    })
+                    .map((opt) => (
+                      <SelectItem key={opt.value} value={String(opt.value)}>
                         {opt.label}
                       </SelectItem>
-                    );
-                  })}
+                    ))}
                 </SelectContent>
               </Select>
             )}
