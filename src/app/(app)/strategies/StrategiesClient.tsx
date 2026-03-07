@@ -31,6 +31,13 @@ import { queryKeys } from '@/lib/queryKeys';
 import { Target, Archive, RotateCcw, Trash2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -62,6 +69,10 @@ export function StrategiesClient() {
   const [headerEditTitle, setHeaderEditTitle] = useState('');
   const [headerEditDescription, setHeaderEditDescription] = useState('');
   const [headerEditSaving, setHeaderEditSaving] = useState(false);
+
+  // Sort strategies by metric (default = original order)
+  type SortByOption = 'default' | 'winRate' | 'totalRR' | 'totalTrades';
+  const [sortBy, setSortBy] = useState<SortByOption>('default');
 
   // Get active account
   const activeAccount = accounts.find((a) => a.is_active) ?? accounts[0] ?? null;
@@ -131,6 +142,19 @@ export function StrategiesClient() {
     }
     return out;
   }, [allStrategyTrades, strategies]);
+
+  // Sort strategies by selected metric (highest first)
+  const sortedStrategies = useMemo(() => {
+    if (sortBy === 'default') return [...strategies];
+    const sorted = [...strategies].sort((a, b) => {
+      const statsA = allStrategyStats[a.id];
+      const statsB = allStrategyStats[b.id];
+      const valA = statsA ? (sortBy === 'winRate' ? statsA.winRate : sortBy === 'totalRR' ? statsA.totalRR : statsA.totalTrades) : -Infinity;
+      const valB = statsB ? (sortBy === 'winRate' ? statsB.winRate : sortBy === 'totalRR' ? statsB.totalRR : statsB.totalTrades) : -Infinity;
+      return valB - valA; // descending (highest first)
+    });
+    return sorted;
+  }, [strategies, allStrategyStats, sortBy]);
 
   // Fetch archived (inactive) strategies
   const {
@@ -252,16 +276,17 @@ export function StrategiesClient() {
               <Pencil className="h-4 w-4" />
             </Button>
           </div>
-          <AlertDialog open={isArchivedSheetOpen} onOpenChange={setIsArchivedSheetOpen}>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                className="flex cursor-pointer items-center gap-2 h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 text-xs sm:text-sm font-medium transition-colors duration-200"
-              >
-                <Archive className="h-4 w-4" />
-                <span>Archived</span>
-              </Button>
-            </AlertDialogTrigger>
+          <div className="flex items-center gap-2 flex-wrap">
+            <AlertDialog open={isArchivedSheetOpen} onOpenChange={setIsArchivedSheetOpen}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="flex cursor-pointer items-center gap-2 h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 text-xs sm:text-sm font-medium transition-colors duration-200"
+                >
+                  <Archive className="h-4 w-4" />
+                  <span>Archived</span>
+                </Button>
+              </AlertDialogTrigger>
             <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl px-6 py-5">
               {/* Gradient orbs background */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
@@ -481,6 +506,7 @@ export function StrategiesClient() {
               </div>
             </AlertDialogContent>
           </AlertDialog>
+          </div>
         </div>
         <p className="text-sm text-slate-600 dark:text-slate-400 ml-[52px]">
           {strategiesDescription}
@@ -584,6 +610,25 @@ export function StrategiesClient() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Sort strategies: above the cards */}
+      <div className="flex items-center gap-2" aria-label="Sort strategies">
+        <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Order by:</span>
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>
+          <SelectTrigger
+            className="h-8 w-[10rem] rounded-xl border border-slate-200/80 bg-slate-100/60 dark:border-slate-700/80 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 text-xs font-medium cursor-pointer"
+            aria-label="Sort by"
+          >
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
+            <SelectItem value="default">Default order</SelectItem>
+            <SelectItem value="winRate">Win rate (high → low)</SelectItem>
+            <SelectItem value="totalRR">RR total (high → low)</SelectItem>
+            <SelectItem value="totalTrades">Total trades (high → low)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Strategies Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {strategiesLoading ? (
@@ -628,7 +673,7 @@ export function StrategiesClient() {
           ))
         ) : (
           <>
-            {strategies.map((strategy) => {
+            {sortedStrategies.map((strategy) => {
               const trades = allStrategyTrades?.[strategy.id] ?? [];
               // Use aggregated stats from trades table (dynamically based on mode)
               const aggregatedStats = allStrategyStats?.[strategy.id];
