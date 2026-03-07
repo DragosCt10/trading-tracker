@@ -60,7 +60,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
 import { updateStrategySetupTypes, updateStrategyLiquidityTypes } from '@/lib/server/strategies';
 
-const MSS_OPTIONS = ['Normal', 'Aggressive'];
+const MSS_OPTIONS = ['Normal', 'Aggressive', 'Wick', 'Internal'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 
 // FVG Size: preset list 0.5, 1, 1.5, 2, 2.5, 3 (0.5 steps). Custom (3+) for 3.5, 4, 4.5, ...
