@@ -6,6 +6,7 @@ import { getActiveAccountForMode } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
 import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import { queryKeys } from '@/lib/queryKeys';
+import { TRADES_DATA } from '@/constants/queryConfig';
 import MyTradesClient from './MyTradesClient';
 import { MyTradesSkeleton } from './MyTradesSkeleton';
 import type { User } from '@supabase/supabase-js';
@@ -58,7 +59,7 @@ async function MyTradesDataFetcher({
         strategyId: initialStrategyId,
       });
     },
-    staleTime: 2 * 60 * 1000,
+    staleTime: TRADES_DATA.staleTime,
   });
 
   return (

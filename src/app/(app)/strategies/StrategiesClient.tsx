@@ -8,6 +8,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useQuery } from '@tanstack/react-query';
+import { TRADES_DATA } from '@/constants/queryConfig';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { computeStrategyStatsRowFromTrades, type StrategyStatsRow } from '@/utils/calculateRMultiple';
 import { StrategyCard } from '@/components/dashboard/strategy/StrategyCard';
@@ -97,8 +98,7 @@ export function StrategiesClient() {
       }, {} as Record<string, Trade[]>);
     },
     enabled: !!userId && !!activeAccount?.id && !!mode && strategies.length > 0,
-    staleTime: 2 * 60_000, // 2 min — avoid refetch on every strategies list visit
-    gcTime: 5 * 60_000,
+    ...TRADES_DATA,
   });
 
   // Seed per-strategy filtered-trades cache so strategy pages get a cache hit for "All Trades"

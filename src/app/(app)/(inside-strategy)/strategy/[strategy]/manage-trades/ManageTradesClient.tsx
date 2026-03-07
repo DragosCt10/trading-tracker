@@ -6,6 +6,7 @@ import TradeDetailsModal from '@/components/TradeDetailsModal';
 import NotesModal from '@/components/NotesModal';
 import ImportTradesModal from '@/components/ImportTradesModal';
 import { useQuery } from '@tanstack/react-query';
+import { TRADES_DATA } from '@/constants/queryConfig';
 import { format } from 'date-fns';
 import {
   isCustomDateRange,
@@ -186,8 +187,7 @@ export default function ManageTradesClient({
     },
     initialData: isInitialContext ? initialTrades : undefined,
     enabled: !!userId && !!activeAccount?.id,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    ...TRADES_DATA,
   });
 
   const allTradesData = rawTrades ?? (isInitialContext ? initialTrades : []);
