@@ -74,7 +74,6 @@ import type {
   RiskAnalysis,
 } from '@/types/dashboard';
 
-export type { EvaluationStat };
 
 export type DashboardStatsResult = {
   stats: Stats;
