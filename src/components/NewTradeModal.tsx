@@ -259,19 +259,18 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     const strategyId = params?.strategyId ?? null;
     const effectiveUserId = params?.userId ?? userId;
     
-    // Invalidate all trade-related queries (marks as stale but keeps them so refetch works)
+    // Invalidate trade-related queries — scoped to the affected strategy
     await queryClient.invalidateQueries({ predicate: (query) => {
       const key = query.queryKey;
       if (!Array.isArray(key)) return false;
       const firstKey = key[0];
-      return (
-        firstKey === 'allTrades' ||
-        firstKey === 'filteredTrades' ||
-        firstKey === 'nonExecutedTrades' ||
-        firstKey === 'discoverTrades' ||
-        firstKey === 'all-strategy-trades' ||
-        firstKey === 'all-strategy-stats'
-      );
+      // Global caches span all strategies — always invalidate
+      if (firstKey === 'all-strategy-trades' || firstKey === 'all-strategy-stats') return true;
+      // Per-strategy queries — only invalidate the affected strategy
+      if (firstKey === 'allTrades') return (key[5] ?? null) === strategyId;
+      if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return (key[7] ?? null) === strategyId;
+      if (firstKey === 'myTrades-all') return (key[4] ?? null) === strategyId;
+      return false;
     }});
     
     // Explicitly refetch queries for the current strategy (ensures calendar updates immediately)
@@ -305,20 +304,17 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       });
     }
     
-    // Compatibility/safety: refetch only active *trade-related* queries (avoid global active refetch)
+    // Safety: refetch only active trade-related queries for the affected strategy
     await queryClient.refetchQueries({
       predicate: (query) => {
         const key = query.queryKey;
         if (!Array.isArray(key)) return false;
         const firstKey = key[0];
-        return (
-          firstKey === 'allTrades' ||
-          firstKey === 'filteredTrades' ||
-          firstKey === 'nonExecutedTrades' ||
-          firstKey === 'discoverTrades' ||
-          firstKey === 'all-strategy-trades' ||
-          firstKey === 'all-strategy-stats'
-        );
+        if (firstKey === 'all-strategy-trades' || firstKey === 'all-strategy-stats') return true;
+        if (firstKey === 'allTrades') return (key[5] ?? null) === strategyId;
+        if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return (key[7] ?? null) === strategyId;
+        if (firstKey === 'myTrades-all') return (key[4] ?? null) === strategyId;
+        return false;
       },
       type: 'active',
     });
