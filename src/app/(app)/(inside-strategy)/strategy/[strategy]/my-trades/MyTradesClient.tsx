@@ -5,6 +5,7 @@ import { Trade } from '@/types/trade';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { TRADES_DATA } from '@/constants/queryConfig';
 import { TradeFiltersBar, DateRangeValue } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { getFilteredTrades } from '@/lib/server/trades';
 import type { Database } from '@/types/supabase';
@@ -89,8 +90,7 @@ export default function MyTradesClient({
       });
     },
     enabled: !!userId && !!activeAccount?.id,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    ...TRADES_DATA,
   });
 
   const baseList = allTrades ?? initialFilteredTrades ?? [];

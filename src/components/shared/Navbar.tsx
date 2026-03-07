@@ -114,7 +114,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               href="/"
               className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-50"
             >
-              <Logo width={37} height={37} />
+              <Logo width={35} height={35} />
               <span className="hidden sm:inline text-sm font-semibold tracking-tight">
                 AlphaStats
               </span>

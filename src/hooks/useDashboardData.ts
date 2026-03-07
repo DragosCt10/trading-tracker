@@ -4,6 +4,7 @@ import { AccountSettings } from '@/types/account-settings';
 import { useQuery } from '@tanstack/react-query';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { queryKeys } from '@/lib/queryKeys';
+import { TRADES_DATA } from '@/constants/queryConfig';
 import { calculateMonthlyStats } from '@/utils/calculateMonthlyState';
 import { calculateMacroStats } from '@/utils/calculateMacroStats';
 import { calculateWinRates } from '@/utils/calculateWinRates';
@@ -187,8 +188,7 @@ export function useDashboardData({
       }
     },
     enabled: queryEnabled,
-    staleTime: 2 * 60 * 1000, // 2 minutes - reduces refetches while keeping data fresh
-    gcTime: 5 * 60_000,
+    ...TRADES_DATA,
   });
 
   // Determine the date range to use for filtered trades based on viewMode
@@ -243,8 +243,7 @@ export function useDashboardData({
       !!effectiveDateRange.startDate &&
       !!effectiveDateRange.endDate &&
       !!mode,
-    staleTime: 2 * 60 * 1000, // 2 minutes - reduces refetches while keeping data fresh
-    gcTime: 5 * 60_000,
+    ...TRADES_DATA,
   });
 
   // OPTIMIZATION: In yearly mode, derive non-executed trades from allTrades instead of making a network call
@@ -310,8 +309,7 @@ export function useDashboardData({
       !!activeAccount?.id && 
       !!effectiveDateRange.startDate && 
       !!effectiveDateRange.endDate,
-    staleTime: 2 * 60 * 1000, // 2 minutes - reduces refetches while keeping data fresh
-    gcTime: 5 * 60_000,
+    ...TRADES_DATA,
   });
 
   // OPTIMIZATION: In yearly mode, reuse allTrades instead of making a separate network call
