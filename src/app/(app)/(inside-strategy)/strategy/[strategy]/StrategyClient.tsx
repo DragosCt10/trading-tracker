@@ -394,6 +394,8 @@ export default function StrategyClient(
     yearlyPartialsBECount,
     allTradesRiskStats,
     riskStats,
+    tradeMonths,
+    isLoadingStats,
   } = useDashboardData({
     session: userData?.session,
     dateRange,
@@ -401,12 +403,12 @@ export default function StrategyClient(
     activeAccount: (resolvedAccount ?? null) as AccountSettings | null,
     contextLoading: actionBarloading,
     isSessionLoading: userLoading,
-    currentDate,
     calendarDateRange,
     selectedYear,
     selectedMarket,
     strategyId,
     viewMode,
+    selectedExecution,
   });
 
   // Calendar navigation logic
@@ -420,10 +422,8 @@ export default function StrategyClient(
     selectedYear,
     selectedMarket,
     selectedExecution,
-    allTrades,
-    filteredTrades,
-    nonExecutedTrades,
-    filteredTradesLoading,
+    tradeMonths,
+    statsLoading: isLoadingStats,
     setCurrentDate,
     setCalendarDateRange,
     setSelectedYear,
@@ -734,15 +734,16 @@ export default function StrategyClient(
   // In yearly mode with no filters, use hook stats
   // Uses shared computeStrategyStatsFromTrades (same as ShareStrategyClient for Consistency & drawdown and Performance ratios)
   const filteredStats = useMemo(() => {
+    const safeStats = stats ?? ({} as typeof stats & object);
     const computed = computeStrategyStatsFromTrades({
       tradesToUse,
       accountBalance: selection.activeAccount?.account_balance || 0,
       selectedExecution,
       viewMode,
       selectedMarket,
-      statsFromHook: { tradeQualityIndex: stats.tradeQualityIndex, multipleR: stats.multipleR },
+      statsFromHook: { tradeQualityIndex: safeStats?.tradeQualityIndex ?? 0, multipleR: safeStats?.multipleR ?? 0 },
     });
-    return { ...stats, ...computed };
+    return { ...(safeStats ?? {}), ...computed };
   }, [viewMode, tradesToUse, selectedMarket, selectedExecution, stats, selection.activeAccount?.account_balance]);
 
   // Always use filteredStats to ensure consistent drawdown calculations between yearly and date range modes
@@ -763,7 +764,7 @@ export default function StrategyClient(
       nonExecutedTotalTradesCount,
       yearlyPartialTradesCount,
       yearlyPartialsBECount,
-      macroStats,
+      macroStats: macroStats ?? {},
     });
   }, [viewMode, selectedMarket, tradesToUse, statsToUse, monthlyStatsToUse, nonExecutedTrades, nonExecutedTotalTradesCount, yearlyPartialTradesCount, yearlyPartialsBECount, macroStats]);
 
