@@ -615,7 +615,7 @@ export function StrategiesClient() {
         <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Order by:</span>
         <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>
           <SelectTrigger
-            className="h-8 w-[10rem] rounded-xl border border-slate-200/80 bg-slate-100/60 dark:border-slate-700/80 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 text-xs font-medium cursor-pointer"
+            className="h-8 w-[10rem] rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 text-xs font-medium cursor-pointer transition-colors duration-200"
             aria-label="Sort by"
           >
             <SelectValue placeholder="Sort by" />
