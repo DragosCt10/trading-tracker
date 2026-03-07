@@ -80,6 +80,22 @@ interface PieDatum {
 
 type PieColor = 'blue' | 'purple' | 'teal' | 'amber';
 const MSS_COLORS: PieColor[] = ['blue', 'purple', 'teal', 'amber'];
+/** Map MSS option to legend/pie color so chart and bottom legend always match. Accepts legacy values for existing data. */
+const MSS_NAME_TO_COLOR: Record<string, PieColor> = {
+  Normal: 'blue',
+  Aggressive: 'purple',
+  Wick: 'teal',
+  Internal: 'amber',
+  'w/wick': 'teal',
+  internal: 'amber',
+};
+/** Gradient id per color so pie Cell uses the same color as the legend. */
+const PIE_COLOR_TO_GRADIENT_ID: Record<PieColor, string> = {
+  blue: 'mssGradBlue',
+  purple: 'mssGradPurple',
+  teal: 'mssGradTeal',
+  amber: 'mssGradAmber',
+};
 
 export const MSSStatisticsCard: React.FC<MSSStatisticsCardProps> = React.memo(
   function MSSStatisticsCard({ mssStats, isLoading: externalLoading, includeTotalTrades = false }) {
@@ -111,11 +127,12 @@ export const MSSStatisticsCard: React.FC<MSSStatisticsCardProps> = React.memo(
 
     const pieDataRaw: PieDatum[] = mssStats.map((stat, index) => {
       const value = stat.total ?? (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.breakEven ?? 0);
+      const name = stat.mss ?? 'Unknown';
       return {
-        name: stat.mss ?? 'Unknown',
+        name,
         value,
         percentage: totalTrades > 0 ? (value / totalTrades) * 100 : 0,
-        color: MSS_COLORS[index % MSS_COLORS.length],
+        color: MSS_NAME_TO_COLOR[name] ?? MSS_COLORS[index % MSS_COLORS.length],
         wins: stat.wins ?? 0,
         losses: stat.losses ?? 0,
         breakEven: stat.breakEven ?? 0,
@@ -125,11 +142,20 @@ export const MSSStatisticsCard: React.FC<MSSStatisticsCardProps> = React.memo(
     });
     const pieData = pieDataRaw.filter((item) => item.value > 0);
 
-    // Bottom legend: always show Normal and Aggressive with count (0 if none)
-    const legendItems: { name: string; value: number; color: PieColor }[] = [
-      { name: 'Normal', value: pieDataRaw.find((d) => d.name === 'Normal')?.value ?? 0, color: 'blue' },
-      { name: 'Aggressive', value: pieDataRaw.find((d) => d.name === 'Aggressive')?.value ?? 0, color: 'purple' },
+    // Bottom legend: show all MSS options with count (0 if none); dataKeys include legacy DB values for existing trades.
+    const MSS_LEGEND_ORDER: { name: string; color: PieColor; dataKeys: string[] }[] = [
+      { name: 'Normal', color: 'blue', dataKeys: ['Normal'] },
+      { name: 'Aggressive', color: 'purple', dataKeys: ['Aggressive'] },
+      { name: 'Wick', color: 'teal', dataKeys: ['Wick'] },
+      { name: 'Internal', color: 'amber', dataKeys: ['Internal'] },
     ];
+    const legendItems: { name: string; value: number; color: PieColor }[] = MSS_LEGEND_ORDER.map(
+      ({ name, color, dataKeys }) => ({
+        name,
+        value: pieDataRaw.reduce((sum, d) => sum + (dataKeys.includes(d.name) ? d.value : 0), 0),
+        color,
+      })
+    );
 
     const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: { payload: PieDatum }[] }) => {
       if (!active || !payload?.length) return null;
@@ -242,22 +268,22 @@ export const MSSStatisticsCard: React.FC<MSSStatisticsCardProps> = React.memo(
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <defs>
-                    <linearGradient id="mssGrad0" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="mssGradBlue" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
                       <stop offset="50%" stopColor="#2563eb" stopOpacity={0.95} />
                       <stop offset="100%" stopColor="#1d4ed8" stopOpacity={0.9} />
                     </linearGradient>
-                    <linearGradient id="mssGrad1" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="mssGradPurple" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#a855f7" stopOpacity={1} />
                       <stop offset="50%" stopColor="#9333ea" stopOpacity={0.95} />
                       <stop offset="100%" stopColor="#7e22ce" stopOpacity={0.9} />
                     </linearGradient>
-                    <linearGradient id="mssGrad2" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="mssGradTeal" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#14b8a6" stopOpacity={1} />
                       <stop offset="50%" stopColor="#0d9488" stopOpacity={0.95} />
                       <stop offset="100%" stopColor="#0f766e" stopOpacity={0.9} />
                     </linearGradient>
-                    <linearGradient id="mssGrad3" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="mssGradAmber" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
                       <stop offset="50%" stopColor="#d97706" stopOpacity={0.95} />
                       <stop offset="100%" stopColor="#b45309" stopOpacity={0.9} />
@@ -274,8 +300,8 @@ export const MSSStatisticsCard: React.FC<MSSStatisticsCardProps> = React.memo(
                     dataKey="value"
                   >
                     {pieData.map((entry, index) => {
-                      const gradientId = `mssGrad${index}`;
-                      return <Cell key={`cell-${index}`} fill={`url(#${gradientId})`} stroke="none" />;
+                      const gradientId = PIE_COLOR_TO_GRADIENT_ID[entry.color];
+                      return <Cell key={`cell-${entry.name}-${index}`} fill={`url(#${gradientId})`} stroke="none" />;
                     })}
                   </Pie>
                   <Tooltip
