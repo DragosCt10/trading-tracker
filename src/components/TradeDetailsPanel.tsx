@@ -150,28 +150,31 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     return () => clearTimeout(t);
   }, [error]);
 
-  // Helper: invalidate trade queries (same pattern as NewTradeModal)
+  // Helper: invalidate trade queries — scoped to the affected strategy only
   const invalidateAndRefetchTradeQueries = useCallback(async () => {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
     }
-    // Single call: invalidate (marks stale) — React Query refetches active queries automatically
+    // Capture both original and possibly-edited strategy IDs (handles trade reassignment)
+    const affectedStrategyIds = new Set([
+      trade?.strategy_id ?? null,
+      editedTradeRef.current?.strategy_id ?? null,
+    ]);
     await queryClient.invalidateQueries({
       predicate: (query) => {
         const key = query.queryKey;
         if (!Array.isArray(key)) return false;
         const firstKey = key[0];
-        return (
-          firstKey === 'allTrades' ||
-          firstKey === 'filteredTrades' ||
-          firstKey === 'nonExecutedTrades' ||
-          firstKey === 'discoverTrades' ||
-          firstKey === 'all-strategy-trades' ||
-          firstKey === 'all-strategy-stats'
-        );
+        // Global caches span all strategies — always invalidate
+        if (firstKey === 'all-strategy-trades' || firstKey === 'all-strategy-stats') return true;
+        // Per-strategy queries — only invalidate the affected strategy/ies
+        if (firstKey === 'allTrades') return affectedStrategyIds.has((key[5] ?? null) as string | null);
+        if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return affectedStrategyIds.has((key[7] ?? null) as string | null);
+        if (firstKey === 'myTrades-all') return affectedStrategyIds.has((key[4] ?? null) as string | null);
+        return false;
       },
     });
-  }, [queryClient]);
+  }, [queryClient, trade?.strategy_id]);
 
   const setupOptions = useMemo(() => currentStrategy?.saved_setup_types ?? [], [currentStrategy?.saved_setup_types]);
   const liquidityOptions = useMemo(
