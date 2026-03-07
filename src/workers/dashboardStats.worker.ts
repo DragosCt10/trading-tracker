@@ -21,7 +21,6 @@ import { calculateTradeCounts } from '@/utils/calculateTradeCounts';
 import { calculateWinRates } from '@/utils/calculateWinRates';
 import { calculateProfit } from '@/utils/calculateProfit';
 import { calculateRRStats } from '@/utils/calculateRMultiple';
-import { calculateTradeQualityIndex } from '@/utils/calculateTradeQualityIndex';
 import type { MacroStats, Stats } from '@/types/dashboard';
 import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
 import type { RiskAnalysis } from '@/types/dashboard';
