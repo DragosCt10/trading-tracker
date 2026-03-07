@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export function StrategiesClient() {
   const { data: userDetails } = useUserDetails();
@@ -314,6 +315,12 @@ export function StrategiesClient() {
                     View and reactivate your archived trading strategies. Reactivated strategies will appear in your main strategies list.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+
+                <Alert className="mb-4 rounded-xl border-slate-200/80 bg-slate-100/60 dark:border-slate-700/80 dark:bg-slate-800/40">
+                  <AlertDescription className="text-xs text-slate-600 dark:text-slate-400">
+                    Important: Archived strategies and all related trades are automatically deleted after 30 days.
+                  </AlertDescription>
+                </Alert>
 
                 <div className="flex-1 overflow-y-auto pr-2 -mr-2">
                   <div className="space-y-3">
