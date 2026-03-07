@@ -225,6 +225,13 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         if (field === 'trade_outcome' && (value === 'Lose' || value === 'BE')) {
           nextState.risk_reward_ratio_long = 0;
         }
+        // When RR ratio changes with Win outcome, clear Potential RR if it's no longer valid
+        if (field === 'risk_reward_ratio' && prev.trade_outcome === 'Win') {
+          const newRRValue = Number(value);
+          if (prev.risk_reward_ratio_long != null && Number(prev.risk_reward_ratio_long) <= newRRValue) {
+            nextState.risk_reward_ratio_long = undefined as any;
+          }
+        }
         if (field === 'trade_outcome') {
           nextState.break_even = value === 'BE';
           if (value !== 'BE') nextState.be_final_result = null;
@@ -632,7 +639,15 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
           </div>
         );
       }
-      const currentValue = editedTrade.risk_reward_ratio_long != null ? String(editedTrade.risk_reward_ratio_long) : '';
+      const rrBase = Number(editedTrade.risk_reward_ratio ?? 0);
+      const isWin = editedTrade.trade_outcome === 'Win';
+      // Treat current value as unselected if it's not strictly greater than RR ratio (for Win outcome)
+      const currentValue =
+        editedTrade.risk_reward_ratio_long != null &&
+        editedTrade.risk_reward_ratio_long > 0 &&
+        (!isWin || Number(editedTrade.risk_reward_ratio_long) > rrBase)
+          ? String(editedTrade.risk_reward_ratio_long)
+          : '';
       return (
         <div>
           <label className={`${labelClass} mb-2`}>{label}</label>
@@ -641,14 +656,16 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             onValueChange={(v) => handleInputChange('risk_reward_ratio_long', v === '' ? undefined : Number(v))}
           >
             <SelectTrigger className={selectTriggerClass}>
-              <SelectValue placeholder="Potential RR (1 – 10 or 10+)" />
+              <SelectValue placeholder="Select value" />
             </SelectTrigger>
             <SelectContent className={selectContentClass}>
-              {POTENTIAL_RR_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={String(opt.value)}>
-                  {opt.label}
-                </SelectItem>
-              ))}
+              {POTENTIAL_RR_OPTIONS
+                .filter((opt) => !isWin || opt.value > rrBase)
+                .map((opt) => (
+                  <SelectItem key={opt.value} value={String(opt.value)}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
