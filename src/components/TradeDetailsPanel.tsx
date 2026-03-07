@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, useTransition } from 'react';
 import { useParams } from 'next/navigation';
 import { Trade } from '@/types/trade';
 import { deleteTrade, updateTrade } from '@/lib/server/trades';
@@ -118,6 +118,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isEditPending, startEditTransition] = useTransition();
+  const [isDeleteConfirmPending, startDeleteConfirmTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showExtraScreens, setShowExtraScreens] = useState(false);
   const queryClient = useQueryClient();
@@ -1477,9 +1479,11 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                   <Button
                     variant="destructive"
                     onClick={handleDelete}
-                    className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 flex items-center gap-2"
+                    disabled={isDeleting}
+                    className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 flex items-center gap-2"
                   >
-                    Yes, Delete
+                    {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {isDeleting ? 'Deleting...' : 'Yes, Delete'}
                   </Button>
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -1499,30 +1503,32 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             {!effectiveIsEditing ? (
               <>
                 <Button
-                  onClick={() => setIsEditing(true)}
-                  className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-5 py-2 group border-0"
+                  onClick={() => startEditTransition(() => setIsEditing(true))}
+                  disabled={isEditPending}
+                  className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-5 py-2 group border-0 disabled:opacity-60 flex items-center gap-2"
                 >
-                  <span className="relative z-10">Edit Trade</span>
+                  {isEditPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  <span className="relative z-10">{isEditPending ? 'Loading...' : 'Edit Trade'}</span>
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 </Button>
                 <Button
-                  onClick={() => setShowDeleteConfirm(true)}
+                  onClick={() => startDeleteConfirmTransition(() => setShowDeleteConfirm(true))}
                   variant="destructive"
-                  disabled={isDeleting}
+                  disabled={isDeleting || isDeleteConfirmPending}
                   className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 flex items-center gap-2"
                 >
-                  {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {isDeleting ? 'Deleting trade' : 'Delete Trade'}
+                  {isDeleteConfirmPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Delete Trade
                 </Button>
               </>
             ) : (
               <>
                 <Button
                   variant="outline"
-                  onClick={() => {
+                  onClick={() => startEditTransition(() => {
                     setIsEditing(false);
                     setEditedTrade(trade);
-                  }}
+                  })}
                   className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
                 >
                   Cancel
