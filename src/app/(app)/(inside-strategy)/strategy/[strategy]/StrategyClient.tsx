@@ -16,6 +16,7 @@ import type { ExtraCardKey } from '@/constants/extraCards';
 
 import { Trade } from '@/types/trade';
 import type { AccountSettings } from '@/types/account-settings';
+import type { DashboardStatsResult } from '@/lib/server/dashboardStats';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
@@ -189,6 +190,8 @@ export type StrategyClientInitialProps = {
   initialActiveAccount: { id: string; [key: string]: unknown } | null;
   initialStrategyId: string | null;
   initialExtraCards: ExtraCardKey[];
+  /** Server-fetched dashboard stats for initial hydration (optional). */
+  initialDashboardStats?: DashboardStatsResult | null;
 };
 
 const defaultInitialRange = createInitialDateRange();
