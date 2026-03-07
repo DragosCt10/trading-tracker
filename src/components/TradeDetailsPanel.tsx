@@ -173,13 +173,13 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         return false;
       },
     });
-    
 
-    // Refetch all-strategy-trades by key so StrategiesClient / StrategyCard update without reload.
-        // Refetch all-strategy-trades by key so StrategiesClient / StrategyCard update without reload.
-    // This query is only "active" when the user is on /strategies; when adding a trade from
-    // inside a strategy we must refetch by key (no type: 'active') so the cache is updated.
-    // TODO: ASK CLAUDE IF THIS IS CORRECT
+
+    // Refetch all-strategy-trades for ALL observers (active and inactive).
+    // This ensures StrategiesClient shows the updated trade when the user navigates there,
+    // even if it wasn't mounted when the trade was edited (e.g. user is on a strategy page).
+    // invalidateQueries alone is not sufficient: when StrategiesClient mounts with
+    // enabled:false (strategies still loading), it misses the invalidation signal.
     const accountId = selection.activeAccount?.id;
     const mode = selection.mode;
     if (accountId && userId) {
@@ -187,6 +187,20 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         queryKey: queryKeys.allStrategyTrades(userId, accountId, mode),
       });
     }
+
+    // Safety: refetch only active per-strategy trade queries
+    const affectedStrategyIdsArray = Array.from(affectedStrategyIds);
+    await queryClient.refetchQueries({
+      predicate: (query) => {
+        const key = query.queryKey;
+        if (!Array.isArray(key)) return false;
+        const firstKey = key[0];
+        if (firstKey === 'allTrades') return affectedStrategyIdsArray.includes((key[5] ?? null) as string | null);
+        if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return affectedStrategyIdsArray.includes((key[7] ?? null) as string | null);
+        return false;
+      },
+      type: 'active',
+    });
   }, [queryClient, trade?.strategy_id, selection.activeAccount?.id, selection.mode, userId]);
 
   const setupOptions = useMemo(() => currentStrategy?.saved_setup_types ?? [], [currentStrategy?.saved_setup_types]);
