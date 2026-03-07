@@ -271,6 +271,16 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return (key[7] ?? null) === strategyId;
       return false;
     }});
+
+    // Refetch all-strategy-trades by key so StrategiesClient / StrategyCard update without reload.
+    // This query is only "active" when the user is on /strategies; when adding a trade from
+    // inside a strategy we must refetch by key (no type: 'active') so the cache is updated.
+    // TODO: ASK CLAUDE IF THIS IS CORRECT
+    if (accountId && effectiveUserId) {
+      await queryClient.refetchQueries({
+        queryKey: queryKeys.allStrategyTrades(effectiveUserId, accountId, mode),
+      });
+    }
     
     // Explicitly refetch queries for the current strategy (ensures calendar updates immediately)
     // This is critical: we refetch BEFORE any removeQueries so the queries still exist

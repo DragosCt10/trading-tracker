@@ -173,7 +173,21 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         return false;
       },
     });
-  }, [queryClient, trade?.strategy_id]);
+    
+
+    // Refetch all-strategy-trades by key so StrategiesClient / StrategyCard update without reload.
+        // Refetch all-strategy-trades by key so StrategiesClient / StrategyCard update without reload.
+    // This query is only "active" when the user is on /strategies; when adding a trade from
+    // inside a strategy we must refetch by key (no type: 'active') so the cache is updated.
+    // TODO: ASK CLAUDE IF THIS IS CORRECT
+    const accountId = selection.activeAccount?.id;
+    const mode = selection.mode;
+    if (accountId && userId) {
+      await queryClient.refetchQueries({
+        queryKey: queryKeys.allStrategyTrades(userId, accountId, mode),
+      });
+    }
+  }, [queryClient, trade?.strategy_id, selection.activeAccount?.id, selection.mode, userId]);
 
   const setupOptions = useMemo(() => currentStrategy?.saved_setup_types ?? [], [currentStrategy?.saved_setup_types]);
   const liquidityOptions = useMemo(
