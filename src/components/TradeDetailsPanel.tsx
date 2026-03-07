@@ -29,7 +29,7 @@ const POTENTIAL_RR_OPTIONS: { value: number; label: string }[] = [
   { value: 10.5, label: '10+' },
 ];
 
-const MSS_OPTIONS = ['Normal', 'Aggressive'];
+const MSS_OPTIONS = ['Normal', 'Aggressive', 'Wick', 'Internal'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const TREND_OPTIONS = ['Trend-following', 'Counter-trend', 'Consolidation'];
