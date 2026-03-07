@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Trade } from '@/types/trade';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { TRADES_DATA } from '@/constants/queryConfig';
 import { TradeFiltersBar, DateRangeValue } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { getFilteredTrades } from '@/lib/server/trades';
@@ -47,8 +47,9 @@ export default function MyTradesClient({
 
   const { data: userDetails } = useUserDetails();
   const { selection, setSelection } = useActionBarSelection();
-  const queryClient = useQueryClient();
   const userId = userDetails?.user?.id ?? initialUserId;
+  // Stable today string — same format StrategiesClient uses when seeding filteredTrades cache
+  const todayStr = useMemo(() => createAllTimeRange().endDate, []);
 
   // Initialize selection from server props if not already set
   useEffect(() => {
@@ -70,10 +71,14 @@ export default function MyTradesClient({
     isLoading: tradesLoading,
     isFetching: tradesFetching,
   } = useQuery<Trade[]>({
-    queryKey: queryKeys.myTradesAll(
+    // Same key that StrategiesClient seeds — cache hit instead of re-fetch
+    queryKey: queryKeys.trades.filtered(
       selection.mode ?? initialMode,
       activeAccount?.id,
       userId,
+      'dateRange',
+      '2000-01-01',
+      todayStr,
       initialStrategyId
     ),
     queryFn: async () => {
@@ -150,14 +155,8 @@ export default function MyTradesClient({
     return list;
   }, [baseList, dateRange, selectedMarket, executionFilter]);
 
-  const handleTradeUpdated = useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['myTrades-all'] }),
-      queryClient.invalidateQueries({ queryKey: ['filteredTrades'] }),
-      queryClient.invalidateQueries({ queryKey: ['allTrades'] }),
-      queryClient.invalidateQueries({ queryKey: ['discoverTrades'] }),
-    ]);
-  }, [queryClient]);
+  // TradeDetailsPanel.invalidateAndRefetchTradeQueries already handles scoped cache invalidation
+  const handleTradeUpdated = useCallback(() => {}, []);
 
   return (
     <div className="max-w-7xl mx-auto">
