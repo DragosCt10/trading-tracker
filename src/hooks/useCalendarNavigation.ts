@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { Trade } from '@/types/trade';
 import { type DateRangeState, createCalendarRangeFromEnd } from '@/utils/dateRangeHelpers';
 
 interface UseCalendarNavigationProps {
@@ -10,10 +9,9 @@ interface UseCalendarNavigationProps {
   selectedYear: number;
   selectedMarket: string;
   selectedExecution: 'all' | 'executed' | 'nonExecuted';
-  allTrades: Trade[];
-  filteredTrades: Trade[];
-  nonExecutedTrades: Trade[] | null;
-  filteredTradesLoading: boolean;
+  /** 'YYYY-MM' strings from server stats — which months have trades (filter-aware). */
+  tradeMonths: string[];
+  statsLoading: boolean;
   setCurrentDate: (date: Date) => void;
   setCalendarDateRange: (range: DateRangeState) => void;
   setSelectedYear: (year: number) => void;
@@ -26,67 +24,43 @@ export function useCalendarNavigation({
   selectedYear,
   selectedMarket,
   selectedExecution,
-  allTrades,
-  filteredTrades,
-  nonExecutedTrades,
-  filteredTradesLoading,
+  tradeMonths,
+  statsLoading,
   setCurrentDate,
   setCalendarDateRange,
   setSelectedYear,
 }: UseCalendarNavigationProps) {
   const lastFilterKeyRef = useRef<string>('');
 
-  // Single computed list for calendar (avoids re-filtering in every callback/effect)
-  const filteredTradesForCalendar = useMemo(() => {
-    let baseTrades: Trade[] = viewMode === 'yearly' ? allTrades : filteredTrades;
-
-    if (viewMode === 'dateRange') {
-      if (selectedExecution === 'nonExecuted') {
-        baseTrades = nonExecutedTrades || [];
-      } else if (selectedExecution === 'executed') {
-        baseTrades = baseTrades.filter((t) => t.executed === true);
-      }
-    }
-
-    if (selectedMarket !== 'all') {
-      baseTrades = baseTrades.filter((t) => t.market === selectedMarket);
-    }
-
-    return baseTrades;
-  }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedMarket, selectedExecution]);
-
-  const getFilteredTradesForCalendar = useCallback(() => filteredTradesForCalendar, [filteredTradesForCalendar]);
-
-  // Reused in canNavigateMonth, handleMonthNavigation, and yearly effect
+  // Months with trades for yearly navigation: set of month indices (0–11) in selectedYear
   const monthsWithTradesYearly = useMemo(() => {
     const set = new Set<number>();
-    filteredTradesForCalendar.forEach((trade) => {
-      const d = new Date(trade.trade_date);
-      if (d.getFullYear() === selectedYear) set.add(d.getMonth());
-    });
+    for (const ym of tradeMonths) {
+      const [y, m] = ym.split('-').map(Number);
+      if (y === selectedYear) set.add(m - 1); // month index 0-based
+    }
     return set;
-  }, [filteredTradesForCalendar, selectedYear]);
+  }, [tradeMonths, selectedYear]);
 
-  // Reused in canNavigateMonth, handleMonthNavigation, and dateRange effect
+  // Months with trades for dateRange navigation: map of 'year-month' → { year, month }
   const monthsWithTradesDateRange = useMemo(() => {
     const startDateObj = new Date(dateRange.startDate);
     const endDateObj = new Date(dateRange.endDate);
     const map = new Map<string, { year: number; month: number }>();
-    filteredTradesForCalendar.forEach((trade) => {
-      const tradeDate = new Date(trade.trade_date);
-      if (tradeDate >= startDateObj && tradeDate <= endDateObj) {
-        const tradeYear = tradeDate.getFullYear();
-        const tradeMonth = tradeDate.getMonth();
-        const key = `${tradeYear}-${tradeMonth}`;
-        if (!map.has(key)) map.set(key, { year: tradeYear, month: tradeMonth });
+    for (const ym of tradeMonths) {
+      const [y, m] = ym.split('-').map(Number);
+      const monthDate = new Date(y, m - 1, 1);
+      if (monthDate >= startDateObj && monthDate <= endDateObj) {
+        const key = `${y}-${m - 1}`;
+        if (!map.has(key)) map.set(key, { year: y, month: m - 1 });
       }
-    });
+    }
     return map;
-  }, [filteredTradesForCalendar, dateRange.startDate, dateRange.endDate]);
+  }, [tradeMonths, dateRange.startDate, dateRange.endDate]);
 
   const tradesInSelectedYearCount = useMemo(
-    () => filteredTradesForCalendar.filter((t) => new Date(t.trade_date).getFullYear() === selectedYear).length,
-    [filteredTradesForCalendar, selectedYear]
+    () => tradeMonths.filter(ym => ym.startsWith(`${selectedYear}-`)).length,
+    [tradeMonths, selectedYear]
   );
 
   const canNavigateMonth = useCallback((direction: 'prev' | 'next') => {
@@ -248,9 +222,9 @@ export function useCalendarNavigation({
     }
   }, [viewMode, selectedYear, selectedMarket, selectedExecution, tradesInSelectedYearCount, currentDate, monthsWithTradesYearly, setCurrentDate, setCalendarDateRange]);
 
-  // update calendar for dateRange mode after filtered trades are available
+  // update calendar for dateRange mode after stats are available
   useEffect(() => {
-    if (viewMode === 'dateRange' && !filteredTradesLoading) {
+    if (viewMode === 'dateRange' && !statsLoading) {
       const filterKey = `${viewMode}-${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${selectedExecution}`;
       const startDateObj = new Date(dateRange.startDate);
       const endDateObj = new Date(dateRange.endDate);
@@ -291,10 +265,9 @@ export function useCalendarNavigation({
 
       lastFilterKeyRef.current = filterKey;
     }
-  }, [viewMode, dateRange.startDate, dateRange.endDate, selectedMarket, selectedExecution, currentDate, monthsWithTradesDateRange, filteredTradesLoading, setCurrentDate, setSelectedYear, setCalendarDateRange]);
+  }, [viewMode, dateRange.startDate, dateRange.endDate, selectedMarket, selectedExecution, currentDate, monthsWithTradesDateRange, statsLoading, setCurrentDate, setSelectedYear, setCalendarDateRange]);
 
   return {
-    getFilteredTradesForCalendar,
     canNavigateMonth,
     handleMonthNavigation,
   };
