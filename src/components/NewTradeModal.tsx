@@ -272,16 +272,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       return false;
     }});
 
-    // Refetch all-strategy-trades by key so StrategiesClient / StrategyCard update without reload.
-    // This query is only "active" when the user is on /strategies; when adding a trade from
-    // inside a strategy we must refetch by key (no type: 'active') so the cache is updated.
-    // TODO: ASK CLAUDE IF THIS IS CORRECT
-    if (accountId && effectiveUserId) {
-      await queryClient.refetchQueries({
-        queryKey: queryKeys.allStrategyTrades(effectiveUserId, accountId, mode),
-      });
-    }
-    
     // Explicitly refetch queries for the current strategy (ensures calendar updates immediately)
     // This is critical: we refetch BEFORE any removeQueries so the queries still exist
     if (accountId && effectiveUserId && strategyId) {
@@ -313,13 +303,23 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       });
     }
     
-    // Safety: refetch only active trade-related queries for the affected strategy
+    // Refetch all-strategy-trades for ALL observers (active and inactive).
+    // This ensures StrategiesClient shows the new trade when the user navigates there,
+    // even if it wasn't mounted when the trade was added (e.g. user is on a strategy page).
+    // invalidateQueries alone is not sufficient: when StrategiesClient mounts with
+    // enabled:false (strategies still loading), it misses the invalidation signal.
+    if (accountId && effectiveUserId) {
+      await queryClient.refetchQueries({
+        queryKey: queryKeys.allStrategyTrades(effectiveUserId, accountId, mode),
+      });
+    }
+
+    // Safety: refetch only active per-strategy trade queries
     await queryClient.refetchQueries({
       predicate: (query) => {
         const key = query.queryKey;
         if (!Array.isArray(key)) return false;
         const firstKey = key[0];
-        if (firstKey === 'all-strategy-trades' || firstKey === 'all-strategy-stats') return true;
         if (firstKey === 'allTrades') return (key[5] ?? null) === strategyId;
         if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return (key[7] ?? null) === strategyId;
         return false;
