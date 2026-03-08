@@ -1,6 +1,5 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
 import { getFilteredTrades } from './trades';
 import { Trade } from '@/types/trade';
 import { TIME_INTERVALS } from '@/constants/analytics';
@@ -174,12 +173,7 @@ export async function getDashboardStats({
   selectedMarket: string;
   selectedExecution: 'all' | 'executed' | 'nonExecuted';
 }): Promise<DashboardStatsResult> {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
-    throw new Error('Unauthorized');
-  }
-
+  // Auth enforced in getFilteredTrades (no duplicate getUser per audit 1.3)
   const yearStart = `${selectedYear}-01-01`;
   const yearEnd = `${selectedYear}-12-31`;
 
