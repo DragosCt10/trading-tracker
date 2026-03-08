@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getDashboardStats, type DashboardStatsResult } from '@/lib/server/dashboardStats';
+import { getDashboardApiResponse } from '@/lib/server/dashboardApiResponse';
 import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import { getActiveAccountForMode } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
@@ -50,21 +50,20 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
     );
   }
 
-  let initialDashboardStats: DashboardStatsResult | null = null;
+  // 1–2 RPCs via getDashboardApiResponse; client hydrates from this so it doesn't call /api/dashboard-stats on first load (audit 2.1).
+  let initialDashboardStats: Awaited<ReturnType<typeof getDashboardApiResponse>> | null = null;
 
   try {
-    // Single server call replaces 4× getFilteredTrades — returns only computed stats (~5KB vs ~50MB)
-    initialDashboardStats = await getDashboardStats({
+    initialDashboardStats = await getDashboardApiResponse({
       userId: user.id,
       accountId: activeAccount.id,
       mode: 'live',
+      startDate: initialDateRange.startDate,
+      endDate: initialDateRange.endDate,
       strategyId,
-      selectedYear: initialSelectedYear,
-      viewMode: 'dateRange',
-      dateRange: initialDateRange,
       accountBalance: activeAccount.account_balance ?? 0,
-      selectedMarket: 'all',
-      selectedExecution: 'executed',
+      execution: 'executed',
+      market: 'all',
     });
   } catch (error) {
     console.error('Error fetching initial dashboard stats:', error);
