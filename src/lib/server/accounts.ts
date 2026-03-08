@@ -1,5 +1,6 @@
 'use server';
 
+import { cache } from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from '@/lib/server/session';
 import type { Database } from '@/types/supabase';
@@ -62,6 +63,9 @@ export async function getAccountsForMode(
   }
   return (data ?? []) as AccountRow[];
 }
+
+/** Request-scoped cache for getAccountsForMode (audit 2.3). */
+export const getCachedAccountsForMode = cache(getAccountsForMode);
 
 /**
  * Creates a new account for the current user (server-side only; user_id from session).
@@ -219,6 +223,9 @@ export async function getAllAccountsForUser(userId: string): Promise<AccountRow[
   }
   return (data ?? []) as AccountRow[];
 }
+
+/** Request-scoped cache for getAllAccountsForUser (audit 2.3). */
+export const getCachedAllAccountsForUser = cache(getAllAccountsForUser);
 
 /**
  * Updates the saved_news JSONB column for an account.

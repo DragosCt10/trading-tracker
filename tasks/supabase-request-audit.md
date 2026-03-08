@@ -110,6 +110,8 @@
 
 ---
 
+**Done (2.3):** `src/lib/server/accounts.ts` now exports `getCachedAccountsForMode` and `getCachedAllAccountsForUser` (React `cache()` wrappers). Layout uses these so repeated calls in the same request are deduplicated.
+
 ### 2.4 ManageTrades: getFilteredTrades
 
 - **Where:** `ManageTradesClient` uses a query whose `queryFn` calls `getFilteredTrades` (server action).

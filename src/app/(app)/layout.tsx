@@ -1,5 +1,8 @@
 import AppLayout from '@/components/shared/layout/AppLayout';
-import { getAccountsForMode, getAllAccountsForUser } from '@/lib/server/accounts';
+import {
+  getCachedAccountsForMode,
+  getCachedAllAccountsForUser,
+} from '@/lib/server/accounts';
 import type { AccountRow, AccountMode } from '@/lib/server/accounts';
 import { getCachedUserSession } from '@/lib/server/session';
 import { redirect } from 'next/navigation';
@@ -19,8 +22,8 @@ export default async function AppLayoutComponent({ children }: AppLayoutProps) {
 
   const userId = initialUserDetails.user.id;
   const [initialAccountsForLive, initialAllAccounts] = await Promise.all([
-    getAccountsForMode(userId, 'live'),
-    getAllAccountsForUser(userId),
+    getCachedAccountsForMode(userId, 'live'),
+    getCachedAllAccountsForUser(userId),
   ]);
 
   // Determine initial active account with fallback: live → demo → backtesting
