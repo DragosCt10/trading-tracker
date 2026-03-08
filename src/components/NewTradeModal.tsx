@@ -269,6 +269,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       // Per-strategy queries — only invalidate the affected strategy
       if (firstKey === 'allTrades') return (key[5] ?? null) === strategyId;
       if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return (key[7] ?? null) === strategyId;
+      // Dashboard stats API route — strategyId is at index 4
+      if (firstKey === 'dashboardStats') return (key[4] ?? null) === strategyId;
       return false;
     }});
 

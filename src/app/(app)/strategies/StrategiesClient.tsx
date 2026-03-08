@@ -53,7 +53,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 export function StrategiesClient() {
   const { data: userDetails } = useUserDetails();
   const userId = userDetails?.user?.id;
-  const { settings, refetchSettings } = useSettings({ userId });
+  const { settings, settingsLoading, refetchSettings } = useSettings({ userId });
   const { strategies, strategiesLoading, refetchStrategies } = useStrategies({ userId });
   const { selection } = useActionBarSelection();
   const mode = selection.mode;
@@ -264,7 +264,11 @@ export function StrategiesClient() {
               <Target className="w-6 h-6" />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-              {strategiesTitle}
+              {settingsLoading ? (
+                <span className="inline-block h-9 w-48 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse" />
+              ) : (
+                strategiesTitle
+              )}
             </h1>
             <Button
               variant="ghost"

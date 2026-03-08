@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/utils/supabase/middleware';
-import { createClient } from '@/utils/supabase/server';
 
 /** Paths that do not require an authenticated user (auth pages). */
 const AUTH_PATHS = ['/login', '/signup', '/reset-password', '/update-password', '/api/auth'];
@@ -41,7 +40,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = new URL(request.url);
 
   if (isAuthPath(pathname) || isPublicPath(pathname)) {
-    const response = await updateSession(request);
+    const { response } = await updateSession(request);
     // updateSession may redirect to /login if it doesn't recognize this auth path —
     // override that redirect so the route handler always runs for auth/public pages.
     const finalResponse =
@@ -51,10 +50,8 @@ export async function proxy(request: NextRequest) {
     return applySecurityHeaders(finalResponse);
   }
 
-  // Protected pages: require an authenticated user.
-  const response = await updateSession(request);
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Protected pages: use the user already fetched by updateSession — no second getUser() call.
+  const { response, user } = await updateSession(request);
 
   if (!user) {
     const redirectUrl = new URL('/login', request.url);

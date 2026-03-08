@@ -77,4 +77,56 @@ export const queryKeys = {
     mode: string
   ) => ['strategy-shares', strategyId, userId, accountId, mode] as const,
 
+  /**
+   * Pre-computed dashboard stats from /api/dashboard-stats.
+   * selectedMarket is excluded — market filtering is handled client-side by the Web Worker.
+   * selectedExecution is included so each execution mode is cached separately.
+   */
+  dashboardStats: (
+    mode: string,
+    accountId: string | undefined,
+    userId: string | undefined,
+    strategyId: string | null | undefined,
+    selectedYear: number,
+    viewMode: string,
+    startDate: string,
+    endDate: string,
+    selectedExecution: string,
+    market: string,
+  ) => [
+    'dashboardStats', mode, accountId, userId, strategyId,
+    selectedYear, viewMode, startDate, endDate,
+    selectedExecution, market,
+  ] as const,
+
+  /**
+   * Compact trades cache key — mirrors dashboardStats but used to store/read
+   * the compact_trades array separately for the Web Worker.
+   */
+  compactTrades: (
+    mode: string,
+    accountId: string | undefined,
+    userId: string | undefined,
+    strategyId: string | null | undefined,
+    selectedYear: number,
+    viewMode: string,
+    startDate: string,
+    endDate: string,
+    selectedExecution: string
+  ) => [
+    'compactTrades', mode, accountId, userId, strategyId,
+    selectedYear, viewMode, startDate, endDate,
+    selectedExecution,
+  ] as const,
+
+  /** Full Trade[] for a single calendar month (for calendar display). */
+  calendarTrades: (
+    mode: string,
+    accountId: string | undefined,
+    userId: string | undefined,
+    strategyId: string | null | undefined,
+    startDate: string,
+    endDate: string
+  ) => ['calendarTrades', mode, accountId, userId, strategyId, startDate, endDate] as const,
+
 } as const;

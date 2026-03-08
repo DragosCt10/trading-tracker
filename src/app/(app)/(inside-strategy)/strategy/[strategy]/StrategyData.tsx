@@ -1,10 +1,9 @@
 import { Suspense } from 'react';
-import { getFilteredTrades } from '@/lib/server/trades';
+import { getDashboardStats, type DashboardStatsResult } from '@/lib/server/dashboardStats';
 import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import { getActiveAccountForMode } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
 import StrategyClient from './StrategyClient';
-import { Trade } from '@/types/trade';
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { User } from '@supabase/supabase-js';
 import { StrategySkeleton } from '@/components/skeletons/StrategySkeleton';
@@ -13,23 +12,15 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
   const today = new Date();
   const initialDateRange = createAllTimeRange(today);
   const initialSelectedYear = today.getFullYear();
-  const yearStart = `${initialSelectedYear}-01-01`;
-  const yearEnd = `${initialSelectedYear}-12-31`;
 
-  // Get strategy ID and extra_cards if strategySlug is provided
   let strategyId: string | null = null;
   let initialExtraCards: ExtraCardKey[] = [];
   if (strategySlug) {
     const strategy = await getStrategyBySlug(user.id, strategySlug);
     if (!strategy) {
-      // Strategy not found - return empty state
       return (
         <StrategyClient
           initialUserId={user.id}
-          initialFilteredTrades={[]}
-          initialAllTrades={[]}
-          initialNonExecutedTrades={[]}
-          initialNonExecutedTotalTradesCount={0}
           initialDateRange={initialDateRange}
           initialSelectedYear={initialSelectedYear}
           initialMode="live"
@@ -49,10 +40,6 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
     return (
       <StrategyClient
         initialUserId={user.id}
-        initialFilteredTrades={[]}
-        initialAllTrades={[]}
-        initialNonExecutedTrades={[]}
-        initialNonExecutedTotalTradesCount={0}
         initialDateRange={initialDateRange}
         initialSelectedYear={initialSelectedYear}
         initialMode="live"
@@ -63,65 +50,30 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
     );
   }
 
-  let initialFilteredTrades: Trade[] = [];
-  let initialAllTrades: Trade[] = [];
-  let initialNonExecutedTrades: Trade[] = [];
-  let initialNonExecutedTotalTradesCount = 0;
+  let initialDashboardStats: DashboardStatsResult | null = null;
 
   try {
-    const [filtered, allForYear, nonExecutedRange, nonExecutedYear] =
-      await Promise.all([
-        getFilteredTrades({
-          userId: user.id,
-          accountId: activeAccount.id,
-          mode: 'live',
-          startDate: initialDateRange.startDate,
-          endDate: initialDateRange.endDate,
-          strategyId,
-        }),
-        getFilteredTrades({
-          userId: user.id,
-          accountId: activeAccount.id,
-          mode: 'live',
-          startDate: yearStart,
-          endDate: yearEnd,
-          strategyId,
-        }),
-        getFilteredTrades({
-          userId: user.id,
-          accountId: activeAccount.id,
-          mode: 'live',
-          startDate: initialDateRange.startDate,
-          endDate: initialDateRange.endDate,
-          onlyNonExecuted: true,
-          strategyId,
-        }),
-        getFilteredTrades({
-          userId: user.id,
-          accountId: activeAccount.id,
-          mode: 'live',
-          startDate: yearStart,
-          endDate: yearEnd,
-          onlyNonExecuted: true,
-          strategyId,
-        }),
-      ]);
-
-    initialFilteredTrades = filtered;
-    initialAllTrades = allForYear;
-    initialNonExecutedTrades = nonExecutedRange;
-    initialNonExecutedTotalTradesCount = nonExecutedYear.length;
+    // Single server call replaces 4× getFilteredTrades — returns only computed stats (~5KB vs ~50MB)
+    initialDashboardStats = await getDashboardStats({
+      userId: user.id,
+      accountId: activeAccount.id,
+      mode: 'live',
+      strategyId,
+      selectedYear: initialSelectedYear,
+      viewMode: 'dateRange',
+      dateRange: initialDateRange,
+      accountBalance: activeAccount.account_balance ?? 0,
+      selectedMarket: 'all',
+      selectedExecution: 'executed',
+    });
   } catch (error) {
-    console.error('Error fetching initial analytics data:', error);
+    console.error('Error fetching initial dashboard stats:', error);
   }
 
   return (
     <StrategyClient
       initialUserId={user.id}
-      initialFilteredTrades={initialFilteredTrades}
-      initialAllTrades={initialAllTrades}
-      initialNonExecutedTrades={initialNonExecutedTrades}
-      initialNonExecutedTotalTradesCount={initialNonExecutedTotalTradesCount}
+      initialDashboardStats={initialDashboardStats}
       initialDateRange={initialDateRange}
       initialSelectedYear={initialSelectedYear}
       initialMode="live"
