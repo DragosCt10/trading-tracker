@@ -4,6 +4,7 @@ import type { Database } from '@/types/supabase';
 import type { Trade } from '@/types/trade';
 import { createClient as createSupabaseServerClient } from '@/utils/supabase/server';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
+import { getCachedUserSession } from '@/lib/server/session';
 
 export type StrategyShareRow =
   Database['public']['Tables']['strategy_shares']['Row'];
@@ -91,17 +92,12 @@ async function createStrategyShare(params: {
   shareRow: StrategyShareRow | null;
   error: string | null;
 }> {
-  const supabase = await createSupabaseServerClient();
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user || user.id !== params.userId) {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== params.userId) {
     return { shareToken: null, shareRow: null, error: 'Unauthorized' };
   }
 
+  const supabase = await createSupabaseServerClient();
   // Optional defense-in-depth: ensure the strategy being shared belongs to this user.
   const { data: strategyRow, error: strategyError } = await supabase
     .from('strategies')
@@ -199,17 +195,10 @@ async function getStrategySharesForUser(params: {
   accountId?: string;
   mode?: ShareMode;
 }): Promise<StrategyShareRow[]> {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== params.userId) return [];
+
   const supabase = await createSupabaseServerClient();
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user || user.id !== params.userId) {
-    return [];
-  }
-
   let query = supabase
     .from('strategy_shares')
     .select('*')
@@ -341,14 +330,8 @@ export async function setStrategyShareActiveAction(input: {
   userId: string;
   active: boolean;
 }): Promise<{ error: string | null }> {
-  // First, verify the caller is the same authed user we expect.
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user || user.id !== input.userId) {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== input.userId) {
     return { error: 'Unauthorized' };
   }
 
@@ -376,14 +359,8 @@ export async function deleteStrategyShareAction(input: {
   shareId: string;
   userId: string;
 }): Promise<{ error: string | null }> {
-  // Verify the caller matches the expected user.
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user || user.id !== input.userId) {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== input.userId) {
     return { error: 'Unauthorized' };
   }
 
