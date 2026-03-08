@@ -27,8 +27,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required params' }, { status: 400 });
   }
 
-  // Two parallel RPC calls: main (respects execution filter) + non-executed reference
-  const [main, nonExecuted] = await Promise.all([
+  // Main RPC call (respects execution filter + market filter)
+  // Non-executed reference call: only when main isn't already non_executed (saves 1 DB call)
+  const nonExecutedNeeded = execution !== 'non_executed';
+  const [main, nonExecutedOrNull] = await Promise.all([
     getDashboardAggregates({
       userId: user.id,
       accountId,
@@ -41,18 +43,21 @@ export async function GET(req: NextRequest) {
       includeCompactTrades: true,
       market,
     }),
-    getDashboardAggregates({
-      userId: user.id,
-      accountId,
-      mode,
-      startDate,
-      endDate,
-      strategyId,
-      execution: 'non_executed',
-      accountBalance,
-      includeCompactTrades: false,
-    }),
+    nonExecutedNeeded
+      ? getDashboardAggregates({
+          userId: user.id,
+          accountId,
+          mode,
+          startDate,
+          endDate,
+          strategyId,
+          execution: 'non_executed',
+          accountBalance,
+          includeCompactTrades: false,
+        })
+      : Promise.resolve(null),
   ]);
+  const nonExecuted = nonExecutedOrNull ?? main;
 
   // Layer 2: time-series stats from the ordered series (drawdown, streaks, Sharpe, TQI)
   const timeSeries = calculateFromSeries(main.series, accountBalance);
