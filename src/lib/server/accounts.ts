@@ -115,14 +115,9 @@ export async function updateAccount(
     description: string | null;
   }
 ): Promise<{ data: AccountRow | null; error: { message: string } | null }> {
+  const { user } = await getCachedUserSession();
+  if (!user) return { data: null, error: { message: 'Unauthorized' } };
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { data: null, error: { message: 'Unauthorized' } };
-  }
 
   const { data, error } = await supabase
     .from('account_settings')
@@ -151,14 +146,9 @@ export async function updateAccount(
 export async function deleteAccount(
   accountId: string
 ): Promise<{ error: { message: string } | null }> {
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: { message: 'Unauthorized' } };
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { error: { message: 'Unauthorized' } };
-  }
 
   const { error } = await supabase
     .from('account_settings')
@@ -179,12 +169,9 @@ export async function deleteAccount(
  * Safe to call on every login/signup — no-ops when accounts already exist.
  */
 export async function ensureDefaultAccount(): Promise<void> {
+  const { user } = await getCachedUserSession();
+  if (!user) return;
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) return;
 
   const { count, error } = await supabase
     .from('account_settings')
@@ -235,14 +222,9 @@ export async function updateAccountSavedNews(
   accountId: string,
   savedNews: SavedNewsItem[]
 ): Promise<{ error: { message: string } | null }> {
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: { message: 'Unauthorized' } };
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { error: { message: 'Unauthorized' } };
-  }
 
   const { error } = await supabase
     .from('account_settings')
@@ -265,14 +247,9 @@ export async function setActiveAccount(
   mode: AccountMode,
   accountId: string | null
 ): Promise<{ data: AccountRow | null; error: { message: string } | null }> {
+  const { user } = await getCachedUserSession();
+  if (!user) return { data: null, error: { message: 'Unauthorized' } };
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { data: null, error: { message: 'Unauthorized' } };
-  }
 
   // Clear active flag for all user's accounts in this mode
   const { error: clearError } = await supabase
