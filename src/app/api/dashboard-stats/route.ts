@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
   // Hook sends 'all' | 'executed' | 'nonExecuted'; map nonExecuted → non_executed for RPC
   const executionParam = searchParams.get('execution') ?? 'executed';
   const execution = executionParam === 'nonExecuted' ? 'non_executed' : executionParam;
+  const market = searchParams.get('market') ?? 'all';
 
   if (!accountId || !mode || !startDate || !endDate) {
     return NextResponse.json({ error: 'Missing required params' }, { status: 400 });
@@ -38,6 +39,7 @@ export async function GET(req: NextRequest) {
       execution,
       accountBalance,
       includeCompactTrades: true,
+      market,
     }),
     getDashboardAggregates({
       userId: user.id,
