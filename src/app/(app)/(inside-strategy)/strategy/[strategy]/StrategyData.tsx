@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { getDashboardApiResponse } from '@/lib/server/dashboardApiResponse';
 import { createAllTimeRange } from '@/utils/dateRangeHelpers';
-import { getActiveAccountForMode } from '@/lib/server/accounts';
+import { getCachedAccountsForMode } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
 import StrategyClient from './StrategyClient';
 import type { ExtraCardKey } from '@/constants/extraCards';
@@ -34,7 +34,8 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
     initialExtraCards = (strategy.extra_cards ?? []) as ExtraCardKey[];
   }
 
-  const activeAccount = await getActiveAccountForMode(user.id, 'live');
+  const allLiveAccounts = await getCachedAccountsForMode(user.id, 'live');
+  const activeAccount = allLiveAccounts.find((a) => a.is_active) ?? allLiveAccounts[0] ?? null;
 
   if (!activeAccount) {
     return (
