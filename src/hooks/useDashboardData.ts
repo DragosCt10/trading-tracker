@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getCalendarTrades } from '@/lib/server/dashboardStats';
 import { queryKeys } from '@/lib/queryKeys';
@@ -9,7 +9,6 @@ import { computeStatsFromTrades } from '@/utils/computeStatsFromTrades';
 import type { Trade } from '@/types/trade';
 import type { AccountSettings } from '@/types/account-settings';
 import type { DashboardApiResponse } from '@/types/dashboard-rpc';
-import type { WorkerInput, WorkerOutput, WorkerResult } from '@/workers/dashboardStats.worker';
 import type {
   Stats,
   MacroStats,
@@ -131,7 +130,7 @@ export function useDashboardData({
       mode, accountId, userId, strategyId,
       selectedYear, resolvedViewMode,
       effectiveStartDate, effectiveEndDate,
-      selectedExecution,
+      selectedExecution, selectedMarket,
     ),
     queryFn: async () => {
       if (!userId || !accountId) return null;
@@ -142,6 +141,7 @@ export function useDashboardData({
         endDate: effectiveEndDate,
         accountBalance: String(accountBalance),
         execution: selectedExecution,
+        market: selectedMarket,
         ...(strategyId ? { strategyId } : {}),
       });
       const res = await fetch(`/api/dashboard-stats?${params}`);
@@ -170,116 +170,33 @@ export function useDashboardData({
     ...STATIC_DATA,
   });
 
-  // ── Web Worker for market-filtered stats (Layer 3) ────────────────────────
-  const workerRef = useRef<Worker | null>(null);
-  const [workerStats, setWorkerStats] = useState<WorkerResult | null>(null);
-  const [workerLoading, setWorkerLoading] = useState(false);
-  const requestIdRef = useRef(0);
-
-  // Create the worker once (client-side only)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    workerRef.current = new Worker(
-      new URL('@/workers/dashboardStats.worker.ts', import.meta.url),
-    );
-    workerRef.current.onmessage = (e: MessageEvent<WorkerOutput>) => {
-      if (e.data.requestId === String(requestIdRef.current)) {
-        setWorkerStats(e.data.result);
-        setWorkerLoading(false);
-      }
-    };
-    return () => workerRef.current?.terminate();
-  }, []);
-
-  // Trigger worker whenever market / base data / execution changes
-  useEffect(() => {
-    if (selectedMarket === 'all' || !apiData?.compact_trades?.length || !workerRef.current) {
-      setWorkerStats(null);
-      return;
-    }
-    const reqId = ++requestIdRef.current;
-    setWorkerLoading(true);
-    const msg: WorkerInput = {
-      requestId: String(reqId),
-      trades: apiData.compact_trades,
-      accountBalance,
-      market: selectedMarket,
-      execution: selectedExecution,
-    };
-    workerRef.current.postMessage(msg);
-  }, [selectedMarket, apiData, accountBalance, selectedExecution]);
-
   // ── Derive reentry/breakEven/trend stats from compact_trades (client-side) ─
-  // These aren't produced by the SQL RPC, so we compute them from the compact_trades.
+  // compact_trades is already market-filtered by the RPC; only execution filter needed here.
   const derivedStats = useMemo(() => {
     if (!apiData?.compact_trades?.length) return null;
     let ct = apiData.compact_trades;
     if (selectedExecution === 'executed') ct = ct.filter(t => t.executed);
     else if (selectedExecution === 'nonExecuted') ct = ct.filter(t => !t.executed);
-    if (selectedMarket !== 'all') ct = ct.filter(t => t.market === selectedMarket);
     return computeStatsFromTrades(ct as unknown as Trade[]);
-  }, [apiData?.compact_trades, selectedExecution, selectedMarket]);
+  }, [apiData?.compact_trades, selectedExecution]);
 
-  // ── Resolve final stats: worker overrides API when market is filtered ──────
-  const useWorker = selectedMarket !== 'all' && !!workerStats;
-  const isLoading = statsLoading || (selectedMarket !== 'all' && workerLoading);
+  // ── Stats: always from API — market filtering is now done in the DB ────────
+  const isLoading = statsLoading;
 
-  // Stats
-  const stats = useWorker
-    ? workerStats.stats
-    : apiData ? mapApiToStats(apiData) : null;
-
-  const macroStats = useWorker
-    ? workerStats.macroStats
-    : apiData ? mapApiToMacro(apiData) : null;
-
-  const setupStats = useWorker
-    ? workerStats.setupStats as SetupStats[]
-    : (apiData?.setup_stats ?? []) as SetupStats[];
-
-  const liquidityStats = useWorker
-    ? workerStats.liquidityStats as LiquidityStats[]
-    : (apiData?.liquidity_stats ?? []) as LiquidityStats[];
-
-  const directionStats = useWorker
-    ? workerStats.directionStats as DirectionStats[]
-    : (apiData?.direction_stats ?? []) as DirectionStats[];
-
-  const intervalStats = useWorker
-    ? workerStats.intervalStats as IntervalStats[]
-    : (apiData?.interval_stats ?? []) as IntervalStats[];
-
-  const mssStats = useWorker
-    ? workerStats.mssStats as MssStats[]
-    : (apiData?.mss_stats ?? []) as MssStats[];
-
-  const newsStats = useWorker
-    ? workerStats.newsStats as NewsStats[]
-    : (apiData?.news_stats ?? []) as NewsStats[];
-
-  const dayStats = useWorker
-    ? workerStats.dayStats as DayStats[]
-    : (apiData?.day_stats ?? []) as DayStats[];
-
-  const marketStats = useWorker
-    ? workerStats.marketStats as MarketStats[]
-    : (apiData?.market_stats ?? []) as MarketStats[];
-
-  const slSizeStats = useWorker
-    ? workerStats.slSizeStats as SLSizeStats[]
-    : (apiData?.sl_size_stats ?? []) as SLSizeStats[];
-
-  const localHLStats = useWorker
-    ? workerStats.localHLStats as LocalHLStats
-    : (apiData?.local_hl_stats ?? null) as LocalHLStats | null;
-
-  const evaluationStats = useWorker
-    ? workerStats.evaluationStats as EvaluationStat[]
-    : (apiData?.evaluation_stats ?? []) as EvaluationStat[];
-
-  const riskStats = useWorker
-    ? workerStats.riskStats
-    : (apiData?.risk_analysis ?? null) as RiskAnalysis | null;
+  const stats = apiData ? mapApiToStats(apiData) : null;
+  const macroStats = apiData ? mapApiToMacro(apiData) : null;
+  const setupStats = (apiData?.setup_stats ?? []) as SetupStats[];
+  const liquidityStats = (apiData?.liquidity_stats ?? []) as LiquidityStats[];
+  const directionStats = (apiData?.direction_stats ?? []) as DirectionStats[];
+  const intervalStats = (apiData?.interval_stats ?? []) as IntervalStats[];
+  const mssStats = (apiData?.mss_stats ?? []) as MssStats[];
+  const newsStats = (apiData?.news_stats ?? []) as NewsStats[];
+  const dayStats = (apiData?.day_stats ?? []) as DayStats[];
+  const marketStats = (apiData?.market_stats ?? []) as MarketStats[];
+  const slSizeStats = (apiData?.sl_size_stats ?? []) as SLSizeStats[];
+  const localHLStats = (apiData?.local_hl_stats ?? null) as LocalHLStats | null;
+  const evaluationStats = (apiData?.evaluation_stats ?? []) as EvaluationStat[];
+  const riskStats = (apiData?.risk_analysis ?? null) as RiskAnalysis | null;
 
   // Monthly stats always come from the API (not market-filtered)
   const monthlyStats = apiData ? mapApiToMonthlyStats(apiData) : null;
