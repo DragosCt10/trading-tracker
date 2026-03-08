@@ -158,6 +158,9 @@ export default function ManageTradesClient({
     selection.mode === initialMode &&
     activeAccount?.id === initialActiveAccount?.id;
 
+  // Use initialDateRange for key when in initial context so key matches server-hydrated cache (avoids duplicate fetch + hydration error).
+  const allRangeForKey = isInitialContext ? initialDateRange : defaultAllRange;
+
   const {
     data: rawTrades,
     isLoading: allTradesLoading,
@@ -168,8 +171,8 @@ export default function ManageTradesClient({
       activeAccount?.id,
       userId,
       'all',
-      defaultAllRange.startDate,
-      defaultAllRange.endDate,
+      allRangeForKey.startDate,
+      allRangeForKey.endDate,
       initialStrategyId,
     ),
     queryFn: async () => {
