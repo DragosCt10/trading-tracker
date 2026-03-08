@@ -2,6 +2,7 @@
 
 import { cache } from 'react';
 import { createClient } from '@/utils/supabase/server';
+import { getCachedUserSession } from '@/lib/server/session';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import type { Database } from '@/types/supabase';
 import type { Strategy } from '@/types/strategy';
@@ -230,17 +231,12 @@ export async function createStrategy(
   name: string,
   extraCards: string[] = []
 ): Promise<{ data: Strategy | null; error: { message: string } | null }> {
-  const supabase = await createClient();
-
-  // Verify user is authenticated
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) {
     return { data: null, error: { message: 'Unauthorized' } };
   }
 
+  const supabase = await createClient();
   const slug = generateSlug(name);
 
   // Check if slug already exists for this user (check both active and inactive strategies)
@@ -305,17 +301,12 @@ export async function updateStrategy(
   name: string,
   extraCards?: string[]
 ): Promise<{ data: Strategy | null; error: { message: string } | null }> {
-  const supabase = await createClient();
-
-  // Verify user is authenticated
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) {
     return { data: null, error: { message: 'Unauthorized' } };
   }
 
+  const supabase = await createClient();
   // Verify strategy belongs to user
   const { data: existing } = await supabase
     .from('strategies')
@@ -381,16 +372,12 @@ export async function deleteStrategy(
   strategyId: string,
   userId: string
 ): Promise<{ error: { message: string } | null }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) {
     return { error: { message: 'Unauthorized' } };
   }
 
+  const supabase = await createClient();
   const { data: existing } = await supabase
     .from('strategies')
     .select('slug')
@@ -424,16 +411,12 @@ export async function permanentlyDeleteStrategy(
   strategyId: string,
   userId: string
 ): Promise<{ error: { message: string } | null }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) {
     return { error: { message: 'Unauthorized' } };
   }
 
+  const supabase = await createClient();
   const { data: existing } = await supabase
     .from('strategies')
     .select('id')
@@ -496,16 +479,12 @@ export async function getInactiveStrategies(userId: string): Promise<Strategy[]>
 export async function deleteArchivedStrategiesOlderThan30Days(
   userId: string
 ): Promise<{ error: { message: string } | null }> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) {
     return { error: { message: 'Unauthorized' } };
   }
 
+  const supabase = await createClient();
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const thirtyDaysAgoISO = thirtyDaysAgo.toISOString();
@@ -578,17 +557,12 @@ export async function reactivateStrategy(
   strategyId: string,
   userId: string
 ): Promise<{ data: Strategy | null; error: { message: string } | null }> {
-  const supabase = await createClient();
-
-  // Verify user is authenticated
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) {
     return { data: null, error: { message: 'Unauthorized' } };
   }
 
+  const supabase = await createClient();
   // Verify strategy belongs to user
   const { data: existing } = await supabase
     .from('strategies')
