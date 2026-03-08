@@ -367,8 +367,8 @@ export async function getDashboardStats({
 
 /**
  * Fetches full Trade objects for a specific calendar month.
- * Includes both executed and non-executed trades so the calendar
- * can display all activity. Returns a small dataset (~10–50 trades).
+ * Includes both executed and non-executed trades so the calendar can display all activity.
+ * Returns a small dataset (~10–50 trades). Auth is enforced in getFilteredTrades (no duplicate getUser).
  */
 export async function getCalendarTrades({
   userId,
@@ -385,12 +385,6 @@ export async function getCalendarTrades({
   startDate: string;
   endDate: string;
 }): Promise<Trade[]> {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
-    throw new Error('Unauthorized');
-  }
-
   return getFilteredTrades({
     userId, accountId, mode,
     startDate, endDate,
