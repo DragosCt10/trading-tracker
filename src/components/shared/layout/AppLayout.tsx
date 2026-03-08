@@ -36,6 +36,15 @@ export default function AppLayout({
   const showActionBar = pathname === '/strategies' || (pathname?.startsWith('/strategy/') ?? false);
   const actionBarSelectionHydratedRef = useRef(false);
 
+  // Accounts for the initial active mode — needed so ActionBar seeds the correct
+  // ['accounts:list', userId, mode] cache key. Using initialAccountsForLive when the
+  // initial mode is 'backtesting'/'demo' would populate that key with [] and prevent
+  // useAccounts from ever auto-fetching the real accounts for that mode.
+  const accountsForInitialMode =
+    initialAllAccounts?.filter((a) => a.mode === initialActiveAccountMode) ??
+    initialAccountsForLive ??
+    [];
+
   // Hydrate caches so Navbar/ActionBar and useUserDetails/useAccounts/useActionBarSelection get data on first paint (no client fetch)
   if (initialUserDetails != null && queryClient.getQueryData(['userDetails']) === undefined) {
     queryClient.setQueryData(['userDetails'], initialUserDetails);
@@ -69,7 +78,7 @@ export default function AppLayout({
                         userDetails: initialUserDetails ?? null,
                         mode: initialActiveAccountMode,
                         activeAccount: initialActiveAccount ?? null,
-                        accountsForMode: initialAccountsForLive,
+                        accountsForMode: accountsForInitialMode,
                         allAccounts: initialAllAccounts,
                       }
                     : undefined
@@ -95,7 +104,7 @@ export default function AppLayout({
                         userDetails: initialUserDetails ?? null,
                         mode: initialActiveAccountMode,
                         activeAccount: initialActiveAccount ?? null,
-                        accountsForMode: initialAccountsForLive,
+                        accountsForMode: accountsForInitialMode,
                         allAccounts: initialAllAccounts,
                       }
                     : undefined
