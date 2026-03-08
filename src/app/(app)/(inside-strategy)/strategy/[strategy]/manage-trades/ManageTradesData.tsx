@@ -1,9 +1,11 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
+import { QueryClient, dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { getActiveAccountForMode } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
 import { createAllTimeRange } from '@/utils/dateRangeHelpers';
+import { queryKeys } from '@/lib/queryKeys';
 import ManageTradesClient from './ManageTradesClient';
 import { Trade } from '@/types/trade';
 import { ManageTradesSkeleton } from './ManageTradesSkeleton';
@@ -53,15 +55,30 @@ async function TradesDataFetcher({
     console.error('Error fetching initial trades:', error);
   }
 
+  // Seed client cache with same key the client uses (initialDateRange so server/client key matches — avoids duplicate fetch and hydration mismatch) (audit 2.4).
+  const queryClient = new QueryClient();
+  const filteredKey = queryKeys.trades.filtered(
+    'live',
+    activeAccount.id,
+    user.id,
+    'all',
+    initialDateRange.startDate,
+    initialDateRange.endDate,
+    initialStrategyId,
+  );
+  queryClient.setQueryData(filteredKey, initialTrades);
+
   return (
-    <ManageTradesClient
-      initialUserId={user.id}
-      initialTrades={initialTrades}
-      initialDateRange={initialDateRange}
-      initialMode="live"
-      initialActiveAccount={activeAccount}
-      initialStrategyId={initialStrategyId}
-    />
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <ManageTradesClient
+        initialUserId={user.id}
+        initialTrades={initialTrades}
+        initialDateRange={initialDateRange}
+        initialMode="live"
+        initialActiveAccount={activeAccount}
+        initialStrategyId={initialStrategyId}
+      />
+    </HydrationBoundary>
   );
 }
 

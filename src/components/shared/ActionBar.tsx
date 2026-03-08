@@ -28,10 +28,12 @@ const MODE_BADGE: Record<Mode, string> = {
 
 /** Optional server-fetched initial data. When provided, hydrates TanStack cache so hooks use it without client fetch. */
 export interface ActionBarInitialData {
-  userDetails: { user: { id: string }; session: unknown } | null;
+  userDetails: { user: { id: string } | null; session: unknown } | null;
   mode: Mode;
   activeAccount: AccountRow | null;
   accountsForMode: AccountRow[];
+  /** All accounts (all modes). When provided, avoids getAllAccountsForUser client fetch (audit 2.6). */
+  allAccounts?: AccountRow[];
 }
 
 interface ActionBarProps {
@@ -47,12 +49,15 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
   // Hydrate TanStack cache from server-fetched initial data (before paint)
   useLayoutEffect(() => {
     if (!initialData || hydratedRef.current) return;
-    const { userDetails, mode, activeAccount, accountsForMode } = initialData;
+    const { userDetails, mode, activeAccount, accountsForMode, allAccounts: initialAll } = initialData;
     const uid = userDetails?.user?.id;
     if (uid) {
       queryClient.setQueryData(['userDetails'], userDetails);
       queryClient.setQueryData(['actionBar:selection'], { mode, activeAccount });
       queryClient.setQueryData(['accounts:list', uid, mode], accountsForMode);
+      if (initialAll != null) {
+        queryClient.setQueryData(['accounts:all', uid], initialAll);
+      }
       hydratedRef.current = true;
     }
   }, [initialData, queryClient]);
@@ -64,7 +69,8 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
 
   const userId = userDetails?.user?.id;
 
-  // One query for all accounts across all modes — powers the grouped dropdown
+  // One query for all accounts across all modes — powers the grouped dropdown.
+  // initialData from layout/server avoids getAllAccountsForUser client fetch on first load (audit 2.6).
   const {
     data: allAccounts = [],
     isFetching: accountsLoading,
@@ -72,6 +78,7 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
   } = useQuery<AccountRow[]>({
     queryKey: ['accounts:all', userId],
     enabled: !!userId,
+    initialData: initialData?.allAccounts,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

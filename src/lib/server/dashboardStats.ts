@@ -1,5 +1,6 @@
 'use server';
 
+import { cache } from 'react';
 import { getFilteredTrades } from './trades';
 import { Trade } from '@/types/trade';
 import { TIME_INTERVALS } from '@/constants/analytics';
@@ -362,9 +363,10 @@ export async function getDashboardStats({
 /**
  * Fetches full Trade objects for a specific calendar month.
  * Includes both executed and non-executed trades so the calendar can display all activity.
- * Returns a small dataset (~10–50 trades). Auth is enforced in getFilteredTrades (no duplicate getUser).
+ * Returns a small dataset (~10–50 trades typically). Auth is enforced in getFilteredTrades (no duplicate getUser).
+ * Request-scoped cache (audit 2.2) dedupes same-month calls; higher limit reduces pagination round-trips for heavy months.
  */
-export async function getCalendarTrades({
+async function getCalendarTradesImpl({
   userId,
   accountId,
   mode,
@@ -380,9 +382,15 @@ export async function getCalendarTrades({
   endDate: string;
 }): Promise<Trade[]> {
   return getFilteredTrades({
-    userId, accountId, mode,
-    startDate, endDate,
+    userId,
+    accountId,
+    mode,
+    startDate,
+    endDate,
     includeNonExecuted: true,
     strategyId,
+    limit: 2000,
   });
 }
+
+export const getCalendarTrades = cache(getCalendarTradesImpl);
