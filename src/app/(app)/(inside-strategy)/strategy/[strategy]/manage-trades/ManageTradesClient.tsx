@@ -372,6 +372,16 @@ export default function ManageTradesClient({
           initialStrategyId,
         ),
       });
+      // Also invalidate dashboard stats and calendar for this strategy
+      queryClient.invalidateQueries({
+        predicate: (q) => {
+          const key = q.queryKey;
+          if (!Array.isArray(key)) return false;
+          const first = key[0];
+          return (first === 'dashboardStats' || first === 'calendarTrades') &&
+            (key[4] ?? null) === (initialStrategyId ?? null);
+        },
+      });
     } finally {
       setBulkDeleting(false);
     }

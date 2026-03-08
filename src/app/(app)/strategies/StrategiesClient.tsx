@@ -100,6 +100,7 @@ export function StrategiesClient() {
         mode,
         startDate,
         endDate,
+        includeNonExecuted: true,
       });
 
       return rawTrades.reduce((acc, trade) => {

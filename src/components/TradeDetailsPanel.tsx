@@ -172,6 +172,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return affectedStrategyIds.has((key[7] ?? null) as string | null);
         // Dashboard stats API route — strategyId is at index 4
         if (firstKey === 'dashboardStats') return affectedStrategyIds.has((key[4] ?? null) as string | null);
+        // Calendar trades — strategyId is at index 4
+        if (firstKey === 'calendarTrades') return affectedStrategyIds.has((key[4] ?? null) as string | null);
         return false;
       },
     });
