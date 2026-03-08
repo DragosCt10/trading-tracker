@@ -112,10 +112,10 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
           <div className="relative flex items-center px-3 py-2 sm:px-4 sm:py-2.5">
             <Link
               href="/"
-              className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-50"
+              className="flex items-center font-semibold text-slate-900 dark:text-slate-50"
             >
-              <Logo width={35} height={35} />
-              <span className="hidden sm:inline text-sm font-semibold tracking-tight">
+              <Logo width={35} height={35} className="-mt-1.5" />
+              <span className="hidden sm:inline text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-50">
                 AlphaStats
               </span>
             </Link>

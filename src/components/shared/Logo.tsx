@@ -1,76 +1,38 @@
 // components/shared/Logo.tsx
-// Vibrant trading-style logo with purple gradients
+// Theme-aware: solid fill is white in dark mode, gradients use --tc-primary / --tc-accent / --tc-accent-end.
 interface LogoProps {
   width?: number;
   height?: number;
   className?: string;
 }
 
-export default function Logo({ width = 512, height = 512, className, ...props }: LogoProps & React.SVGProps<SVGSVGElement>) {
+export default function Logo({ width = 400, height = 200, className, ...props }: LogoProps & React.SVGProps<SVGSVGElement>) {
   return (
     <svg
+      version="1.1"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 2048 2023"
       width={width}
       height={height}
-      viewBox="0 0 512 512"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
+      preserveAspectRatio="xMidYMid meet"
+      style={{ display: 'block' }}
+      className={`text-[rgb(24,24,55)] dark:text-white ${className ?? ''}`.trim()}
+      aria-hidden
       {...props}
     >
       <defs>
-        {/* Vibrant bar gradients */}
-        <linearGradient id="bar1" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#c084fc" />
-          <stop offset="100%" stopColor="#a78bfa" />
+        <linearGradient id="logo-gradient-1" gradientUnits="userSpaceOnUse" x1="1161.81" y1="344.101" x2="993.681" y2="740.21">
+          <stop offset="0" stopOpacity={1} stopColor="var(--tc-primary)" />
+          <stop offset="1" stopOpacity={1} stopColor="var(--tc-accent)" />
         </linearGradient>
-        
-        <linearGradient id="bar2" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#a78bfa" />
-          <stop offset="100%" stopColor="#8b5cf6" />
+        <linearGradient id="logo-gradient-2" gradientUnits="userSpaceOnUse" x1="973.589" y1="698.57" x2="579.745" y2="1788.37">
+          <stop offset="0" stopOpacity={1} stopColor="var(--tc-accent)" />
+          <stop offset="1" stopOpacity={1} stopColor="var(--tc-accent-end)" />
         </linearGradient>
-        
-        <linearGradient id="bar3" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#e879f9" />
-          <stop offset="100%" stopColor="#d946ef" />
-        </linearGradient>
-        
-        {/* Glow effect */}
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-          <feMerge>
-            <feMergeNode in="coloredBlur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
       </defs>
-
-      {/* Trading Chart Bars with glow */}
-      <g filter="url(#glow)">
-        {/* Short bar - Loss/Red alternative */}
-        <rect x="130" y="280" width="80" height="140" rx="25" fill="url(#bar1)" />
-        
-        {/* Medium bar - Neutral */}
-        <rect x="220" y="200" width="80" height="220" rx="25" fill="url(#bar2)" />
-        
-        {/* Tall bar - Profit/Growth */}
-        <rect x="310" y="130" width="80" height="290" rx="25" fill="url(#bar3)" />
-      </g>
-      
-      {/* Subtle shine effect on bars */}
-      <rect x="130" y="280" width="80" height="60" rx="25" fill="white" opacity="0.15" />
-      <rect x="220" y="200" width="80" height="80" rx="25" fill="white" opacity="0.15" />
-      <rect x="310" y="130" width="80" height="100" rx="25" fill="white" opacity="0.15" />
-      
-      {/* Trend line overlay (optional accent) */}
-      <path 
-        d="M 150 320 L 170 300 L 190 310 L 220 280 L 260 260 L 290 240 L 320 200 L 350 170 L 380 160" 
-        stroke="#c084fc" 
-        strokeWidth="6" 
-        strokeLinecap="round" 
-        strokeLinejoin="round"
-        fill="none"
-        opacity="0.3"
-      />
+      <path transform="translate(0,0)" fill="currentColor" d="M 1184.26 736.776 C 1191.55 750.012 1198.09 767.55 1204.2 781.785 C 1213.23 802.46 1222.38 823.077 1231.68 843.635 L 1337.34 1085.84 L 1564.98 1607.52 C 1582.94 1649.52 1602.74 1691.22 1620.08 1733.42 C 1580.63 1734.59 1536.83 1733.46 1497.09 1733.41 L 1272.91 1733.62 C 1252.22 1684.13 1234.72 1632.28 1214.36 1582.53 C 1211.51 1575.57 1208.07 1566.91 1205.89 1559.86 C 1093.46 1559.46 979.613 1561.14 867.381 1559.88 C 869.376 1554.94 871.404 1550.44 872.613 1545.25 C 876.686 1539.52 890.93 1498.35 894.9 1488.03 L 925.555 1408.67 C 931.341 1393.75 938.867 1375.99 943.619 1360.97 C 947.016 1356.32 958.167 1324.27 960.566 1317.47 C 1002.62 1316.23 1045.15 1317.53 1087.25 1317.03 C 1095.53 1316.93 1104.67 1316.79 1112.92 1317.14 C 1101.82 1289.66 1091.3 1261.42 1080.81 1233.66 C 1066.63 1196.16 1051.19 1158.76 1037.29 1121.22 C 1040.51 1107.7 1049.61 1085.71 1054.82 1072.08 L 1088.47 984.77 L 1155.51 810.27 C 1164.79 786.477 1174.28 760.017 1184.26 736.776 z" />
+      <path transform="translate(0,0)" fill="url(#logo-gradient-2)" d="M 417.959 1733.45 L 752.888 967.175 L 842.569 760.559 L 871.405 694.25 C 874.664 686.869 881.962 669.263 885.903 662.914 C 886.555 666.379 889.277 669.783 891.236 674.267 C 893.042 675.162 900.217 676.558 898.916 675.533 C 905.426 680.665 907.876 685.312 915.669 688.901 C 932.274 696.549 950.03 708.626 967.508 713.797 C 981.611 717.969 998.472 717.673 1012.54 723.474 C 1025.08 729.587 1037.57 735.654 1050.29 741.417 C 1054.18 743.18 1060.67 749.795 1063.7 750.854 C 1078.79 756.131 1092.8 763.419 1108.23 767.855 C 1111.74 768.866 1113.83 782.993 1117.67 784.447 C 1124.12 780.101 1120.31 773.929 1128.65 774.692 C 1124.54 787.976 1115.95 808.963 1110.85 822.163 L 1077.11 909.239 L 968.296 1191.44 L 823.366 1568.51 C 803.012 1621.12 781.468 1682.47 759.514 1733.65 C 689.838 1734.9 617.325 1733.81 547.417 1733.83 L 465.57 1733.87 C 451.304 1733.88 431.857 1734.38 417.959 1733.45 z" />
+      <path transform="translate(0,0)" fill="url(#logo-gradient-1)" d="M 885.903 662.914 L 885.34 660.615 C 872.336 658.939 802.577 662.672 797.075 659.101 C 798.421 655.351 894.708 576.173 904.313 568.025 L 1072.55 426.345 L 1136.42 372.735 C 1145.38 365.219 1163.49 349.254 1172.6 343.451 C 1176.93 354.795 1180.78 370.461 1184.09 382.434 L 1200.39 440.943 C 1220.6 514.077 1241.24 587.094 1262.3 659.988 C 1235.57 660.735 1199.33 660.416 1172.35 659.82 C 1166.97 678.813 1156.25 703.586 1148.88 722.59 C 1143.59 736.236 1134.61 762.403 1128.65 774.692 C 1120.31 773.929 1124.12 780.101 1117.67 784.447 C 1113.83 782.993 1111.74 768.866 1108.23 767.855 C 1092.8 763.419 1078.79 756.131 1063.7 750.854 C 1060.67 749.795 1054.18 743.18 1050.29 741.417 C 1037.57 735.654 1025.08 729.587 1012.54 723.474 C 998.472 717.673 981.611 717.969 967.508 713.797 C 950.03 708.626 932.274 696.549 915.669 688.901 C 907.876 685.312 905.426 680.665 898.916 675.533 C 900.217 676.558 893.042 675.162 891.236 674.267 C 889.277 669.783 886.555 666.379 885.903 662.914 z" />
     </svg>
   );
 }
