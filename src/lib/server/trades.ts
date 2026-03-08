@@ -162,18 +162,19 @@ export async function getFilteredTrades({
 }
 
 /**
- * Server-side function to get user session and account info
+ * Server-side function to get user session and account info.
+ * Uses only getUser() to avoid duplicate Supabase auth calls (was getUser + getSession = 2 per request).
+ * Returns a minimal session shape { user } so layout and client still receive { user, session }.
  */
 export async function getUserSession() {
   const supabase = await createClient();
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  const { data: { user }, error } = await supabase.auth.getUser();
 
-  if (userError || sessionError) {
+  if (error || !user) {
     return { user: null, session: null };
   }
 
-  return { user, session };
+  return { user, session: { user } };
 }
 
 /** Cached per request; use in layout + pages so data components can receive user without a second read */
