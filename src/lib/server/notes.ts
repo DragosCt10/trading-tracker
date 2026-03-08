@@ -10,6 +10,7 @@ import { Note, TradeRef } from '@/types/note';
 import type { Database } from '@/types/supabase';
 import type { Trade } from '@/types/trade';
 import { getFullTradesByRefs } from '@/lib/server/trades';
+import { getCachedUserSession } from '@/lib/server/session';
 
 export type NoteRow = Database['public']['Tables']['notes']['Row'];
 
@@ -54,14 +55,10 @@ export async function getNotes(
     includeInactive?: boolean;
   }
 ): Promise<Note[]> {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) throw new Error('Unauthorized');
+
   const supabase = await createClient();
-
-  // Verify user is authenticated
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
-    throw new Error('Unauthorized');
-  }
-
   try {
     let query = supabase
       .from('notes')
@@ -166,14 +163,10 @@ export async function getNotes(
  * Gets a single note by ID for a user.
  */
 export async function getNoteById(noteId: string, userId: string): Promise<Note | null> {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) throw new Error('Unauthorized');
+
   const supabase = await createClient();
-
-  // Verify user is authenticated
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
-    throw new Error('Unauthorized');
-  }
-
   try {
     const { data, error } = await supabase
       .from('notes')
@@ -248,17 +241,12 @@ export async function createNote(
   userId: string,
   note: Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 ): Promise<{ data: Note | null; error: { message: string } | null }> {
-  const supabase = await createClient();
-
-  // Verify user is authenticated
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) {
     return { data: null, error: { message: 'Unauthorized' } };
   }
 
+  const supabase = await createClient();
   // Validate strategy_id belongs to user if provided
   if (note.strategy_id) {
     const { data: strategy, error: strategyError } = await supabase
@@ -372,17 +360,12 @@ export async function updateNote(
   userId: string,
   updates: Partial<Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
 ): Promise<{ data: Note | null; error: { message: string } | null }> {
-  const supabase = await createClient();
-
-  // Verify user is authenticated
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) {
     return { data: null, error: { message: 'Unauthorized' } };
   }
 
+  const supabase = await createClient();
   // Verify note belongs to user
   const { data: existing } = await supabase
     .from('notes')
@@ -510,17 +493,12 @@ export async function deleteNote(
   noteId: string,
   userId: string
 ): Promise<{ error: { message: string } | null }> {
-  const supabase = await createClient();
-
-  // Verify user is authenticated
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) {
     return { error: { message: 'Unauthorized' } };
   }
 
+  const supabase = await createClient();
   // Verify note belongs to user
   const { data: existing } = await supabase
     .from('notes')

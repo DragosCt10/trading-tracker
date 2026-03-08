@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { getCachedUserSession } from '@/lib/server/session';
 import type { Database } from '@/types/supabase';
 import type { SavedNewsItem } from '@/types/account-settings';
 
@@ -72,15 +73,10 @@ export async function createAccount(params: {
   mode: AccountMode;
   description: string | null;
 }): Promise<{ data: AccountRow | null; error: { message: string } | null }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { data: null, error: { message: 'Unauthorized' } };
-  }
+  const { user } = await getCachedUserSession();
+  if (!user) return { data: null, error: { message: 'Unauthorized' } };
 
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from('account_settings')
     .insert({

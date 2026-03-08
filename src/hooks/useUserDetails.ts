@@ -4,12 +4,15 @@ import { useEffect } from 'react';
 import { USER_DATA } from '@/constants/queryConfig';
 import { queryKeys } from '@/lib/queryKeys';
 
+/**
+ * Single auth call (getUser only) to match server and reduce Supabase auth requests (audit 1.5).
+ * Returns session-shaped { user, session } so consumers keep working.
+ */
 async function fetchUserDetails() {
   const supabase = createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
-  const { data: { session } } = await supabase.auth.getSession();
   if (error) throw error;
-  return { user, session };
+  return { user: user ?? null, session: user ? { user } : null };
 }
 
 export function useUserDetails() {
