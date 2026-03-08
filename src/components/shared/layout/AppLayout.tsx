@@ -59,7 +59,24 @@ export default function AppLayout({
     <>
       <div className="mt-30 sm:mt-48 max-w-(--breakpoint-xl) mx-auto flex min-h-screen flex-col">
         <Navbar
-          centerContent={showActionBar ? <ActionBar showAddButton={false} /> : undefined}
+          centerContent={
+            showActionBar ? (
+              <ActionBar
+                showAddButton={false}
+                initialData={
+                  userId && initialAccountsForLive && initialAllAccounts
+                    ? {
+                        userDetails: initialUserDetails ?? null,
+                        mode: initialActiveAccountMode,
+                        activeAccount: initialActiveAccount ?? null,
+                        accountsForMode: initialAccountsForLive,
+                        allAccounts: initialAllAccounts,
+                      }
+                    : undefined
+                }
+              />
+            ) : undefined
+          }
           mobileMenuExtra={
             showActionBar ? (
               <CreateAccountAlertDialog
@@ -71,7 +88,19 @@ export default function AppLayout({
         {showActionBar && (
           <div className="hidden lg:block fixed top-20 left-1/2 z-40 w-auto max-w-[calc(100vw-2rem)] -translate-x-1/2 transform">
             <div className="inline-block mx-2 sm:mx-4 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 sm:px-4 py-3">
-              <ActionBar />
+              <ActionBar
+                initialData={
+                  userId && initialAccountsForLive && initialAllAccounts
+                    ? {
+                        userDetails: initialUserDetails ?? null,
+                        mode: initialActiveAccountMode,
+                        activeAccount: initialActiveAccount ?? null,
+                        accountsForMode: initialAccountsForLive,
+                        allAccounts: initialAllAccounts,
+                      }
+                    : undefined
+                }
+              />
             </div>
           </div>
         )}
