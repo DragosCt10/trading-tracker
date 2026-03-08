@@ -414,6 +414,33 @@ export default function StrategyClient(
     selectedExecution,
   });
 
+  // Determine which trades to use based on view mode, market filter, and execution filter
+  const tradesToUse = useMemo(() => {
+    let baseTrades: Trade[] = viewMode === 'yearly' ? allTrades : filteredTrades;
+
+    // Apply execution filter for both modes (compact_trades includes all execution types)
+    if (selectedExecution === 'nonExecuted') {
+      baseTrades = nonExecutedTrades || [];
+    } else if (selectedExecution === 'executed') {
+      baseTrades = baseTrades.filter((t) => t.executed === true);
+    }
+
+    if (selectedMarket !== 'all') {
+      baseTrades = baseTrades.filter((t) => t.market === selectedMarket);
+    }
+
+    return baseTrades;
+  }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedMarket, selectedExecution]);
+
+  // Derive tradeMonths from the filtered trades so calendar nav respects execution+market filters
+  const filteredTradeMonths = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tradesToUse) {
+      if (t.trade_date) set.add(t.trade_date.slice(0, 7));
+    }
+    return Array.from(set).sort();
+  }, [tradesToUse]);
+
   // Calendar navigation logic
   const {
     canNavigateMonth,
@@ -425,7 +452,7 @@ export default function StrategyClient(
     selectedYear,
     selectedMarket,
     selectedExecution,
-    tradeMonths,
+    tradeMonths: filteredTradeMonths,
     statsLoading: isLoadingStats,
     setCurrentDate,
     setCalendarDateRange,
@@ -465,25 +492,6 @@ export default function StrategyClient(
 
   // Use correct market stats based on view mode
   const marketStatsToUse = viewMode === 'yearly' ? marketAllTradesStats : marketStats;
-
-  // Determine which monthly stats to use based on view mode (for AccountOverviewCard - profit only)
-  // Determine which trades to use based on view mode, market filter, and execution filter
-  const tradesToUse = useMemo(() => {
-    let baseTrades: Trade[] = viewMode === 'yearly' ? allTrades : filteredTrades;
-
-    // Apply execution filter for both modes (compact_trades includes all execution types)
-    if (selectedExecution === 'nonExecuted') {
-      baseTrades = nonExecutedTrades || [];
-    } else if (selectedExecution === 'executed') {
-      baseTrades = baseTrades.filter((t) => t.executed === true);
-    }
-
-    if (selectedMarket !== 'all') {
-      baseTrades = baseTrades.filter((t) => t.market === selectedMarket);
-    }
-
-    return baseTrades;
-  }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedMarket, selectedExecution]);
 
   const earliestTradeDate = useMemo(() => {
     if (activeFilter !== 'all' || filteredTrades.length === 0) return undefined;
