@@ -271,40 +271,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return (key[7] ?? null) === strategyId;
       // Dashboard stats API route — strategyId is at index 4
       if (firstKey === 'dashboardStats') return (key[4] ?? null) === strategyId;
+      // Calendar trades — strategyId is at index 4
+      if (firstKey === 'calendarTrades') return (key[4] ?? null) === strategyId;
       return false;
     }});
 
-    // Explicitly refetch queries for the current strategy (ensures calendar updates immediately)
-    // This is critical: we refetch BEFORE any removeQueries so the queries still exist
-    if (accountId && effectiveUserId && strategyId) {
-      await queryClient.refetchQueries({ 
-        predicate: (query) => {
-          const key = query.queryKey;
-          if (!Array.isArray(key)) return false;
-          const firstKey = key[0];
-          // Match trade queries for current strategy
-          if (firstKey === 'allTrades' || firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') {
-            // Check if query matches current mode, account, user, and strategy
-            // allTrades: ['allTrades', mode, accountId, userId, year, strategyId] - strategyId at index 5
-            // filteredTrades: ['filteredTrades', mode, accountId, userId, viewMode, startDate, endDate, strategyId] - strategyId at index 7
-            // nonExecutedTrades: same structure as filteredTrades - strategyId at index 7
-            const matchesMode = key[1] === mode;
-            const matchesAccount = key[2] === accountId;
-            const matchesUser = key[3] === effectiveUserId;
-            // Strategy ID is at index 5 for allTrades, index 7 for filteredTrades/nonExecutedTrades
-            let matchesStrategy = false;
-            if (firstKey === 'allTrades' && key.length > 5) {
-              matchesStrategy = key[5] === strategyId;
-            } else if ((firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') && key.length > 7) {
-              matchesStrategy = key[7] === strategyId;
-            }
-            return matchesMode && matchesAccount && matchesUser && matchesStrategy;
-          }
-          return false;
-        }
-      });
-    }
-    
     // Refetch all-strategy-trades for ALL observers (active and inactive).
     // This ensures StrategiesClient shows the new trade when the user navigates there,
     // even if it wasn't mounted when the trade was added (e.g. user is on a strategy page).
@@ -316,14 +287,17 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       });
     }
 
-    // Safety: refetch only active per-strategy trade queries
+    // Explicitly refetch active dashboardStats and calendarTrades queries for the affected strategy.
+    // All dashboard data comes from dashboardStats (compact_trades); calendarTrades powers the calendar view.
+    // invalidateQueries triggers an auto-refetch for active observers, but an explicit refetch ensures
+    // the UI updates immediately after the trade is created (e.g. new trade appears in calendar/stats).
     await queryClient.refetchQueries({
       predicate: (query) => {
         const key = query.queryKey;
         if (!Array.isArray(key)) return false;
         const firstKey = key[0];
-        if (firstKey === 'allTrades') return (key[5] ?? null) === strategyId;
-        if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return (key[7] ?? null) === strategyId;
+        if (firstKey === 'dashboardStats') return (key[4] ?? null) === strategyId;
+        if (firstKey === 'calendarTrades') return (key[4] ?? null) === strategyId;
         return false;
       },
       type: 'active',

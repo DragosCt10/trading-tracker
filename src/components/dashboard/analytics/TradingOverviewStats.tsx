@@ -205,7 +205,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
       {/* Key metrics: RR Multiple, P&L %, Average Days Between Trades; in year mode also Average Monthly Trades */}
       <div className={`col-span-full grid grid-cols-1 gap-6 w-full [&>*]:min-w-0 ${viewMode === 'yearly' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
         <RRMultipleStatCard tradesToUse={trades} />
-        <PNLPercentageStatCard tradesToUse={trades} accountBalance={accountBalance} />
+        <PNLPercentageStatCard tradesToUse={trades} accountBalance={accountBalance} hydrated={hydrated} />
         <AverageDaysBetweenTradesCard
           averageDaysBetweenTrades={stats.averageDaysBetweenTrades}
           viewMode={viewMode}

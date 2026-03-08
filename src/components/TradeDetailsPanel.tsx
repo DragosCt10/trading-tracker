@@ -160,6 +160,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       trade?.strategy_id ?? null,
       editedTradeRef.current?.strategy_id ?? null,
     ]);
+    const affectedStrategyIdsArray = Array.from(affectedStrategyIds);
+
     await queryClient.invalidateQueries({
       predicate: (query) => {
         const key = query.queryKey;
@@ -172,10 +174,11 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return affectedStrategyIds.has((key[7] ?? null) as string | null);
         // Dashboard stats API route — strategyId is at index 4
         if (firstKey === 'dashboardStats') return affectedStrategyIds.has((key[4] ?? null) as string | null);
+        // Calendar trades — strategyId is at index 4
+        if (firstKey === 'calendarTrades') return affectedStrategyIds.has((key[4] ?? null) as string | null);
         return false;
       },
     });
-
 
     // Refetch all-strategy-trades for ALL observers (active and inactive).
     // This ensures StrategiesClient shows the updated trade when the user navigates there,
@@ -190,15 +193,18 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       });
     }
 
-    // Safety: refetch only active per-strategy trade queries
-    const affectedStrategyIdsArray = Array.from(affectedStrategyIds);
+    // Explicitly refetch active dashboardStats and calendarTrades queries for the affected
+    // strategies. useDashboardData no longer uses separate allTrades/filteredTrades queries —
+    // all data comes from dashboardStats (compact_trades). invalidateQueries triggers an
+    // auto-refetch for active observers but an explicit refetch ensures the UI updates
+    // immediately after a trade edit (e.g. risk change → new calculated_profit).
     await queryClient.refetchQueries({
       predicate: (query) => {
         const key = query.queryKey;
         if (!Array.isArray(key)) return false;
         const firstKey = key[0];
-        if (firstKey === 'allTrades') return affectedStrategyIdsArray.includes((key[5] ?? null) as string | null);
-        if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return affectedStrategyIdsArray.includes((key[7] ?? null) as string | null);
+        if (firstKey === 'dashboardStats') return affectedStrategyIdsArray.includes((key[4] ?? null) as string | null);
+        if (firstKey === 'calendarTrades') return affectedStrategyIdsArray.includes((key[4] ?? null) as string | null);
         return false;
       },
       type: 'active',

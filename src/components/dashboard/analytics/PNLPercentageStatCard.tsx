@@ -38,10 +38,11 @@ export function formatPNLPercentageValue(averagePnLPercentage: number | null | u
 interface PNLPercentageStatCardProps {
   tradesToUse: Trade[];
   accountBalance: number | null | undefined;
+  hydrated?: boolean;
 }
 
 export const PNLPercentageStatCard: React.FC<PNLPercentageStatCardProps> = React.memo(
-  function PNLPercentageStatCard({ tradesToUse, accountBalance }) {
+  function PNLPercentageStatCard({ tradesToUse, accountBalance, hydrated = true }) {
     // Calculate average P&L percentage from trades
     const averagePnLPercentage = useMemo(() => {
       // Check if all trades are non-executed (when execution filter is "nonExecuted")
@@ -65,8 +66,8 @@ export const PNLPercentageStatCard: React.FC<PNLPercentageStatCardProps> = React
           </p>
         }
         value={
-          <p className={cn('text-2xl font-bold', getPNLPercentageColorClass(averagePnLPercentage))}>
-            {formatPNLPercentageValue(averagePnLPercentage)}
+          <p className={cn('text-2xl font-bold', hydrated ? getPNLPercentageColorClass(averagePnLPercentage) : 'text-slate-900 dark:text-slate-100')}>
+            {hydrated ? formatPNLPercentageValue(averagePnLPercentage) : '—'}
           </p>
         }
       />
