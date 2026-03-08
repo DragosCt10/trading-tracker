@@ -1,10 +1,10 @@
 'use server';
 
-import { cache } from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { Trade } from '@/types/trade';
 import type { ParsedTrade } from '@/utils/tradeImportParser';
 import { getAccountsForMode } from '@/lib/server/accounts';
+import { getCachedUserSession } from '@/lib/server/session';
 import { calculateRRStats } from '@/utils/calculateRMultiple';
  
 /**
@@ -92,14 +92,10 @@ export async function getFilteredTrades({
   /** Optional: Filter trades by strategy_id */
   strategyId?: string | null;
 }): Promise<Trade[]> {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) throw new Error('Unauthorized');
+
   const supabase = await createClient();
-
-  // Verify user is authenticated
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
-    throw new Error('Unauthorized');
-  }
-
   const limit = 500;
   let offset = 0;
   let allTrades: Trade[] = [];
@@ -161,24 +157,8 @@ export async function getFilteredTrades({
   }
 }
 
-/**
- * Server-side function to get user session and account info.
- * Uses only getUser() to avoid duplicate Supabase auth calls (was getUser + getSession = 2 per request).
- * Returns a minimal session shape { user } so layout and client still receive { user, session }.
- */
-export async function getUserSession() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    return { user: null, session: null };
-  }
-
-  return { user, session: { user } };
-}
-
-/** Cached per request; use in layout + pages so data components can receive user without a second read */
-export const getCachedUserSession = cache(getUserSession);
+// Re-export for layout/pages; implementation lives in session.ts to avoid circular deps and share cached auth.
+export { getUserSession, getCachedUserSession } from '@/lib/server/session';
 
 /**
  * Creates a new trade for the current user (server-side only; user_id from session).
@@ -191,15 +171,10 @@ export async function createTrade(params: {
   pnl_percentage: number;
   trade: Omit<Trade, 'id' | 'user_id' | 'account_id' | 'calculated_profit' | 'pnl_percentage'>;
 }): Promise<{ error: { message: string } | null }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { error: { message: 'Unauthorized' } };
-  }
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: { message: 'Unauthorized' } };
 
+  const supabase = await createClient();
   // Ensure the account belongs to the session user (defense in depth)
   const userAccounts = await getAccountsForMode(user.id, params.mode);
   if (!userAccounts.some((a) => a.id === params.account_id)) {
@@ -237,15 +212,10 @@ export async function updateTrade(
   mode: 'live' | 'backtesting' | 'demo',
   updateData: Partial<Omit<Trade, 'id' | 'user_id' | 'account_id'>>
 ): Promise<{ error: { message: string } | null }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { error: { message: 'Unauthorized' } };
-  }
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: { message: 'Unauthorized' } };
 
+  const supabase = await createClient();
   const payload = { ...updateData } as Record<string, unknown>;
   delete payload.rr_hit_1_4; // Column removed from DB
   delete payload.trade_executed_at; // Omit if column not in DB schema
@@ -273,15 +243,10 @@ export async function deleteTrade(
   tradeId: string,
   mode: 'live' | 'backtesting' | 'demo'
 ): Promise<{ error: { message: string } | null }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { error: { message: 'Unauthorized' } };
-  }
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: { message: 'Unauthorized' } };
 
+  const supabase = await createClient();
   const tableName = `${mode}_trades`;
   const { error } = await supabase
     .from(tableName)
@@ -307,15 +272,10 @@ export async function deleteTrades(
   if (tradeIds.length === 0) {
     return { error: null };
   }
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { error: { message: 'Unauthorized' } };
-  }
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: { message: 'Unauthorized' } };
 
+  const supabase = await createClient();
   const tableName = `${mode}_trades`;
   const { error } = await supabase
     .from(tableName)
@@ -343,17 +303,15 @@ export async function importTrades(params: {
   inserted: number;
   failed: Array<{ row: number; reason: string }>;
 }> {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    throw new Error('Unauthorized');
-  }
+  const { user } = await getCachedUserSession();
+  if (!user) throw new Error('Unauthorized');
 
   const userAccounts = await getAccountsForMode(user.id, params.mode);
   if (!userAccounts.some((a) => a.id === params.account_id)) {
     throw new Error('Account not found or access denied');
   }
 
+  const supabase = await createClient();
   const tableName = `${params.mode}_trades`;
   const CHUNK_SIZE = 100;
   let inserted = 0;
@@ -412,14 +370,10 @@ export async function getStrategyStatsFromTrades({
   avgRR: number;
   totalRR: number;
 } | null> {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) throw new Error('Unauthorized');
+
   const supabase = await createClient();
-
-  // Verify user is authenticated
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
-    throw new Error('Unauthorized');
-  }
-
   try {
     // Determine table name based on mode
     const tableName = `${mode}_trades`;
@@ -536,11 +490,8 @@ export async function getTradesForNoteLinking(
     offset?: number;
   }
 ): Promise<GetTradesForNoteLinkingResult> {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
-    throw new Error('Unauthorized');
-  }
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) throw new Error('Unauthorized');
 
   if (options?.accountId) {
     const { getAccountsForMode } = await import('@/lib/server/accounts');
@@ -550,6 +501,7 @@ export async function getTradesForNoteLinking(
     }
   }
 
+  const supabase = await createClient();
   const pageSize = Math.min(options?.limit ?? TRADES_FOR_NOTE_LINKING_PAGE_SIZE, 100);
   const offset = options?.offset ?? 0;
   const tableName = `${mode}_trades`;
@@ -608,12 +560,10 @@ export async function getFullTradesByRefs(
   refs: Array<{ id: string; mode: 'live' | 'backtesting' | 'demo' }>
 ): Promise<Trade[]> {
   if (refs.length === 0) return [];
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user || user.id !== userId) {
-    throw new Error('Unauthorized');
-  }
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) throw new Error('Unauthorized');
 
+  const supabase = await createClient();
   const byMode = new Map<string, Array<{ id: string; mode: 'live' | 'backtesting' | 'demo' }>>();
   for (const r of refs) {
     const key = r.mode;
@@ -649,13 +599,10 @@ export async function getTradeCountForAccount(
   accountId: string,
   mode: 'live' | 'backtesting' | 'demo'
 ): Promise<number> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) return 0;
+  const { user } = await getCachedUserSession();
+  if (!user) return 0;
 
+  const supabase = await createClient();
   const { count, error } = await supabase
     .from(`${mode}_trades`)
     .select('*', { count: 'exact', head: true })
