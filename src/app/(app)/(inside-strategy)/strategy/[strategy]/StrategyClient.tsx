@@ -712,7 +712,7 @@ export default function StrategyClient(
     });
     
     return result;
-  }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, currentDate, selectedMarket, selectedExecution]);
+  }, [viewMode, allTrades, calendarMonthTrades, filteredTrades, nonExecutedTrades, currentDate, selectedMarket, selectedExecution]);
 
   const weeklyStats = useMemo(
     () =>
