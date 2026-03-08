@@ -4,20 +4,20 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ViewModeToggle } from '@/components/dashboard/analytics/ViewModeToggle';
 import { TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
-import { createInitialDateRange } from '@/utils/dateRangeHelpers';
+import { buildPresetRange } from '@/utils/dateRangeHelpers';
 
 export function StrategySkeleton() {
-  const defaultDateRange = createInitialDateRange();
+  const defaultDateRange = buildPresetRange('year').dateRange;
 
   return (
     <>
       <ViewModeToggle viewMode="dateRange" onViewModeChange={() => {}} />
 
-      {/* Date Range and Filter Bar - only in dateRange mode (matches StrategyClient) */}
+      {/* Date Range and Filter Bar - matches StrategyClient default (Current Year) to avoid flicker */}
       <TradeFiltersBar
         dateRange={defaultDateRange}
         onDateRangeChange={() => {}}
-        activeFilter="30days"
+        activeFilter="year"
         onFilterChange={() => {}}
         isCustomRange={false}
         selectedMarket="all"
