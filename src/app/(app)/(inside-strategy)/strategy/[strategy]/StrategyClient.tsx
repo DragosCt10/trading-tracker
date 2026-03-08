@@ -469,28 +469,20 @@ export default function StrategyClient(
   // Determine which monthly stats to use based on view mode (for AccountOverviewCard - profit only)
   // Determine which trades to use based on view mode, market filter, and execution filter
   const tradesToUse = useMemo(() => {
-    // Get base trades based on view mode
     let baseTrades: Trade[] = viewMode === 'yearly' ? allTrades : filteredTrades;
-    
-    // Apply execution filter in dateRange mode
-    if (viewMode === 'dateRange') {
-      if (selectedExecution === 'nonExecuted') {
-        baseTrades = nonExecutedTrades || [];
-      } else if (selectedExecution === 'executed') {
-        // Filter to only executed trades
-        baseTrades = baseTrades.filter((t) => t.executed === true);
-      }
-      // If 'all', don't filter (show all trades) - though this shouldn't happen on analytics page
+
+    // Apply execution filter for both modes (compact_trades includes all execution types)
+    if (selectedExecution === 'nonExecuted') {
+      baseTrades = nonExecutedTrades || [];
+    } else if (selectedExecution === 'executed') {
+      baseTrades = baseTrades.filter((t) => t.executed === true);
     }
-    
-    let filtered = baseTrades;
-    
-    // Apply market filter if needed
+
     if (selectedMarket !== 'all') {
-      filtered = filtered.filter((t) => t.market === selectedMarket);
+      baseTrades = baseTrades.filter((t) => t.market === selectedMarket);
     }
-    
-    return filtered;
+
+    return baseTrades;
   }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedMarket, selectedExecution]);
 
   const earliestTradeDate = useMemo(() => {
@@ -649,19 +641,15 @@ export default function StrategyClient(
     // so trades outside the date-range filter window but within the calendar month still appear.
     let tradesSource: Trade[] = viewMode === 'yearly' ? allTrades : calendarMonthTrades;
     
-    // Apply execution filter in dateRange mode
-    if (viewMode === 'dateRange') {
-      if (selectedExecution === 'nonExecuted') {
-        tradesSource = nonExecutedTrades || [];
-      } else if (selectedExecution === 'executed') {
-        // Filter to only executed trades
-        tradesSource = tradesSource.filter((t) => t.executed === true);
-      }
-      // If 'all', don't filter (show all trades) - though this shouldn't happen on analytics page
+    // Apply execution filter for both modes (compact_trades includes all execution types)
+    if (selectedExecution === 'nonExecuted') {
+      tradesSource = nonExecutedTrades || [];
+    } else if (selectedExecution === 'executed') {
+      tradesSource = tradesSource.filter((t) => t.executed === true);
     }
-    
+
     let filteredSource = tradesSource;
-    
+
     // Apply market filter if needed
     if (selectedMarket !== 'all') {
       filteredSource = filteredSource.filter((t) => t.market === selectedMarket);
