@@ -59,90 +59,66 @@ function generateSlug(name: string): string {
 export async function ensureDefaultStrategy(userId: string): Promise<Strategy | null> {
   const supabase = await createClient();
 
-  // First, check if user has any active strategies
-  const { data: activeStrategies, error: activeCheckError } = await supabase
-    .from('strategies')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('is_active', true)
-    .limit(1);
-
-  if (activeCheckError) {
-    console.error('Error checking for active strategies:', activeCheckError);
-  }
-
-  // If user already has active strategies, don't create a default one
-  // (they may have renamed the default strategy)
-  if (activeStrategies && activeStrategies.length > 0) {
-    // Check if default strategy exists (including inactive ones)
-    const { data: existing } = await supabase
-      .from('strategies')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('slug', 'trading-institutional')
-      .single();
-
-    if (existing) {
-      // If default strategy exists but is inactive, reactivate it
-      if (!existing.is_active) {
-        const { data: reactivated, error: reactivateError } = await supabase
-          .from('strategies')
-          .update({ is_active: true, updated_at: new Date().toISOString() })
-          .eq('id', existing.id)
-          .select()
-          .single();
-
-        if (reactivateError) {
-          console.error('Error reactivating default strategy:', reactivateError);
-          return existing as Strategy;
-        }
-
-        return reactivated as Strategy;
-      }
-
-      return existing as Strategy;
-    }
-
-    // User has strategies but default doesn't exist (was renamed) - return null
-    // Don't create a duplicate default strategy
-    return null;
-  }
-
-  // User has no active strategies - check if default strategy exists (including inactive)
-  const { data: existing, error: checkError } = await supabase
+  // Single query: fetch active strategies + the default slug row in one round-trip (audit 2.5).
+  const { data: relevant, error } = await supabase
     .from('strategies')
     .select('*')
     .eq('user_id', userId)
-    .eq('slug', 'trading-institutional')
-    .single();
+    .or('is_active.eq.true,slug.eq.trading-institutional')
+    .order('created_at', { ascending: true });
 
-  if (checkError && checkError.code !== 'PGRST116') {
-    // PGRST116 is "not found" - that's expected if strategy doesn't exist
-    console.error('Error checking for default strategy:', checkError);
+  if (error) {
+    console.error('Error checking strategies:', error);
   }
 
-  if (existing) {
-    // If default strategy exists but is inactive, reactivate it
-    if (!existing.is_active) {
+  const activeStrategies = relevant?.filter((s) => s.is_active) ?? [];
+  const defaultStrategy = relevant?.find((s) => s.slug === 'trading-institutional') ?? null;
+
+  if (activeStrategies.length > 0) {
+    // User has active strategies — reactivate default if it was deactivated
+    if (defaultStrategy && !defaultStrategy.is_active) {
       const { data: reactivated, error: reactivateError } = await supabase
         .from('strategies')
         .update({ is_active: true, updated_at: new Date().toISOString() })
-        .eq('id', existing.id)
+        .eq('id', defaultStrategy.id)
         .select()
         .single();
 
       if (reactivateError) {
         console.error('Error reactivating default strategy:', reactivateError);
-        return existing as Strategy;
+        return defaultStrategy as Strategy;
       }
 
       return reactivated as Strategy;
     }
 
-    return existing as Strategy;
+    // Default either exists active or was renamed — no action needed
+    return defaultStrategy as Strategy | null;
   }
 
-  // User has no strategies at all - create default strategy
+  // User has no active strategies
+  if (defaultStrategy) {
+    // Default exists but inactive — reactivate it
+    if (!defaultStrategy.is_active) {
+      const { data: reactivated, error: reactivateError } = await supabase
+        .from('strategies')
+        .update({ is_active: true, updated_at: new Date().toISOString() })
+        .eq('id', defaultStrategy.id)
+        .select()
+        .single();
+
+      if (reactivateError) {
+        console.error('Error reactivating default strategy:', reactivateError);
+        return defaultStrategy as Strategy;
+      }
+
+      return reactivated as Strategy;
+    }
+
+    return defaultStrategy as Strategy;
+  }
+
+  // No strategies at all — create default
   const { data: created, error: createError } = await supabase
     .from('strategies')
     .insert({
@@ -190,6 +166,9 @@ export async function getUserStrategies(userId: string): Promise<Strategy[]> {
 
   return (data ?? []) as Strategy[];
 }
+
+/** Request-scoped cache for getUserStrategies — deduplicates within a single render. */
+export const getCachedUserStrategies = cache(getUserStrategies);
 
 /**
  * Gets a strategy by slug for a specific user.
