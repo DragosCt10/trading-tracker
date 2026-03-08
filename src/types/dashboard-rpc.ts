@@ -159,6 +159,7 @@ export interface CompactTrade {
   risk_reward_ratio: number;
   mss: string;
   news_related: boolean;
+  news_name: string | null;
   day_of_week: string;
   sl_size: number;
   local_high_low: boolean;
@@ -166,6 +167,14 @@ export interface CompactTrade {
   evaluation: string;
   reentry: boolean;
   trend: string;
+  // Extra-card fields
+  displacement_size: number | null;
+  fvg_size: number | null;
+  launch_hour: boolean;
+  confidence_at_entry: number | null;
+  mind_state_at_entry: number | null;
+  news_intensity: number | null;
+  risk_reward_ratio_long: number | null;
 }
 
 // ── Full RPC response ────────────────────────────────────────────────────────
