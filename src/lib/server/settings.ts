@@ -1,5 +1,6 @@
 'use server';
 import { createClient } from '@/utils/supabase/server';
+import { getCachedUserSession } from '@/lib/server/session';
 import type { SavedNewsItem } from '@/types/account-settings';
 export interface SettingsRow {
   saved_news: SavedNewsItem[];
@@ -57,16 +58,10 @@ export async function getSettings(userId: string): Promise<SettingsRow> {
 export async function updateSavedNews(
   savedNews: SavedNewsItem[]
 ): Promise<{ error: { message: string } | null }> {
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: { message: 'Unauthorized' } };
+
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return { error: { message: 'Unauthorized' } };
-  }
-
   const { error } = await (supabase as any)
     .from('user_settings')
     .upsert(
@@ -94,16 +89,10 @@ const MAX_SAVED_MARKETS = 500;
 export async function updateSavedMarkets(
   savedMarkets: string[]
 ): Promise<{ error: { message: string } | null }> {
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: { message: 'Unauthorized' } };
+
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return { error: { message: 'Unauthorized' } };
-  }
-
   const capped = savedMarkets.slice(0, MAX_SAVED_MARKETS);
 
   const { error } = await (supabase as any)
@@ -131,16 +120,10 @@ export async function updateStrategiesPageCustomization(
   title: string | null,
   description: string | null
 ): Promise<{ error: { message: string } | null }> {
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: { message: 'Unauthorized' } };
+
   const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return { error: { message: 'Unauthorized' } };
-  }
-
   const { error } = await (supabase as any)
     .from('user_settings')
     .upsert(
