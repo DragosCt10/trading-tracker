@@ -79,7 +79,7 @@ export async function ensureDefaultStrategy(userId: string): Promise<Strategy | 
       .from('strategies')
       .select('*')
       .eq('user_id', userId)
-      .eq('slug', 'trading-institutional')
+      .eq('slug', 'institutional-strategy')
       .single();
 
     if (existing) {
@@ -113,7 +113,7 @@ export async function ensureDefaultStrategy(userId: string): Promise<Strategy | 
     .from('strategies')
     .select('*')
     .eq('user_id', userId)
-    .eq('slug', 'trading-institutional')
+    .eq('slug', 'institutional-strategy')
     .single();
 
   if (checkError && checkError.code !== 'PGRST116') {
