@@ -91,11 +91,12 @@ export const queryKeys = {
     viewMode: string,
     startDate: string,
     endDate: string,
-    selectedExecution: string
+    selectedExecution: string,
+    market: string,
   ) => [
     'dashboardStats', mode, accountId, userId, strategyId,
     selectedYear, viewMode, startDate, endDate,
-    selectedExecution,
+    selectedExecution, market,
   ] as const,
 
   /**
