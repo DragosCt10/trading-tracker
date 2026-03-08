@@ -28,7 +28,7 @@ const MODE_BADGE: Record<Mode, string> = {
 
 /** Optional server-fetched initial data. When provided, hydrates TanStack cache so hooks use it without client fetch. */
 export interface ActionBarInitialData {
-  userDetails: { user: { id: string }; session: unknown } | null;
+  userDetails: { user: { id: string } | null; session: unknown } | null;
   mode: Mode;
   activeAccount: AccountRow | null;
   accountsForMode: AccountRow[];
