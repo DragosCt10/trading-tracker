@@ -73,7 +73,8 @@ export const config = {
      * - favicon.ico (favicon file)
      * - update-password (password update page)
      * - reset-password (password reset page)
+     * - api (API routes do their own auth; avoids duplicate Supabase auth calls)
      */
-    '/((?!_next/static|_next/image|favicon.ico|update-password|signup|reset-password|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|update-password|signup|reset-password|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
