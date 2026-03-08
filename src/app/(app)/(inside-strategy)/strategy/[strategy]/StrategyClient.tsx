@@ -16,6 +16,7 @@ import type { ExtraCardKey } from '@/constants/extraCards';
 
 import { Trade } from '@/types/trade';
 import type { AccountSettings } from '@/types/account-settings';
+import type { DashboardStatsResult } from '@/lib/server/dashboardStats';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
@@ -189,6 +190,8 @@ export type StrategyClientInitialProps = {
   initialActiveAccount: { id: string; [key: string]: unknown } | null;
   initialStrategyId: string | null;
   initialExtraCards: ExtraCardKey[];
+  /** Server-fetched dashboard stats for initial hydration (optional). */
+  initialDashboardStats?: DashboardStatsResult | null;
 };
 
 const defaultInitialRange = createInitialDateRange();
@@ -394,6 +397,8 @@ export default function StrategyClient(
     yearlyPartialsBECount,
     allTradesRiskStats,
     riskStats,
+    tradeMonths,
+    isLoadingStats,
   } = useDashboardData({
     session: userData?.session,
     dateRange,
@@ -401,13 +406,40 @@ export default function StrategyClient(
     activeAccount: (resolvedAccount ?? null) as AccountSettings | null,
     contextLoading: actionBarloading,
     isSessionLoading: userLoading,
-    currentDate,
     calendarDateRange,
     selectedYear,
     selectedMarket,
     strategyId,
     viewMode,
+    selectedExecution,
   });
+
+  // Determine which trades to use based on view mode, market filter, and execution filter
+  const tradesToUse = useMemo(() => {
+    let baseTrades: Trade[] = viewMode === 'yearly' ? allTrades : filteredTrades;
+
+    // Apply execution filter for both modes (compact_trades includes all execution types)
+    if (selectedExecution === 'nonExecuted') {
+      baseTrades = nonExecutedTrades || [];
+    } else if (selectedExecution === 'executed') {
+      baseTrades = baseTrades.filter((t) => t.executed === true);
+    }
+
+    if (selectedMarket !== 'all') {
+      baseTrades = baseTrades.filter((t) => t.market === selectedMarket);
+    }
+
+    return baseTrades;
+  }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedMarket, selectedExecution]);
+
+  // Derive tradeMonths from the filtered trades so calendar nav respects execution+market filters
+  const filteredTradeMonths = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tradesToUse) {
+      if (t.trade_date) set.add(t.trade_date.slice(0, 7));
+    }
+    return Array.from(set).sort();
+  }, [tradesToUse]);
 
   // Calendar navigation logic
   const {
@@ -420,10 +452,8 @@ export default function StrategyClient(
     selectedYear,
     selectedMarket,
     selectedExecution,
-    allTrades,
-    filteredTrades,
-    nonExecutedTrades,
-    filteredTradesLoading,
+    tradeMonths: filteredTradeMonths,
+    statsLoading: isLoadingStats,
     setCurrentDate,
     setCalendarDateRange,
     setSelectedYear,
@@ -462,33 +492,6 @@ export default function StrategyClient(
 
   // Use correct market stats based on view mode
   const marketStatsToUse = viewMode === 'yearly' ? marketAllTradesStats : marketStats;
-
-  // Determine which monthly stats to use based on view mode (for AccountOverviewCard - profit only)
-  // Determine which trades to use based on view mode, market filter, and execution filter
-  const tradesToUse = useMemo(() => {
-    // Get base trades based on view mode
-    let baseTrades: Trade[] = viewMode === 'yearly' ? allTrades : filteredTrades;
-    
-    // Apply execution filter in dateRange mode
-    if (viewMode === 'dateRange') {
-      if (selectedExecution === 'nonExecuted') {
-        baseTrades = nonExecutedTrades || [];
-      } else if (selectedExecution === 'executed') {
-        // Filter to only executed trades
-        baseTrades = baseTrades.filter((t) => t.executed === true);
-      }
-      // If 'all', don't filter (show all trades) - though this shouldn't happen on analytics page
-    }
-    
-    let filtered = baseTrades;
-    
-    // Apply market filter if needed
-    if (selectedMarket !== 'all') {
-      filtered = filtered.filter((t) => t.market === selectedMarket);
-    }
-    
-    return filtered;
-  }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedMarket, selectedExecution]);
 
   const earliestTradeDate = useMemo(() => {
     if (activeFilter !== 'all' || filteredTrades.length === 0) return undefined;
@@ -599,30 +602,8 @@ export default function StrategyClient(
     return viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading;
   }, [filteredChartStats, viewMode, allTradesLoading, filteredTradesLoading, setupChartDataToUse]);
 
-  // Determine loading state for AccountOverviewCard
-  // When filters are applied, data is computed synchronously, so isLoading should be false
-  // In date range mode with no filters, use monthlyStats from hook, so use filteredTradesLoading
-  // In yearly mode with no filters, use monthlyStatsAllTrades from hook, so use allTradesLoading
-  const accountOverviewLoadingState = useMemo(() => {
-    // In yearly mode, execution filter doesn't apply, so only check market filter
-    // In dateRange mode, if execution is nonExecuted, filter is applied
-    if (viewMode === 'yearly') {
-      if (selectedMarket !== 'all') {
-        return false; // Market filter applied
-      }
-    } else {
-      if (selectedMarket !== 'all' || selectedExecution === 'nonExecuted' || selectedExecution === 'all') {
-        // Filters are applied (market or execution filter), data computed synchronously from tradesToUse
-        // Note: 'all' is treated as a filter here since it means showing all trades (not just executed)
-        return false;
-      }
-    }
-    
-    // No filters applied, use hook data - check loading state based on view mode
-    // In date range mode, use filteredTradesLoading
-    // In yearly mode, use allTradesLoading
-    return viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading;
-  }, [selectedMarket, selectedExecution, viewMode, allTradesLoading, filteredTradesLoading]);
+  // All data comes from the API — always use the hook loading state.
+  const accountOverviewLoadingState = viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading;
 
   // Determine which monthly stats to use based on view mode (for AccountOverviewCard - profit only)
   // Always compute from tradesToUse to ensure it reflects the current date range and filters
@@ -668,19 +649,15 @@ export default function StrategyClient(
     // so trades outside the date-range filter window but within the calendar month still appear.
     let tradesSource: Trade[] = viewMode === 'yearly' ? allTrades : calendarMonthTrades;
     
-    // Apply execution filter in dateRange mode
-    if (viewMode === 'dateRange') {
-      if (selectedExecution === 'nonExecuted') {
-        tradesSource = nonExecutedTrades || [];
-      } else if (selectedExecution === 'executed') {
-        // Filter to only executed trades
-        tradesSource = tradesSource.filter((t) => t.executed === true);
-      }
-      // If 'all', don't filter (show all trades) - though this shouldn't happen on analytics page
+    // Apply execution filter for both modes (compact_trades includes all execution types)
+    if (selectedExecution === 'nonExecuted') {
+      tradesSource = nonExecutedTrades || [];
+    } else if (selectedExecution === 'executed') {
+      tradesSource = tradesSource.filter((t) => t.executed === true);
     }
-    
+
     let filteredSource = tradesSource;
-    
+
     // Apply market filter if needed
     if (selectedMarket !== 'all') {
       filteredSource = filteredSource.filter((t) => t.market === selectedMarket);
@@ -709,7 +686,7 @@ export default function StrategyClient(
     });
     
     return result;
-  }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, currentDate, selectedMarket, selectedExecution]);
+  }, [viewMode, allTrades, calendarMonthTrades, filteredTrades, nonExecutedTrades, currentDate, selectedMarket, selectedExecution]);
 
   const weeklyStats = useMemo(
     () =>
@@ -734,15 +711,16 @@ export default function StrategyClient(
   // In yearly mode with no filters, use hook stats
   // Uses shared computeStrategyStatsFromTrades (same as ShareStrategyClient for Consistency & drawdown and Performance ratios)
   const filteredStats = useMemo(() => {
+    const safeStats = stats ?? ({} as typeof stats & object);
     const computed = computeStrategyStatsFromTrades({
       tradesToUse,
       accountBalance: selection.activeAccount?.account_balance || 0,
       selectedExecution,
       viewMode,
       selectedMarket,
-      statsFromHook: { tradeQualityIndex: stats.tradeQualityIndex, multipleR: stats.multipleR },
+      statsFromHook: { tradeQualityIndex: safeStats?.tradeQualityIndex ?? 0, multipleR: safeStats?.multipleR ?? 0 },
     });
-    return { ...stats, ...computed };
+    return { ...(safeStats ?? {}), ...computed };
   }, [viewMode, tradesToUse, selectedMarket, selectedExecution, stats, selection.activeAccount?.account_balance]);
 
   // Always use filteredStats to ensure consistent drawdown calculations between yearly and date range modes
@@ -763,7 +741,7 @@ export default function StrategyClient(
       nonExecutedTotalTradesCount,
       yearlyPartialTradesCount,
       yearlyPartialsBECount,
-      macroStats,
+      macroStats: macroStats ?? {},
     });
   }, [viewMode, selectedMarket, tradesToUse, statsToUse, monthlyStatsToUse, nonExecutedTrades, nonExecutedTotalTradesCount, yearlyPartialTradesCount, yearlyPartialsBECount, macroStats]);
 

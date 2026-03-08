@@ -16,7 +16,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
   const pathname = usePathname();
   const [newTradeModalOpen, setNewTradeModalOpen] = useState(false);
 
-  // Extract strategy slug from routes: /strategy/[strategy] or /strategy/[strategy]/manage-trades or /strategy/[strategy]/my-trades
+  // Extract strategy slug from routes: /strategy/[strategy] or /strategy/[strategy]/manage-trades or /strategy/[strategy]/my-trades or /strategy/[strategy]/daily-journal
   const currentStrategySlug = useMemo(() => {
     const match = pathname.match(/^\/(?:analytics|strategy)\/([^/]+)/);
     return match ? decodeURIComponent(match[1]) : null;
@@ -43,7 +43,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
       return pathname.includes('/my-trades') && (pathname.startsWith('/strategy') || pathname.startsWith('/analytics'));
     }
     if (path === '/analytics') {
-      return pathname.startsWith('/strategy') && !pathname.includes('/manage-trades') && !pathname.includes('/my-trades');
+      return pathname.startsWith('/strategy') && !pathname.includes('/manage-trades') && !pathname.includes('/my-trades') && !pathname.includes('/daily-journal');
     }
     return pathname === path;
   };
