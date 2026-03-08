@@ -18,13 +18,14 @@ export const USER_DATA = {
   gcTime: 30 * MINUTE,
 } as const;
 
-/**
- * Trade lists and dashboard stats — stale after 10 minutes, evicted after 15 minutes.
- * With refetchOnMount: false (global default), stale data is not auto-refetched on mount,
- * so the 15-minute gcTime keeps results available for fast back-navigation.
- * Trade mutations explicitly invalidate affected query keys so stats stay fresh.
- */
+/** Trade lists — refresh after 10 minutes, evict after 15 minutes. */
 export const TRADES_DATA = {
   staleTime: 10 * MINUTE,
   gcTime: 15 * MINUTE,
+} as const;
+
+/** Strategy aggregate stats — always refetch (data changes after every trade). */
+export const STRATEGY_STATS = {
+  staleTime: 0,
+  gcTime: 5 * MINUTE,
 } as const;
