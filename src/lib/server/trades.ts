@@ -79,6 +79,8 @@ export async function getFilteredTrades({
   includeNonExecuted = false,
   onlyNonExecuted = false,
   strategyId,
+  /** Optional: override page size (default 500). Calendar uses a higher value to reduce round-trips for heavy months (audit 2.2). */
+  limit: limitParam,
 }: {
   userId: string;
   accountId: string;
@@ -91,12 +93,14 @@ export async function getFilteredTrades({
   onlyNonExecuted?: boolean;
   /** Optional: Filter trades by strategy_id */
   strategyId?: string | null;
+  /** Optional: page size for pagination (default 500, max 2000) */
+  limit?: number;
 }): Promise<Trade[]> {
   const { user } = await getCachedUserSession();
   if (!user || user.id !== userId) throw new Error('Unauthorized');
 
   const supabase = await createClient();
-  const limit = 500;
+  const limit = Math.min(Math.max(limitParam ?? 500, 1), 2000);
   let offset = 0;
   let allTrades: Trade[] = [];
   let totalCount = 0;
