@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Card,
   CardTitle,
@@ -11,7 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Info } from 'lucide-react';
+import { Info, ChevronRight } from 'lucide-react';
 import { formatPercent } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
@@ -55,6 +55,9 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
   className = '',
 }) => {
   const { isDark } = useDarkMode();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+
   const visibleRiskLevels = React.useMemo(() => {
     if (!allTradesRiskStats || typeof allTradesRiskStats !== 'object') return [];
     return Object.entries(allTradesRiskStats)
@@ -68,18 +71,19 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
       .sort((a, b) => a.percentNum - b.percentNum);
   }, [allTradesRiskStats]);
 
+  const isScrollable = visibleRiskLevels.length > 3;
+
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
 
   if (!mounted) return null;
 
   const GRID_COLS = 3;
   const extraCardsNeeded =
-    visibleRiskLevels.length === 0
-      ? 0
-      : visibleRiskLevels.length % GRID_COLS === 0
-        ? 0
-        : GRID_COLS - (visibleRiskLevels.length % GRID_COLS);
+    !isScrollable && visibleRiskLevels.length > 0 && visibleRiskLevels.length % GRID_COLS !== 0
+      ? GRID_COLS - (visibleRiskLevels.length % GRID_COLS)
+      : 0;
 
   return (
     <Card
@@ -123,52 +127,99 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
           </TooltipProvider>
         </div>
 
-        <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-          {visibleRiskLevels.length === 0 ? (
-            <div className="col-span-full flex flex-col justify-center items-center w-full min-h-[200px] py-8">
-              <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
-                No trades found
-              </div>
-              <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
-                There are no trades to display for this category yet. Start trading to see your statistics here!
-              </div>
+        {visibleRiskLevels.length === 0 ? (
+          <div className="flex flex-col justify-center items-center w-full min-h-[200px] py-8">
+            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
+              No trades found
             </div>
-          ) : (
-          <>
-          {visibleRiskLevels.map(({ key, label, stats }) => (
+            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
+              There are no trades to display for this category yet. Start trading to see your statistics here!
+            </div>
+          </div>
+        ) : isScrollable ? (
+          <div className="relative">
+            {/* Scroll hint label */}
+            <div className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 mb-3">
+              <ChevronRight className="h-3 w-3" />
+              <span>Scroll lateral to see all risk levels</span>
+            </div>
+
+            {/* Scroll container */}
+            <div
+              ref={scrollRef}
+              className="flex gap-4 overflow-x-auto pb-3 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              style={{ scrollSnapType: 'x mandatory' }}
+            >
+              {visibleRiskLevels.map(({ key, label, stats }) => (
+                <Card
+                  key={key}
+                  className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm p-4 flex flex-col justify-between shadow-none rounded-2xl shrink-0 w-[calc((100%-2rem)/3)]"
+                  style={{ scrollSnapAlign: 'start' }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                      {label}
+                    </h4>
+                    <span className="text-xs font-medium px-2.5 py-1 bg-slate-100/80 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 rounded-full border border-slate-200/60 dark:border-slate-600/50">
+                      {stats.total} trades
+                    </span>
+                  </div>
+                  <div className="space-y-2 mt-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-500 dark:text-slate-400">Wins</span>
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{stats.wins}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-500 dark:text-slate-400">Losses</span>
+                      <span className="text-sm font-bold text-rose-600 dark:text-rose-400">{stats.losses}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-500 dark:text-slate-400">Break Even</span>
+                      <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{stats.breakEven}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-t border-slate-200/60 dark:border-slate-700/50">
+                      <span className="text-sm text-slate-500 dark:text-slate-400">Win Rate</span>
+                      <span className="text-base font-bold text-slate-900 dark:text-slate-100">
+                        {formatPercent(stats.winrate)}%
+                        <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
+                          ({formatPercent(stats.winrateWithBE)}% w/BE)
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+            {visibleRiskLevels.map(({ key, label, stats }) => (
               <Card
                 key={key}
                 className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm p-4 flex flex-col justify-between shadow-none rounded-2xl"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1.5">
-                      <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                        {label}
-                      </h4>
-                    </div>
+                    <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                      {label}
+                    </h4>
+                  </div>
                   <span className="text-xs font-medium px-2.5 py-1 bg-slate-100/80 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 rounded-full border border-slate-200/60 dark:border-slate-600/50">
                     {stats.total} trades
                   </span>
                 </div>
-
                 <div className="space-y-2 mt-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-500 dark:text-slate-400">Wins</span>
-                    <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                      {stats.wins}
-                    </span>
+                    <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{stats.wins}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-500 dark:text-slate-400">Losses</span>
-                    <span className="text-sm font-bold text-rose-600 dark:text-rose-400">
-                      {stats.losses}
-                    </span>
+                    <span className="text-sm font-bold text-rose-600 dark:text-rose-400">{stats.losses}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-500 dark:text-slate-400">Break Even</span>
-                    <span className="text-sm font-bold text-amber-600 dark:text-amber-400">
-                      {stats.breakEven}
-                    </span>
+                    <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{stats.breakEven}</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-t border-slate-200/60 dark:border-slate-700/50">
                     <span className="text-sm text-slate-500 dark:text-slate-400">Win Rate</span>
@@ -182,22 +233,20 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
                 </div>
               </Card>
             ))}
-
-          {Array.from({ length: extraCardsNeeded }).map((_, idx) => (
-            <Card
-              key={`risk-empty-${idx}`}
-              className="border border-dashed border-slate-200/60 dark:border-slate-700/50 bg-slate-50/40 dark:bg-slate-800/30 p-4 flex flex-col items-center justify-center shadow-none rounded-2xl text-center"
-            >
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                No trades for this
-                <br />
-                risk level yet
-              </p>
-            </Card>
-          ))}
-          </>
-          )}
-        </div>
+            {Array.from({ length: extraCardsNeeded }).map((_, idx) => (
+              <Card
+                key={`risk-empty-${idx}`}
+                className="border border-dashed border-slate-200/60 dark:border-slate-700/50 bg-slate-50/40 dark:bg-slate-800/30 p-4 flex flex-col items-center justify-center shadow-none rounded-2xl text-center"
+              >
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  No trades for this
+                  <br />
+                  risk level yet
+                </p>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </Card>
   );
