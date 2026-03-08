@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { QueryClient, dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import { getFilteredTrades } from '@/lib/server/trades';
-import { getActiveAccountForMode } from '@/lib/server/accounts';
+import { getCachedAccountsForMode } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
 import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import { queryKeys } from '@/lib/queryKeys';
@@ -18,10 +18,11 @@ async function MyTradesDataFetcher({
   user: User;
   strategySlug: string;
 }) {
-  const [strategy, activeAccount] = await Promise.all([
+  const [strategy, allLiveAccounts] = await Promise.all([
     getStrategyBySlug(user.id, strategySlug),
-    getActiveAccountForMode(user.id, 'live'),
+    getCachedAccountsForMode(user.id, 'live'),
   ]);
+  const activeAccount = allLiveAccounts.find((a) => a.is_active) ?? allLiveAccounts[0] ?? null;
 
   if (!strategy) redirect('/strategies');
   const initialStrategyId = strategy.id;
