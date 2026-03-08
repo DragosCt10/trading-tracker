@@ -44,13 +44,12 @@ export function useCalendarNavigation({
 
   // Months with trades for dateRange navigation: map of 'year-month' → { year, month }
   const monthsWithTradesDateRange = useMemo(() => {
-    const startDateObj = new Date(dateRange.startDate);
-    const endDateObj = new Date(dateRange.endDate);
+    const startYM = dateRange.startDate.slice(0, 7); // 'YYYY-MM'
+    const endYM = dateRange.endDate.slice(0, 7);     // 'YYYY-MM'
     const map = new Map<string, { year: number; month: number }>();
     for (const ym of tradeMonths) {
-      const [y, m] = ym.split('-').map(Number);
-      const monthDate = new Date(y, m - 1, 1);
-      if (monthDate >= startDateObj && monthDate <= endDateObj) {
+      if (ym >= startYM && ym <= endYM) {
+        const [y, m] = ym.split('-').map(Number);
         const key = `${y}-${m - 1}`;
         if (!map.has(key)) map.set(key, { year: y, month: m - 1 });
       }
