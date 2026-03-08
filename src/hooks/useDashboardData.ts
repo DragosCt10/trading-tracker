@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { getCalendarTrades } from '@/lib/server/dashboardStats';
 import { queryKeys } from '@/lib/queryKeys';
 import { TRADES_DATA, STATIC_DATA } from '@/constants/queryConfig';
@@ -169,6 +170,33 @@ export function useDashboardData({
     enabled: statsEnabled,
     ...STATIC_DATA,
   });
+
+  // ── Prefetch adjacent calendar months in the background ─────────────────────
+  // Once the current month loads (calendarLoading = false), silently queue the
+  // prev and next months that contain trades so navigation feels instant.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!statsEnabled || !userId || !accountId || calendarLoading) return;
+    const tradeMonths: string[] = apiData?.tradeMonths ?? [];
+    if (!tradeMonths.length) return;
+
+    const currentStart = new Date(calendarDateRange.startDate);
+
+    const candidates = [subMonths(currentStart, 1), addMonths(currentStart, 1)];
+    for (const candidate of candidates) {
+      const ym = format(candidate, 'yyyy-MM');
+      if (!tradeMonths.includes(ym)) continue;
+      const start = format(startOfMonth(candidate), 'yyyy-MM-dd');
+      const end = format(endOfMonth(candidate), 'yyyy-MM-dd');
+      const key = queryKeys.calendarTrades(mode, accountId, userId, strategyId, start, end);
+      if (queryClient.getQueryData(key) !== undefined) continue;
+      queryClient.prefetchQuery({
+        queryKey: key,
+        queryFn: () => getCalendarTrades({ userId: userId!, accountId: accountId!, mode, strategyId, startDate: start, endDate: end }),
+        ...STATIC_DATA,
+      });
+    }
+  }, [calendarDateRange.startDate, calendarLoading, statsEnabled, userId, accountId, mode, strategyId, apiData?.tradeMonths, queryClient]);
 
   // ── Derive reentry/breakEven/trend stats from compact_trades (client-side) ─
   // compact_trades is already market-filtered by the RPC; only execution filter needed here.
