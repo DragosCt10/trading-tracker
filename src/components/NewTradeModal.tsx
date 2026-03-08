@@ -271,8 +271,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return (key[7] ?? null) === strategyId;
       // Dashboard stats API route — strategyId is at index 4
       if (firstKey === 'dashboardStats') return (key[4] ?? null) === strategyId;
-      // Calendar trades — strategyId is at index 4
-      if (firstKey === 'calendarTrades') return (key[4] ?? null) === strategyId;
       return false;
     }});
 

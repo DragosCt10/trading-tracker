@@ -464,8 +464,6 @@ export default function ImportTradesModal({
             // Per-strategy queries — scope to the imported strategy only
             if (first === 'allTrades') return (key[5] ?? null) === (strategyId || null);
             if (first === 'filteredTrades' || first === 'nonExecutedTrades') return (key[7] ?? null) === (strategyId || null);
-            // Dashboard stats and calendar — strategyId is at index 4
-            if (first === 'dashboardStats' || first === 'calendarTrades') return (key[4] ?? null) === (strategyId || null);
             return false;
           },
         });

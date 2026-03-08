@@ -63,10 +63,8 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
     // If aggregated stats are provided (from live_trades), use those for winrate, totalTrades, and avgRR
     // But still use current year trades for chart and profit display
     if (aggregatedStats) {
-      // Calculate cumulative P&L for chart — exclude explicitly non-executed (planned) trades
-      // but include null-executed (older/imported trades) so they appear in the curve.
-      const executedTrades = trades.filter((t) => t.executed !== false);
-      const sortedTrades = [...executedTrades].sort((a, b) => {
+      // Calculate cumulative P&L for chart from current year trades
+      const sortedTrades = [...trades].sort((a, b) => {
         const dateA = new Date(a.trade_date).getTime();
         const dateB = new Date(b.trade_date).getTime();
         return dateA - dateB;
@@ -82,7 +80,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
         };
       });
 
-      const totalProfit = executedTrades.reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0);
+      const totalProfit = trades.reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0);
 
       return {
         winRate: aggregatedStats.winRate,
