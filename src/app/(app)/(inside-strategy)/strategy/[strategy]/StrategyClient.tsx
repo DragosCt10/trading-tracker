@@ -16,7 +16,7 @@ import type { ExtraCardKey } from '@/constants/extraCards';
 
 import { Trade } from '@/types/trade';
 import type { AccountSettings } from '@/types/account-settings';
-import type { DashboardStatsResult } from '@/lib/server/dashboardStats';
+import type { DashboardApiResponse } from '@/types/dashboard-rpc';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
@@ -190,8 +190,8 @@ export type StrategyClientInitialProps = {
   initialActiveAccount: { id: string; [key: string]: unknown } | null;
   initialStrategyId: string | null;
   initialExtraCards: ExtraCardKey[];
-  /** Server-fetched dashboard stats for initial hydration (optional). */
-  initialDashboardStats?: DashboardStatsResult | null;
+  /** Server-fetched dashboard stats (API shape) for initial hydration — avoids client /api/dashboard-stats call (audit 2.1). */
+  initialDashboardStats?: DashboardApiResponse | null;
 };
 
 const defaultInitialRange = createInitialDateRange();
@@ -321,7 +321,23 @@ export default function StrategyClient(
         ),
         props?.initialNonExecutedTrades ?? []
       );
-      // Note: nonExecutedTotalTradesCount is now derived from allTrades, no need to hydrate separately
+    }
+
+    // Hydrate dashboard stats (same key as useDashboardData) so client doesn't call /api/dashboard-stats on first load (audit 2.1).
+    const dashboardStatsKey = queryKeys.dashboardStats(
+      mode,
+      acc.id,
+      uid,
+      strategyId,
+      year,
+      initialViewMode,
+      effectiveStartDate,
+      effectiveEndDate,
+      'executed',
+      'all',
+    );
+    if (props?.initialDashboardStats != null && queryClient.getQueryData(dashboardStatsKey) === undefined) {
+      queryClient.setQueryData(dashboardStatsKey, props.initialDashboardStats);
     }
     
     // Clear the invalidation flag after hydration check

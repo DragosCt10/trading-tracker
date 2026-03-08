@@ -239,23 +239,29 @@ export default function ManageTradesClient({
 
   const sortedTrades = useMemo(() => {
     return [...filteredTrades].sort((a, b) => {
+      let cmp = 0;
       if (sortConfig.field === 'outcome') {
         const aValue = getOutcomeValue(a);
         const bValue = getOutcomeValue(b);
-        return sortConfig.direction === 'asc'
-          ? aValue > bValue ? 1 : -1
-          : aValue < bValue ? 1 : -1;
+        cmp = sortConfig.direction === 'asc'
+          ? (aValue > bValue ? 1 : aValue < bValue ? -1 : 0)
+          : (aValue < bValue ? 1 : aValue > bValue ? -1 : 0);
+      } else if (sortConfig.field === 'trade_date') {
+        const aVal = new Date(a.trade_date).getTime();
+        const bVal = new Date(b.trade_date).getTime();
+        cmp = sortConfig.direction === 'asc'
+          ? bVal - aVal
+          : aVal - bVal;
+      } else {
+        const aValue = a[sortConfig.field];
+        const bValue = b[sortConfig.field];
+        cmp = sortConfig.direction === 'asc'
+          ? (aValue > bValue ? 1 : aValue < bValue ? -1 : 0)
+          : (aValue < bValue ? 1 : aValue > bValue ? -1 : 0);
       }
-      const aValue = a[sortConfig.field];
-      const bValue = b[sortConfig.field];
-      if (sortConfig.field === 'trade_date') {
-        return sortConfig.direction === 'asc'
-          ? new Date(bValue).getTime() - new Date(aValue).getTime()
-          : new Date(aValue).getTime() - new Date(bValue).getTime();
-      }
-      return sortConfig.direction === 'asc'
-        ? aValue > bValue ? 1 : -1
-        : aValue < bValue ? 1 : -1;
+      // Stable sort: tie-break by id so server and client render the same order (avoids hydration mismatch).
+      if (cmp !== 0) return cmp;
+      return (a.id ?? '').localeCompare(b.id ?? '');
     });
   }, [filteredTrades, sortConfig, getOutcomeValue]);
 
@@ -865,7 +871,7 @@ export default function ManageTradesClient({
                     ))
                   ) : (
                     paginatedTrades.map((trade: Trade) => (
-                    <tr key={trade.id}>
+                    <tr key={trade.id} suppressHydrationWarning>
                       <td className="w-12 px-4 py-4 whitespace-nowrap">
                         {trade.id && (
                           <Checkbox
