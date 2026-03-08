@@ -1,7 +1,7 @@
 import AppLayout from '@/components/shared/layout/AppLayout';
 import { getAccountsForMode, getAllAccountsForUser } from '@/lib/server/accounts';
 import type { AccountRow, AccountMode } from '@/lib/server/accounts';
-import { getCachedUserSession } from '@/lib/server/trades';
+import { getCachedUserSession } from '@/lib/server/session';
 import { redirect } from 'next/navigation';
 import { ReactNode } from 'react';
 

@@ -1,5 +1,7 @@
-'use server';
-
+/**
+ * Server-only session helpers. No 'use server' — used by layout, pages, and server modules only.
+ * getCachedUserSession is sync (cache wrapper); Next.js 'use server' allows only async exports.
+ */
 import { cache } from 'react';
 import { createClient } from '@/utils/supabase/server';
 

@@ -157,9 +157,6 @@ export async function getFilteredTrades({
   }
 }
 
-// Re-export for layout/pages; implementation lives in session.ts to avoid circular deps and share cached auth.
-export { getUserSession, getCachedUserSession } from '@/lib/server/session';
-
 /**
  * Creates a new trade for the current user (server-side only; user_id from session).
  * Inserts into live_trades, backtesting_trades, or demo_trades based on mode.

@@ -1,5 +1,5 @@
 import { StrategiesClient } from './StrategiesClient';
-import { getCachedUserSession } from '@/lib/server/trades';
+import { getCachedUserSession } from '@/lib/server/session';
 
 export default async function StrategiesPage() {
   const { user } = await getCachedUserSession();

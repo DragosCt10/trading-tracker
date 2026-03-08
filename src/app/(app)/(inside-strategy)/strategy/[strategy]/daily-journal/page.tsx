@@ -1,4 +1,4 @@
-import { getCachedUserSession } from '@/lib/server/trades';
+import { getCachedUserSession } from '@/lib/server/session';
 import { redirect } from 'next/navigation';
 import DailyJournalData from './DailyJournalData';
 
