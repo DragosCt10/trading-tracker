@@ -602,30 +602,8 @@ export default function StrategyClient(
     return viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading;
   }, [filteredChartStats, viewMode, allTradesLoading, filteredTradesLoading, setupChartDataToUse]);
 
-  // Determine loading state for AccountOverviewCard
-  // When filters are applied, data is computed synchronously, so isLoading should be false
-  // In date range mode with no filters, use monthlyStats from hook, so use filteredTradesLoading
-  // In yearly mode with no filters, use monthlyStatsAllTrades from hook, so use allTradesLoading
-  const accountOverviewLoadingState = useMemo(() => {
-    // In yearly mode, execution filter doesn't apply, so only check market filter
-    // In dateRange mode, if execution is nonExecuted, filter is applied
-    if (viewMode === 'yearly') {
-      if (selectedMarket !== 'all') {
-        return false; // Market filter applied
-      }
-    } else {
-      if (selectedMarket !== 'all' || selectedExecution === 'nonExecuted' || selectedExecution === 'all') {
-        // Filters are applied (market or execution filter), data computed synchronously from tradesToUse
-        // Note: 'all' is treated as a filter here since it means showing all trades (not just executed)
-        return false;
-      }
-    }
-    
-    // No filters applied, use hook data - check loading state based on view mode
-    // In date range mode, use filteredTradesLoading
-    // In yearly mode, use allTradesLoading
-    return viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading;
-  }, [selectedMarket, selectedExecution, viewMode, allTradesLoading, filteredTradesLoading]);
+  // All data comes from the API — always use the hook loading state.
+  const accountOverviewLoadingState = viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading;
 
   // Determine which monthly stats to use based on view mode (for AccountOverviewCard - profit only)
   // Always compute from tradesToUse to ensure it reflects the current date range and filters
