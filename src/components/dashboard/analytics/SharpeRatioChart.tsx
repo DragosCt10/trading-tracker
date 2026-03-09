@@ -9,20 +9,8 @@ import { cn } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
 /* ---------------------------------------------------------
- * Constants & helpers
+ * Props
  * ------------------------------------------------------ */
-
-/**
- * Calculate Sharpe ratio (simplified - would need returns array for full calculation)
- * For now, use a simplified version based on profit and drawdown
- */
-export function calculateSharpeRatio(
-  averagePnLPercentage: number,
-  maxDrawdown: number
-): number {
-  const volatility = maxDrawdown || 1; // Use drawdown as proxy for volatility
-  return volatility > 0 ? averagePnLPercentage / volatility : 0;
-}
 
 interface SharpeRatioChartProps {
   sharpeRatio: number;
