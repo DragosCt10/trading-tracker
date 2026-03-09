@@ -2,17 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronRight, Infinity as InfinityIcon } from 'lucide-react';
+import { ChevronRight, Infinity as InfinityIcon } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatPercent } from '@/lib/utils';
 import type { Trade } from '@/types/trade';
+import type { Database } from '@/types/supabase';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
 import {
   buildPresetRange,
   isCustomDateRange,
+  createAllTimeRange,
   type DateRangeState,
   type FilterType,
 } from '@/utils/dateRangeHelpers';
@@ -25,11 +28,23 @@ import { getIntervalForTime } from '@/constants/analytics';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import NotesModal from '@/components/NotesModal';
 import { ScreensCarouselCell } from '@/components/trades/ScreensCarouselCell';
+import { useActionBarSelection } from '@/hooks/useActionBarSelection';
+import { useUserDetails } from '@/hooks/useUserDetails';
+import { getFilteredTrades } from '@/lib/server/trades';
+import { queryKeys } from '@/lib/queryKeys';
+import { TRADES_DATA } from '@/constants/queryConfig';
+import { getCurrencySymbolFromAccount } from '@/components/dashboard/analytics/AccountOverviewCard';
+import { DailyJournalSkeleton } from './DailyJournalSkeleton';
+
+type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
 interface DailyJournalClientProps {
   strategyId: string;
   strategyName: string;
   initialTrades: Trade[];
+  initialActiveAccount: AccountRow | null;
+  initialMode: 'live' | 'demo' | 'backtesting';
+  initialUserId: string;
   currencySymbol: string;
   accountBalance: number | null;
 }
@@ -59,17 +74,72 @@ function formatTradeTimeForDisplay(value: string | Date | unknown): string {
 const DAYS_PER_LOAD = 7;
 
 export default function DailyJournalClient({
-  strategyId: _strategyId,
+  strategyId,
   strategyName,
   initialTrades,
-  currencySymbol,
-  accountBalance,
+  initialActiveAccount,
+  initialMode,
+  initialUserId,
+  currencySymbol: initialCurrencySymbol,
+  accountBalance: initialAccountBalance,
 }: DailyJournalClientProps) {
+  const { data: userDetails } = useUserDetails();
+  const { selection, setSelection } = useActionBarSelection();
+  const userId = userDetails?.user?.id ?? initialUserId;
+  const activeAccount = selection.activeAccount ?? initialActiveAccount;
+
+  useEffect(() => {
+    if (initialActiveAccount && !selection.activeAccount && initialMode) {
+      setSelection({ mode: initialMode, activeAccount: initialActiveAccount });
+    }
+  }, [initialActiveAccount, initialMode, selection.activeAccount, setSelection]);
+
+  const allTime = useMemo(() => createAllTimeRange(), []);
+  const isInitialContext =
+    selection.mode === initialMode && activeAccount?.id === initialActiveAccount?.id;
+
+  const {
+    data: rawTrades,
+    isLoading: tradesLoading,
+  } = useQuery<Trade[]>({
+    queryKey: queryKeys.trades.filtered(
+      selection.mode,
+      activeAccount?.id,
+      userId,
+      'all',
+      allTime.startDate,
+      allTime.endDate,
+      strategyId,
+    ),
+    queryFn: async () => {
+      if (!userId || !activeAccount?.id) return [];
+      return getFilteredTrades({
+        userId,
+        accountId: activeAccount.id,
+        mode: selection.mode,
+        startDate: allTime.startDate,
+        endDate: allTime.endDate,
+        includeNonExecuted: true,
+        strategyId,
+      });
+    },
+    initialData: isInitialContext ? initialTrades : undefined,
+    enabled: !!userId && !!activeAccount?.id,
+    ...TRADES_DATA,
+  });
+
+  const allTradesData = rawTrades ?? (isInitialContext ? initialTrades : []);
+
+  const currencySymbol = activeAccount
+    ? getCurrencySymbolFromAccount(activeAccount)
+    : initialCurrencySymbol;
+  const accountBalance = activeAccount?.account_balance ?? initialAccountBalance;
+
   // Filters (reuse patterns from MyTradesClient)
   const [dateRange, setDateRange] = useState<DateRangeState>(() => buildPresetRange('year').dateRange);
   const [activeFilter, setActiveFilter] = useState<FilterType>('year');
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
-  const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'nonExecuted'>('executed');
+  const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'nonExecuted'>('all');
 
   // Infinite scroll for days
   const [displayedCount, setDisplayedCount] = useState(DAYS_PER_LOAD);
@@ -90,8 +160,8 @@ export default function DailyJournalClient({
 
   // Markets from full dataset
   const markets = useMemo(
-    () => Array.from(new Set(initialTrades.map((t) => t.market).filter(Boolean))),
-    [initialTrades]
+    () => Array.from(new Set(allTradesData.map((t) => t.market).filter(Boolean))),
+    [allTradesData]
   );
 
   const isCustomRange = isCustomDateRange(dateRange);
@@ -115,16 +185,16 @@ export default function DailyJournalClient({
 
   // Earliest trade date for "All Trades" display
   const earliestTradeDate = useMemo(() => {
-    if (activeFilter !== 'all' || initialTrades.length === 0) return undefined;
-    return initialTrades.reduce(
+    if (activeFilter !== 'all' || allTradesData.length === 0) return undefined;
+    return allTradesData.reduce(
       (min, t) => (t.trade_date < min ? t.trade_date : min),
-      initialTrades[0].trade_date
+      allTradesData[0].trade_date
     );
-  }, [activeFilter, initialTrades]);
+  }, [activeFilter, allTradesData]);
 
   // Apply filters client-side
   const filteredTrades = useMemo(() => {
-    let list = initialTrades;
+    let list = allTradesData;
 
     // Date range
     list = list.filter(
@@ -144,7 +214,7 @@ export default function DailyJournalClient({
     }
 
     return list;
-  }, [initialTrades, dateRange, executionFilter, selectedMarket]);
+  }, [allTradesData, dateRange, executionFilter, selectedMarket]);
 
   // Group trades by day
   const dayGroups: DayGroup[] = useMemo(() => {
@@ -254,9 +324,18 @@ export default function DailyJournalClient({
     return points;
   };
 
+  if (activeAccount && tradesLoading && !isInitialContext) {
+    return (
+      <TooltipProvider>
+        <DailyJournalSkeleton />
+      </TooltipProvider>
+    );
+  }
+
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-6">
+    <TooltipProvider>
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
           Daily Journal
         </h1>
@@ -265,25 +344,39 @@ export default function DailyJournalClient({
         </p>
       </div>
 
-      <div className="mb-6">
-        <TradeFiltersBar
-          dateRange={dateRange}
-          onDateRangeChange={handleDateRangeChange}
-          activeFilter={activeFilter}
-          onFilterChange={handleFilterChange}
-          isCustomRange={isCustomRange}
-          selectedMarket={selectedMarket}
-          onSelectedMarketChange={setSelectedMarket}
-          markets={markets}
-          selectedExecution={executionFilter}
-          onSelectedExecutionChange={handleExecutionChange}
-          showAllTradesOption={true}
-          displayStartDate={earliestTradeDate}
-        />
-      </div>
+      {activeAccount && (
+        <div className="mb-6">
+          <TradeFiltersBar
+            dateRange={dateRange}
+            onDateRangeChange={handleDateRangeChange}
+            activeFilter={activeFilter}
+            onFilterChange={handleFilterChange}
+            isCustomRange={isCustomRange}
+            selectedMarket={selectedMarket}
+            onSelectedMarketChange={setSelectedMarket}
+            markets={markets}
+            selectedExecution={executionFilter}
+            onSelectedExecutionChange={handleExecutionChange}
+            showAllTradesOption={true}
+            displayStartDate={earliestTradeDate}
+          />
+        </div>
+      )}
 
       <div className="space-y-4 mt-4">
-        {visibleDayGroups.length === 0 && (
+        {!activeAccount && (
+          <Card className="rounded-2xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm py-10 px-6 flex items-center justify-center text-center">
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                No account selected
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Select an account from the toolbar above to view your daily journal trades.
+              </p>
+            </div>
+          </Card>
+        )}
+        {activeAccount && !tradesLoading && visibleDayGroups.length === 0 && (
           <Card className="rounded-2xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm py-10 px-6 flex items-center justify-center text-center">
             <div className="space-y-2">
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -719,6 +812,7 @@ export default function DailyJournalClient({
         />
       )}
       <NotesModal isOpen={isNotesOpen} onClose={closeNotesModal} notes={selectedNotes} />
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
