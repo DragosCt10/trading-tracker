@@ -237,6 +237,18 @@ export default function DailyJournalClient({
       </div>
 
       <div className="space-y-4 mt-4">
+        {visibleDayGroups.length === 0 && (
+          <Card className="rounded-2xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm py-10 px-6 flex items-center justify-center text-center">
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                No trades match the current filters
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Try adjusting the date range, market, or execution filters to see trades here.
+              </p>
+            </div>
+          </Card>
+        )}
         {visibleDayGroups.map((group) => {
           const isOpen = openByDate[group.date] ?? true;
           const dayChartData = buildDayChartData(group.trades);
@@ -310,7 +322,7 @@ export default function DailyJournalClient({
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-8 rounded-xl text-xs px-3 cursor-pointer"
+                  className="h-8 rounded-xl px-3 text-xs cursor-pointer transition-colors duration-200 border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium"
                 >
                   {isOpen ? 'Collapse' : 'Expand'}
                 </Button>
