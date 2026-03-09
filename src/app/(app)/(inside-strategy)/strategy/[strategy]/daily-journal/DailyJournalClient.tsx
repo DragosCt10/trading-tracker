@@ -383,7 +383,7 @@ export default function DailyJournalClient({
                       </p>
                       <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
                         {isValidProfitFactor ? (
-                          formatPercent(profitFactor)
+                          profitFactor.toFixed(2)
                         ) : (
                           <span className="inline-flex items-center gap-1">
                             <InfinityIcon className="h-4 w-4" aria-label="Infinite profit factor" />
