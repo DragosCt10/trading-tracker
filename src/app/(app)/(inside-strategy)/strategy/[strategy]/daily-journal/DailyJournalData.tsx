@@ -23,6 +23,7 @@ async function DailyJournalDataFetcher({
 
   let trades: Trade[] = [];
   let currencySymbol = '$';
+  let accountBalance: number | null = null;
 
   if (activeAccount) {
     const startDate = '2000-01-01';
@@ -37,6 +38,8 @@ async function DailyJournalDataFetcher({
       includeNonExecuted: true,
       strategyId: strategy.id,
     });
+
+    accountBalance = activeAccount.account_balance ?? null;
 
     if (activeAccount.currency === 'USD') {
       currencySymbol = '$';
@@ -55,6 +58,7 @@ async function DailyJournalDataFetcher({
       strategyName={strategy.name}
       initialTrades={trades}
       currencySymbol={currencySymbol}
+      accountBalance={accountBalance}
     />
   );
 }
