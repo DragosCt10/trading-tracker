@@ -367,7 +367,7 @@ export default function DailyJournalClient({
                         Profit Factor
                       </p>
                       <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
-                        {profitFactor.toFixed(2)}
+                        {formatPercent(profitFactor)}
                       </p>
                     </div>
                       <div>
