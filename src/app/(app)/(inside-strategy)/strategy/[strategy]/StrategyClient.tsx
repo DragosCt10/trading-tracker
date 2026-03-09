@@ -235,6 +235,12 @@ export default function StrategyClient(
       : candidateAccount && accountsForMode.some((a) => a.id === candidateAccount.id)
         ? candidateAccount
         : null;
+  // Always derive display name from current user's accounts list by id to avoid showing
+  // a stale name from cached selection (e.g. after refresh when cache had another user's account name).
+  const resolvedAccountDisplayName =
+    resolvedAccount && accountsForMode.length > 0
+      ? (accountsForMode.find((a) => a.id === resolvedAccount.id)?.name ?? resolvedAccount.name ?? null)
+      : null;
 
   // Sync ActionBar selection from server only when there is no existing selection.
   // AppLayout pre-populates the selection on first paint; this effect is a fallback for
@@ -806,7 +812,7 @@ export default function StrategyClient(
 
       {/* Account Overview Card - use resolved account (props first) so server and client match; card defers display until mount to avoid hydration when e.g. no subaccounts */}
       <AccountOverviewCard
-        accountName={(resolvedAccount?.name as string | undefined) ?? null}
+        accountName={resolvedAccountDisplayName}
         currencySymbol={currencySymbol}
         updatedBalance={updatedBalance}
         totalYearProfit={totalYearProfit}
