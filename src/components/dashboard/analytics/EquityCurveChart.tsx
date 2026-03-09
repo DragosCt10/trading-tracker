@@ -16,6 +16,33 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { format } from 'date-fns';
 
+const EquityTooltipContent: React.FC<{
+  date: string | Date;
+  value: number;
+  currencySymbol: string;
+  isDark: boolean;
+}> = ({ date, value, currencySymbol, isDark }) => {
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
+      {isDark && (
+        <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />
+      )}
+      <div className="relative flex flex-col gap-2">
+        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          {format(new Date(date), 'MMM d, yyyy')}
+        </p>
+        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+          {currencySymbol}
+          {value.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 export type EquityPoint = {
   date: string | Date;
   profit: number;
@@ -118,23 +145,12 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
                   equity: number;
                 };
                 return (
-                  <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-                    {isDark && (
-                      <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />
-                    )}
-                    <div className="relative flex flex-col gap-2">
-                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                        {format(new Date(dataPoint.date), 'MMM d, yyyy')}
-                      </p>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {currencySymbol}
-                        {dataPoint.equity.toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </p>
-                    </div>
-                  </div>
+                  <EquityTooltipContent
+                    date={dataPoint.date}
+                    value={dataPoint.equity}
+                    currencySymbol={currencySymbol}
+                    isDark={isDark}
+                  />
                 );
               }
               return null;
@@ -191,18 +207,12 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
               if (active && payload && payload.length) {
                 const point = payload[0].payload as EquityPoint;
                 return (
-                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 shadow-lg">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {new Date(point.date).toLocaleDateString()}
-                    </p>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      {currencySymbol}
-                      {point.profit.toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </p>
-                  </div>
+                  <EquityTooltipContent
+                    date={point.date}
+                    value={point.profit}
+                    currencySymbol={currencySymbol}
+                    isDark={isDark}
+                  />
                 );
               }
               return null;
