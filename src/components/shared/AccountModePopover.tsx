@@ -69,13 +69,17 @@ export function AccountModePopover({
     return map;
   }, [allAccounts]);
 
-  // Resolve label: from prop, then live accounts list (always fresh), then cached account object, then placeholder
+  // Resolve label from current user's accounts list by id so we never show a stale name from
+  // cached selection (e.g. "FTMO Phase 1" from another user after refresh).
   const resolvedAccountName =
     value.mode != null && value.accountId != null
       ? accountsByMode[value.mode]?.find((a) => a.id === value.accountId)?.name
       : undefined;
   const triggerLabel =
-    triggerLabelProp ?? resolvedAccountName ?? value.account?.name ?? placeholder;
+    triggerLabelProp ??
+    resolvedAccountName ??
+    (value.accountId ? undefined : value.account?.name) ??
+    placeholder;
 
   const selectTriggerClass =
     variant === 'default'
