@@ -270,7 +270,7 @@ export async function getDashboardStats({
 
   if (tradesToUse.length > 0) {
     const { winRate, winRateWithBE } = calculateWinRates(tradesToUse);
-    const { totalProfit, averageProfit, averagePnLPercentage, maxDrawdown } =
+    const { totalProfit, averageProfit, averagePnLPercentage, maxDrawdown, averageDrawdown } =
       calculateProfit(tradesToUse, accountBalance);
     const { totalTrades, totalWins, totalLosses, beWins, beLosses } =
       calculateTradeCounts(tradesToUse);
@@ -289,7 +289,7 @@ export async function getDashboardStats({
     stats = {
       totalTrades, totalWins, totalLosses, winRate, winRateWithBE,
       totalProfit, averageProfit, averagePnLPercentage,
-      maxDrawdown, averageDrawdown: 0,
+      maxDrawdown, averageDrawdown,
       intervalStats: {} as Record<string, IntervalStats>,
       evaluationStats: [],
       beWins, beLosses,
