@@ -16,7 +16,6 @@ interface AppLayoutProps {
   children: ReactNode;
   title?: string;
   initialUserDetails?: InitialUserDetails;
-  initialAccountsForLive?: AccountRow[];
   initialAllAccounts?: AccountRow[];
   initialActiveAccount?: AccountRow | null;
   initialActiveAccountMode?: AccountMode;
@@ -25,7 +24,6 @@ interface AppLayoutProps {
 export default function AppLayout({
   children,
   initialUserDetails,
-  initialAccountsForLive,
   initialAllAccounts,
   initialActiveAccount,
   initialActiveAccountMode = 'live',
@@ -36,34 +34,24 @@ export default function AppLayout({
   const showActionBar = pathname === '/strategies' || (pathname?.startsWith('/strategy/') ?? false);
   const actionBarSelectionHydratedRef = useRef(false);
 
-  // Accounts for the initial active mode — needed so ActionBar seeds the correct
-  // ['accounts:list', userId, mode] cache key. Using initialAccountsForLive when the
-  // initial mode is 'backtesting'/'demo' would populate that key with [] and prevent
-  // useAccounts from ever auto-fetching the real accounts for that mode.
+  // Accounts for the initial active mode — seeds ['accounts:list', userId, mode] so useAccounts doesn't client-fetch on first paint
   const accountsForInitialMode =
-    initialAllAccounts?.filter((a) => a.mode === initialActiveAccountMode) ??
-    initialAccountsForLive ??
-    [];
+    initialAllAccounts?.filter((a) => a.mode === initialActiveAccountMode) ?? [];
 
   // Hydrate caches so Navbar/ActionBar and useUserDetails/useAccounts/useActionBarSelection get data on first paint (no client fetch)
   if (initialUserDetails != null && queryClient.getQueryData(['userDetails']) === undefined) {
     queryClient.setQueryData(['userDetails'], initialUserDetails);
   }
-  if (userId != null && initialAccountsForLive != null && queryClient.getQueryData(['accounts:list', userId, 'live']) === undefined) {
-    queryClient.setQueryData(['accounts:list', userId, 'live'], initialAccountsForLive);
+  if (userId != null && queryClient.getQueryData(['accounts:list', userId, initialActiveAccountMode]) === undefined) {
+    queryClient.setQueryData(['accounts:list', userId, initialActiveAccountMode], accountsForInitialMode);
   }
   if (userId != null && initialAllAccounts != null && queryClient.getQueryData(['accounts:all', userId]) === undefined) {
     queryClient.setQueryData(['accounts:all', userId], initialAllAccounts);
   }
-  // Hydrate selection on first paint when cache is empty or when cached account is not in current user's
-  // accounts (e.g. stale from another user after refresh — avoids showing wrong account name like "FTMO Phase 1").
+  // Always hydrate selection from server on first paint so client matches server (avoids hydration error
+  // when persisted cache had a different mode, e.g. user was on demo then refreshed and server picked live).
   if (userId != null && initialActiveAccount !== undefined && initialAllAccounts != null && !actionBarSelectionHydratedRef.current) {
-    const existing = queryClient.getQueryData<{ mode: string; activeAccount: { id?: string } | null }>(['actionBar:selection']);
-    const existingAccountId = existing?.activeAccount?.id;
-    const belongsToCurrentUser = existingAccountId != null && initialAllAccounts.some((a) => a.id === existingAccountId);
-    if (!existing?.activeAccount || !belongsToCurrentUser) {
-      queryClient.setQueryData(['actionBar:selection'], { mode: initialActiveAccountMode, activeAccount: initialActiveAccount ?? null });
-    }
+    queryClient.setQueryData(['actionBar:selection'], { mode: initialActiveAccountMode, activeAccount: initialActiveAccount ?? null });
     actionBarSelectionHydratedRef.current = true;
   }
 
@@ -76,7 +64,7 @@ export default function AppLayout({
               <ActionBar
                 showAddButton={false}
                 initialData={
-                  userId && initialAccountsForLive && initialAllAccounts
+                  userId && initialAllAccounts != null
                     ? {
                         userDetails: initialUserDetails ?? null,
                         mode: initialActiveAccountMode,
@@ -102,7 +90,7 @@ export default function AppLayout({
             <div className="inline-block mx-2 sm:mx-4 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 sm:px-4 py-3">
               <ActionBar
                 initialData={
-                  userId && initialAccountsForLive && initialAllAccounts
+                  userId && initialAllAccounts != null
                     ? {
                         userDetails: initialUserDetails ?? null,
                         mode: initialActiveAccountMode,
