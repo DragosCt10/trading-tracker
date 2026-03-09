@@ -3,55 +3,16 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Info } from 'lucide-react';
+import { Info, Infinity as InfinityIcon } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Trade } from '@/types/trade';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { calculateProfitFactor } from '@/utils/analyticsCalculations';
 
 /* ---------------------------------------------------------
- * Constants & helpers
+ * Props
  * ------------------------------------------------------ */
-
-/**
- * Calculate profit factor from trades
- * Profit factor = Total Gross Profit / Total Gross Loss
- * Falls back to win/loss count if profit data is not available
- */
-export function calculateProfitFactor(
-  trades: Trade[],
-  totalWins: number,
-  totalLosses: number
-): number {
-  // Calculate profit factor from actual profit amounts for more accuracy
-  // Sum of all positive profits (wins) divided by absolute sum of all negative profits (losses)
-  const grossProfit = trades
-    .filter(t => (t.calculated_profit || 0) > 0)
-    .reduce((sum, t) => sum + (t.calculated_profit || 0), 0);
-  const grossLoss = Math.abs(trades
-    .filter(t => (t.calculated_profit || 0) < 0)
-    .reduce((sum, t) => sum + (t.calculated_profit || 0), 0));
-  
-  // Use profit-based calculation if we have profit data, otherwise fall back to win/loss count
-  let profitFactor: number;
-  if (grossLoss > 0) {
-    profitFactor = grossProfit / grossLoss;
-  } else if (grossProfit > 0) {
-    // All trades are profitable, but no losses - show a high but finite value
-    profitFactor = grossProfit > 0 ? Math.min(grossProfit, 100) : 0;
-  } else if (totalLosses > 0) {
-    // Fall back to win/loss count if no profit data
-    profitFactor = totalWins / totalLosses;
-  } else if (totalWins > 0) {
-    // All wins, no losses - show a high but finite value instead of Infinity
-    profitFactor = Math.min(totalWins * 2, 100);
-  } else {
-    // No executed trades or no data
-    profitFactor = 0;
-  }
-  
-  return profitFactor;
-}
 
 interface ProfitFactorChartProps {
   tradesToUse: Trade[];
@@ -63,19 +24,22 @@ export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesT
   // Calculate profit factor from trades
   const wins = totalWins ?? tradesToUse.filter(t => t.trade_outcome === 'Win').length;
   const losses = totalLosses ?? tradesToUse.filter(t => t.trade_outcome === 'Lose').length;
-  const profitFactor = useMemo(() => {
-    return calculateProfitFactor(tradesToUse, wins, losses);
-  }, [tradesToUse, wins, losses]);
+  const profitFactor = useMemo(
+    () => calculateProfitFactor(tradesToUse, wins, losses),
+    [tradesToUse, wins, losses]
+  );
   const { mounted, isDark } = useDarkMode();
   const [showTooltip, setShowTooltip] = useState(false);
   const tooltipActiveRef = React.useRef(false);
   const prevActiveRef = React.useRef(false);
 
-
-
   // Handle Infinity and invalid values
-  const isValidProfitFactor = isFinite(profitFactor) && !isNaN(profitFactor);
-  const displayValue = isValidProfitFactor ? profitFactor : 0;
+  const hasNumericProfitFactor = !Number.isNaN(profitFactor);
+  const isInfiniteProfitFactor = hasNumericProfitFactor && !Number.isFinite(profitFactor);
+  const isFiniteProfitFactor = hasNumericProfitFactor && Number.isFinite(profitFactor);
+
+  // For visualization, clamp Infinity to the top of the scale (5.0)
+  const displayValue = isFiniteProfitFactor ? profitFactor : isInfiniteProfitFactor ? 5.0 : 0;
   
   // Normalize profit factor to 0-100% for display (scale from 0 to 5.0)
   const normalizedValue = Math.max(0, Math.min(displayValue, 5.0));
@@ -89,7 +53,7 @@ export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesT
 
   // Determine color based on profit factor value
   const getGradientId = () => {
-    if (!isValidProfitFactor) return 'profitFactorRed';
+    if (!hasNumericProfitFactor) return 'profitFactorRed';
     if (displayValue < 1.0) return 'profitFactorRed';
     if (displayValue < 1.5) return 'profitFactorOrange';
     if (displayValue < 2.0) return 'profitFactorAmber';
@@ -98,7 +62,7 @@ export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesT
   };
 
   const getTextColor = () => {
-    if (!isValidProfitFactor) return 'text-slate-500 dark:text-slate-400';
+    if (!hasNumericProfitFactor) return 'text-slate-500 dark:text-slate-400';
     if (displayValue < 1.0) return 'text-rose-600 dark:text-rose-400';
     if (displayValue < 1.5) return 'text-orange-600 dark:text-orange-400';
     if (displayValue < 2.0) return 'text-amber-600 dark:text-amber-400';
@@ -216,8 +180,13 @@ export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesT
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-blue-500 dark:bg-blue-400 shadow-sm ring-2 ring-blue-200/50 dark:ring-blue-500/30"></div>
                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  Profit Factor: <span className="text-blue-600 dark:text-blue-400 font-bold">
-                    {isValidProfitFactor ? displayValue.toFixed(2) : 'N/A'}
+                  Profit Factor:{' '}
+                  <span className="text-blue-600 dark:text-blue-400 font-bold inline-flex items-center gap-1">
+                    {isFiniteProfitFactor
+                      ? displayValue.toFixed(2)
+                      : isInfiniteProfitFactor
+                        ? '∞'
+                        : 'N/A'}
                   </span>
                 </div>
               </div>
@@ -301,9 +270,13 @@ export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesT
         </div>
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
           <div className={cn('text-2xl font-bold', getTextColor())}>
-            {isValidProfitFactor 
-              ? (displayValue % 1 === 0 ? displayValue.toFixed(0) : displayValue.toFixed(1))
-              : 'N/A'}
+            {isFiniteProfitFactor ? (
+              displayValue % 1 === 0 ? displayValue.toFixed(0) : displayValue.toFixed(1)
+            ) : isInfiniteProfitFactor ? (
+              <InfinityIcon className="inline-block h-6 w-6 align-middle" aria-label="Infinite profit factor" />
+            ) : (
+              'N/A'
+            )}
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Target: 2+
