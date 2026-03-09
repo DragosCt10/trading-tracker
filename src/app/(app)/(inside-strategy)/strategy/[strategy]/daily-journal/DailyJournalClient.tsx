@@ -491,7 +491,7 @@ export default function DailyJournalClient({
                             Direction
                           </th>
                           <th className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                            RR Ratio
+                            RR
                           </th>
                           <th className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                             Outcome
