@@ -58,6 +58,8 @@ export interface EquityCurveChartProps {
    * card     – full equity card style (axes, zero line, positive/negative fill)
    */
   variant?: 'compact' | 'card';
+  /** When true and variant is card, hides X/Y axis labels and axis lines (e.g. for Daily Journal) */
+  hideAxisLabels?: boolean;
 }
 
 export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
@@ -66,6 +68,7 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
   hasTrades,
   isLoading = false,
   variant = 'compact',
+  hideAxisLabels = false,
 }) => {
   const showNoTradesMessage = !isLoading && !hasTrades;
   const { isDark } = useDarkMode();
@@ -107,7 +110,7 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
   if (variant === 'card') {
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={cardData} margin={{ top: 24, right: 16, left: 8, bottom: 8 }}>
+        <AreaChart data={cardData} margin={hideAxisLabels ? { top: 8, right: 8, left: 8, bottom: 8 } : { top: 24, right: 16, left: 8, bottom: 8 }}>
           <defs>
             <linearGradient id="equityPositive" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--tc-primary, #8b5cf6)" stopOpacity={0.55} />
@@ -120,15 +123,16 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
           </defs>
           <XAxis
             dataKey="date"
-            tick={{ fill: axisTextColor, fontSize: 12, fontWeight: 500 }}
+            tick={hideAxisLabels ? false : { fill: axisTextColor, fontSize: 12, fontWeight: 500 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(value) => format(new Date(value), 'MMM d')}
             interval="preserveStartEnd"
             minTickGap={32}
+            hide={hideAxisLabels}
           />
           <YAxis
-            tick={{ fill: axisTextColor, fontSize: 11, fontWeight: 500 }}
+            tick={hideAxisLabels ? false : { fill: axisTextColor, fontSize: 11, fontWeight: 500 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(value: number) =>
@@ -136,6 +140,7 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
                 maximumFractionDigits: 0,
               })}`
             }
+            hide={hideAxisLabels}
           />
           <ReTooltip
             content={({ active, payload }) => {
@@ -156,7 +161,9 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
               return null;
             }}
           />
-          <ReferenceLine y={0} stroke={zeroLineStroke} strokeWidth={1.5} strokeDasharray="2 2" />
+          {!hideAxisLabels && (
+            <ReferenceLine y={0} stroke={zeroLineStroke} strokeWidth={1.5} strokeDasharray="2 2" />
+          )}
           <Area
             type="monotone"
             dataKey="equityPositive"
