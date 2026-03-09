@@ -16,15 +16,26 @@ export function calculateProfitFactor(
     .filter(t => (t.calculated_profit || 0) < 0)
     .reduce((sum, t) => sum + (t.calculated_profit || 0), 0));
 
+  // Classical definition:
+  // - Profit factor = grossProfit / grossLoss when there are losses
+  // - If there is profit and no loss, the theoretical value is infinite
   if (grossLoss > 0) {
     return grossProfit / grossLoss;
-  } else if (grossProfit > 0) {
-    return Math.min(grossProfit, 100);
-  } else if (totalLosses > 0) {
-    return totalWins / totalLosses;
-  } else if (totalWins > 0) {
-    return Math.min(totalWins * 2, 100);
   }
+
+  if (grossProfit > 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  // Fallbacks when profit values are missing but win/loss counts exist
+  if (totalLosses > 0) {
+    return totalWins / totalLosses;
+  }
+
+  if (totalWins > 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+
   return 0;
 }
 
