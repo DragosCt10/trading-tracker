@@ -101,6 +101,13 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
   const activeMode = selection.mode;
   const activeAccount = selection.activeAccount;
 
+  // Resolve account display name from current user's list (not from cached selection) so the
+  // popover trigger shows the correct name even before its own query has synced; avoids "Select account" placeholder.
+  const accountDisplayName =
+    activeAccount && allAccounts.length > 0
+      ? (allAccounts.find((a) => a.id === activeAccount.id)?.name ?? null)
+      : null;
+
   // ---------- Apply helper (persist active account and invalidate trade queries)
   const applyWith = useCallback(
     async (mode: Mode, accountId: string | null) => {
@@ -191,7 +198,7 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
         disabled={applying}
         variant="default"
         loading={applying}
-        triggerLabel={applying ? 'Applying…' : undefined}
+        triggerLabel={applying ? 'Applying…' : (accountDisplayName ?? undefined)}
       />
 
       {/* Edit the currently active account */}
