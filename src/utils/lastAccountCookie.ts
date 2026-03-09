@@ -15,3 +15,14 @@ export function setLastAccountPreference(mode: string, index: number): void {
   document.cookie = `${LAST_ACCOUNT_MODE_COOKIE}=${encodeURIComponent(mode)}; ${opts}`;
   document.cookie = `${LAST_ACCOUNT_INDEX_COOKIE}=${index}; ${opts}`;
 }
+
+/**
+ * Clears the last-account preference cookies (mode + index) on sign out so a new
+ * user/account on this browser doesn't inherit the previous selection.
+ */
+export function clearLastAccountPreference(): void {
+  if (typeof document === 'undefined') return;
+  const opts = 'path=/; max-age=0; SameSite=Lax';
+  document.cookie = `${LAST_ACCOUNT_MODE_COOKIE}=; ${opts}`;
+  document.cookie = `${LAST_ACCOUNT_INDEX_COOKIE}=; ${opts}`;
+}
