@@ -139,7 +139,7 @@ export default function DailyJournalClient({
   const [dateRange, setDateRange] = useState<DateRangeState>(() => buildPresetRange('year').dateRange);
   const [activeFilter, setActiveFilter] = useState<FilterType>('year');
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
-  const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'nonExecuted'>('all');
+  const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'nonExecuted'>('executed');
 
   // Infinite scroll for days
   const [displayedCount, setDisplayedCount] = useState(DAYS_PER_LOAD);
@@ -471,7 +471,7 @@ export default function DailyJournalClient({
               </div>
 
               {/* Equity curve + header stats for this day — always visible (outside collapse) */}
-              <div className="border-t border-slate-200/70 dark:border-slate-700/60 px-5 py-4">
+              <div className="px-5 py-4">
                 <div className="flex flex-col gap-10 md:flex-row md:items-center">
                   <div className="md:w-1/3 h-32 flex items-center">
                     <EquityCurveChart
@@ -479,6 +479,8 @@ export default function DailyJournalClient({
                       currencySymbol={currencySymbol}
                       hasTrades={hasTrades}
                       isLoading={!mounted}
+                      variant="card"
+                      hideAxisLabels
                     />
                   </div>
                   <div className="flex-1 md:flex md:items-center">
