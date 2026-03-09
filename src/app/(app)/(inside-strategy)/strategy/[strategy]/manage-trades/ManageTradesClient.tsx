@@ -47,6 +47,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getIntervalForTime } from '@/constants/analytics';
+import { ScreensCarouselCell } from '@/components/trades/ScreensCarouselCell';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -814,6 +815,7 @@ export default function ManageTradesClient({
                         />
                       )}
                     </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Screens</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Date</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Time</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Market</th>
@@ -821,7 +823,6 @@ export default function ManageTradesClient({
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">RR Ratio</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Outcome</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Risk</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Screens</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Notes</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -829,7 +830,7 @@ export default function ManageTradesClient({
                 <tbody className="bg-transparent divide-y divide-slate-200/30 dark:divide-slate-700/30">
                   {allTradesError ? (
                     <tr>
-                      <td colSpan={12} className="px-6 py-12 text-center">
+                      <td colSpan={11} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <p className="text-red-600 dark:text-red-400 text-sm font-semibold">
                             Failed to load trades: {(allTradesError as Error).message}
@@ -843,6 +844,9 @@ export default function ManageTradesClient({
                       <tr key={`skeleton-${index}`}>
                         <td className="w-12 px-4 py-4 whitespace-nowrap">
                           <Skeleton className="h-5 w-5 rounded" />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap align-middle">
+                          <Skeleton className="h-16 w-28 rounded-lg" />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Skeleton className="h-5 w-20" />
@@ -869,12 +873,6 @@ export default function ManageTradesClient({
                           <Skeleton className="h-5 w-20" />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-5 w-20" />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-5 w-20" />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
                           <Skeleton className="h-5 w-24" />
                         </td>
                       </tr>
@@ -891,6 +889,9 @@ export default function ManageTradesClient({
                             className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
                           />
                         )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-middle">
+                        <ScreensCarouselCell trade={trade} />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">{trade.trade_date}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300" suppressHydrationWarning>{formatTradeTimeForDisplay(trade.trade_time)}</td>
@@ -985,27 +986,6 @@ export default function ManageTradesClient({
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">{trade.risk_per_trade}%</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
-                        {trade.trade_screens?.some((s) => s) ? (
-                          <div className="flex items-center gap-2">
-                            {trade.trade_screens.map((url, i) =>
-                              url ? (
-                                <a
-                                  key={i}
-                                  href={url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline font-medium transition-colors"
-                                >
-                                  #{i + 1}
-                                </a>
-                              ) : null
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-500">—</span>
-                        )}
-                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
                         {trade.notes ? (
                           <a
@@ -1039,7 +1019,7 @@ export default function ManageTradesClient({
                   )}
                   {!allTradesLoading && paginatedTrades.length === 0 && activeAccount && (
                     <tr>
-                      <td colSpan={12} className="px-6 py-12 text-center">
+                      <td colSpan={11} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <p className="text-slate-600 dark:text-slate-400 text-sm">
                             No trades found for the selected filters.
