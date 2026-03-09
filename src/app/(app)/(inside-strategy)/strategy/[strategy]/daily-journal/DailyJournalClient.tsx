@@ -47,7 +47,7 @@ export default function DailyJournalClient({
   const [dateRange, setDateRange] = useState<DateRangeState>(() => buildPresetRange('year').dateRange);
   const [activeFilter, setActiveFilter] = useState<FilterType>('year');
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
-  const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'nonExecuted'>('all');
+  const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'nonExecuted'>('executed');
 
   // Infinite scroll for days
   const [displayedCount, setDisplayedCount] = useState(DAYS_PER_LOAD);
@@ -318,23 +318,23 @@ export default function DailyJournalClient({
                       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                         Total Trades
                       </p>
-                      <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
                         {totalTrades}
                       </p>
                     </div>
                     <div>
                       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                        Winners
+                        Wins
                       </p>
-                      <p className="text-base sm:text-lg font-semibold text-emerald-500">
+                      <p className="text-base font-semibold text-emerald-500">
                         {winners}
                       </p>
                     </div>
                     <div>
                       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                        Losers
+                        Losses
                       </p>
-                      <p className="text-base sm:text-lg font-semibold text-rose-500">
+                      <p className="text-base font-semibold text-rose-500">
                         {losers}
                       </p>
                     </div>
@@ -342,7 +342,7 @@ export default function DailyJournalClient({
                       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                         BE
                       </p>
-                      <p className="text-base sm:text-lg font-semibold text-amber-500">
+                      <p className="text-base font-semibold text-amber-500">
                         {breakEven}
                       </p>
                     </div>
@@ -350,7 +350,7 @@ export default function DailyJournalClient({
                       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                         PnL %
                       </p>
-                      <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
                         {formatPercent(totalPnLPct)}%
                       </p>
                     </div>
@@ -358,7 +358,7 @@ export default function DailyJournalClient({
                       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                         Winrate
                       </p>
-                      <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
                         {formatPercent(winRate)}%
                       </p>
                     </div>
@@ -366,7 +366,7 @@ export default function DailyJournalClient({
                       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                         Profit Factor
                       </p>
-                      <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
                         {formatPercent(profitFactor)}
                       </p>
                     </div>
@@ -374,7 +374,7 @@ export default function DailyJournalClient({
                         <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                           Consistency
                         </p>
-                        <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
                           {formatPercent(consistency)}%
                         </p>
                       </div>
