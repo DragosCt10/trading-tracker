@@ -72,21 +72,15 @@ import {
 } from '@/components/dashboard/analytics/SetupStatisticsCard';
 import {
   LiquidityStatisticsCard,
-  convertFilteredLiquidityStatsToChartData,
 } from '@/components/dashboard/analytics/LiquidityStatisticsCard';
-import { convertFilteredDirectionStatsToChartData } from '@/components/dashboard/analytics/DirectionStatisticsCard';
 import {
   LocalHLStatisticsCard,
-  convertFilteredLocalHLStatsToChartData,
 } from '@/components/dashboard/analytics/LocalHLStatisticsCard';
 import {
   SLSizeStatisticsCard,
 } from '@/components/dashboard/analytics/SLSizeStatisticsCard';
 import {
-  ReentryTradesChartCard,
   type ReentryTradesChartCardProps,
-  calculateReentryStats,
-  calculateBreakEvenStats,
 } from '@/components/dashboard/analytics/ReentryTradesChartCard';
 import {
   DayStatisticsCard,
@@ -94,7 +88,6 @@ import {
 } from '@/components/dashboard/analytics/DayStatisticsCard';
 import {
   MSSStatisticsCard,
-  type MSSStatisticsCardProps,
 } from '@/components/dashboard/analytics/MSSStatisticsCard';
 import { NewsNameChartCard } from '@/components/dashboard/analytics/NewsNameChartCard';
 import {
@@ -102,9 +95,6 @@ import {
   type MarketStatisticsCardProps,
 } from '@/components/dashboard/analytics/MarketStatisticsCard';
 import { TimeIntervalStatisticsCard } from '@/components/dashboard/analytics/TimeIntervalStatisticsCard';
-import {
-  EvaluationStats,
-} from '@/components/dashboard/analytics/EvaluationStats';
 import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
 import {
   LaunchHourTradesCard,
@@ -139,15 +129,7 @@ import {
 import { EquityCurveCard } from '@/components/dashboard/analytics/EquityCurveCard';
 import { ConfidenceStatsCard, MindStateStatsCard } from '@/components/dashboard/analytics/ConfidenceMindStateCards';
 import { chartOptions } from '@/utils/chartConfig';
-import {
-  calculateLiquidityStats,
-  calculateDirectionStats,
-  calculateLocalHLStats,
-  calculateSetupStats,
-  calculateSLSizeStats,
-  calculateMssStats,
-  calculateTrendStats,
-} from '@/utils/calculateCategoryStats';
+
 import {
   type DateRangeState,
   createInitialDateRange,
@@ -415,6 +397,9 @@ export default function StrategyClient(
     riskStats,
     tradeMonths,
     isLoadingStats,
+    reentryStats,
+    breakEvenStats,
+    trendStats,
   } = useDashboardData({
     session: userData?.session,
     dateRange,
@@ -441,12 +426,9 @@ export default function StrategyClient(
       baseTrades = baseTrades.filter((t) => t.executed === true);
     }
 
-    if (selectedMarket !== 'all') {
-      baseTrades = baseTrades.filter((t) => t.market === selectedMarket);
-    }
-
+    // market filter is applied in the DB/RPC — compact_trades is already market-filtered
     return baseTrades;
-  }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedMarket, selectedExecution]);
+  }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedExecution]);
 
   // Derive tradeMonths from the filtered trades so calendar nav respects execution+market filters
   const filteredTradeMonths = useMemo(() => {
@@ -514,42 +496,9 @@ export default function StrategyClient(
     return filteredTrades.reduce((min, t) => t.trade_date < min ? t.trade_date : min, filteredTrades[0].trade_date);
   }, [activeFilter, filteredTrades]);
 
-  // Always calculate setup, liquidity, direction, and localHL stats from tradesToUse to ensure consistency
-  const setupStatsFromTradesToUse = useMemo(() => {
-    return calculateSetupStats(tradesToUse);
-  }, [tradesToUse]);
-
-  const liquidityStatsFromTradesToUse = useMemo(() => {
-    return calculateLiquidityStats(tradesToUse);
-  }, [tradesToUse]);
-
-  const directionStatsFromTradesToUse = useMemo(() => {
-    return calculateDirectionStats(tradesToUse);
-  }, [tradesToUse]);
-
-  const localHLStatsFromTradesToUse = useMemo(() => {
-    return calculateLocalHLStats(tradesToUse);
-  }, [tradesToUse]);
-
-  const slSizeStatsFromTradesToUse = useMemo(() => {
-    return calculateSLSizeStats(tradesToUse);
-  }, [tradesToUse]);
-
-  const reentryStatsFromTradesToUse = useMemo(() => {
-    return calculateReentryStats(tradesToUse);
-  }, [tradesToUse]);
-
-  const breakEvenStatsFromTradesToUse = useMemo(() => {
-    return calculateBreakEvenStats(tradesToUse);
-  }, [tradesToUse]);
-
-  const mssStatsFromTradesToUse = useMemo(() => {
-    return calculateMssStats(tradesToUse);
-  }, [tradesToUse]);
-
-  const trendStatsFromTradesToUse = useMemo(() => {
-    return calculateTrendStats(tradesToUse);
-  }, [tradesToUse]);
+  // Category stats come from the DB (already market + execution filtered via the RPC).
+  // No client-side recalculation needed — the API query key includes selectedMarket and
+  // selectedExecution, so a new RPC call fires whenever either filter changes.
 
   // Compute filtered statistics when filters are applied
   const {
@@ -570,9 +519,9 @@ export default function StrategyClient(
       directionStats,
       localHLStats,
       slSizeStats,
-      reentryStats: reentryStatsFromTradesToUse,
-      breakEvenStats: breakEvenStatsFromTradesToUse,
-      trendStats: trendStatsFromTradesToUse,
+      reentryStats,
+      breakEvenStats,
+      trendStats,
       intervalStats,
       mssStats,
       newsStats,
@@ -722,13 +671,12 @@ export default function StrategyClient(
 
   const isCustomRange = isCustomDateRange(dateRange);
 
-  // Compute stats from tradesToUse when filters are applied or in date range mode
-  // In date range mode, always compute from tradesToUse to reflect the selected date range
-  // In yearly mode with no filters, use hook stats
-  // Uses shared computeStrategyStatsFromTrades (same as ShareStrategyClient for Consistency & drawdown and Performance ratios)
-  const filteredStats = useMemo(() => {
+  // DB stats are authoritative for all metrics. Only averageDrawdown is missing from the
+  // DB response (hardcoded to 0 in mapApiToStats), so we compute it from the trade series.
+  // partialsTaken is an alias for totalPartialTradesCount (different field name convention).
+  const statsToUse = useMemo(() => {
     const safeStats = stats ?? ({} as typeof stats & object);
-    const computed = computeStrategyStatsFromTrades({
+    const { averageDrawdown } = computeStrategyStatsFromTrades({
       tradesToUse,
       accountBalance: selection.activeAccount?.account_balance || 0,
       selectedExecution,
@@ -736,12 +684,12 @@ export default function StrategyClient(
       selectedMarket,
       statsFromHook: { tradeQualityIndex: safeStats?.tradeQualityIndex ?? 0, multipleR: safeStats?.multipleR ?? 0 },
     });
-    return { ...(safeStats ?? {}), ...computed };
+    return {
+      ...(safeStats ?? {}),
+      averageDrawdown,
+      partialsTaken: safeStats?.totalPartialTradesCount ?? 0,
+    };
   }, [viewMode, tradesToUse, selectedMarket, selectedExecution, stats, selection.activeAccount?.account_balance]);
-
-  // Always use filteredStats to ensure consistent drawdown calculations between yearly and date range modes
-  // The hook's stats.maxDrawdown might use different calculation logic, so we recalculate from tradesToUse
-  const statsToUse = filteredStats;
 
   // Compute filtered macroStats when filters are applied or in date range mode
   // In date range mode, always compute from current data to reflect the selected date range
@@ -770,7 +718,7 @@ export default function StrategyClient(
       key: 'mss_stats',
       element: (
         <MSSStatisticsCard
-          mssStats={mssStatsFromTradesToUse}
+          mssStats={statsToUseForCharts.mssStats}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
@@ -792,7 +740,7 @@ export default function StrategyClient(
       key: 'local_hl_stats',
       element: (
         <LocalHLStatisticsCard
-          localHLStats={localHLStatsFromTradesToUse}
+          localHLStats={statsToUseForCharts.localHLStats}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
         />
@@ -926,7 +874,7 @@ export default function StrategyClient(
                 partialBETrades: statsToUse.partialBETrades,
               },
               initialNonExecutedTotalTradesCount: props?.initialNonExecutedTotalTradesCount,
-              directionStats: filteredChartStats ? statsToUseForCharts.directionStats : directionStatsFromTradesToUse,
+              directionStats: statsToUseForCharts.directionStats,
               includeTotalTradesForDirection: filteredChartStats !== null,
               chartsLoadingState: chartsLoadingState,
             }}
@@ -1077,7 +1025,7 @@ export default function StrategyClient(
         )}
         {hasCard('sl_size_stats') && (
           <SLSizeStatisticsCard
-            slSizeStats={filteredChartStats ? statsToUseForCharts.slSizeStats : slSizeStatsFromTradesToUse}
+            slSizeStats={statsToUseForCharts.slSizeStats}
             isLoading={chartsLoadingState}
           />
         )}
@@ -1087,7 +1035,7 @@ export default function StrategyClient(
       {hasCard('setup_stats') && (
         <div className="my-8">
           <SetupStatisticsCard
-            setupStats={filteredChartStats ? statsToUseForCharts.setupStats : setupStatsFromTradesToUse}
+            setupStats={statsToUseForCharts.setupStats}
             isLoading={chartsLoadingState}
             includeTotalTrades={filteredChartStats !== null}
           />
@@ -1097,7 +1045,7 @@ export default function StrategyClient(
       {hasCard('liquidity_stats') && (
         <div className="my-8">
           <LiquidityStatisticsCard
-            liquidityStats={filteredChartStats ? statsToUseForCharts.liquidityStats : liquidityStatsFromTradesToUse}
+            liquidityStats={statsToUseForCharts.liquidityStats}
             isLoading={chartsLoadingState}
             includeTotalTrades={filteredChartStats !== null}
           />
