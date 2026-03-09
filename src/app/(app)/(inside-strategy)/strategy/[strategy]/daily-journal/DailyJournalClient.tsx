@@ -180,19 +180,32 @@ export default function DailyJournalClient({
   // Per‑day equity curve data (one series per day)
   const buildDayChartData = (trades: Trade[]) => {
     if (!trades.length) return [];
+
     const sorted = trades
       .slice()
       .sort((a, b) => a.trade_time.localeCompare(b.trade_time));
 
+    const dayDate = sorted[0].trade_date;
+
     let cumulative = 0;
-    return sorted.map((trade) => {
+    const points = [];
+
+    // Start-of-day baseline so the curve is visible even for a single trade
+    points.push({
+      date: new Date(dayDate),
+      profit: 0,
+    });
+
+    for (const trade of sorted) {
       const profit = trade.calculated_profit ?? 0;
       cumulative += profit;
-      return {
+      points.push({
         date: trade.trade_date,
         profit: cumulative,
-      };
-    });
+      });
+    }
+
+    return points;
   };
 
   return (
@@ -206,20 +219,22 @@ export default function DailyJournalClient({
         </p>
       </div>
 
-      <TradeFiltersBar
-        dateRange={dateRange}
-        onDateRangeChange={handleDateRangeChange}
-        activeFilter={activeFilter}
-        onFilterChange={handleFilterChange}
-        isCustomRange={isCustomRange}
-        selectedMarket={selectedMarket}
-        onSelectedMarketChange={setSelectedMarket}
-        markets={markets}
-        selectedExecution={executionFilter}
-        onSelectedExecutionChange={handleExecutionChange}
-        showAllTradesOption={true}
-        displayStartDate={earliestTradeDate}
-      />
+      <div className="mb-6">
+        <TradeFiltersBar
+          dateRange={dateRange}
+          onDateRangeChange={handleDateRangeChange}
+          activeFilter={activeFilter}
+          onFilterChange={handleFilterChange}
+          isCustomRange={isCustomRange}
+          selectedMarket={selectedMarket}
+          onSelectedMarketChange={setSelectedMarket}
+          markets={markets}
+          selectedExecution={executionFilter}
+          onSelectedExecutionChange={handleExecutionChange}
+          showAllTradesOption={true}
+          displayStartDate={earliestTradeDate}
+        />
+      </div>
 
       <div className="space-y-4 mt-4">
         {visibleDayGroups.map((group) => {
@@ -228,9 +243,7 @@ export default function DailyJournalClient({
           const hasTrades = group.trades.length > 0;
           const totalTrades = group.trades.length;
           const winners = group.trades.filter((t) => t.trade_outcome === 'Win').length;
-          const losers = group.trades.filter(
-            (t) => t.trade_outcome === 'Lose' || t.trade_outcome === 'BE'
-          ).length;
+          const losers = group.trades.filter((t) => t.trade_outcome === 'Lose').length;
           const breakEven = group.trades.filter((t) => t.break_even).length;
           const winRate = totalTrades > 0 ? (winners / totalTrades) * 100 : 0;
           const totalPnLPct = calculateAveragePnLPercentage(
