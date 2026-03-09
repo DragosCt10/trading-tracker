@@ -56,6 +56,60 @@ export function calculateSharpeRatio(
 }
 
 /**
+ * Max drawdown (in %) over the equity curve from non-BE trades.
+ * Running balance from accountBalance + cumulative profit; drawdown at each step = (peak - balance) / peak * 100.
+ */
+export function calculateMaxDrawdown(trades: Trade[], accountBalance: number): number {
+  const nonBETrades = trades
+    .filter((t) => !t.break_even)
+    .slice()
+    .sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime());
+
+  let balance = accountBalance;
+  let peak = balance;
+  let maxDrawdown = 0;
+
+  for (const t of nonBETrades) {
+    const profit = typeof t.calculated_profit === 'number' ? t.calculated_profit : 0;
+    balance += profit;
+    if (balance > peak) peak = balance;
+    const drawdown = peak > 0 ? ((peak - balance) / peak) * 100 : 0;
+    if (drawdown > maxDrawdown) maxDrawdown = drawdown;
+  }
+
+  return maxDrawdown;
+}
+
+/**
+ * Average drawdown (in %) over the equity curve from non-BE trades.
+ * At each step, drawdown from current peak; returns the mean of those drawdowns.
+ */
+export function calculateAverageDrawdown(trades: Trade[], accountBalance: number): number {
+  const nonBETrades = trades
+    .filter((t) => !t.break_even)
+    .slice()
+    .sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime());
+
+  if (nonBETrades.length === 0) return 0;
+
+  let balance = accountBalance;
+  let peak = balance;
+  let sumDrawdown = 0;
+  let count = 0;
+
+  for (const t of nonBETrades) {
+    const profit = typeof t.calculated_profit === 'number' ? t.calculated_profit : 0;
+    balance += profit;
+    if (balance > peak) peak = balance;
+    const drawdown = peak > 0 ? ((peak - balance) / peak) * 100 : 0;
+    sumDrawdown += drawdown;
+    count += 1;
+  }
+
+  return count > 0 ? sumDrawdown / count : 0;
+}
+
+/**
  * Calculates average P&L % over starting balance, mirroring
  * the logic used in PNLPercentageStatCard.
  *
