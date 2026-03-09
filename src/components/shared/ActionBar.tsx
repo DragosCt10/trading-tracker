@@ -13,6 +13,7 @@ import { STATIC_DATA } from '@/constants/queryConfig';
 import { AccountModePopover, type Mode } from '@/components/shared/AccountModePopover';
 import { EditAccountAlertDialog } from '../EditAccountAlertDialog';
 import { CreateAccountAlertDialog } from '../CreateAccountModal';
+import { setLastAccountPreference } from '@/utils/lastAccountCookie';
 
 const MODE_LABELS: Record<Mode, string> = {
   live: 'Live',
@@ -101,11 +102,11 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
   const activeMode = selection.mode;
   const activeAccount = selection.activeAccount;
 
-  // Resolve account display name from current user's list (not from cached selection) so the
-  // popover trigger shows the correct name even before its own query has synced; avoids "Select account" placeholder.
+  // Resolve account display name from current user's list; fall back to activeAccount.name so
+  // the trigger doesn't show the placeholder when we already know the account object.
   const accountDisplayName =
-    activeAccount && allAccounts.length > 0
-      ? (allAccounts.find((a) => a.id === activeAccount.id)?.name ?? null)
+    activeAccount
+      ? allAccounts.find((a) => a.id === activeAccount.id)?.name ?? activeAccount.name
       : null;
 
   // ---------- Apply helper (persist active account and invalidate trade queries)
@@ -123,6 +124,13 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
           activeAccountObj ??
           (accountId ? allAccounts.find((a) => a.id === accountId) ?? null : null);
         setSelection({ mode, activeAccount: resolved });
+
+        // Persist mode + index (no ids) so refresh restores same account
+        if (resolved) {
+          const listForMode = allAccounts.filter((a) => a.mode === mode);
+          const index = listForMode.findIndex((a) => a.id === resolved.id);
+          if (index >= 0) setLastAccountPreference(mode, index);
+        }
 
         const keysToInvalidate = ['allTrades', 'filteredTrades', 'nonExecutedTrades'];
         queryClient.invalidateQueries({
