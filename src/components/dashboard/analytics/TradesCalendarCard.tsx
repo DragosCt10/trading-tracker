@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Trade } from '@/types/trade';
 import { cn } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { calculateAveragePnLPercentage } from '@/utils/analyticsCalculations';
 
 /**
  * Parse trade_date string to a local Date object, avoiding timezone issues
@@ -112,8 +113,7 @@ export function buildWeeklyStats(
       'd MMM'
     )}`;
 
-    const pnlPercent =
-      accountBalance > 0 ? (totalProfit / accountBalance) * 100 : 0;
+    const pnlPercent = calculateAveragePnLPercentage(filteredTrades, accountBalance);
 
     return {
       totalProfit,
@@ -141,6 +141,7 @@ interface WeeklyStat {
   losses: number;
   beCount: number;
   weekLabel: string;
+  pnlPercent: number;
 }
 
 type Direction = 'prev' | 'next';
@@ -231,7 +232,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
         {/* Weekly summary row */}
         <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {weeklyStats.map((week, idx) => {
-            const pnlPercent = ((week.totalProfit / balance) * 100) || 0;
+            const pnlPercent = week.pnlPercent ?? 0;
 
             return (
               <div
