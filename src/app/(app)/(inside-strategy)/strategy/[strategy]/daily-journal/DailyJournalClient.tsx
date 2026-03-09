@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { formatPercent } from '@/lib/utils';
 import type { Trade } from '@/types/trade';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
 import {
@@ -230,8 +231,8 @@ export default function DailyJournalClient({
           const losers = group.trades.filter(
             (t) => t.trade_outcome === 'Lose' || t.trade_outcome === 'BE'
           ).length;
+          const breakEven = group.trades.filter((t) => t.break_even).length;
           const winRate = totalTrades > 0 ? (winners / totalTrades) * 100 : 0;
-          const totalPnLMoney = group.totalProfit;
           const totalPnLPct = calculateAveragePnLPercentage(
             group.trades,
             accountBalance
@@ -252,7 +253,7 @@ export default function DailyJournalClient({
           return (
             <Card
               key={group.date}
-              className="rounded-2xl border border-slate-200/70 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-900/40 shadow-sm overflow-hidden"
+              className="rounded-2xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden"
             >
               <div
                 role="button"
@@ -272,18 +273,20 @@ export default function DailyJournalClient({
                   ) : (
                     <ChevronRight className="h-4 w-4 text-slate-500 dark:text-slate-400" />
                   )}
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  <div className="gap-1 flex flex-col">
+                    <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
                       {formattedDate}
                     </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {group.trades.length} trades • P&amp;L:{' '}
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      {group.trades.length} trades • PNL:{' '}
                       <span className={group.totalProfit >= 0 ? 'text-emerald-500' : 'text-rose-500'}>
-                        {currencySymbol}
-                        {group.totalProfit.toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
+                        <strong>
+                          {currencySymbol}
+                          {group.totalProfit.toLocaleString('en-US', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </strong>
                       </span>
                     </p>
                   </div>
@@ -300,8 +303,8 @@ export default function DailyJournalClient({
 
               {/* Equity curve + header stats for this day — always visible (outside collapse) */}
               <div className="border-t border-slate-200/70 dark:border-slate-700/60 px-5 py-4">
-                <div className="flex flex-col gap-4 md:flex-row md:items-stretch">
-                  <div className="md:w-1/3 h-40">
+                <div className="flex flex-col gap-10 md:flex-row md:items-center">
+                  <div className="md:w-1/3 h-32 flex items-center">
                     <EquityCurveChart
                       data={dayChartData}
                       currencySymbol={currencySymbol}
@@ -309,28 +312,21 @@ export default function DailyJournalClient({
                       isLoading={!mounted}
                     />
                   </div>
-                  <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2 text-xs sm:text-sm">
+                  <div className="flex-1 md:flex md:items-center">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-20 gap-y-6 text-xs sm:text-sm w-full">
                     <div>
                       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                         Total Trades
                       </p>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
                         {totalTrades}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                        Winrate
-                      </p>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {winRate.toFixed(2)}%
                       </p>
                     </div>
                     <div>
                       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                         Winners
                       </p>
-                      <p className="text-sm font-semibold text-emerald-500">
+                      <p className="text-base sm:text-lg font-semibold text-emerald-500">
                         {winners}
                       </p>
                     </div>
@@ -338,49 +334,50 @@ export default function DailyJournalClient({
                       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                         Losers
                       </p>
-                      <p className="text-sm font-semibold text-rose-500">
+                      <p className="text-base sm:text-lg font-semibold text-rose-500">
                         {losers}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        BE
+                      </p>
+                      <p className="text-base sm:text-lg font-semibold text-amber-500">
+                        {breakEven}
                       </p>
                     </div>
                     <div>
                       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                         PnL %
                       </p>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {totalPnLPct.toFixed(2)}%
+                      <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        {formatPercent(totalPnLPct)}%
                       </p>
                     </div>
                     <div>
                       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                        Net PnL
+                        Winrate
                       </p>
-                      <p
-                        className={`text-sm font-semibold ${
-                          totalPnLMoney >= 0 ? 'text-emerald-500' : 'text-rose-500'
-                        }`}
-                      >
-                        {currencySymbol}
-                        {totalPnLMoney.toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
+                      <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        {formatPercent(winRate)}%
                       </p>
                     </div>
                     <div>
                       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                         Profit Factor
                       </p>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
                         {profitFactor.toFixed(2)}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                        Consistency
-                      </p>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                        {consistency.toFixed(2)}%
-                      </p>
+                      <div>
+                        <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                          Consistency
+                        </p>
+                        <p className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
+                          {formatPercent(consistency)}%
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
