@@ -7,7 +7,7 @@ import { Info } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Trade } from '@/types/trade';
-import { calculateTradeQualityIndex } from '@/utils/calculateTradeQualityIndex';
+import { calculateTradeQualityIndex } from '@/utils/analyticsCalculations';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
 /* ---------------------------------------------------------

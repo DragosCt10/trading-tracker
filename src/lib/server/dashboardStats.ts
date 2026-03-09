@@ -27,13 +27,13 @@ import {
   calculateMarketStats,
 } from '@/utils/calculateCategoryStats';
 import { calculateEvaluationStats, type EvaluationStat } from '@/utils/calculateEvaluationStats';
-import { calculateTradeQualityIndex } from '@/utils/calculateTradeQualityIndex';
 import { calculateRRStats } from '@/utils/calculateRMultiple';
 import { computeStatsFromTrades } from '@/utils/computeStatsFromTrades';
 import {
   calculateProfitFactor,
   calculateConsistencyScore,
   calculateSharpeRatio,
+  calculateTradeQualityIndex,
 } from '@/utils/analyticsCalculations';
 
 // Month labels used for AccountOverviewCard / MonthlyPerformanceChart

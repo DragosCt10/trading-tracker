@@ -1,4 +1,5 @@
 import { Trade } from '@/types/trade';
+import { stdDev } from '@/utils/helpers/mathHelpers';
 
 interface MonthlyStats {
   [month: string]: { profit: number };
@@ -133,4 +134,60 @@ export function calculateAveragePnLPercentage(
   const balance = accountBalance || 1;
 
   return balance > 0 ? (totalProfit / balance) * 100 : 0;
+}
+
+/**
+ * Trade Quality Index (TQI)
+ *
+ * TQI = WinRate * RRStability
+ * WinRate   = wins / totalTrades (BE counted in total, but not as wins)
+ * RRStability = 1 / (1 + StdDev(R))
+ *
+ * R-values per trade:
+ *  - Win (non-BE):   +risk_reward_ratio
+ *  - Lose (non-BE):  -1R
+ *  - Break-even:     0R
+ *
+ * Returns a number in [0, 1]. Multiply by 100 if you want a percentage.
+ */
+export function calculateTradeQualityIndex(trades: Trade[]): number {
+  if (!trades.length) return 0;
+
+  const rValues: number[] = [];
+  let wins = 0;
+  let total = 0;
+
+  trades.forEach((t) => {
+    const rr =
+      typeof t.risk_reward_ratio === 'number' && !isNaN(t.risk_reward_ratio)
+        ? t.risk_reward_ratio
+        : 0;
+
+    let r: number | undefined;
+
+    if (t.break_even) {
+      r = 0;
+      total += 1;
+    } else if (t.trade_outcome === 'Win') {
+      r = rr;
+      wins += 1;
+      total += 1;
+    } else if (t.trade_outcome === 'Lose') {
+      r = -1;
+      total += 1;
+    } else {
+      return;
+    }
+
+    rValues.push(r);
+  });
+
+  if (!total || !rValues.length) return 0;
+
+  const winRate = wins / total;
+  const rrStdDev = stdDev(rValues);
+  const rrStability = 1 / (1 + rrStdDev);
+
+  const tqi = winRate * rrStability;
+  return tqi;
 }

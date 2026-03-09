@@ -1,7 +1,7 @@
 // src/utils/calculateMacroStats.ts
 import { Trade } from '@/types/trade';
 import { MacroStats } from '@/types/dashboard';
-import { calculateTradeQualityIndex } from './calculateTradeQualityIndex';
+import { calculateTradeQualityIndex } from '@/utils/analyticsCalculations';
 import { calculateRRStats } from './calculateRMultiple';
 import { calcSharpe } from '@/utils/helpers/mathHelpers';
 import { DEFAULT_RISK_PCT, DEFAULT_RR } from '@/constants/tradingDefaults';
