@@ -5,7 +5,9 @@ import { format } from 'date-fns';
 import { ChevronDown, ChevronRight, Infinity as InfinityIcon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { formatPercent } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn, formatPercent } from '@/lib/utils';
 import type { Trade } from '@/types/trade';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
 import {
@@ -19,6 +21,9 @@ import {
   type DateRangeValue,
 } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { calculateProfitFactor, calculateAveragePnLPercentage } from '@/utils/analyticsCalculations';
+import { getIntervalForTime } from '@/constants/analytics';
+import TradeDetailsModal from '@/components/TradeDetailsModal';
+import NotesModal from '@/components/NotesModal';
 
 interface DailyJournalClientProps {
   strategyId: string;
@@ -33,6 +38,116 @@ type DayGroup = {
   trades: Trade[];
   totalProfit: number;
 };
+
+function formatTradeTimeForDisplay(value: string | Date | unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string') {
+    if (value.includes('T') || value.includes('Z')) {
+      const d = new Date(value);
+      return d.toISOString().slice(11, 19);
+    }
+    const interval = getIntervalForTime(value);
+    return interval?.label ?? value;
+  }
+  if (value instanceof Date) {
+    return value.toISOString().slice(11, 19);
+  }
+  return String(value);
+}
+
+function ScreensCarouselCell({ trade }: { trade: Trade }) {
+  const screens = useMemo(
+    () => (trade.trade_screens ?? []).filter(Boolean),
+    [trade.trade_screens]
+  );
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  if (screens.length === 0) {
+    return (
+      <div className="w-28 h-16 rounded-lg bg-slate-100 dark:bg-slate-800/60 flex items-center justify-center text-[10px] text-slate-400 dark:text-slate-500">
+        No screen
+      </div>
+    );
+  }
+
+  const activeScreen = screens[activeIdx]!;
+  const hasMultiple = screens.length > 1;
+
+  return (
+    <div className="relative w-32 h-20">
+      <a
+        href={activeScreen}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block w-full h-full rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800/60 group"
+      >
+        <img
+          src={activeScreen}
+          alt={`${trade.market} trade screen ${activeIdx + 1}`}
+          className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-300"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src =
+              'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23e2e8f0" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%2394a3b8"%3ENo Image%3C/text%3E%3C/svg%3E';
+          }}
+        />
+
+        {hasMultiple && (
+          <div className="absolute top-1.5 right-1.5 flex items-center gap-1 bg-black/55 backdrop-blur-sm text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full pointer-events-none select-none">
+            {activeIdx + 1}/{screens.length}
+          </div>
+        )}
+
+        {hasMultiple && (
+          <>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setActiveIdx((i) => (i - 1 + screens.length) % screens.length);
+              }}
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/45 hover:bg-black/65 backdrop-blur-sm text-white rounded-full w-6 h-6 flex items-center justify-center"
+              aria-label="Previous screen"
+              type="button"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.2}
+                className="w-3 h-3"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setActiveIdx((i) => (i + 1) % screens.length);
+              }}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/45 hover:bg-black/65 backdrop-blur-sm text-white rounded-full w-6 h-6 flex items-center justify-center"
+              aria-label="Next screen"
+              type="button"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.2}
+                className="w-3 h-3"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+              </svg>
+            </button>
+          </>
+        )}
+      </a>
+    </div>
+  );
+}
 
 const DAYS_PER_LOAD = 7;
 
@@ -56,6 +171,11 @@ export default function DailyJournalClient({
 
   // Per-day collapse state
   const [openByDate, setOpenByDate] = useState<Record<string, boolean>>({});
+
+  const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [selectedNotes, setSelectedNotes] = useState<string>('');
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -176,6 +296,25 @@ export default function DailyJournalClient({
       [date]: !(prev[date] ?? true),
     }));
   };
+
+  const openTradeDetails = useCallback((trade: Trade) => {
+    setSelectedTrade(trade);
+    setIsDetailsOpen(true);
+  }, []);
+
+  const closeTradeDetails = useCallback(() => {
+    setIsDetailsOpen(false);
+    setSelectedTrade(null);
+  }, []);
+
+  const openNotesModal = useCallback((notes: string) => {
+    setSelectedNotes(notes);
+    setIsNotesOpen(true);
+  }, []);
+
+  const closeNotesModal = useCallback(() => {
+    setIsNotesOpen(false);
+  }, []);
 
   // Per‑day equity curve data (one series per day)
   const buildDayChartData = (trades: Trade[]) => {
@@ -305,14 +444,11 @@ export default function DailyJournalClient({
                       {formattedDate}
                     </p>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {group.trades.length} trades • PNL:{' '}
+                      {group.trades.length} trades • P&L:{' '}
                       <span className={group.totalProfit >= 0 ? 'text-emerald-500' : 'text-rose-500'}>
                         <strong>
                           {currencySymbol}
-                          {group.totalProfit.toLocaleString('en-US', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
+                          {formatPercent(group.totalProfit)}
                         </strong>
                       </span>
                     </p>
@@ -375,7 +511,7 @@ export default function DailyJournalClient({
                     </div>
                     <div>
                       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                        PnL %
+                        P&L %
                       </p>
                       <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
                         {formatPercent(totalPnLPct)}%
@@ -416,9 +552,229 @@ export default function DailyJournalClient({
                 </div>
               </div>
 
-              {/* Collapsible body: reserved for future daily‑journal content */}
               {isOpen && (
-                <div className="border-t border-slate-200/70 dark:border-slate-700/60 px-5 py-4" />
+                <div className="border-t border-slate-200/70 dark:border-slate-700/60 px-5 py-4">
+                  <div className="relative overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200/30 dark:divide-slate-700/30">
+                      <thead className="bg-transparent border-b border-slate-200/70 dark:border-slate-700/70">
+                        <tr>
+                          <th className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            Screens
+                          </th>
+                          <th className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            Time
+                          </th>
+                          <th className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            Market
+                          </th>
+                          <th className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            P&L
+                          </th>
+                          <th className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            Direction
+                          </th>
+                          <th className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            Setup
+                          </th>
+                          <th className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            Outcome
+                          </th>
+                          <th className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            Risk
+                          </th>
+                          <th className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            Notes
+                          </th>
+                          <th className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-transparent divide-y divide-slate-200/30 dark:divide-slate-700/30">
+                        {group.trades.map((trade) => (
+                          <tr key={trade.id ?? `${group.date}-${trade.trade_time}-${trade.market}`}>
+                            <td className="px-3 py-3 whitespace-nowrap align-middle">
+                              <ScreensCarouselCell trade={trade} />
+                            </td>
+                            <td
+                              className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-700 dark:text-slate-300"
+                              suppressHydrationWarning
+                            >
+                              {formatTradeTimeForDisplay(trade.trade_time)}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100">
+                              {trade.market}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                              {(() => {
+                                const profit = trade.calculated_profit ?? 0;
+                                return (
+                                  <span
+                                    className={
+                                      profit >= 0 ? 'text-emerald-500 font-semibold' : 'text-rose-500 font-semibold'
+                                    }
+                                  >
+                                    {currencySymbol}
+                                    {profit.toLocaleString('en-US', {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </span>
+                                );
+                              })()}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                              {trade.direction}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                              {trade.setup_type}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                              <div className="flex items-center gap-1">
+                                {trade.break_even || trade.trade_outcome === 'BE' ? (
+                                  <>
+                                    <Badge className="shadow-none border-none outline-none ring-0 bg-gradient-to-br from-orange-400 to-orange-500 dark:from-orange-500 dark:to-orange-600 text-white">
+                                      BE
+                                    </Badge>
+                                    {trade.be_final_result && (
+                                      <Badge
+                                        className={cn(
+                                          'shadow-none border-none outline-none ring-0',
+                                          trade.be_final_result === 'Win'
+                                            ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white'
+                                            : 'bg-gradient-to-br from-rose-500 to-rose-300 text-white'
+                                        )}
+                                      >
+                                        {trade.be_final_result}
+                                      </Badge>
+                                    )}
+                                  </>
+                                ) : (
+                                  <Badge
+                                    className={cn(
+                                      'shadow-none border-none outline-none ring-0',
+                                      trade.trade_outcome === 'Win'
+                                        ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white'
+                                        : 'bg-gradient-to-br from-rose-500 to-rose-300 text-white'
+                                    )}
+                                  >
+                                    {trade.trade_outcome}
+                                  </Badge>
+                                )}
+                                {!trade.executed && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge className="shadow-none border-none outline-none ring-0 bg-gradient-to-br from-amber-400 to-orange-500 text-white cursor-pointer">
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          strokeWidth={2}
+                                          stroke="currentColor"
+                                          className="size-4"
+                                        >
+                                          <line
+                                            x1="6"
+                                            y1="6"
+                                            x2="18"
+                                            y2="18"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                          />
+                                          <line
+                                            x1="18"
+                                            y1="6"
+                                            x2="6"
+                                            y2="18"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                          />
+                                        </svg>
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent
+                                      side="top"
+                                      className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 shadow-xl"
+                                    >
+                                      <div className="text-slate-600 dark:text-slate-300">
+                                        Not executed trade
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                                {trade.partials_taken && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge className="shadow-none border-none outline-none ring-0 bg-gradient-to-br from-blue-400 to-blue-600 text-white cursor-pointer">
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          strokeWidth={1.5}
+                                          stroke="currentColor"
+                                          className="size-4"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0 0 12 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52 2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 0 1-2.031.352 5.988 5.988 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971Zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0 2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 0 1-2.031.352 5.989 5.989 0 0 1-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971Z"
+                                          />
+                                        </svg>
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent
+                                      side="top"
+                                      className="rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-2.5"
+                                    >
+                                      <div className="text-sm font-medium">
+                                        Partial profits taken
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100">
+                              {trade.risk_per_trade}%
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                              {trade.notes ? (
+                                <a
+                                  href="#"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    openNotesModal(trade.notes || '');
+                                  }}
+                                  className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline font-medium transition-colors"
+                                >
+                                  View Notes
+                                </a>
+                              ) : (
+                                <span className="text-slate-400 dark:text-slate-500">
+                                  No notes
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                              <a
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  openTradeDetails(trade);
+                                }}
+                                className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline font-medium transition-colors"
+                              >
+                                Trade Details
+                              </a>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
             </Card>
           );
@@ -430,6 +786,16 @@ export default function DailyJournalClient({
           </div>
         )}
       </div>
+
+      {selectedTrade && (
+        <TradeDetailsModal
+          trade={selectedTrade}
+          isOpen={isDetailsOpen}
+          onClose={closeTradeDetails}
+          strategyName={strategyName}
+        />
+      )}
+      <NotesModal isOpen={isNotesOpen} onClose={closeNotesModal} notes={selectedNotes} />
     </div>
   );
 }
