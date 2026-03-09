@@ -434,11 +434,12 @@ export default function DailyJournalClient({
                 className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  {isOpen ? (
-                    <ChevronDown className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                  )}
+                  <ChevronRight
+                    className={cn(
+                      'h-4 w-4 text-slate-500 dark:text-slate-400 transition-transform duration-200',
+                      isOpen ? 'rotate-90' : 'rotate-0'
+                    )}
+                  />
                   <div className="gap-1 flex flex-col">
                     <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
                       {formattedDate}
@@ -552,10 +553,14 @@ export default function DailyJournalClient({
                 </div>
               </div>
 
-              {isOpen && (
-                <div className="border-t border-slate-200/70 dark:border-slate-700/60 px-5 py-4">
-                  <div className="relative overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-200/30 dark:divide-slate-700/30">
+              <div
+                className={cn(
+                  'border-t border-slate-200/70 dark:border-slate-700/60 px-5 overflow-hidden transition-all duration-300 ease-in-out',
+                  isOpen ? 'max-h-[1200px] py-4 opacity-100' : 'max-h-0 py-0 opacity-0'
+                )}
+              >
+                <div className="relative overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200/30 dark:divide-slate-700/30">
                       <thead className="bg-transparent border-b border-slate-200/70 dark:border-slate-700/70">
                         <tr>
                           <th className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
@@ -775,7 +780,6 @@ export default function DailyJournalClient({
                     </table>
                   </div>
                 </div>
-              )}
             </Card>
           );
         })}
