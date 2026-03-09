@@ -290,10 +290,10 @@ export default function DailyJournalClient({
     [dayGroups, displayedCount]
   );
 
-  const toggleDay = (date: string) => {
+  const toggleDay = (date: string, currentlyOpen: boolean) => {
     setOpenByDate((prev) => ({
       ...prev,
-      [date]: !(prev[date] ?? true),
+      [date]: !currentlyOpen,
     }));
   };
 
@@ -388,8 +388,8 @@ export default function DailyJournalClient({
             </div>
           </Card>
         )}
-        {visibleDayGroups.map((group) => {
-          const isOpen = openByDate[group.date] ?? true;
+        {visibleDayGroups.map((group, index) => {
+          const isOpen = openByDate[group.date] ?? index === 0;
           const dayChartData = buildDayChartData(group.trades);
           const hasTrades = group.trades.length > 0;
           const totalTrades = group.trades.length;
@@ -424,11 +424,11 @@ export default function DailyJournalClient({
               <div
                 role="button"
                 tabIndex={0}
-                onClick={() => toggleDay(group.date)}
+                onClick={() => toggleDay(group.date, isOpen)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
-                    toggleDay(group.date);
+                    toggleDay(group.date, isOpen);
                   }
                 }}
                 className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
@@ -459,6 +459,11 @@ export default function DailyJournalClient({
                   type="button"
                   size="sm"
                   variant="outline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleDay(group.date, isOpen);
+                  }}
                   className="h-8 rounded-xl px-3 text-xs cursor-pointer transition-colors duration-200 border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium"
                 >
                   {isOpen ? 'Collapse' : 'Expand'}
