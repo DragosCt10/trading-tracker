@@ -27,6 +27,7 @@ import {
 import { cn } from '@/lib/utils';
 import Logo from '../shared/Logo';
 import { ThemePickerModal } from './ThemePickerModal';
+import { clearLastAccountPreference } from '@/utils/lastAccountCookie';
 
 interface NavbarProps {
   /** Rendered in the navbar center on responsive (< lg); e.g. ActionBar */
@@ -64,6 +65,9 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
           }
         }
         keysToRemove.forEach((key) => localStorage.removeItem(key));
+
+        // Clear last-account cookies so a new login doesn't inherit the previous selection.
+        clearLastAccountPreference();
       }
 
       const supabase = createClient();
