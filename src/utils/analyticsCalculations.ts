@@ -43,3 +43,29 @@ export function calculateSharpeRatio(
   const volatility = maxDrawdown || 1;
   return volatility > 0 ? averagePnLPercentage / volatility : 0;
 }
+
+/**
+ * Calculates average P&L % over starting balance, mirroring
+ * the logic used in PNLPercentageStatCard.
+ *
+ * - If all trades are non-executed, use them as-is.
+ * - Otherwise, restrict to executed trades only.
+ * - P&L % = totalProfit / accountBalance * 100.
+ */
+export function calculateAveragePnLPercentage(
+  trades: Trade[],
+  accountBalance: number | null | undefined
+): number {
+  if (!trades.length) return 0;
+
+  const allTradesAreNonExecuted = trades.length > 0 && trades.every((t) => t.executed === false);
+  const tradesForProfit = allTradesAreNonExecuted ? trades : trades.filter((t) => t.executed === true);
+
+  const totalProfit = tradesForProfit.reduce(
+    (sum, t) => sum + (t.calculated_profit || 0),
+    0
+  );
+  const balance = accountBalance || 1;
+
+  return balance > 0 ? (totalProfit / balance) * 100 : 0;
+}
