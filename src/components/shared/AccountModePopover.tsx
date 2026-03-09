@@ -78,7 +78,7 @@ export function AccountModePopover({
   const triggerLabel =
     triggerLabelProp ??
     resolvedAccountName ??
-    (value.accountId ? undefined : value.account?.name) ??
+    value.account?.name ??
     placeholder;
 
   const selectTriggerClass =
