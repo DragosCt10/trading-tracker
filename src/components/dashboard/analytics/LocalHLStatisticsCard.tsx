@@ -129,6 +129,8 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
       }
     }, [mounted, externalLoading]);
 
+    if (!localHLStats) return null;
+
     const statsList = [
       { key: 'liquidated' as const, stat: localHLStats.liquidated, label: LOCAL_HL_LABELS.liquidated },
       { key: 'notLiquidated' as const, stat: localHLStats.notLiquidated, label: LOCAL_HL_LABELS.notLiquidated },

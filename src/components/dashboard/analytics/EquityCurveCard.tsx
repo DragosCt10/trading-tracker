@@ -1,28 +1,17 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip as ReTooltip,
-  ReferenceLine,
-} from 'recharts';
 import { Card, CardContent } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { Trade } from '@/types/trade';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { format } from 'date-fns';
+import { EquityCurveChart, type EquityPoint } from '@/components/dashboard/analytics/EquityCurveChart';
 
 export interface EquityCurveCardProps {
   trades: Trade[];
   currencySymbol: string;
 }
-
-type EquityDatum = { date: string; equity: number; equityPositive: number; equityNegative: number };
 
 /** Normalize to YYYY-MM-DD for grouping by day */
 function toDayKey(tradeDate: string): string {
@@ -31,7 +20,7 @@ function toDayKey(tradeDate: string): string {
 }
 
 /** Aggregate P&L by day, then build cumulative equity (one data point per day). */
-function buildEquityChartData(trades: Trade[]): EquityDatum[] {
+function buildDailyEquityChartData(trades: Trade[]): EquityPoint[] {
   const profitByDay = new Map<string, number>();
   for (const t of trades) {
     const day = toDayKey(t.trade_date);
@@ -43,9 +32,25 @@ function buildEquityChartData(trades: Trade[]): EquityDatum[] {
     cumulative += profitByDay.get(date) ?? 0;
     return {
       date,
-      equity: cumulative,
-      equityPositive: cumulative >= 0 ? cumulative : 0,
-      equityNegative: cumulative < 0 ? cumulative : 0,
+      profit: cumulative,
+    };
+  });
+}
+
+/** Build cumulative equity using each trade (used when all trades are on a single day). */
+function buildIntradayEquityChartData(trades: Trade[]): EquityPoint[] {
+  const sortedTrades = [...trades].sort((a, b) => {
+    const dateA = new Date(a.trade_date).getTime();
+    const dateB = new Date(b.trade_date).getTime();
+    return dateA - dateB;
+  });
+
+  let cumulative = 0;
+  return sortedTrades.map((trade) => {
+    cumulative += trade.calculated_profit ?? 0;
+    return {
+      date: trade.trade_date,
+      profit: cumulative,
     };
   });
 }
@@ -54,13 +59,17 @@ export const EquityCurveCard = React.memo(function EquityCurveCard({
   trades,
   currencySymbol,
 }: EquityCurveCardProps) {
-  const { mounted, isDark } = useDarkMode();
-  const chartData = useMemo(() => buildEquityChartData(trades), [trades]);
+  const { mounted } = useDarkMode();
+  const chartData = useMemo(() => {
+    if (trades.length === 0) return [];
+
+    // If all trades occur on the same day, use intraday (per-trade) equity data.
+    const uniqueDays = new Set(trades.map((t) => toDayKey(t.trade_date)));
+    const isSingleDay = uniqueDays.size === 1;
+
+    return isSingleDay ? buildIntradayEquityChartData(trades) : buildDailyEquityChartData(trades);
+  }, [trades]);
   const hasData = chartData.length > 0;
-  // Same axis label color as AccountOverviewCard (slate-300 dark, slate-500 light)
-  const axisTextColor = isDark ? '#cbd5e1' : '#64748b';
-  // Zero line: more opaque in dark mode so it stays visible
-  const zeroLineStroke = isDark ? '#e2e8f0' : '#64748b';
 
   return (
     <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm w-full flex flex-col">
@@ -77,85 +86,17 @@ export const EquityCurveCard = React.memo(function EquityCurveCard({
             </p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={320}>
-            <AreaChart data={chartData} margin={{ top: 24, right: 16, left: 8, bottom: 8 }}>
-              <defs>
-                <linearGradient id="equityPositive" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--tc-primary, #8b5cf6)" stopOpacity={0.55} />
-                  <stop offset="100%" stopColor="var(--tc-primary, #8b5cf6)" stopOpacity={0.08} />
-                </linearGradient>
-                <linearGradient id="equityNegative" x1="0" y1="1" x2="0" y2="0">
-                  <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.5} />
-                  <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.08} />
-                </linearGradient>
-              </defs>
-              <XAxis
-                dataKey="date"
-                tick={{ fill: axisTextColor, fontSize: 12, fontWeight: 500 }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(value) => format(new Date(value), 'MMM d')}
-                interval="preserveStartEnd"
-                minTickGap={32}
-              />
-              <YAxis
-                tick={{ fill: axisTextColor, fontSize: 11, fontWeight: 500 }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(value) =>
-                  `${currencySymbol}${value >= 0 ? '' : '-'}${Math.abs(value).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
-                }
-              />
-              <ReTooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload as EquityDatum;
-                    return (
-                      <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-                        {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-                        <div className="relative flex flex-col gap-2">
-                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                            {format(new Date(data.date), 'MMM d, yyyy')}
-                          </p>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                            {currencySymbol}
-                            {data.equity.toLocaleString('en-US', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <ReferenceLine y={0} stroke={zeroLineStroke} strokeWidth={1.5} strokeDasharray="2 2" />
-              <Area
-                type="monotone"
-                dataKey="equityPositive"
-                baseValue={0}
-                fill="url(#equityPositive)"
-                stroke="none"
-              />
-              <Area
-                type="monotone"
-                dataKey="equityNegative"
-                baseValue={0}
-                fill="url(#equityNegative)"
-                stroke="none"
-              />
-              <Line
-                type="monotone"
-                dataKey="equity"
-                stroke="var(--tc-primary, #8b5cf6)"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <div className="w-full h-[320px]">
+            <EquityCurveChart
+              data={chartData}
+              currencySymbol={currencySymbol}
+              hasTrades={hasData}
+              isLoading={false}
+              // Always use the full card variant here so axis labels remain visible,
+              // even when all trades occur on a single day.
+              variant="card"
+            />
+          </div>
         )}
       </CardContent>
     </Card>

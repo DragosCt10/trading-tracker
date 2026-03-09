@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Trade } from '@/types/trade';
 import {
   Card,
   CardHeader,
@@ -12,8 +11,7 @@ import {
 } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { cn, formatPercent } from '@/lib/utils';
-import { calculateReentryStats as calculateReentryStatsUtil, calculateBreakEvenStats as calculateBreakEvenStatsUtil } from '@/utils/calculateCategoryStats';
-import type { TradeTypeStats, BaseStats } from '@/types/dashboard';
+import type { BaseStats } from '@/types/dashboard';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
 type TradeTypeStatsLike = BaseStats & {
@@ -27,14 +25,6 @@ export interface ReentryTradesChartCardProps {
   /** Not used for display; kept for backward compatibility with parent. */
   breakEvenStats?: TradeTypeStatsLike[];
   isLoading?: boolean;
-}
-
-export function calculateReentryStats(trades: Trade[]): TradeTypeStats[] {
-  return calculateReentryStatsUtil(trades);
-}
-
-export function calculateBreakEvenStats(trades: Trade[]): TradeTypeStats[] {
-  return calculateBreakEvenStatsUtil(trades);
 }
 
 /** Aggregate reentry stats: wins, losses, breakEven (simple model). */

@@ -1,4 +1,5 @@
 import { Trade } from '@/types/trade';
+import { stdDev } from '@/utils/helpers/mathHelpers';
 
 interface MonthlyStats {
   [month: string]: { profit: number };
@@ -16,15 +17,26 @@ export function calculateProfitFactor(
     .filter(t => (t.calculated_profit || 0) < 0)
     .reduce((sum, t) => sum + (t.calculated_profit || 0), 0));
 
+  // Classical definition:
+  // - Profit factor = grossProfit / grossLoss when there are losses
+  // - If there is profit and no loss, the theoretical value is infinite
   if (grossLoss > 0) {
     return grossProfit / grossLoss;
-  } else if (grossProfit > 0) {
-    return Math.min(grossProfit, 100);
-  } else if (totalLosses > 0) {
-    return totalWins / totalLosses;
-  } else if (totalWins > 0) {
-    return Math.min(totalWins * 2, 100);
   }
+
+  if (grossProfit > 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  // Fallbacks when profit values are missing but win/loss counts exist
+  if (totalLosses > 0) {
+    return totalWins / totalLosses;
+  }
+
+  if (totalWins > 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+
   return 0;
 }
 
@@ -42,4 +54,140 @@ export function calculateSharpeRatio(
 ): number {
   const volatility = maxDrawdown || 1;
   return volatility > 0 ? averagePnLPercentage / volatility : 0;
+}
+
+/**
+ * Max drawdown (in %) over the equity curve from non-BE trades.
+ * Running balance from accountBalance + cumulative profit; drawdown at each step = (peak - balance) / peak * 100.
+ */
+export function calculateMaxDrawdown(trades: Trade[], accountBalance: number): number {
+  const nonBETrades = trades
+    .filter((t) => !t.break_even)
+    .slice()
+    .sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime());
+
+  let balance = accountBalance;
+  let peak = balance;
+  let maxDrawdown = 0;
+
+  for (const t of nonBETrades) {
+    const profit = typeof t.calculated_profit === 'number' ? t.calculated_profit : 0;
+    balance += profit;
+    if (balance > peak) peak = balance;
+    const drawdown = peak > 0 ? ((peak - balance) / peak) * 100 : 0;
+    if (drawdown > maxDrawdown) maxDrawdown = drawdown;
+  }
+
+  return maxDrawdown;
+}
+
+/**
+ * Average drawdown (in %) over the equity curve from non-BE trades.
+ * At each step, drawdown from current peak; returns the mean of those drawdowns.
+ */
+export function calculateAverageDrawdown(trades: Trade[], accountBalance: number): number {
+  const nonBETrades = trades
+    .filter((t) => !t.break_even)
+    .slice()
+    .sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime());
+
+  if (nonBETrades.length === 0) return 0;
+
+  let balance = accountBalance;
+  let peak = balance;
+  let sumDrawdown = 0;
+  let count = 0;
+
+  for (const t of nonBETrades) {
+    const profit = typeof t.calculated_profit === 'number' ? t.calculated_profit : 0;
+    balance += profit;
+    if (balance > peak) peak = balance;
+    const drawdown = peak > 0 ? ((peak - balance) / peak) * 100 : 0;
+    sumDrawdown += drawdown;
+    count += 1;
+  }
+
+  return count > 0 ? sumDrawdown / count : 0;
+}
+
+/**
+ * Calculates average P&L % over starting balance, mirroring
+ * the logic used in PNLPercentageStatCard.
+ *
+ * - If all trades are non-executed, use them as-is.
+ * - Otherwise, restrict to executed trades only.
+ * - P&L % = totalProfit / accountBalance * 100.
+ */
+export function calculateAveragePnLPercentage(
+  trades: Trade[],
+  accountBalance: number | null | undefined
+): number {
+  if (!trades.length) return 0;
+
+  const allTradesAreNonExecuted = trades.length > 0 && trades.every((t) => t.executed === false);
+  const tradesForProfit = allTradesAreNonExecuted ? trades : trades.filter((t) => t.executed === true);
+
+  const totalProfit = tradesForProfit.reduce(
+    (sum, t) => sum + (t.calculated_profit || 0),
+    0
+  );
+  const balance = accountBalance || 1;
+
+  return balance > 0 ? (totalProfit / balance) * 100 : 0;
+}
+
+/**
+ * Trade Quality Index (TQI)
+ *
+ * TQI = WinRate * RRStability
+ * WinRate   = wins / totalTrades (BE counted in total, but not as wins)
+ * RRStability = 1 / (1 + StdDev(R))
+ *
+ * R-values per trade:
+ *  - Win (non-BE):   +risk_reward_ratio
+ *  - Lose (non-BE):  -1R
+ *  - Break-even:     0R
+ *
+ * Returns a number in [0, 1]. Multiply by 100 if you want a percentage.
+ */
+export function calculateTradeQualityIndex(trades: Trade[]): number {
+  if (!trades.length) return 0;
+
+  const rValues: number[] = [];
+  let wins = 0;
+  let total = 0;
+
+  trades.forEach((t) => {
+    const rr =
+      typeof t.risk_reward_ratio === 'number' && !isNaN(t.risk_reward_ratio)
+        ? t.risk_reward_ratio
+        : 0;
+
+    let r: number | undefined;
+
+    if (t.break_even) {
+      r = 0;
+      total += 1;
+    } else if (t.trade_outcome === 'Win') {
+      r = rr;
+      wins += 1;
+      total += 1;
+    } else if (t.trade_outcome === 'Lose') {
+      r = -1;
+      total += 1;
+    } else {
+      return;
+    }
+
+    rValues.push(r);
+  });
+
+  if (!total || !rValues.length) return 0;
+
+  const winRate = wins / total;
+  const rrStdDev = stdDev(rValues);
+  const rrStability = 1 / (1 + rrStdDev);
+
+  const tqi = winRate * rrStability;
+  return tqi;
 }

@@ -55,10 +55,13 @@ export default function AppLayout({
   if (userId != null && initialAllAccounts != null && queryClient.getQueryData(['accounts:all', userId]) === undefined) {
     queryClient.setQueryData(['accounts:all', userId], initialAllAccounts);
   }
-  // Hydrate selection on first paint only when the cache is empty — avoids overwriting a mode the user already switched to (e.g. after an error boundary remount with stale server props)
-  if (userId != null && initialActiveAccount !== undefined && !actionBarSelectionHydratedRef.current) {
-    const existing = queryClient.getQueryData<{ mode: string; activeAccount: unknown }>(['actionBar:selection']);
-    if (!existing?.activeAccount) {
+  // Hydrate selection on first paint when cache is empty or when cached account is not in current user's
+  // accounts (e.g. stale from another user after refresh — avoids showing wrong account name like "FTMO Phase 1").
+  if (userId != null && initialActiveAccount !== undefined && initialAllAccounts != null && !actionBarSelectionHydratedRef.current) {
+    const existing = queryClient.getQueryData<{ mode: string; activeAccount: { id?: string } | null }>(['actionBar:selection']);
+    const existingAccountId = existing?.activeAccount?.id;
+    const belongsToCurrentUser = existingAccountId != null && initialAllAccounts.some((a) => a.id === existingAccountId);
+    if (!existing?.activeAccount || !belongsToCurrentUser) {
       queryClient.setQueryData(['actionBar:selection'], { mode: initialActiveAccountMode, activeAccount: initialActiveAccount ?? null });
     }
     actionBarSelectionHydratedRef.current = true;
