@@ -584,7 +584,7 @@ export default function DailyJournalClient({
                             Direction
                           </th>
                           <th className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                            Setup
+                            RR Ratio
                           </th>
                           <th className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                             Outcome
@@ -637,7 +637,14 @@ export default function DailyJournalClient({
                               {trade.direction}
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-700 dark:text-slate-300">
-                              {trade.setup_type}
+                              {typeof trade.risk_reward_ratio === 'number' && !Number.isNaN(trade.risk_reward_ratio) ? (
+                                <span>
+                                  {trade.risk_reward_ratio.toFixed(2)}
+                                  <span className="ml-0.5 text-[10px] text-slate-400 dark:text-slate-500">R</span>
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 dark:text-slate-600">—</span>
+                              )}
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-900 dark:text-slate-100">
                               <div className="flex items-center gap-1">
