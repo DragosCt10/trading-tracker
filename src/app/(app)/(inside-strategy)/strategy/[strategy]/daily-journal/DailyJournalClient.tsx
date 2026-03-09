@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Infinity as InfinityIcon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatPercent } from '@/lib/utils';
@@ -251,6 +251,8 @@ export default function DailyJournalClient({
             accountBalance
           );
           const profitFactor = calculateProfitFactor(group.trades, winners, losers);
+          const isValidProfitFactor =
+            Number.isFinite(profitFactor) && !Number.isNaN(profitFactor);
           const realTrades = group.trades.filter(
             (t) => !t.break_even || (t.break_even && t.partials_taken)
           );
@@ -380,7 +382,13 @@ export default function DailyJournalClient({
                         Profit Factor
                       </p>
                       <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                        {formatPercent(profitFactor)}
+                        {isValidProfitFactor ? (
+                          formatPercent(profitFactor)
+                        ) : (
+                          <span className="inline-flex items-center gap-1">
+                            <InfinityIcon className="h-4 w-4" aria-label="Infinite profit factor" />
+                          </span>
+                        )}
                       </p>
                     </div>
                       <div>
