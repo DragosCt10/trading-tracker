@@ -238,9 +238,9 @@ export default function StrategyClient(
   // Always derive display name from current user's accounts list by id to avoid showing
   // a stale name from cached selection (e.g. after refresh when cache had another user's account name).
   const resolvedAccountDisplayName =
-    resolvedAccount && accountsForMode.length > 0
-      ? (accountsForMode.find((a) => a.id === resolvedAccount.id)?.name ?? resolvedAccount.name ?? null)
-      : null;
+    (resolvedAccount && accountsForMode.length > 0
+      ? (accountsForMode.find((a) => a.id === resolvedAccount.id)?.name ?? (resolvedAccount as { name?: string | null }).name ?? null)
+      : null) as string | null;
 
   // Sync ActionBar selection from server only when there is no existing selection.
   // AppLayout pre-populates the selection on first paint; this effect is a fallback for
