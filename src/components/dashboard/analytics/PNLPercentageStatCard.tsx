@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { StatCard } from '@/components/dashboard/analytics/StatCard';
-import { cn } from '@/lib/utils';
+import { cn, formatPercent } from '@/lib/utils';
 import { Trade } from '@/types/trade';
 import { calculateAveragePnLPercentage } from '@/utils/analyticsCalculations';
 
@@ -31,7 +31,7 @@ export function getPNLPercentageColorClass(averagePnLPercentage: number | null |
  */
 export function formatPNLPercentageValue(averagePnLPercentage: number | null | undefined): string {
   if (typeof averagePnLPercentage === 'number') {
-    return `${averagePnLPercentage.toFixed(2)}%`;
+    return `${formatPercent(averagePnLPercentage)}%`;
   }
   return '—';
 }
