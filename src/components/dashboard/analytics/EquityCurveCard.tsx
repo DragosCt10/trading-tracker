@@ -20,7 +20,7 @@ function toDayKey(tradeDate: string): string {
 }
 
 /** Aggregate P&L by day, then build cumulative equity (one data point per day). */
-function buildEquityChartData(trades: Trade[], currencySymbol: string): EquityPoint[] {
+function buildDailyEquityChartData(trades: Trade[]): EquityPoint[] {
   const profitByDay = new Map<string, number>();
   for (const t of trades) {
     const day = toDayKey(t.trade_date);
@@ -37,12 +37,38 @@ function buildEquityChartData(trades: Trade[], currencySymbol: string): EquityPo
   });
 }
 
+/** Build cumulative equity using each trade (used when all trades are on a single day). */
+function buildIntradayEquityChartData(trades: Trade[]): EquityPoint[] {
+  const sortedTrades = [...trades].sort((a, b) => {
+    const dateA = new Date(a.trade_date).getTime();
+    const dateB = new Date(b.trade_date).getTime();
+    return dateA - dateB;
+  });
+
+  let cumulative = 0;
+  return sortedTrades.map((trade) => {
+    cumulative += trade.calculated_profit ?? 0;
+    return {
+      date: trade.trade_date,
+      profit: cumulative,
+    };
+  });
+}
+
 export const EquityCurveCard = React.memo(function EquityCurveCard({
   trades,
   currencySymbol,
 }: EquityCurveCardProps) {
   const { mounted } = useDarkMode();
-  const chartData = useMemo(() => buildEquityChartData(trades, currencySymbol), [trades, currencySymbol]);
+  const chartData = useMemo(() => {
+    if (trades.length === 0) return [];
+
+    // If all trades occur on the same day, use intraday (per-trade) equity data.
+    const uniqueDays = new Set(trades.map((t) => toDayKey(t.trade_date)));
+    const isSingleDay = uniqueDays.size === 1;
+
+    return isSingleDay ? buildIntradayEquityChartData(trades) : buildDailyEquityChartData(trades);
+  }, [trades]);
   const hasData = chartData.length > 0;
 
   return (
@@ -66,6 +92,8 @@ export const EquityCurveCard = React.memo(function EquityCurveCard({
               currencySymbol={currencySymbol}
               hasTrades={hasData}
               isLoading={false}
+              // Always use the full card variant here so axis labels remain visible,
+              // even when all trades occur on a single day.
               variant="card"
             />
           </div>
