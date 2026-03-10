@@ -233,7 +233,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const formatPotentialRR = (val: number | undefined | null): string => {
     if (val == null || Number.isNaN(Number(val))) return '—';
     const n = Number(val);
-    return n === 10.5 ? '10+' : String(n);
+    return n === 10.5 ? '10+' : n.toFixed(2);
   };
 
   if (!trade) return null;
@@ -538,7 +538,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
           return (
             <div>
               <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
-              <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">{formatPotentialRR(value as number)}</dd>
+              <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {formatPotentialRR(value as number)}
+                <span className="ml-0.5 text-[10px] text-slate-400 dark:text-slate-500">R</span>
+              </dd>
             </div>
           );
         }
