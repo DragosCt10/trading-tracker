@@ -1,10 +1,15 @@
 'use server';
 
 import { cache } from 'react';
+import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from '@/lib/server/session';
 import type { Database } from '@/types/supabase';
 import type { SavedNewsItem } from '@/types/account-settings';
+import {
+  LAST_ACCOUNT_MODE_COOKIE,
+  LAST_ACCOUNT_INDEX_COOKIE,
+} from '@/constants/lastAccountCookie';
 
 export type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -213,6 +218,44 @@ export async function getAllAccountsForUser(userId: string): Promise<AccountRow[
 
 /** Request-scoped cache for getAllAccountsForUser (audit 2.3). */
 export const getCachedAllAccountsForUser = cache(getAllAccountsForUser);
+
+const VALID_MODES: AccountMode[] = ['live', 'demo', 'backtesting'];
+
+/**
+ * Resolves the active account and mode for server-side data prefetching.
+ * Reads `tt_last_mode` + `tt_last_index` cookies (same logic as AppLayout) so
+ * Data fetchers respect the user's selected mode instead of hardcoding 'live'.
+ *
+ * Uses getCachedAllAccountsForUser — no extra DB call when layout already fetched it.
+ */
+export async function resolveActiveAccountFromCookies(
+  userId: string,
+): Promise<{ mode: AccountMode; activeAccount: AccountRow | null }> {
+  const allAccounts = await getCachedAllAccountsForUser(userId);
+
+  const cookieStore = await cookies();
+  const lastMode = cookieStore.get(LAST_ACCOUNT_MODE_COOKIE)?.value;
+  const lastIndexStr = cookieStore.get(LAST_ACCOUNT_INDEX_COOKIE)?.value;
+
+  if (lastMode && VALID_MODES.includes(lastMode as AccountMode)) {
+    const accountsForMode = allAccounts.filter((a) => a.mode === lastMode);
+    const idx = lastIndexStr != null ? parseInt(lastIndexStr, 10) : 0;
+    if (!Number.isNaN(idx) && idx >= 0 && idx < accountsForMode.length) {
+      return { mode: lastMode as AccountMode, activeAccount: accountsForMode[idx] };
+    }
+  }
+
+  // Fallback: live → demo → backtesting
+  const fallbackOrder: AccountMode[] = ['live', 'demo', 'backtesting'];
+  for (const mode of fallbackOrder) {
+    const found =
+      allAccounts.find((a) => a.mode === mode && a.is_active) ??
+      allAccounts.find((a) => a.mode === mode);
+    if (found) return { mode, activeAccount: found };
+  }
+
+  return { mode: 'live', activeAccount: null };
+}
 
 /**
  * Updates the saved_news JSONB column for an account.
