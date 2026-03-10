@@ -69,6 +69,11 @@ export type TradeCardsViewProps = {
   onBulkDelete?: (ids: string[]) => Promise<void>;
   /** Optional left-side control row content (e.g. Sort by) rendered on same row as View toggles. */
   sortControl?: ReactNode;
+  /**
+   * When true, pagination is controlled by the parent (e.g. MyTradesClient).
+   * TradeCardsView shows all trades passed and does not run the observer or show the sentinel.
+   */
+  externalPagination?: boolean;
 };
 
 export function TradeCardsView({
@@ -86,6 +91,7 @@ export function TradeCardsView({
   enableBulkDeleteInTableView = false,
   onBulkDelete,
   sortControl,
+  externalPagination = false,
 }: TradeCardsViewProps) {
   const [mounted, setMounted] = useState(false);
   const [displayedCount, setDisplayedCount] = useState(itemsPerLoad);
@@ -100,17 +106,18 @@ export function TradeCardsView({
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
+    if (externalPagination) return;
     setDisplayedCount(itemsPerLoad);
     setSelectedTrade(null);
     setIsModalOpen(false);
     setSelectedIds(new Set());
-  }, [resetKey, itemsPerLoad]);
+  }, [resetKey, itemsPerLoad, externalPagination]);
 
   const displayedTrades = useMemo(
-    () => trades.slice(0, displayedCount),
-    [trades, displayedCount]
+    () => (externalPagination ? trades : trades.slice(0, displayedCount)),
+    [trades, displayedCount, externalPagination]
   );
-  const hasMore = displayedCount < trades.length;
+  const hasMore = externalPagination ? false : displayedCount < trades.length;
 
   const selectedTradeId = selectedTrade?.id ?? null;
   const liveSelectedTrade = useMemo(
@@ -169,7 +176,7 @@ export function TradeCardsView({
   }, [cardViewMode, displayedTrades, selectedTrade]);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (externalPagination || !mounted) return;
     if (typeof window === 'undefined') return;
 
     const observer = new IntersectionObserver(
@@ -187,7 +194,7 @@ export function TradeCardsView({
     return () => {
       if (currentTarget) observer.unobserve(currentTarget);
     };
-  }, [mounted, hasMore, isLoading, isFetching, itemsPerLoad, trades.length]);
+  }, [externalPagination, mounted, hasMore, isLoading, isFetching, itemsPerLoad, trades.length]);
 
   const openModal = (trade: Trade) => {
     setSelectedTrade(trade);
@@ -381,7 +388,7 @@ export function TradeCardsView({
                       />
                     </div>
                   ))}
-                  {hasMore && (
+                  {!externalPagination && hasMore && (
                     <div
                       ref={observerTarget}
                       className="flex justify-center py-6 text-xs sm:text-sm text-slate-500 dark:text-slate-400 flex-shrink-0"
@@ -465,7 +472,7 @@ export function TradeCardsView({
                   setIsModalOpen(true);
                 }}
               />
-              {hasMore && !showSkeletons && displayedTrades.length > 0 && (
+              {!externalPagination && hasMore && !showSkeletons && displayedTrades.length > 0 && (
                 <div
                   ref={observerTarget}
                   className="flex justify-center py-6 text-sm text-slate-500 dark:text-slate-400"
@@ -567,7 +574,7 @@ export function TradeCardsView({
                   <TradeCard key={trade.id} trade={trade} onOpenModal={openModal} />
                 ))}
 
-                {hasMore && (
+                {!externalPagination && hasMore && (
                   <div ref={observerTarget} className="col-span-full flex justify-center py-4">
                     {isFetching ? (
                       <div className="flex items-center gap-2 text-slate-500">
