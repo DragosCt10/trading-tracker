@@ -1,10 +1,21 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Trade } from '@/types/trade';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Select,
   SelectContent,
@@ -21,9 +32,10 @@ import {
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import TradeDetailsPanel from '@/components/TradeDetailsPanel';
 import { TradeCard } from '@/components/trades/TradeCard';
-import { Columns2, Eye, LayoutGrid, Loader2, PanelLeft } from 'lucide-react';
+import { TradesTableView } from '@/components/trades/TradesTableView';
+import { Columns2, Eye, LayoutGrid, Loader2, PanelLeft, Trash2 } from 'lucide-react';
 
-type CardViewMode = 'grid-4' | 'grid-2' | 'split';
+type CardViewMode = 'grid-4' | 'grid-2' | 'split' | 'table';
 
 export type TradeCardsViewProps = {
   trades: Trade[];
@@ -48,6 +60,15 @@ export type TradeCardsViewProps = {
     onSelectedMarketChange: (market: string) => void;
     markets: string[];
   };
+  /**
+   * When true and view is table, show checkboxes and bulk delete bar.
+   * Requires onBulkDelete to be provided.
+   */
+  enableBulkDeleteInTableView?: boolean;
+  /** Called when user confirms bulk delete in table view. Clear selection after resolve. */
+  onBulkDelete?: (ids: string[]) => Promise<void>;
+  /** Optional left-side control row content (e.g. Sort by) rendered on same row as View toggles. */
+  sortControl?: ReactNode;
 };
 
 export function TradeCardsView({
@@ -62,12 +83,18 @@ export function TradeCardsView({
   emptyMessage = 'No trades found for the selected period.',
   initialViewMode = 'grid-4',
   marketFilter,
+  enableBulkDeleteInTableView = false,
+  onBulkDelete,
+  sortControl,
 }: TradeCardsViewProps) {
   const [mounted, setMounted] = useState(false);
   const [displayedCount, setDisplayedCount] = useState(itemsPerLoad);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [cardViewMode, setCardViewMode] = useState<CardViewMode>(initialViewMode);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => setMounted(true), []);
@@ -76,6 +103,7 @@ export function TradeCardsView({
     setDisplayedCount(itemsPerLoad);
     setSelectedTrade(null);
     setIsModalOpen(false);
+    setSelectedIds(new Set());
   }, [resetKey, itemsPerLoad]);
 
   const displayedTrades = useMemo(
@@ -89,6 +117,46 @@ export function TradeCardsView({
     () => (selectedTradeId ? trades.find((t) => t.id === selectedTradeId) ?? null : null),
     [selectedTradeId, trades]
   );
+
+  const showTableBulkActions =
+    cardViewMode === 'table' && enableBulkDeleteInTableView && typeof onBulkDelete === 'function';
+  const tablePageIds = useMemo(
+    () => displayedTrades.map((t) => t.id).filter((id): id is string => !!id),
+    [displayedTrades]
+  );
+  const allOnPageSelected =
+    showTableBulkActions && tablePageIds.length > 0 && tablePageIds.every((id) => selectedIds.has(id));
+  const toggleSelectAll = useCallback(() => {
+    if (!showTableBulkActions) return;
+    if (allOnPageSelected) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        tablePageIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelectedIds((prev) => new Set([...prev, ...tablePageIds]));
+    }
+  }, [showTableBulkActions, allOnPageSelected, tablePageIds]);
+  const toggleSelectOne = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+  const handleBulkDeleteConfirm = useCallback(async () => {
+    if (!onBulkDelete || selectedIds.size === 0) return;
+    setBulkDeleting(true);
+    try {
+      await onBulkDelete(Array.from(selectedIds));
+      setSelectedIds(new Set());
+      setShowBulkDeleteConfirm(false);
+    } finally {
+      setBulkDeleting(false);
+    }
+  }, [onBulkDelete, selectedIds]);
 
   useEffect(() => {
     if (cardViewMode === 'split' && displayedTrades.length > 0 && !selectedTrade) {
@@ -132,43 +200,50 @@ export function TradeCardsView({
   return (
     <TooltipProvider>
       <div className="mt-6 flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          {marketFilter && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                Market:
-              </span>
-              <Select
-                value={marketFilter.selectedMarket}
-                onValueChange={marketFilter.onSelectedMarketChange}
-              >
-                <SelectTrigger className="flex w-32 h-9 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/50 shadow-none themed-focus text-slate-900 dark:text-slate-50">
-                  <SelectValue placeholder="All Markets" />
-                </SelectTrigger>
-                <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
-                  <SelectItem value="all">All Markets</SelectItem>
-                  {marketFilter.markets.map((market) => (
-                    <SelectItem key={market} value={market}>
-                      {market}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-4">
+            {marketFilter && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                  Market:
+                </span>
+                <Select
+                  value={marketFilter.selectedMarket}
+                  onValueChange={marketFilter.onSelectedMarketChange}
+                >
+                  <SelectTrigger className="flex w-32 h-9 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/50 shadow-none themed-focus text-slate-900 dark:text-slate-50">
+                    <SelectValue placeholder="All Markets" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+                    <SelectItem value="all">All Markets</SelectItem>
+                    {marketFilter.markets.map((market) => (
+                      <SelectItem key={market} value={market}>
+                        {market}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
 
-          <div className="flex items-center justify-end gap-1">
-            <span className="text-sm text-slate-500 dark:text-slate-400 mr-2 whitespace-nowrap">
-              Cards per row:
+          <div className="flex items-center justify-end gap-3">
+            {sortControl && (
+              <div className="flex items-center gap-2">
+                {sortControl}
+              </div>
+            )}
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
+              View:
             </span>
-            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/50 p-0.5">
+            <div className="inline-flex h-8 items-center rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none p-0.5">
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   type="button"
                   onClick={() => setCardViewMode('grid-2')}
                   className={cn(
-                    'rounded-md p-2 transition-colors cursor-pointer',
+                    'rounded-lg h-6.5 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
                     cardViewMode === 'grid-2'
                       ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
@@ -192,7 +267,7 @@ export function TradeCardsView({
                   type="button"
                   onClick={() => setCardViewMode('grid-4')}
                   className={cn(
-                    'rounded-md p-2 transition-colors cursor-pointer',
+                    'rounded-lg h-6.5 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
                     cardViewMode === 'grid-4'
                       ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
@@ -216,7 +291,7 @@ export function TradeCardsView({
                   type="button"
                   onClick={() => setCardViewMode('split')}
                   className={cn(
-                    'rounded-md p-2 transition-colors cursor-pointer',
+                    'rounded-lg h-6.5 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
                     cardViewMode === 'split'
                       ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
@@ -232,6 +307,30 @@ export function TradeCardsView({
                 className="max-w-[220px] rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 px-3 py-2"
               >
                 Split view
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => setCardViewMode('table')}
+                  className={cn(
+                    'rounded-lg h-6.5 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
+                    cardViewMode === 'table'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  )}
+                  aria-label="Table view"
+                  aria-pressed={cardViewMode === 'table'}
+                >
+                  Table
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="bottom"
+                className="max-w-[220px] rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 px-3 py-2"
+              >
+                Compact table view
               </TooltipContent>
             </Tooltip>
           </div>
@@ -279,11 +378,17 @@ export function TradeCardsView({
                     </div>
                   ))}
                   {hasMore && (
-                    <div ref={observerTarget} className="flex items-center justify-center px-2 md:py-2 flex-shrink-0">
+                    <div
+                      ref={observerTarget}
+                      className="flex justify-center py-6 text-xs sm:text-sm text-slate-500 dark:text-slate-400 flex-shrink-0"
+                    >
                       {isFetching ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                          <span>Loading more trades...</span>
+                        </div>
                       ) : (
-                        <div className="h-4 w-4" />
+                        <span>Loading more trades...</span>
                       )}
                     </div>
                   )}
@@ -311,6 +416,110 @@ export function TradeCardsView({
               )}
             </div>
           </div>
+        ) : cardViewMode === 'table' ? (
+          <>
+            {showTableBulkActions && selectedIds.size > 0 && (
+              <div className="mb-4 flex items-center gap-4 rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-3">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {selectedIds.size} trade{selectedIds.size !== 1 ? 's' : ''} selected
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedIds(new Set())}
+                  className="cursor-pointer rounded-xl px-4 py-2 text-sm transition-all duration-200 border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80"
+                >
+                  Clear selection
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowBulkDeleteConfirm(true)}
+                  disabled={bulkDeleting}
+                  className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 gap-2"
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    <Trash2 className="h-4 w-4" />
+                    {bulkDeleting ? 'Deleting…' : `Delete selected (${selectedIds.size})`}
+                  </span>
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                </Button>
+              </div>
+            )}
+            <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+              <TradesTableView
+                trades={displayedTrades}
+                isLoading={showSkeletons}
+                emptyMessage={emptyMessage}
+                showCheckboxes={showTableBulkActions}
+                selectedIds={selectedIds}
+                allOnPageSelected={allOnPageSelected}
+                onToggleSelectAll={toggleSelectAll}
+                onToggleSelectOne={toggleSelectOne}
+                onOpenDetails={(trade) => {
+                  setSelectedTrade(trade);
+                  setIsModalOpen(true);
+                }}
+              />
+              {hasMore && !showSkeletons && displayedTrades.length > 0 && (
+                <div
+                  ref={observerTarget}
+                  className="flex justify-center py-6 text-sm text-slate-500 dark:text-slate-400"
+                >
+                  {isFetching ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Loading more trades...</span>
+                    </div>
+                  ) : (
+                    <span>Loading more trades...</span>
+                  )}
+                </div>
+              )}
+            </Card>
+            {showTableBulkActions && (
+              <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+                <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 bg-gradient-to-br from-white via-purple-100/80 to-violet-100/70 dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] rounded-2xl">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      <span className="text-red-500 dark:text-red-400 font-semibold text-lg">Confirm Delete</span>
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      <span className="text-slate-600 dark:text-slate-400">
+                        Are you sure you want to delete {selectedIds.size} trade{selectedIds.size !== 1 ? 's' : ''}?
+                        This action cannot be undone.
+                      </span>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="flex gap-3">
+                    <AlertDialogCancel asChild>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowBulkDeleteConfirm(false)}
+                        className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
+                        disabled={bulkDeleting}
+                      >
+                        Cancel
+                      </Button>
+                    </AlertDialogCancel>
+                    <AlertDialogAction asChild>
+                      <Button
+                        variant="destructive"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleBulkDeleteConfirm();
+                        }}
+                        disabled={bulkDeleting}
+                        className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
+                      >
+                        {bulkDeleting ? 'Deleting...' : 'Yes, Delete'}
+                      </Button>
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </>
         ) : (
           <div
             className={cn(
