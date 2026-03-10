@@ -1,40 +1,50 @@
 import { Suspense } from 'react';
 import { getDashboardApiResponse } from '@/lib/server/dashboardApiResponse';
-import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import { getCachedAccountsForMode } from '@/lib/server/accounts';
+import { format, startOfYear, endOfYear } from 'date-fns';
 import { getStrategyBySlug } from '@/lib/server/strategies';
 import StrategyClient from './StrategyClient';
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { User } from '@supabase/supabase-js';
 import { StrategySkeleton } from '@/components/skeletons/StrategySkeleton';
 
+/** Resolves to null after `ms` milliseconds — used to cap the stats prefetch. */
+function timeout(ms: number): Promise<null> {
+  return new Promise((resolve) => setTimeout(() => resolve(null), ms));
+}
+
 async function StrategyDataFetcher({ user, strategySlug }: { user: User; strategySlug: string }) {
   const today = new Date();
-  const initialDateRange = createAllTimeRange(today);
   const initialSelectedYear = today.getFullYear();
+  // Current year matches StrategyClient's default view after resetFilterOnModeSwitch fires on mount.
+  const initialDateRange = {
+    startDate: format(startOfYear(today), 'yyyy-MM-dd'),
+    endDate: format(endOfYear(today), 'yyyy-MM-dd'),
+  };
 
-  let strategyId: string | null = null;
-  let initialExtraCards: ExtraCardKey[] = [];
-  if (strategySlug) {
-    const strategy = await getStrategyBySlug(user.id, strategySlug);
-    if (!strategy) {
-      return (
-        <StrategyClient
-          initialUserId={user.id}
-          initialDateRange={initialDateRange}
-          initialSelectedYear={initialSelectedYear}
-          initialMode="live"
-          initialActiveAccount={null}
-          initialStrategyId={null}
-          initialExtraCards={[]}
-        />
-      );
-    }
-    strategyId = strategy.id;
-    initialExtraCards = (strategy.extra_cards ?? []) as ExtraCardKey[];
+  // Fetch strategy metadata and live accounts in parallel — saves ~100-200 ms vs sequential.
+  const [strategy, allLiveAccounts] = await Promise.all([
+    strategySlug ? getStrategyBySlug(user.id, strategySlug) : Promise.resolve(null),
+    getCachedAccountsForMode(user.id, 'live'),
+  ]);
+
+  const strategyId = strategy?.id ?? null;
+  const initialExtraCards = (strategy?.extra_cards ?? []) as ExtraCardKey[];
+
+  if (strategySlug && !strategy) {
+    return (
+      <StrategyClient
+        initialUserId={user.id}
+        initialDateRange={initialDateRange}
+        initialSelectedYear={initialSelectedYear}
+        initialMode="live"
+        initialActiveAccount={null}
+        initialStrategyId={null}
+        initialExtraCards={[]}
+      />
+    );
   }
 
-  const allLiveAccounts = await getCachedAccountsForMode(user.id, 'live');
   const activeAccount = allLiveAccounts.find((a) => a.is_active) ?? allLiveAccounts[0] ?? null;
 
   if (!activeAccount) {
@@ -51,21 +61,26 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
     );
   }
 
-  // 1–2 RPCs via getDashboardApiResponse; client hydrates from this so it doesn't call /api/dashboard-stats on first load (audit 2.1).
+  // Race the stats prefetch against a 1 s timeout.
+  // If the RPC is fast (< 1 s) the client gets a hydrated cache and renders instantly.
+  // If it's slow (> 1 s) we ship the page immediately and the client fetches client-side
+  // (~500 ms) — far better than blocking the Suspense boundary for 3–7 s.
   let initialDashboardStats: Awaited<ReturnType<typeof getDashboardApiResponse>> | null = null;
-
   try {
-    initialDashboardStats = await getDashboardApiResponse({
-      userId: user.id,
-      accountId: activeAccount.id,
-      mode: 'live',
-      startDate: initialDateRange.startDate,
-      endDate: initialDateRange.endDate,
-      strategyId,
-      accountBalance: activeAccount.account_balance ?? 0,
-      execution: 'executed',
-      market: 'all',
-    });
+    initialDashboardStats = await Promise.race([
+      getDashboardApiResponse({
+        userId: user.id,
+        accountId: activeAccount.id,
+        mode: 'live',
+        startDate: initialDateRange.startDate,
+        endDate: initialDateRange.endDate,
+        strategyId,
+        accountBalance: activeAccount.account_balance ?? 0,
+        execution: 'executed',
+        market: 'all',
+      }),
+      timeout(1000),
+    ]);
   } catch (error) {
     console.error('Error fetching initial dashboard stats:', error);
   }
