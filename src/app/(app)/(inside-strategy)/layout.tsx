@@ -68,8 +68,8 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
       {children}
 
       {/* Floating Left Bar - Centered Middle */}
-      <div className="fixed left-4 top-1/2 -translate-y-1/2 z-40 hidden lg:block group">
-        <div className="relative rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden transition-all duration-300 w-20 hover:w-52">
+      <div className="fixed left-0 top-1/2 -translate-y-1/2 z-40 hidden lg:block group">
+        <div className="relative rounded-r-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden transition-all duration-300 w-23 hover:w-52">
           <div className="themed-nav-overlay themed-nav-overlay--vertical pointer-events-none absolute inset-0" />
           <div className="relative flex flex-col gap-2 p-3">
             <Button
@@ -79,7 +79,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
               className={cn(navButtonClass(isActive('/analytics')), 'w-full h-auto min-h-[64px] !p-0')}
             >
               <Link href={analyticsUrl} className="block w-full h-full relative min-h-[40px]">
-                <BarChart3 className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
+                <BarChart3 className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Analytics</span>
               </Link>
             </Button>
@@ -90,7 +90,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
               className={cn(navButtonClass(isActive('/manage-trades')), 'w-full h-auto min-h-[64px] !p-0')}
             >
               <Link href={manageTradesUrl} className="block w-full h-full relative min-h-[40px]">
-                <FileText className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
+                <FileText className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Manage Trades</span>
               </Link>
             </Button>
@@ -101,7 +101,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
               onClick={() => setNewTradeModalOpen(true)}
             >
               <div className="block w-full h-full relative min-h-[40px]">
-                <PlusCircle className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
+                <PlusCircle className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap text-white">New Trade</span>
               </div>
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
@@ -113,7 +113,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
               className={cn(navButtonClass(isActive('/my-trades')), 'w-full h-auto min-h-[64px] !p-0')}
             >
               <Link href={myTradesUrl} className="block w-full h-full relative min-h-[40px]">
-                <TrendingUp className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
+                <TrendingUp className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">My Trades</span>
               </Link>
             </Button>
@@ -124,7 +124,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
               className={cn(navButtonClass(isActive('/daily-journal')), 'w-full h-auto min-h-[64px] !p-0')}
             >
               <Link href={dailyJournalUrl} className="block w-full h-full relative min-h-[40px]">
-                <BookOpen className="!h-6 !w-6 flex-shrink-0 absolute left-4 top-1/2 -translate-y-1/2" />
+                <BookOpen className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Daily Journal</span>
               </Link>
             </Button>
