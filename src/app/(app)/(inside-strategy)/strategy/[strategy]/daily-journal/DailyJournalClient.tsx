@@ -141,7 +141,7 @@ export default function DailyJournalClient({
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
   const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'nonExecuted'>('executed');
 
-  // Infinite scroll for days
+  // Infinite scroll for days (mirrors TradeCardsView behavior)
   const [displayedCount, setDisplayedCount] = useState(DAYS_PER_LOAD);
   const [mounted, setMounted] = useState(false);
   const observerTarget = useRef<HTMLDivElement | null>(null);
@@ -239,28 +239,31 @@ export default function DailyJournalClient({
   }, [dateRange, executionFilter, selectedMarket, filteredTrades.length]);
 
   const hasMore = displayedCount < dayGroups.length;
-  const hasMoreRef = useRef(hasMore);
-  const totalDaysRef = useRef(dayGroups.length);
-  hasMoreRef.current = hasMore;
-  totalDaysRef.current = dayGroups.length;
 
   // IntersectionObserver for infinite scroll (per day)
+  // Same pattern as TradeCardsView: bump displayedCount when sentinel enters viewport.
   useEffect(() => {
     if (!mounted) return;
+    if (typeof window === 'undefined') return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMoreRef.current) {
-          setDisplayedCount((prev) => Math.min(prev + DAYS_PER_LOAD, totalDaysRef.current));
-        }
+        if (!entries[0].isIntersecting) return;
+        if (!hasMore) return;
+        if (tradesLoading) return;
+
+        setDisplayedCount((prev) => Math.min(prev + DAYS_PER_LOAD, dayGroups.length));
       },
       { threshold: 0.1 }
     );
 
-    const current = observerTarget.current;
-    if (current) observer.observe(current);
-    return () => observer.disconnect();
-  }, [mounted]);
+    const currentTarget = observerTarget.current;
+    if (currentTarget) observer.observe(currentTarget);
+
+    return () => {
+      if (currentTarget) observer.unobserve(currentTarget);
+    };
+  }, [mounted, hasMore, tradesLoading, dayGroups.length]);
 
   const visibleDayGroups = useMemo(
     () => dayGroups.slice(0, displayedCount),
@@ -603,8 +606,14 @@ export default function DailyJournalClient({
                         </tr>
                       </thead>
                       <tbody className="bg-transparent divide-y divide-slate-200/30 dark:divide-slate-700/30">
-                        {group.trades.map((trade) => (
-                          <tr key={trade.id ?? `${group.date}-${trade.trade_time}-${trade.market}`}>
+                        {group.trades.map((trade, index) => (
+                          <tr
+                            key={
+                              trade.id
+                                ? `${trade.id}-${index}`
+                                : `${group.date}-${trade.trade_time}-${trade.market}-${index}`
+                            }
+                          >
                             <td className="px-3 py-3 whitespace-nowrap align-middle">
                               <ScreensCarouselCell trade={trade} />
                             </td>
@@ -799,8 +808,11 @@ export default function DailyJournalClient({
         })}
 
         {hasMore && (
-          <div ref={observerTarget} className="flex justify-center py-4">
-            <div className="h-4" />
+          <div
+            ref={observerTarget}
+            className="flex justify-center py-6 text-sm text-slate-500 dark:text-slate-400"
+          >
+            Loading more days...
           </div>
         )}
       </div>
