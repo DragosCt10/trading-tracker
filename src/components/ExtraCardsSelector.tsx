@@ -1,8 +1,10 @@
 'use client';
 
+import * as React from 'react';
 import Image from 'next/image';
-import { Check, Info } from 'lucide-react';
+import { Check, Info, Search } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { EXTRA_CARDS, type ExtraCardKey } from '@/constants/extraCards';
 
@@ -13,6 +15,8 @@ interface ExtraCardsSelectorProps {
 }
 
 export function ExtraCardsSelector({ selected, onChange, disabled }: ExtraCardsSelectorProps) {
+  const [search, setSearch] = React.useState('');
+
   const toggle = (key: ExtraCardKey) => {
     if (disabled) return;
     if (selected.includes(key)) {
@@ -21,6 +25,17 @@ export function ExtraCardsSelector({ selected, onChange, disabled }: ExtraCardsS
       onChange([...selected, key]);
     }
   };
+
+  const filteredCards = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return [...EXTRA_CARDS];
+    return EXTRA_CARDS.filter(
+      (card) =>
+        card.label.toLowerCase().includes(q) ||
+        card.key.replace(/_/g, ' ').includes(q) ||
+        card.tooltip.toLowerCase().includes(q)
+    );
+  }, [search]);
 
   return (
     <div className="space-y-2.5">
@@ -33,8 +48,26 @@ export function ExtraCardsSelector({ selected, onChange, disabled }: ExtraCardsS
         </p>
       </div>
 
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+        <Input
+          type="search"
+          placeholder="Search cards..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          disabled={disabled}
+          className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-300"
+          aria-label="Search extra cards"
+        />
+      </div>
+
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-        {EXTRA_CARDS.map((card) => {
+        {filteredCards.length === 0 ? (
+          <p className="col-span-full text-sm text-slate-500 dark:text-slate-400 py-4 text-center">
+            No cards match &quot;{search.trim()}&quot;
+          </p>
+        ) : (
+          filteredCards.map((card) => {
           const isSelected = selected.includes(card.key);
 
           return (
@@ -103,7 +136,8 @@ export function ExtraCardsSelector({ selected, onChange, disabled }: ExtraCardsS
               </div>
             </button>
           );
-        })}
+        })
+        )}
       </div>
     </div>
   );
