@@ -149,7 +149,7 @@ export function StrategiesClient() {
     setIsEditModalOpen(false);
     setEditingStrategy(null);
     refetchStrategies();
-    queryClient.invalidateQueries({ queryKey: ['strategy-trades'] });
+    queryClient.invalidateQueries({ queryKey: ['strategies-overview'] });
   };
 
   const handleDelete = async (strategyId: string): Promise<void> => {
@@ -158,8 +158,7 @@ export function StrategiesClient() {
     if (!result.error) {
       refetchStrategies();
       refetchArchived();
-      queryClient.invalidateQueries({ queryKey: ['strategy-trades'] });
-      queryClient.invalidateQueries({ queryKey: ['all-strategy-trades'] });
+      queryClient.invalidateQueries({ queryKey: ['strategies-overview'] });
     }
   };
 
@@ -171,8 +170,7 @@ export function StrategiesClient() {
       if (!result.error) {
         refetchStrategies();
         refetchArchived();
-        queryClient.invalidateQueries({ queryKey: ['strategy-trades'] });
-        queryClient.invalidateQueries({ queryKey: ['all-strategy-trades'] });
+        queryClient.invalidateQueries({ queryKey: ['strategies-overview'] });
       }
     } finally {
       setReactivatingStrategyId(null);
@@ -431,8 +429,7 @@ export function StrategiesClient() {
                                         if (!result.error) {
                                           refetchStrategies();
                                           refetchArchived();
-                                          queryClient.invalidateQueries({ queryKey: ['strategy-trades'] });
-                                          queryClient.invalidateQueries({ queryKey: ['all-strategy-trades'] });
+                                          queryClient.invalidateQueries({ queryKey: ['strategies-overview'] });
                                         }
                                       }}
                                       className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 flex items-center gap-2"

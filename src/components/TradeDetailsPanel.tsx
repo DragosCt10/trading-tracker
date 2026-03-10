@@ -168,7 +168,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         if (!Array.isArray(key)) return false;
         const firstKey = key[0];
         // Global caches span all strategies — always invalidate
-        if (firstKey === 'all-strategy-trades' || firstKey === 'all-strategy-stats') return true;
+        if (firstKey === 'all-strategy-trades' || firstKey === 'all-strategy-stats' || firstKey === 'strategies-overview') return true;
         // Per-strategy queries — only invalidate the affected strategy/ies
         if (firstKey === 'allTrades') return affectedStrategyIds.has((key[5] ?? null) as string | null);
         if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return affectedStrategyIds.has((key[7] ?? null) as string | null);
@@ -180,17 +180,20 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       },
     });
 
-    // Refetch all-strategy-trades for ALL observers (active and inactive).
-    // This ensures StrategiesClient shows the updated trade when the user navigates there,
-    // even if it wasn't mounted when the trade was edited (e.g. user is on a strategy page).
-    // invalidateQueries alone is not sufficient: when StrategiesClient mounts with
-    // enabled:false (strategies still loading), it misses the invalidation signal.
+    // Refetch strategies-overview (and legacy all-strategy-trades) for ALL observers.
+    // This ensures StrategiesClient shows updated stats immediately after a trade is edited,
+    // even if StrategiesClient wasn't mounted at the time of the mutation.
     const accountId = selection.activeAccount?.id;
     const mode = selection.mode;
     if (accountId && userId) {
-      await queryClient.refetchQueries({
-        queryKey: queryKeys.allStrategyTrades(userId, accountId, mode),
-      });
+      await Promise.all([
+        queryClient.refetchQueries({
+          queryKey: queryKeys.allStrategyTrades(userId, accountId, mode),
+        }),
+        queryClient.refetchQueries({
+          queryKey: ['strategies-overview', userId, accountId, mode],
+        }),
+      ]);
     }
 
     // Explicitly refetch active dashboardStats and calendarTrades queries for the affected

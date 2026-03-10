@@ -266,7 +266,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       if (!Array.isArray(key)) return false;
       const firstKey = key[0];
       // Global caches span all strategies — always invalidate
-      if (firstKey === 'all-strategy-trades' || firstKey === 'all-strategy-stats') return true;
+      if (firstKey === 'all-strategy-trades' || firstKey === 'all-strategy-stats' || firstKey === 'strategies-overview') return true;
       // Per-strategy queries — only invalidate the affected strategy
       if (firstKey === 'allTrades') return (key[5] ?? null) === strategyId;
       if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return (key[7] ?? null) === strategyId;
@@ -277,15 +277,18 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       return false;
     }});
 
-    // Refetch all-strategy-trades for ALL observers (active and inactive).
-    // This ensures StrategiesClient shows the new trade when the user navigates there,
-    // even if it wasn't mounted when the trade was added (e.g. user is on a strategy page).
-    // invalidateQueries alone is not sufficient: when StrategiesClient mounts with
-    // enabled:false (strategies still loading), it misses the invalidation signal.
+    // Refetch strategies-overview (and the legacy all-strategy-trades) for ALL observers.
+    // This ensures StrategiesClient shows updated stats immediately after a trade is added,
+    // even if StrategiesClient wasn't mounted at the time of the mutation.
     if (accountId && effectiveUserId) {
-      await queryClient.refetchQueries({
-        queryKey: queryKeys.allStrategyTrades(effectiveUserId, accountId, mode),
-      });
+      await Promise.all([
+        queryClient.refetchQueries({
+          queryKey: queryKeys.allStrategyTrades(effectiveUserId, accountId, mode),
+        }),
+        queryClient.refetchQueries({
+          queryKey: ['strategies-overview', effectiveUserId, accountId, mode],
+        }),
+      ]);
     }
 
     // Explicitly refetch active dashboardStats and calendarTrades queries for the affected strategy.

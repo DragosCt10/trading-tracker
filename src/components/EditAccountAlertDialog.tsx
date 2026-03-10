@@ -225,7 +225,8 @@ export function EditAccountAlertDialog({
             first === 'filteredTrades' ||
             first === 'nonExecutedTrades' ||
             first === 'all-strategy-trades' ||
-            first === 'all-strategy-stats'
+            first === 'all-strategy-stats' ||
+            first === 'strategies-overview'
           );
         },
       });
