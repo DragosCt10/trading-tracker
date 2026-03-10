@@ -220,6 +220,10 @@ export interface DashboardRpcResult {
   reentry_stats: RpcReentryStat[];
   break_even_stats: RpcBreakEvenStats;
   trend_stats: RpcTrendStat[];
+  /** 'YYYY-MM' strings for calendar month navigation — computed in DB, no compact_trades needed */
+  trade_months: string[];
+  /** Earliest trade date in the queried range (YYYY-MM-DD) — computed in DB */
+  earliest_trade_date: string | null;
 }
 
 // ── Full API route response (L2 merged with time-series) ────────────────────
