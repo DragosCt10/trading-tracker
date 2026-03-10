@@ -61,7 +61,7 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
     const pieData = [
       { name: 'Wins', value: wins, color: 'emerald', percentage: totalForChart > 0 ? (wins / totalForChart) * 100 : 0 },
       { name: 'Losses', value: losses, color: 'rose', percentage: totalForChart > 0 ? (losses / totalForChart) * 100 : 0 },
-      { name: 'BE', value: beTrades, color: 'amber', percentage: totalForChart > 0 ? (beTrades / totalForChart) * 100 : 0 },
+      { name: 'BE', value: beTrades, color: 'slate', percentage: totalForChart > 0 ? (beTrades / totalForChart) * 100 : 0 },
     ].filter((item) => item.value > 0);
 
     const CustomTooltip = ({ active, payload }: any) => {
@@ -79,10 +79,10 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
           text: 'text-rose-600 dark:text-rose-400',
           dot: 'bg-rose-500 dark:bg-rose-400 ring-rose-200/50 dark:ring-rose-500/30',
         },
-        amber: {
-          bg: 'bg-amber-50/80 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-800/30',
-          text: 'text-amber-600 dark:text-amber-400',
-          dot: 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30',
+        slate: {
+          bg: 'bg-slate-50/80 dark:bg-slate-950/30 border-slate-200/50 dark:border-slate-800/30',
+          text: 'text-slate-600 dark:text-slate-300',
+          dot: 'bg-slate-500 dark:bg-slate-400 ring-slate-200/50 dark:ring-slate-500/30',
         },
       };
 
@@ -179,11 +179,11 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
                       <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
                       <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
                     </linearGradient>
-                    {/* Break Even gradient - amber */}
+                    {/* Break Even gradient - slate */}
                     <linearGradient id="totalTradesBE" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
-                      <stop offset="50%" stopColor="#f97316" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#ea580c" stopOpacity={0.9} />
+                      <stop offset="0%" stopColor="#64748b" stopOpacity={1} />
+                      <stop offset="50%" stopColor="#475569" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#334155" stopOpacity={0.9} />
                     </linearGradient>
                   </defs>
                   <Pie
@@ -197,10 +197,12 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
                     dataKey="value"
                   >
                     {pieData.map((entry, index) => {
-                      const gradientId = 
-                        entry.color === 'emerald' ? 'totalTradesWins' :
-                        entry.color === 'rose' ? 'totalTradesLosses' :
-                        'totalTradesBE';
+                      const gradientId =
+                        entry.color === 'emerald'
+                          ? 'totalTradesWins'
+                          : entry.color === 'rose'
+                          ? 'totalTradesLosses'
+                          : 'totalTradesBE';
                       return (
                         <Cell
                           key={`cell-${index}`}
@@ -267,7 +269,7 @@ export const TotalTradesChartCard: React.FC<TotalTradesChartCardProps> = React.m
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                   BE
                 </div>
-                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                <div className="text-lg font-bold text-slate-600 dark:text-slate-300">
                   {beTrades}
                   {totalTrades > 0 && (
                     <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">
