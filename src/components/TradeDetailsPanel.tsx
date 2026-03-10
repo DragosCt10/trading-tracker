@@ -542,6 +542,17 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             </div>
           );
         }
+        if (field === 'risk_reward_ratio') {
+          return (
+            <div>
+              <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
+              <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {displayValue}
+                <span className="ml-0.5 text-[10px] text-slate-400 dark:text-slate-500">R</span>
+              </dd>
+            </div>
+          );
+        }
         if (field === 'pnl_percentage' || field === 'risk_per_trade' || field === 'displacement_size' || field === 'fvg_size') {
           return (
             <div>
@@ -578,6 +589,29 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
           <div>
             <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
             <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">{displayTime}</dd>
+          </div>
+        );
+      }
+      if (field === 'direction') {
+        const dir = value as string | null | undefined;
+        return (
+          <div>
+            <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
+            <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">
+              {dir === 'Long' ? (
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-emerald-500 dark:text-emerald-400 text-xs">↑</span>
+                  <span>Long</span>
+                </span>
+              ) : dir === 'Short' ? (
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-rose-500 dark:text-rose-400 text-xs">↓</span>
+                  <span>Short</span>
+                </span>
+              ) : (
+                <span>{dir ?? '—'}</span>
+              )}
+            </dd>
           </div>
         );
       }
@@ -1101,7 +1135,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-3">
                   {renderField('Risk %', 'risk_per_trade', 'number')}
-                  {renderField('Risk/Reward', 'risk_reward_ratio', 'number')}
+          {renderField('RR', 'risk_reward_ratio', 'number')}
                 </div>
                 <div className="space-y-3">
                   {hasCard('potential_rr') &&
