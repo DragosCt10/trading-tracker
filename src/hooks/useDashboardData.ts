@@ -200,7 +200,7 @@ export function useDashboardData({
 
   // ── Reentry / break-even / trend stats — now computed in the DB ────────────
   // These come directly from the RPC response as pre-aggregated arrays.
-  // compact_trades is still returned for components that need raw Trade[] (e.g. manage-trades).
+  // compact_trades is still returned for components that need raw Trade[] (e.g. my-trades, calendar).
   const reentryStatsFromApi = useMemo(() => {
     const raw = apiData?.reentry_stats ?? [];
     return raw.map((r: RpcReentryStat) => ({
