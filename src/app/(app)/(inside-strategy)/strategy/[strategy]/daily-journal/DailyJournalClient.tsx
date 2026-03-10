@@ -645,7 +645,19 @@ export default function DailyJournalClient({
                               })()}
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-700 dark:text-slate-300">
-                              {trade.direction}
+                              {trade.direction === 'Long' ? (
+                                <span className="inline-flex items-center gap-1">
+                                  <span className="text-emerald-500 dark:text-emerald-400 text-[11px]">↑</span>
+                                  <span>Long</span>
+                                </span>
+                              ) : trade.direction === 'Short' ? (
+                                <span className="inline-flex items-center gap-1">
+                                  <span className="text-rose-500 dark:text-rose-400 text-[11px]">↓</span>
+                                  <span>Short</span>
+                                </span>
+                              ) : (
+                                <span>{trade.direction ?? '—'}</span>
+                              )}
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-700 dark:text-slate-300">
                               {typeof trade.risk_reward_ratio === 'number' && !Number.isNaN(trade.risk_reward_ratio) ? (
