@@ -2,11 +2,10 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { QueryClient, dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import { getFilteredTrades } from '@/lib/server/trades';
-import { getCachedAccountsForMode } from '@/lib/server/accounts';
+import { resolveActiveAccountFromCookies } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
 import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import { queryKeys } from '@/lib/queryKeys';
-import { TRADES_DATA } from '@/constants/queryConfig';
 import MyTradesClient from './MyTradesClient';
 import { MyTradesSkeleton } from './MyTradesSkeleton';
 import type { User } from '@supabase/supabase-js';
@@ -18,11 +17,10 @@ async function MyTradesDataFetcher({
   user: User;
   strategySlug: string;
 }) {
-  const [strategy, allLiveAccounts] = await Promise.all([
+  const [strategy, { mode, activeAccount }] = await Promise.all([
     getStrategyBySlug(user.id, strategySlug),
-    getCachedAccountsForMode(user.id, 'live'),
+    resolveActiveAccountFromCookies(user.id),
   ]);
-  const activeAccount = allLiveAccounts.find((a) => a.is_active) ?? allLiveAccounts[0] ?? null;
 
   if (!strategy) redirect('/strategies');
   const initialStrategyId = strategy.id;
@@ -36,40 +34,41 @@ async function MyTradesDataFetcher({
         initialUserId={user.id}
         initialFilteredTrades={[]}
         initialDateRange={initialDateRange}
-        initialMode="live"
+        initialMode={mode}
         initialActiveAccount={null}
         initialStrategyId={initialStrategyId}
       />
     );
   }
 
-  // Single getFilteredTrades call: prefetch for client cache so client useQuery uses hydrated data (no duplicate fetch)
+  // Race prefetch against 300ms timeout: ships skeleton HTML fast even when DB is slow.
+  // On timeout, cache stays empty → client useQuery fetches trades after mount (existing fallback path).
+  const PREFETCH_TIMEOUT_MS = 300;
   const queryClient = new QueryClient();
-  // Use the same key shape that StrategiesClient seeds — guarantees a cache hit when navigating from Strategies
-  const key = queryKeys.trades.filtered('live', activeAccount.id, user.id, 'dateRange', '2000-01-01', initialDateRange.endDate, initialStrategyId);
-  await queryClient.prefetchQuery({
-    queryKey: key,
-    queryFn: async () => {
-      const { startDate, endDate } = createAllTimeRange(today);
-      return getFilteredTrades({
-        userId: user.id,
-        accountId: activeAccount.id,
-        mode: 'live',
-        startDate,
-        endDate,
-        includeNonExecuted: true,
-        strategyId: initialStrategyId,
-      });
-    },
-    staleTime: TRADES_DATA.staleTime,
-  });
+  const key = queryKeys.trades.filtered(mode, activeAccount.id, user.id, 'dateRange', '2000-01-01', initialDateRange.endDate, initialStrategyId);
+  const { startDate, endDate } = createAllTimeRange(today);
+  const tradesResult = await Promise.race([
+    getFilteredTrades({
+      userId: user.id,
+      accountId: activeAccount.id,
+      mode,
+      startDate,
+      endDate,
+      includeNonExecuted: true,
+      strategyId: initialStrategyId,
+    }),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), PREFETCH_TIMEOUT_MS)),
+  ]);
+  if (tradesResult !== null) {
+    queryClient.setQueryData(key, tradesResult);
+  }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <MyTradesClient
         initialUserId={user.id}
         initialDateRange={initialDateRange}
-        initialMode="live"
+        initialMode={mode}
         initialActiveAccount={activeAccount}
         initialStrategyId={initialStrategyId}
       />
