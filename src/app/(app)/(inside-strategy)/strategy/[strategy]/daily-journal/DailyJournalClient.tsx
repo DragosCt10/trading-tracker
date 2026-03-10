@@ -123,12 +123,15 @@ export default function DailyJournalClient({
         strategyId,
       });
     },
-    initialData: isInitialContext ? initialTrades : undefined,
+    // Only use initialTrades as initialData when they're actually populated.
+    // An empty array (server timeout fired) must NOT be treated as loaded data
+    // or TanStack Query will never refetch within the staleTime window.
+    initialData: (isInitialContext && initialTrades.length > 0) ? initialTrades : undefined,
     enabled: !!userId && !!activeAccount?.id,
     ...TRADES_DATA,
   });
 
-  const allTradesData = rawTrades ?? (isInitialContext ? initialTrades : []);
+  const allTradesData = rawTrades ?? (isInitialContext && initialTrades.length > 0 ? initialTrades : []);
 
   const currencySymbol = activeAccount
     ? getCurrencySymbolFromAccount(activeAccount)
