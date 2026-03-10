@@ -15,16 +15,16 @@ export function OutcomeChips({ trade, className }: OutcomeChipsProps) {
     <div className={cn('flex items-center gap-1', className)}>
       {trade.break_even || trade.trade_outcome === 'BE' ? (
         <>
-          <Badge className="shadow-none border-none outline-none ring-0 bg-gradient-to-br from-orange-400 to-orange-500 dark:from-orange-500 dark:to-orange-600 text-white">
+          <Badge className="shadow-none border-none outline-none ring-0 bg-orange-500 dark:bg-orange-500 text-white">
             BE
           </Badge>
           {trade.be_final_result && (
             <Badge
               className={cn(
-                'shadow-none border-none outline-none ring-0',
+                'shadow-none border-none outline-none ring-0 text-white',
                 trade.be_final_result === 'Win'
-                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white'
-                  : 'bg-gradient-to-br from-rose-500 to-rose-300 text-white'
+                  ? 'bg-emerald-500 dark:bg-emerald-500'
+                  : 'bg-rose-500 dark:bg-rose-500'
               )}
             >
               {trade.be_final_result}
@@ -34,10 +34,10 @@ export function OutcomeChips({ trade, className }: OutcomeChipsProps) {
       ) : (
         <Badge
           className={cn(
-            'shadow-none border-none outline-none ring-0',
+            'shadow-none border-none outline-none ring-0 text-white',
             trade.trade_outcome === 'Win'
-              ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white'
-              : 'bg-gradient-to-br from-rose-500 to-rose-300 text-white'
+              ? 'bg-emerald-500 dark:bg-emerald-500'
+              : 'bg-rose-500 dark:bg-rose-500'
           )}
         >
           {trade.trade_outcome}
@@ -47,7 +47,7 @@ export function OutcomeChips({ trade, className }: OutcomeChipsProps) {
       {!trade.executed && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge className="shadow-none border-none outline-none ring-0 bg-gradient-to-br from-amber-400 to-orange-500 text-white cursor-pointer">
+            <Badge className="shadow-none border-none outline-none ring-0 bg-amber-500 dark:bg-amber-500 text-white cursor-pointer">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -89,7 +89,7 @@ export function OutcomeChips({ trade, className }: OutcomeChipsProps) {
       {trade.launch_hour && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge className="shadow-none border-none outline-none ring-0 bg-gradient-to-br from-amber-400 to-orange-500 text-white cursor-pointer">
+            <Badge className="shadow-none border-none outline-none ring-0 bg-amber-500 dark:bg-amber-500 text-white cursor-pointer">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -123,7 +123,7 @@ export function OutcomeChips({ trade, className }: OutcomeChipsProps) {
       {trade.partials_taken && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge className="shadow-none border-none outline-none ring-0 bg-gradient-to-br from-blue-400 to-blue-600 text-white cursor-pointer">
+            <Badge className="shadow-none border-none outline-none ring-0 bg-blue-500 dark:bg-blue-500 text-white cursor-pointer">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
