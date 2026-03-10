@@ -127,6 +127,23 @@ export interface RpcLocalHLStats {
   notLiquidated: RpcLocalHLBucket;
 }
 
+// ── Reentry / break-even / trend stats (computed in DB, no compact_trades needed) ─
+
+export interface RpcReentryStat extends RpcBaseStats {
+  grp: string;        // 'Reentry' | 'No Reentry'
+}
+
+export interface RpcBreakEvenStats {
+  nonBeWins: number;
+  nonBeLosses: number;
+  beCount: number;
+  total: number;
+}
+
+export interface RpcTrendStat extends RpcBaseStats {
+  tradeType: string;  // 'Trend-following' | 'Counter-trend'
+}
+
 // ── Ordered series for Layer 2 (maxDrawdown, streaks, Sharpe, TQI) ──────────
 
 export interface RpcSeriesRow {
@@ -200,6 +217,9 @@ export interface DashboardRpcResult {
   sl_size_stats: RpcSLSizeStat[];
   series: RpcSeriesRow[];
   compact_trades: CompactTrade[];
+  reentry_stats: RpcReentryStat[];
+  break_even_stats: RpcBreakEvenStats;
+  trend_stats: RpcTrendStat[];
 }
 
 // ── Full API route response (L2 merged with time-series) ────────────────────

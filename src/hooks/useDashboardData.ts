@@ -6,7 +6,7 @@ import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns
 import { getCalendarTrades } from '@/lib/server/dashboardStats';
 import { queryKeys } from '@/lib/queryKeys';
 import { TRADES_DATA, STATIC_DATA } from '@/constants/queryConfig';
-import { computeStatsFromTrades } from '@/utils/computeStatsFromTrades';
+import type { RpcReentryStat, RpcTrendStat } from '@/types/dashboard-rpc';
 import type { Trade } from '@/types/trade';
 import type { AccountSettings } from '@/types/account-settings';
 import type { DashboardApiResponse } from '@/types/dashboard-rpc';
@@ -198,15 +198,40 @@ export function useDashboardData({
     }
   }, [calendarDateRange.startDate, calendarLoading, statsEnabled, userId, accountId, mode, strategyId, apiData?.tradeMonths, queryClient]);
 
-  // ── Derive reentry/breakEven/trend stats from compact_trades (client-side) ─
-  // compact_trades is already market-filtered by the RPC; only execution filter needed here.
-  const derivedStats = useMemo(() => {
-    if (!apiData?.compact_trades?.length) return null;
-    let ct = apiData.compact_trades;
-    if (selectedExecution === 'executed') ct = ct.filter(t => t.executed);
-    else if (selectedExecution === 'nonExecuted') ct = ct.filter(t => !t.executed);
-    return computeStatsFromTrades(ct as unknown as Trade[]);
-  }, [apiData?.compact_trades, selectedExecution]);
+  // ── Reentry / break-even / trend stats — now computed in the DB ────────────
+  // These come directly from the RPC response as pre-aggregated arrays.
+  // compact_trades is still returned for components that need raw Trade[] (e.g. manage-trades).
+  const reentryStatsFromApi = useMemo(() => {
+    const raw = apiData?.reentry_stats ?? [];
+    return raw.map((r: RpcReentryStat) => ({
+      ...r,
+      // Keep shape compatible with legacy consumers
+      total: r.total,
+      wins: r.wins,
+      losses: r.losses,
+      breakEven: r.breakEven,
+      winRate: r.winRate,
+      winRateWithBE: r.winRateWithBE,
+    }));
+  }, [apiData?.reentry_stats]);
+
+  const breakEvenStatsFromApi = useMemo(() => {
+    const b = apiData?.break_even_stats;
+    if (!b) return [];
+    const total = b.nonBeWins + b.nonBeLosses + b.beCount;
+    return [{
+      wins: b.nonBeWins,
+      losses: b.nonBeLosses,
+      breakEven: b.beCount,
+      total,
+      winRate: (b.nonBeWins + b.nonBeLosses) > 0 ? (b.nonBeWins / (b.nonBeWins + b.nonBeLosses)) * 100 : 0,
+      winRateWithBE: total > 0 ? (b.nonBeWins / total) * 100 : 0,
+    }];
+  }, [apiData?.break_even_stats]);
+
+  const trendStatsFromApi = useMemo(() => {
+    return (apiData?.trend_stats ?? []) as RpcTrendStat[];
+  }, [apiData?.trend_stats]);
 
   // ── Stats: always from API — market filtering is now done in the DB ────────
   const isLoading = statsLoading;
@@ -264,10 +289,10 @@ export function useDashboardData({
     tradeMonths: apiData?.tradeMonths ?? [],
     earliestTradeDate: apiData?.earliestTradeDate ?? null,
 
-    // Reentry / breakEven / trend — derived from compact_trades on the client
-    reentryStats: derivedStats?.reentryStats ?? [],
-    breakEvenStats: derivedStats?.breakEvenStats ?? [],
-    trendStats: derivedStats?.trendStats ?? [],
+    // Reentry / breakEven / trend — now from the RPC (computed in DB, not client-side)
+    reentryStats: reentryStatsFromApi,
+    breakEvenStats: breakEvenStatsFromApi,
+    trendStats: trendStatsFromApi,
 
     // Trade arrays for components that need raw Trade[] — computed from compact_trades.
     // CompactTrade covers most Trade fields; extra-card-specific fields (confidence_level,

@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Archive, Pencil, ChartBar, Share2 } from 'lucide-react';
 import { Strategy } from '@/types/strategy';
 import { Trade } from '@/types/trade';
-import { calculateWinRates } from '@/utils/calculateWinRates';
-import { calculateRRStats } from '@/utils/calculateRMultiple';
+import { getFilteredTrades } from '@/lib/server/trades';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,16 +24,16 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/comp
 import { EXTRA_CARDS } from '@/constants/extraCards';
 import { ShareStrategyModal } from '@/components/ShareStrategyModal';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
+import type { StrategyOverviewRow } from '@/lib/server/strategiesOverview';
 
 interface StrategyCardProps {
   strategy: Strategy;
-  trades: Trade[];
-  aggregatedStats?: {
-    totalTrades: number;
-    winRate: number;
-    avgRR: number;
-    totalRR: number;
-  };
+  /** Pre-computed stats + equity curve from get_strategies_overview RPC */
+  overviewStats?: StrategyOverviewRow;
+  /** Passed from parent so ShareStrategyModal can identify the account/user */
+  accountId: string;
+  mode: 'live' | 'backtesting' | 'demo';
+  userId: string;
   currencySymbol: string;
   onEdit: (strategy: Strategy) => void;
   onDelete: (strategyId: string) => Promise<void>;
@@ -43,8 +43,10 @@ interface StrategyCardProps {
 
 export const StrategyCard: React.FC<StrategyCardProps> = ({
   strategy,
-  trades,
-  aggregatedStats,
+  overviewStats,
+  accountId,
+  mode,
+  userId,
   currencySymbol,
   onEdit,
   onDelete,
@@ -57,89 +59,28 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
 
   useEffect(() => setMounted(true), []);
 
-  // Calculate stats from trades or use aggregated stats if available
-  const stats = useMemo(() => {
-    // If aggregated stats are provided (from live_trades), use those for winrate, totalTrades, and avgRR
-    // But still use current year trades for chart and profit display
-    if (aggregatedStats) {
-      // Calculate cumulative P&L for chart from current year trades
-      const sortedTrades = [...trades].sort((a, b) => {
-        const dateA = new Date(a.trade_date).getTime();
-        const dateB = new Date(b.trade_date).getTime();
-        return dateA - dateB;
-      });
+  // Derive chart data from the pre-computed equity curve
+  const chartData = useMemo(() => {
+    if (!overviewStats?.equityCurve?.length) return [];
+    return overviewStats.equityCurve.map((pt) => ({ date: pt.d, profit: pt.p }));
+  }, [overviewStats?.equityCurve]);
 
-      let cumulativeProfit = 0;
-      const chartData = sortedTrades.map((trade) => {
-        const profit = trade.calculated_profit ?? 0;
-        cumulativeProfit += profit;
-        return {
-          date: trade.trade_date,
-          profit: cumulativeProfit,
-        };
-      });
-
-      const totalProfit = trades.reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0);
-
-      return {
-        winRate: aggregatedStats.winRate,
-        avgRR: aggregatedStats.avgRR,
-        totalRR: aggregatedStats.totalRR ?? 0,
-        totalTrades: aggregatedStats.totalTrades,
-        totalProfit,
-        chartData,
-      };
-    }
-
-    // Fallback to calculating from current year trades
-    if (!trades.length) {
-      return {
-        winRate: 0,
-        avgRR: 0,
-        totalRR: 0,
-        totalTrades: 0,
-        totalProfit: 0,
-        chartData: [],
-      };
-    }
-
-    const winRates = calculateWinRates(trades);
-    
-    // RR total = RR Multiple (same as RR Multiple card: break_even => +0, Win => +risk_reward_ratio, Lose => -1)
-    const totalRR = calculateRRStats(trades);
-    const validRRs = trades
-      .filter(t => t.risk_reward_ratio != null && t.risk_reward_ratio > 0)
-      .map(t => t.risk_reward_ratio!);
-    const avgRR = validRRs.length > 0 ? validRRs.reduce((sum, rr) => sum + rr, 0) / validRRs.length : 0;
-
-    // Calculate cumulative P&L for chart
-    const sortedTrades = [...trades].sort((a, b) => {
-      const dateA = new Date(a.trade_date).getTime();
-      const dateB = new Date(b.trade_date).getTime();
-      return dateA - dateB;
-    });
-
-    let cumulativeProfit = 0;
-    const chartData = sortedTrades.map((trade) => {
-      const profit = trade.calculated_profit ?? 0;
-      cumulativeProfit += profit;
-      return {
-        date: trade.trade_date,
-        profit: cumulativeProfit,
-      };
-    });
-
-    const totalProfit = trades.reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0);
-
-    return {
-      winRate: winRates.winRate,
-      avgRR,
-      totalRR,
-      totalTrades: trades.length,
-      totalProfit,
-      chartData,
-    };
-  }, [trades, aggregatedStats]);
+  // Lazy-fetch full trades only when the share modal is opened.
+  // This avoids fetching 30k trades on page load; share is an infrequent action.
+  const { data: shareTrades = [] } = useQuery<Trade[]>({
+    queryKey: ['strategy-share-trades', strategy.id, accountId, mode],
+    queryFn: () =>
+      getFilteredTrades({
+        userId,
+        accountId,
+        mode,
+        startDate: '2000-01-01',
+        endDate: new Date().toISOString().split('T')[0],
+        strategyId: strategy.id,
+      }),
+    enabled: isShareOpen && !!userId && !!accountId,
+    staleTime: 5 * 60_000,
+  });
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -162,7 +103,12 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
     );
   }
 
-  const hasTrades = stats.totalTrades > 0;
+  const totalTrades = overviewStats?.totalTrades ?? 0;
+  const winRate = overviewStats?.winRate ?? 0;
+  const avgRR = overviewStats?.avgRR ?? 0;
+  const totalRR = overviewStats?.totalRR ?? 0;
+
+  const hasTrades = totalTrades > 0;
   const showNoTradesMessage = !isLoading && !hasTrades;
   const isChartReady = !isLoading;
 
@@ -172,7 +118,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
         {/* Strategy Name + Share button (top-right) */}
         <div className="flex items-start justify-between mb-4 gap-3">
           <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-            {strategy.name} 
+            {strategy.name}
           </h3>
           <Button
             variant="outline"
@@ -189,7 +135,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
         {/* Performance Graph */}
         <div className="h-32 mb-4">
           <EquityCurveChart
-            data={stats.chartData}
+            data={chartData}
             currencySymbol={currencySymbol}
             hasTrades={hasTrades}
             isLoading={isLoading}
@@ -201,20 +147,20 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
           <div className="flex flex-col">
             <span className="text-xs text-slate-500 dark:text-slate-400">Win rate</span>
             <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-              {stats.winRate.toFixed(1)}%
+              {winRate.toFixed(1)}%
             </span>
           </div>
           <div className="flex flex-col items-end gap-1">
             <div className="flex items-baseline gap-2">
               <span className="text-xs text-slate-500 dark:text-slate-400">Total RR</span>
               <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                {(stats.totalRR ?? 0).toFixed(2)}
+                {totalRR.toFixed(2)}
               </span>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-xs text-slate-500 dark:text-slate-400">Avg RR</span>
               <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                {(stats.avgRR ?? 0).toFixed(2)}
+                {avgRR.toFixed(2)}
               </span>
             </div>
           </div>
@@ -223,7 +169,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
         {/* Total Trades */}
         <div className="mb-4">
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Total trades: <span className="font-semibold text-slate-900 dark:text-slate-100">{stats.totalTrades}</span>
+            Total trades: <span className="font-semibold text-slate-900 dark:text-slate-100">{totalTrades}</span>
           </p>
         </div>
 
@@ -381,11 +327,11 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
           open={isShareOpen}
           onOpenChange={setIsShareOpen}
           strategy={strategy}
-          trades={trades}
+          trades={shareTrades}
           currencySymbol={currencySymbol}
-          accountId={trades[0]?.account_id ?? ''}
-          mode={(trades[0]?.mode as 'live' | 'backtesting' | 'demo') ?? 'live'}
-          userId={trades[0]?.user_id ?? ''}
+          accountId={accountId}
+          mode={mode}
+          userId={userId}
         />
       </div>
     </Card>

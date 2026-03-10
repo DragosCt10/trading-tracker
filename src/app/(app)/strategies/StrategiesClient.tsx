@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { format } from 'date-fns';
+import { useState, useEffect, useMemo } from 'react';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
 import { useSettings } from '@/hooks/useSettings';
@@ -9,8 +8,7 @@ import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useQuery } from '@tanstack/react-query';
 import { TRADES_DATA } from '@/constants/queryConfig';
-import { getFilteredTrades } from '@/lib/server/trades';
-import { computeStrategyStatsRowFromTrades, type StrategyStatsRow } from '@/utils/calculateRMultiple';
+import { getStrategiesOverview, type StrategiesOverviewResult } from '@/lib/server/strategiesOverview';
 import { StrategyCard } from '@/components/dashboard/strategy/StrategyCard';
 import { AddStrategyCard } from '@/components/dashboard/strategy/AddStrategyCard';
 import { Card } from '@/components/ui/card';
@@ -25,7 +23,6 @@ const DEFAULT_TITLE = 'Strategies';
 const DEFAULT_DESCRIPTION =
   'Organize and track your trading strategies separately. Each strategy shows its own performance metrics and analytics.';
 import { Strategy } from '@/types/strategy';
-import { Trade } from '@/types/trade';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { Target, Archive, RotateCcw, Trash2, Pencil } from 'lucide-react';
@@ -80,81 +77,33 @@ export function StrategiesClient() {
   // Get currency symbol from active account
   const currencySymbol = activeAccount?.currency === 'USD' ? '$' : activeAccount?.currency === 'EUR' ? '€' : '£';
 
-  // Fetch trades for each strategy (all years)
-  const startDate = '2000-01-01'; // Very early date to fetch all trades
-  const endDate = new Date().toISOString().split('T')[0]; // Today's date
-
-
-  // Fetch all trades in a single bulk request, then group by strategy_id in memory
+  // Fetch per-strategy aggregated stats + equity curves via a single RPC call.
+  // Replaces the old bulk getFilteredTrades() which paginated N×500-item pages.
   const {
-    data: allStrategyTrades,
+    data: strategiesOverview,
     isFetching: tradesLoading,
-  } = useQuery<Record<string, Trade[]>>({
-    queryKey: ['all-strategy-trades', userId, activeAccount?.id, mode, 'all-years'],
+  } = useQuery<StrategiesOverviewResult>({
+    queryKey: ['strategies-overview', userId, activeAccount?.id, mode],
     queryFn: async () => {
-      if (!userId || !activeAccount?.id || strategies.length === 0) return {};
-
-      const rawTrades = await getFilteredTrades({
-        userId,
-        accountId: activeAccount.id,
-        mode,
-        startDate,
-        endDate,
-      });
-
-      return rawTrades.reduce((acc, trade) => {
-        const key = trade.strategy_id ?? '__none__';
-        (acc[key] ??= []).push(trade);
-        return acc;
-      }, {} as Record<string, Trade[]>);
+      if (!activeAccount?.id) return {};
+      return getStrategiesOverview(activeAccount.id, mode);
     },
     enabled: !!userId && !!activeAccount?.id && !!mode && strategies.length > 0,
     ...TRADES_DATA,
   });
 
-  // Seed per-strategy filtered-trades cache so strategy pages get a cache hit for "All Trades"
-  const seedStrategyCaches = useCallback(() => {
-    if (!allStrategyTrades || !userId || !activeAccount?.id) return;
-    const today = format(new Date(), 'yyyy-MM-dd');
-
-    Object.entries(allStrategyTrades).forEach(([strategyId, trades]) => {
-      if (strategyId === '__none__') return;
-      const key = queryKeys.trades.filtered(
-        mode, activeAccount.id, userId, 'dateRange', '2000-01-01', today, strategyId
-      );
-      if (queryClient.getQueryData(key) === undefined) {
-        queryClient.setQueryData(key, trades);
-      }
-    });
-  }, [allStrategyTrades, userId, activeAccount?.id, mode, queryClient]);
-
-  useEffect(() => {
-    seedStrategyCaches();
-  }, [seedStrategyCaches]);
-
-  // Derive stats from the same all-strategy-trades cache (single source of truth, no extra fetch)
-  const allStrategyStats = useMemo<Record<string, StrategyStatsRow>>(() => {
-    if (!allStrategyTrades || strategies.length === 0) return {};
-    const out: Record<string, StrategyStatsRow> = {};
-    for (const strategy of strategies) {
-      const trades = allStrategyTrades[strategy.id] ?? [];
-      out[strategy.id] = computeStrategyStatsRowFromTrades(trades);
-    }
-    return out;
-  }, [allStrategyTrades, strategies]);
-
   // Sort strategies by selected metric (highest first)
   const sortedStrategies = useMemo(() => {
     if (sortBy === 'default') return [...strategies];
     const sorted = [...strategies].sort((a, b) => {
-      const statsA = allStrategyStats[a.id];
-      const statsB = allStrategyStats[b.id];
+      const statsA = strategiesOverview?.[a.id];
+      const statsB = strategiesOverview?.[b.id];
       const valA = statsA ? (sortBy === 'winRate' ? statsA.winRate : sortBy === 'totalRR' ? statsA.totalRR : statsA.totalTrades) : -Infinity;
       const valB = statsB ? (sortBy === 'winRate' ? statsB.winRate : sortBy === 'totalRR' ? statsB.totalRR : statsB.totalTrades) : -Infinity;
       return valB - valA; // descending (highest first)
     });
     return sorted;
-  }, [strategies, allStrategyStats, sortBy]);
+  }, [strategies, strategiesOverview, sortBy]);
 
   // Fetch archived (inactive) strategies
   const {
@@ -188,8 +137,7 @@ export function StrategiesClient() {
   const handleCreateSuccess = () => {
     setIsCreateModalOpen(false);
     refetchStrategies();
-    queryClient.invalidateQueries({ queryKey: ['strategy-trades'] });
-    queryClient.invalidateQueries({ queryKey: ['all-strategy-trades'] });
+    queryClient.invalidateQueries({ queryKey: ['strategies-overview'] });
   };
 
   const handleEdit = (strategy: Strategy) => {
@@ -677,26 +625,20 @@ export function StrategiesClient() {
           ))
         ) : (
           <>
-            {sortedStrategies.map((strategy) => {
-              const trades = allStrategyTrades?.[strategy.id] ?? [];
-              // Use aggregated stats from trades table (dynamically based on mode)
-              const aggregatedStats = allStrategyStats?.[strategy.id];
-              // Loading from single source (all-strategy-trades); stats are derived from it
-              const isLoading = tradesLoading;
-
-              return (
-                <StrategyCard
-                  key={strategy.id}
-                  strategy={strategy}
-                  trades={trades}
-                  aggregatedStats={aggregatedStats}
-                  currencySymbol={currencySymbol}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  isLoading={isLoading}
-                />
-              );
-            })}
+            {sortedStrategies.map((strategy) => (
+              <StrategyCard
+                key={strategy.id}
+                strategy={strategy}
+                overviewStats={strategiesOverview?.[strategy.id]}
+                accountId={activeAccount?.id ?? ''}
+                mode={mode as 'live' | 'backtesting' | 'demo'}
+                userId={userId ?? ''}
+                currencySymbol={currencySymbol}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                isLoading={tradesLoading}
+              />
+            ))}
 
             <AddStrategyCard onClick={() => setIsCreateModalOpen(true)} />
             <CreateStrategyModal
