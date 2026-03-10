@@ -172,7 +172,8 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
       const data = payload[0].payload;
       const colorMap: Record<string, { dot: string }> = {
         teal: { dot: 'bg-teal-500 dark:bg-teal-400 ring-teal-200/50 dark:ring-teal-500/30' },
-        amber: { dot: 'bg-slate-500 dark:bg-slate-400 ring-slate-200/50 dark:ring-slate-500/30' },
+        // Use a warm amber highlight only in the tooltip dot for "Not liquidated"
+        amber: { dot: 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30' },
       };
       const colors = colorMap[data.color] ?? colorMap.teal;
       const wins = data.wins ?? 0;
