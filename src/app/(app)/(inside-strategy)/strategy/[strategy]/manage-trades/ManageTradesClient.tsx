@@ -896,7 +896,21 @@ export default function ManageTradesClient({
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">{trade.trade_date}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300" suppressHydrationWarning>{formatTradeTimeForDisplay(trade.trade_time)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">{trade.market}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">{trade.direction}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
+                        {trade.direction === 'Long' ? (
+                          <span className="inline-flex items-center gap-1">
+                            <span className="text-emerald-500 dark:text-emerald-400 text-xs">↑</span>
+                            <span>Long</span>
+                          </span>
+                        ) : trade.direction === 'Short' ? (
+                          <span className="inline-flex items-center gap-1">
+                            <span className="text-rose-500 dark:text-rose-400 text-xs">↓</span>
+                            <span>Short</span>
+                          </span>
+                        ) : (
+                          <span>{trade.direction ?? '—'}</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
                         {typeof trade.risk_reward_ratio === 'number' && !Number.isNaN(trade.risk_reward_ratio) ? (
                           <span>
