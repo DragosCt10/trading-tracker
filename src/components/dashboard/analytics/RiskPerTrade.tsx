@@ -175,7 +175,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-slate-500 dark:text-slate-400">Break Even</span>
-                      <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{stats.breakEven}</span>
+                      <span className="text-sm font-bold text-slate-500 dark:text-slate-300">{stats.breakEven}</span>
                     </div>
                     <div className="flex items-center justify-between py-2 border-t border-slate-200/60 dark:border-slate-700/50">
                       <span className="text-sm text-slate-500 dark:text-slate-400">Win Rate</span>
@@ -219,7 +219,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-500 dark:text-slate-400">Break Even</span>
-                    <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{stats.breakEven}</span>
+                    <span className="text-sm font-bold text-slate-500 dark:text-slate-300">{stats.breakEven}</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-t border-slate-200/60 dark:border-slate-700/50">
                     <span className="text-sm text-slate-500 dark:text-slate-400">Win Rate</span>
