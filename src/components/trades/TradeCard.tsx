@@ -4,10 +4,9 @@ import { useMemo, useState } from 'react';
 import type { Trade } from '@/types/trade';
 import { cn } from '@/lib/utils';
 import { getIntervalForTime } from '@/constants/analytics';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Eye } from 'lucide-react';
+import { OutcomeChips } from '@/components/trades/OutcomeChips';
 
 export type TradeCardProps = {
   trade: Trade;
@@ -181,62 +180,7 @@ export function TradeCard({
           <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
             {trade.market}
           </h3>
-          <div className="flex items-center gap-1">
-            {(trade.break_even || trade.trade_outcome === 'BE') ? (
-              <>
-                <Badge className="shadow-none border-none outline-none ring-0 bg-gradient-to-br from-orange-400 to-orange-500 dark:from-orange-500 dark:to-orange-600 text-white">
-                  BE
-                </Badge>
-                {trade.be_final_result && (
-                  <Badge
-                    className={`shadow-none border-none outline-none ring-0 ${
-                      trade.be_final_result === 'Win'
-                        ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white'
-                        : 'bg-gradient-to-br from-rose-500 to-rose-300 text-white'
-                    }`}
-                  >
-                    {trade.be_final_result}
-                  </Badge>
-                )}
-              </>
-            ) : (
-              <Badge
-                className={`shadow-none border-none outline-none ring-0 ${
-                  trade.trade_outcome === 'Win'
-                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white'
-                    : 'bg-gradient-to-br from-rose-500 to-rose-300 text-white'
-                }`}
-              >
-                {trade.trade_outcome}
-              </Badge>
-            )}
-
-            {!trade.executed && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge className="shadow-none border-none outline-none ring-0 bg-gradient-to-br from-amber-400 to-orange-500 text-white cursor-pointer">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2}
-                      stroke="currentColor"
-                      className="size-4"
-                    >
-                      <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                      <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 shadow-xl"
-                >
-                  <div className="text-slate-600 dark:text-slate-300">Not executed trade</div>
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </div>
+          <OutcomeChips trade={trade} />
         </div>
 
         <div className={cn('space-y-2.5', hideImage ? 'mb-0' : 'mb-5')}>
