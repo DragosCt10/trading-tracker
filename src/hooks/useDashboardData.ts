@@ -286,8 +286,8 @@ export function useDashboardData({
     yearlyPartialTradesCount: apiData?.partials.totalPartialTradesCount ?? 0,
     yearlyPartialsBECount: apiData?.partials.totalPartialsBECount ?? 0,
     nonExecutedTotalTradesCount: apiData?.nonExecutedTotalTradesCount ?? 0,
-    tradeMonths: apiData?.tradeMonths ?? [],
-    earliestTradeDate: apiData?.earliestTradeDate ?? null,
+    tradeMonths: apiData?.tradeMonths ?? (apiData?.trade_months ?? []),
+    earliestTradeDate: apiData?.earliestTradeDate ?? (apiData?.earliest_trade_date ?? null),
 
     // Reentry / breakEven / trend — now from the RPC (computed in DB, not client-side)
     reentryStats: reentryStatsFromApi,
