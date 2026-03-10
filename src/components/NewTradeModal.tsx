@@ -43,6 +43,7 @@ import {
 import { getMarketValidationError, normalizeMarket } from '@/utils/validateMarket';
 import { calculateTradePnl } from '@/utils/helpers/tradePnlCalculator';
 import { tradeDateAndTimeToUtcISO } from '@/utils/tradeExecutedAt';
+import { getDayOfWeekFromTradeDate } from '@/utils/dateRangeHelpers';
 import { MarketCombobox } from '@/components/MarketCombobox';
 import { NewsCombobox } from '@/components/NewsCombobox';
 import { CommonCombobox } from '@/components/CommonCombobox';
@@ -304,11 +305,10 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     });
   }, [selection.mode, selection.activeAccount?.id, userId, queryClient]);
 
-  // keep weekday + quarter in sync when the committed date changes
+  // keep weekday + quarter in sync when the committed date changes (use local date to avoid timezone shifting day)
   useEffect(() => {
     const dateStr = trade.trade_date;
-    const dt = new Date(dateStr);
-    const engDay = dt.toLocaleDateString('en-US', { weekday: 'long' });
+    const engDay = getDayOfWeekFromTradeDate(dateStr);
     const roDay = WEEKDAY_MAP[engDay] ?? engDay;
     setTrade((prev) => {
       const next = { ...prev, day_of_week: roDay, quarter: getQuarter(dateStr) };

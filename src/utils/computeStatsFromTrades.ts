@@ -1,6 +1,7 @@
 import { Trade } from '@/types/trade';
 import { TIME_INTERVALS } from '@/constants/analytics';
 import { isLocalHighLowLiquidated } from '@/utils/calculateCategoryStats';
+import { getDayOfWeekFromTradeDate } from '@/utils/dateRangeHelpers';
 
 type Bucket = { wins: number; losses: number; breakEven: number };
 function totalBucket(b: Bucket) { return b.wins + b.losses + b.breakEven; }
@@ -33,7 +34,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
     const market = trade.market || 'Unknown';
     const mss = trade.mss || 'Unknown';
     const news = trade.news_related ? 'Yes' : 'No';
-    const day = trade.day_of_week || 'Unknown';
+    const day = getDayOfWeekFromTradeDate(trade.trade_date) || trade.day_of_week || 'Unknown';
     const slSize = trade.sl_size || 0;
 
     // Setup stats (wins, losses, breakEven)
