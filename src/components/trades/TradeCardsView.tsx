@@ -135,7 +135,11 @@ export function TradeCardsView({
         return next;
       });
     } else {
-      setSelectedIds((prev) => new Set([...prev, ...tablePageIds]));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        tablePageIds.forEach((id) => next.add(id));
+        return next;
+      });
     }
   }, [showTableBulkActions, allOnPageSelected, tablePageIds]);
   const toggleSelectOne = useCallback((id: string) => {
