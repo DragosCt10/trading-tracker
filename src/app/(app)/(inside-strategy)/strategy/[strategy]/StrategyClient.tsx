@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useCallback,
+  useTransition,
 } from 'react';
 import {
   startOfMonth,
@@ -198,6 +199,9 @@ export default function StrategyClient(
 
   // view mode: 'yearly' or 'dateRange'
   const [viewMode, setViewMode] = useState<'yearly' | 'dateRange'>('dateRange');
+  // startTransition marks filter/view-mode changes as non-urgent so React can yield to
+  // user input before re-running the heavy useMemo chains — fixes INP > 200 ms.
+  const [, startFilterTransition] = useTransition();
 
   // date range + calendar state management
   const {
@@ -765,7 +769,7 @@ export default function StrategyClient(
       {/* View Mode Toggle */}
       <ViewModeToggle
         viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        onViewModeChange={(mode) => startFilterTransition(() => setViewMode(mode))}
       />
 
       {/* Date Range and Filter Buttons - Only show when in dateRange mode, above AccountOverviewCard */}
@@ -780,12 +784,12 @@ export default function StrategyClient(
           onFilterChange={handleFilter}
           isCustomRange={isCustomRange}
           selectedMarket={selectedMarket}
-          onSelectedMarketChange={setSelectedMarket}
+          onSelectedMarketChange={(market) => startFilterTransition(() => setSelectedMarket(market))}
           markets={markets}
           selectedExecution={selectedExecution}
           onSelectedExecutionChange={(execution) => {
             // Analytics page doesn't support 'all' option, so map it to 'executed'
-            setSelectedExecution(execution === 'all' ? 'executed' : execution);
+            startFilterTransition(() => setSelectedExecution(execution === 'all' ? 'executed' : execution));
           }}
           displayStartDate={earliestTradeDate}
         />
