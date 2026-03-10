@@ -58,6 +58,9 @@ export function useFilteredStats({
         return null; // Use hook stats (executed/all is default, so no filter applied)
       }
     }
+    // If compact_trades are not loaded (e.g. includeCompactTrades=false), fall back to
+    // RPC stats which are already correctly filtered by market + execution in SQL.
+    if (tradesToUse.length === 0) return null;
     return computeStatsFromTrades(tradesToUse);
   }, [tradesToUse, selectedMarket, selectedExecution, viewMode]);
 
@@ -66,16 +69,11 @@ export function useFilteredStats({
   // In dateRange mode, compute if either market or execution filter is applied
   const filteredRiskStats = useMemo(() => {
     if (viewMode === 'yearly') {
-      // In yearly mode, only apply market filter
-      if (selectedMarket === 'all') {
-        return null; // Use hook stats
-      }
+      if (selectedMarket === 'all') return null;
     } else {
-      // In dateRange mode, check both filters
-      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) {
-        return null; // Use hook stats (executed/all is default, so no filter applied)
-      }
+      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) return null;
     }
+    if (tradesToUse.length === 0) return null;
     return calculateRiskPerTradeStats(tradesToUse);
   }, [tradesToUse, selectedMarket, selectedExecution, viewMode]);
 
@@ -84,16 +82,11 @@ export function useFilteredStats({
   // In dateRange mode, compute if either market or execution filter is applied
   const filteredMarketStats = useMemo(() => {
     if (viewMode === 'yearly') {
-      // In yearly mode, only apply market filter
-      if (selectedMarket === 'all') {
-        return null; // Use hook stats
-      }
+      if (selectedMarket === 'all') return null;
     } else {
-      // In dateRange mode, check both filters
-      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) {
-        return null; // Use hook stats (executed/all is default, so no filter applied)
-      }
+      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) return null;
     }
+    if (tradesToUse.length === 0) return null;
     return calculateMarketStats(tradesToUse, accountBalance);
   }, [tradesToUse, selectedMarket, selectedExecution, viewMode, accountBalance]);
 
@@ -102,16 +95,11 @@ export function useFilteredStats({
   // In dateRange mode, compute if either market or execution filter is applied
   const filteredEvaluationStats = useMemo(() => {
     if (viewMode === 'yearly') {
-      // In yearly mode, only apply market filter
-      if (selectedMarket === 'all') {
-        return null; // Use hook stats
-      }
+      if (selectedMarket === 'all') return null;
     } else {
-      // In dateRange mode, check both filters
-      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) {
-        return null; // Use hook stats (executed/all is default, so no filter applied)
-      }
+      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) return null;
     }
+    if (tradesToUse.length === 0) return null;
     return calculateEvaluationStats(tradesToUse);
   }, [tradesToUse, selectedMarket, selectedExecution, viewMode]);
 
