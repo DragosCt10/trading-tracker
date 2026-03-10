@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Trade } from '@/types/trade';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -21,6 +21,9 @@ import { queryKeys } from '@/lib/queryKeys';
 import { exportTradesToCsv } from '@/utils/exportTradesToCsv';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2 } from 'lucide-react';
+
+const ITEMS_PER_LOAD = 24;
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -54,6 +57,9 @@ export default function MyTradesClient({
     direction: 'asc',
   });
   const [exporting, setExporting] = useState(false);
+  const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_LOAD);
+  const [mounted, setMounted] = useState(false);
+  const observerTarget = useRef<HTMLDivElement | null>(null);
 
   const queryClient = useQueryClient();
   const { data: userDetails } = useUserDetails();
@@ -209,6 +215,38 @@ export default function MyTradesClient({
     return list;
   }, [filteredTrades, sortConfig, getOutcomeValue]);
 
+  const displayedTrades = useMemo(() => trades.slice(0, displayedCount), [trades, displayedCount]);
+  const hasMore = displayedCount < trades.length;
+
+  useEffect(() => setMounted(true), []);
+
+  // Reset pagination when filters/sort change (same pattern as DailyJournalClient)
+  useEffect(() => {
+    setDisplayedCount(ITEMS_PER_LOAD);
+  }, [dateRange.startDate, dateRange.endDate, selectedMarket, executionFilter, sortField, showPartialTrades, trades.length]);
+
+  // IntersectionObserver for infinite scroll (same pattern as DailyJournalClient)
+  useEffect(() => {
+    if (!mounted) return;
+    if (typeof window === 'undefined') return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting) return;
+        if (!hasMore) return;
+        if (tradesLoading || tradesFetching) return;
+        setDisplayedCount((prev) => Math.min(prev + ITEMS_PER_LOAD, trades.length));
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) observer.observe(currentTarget);
+    return () => {
+      if (currentTarget) observer.unobserve(currentTarget);
+    };
+  }, [mounted, hasMore, tradesLoading, tradesFetching, trades.length]);
+
   // TradeDetailsPanel.invalidateAndRefetchTradeQueries already handles scoped cache invalidation
   const handleTradeUpdated = useCallback(() => {}, []);
 
@@ -303,13 +341,14 @@ export default function MyTradesClient({
       />
 
       <TradeCardsView
-        trades={trades}
+        trades={displayedTrades}
         isLoading={tradesLoading}
         isFetching={tradesFetching}
-        resetKey={`${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${executionFilter}`}
+        resetKey={`${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${executionFilter}-${sortField}-${showPartialTrades}`}
         onTradeUpdated={handleTradeUpdated}
         enableBulkDeleteInTableView
         onBulkDelete={handleBulkDelete}
+        externalPagination
         // Sort by control rendered on same row as View toggles
         // (inside TradeCardsView header, aligned to the left)
         sortControl={
@@ -350,6 +389,21 @@ export default function MyTradesClient({
           </div>
         }
       />
+      {hasMore && (
+        <div
+          ref={observerTarget}
+          className="flex justify-center py-6 text-sm text-slate-500 dark:text-slate-400"
+        >
+          {tradesFetching ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Loading more trades...</span>
+            </div>
+          ) : (
+            <span>Loading more trades...</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
