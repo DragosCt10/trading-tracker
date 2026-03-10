@@ -249,7 +249,8 @@ export const MSSStatisticsCard: React.FC<MSSStatisticsCardProps> = React.memo(
       blue: 'text-blue-600 dark:text-blue-400',
       purple: 'text-purple-600 dark:text-purple-400',
       teal: 'text-teal-600 dark:text-teal-400',
-      amber: 'text-slate-600 dark:text-slate-300',
+      // Highlight "Internal" (amber) in a warm orange tone to match its slice color
+      amber: 'text-amber-600 dark:text-amber-400',
     };
 
     return (
