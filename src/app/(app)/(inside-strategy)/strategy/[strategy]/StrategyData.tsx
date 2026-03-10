@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { getDashboardApiResponse } from '@/lib/server/dashboardApiResponse';
-import { getCachedAccountsForMode } from '@/lib/server/accounts';
+import { resolveActiveAccountFromCookies } from '@/lib/server/accounts';
 import { format, startOfYear, endOfYear } from 'date-fns';
 import { getStrategyBySlug } from '@/lib/server/strategies';
 import StrategyClient from './StrategyClient';
@@ -22,10 +22,10 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
     endDate: format(endOfYear(today), 'yyyy-MM-dd'),
   };
 
-  // Fetch strategy metadata and live accounts in parallel — saves ~100-200 ms vs sequential.
-  const [strategy, allLiveAccounts] = await Promise.all([
+  // Fetch strategy metadata and resolve active account/mode from cookies in parallel.
+  const [strategy, { mode, activeAccount }] = await Promise.all([
     strategySlug ? getStrategyBySlug(user.id, strategySlug) : Promise.resolve(null),
-    getCachedAccountsForMode(user.id, 'live'),
+    resolveActiveAccountFromCookies(user.id),
   ]);
 
   const strategyId = strategy?.id ?? null;
@@ -37,7 +37,7 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
         initialUserId={user.id}
         initialDateRange={initialDateRange}
         initialSelectedYear={initialSelectedYear}
-        initialMode="live"
+        initialMode={mode}
         initialActiveAccount={null}
         initialStrategyId={null}
         initialExtraCards={[]}
@@ -45,15 +45,13 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
     );
   }
 
-  const activeAccount = allLiveAccounts.find((a) => a.is_active) ?? allLiveAccounts[0] ?? null;
-
   if (!activeAccount) {
     return (
       <StrategyClient
         initialUserId={user.id}
         initialDateRange={initialDateRange}
         initialSelectedYear={initialSelectedYear}
-        initialMode="live"
+        initialMode={mode}
         initialActiveAccount={null}
         initialStrategyId={strategyId}
         initialExtraCards={initialExtraCards}
@@ -71,7 +69,7 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
       getDashboardApiResponse({
         userId: user.id,
         accountId: activeAccount.id,
-        mode: 'live',
+        mode,
         startDate: initialDateRange.startDate,
         endDate: initialDateRange.endDate,
         strategyId,
@@ -91,7 +89,7 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
       initialDashboardStats={initialDashboardStats}
       initialDateRange={initialDateRange}
       initialSelectedYear={initialSelectedYear}
-      initialMode="live"
+      initialMode={mode}
       initialActiveAccount={activeAccount}
       initialStrategyId={strategyId}
       initialExtraCards={initialExtraCards}
