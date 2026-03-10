@@ -66,9 +66,9 @@ export async function getDashboardApiResponse(
   const nonExecuted = nonExecutedOrNull ?? main;
 
   const timeSeries = calculateFromSeries(main.series, accountBalance);
-  const allDates = main.compact_trades.map((t) => t.trade_date).filter(Boolean);
-  const earliestTradeDate = allDates.length > 0 ? [...allDates].sort()[0] : null;
-  const tradeMonths = Array.from(new Set(allDates.map((d) => d.slice(0, 7)))).sort();
+  // trade_months and earliest_trade_date are now computed in the RPC (from _all CTE).
+  const tradeMonths = (main.trade_months ?? []) as string[];
+  const earliestTradeDate = main.earliest_trade_date ?? null;
 
   const response: DashboardApiResponse = {
     ...main,
