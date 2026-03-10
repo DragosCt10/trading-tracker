@@ -196,7 +196,7 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
               </div>
               <div className="flex items-baseline justify-between gap-4">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
-                <span className="text-base font-bold text-amber-600 dark:text-amber-400">
+                <span className="text-base font-bold text-slate-600 dark:text-slate-300">
                   {breakEven}
                 </span>
               </div>

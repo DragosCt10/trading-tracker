@@ -130,7 +130,7 @@ export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.mem
               </div>
               <div className="flex items-baseline justify-between gap-4">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
-                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{breakEven}</span>
+                <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{breakEven}</span>
               </div>
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
@@ -262,9 +262,9 @@ export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.mem
                     <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
                   </linearGradient>
                   <linearGradient id="setupStatsBreakEvenBar" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor="#d97706" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#f59e0b" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.9} />
+                    <stop offset="0%" stopColor="#64748b" stopOpacity={1} />
+                    <stop offset="50%" stopColor="#475569" stopOpacity={0.95} />
+                    <stop offset="100%" stopColor="#334155" stopOpacity={0.9} />
                   </linearGradient>
                 </defs>
                 <XAxis

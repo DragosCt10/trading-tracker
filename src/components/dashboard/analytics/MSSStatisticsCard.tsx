@@ -185,7 +185,7 @@ export const MSSStatisticsCard: React.FC<MSSStatisticsCardProps> = React.memo(
               </div>
               <div className="flex items-baseline justify-between gap-4">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
-                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{breakEven}</span>
+                <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{breakEven}</span>
               </div>
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
@@ -249,7 +249,7 @@ export const MSSStatisticsCard: React.FC<MSSStatisticsCardProps> = React.memo(
       blue: 'text-blue-600 dark:text-blue-400',
       purple: 'text-purple-600 dark:text-purple-400',
       teal: 'text-teal-600 dark:text-teal-400',
-      amber: 'text-amber-600 dark:text-amber-400',
+      amber: 'text-slate-600 dark:text-slate-300',
     };
 
     return (

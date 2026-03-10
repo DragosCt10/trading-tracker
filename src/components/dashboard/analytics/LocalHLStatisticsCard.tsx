@@ -172,7 +172,7 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
       const data = payload[0].payload;
       const colorMap: Record<string, { dot: string }> = {
         teal: { dot: 'bg-teal-500 dark:bg-teal-400 ring-teal-200/50 dark:ring-teal-500/30' },
-        amber: { dot: 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30' },
+        amber: { dot: 'bg-slate-500 dark:bg-slate-400 ring-slate-200/50 dark:ring-slate-500/30' },
       };
       const colors = colorMap[data.color] ?? colorMap.teal;
       const wins = data.wins ?? 0;
@@ -206,7 +206,7 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
               </div>
               <div className="flex items-baseline justify-between gap-4">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
-                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                <span className="text-lg font-bold text-slate-600 dark:text-slate-300">
                   {breakEven}
                   {hasBEBreakdown && (
                     <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">
@@ -275,7 +275,7 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
 
     const legendColors: Record<string, string> = {
       teal: 'text-teal-600 dark:text-teal-400',
-      amber: 'text-amber-600 dark:text-amber-400',
+      amber: 'text-slate-600 dark:text-slate-300',
     };
 
     return (
@@ -324,9 +324,9 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
                       <stop offset="100%" stopColor="#0f766e" stopOpacity={0.9} />
                     </linearGradient>
                     <linearGradient id="localHLGrad1" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
-                      <stop offset="50%" stopColor="#d97706" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#b45309" stopOpacity={0.9} />
+                      <stop offset="0%" stopColor="#64748b" stopOpacity={1} />
+                      <stop offset="50%" stopColor="#475569" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#334155" stopOpacity={0.9} />
                     </linearGradient>
                   </defs>
                   <Pie

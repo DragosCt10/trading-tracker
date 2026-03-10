@@ -211,10 +211,10 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
                       <td className="py-2 px-2 text-right font-bold text-rose-600 dark:text-rose-400">
                         {marketData.losses}
                       </td>
-                      <td className="py-2 px-2 text-right font-bold text-amber-600 dark:text-amber-400">
+                      <td className="py-2 px-2 text-right font-bold text-slate-600 dark:text-slate-300">
                         {marketData.breakEven}
                       </td>
-                      <td className="py-2 px-2 text-right font-bold text-amber-600 dark:text-amber-400">
+                      <td className="py-2 px-2 text-right font-bold text-slate-600 dark:text-slate-300">
                         {formatPercent(marketData.winRate)}%
                       </td>
                       <td className="py-2 px-2 text-right font-bold text-slate-900 dark:text-slate-100">
