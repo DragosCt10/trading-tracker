@@ -15,7 +15,7 @@ export function OutcomeChips({ trade, className }: OutcomeChipsProps) {
     <div className={cn('flex items-center gap-1', className)}>
       {trade.break_even || trade.trade_outcome === 'BE' ? (
         <>
-          <Badge className="shadow-none border-none outline-none ring-0 bg-orange-500 dark:bg-orange-500 text-white">
+          <Badge className="shadow-none border-none outline-none ring-0 bg-slate-500 dark:bg-slate-500 text-white">
             BE
           </Badge>
           {trade.be_final_result && (
