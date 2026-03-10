@@ -43,33 +43,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { getIntervalForTime } from '@/constants/analytics';
-import { ScreensCarouselCell } from '@/components/trades/ScreensCarouselCell';
-import { OutcomeChips } from '@/components/trades/OutcomeChips';
+import { exportTradesToCsv } from '@/utils/exportTradesToCsv';
+import { TradesTableView } from '@/components/trades/TradesTableView';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
 const ITEMS_PER_PAGE = 10;
-
-/** Display trade time as interval label (e.g. "08:00 – 11:59"). Falls back to raw time for legacy or ISO values. */
-function formatTradeTimeForDisplay(value: string | Date | unknown): string {
-  if (value == null) return '';
-  if (typeof value === 'string') {
-    if (value.includes('T') || value.includes('Z')) {
-      const d = new Date(value);
-      return d.toISOString().slice(11, 19);
-    }
-    const interval = getIntervalForTime(value);
-    return interval?.label ?? value;
-  }
-  if (value instanceof Date) {
-    return value.toISOString().slice(11, 19);
-  }
-  return String(value);
-}
-
 
 interface ManageTradesClientProps {
   initialUserId: string;
@@ -388,67 +368,15 @@ export default function ManageTradesClient({
     }
   };
 
-  const exportToCSV = async () => {
+  const exportToCSV = () => {
     if (!paginatedTrades || paginatedTrades.length === 0) return;
-
     setExporting(true);
     setExportProgress(0);
-
     try {
-      const headers = [
-        'Date', 'Time', 'Day of Week', 'Market', 'Direction', 'Setup', 'Outcome',
-        'Risk %', 'Trade Screen 1', 'Trade Screen 2', 'Trade Screen 3', 'Trade Screen 4', 'Local High/Low',
-        'News Related', 'ReEntry', 'Break Even', 'MSS', 'Risk:Reward Ratio',
-        'Risk:Reward Ratio Long', 'SL Size', 'Calculated Profit', 'P/L %',
-        'Evaluation', 'Notes', 'Executed', 'Trend', 'FVG Size'
-      ];
-
-      const escapeCSV = (value: any) => {
-        if (value == null) return '';
-        const str = value.toString().replace(/"/g, '""');
-        return `"${str}"`;
-      };
-
-      const csvContent = [
-        headers.map(escapeCSV).join(','),
-        ...paginatedTrades.map((trade: Trade) => [
-          trade.trade_date,
-          formatTradeTimeForDisplay(trade.trade_time),
-          trade.day_of_week,
-          trade.market,
-          trade.direction,
-          trade.setup_type,
-          trade.trade_outcome,
-          trade.risk_per_trade,
-          trade.trade_screens?.[0] ?? '',
-          trade.trade_screens?.[1] ?? '',
-          trade.trade_screens?.[2] ?? '',
-          trade.trade_screens?.[3] ?? '',
-          trade.local_high_low ? 'Yes' : 'No',
-          trade.news_related ? 'Yes' : 'No',
-          trade.reentry ? 'Yes' : 'No',
-          trade.break_even ? 'Yes' : 'No',
-          trade.mss,
-          trade.risk_reward_ratio,
-          trade.risk_reward_ratio_long,
-          trade.sl_size,
-          trade.calculated_profit || '',
-          trade.pnl_percentage || '',
-          trade.evaluation || '',
-          trade.notes || '',
-          trade.executed ? 'Yes' : 'No',
-          trade.trend ?? '',
-          trade.fvg_size ?? ''
-        ].map(escapeCSV).join(','))
-      ].join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.setAttribute('download', `trades_${dateRange.startDate}_to_${dateRange.endDate}_page${paginatedCurrentPage}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      exportTradesToCsv({
+        trades: paginatedTrades,
+        filename: `trades_${dateRange.startDate}_to_${dateRange.endDate}_page${paginatedCurrentPage}`,
+      });
     } catch (error) {
       console.error('Error exporting trades:', error);
     } finally {
@@ -801,175 +729,19 @@ export default function ManageTradesClient({
 
           {/* Trades Table Card - same design as analytics page cards */}
           <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
-            <div className="relative overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200/30 dark:divide-slate-700/30">
-                <thead className="bg-transparent border-b border-slate-300 dark:border-slate-700">
-                  <tr>
-                    <th className="w-12 px-4 py-4 text-left">
-                      {paginatedTrades.length > 0 && (
-                        <Checkbox
-                          checked={allOnPageSelected}
-                          onCheckedChange={toggleSelectAll}
-                          aria-label="Select all on page"
-                          className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
-                        />
-                      )}
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Screens</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Time</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Market</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Direction</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">RR</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Outcome</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Risk</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Notes</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-transparent divide-y divide-slate-200/30 dark:divide-slate-700/30">
-                  {allTradesError ? (
-                    <tr>
-                      <td colSpan={11} className="px-6 py-12 text-center">
-                        <div className="flex flex-col items-center justify-center">
-                          <p className="text-red-600 dark:text-red-400 text-sm font-semibold">
-                            Failed to load trades: {(allTradesError as Error).message}
-                          </p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : allTradesLoading && allTradesData.length === 0 ? (
-                    // Skeleton rows
-                    Array.from({ length: 6 }).map((_, index) => (
-                      <tr key={`skeleton-${index}`}>
-                        <td className="w-12 px-4 py-4 whitespace-nowrap">
-                          <Skeleton className="h-5 w-5 rounded" />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap align-middle">
-                          <Skeleton className="h-16 w-28 rounded-lg" />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-5 w-20" />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-5 w-16" />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-5 w-16" />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-5 w-12" />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-5 w-20" />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-5 w-16 rounded-full" />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-5 w-12" />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-5 w-20" />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Skeleton className="h-5 w-24" />
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    paginatedTrades.map((trade: Trade) => (
-                    <tr key={trade.id} suppressHydrationWarning>
-                      <td className="w-12 px-4 py-4 whitespace-nowrap">
-                        {trade.id && (
-                          <Checkbox
-                            checked={selectedIds.has(trade.id)}
-                            onCheckedChange={() => toggleSelectOne(trade.id!)}
-                            aria-label={`Select trade ${trade.trade_date} ${trade.market}`}
-                            className="h-5 w-5 rounded-md shadow-sm cursor-pointer border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-purple-400 dark:hover:border-purple-500 data-[state=checked]:bg-gradient-to-br data-[state=checked]:from-purple-500 data-[state=checked]:to-violet-600 data-[state=checked]:border-purple-500 dark:data-[state=checked]:border-purple-400 data-[state=checked]:!text-white transition-colors duration-150"
-                          />
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap align-middle">
-                        <ScreensCarouselCell trade={trade} />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">{trade.trade_date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300" suppressHydrationWarning>{formatTradeTimeForDisplay(trade.trade_time)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">{trade.market}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
-                        {trade.direction === 'Long' ? (
-                          <span className="inline-flex items-center gap-1">
-                            <span className="text-emerald-500 dark:text-emerald-400 text-xs">↑</span>
-                            <span>Long</span>
-                          </span>
-                        ) : trade.direction === 'Short' ? (
-                          <span className="inline-flex items-center gap-1">
-                            <span className="text-rose-500 dark:text-rose-400 text-xs">↓</span>
-                            <span>Short</span>
-                          </span>
-                        ) : (
-                          <span>{trade.direction ?? '—'}</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
-                        {typeof trade.risk_reward_ratio === 'number' && !Number.isNaN(trade.risk_reward_ratio) ? (
-                          <span>
-                            {trade.risk_reward_ratio.toFixed(2)}
-                            <span className="ml-0.5 text-[10px] text-slate-400 dark:text-slate-500">R</span>
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-600">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
-                        <OutcomeChips trade={trade} />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">{trade.risk_per_trade}%</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
-                        {trade.notes ? (
-                          <a
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              openNotesModal(trade.notes || '');
-                            }}
-                            className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline font-medium transition-colors"
-                          >
-                            View Notes
-                          </a>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-500">No notes</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-100">
-                        <a
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            openModal(trade);
-                          }}
-                          className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline font-medium transition-colors"
-                        >
-                          Trade Details
-                        </a>
-                      </td>
-                    </tr>
-                    ))
-                  )}
-                  {!allTradesLoading && paginatedTrades.length === 0 && activeAccount && (
-                    <tr>
-                      <td colSpan={11} className="px-6 py-12 text-center">
-                        <div className="flex flex-col items-center justify-center">
-                          <p className="text-slate-600 dark:text-slate-400 text-sm">
-                            No trades found for the selected filters.
-                          </p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <TradesTableView
+              trades={paginatedTrades}
+              isLoading={allTradesLoading && allTradesData.length === 0}
+              emptyMessage="No trades found for the selected filters."
+              showCheckboxes
+              selectedIds={selectedIds}
+              allOnPageSelected={allOnPageSelected}
+              onToggleSelectAll={toggleSelectAll}
+              onToggleSelectOne={toggleSelectOne}
+              onOpenDetails={openModal}
+              onOpenNotes={openNotesModal}
+              error={allTradesError ? (allTradesError as Error) : null}
+            />
           </Card>
 
           {/* Pagination Controls */}
