@@ -1,5 +1,6 @@
 import { DayStats, DirectionStats, IntervalStats, LiquidityStats, LocalHLStats, MarketStats, MssStats, NewsStats, NewsNameStats, SLSizeStats, TradeTypeStats } from '@/types/dashboard';
 import { Trade } from '@/types/trade';
+import { getDayOfWeekFromTradeDate } from '@/utils/dateRangeHelpers';
 
 /**
  * Single source of truth for "liquidated" (local H/L = true).
@@ -433,7 +434,7 @@ export function calculateNewsNameStats(
 
 export function calculateDayStats(trades: Trade[]): DayStats[] {
   if (trades.length === 0) return [];
-  return calculateGroupedStats(trades, t => t.day_of_week || 'Unknown')
+  return calculateGroupedStats(trades, t => getDayOfWeekFromTradeDate(t.trade_date) || t.day_of_week || 'Unknown')
     .map(g => ({
       day: g.type,
       total: g.total,

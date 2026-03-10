@@ -63,20 +63,34 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
       (s, d) => s + (d.total ?? (d.wins ?? 0) + (d.losses ?? 0) + (d.breakEven ?? 0)),
       0
     );
-    const TREND_COLORS: ('teal' | 'orange' | 'violet')[] = ['teal', 'orange', 'violet'];
+
+    // Map colors by semantic trade type so the visual segment + legend always match,
+    // regardless of backend ordering. The largest value will still visually dominate the donut.
     const pieData: PieDatum[] = trendStats
       .filter((d) => (d.total ?? 0) > 0)
-      .map((stat, index) => ({
-        name: stat.tradeType ?? 'Unknown',
-        value: stat.total ?? (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.breakEven ?? 0),
-        percentage: totalTrades > 0 ? ((stat.total ?? 0) / totalTrades) * 100 : 0,
-        color: TREND_COLORS[index % TREND_COLORS.length],
-        wins: stat.wins ?? 0,
-        losses: stat.losses ?? 0,
-        breakEven: stat.breakEven ?? 0,
-        winRate: stat.winRate ?? 0,
-        winRateWithBE: stat.winRateWithBE ?? 0,
-      }));
+      .map((stat) => {
+        const name = stat.tradeType ?? 'Unknown';
+        const value = stat.total ?? (stat.wins ?? 0) + (stat.losses ?? 0) + (stat.breakEven ?? 0);
+        let color: PieDatum['color'];
+        if (name === 'Trend-following') {
+          color = 'teal';
+        } else if (name === 'Counter-trend') {
+          color = 'orange';
+        } else {
+          color = 'violet';
+        }
+        return {
+          name,
+          value,
+          percentage: totalTrades > 0 ? (value / totalTrades) * 100 : 0,
+          color,
+          wins: stat.wins ?? 0,
+          losses: stat.losses ?? 0,
+          breakEven: stat.breakEven ?? 0,
+          winRate: stat.winRate ?? 0,
+          winRateWithBE: stat.winRateWithBE ?? 0,
+        };
+      });
 
     const trendFollowingCount = pieData.find((d) => d.name === 'Trend-following')?.value ?? 0;
     const counterTrendCount = pieData.find((d) => d.name === 'Counter-trend')?.value ?? 0;

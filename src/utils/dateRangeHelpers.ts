@@ -18,6 +18,25 @@ export type FilterType = 'year' | '15days' | '30days' | 'month' | 'all';
 
 export const fmt = (d: Date) => format(d, 'yyyy-MM-dd');
 
+/**
+ * Parse trade_date to a local Date and return the weekday name (e.g. "Sunday").
+ * Avoids timezone bugs: date-only "YYYY-MM-DD" is interpreted as local date, not UTC midnight.
+ */
+export function getDayOfWeekFromTradeDate(tradeDate: string | null | undefined): string {
+  if (!tradeDate || typeof tradeDate !== 'string') return '';
+  const trimmed = tradeDate.trim();
+  if (!trimmed) return '';
+  // Date-only (YYYY-MM-DD) → parse as local date so weekday is correct in all timezones
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [y, m, d] = trimmed.split('-').map(Number);
+    const local = new Date(y, m - 1, d);
+    return local.toLocaleDateString('en-US', { weekday: 'long' });
+  }
+  const d = new Date(trimmed);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { weekday: 'long' });
+}
+
 export function createInitialDateRange(today = new Date()): DateRangeState {
   return {
     startDate: fmt(subDays(today, 29)),
