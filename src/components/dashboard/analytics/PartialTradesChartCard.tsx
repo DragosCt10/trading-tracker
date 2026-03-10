@@ -63,7 +63,7 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
     const pieData = [
       { name: 'Wins', value: wins, color: 'emerald', gradientId: 'partialWins', pct: totalPartials > 0 ? (wins / totalPartials) * 100 : 0 },
       { name: 'Losses', value: losses, color: 'rose', gradientId: 'partialLosses', pct: totalPartials > 0 ? (losses / totalPartials) * 100 : 0 },
-      { name: 'BE', value: be, color: 'amber', gradientId: 'partialBE', pct: totalPartials > 0 ? (be / totalPartials) * 100 : 0 },
+      { name: 'BE', value: be, color: 'slate', gradientId: 'partialBE', pct: totalPartials > 0 ? (be / totalPartials) * 100 : 0 },
     ].filter((d) => d.value > 0);
 
     const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload?: { name: string; value: number; color: string; pct?: number } }> }) => {
@@ -73,7 +73,7 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
       const colorMap: Record<string, { text: string; dot: string }> = {
         emerald: { text: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500 dark:bg-emerald-400 ring-emerald-200/50 dark:ring-emerald-500/30' },
         rose: { text: 'text-rose-600 dark:text-rose-400', dot: 'bg-rose-500 dark:bg-rose-400 ring-rose-200/50 dark:ring-rose-500/30' },
-        amber: { text: 'text-amber-600 dark:text-amber-400', dot: 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30' },
+        slate: { text: 'text-slate-600 dark:text-slate-300', dot: 'bg-slate-500 dark:bg-slate-400 ring-slate-200/50 dark:ring-slate-500/30' },
       };
       const colors = colorMap[data.color] || colorMap.emerald;
       const percentage = data.pct ?? (totalPartials > 0 ? (data.value / totalPartials) * 100 : 0);
@@ -166,12 +166,12 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
                       <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
                       <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
                     </linearGradient>
-                    {/* Break Even gradient - amber */}
-                    <linearGradient id="partialBE" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
-                      <stop offset="50%" stopColor="#f97316" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#ea580c" stopOpacity={0.9} />
-                    </linearGradient>
+                  {/* Break Even gradient - slate */}
+                  <linearGradient id="partialBE" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#64748b" stopOpacity={1} />
+                      <stop offset="50%" stopColor="#475569" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#334155" stopOpacity={0.9} />
+                  </linearGradient>
                   </defs>
                   <Pie
                     data={pieData}

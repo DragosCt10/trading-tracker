@@ -168,7 +168,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         if (!Array.isArray(key)) return false;
         const firstKey = key[0];
         // Global caches span all strategies — always invalidate
-        if (firstKey === 'all-strategy-trades' || firstKey === 'all-strategy-stats') return true;
+        if (firstKey === 'all-strategy-trades' || firstKey === 'all-strategy-stats' || firstKey === 'strategies-overview') return true;
         // Per-strategy queries — only invalidate the affected strategy/ies
         if (firstKey === 'allTrades') return affectedStrategyIds.has((key[5] ?? null) as string | null);
         if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return affectedStrategyIds.has((key[7] ?? null) as string | null);
@@ -180,17 +180,20 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       },
     });
 
-    // Refetch all-strategy-trades for ALL observers (active and inactive).
-    // This ensures StrategiesClient shows the updated trade when the user navigates there,
-    // even if it wasn't mounted when the trade was edited (e.g. user is on a strategy page).
-    // invalidateQueries alone is not sufficient: when StrategiesClient mounts with
-    // enabled:false (strategies still loading), it misses the invalidation signal.
+    // Refetch strategies-overview (and legacy all-strategy-trades) for ALL observers.
+    // This ensures StrategiesClient shows updated stats immediately after a trade is edited,
+    // even if StrategiesClient wasn't mounted at the time of the mutation.
     const accountId = selection.activeAccount?.id;
     const mode = selection.mode;
     if (accountId && userId) {
-      await queryClient.refetchQueries({
-        queryKey: queryKeys.allStrategyTrades(userId, accountId, mode),
-      });
+      await Promise.all([
+        queryClient.refetchQueries({
+          queryKey: queryKeys.allStrategyTrades(userId, accountId, mode),
+        }),
+        queryClient.refetchQueries({
+          queryKey: ['strategies-overview', userId, accountId, mode],
+        }),
+      ]);
     }
 
     // Explicitly refetch active dashboardStats and calendarTrades queries for the affected
@@ -230,7 +233,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const formatPotentialRR = (val: number | undefined | null): string => {
     if (val == null || Number.isNaN(Number(val))) return '—';
     const n = Number(val);
-    return n === 10.5 ? '10+' : String(n);
+    return n === 10.5 ? '10+' : n.toFixed(2);
   };
 
   if (!trade) return null;
@@ -535,7 +538,21 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
           return (
             <div>
               <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
-              <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">{formatPotentialRR(value as number)}</dd>
+              <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {formatPotentialRR(value as number)}
+                <span className="ml-0.5 text-[10px] text-slate-400 dark:text-slate-500">R</span>
+              </dd>
+            </div>
+          );
+        }
+        if (field === 'risk_reward_ratio') {
+          return (
+            <div>
+              <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
+              <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {displayValue}
+                <span className="ml-0.5 text-[10px] text-slate-400 dark:text-slate-500">R</span>
+              </dd>
             </div>
           );
         }
@@ -575,6 +592,29 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
           <div>
             <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
             <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">{displayTime}</dd>
+          </div>
+        );
+      }
+      if (field === 'direction') {
+        const dir = value as string | null | undefined;
+        return (
+          <div>
+            <dt className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</dt>
+            <dd className="mt-1.5 text-sm font-semibold text-slate-900 dark:text-slate-100">
+              {dir === 'Long' ? (
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-emerald-500 dark:text-emerald-400 text-xs">↑</span>
+                  <span>Long</span>
+                </span>
+              ) : dir === 'Short' ? (
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-rose-500 dark:text-rose-400 text-xs">↓</span>
+                  <span>Short</span>
+                </span>
+              ) : (
+                <span>{dir ?? '—'}</span>
+              )}
+            </dd>
           </div>
         );
       }
@@ -1098,7 +1138,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-3">
                   {renderField('Risk %', 'risk_per_trade', 'number')}
-                  {renderField('Risk/Reward', 'risk_reward_ratio', 'number')}
+          {renderField('RR', 'risk_reward_ratio', 'number')}
                 </div>
                 <div className="space-y-3">
                   {hasCard('potential_rr') &&

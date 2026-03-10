@@ -194,7 +194,7 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
                 <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
                 <span className="text-rose-600 dark:text-rose-400">{stat.losses}L</span>
                 <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
-                <span className="text-amber-600 dark:text-amber-400">{beCount}BE</span>
+                <span className="text-slate-600 dark:text-slate-300">{beCount}BE</span>
               </div>
             </div>
           </div>

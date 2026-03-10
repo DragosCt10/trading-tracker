@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useCallback,
+  useTransition,
 } from 'react';
 import {
   startOfMonth,
@@ -39,12 +40,11 @@ import {
 import { RiskRewardStats } from '@/components/dashboard/analytics/RiskRewardStats';
 import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketProfitStats';
 import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
-import { 
+import {
   AccountOverviewCard,
   MONTHS,
   CURRENCY_SYMBOLS,
   getCurrencySymbolFromAccount,
-  computeMonthlyStatsFromTrades,
   calculateTotalYearProfit,
   calculateUpdatedBalance,
 } from '@/components/dashboard/analytics/AccountOverviewCard';
@@ -53,10 +53,7 @@ import { YearSelector } from '@/components/dashboard/analytics/YearSelector';
 import { AnalysisModal } from '@/components/dashboard/analytics/AnalysisModal';
 import { TradingOverviewStats } from '@/components/dashboard/analytics/TradingOverviewStats';
 import type { RiskAnalysis } from '@/components/dashboard/analytics/RiskPerTrade';
-import {
-  MonthlyPerformanceChart,
-  computeFullMonthlyStatsFromTrades,
-} from '@/components/dashboard/analytics/MonthlyPerformanceChart';
+import { MonthlyPerformanceChart, computeFullMonthlyStatsFromTrades } from '@/components/dashboard/analytics/MonthlyPerformanceChart';
 import { DateRangeValue, TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { 
   TradesCalendarCard,
@@ -108,27 +105,19 @@ import {
 import {
   FvgSizeStats,
 } from '@/components/dashboard/analytics/FvgSizeStats';
-import { 
-  ProfitFactorChart,
-} from '@/components/dashboard/analytics/ProfitFactorChart';
-import { 
-  SharpeRatioChart,
-} from '@/components/dashboard/analytics/SharpeRatioChart';
-import { 
-  AverageDrawdownChart,
-} from '@/components/dashboard/analytics/AverageDrawdownChart';
-import { 
-  MaxDrawdownChart,
-} from '@/components/dashboard/analytics/MaxDrawdownChart';
-import { 
-  TQIChart,
-} from '@/components/dashboard/analytics/TQIChart';
-import { 
-  ConsistencyScoreChart,
-} from '@/components/dashboard/analytics/ConsistencyScoreChart';
-import { EquityCurveCard } from '@/components/dashboard/analytics/EquityCurveCard';
-import { ConfidenceStatsCard, MindStateStatsCard } from '@/components/dashboard/analytics/ConfidenceMindStateCards';
+import dynamic from 'next/dynamic';
 import { chartOptions } from '@/utils/chartConfig';
+
+// Below-fold components: code-split so they don't block the initial bundle parse.
+const ProfitFactorChart    = dynamic(() => import('@/components/dashboard/analytics/ProfitFactorChart').then(m => ({ default: m.ProfitFactorChart })));
+const SharpeRatioChart     = dynamic(() => import('@/components/dashboard/analytics/SharpeRatioChart').then(m => ({ default: m.SharpeRatioChart })));
+const AverageDrawdownChart = dynamic(() => import('@/components/dashboard/analytics/AverageDrawdownChart').then(m => ({ default: m.AverageDrawdownChart })));
+const MaxDrawdownChart     = dynamic(() => import('@/components/dashboard/analytics/MaxDrawdownChart').then(m => ({ default: m.MaxDrawdownChart })));
+const TQIChart             = dynamic(() => import('@/components/dashboard/analytics/TQIChart').then(m => ({ default: m.TQIChart })));
+const ConsistencyScoreChart = dynamic(() => import('@/components/dashboard/analytics/ConsistencyScoreChart').then(m => ({ default: m.ConsistencyScoreChart })));
+const EquityCurveCard      = dynamic(() => import('@/components/dashboard/analytics/EquityCurveCard').then(m => ({ default: m.EquityCurveCard })));
+const ConfidenceStatsCard  = dynamic(() => import('@/components/dashboard/analytics/ConfidenceMindStateCards').then(m => ({ default: m.ConfidenceStatsCard })));
+const MindStateStatsCard   = dynamic(() => import('@/components/dashboard/analytics/ConfidenceMindStateCards').then(m => ({ default: m.MindStateStatsCard })));
 
 import {
   type DateRangeState,
@@ -198,6 +187,9 @@ export default function StrategyClient(
 
   // view mode: 'yearly' or 'dateRange'
   const [viewMode, setViewMode] = useState<'yearly' | 'dateRange'>('dateRange');
+  // startTransition marks filter/view-mode changes as non-urgent so React can yield to
+  // user input before re-running the heavy useMemo chains — fixes INP > 200 ms.
+  const [, startFilterTransition] = useTransition();
 
   // date range + calendar state management
   const {
@@ -436,14 +428,8 @@ export default function StrategyClient(
     return baseTrades;
   }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedExecution]);
 
-  // Derive tradeMonths from the filtered trades so calendar nav respects execution+market filters
-  const filteredTradeMonths = useMemo(() => {
-    const set = new Set<string>();
-    for (const t of tradesToUse) {
-      if (t.trade_date) set.add(t.trade_date.slice(0, 7));
-    }
-    return Array.from(set).sort();
-  }, [tradesToUse]);
+  // tradeMonths already comes from the RPC (trade_months field) — no O(n) iteration needed.
+  const filteredTradeMonths = tradeMonths;
 
   // Calendar navigation logic
   const {
@@ -576,23 +562,15 @@ export default function StrategyClient(
   // All data comes from the API — always use the hook loading state.
   const accountOverviewLoadingState = viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading;
 
-  // Determine which monthly stats to use based on view mode (for AccountOverviewCard - profit only)
-  // Always compute from tradesToUse to ensure it reflects the current date range and filters
-  // In yearly mode with no filters, tradesToUse uses allTrades (which is correct)
-  // In date range mode, tradesToUse uses filteredTrades (which respects the date range)
-  // When filters are applied, tradesToUse is already filtered
-  // Calculate monthly stats from tradesToUse
-  // When execution filter is set to "nonExecuted", tradesToUse will include non-executed trades
-  // Non-executed trades don't have profit, so they won't affect profit-based calculations
-  const monthlyStatsToUse: { [month: string]: { profit: number } } = useMemo(() => {
-    return computeMonthlyStatsFromTrades(tradesToUse);
-  }, [tradesToUse]);
+  // AccountOverviewCard only needs { profit } per month — use RPC data directly, no O(n) iteration.
+  const monthlyStatsToUse = monthlyStats?.monthlyData ?? {};
 
-  // Determine which full monthly stats to use based on view mode (for MonthlyPerformanceChart - wins, losses, winRate, etc.)
-  // Always use tradesToUse to ensure data consistency across all cards and charts
-  const monthlyPerformanceStatsToUse = useMemo(() => {
-    return computeFullMonthlyStatsFromTrades(tradesToUse);
-  }, [tradesToUse]);
+  // MonthlyPerformanceChart needs the full wins/losses/winRate shape which differs from RPC MonthlyStats,
+  // so compute from tradesToUse. This is now non-blocking because MonthlyPerformanceChart is lazy-loaded.
+  const monthlyPerformanceStatsToUse = useMemo(
+    () => computeFullMonthlyStatsFromTrades(tradesToUse),
+    [tradesToUse]
+  );
 
   const totalYearProfit = useMemo(
     () => calculateTotalYearProfit(monthlyStatsToUse),
@@ -715,8 +693,8 @@ export default function StrategyClient(
     });
   }, [viewMode, selectedMarket, tradesToUse, statsToUse, monthlyStatsToUse, nonExecutedTrades, nonExecutedTotalTradesCount, yearlyPartialTradesCount, yearlyPartialsBECount, macroStats]);
 
-  // Get markets from the trades being used
-  const markets = Array.from(new Set(tradesToUse.map((t) => t.market)));
+  // Derive market list from pre-aggregated RPC market stats — no O(n) trade iteration.
+  const markets = marketStats.map((s) => s.market).filter(Boolean);
 
   // Half-width extra cards — rendered dynamically in a 2-column grid
   const HALF_WIDTH_EXTRA_CARDS: { key: ExtraCardKey; element: React.ReactNode }[] = [
@@ -765,7 +743,7 @@ export default function StrategyClient(
       {/* View Mode Toggle */}
       <ViewModeToggle
         viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        onViewModeChange={(mode) => startFilterTransition(() => setViewMode(mode))}
       />
 
       {/* Date Range and Filter Buttons - Only show when in dateRange mode, above AccountOverviewCard */}
@@ -780,12 +758,12 @@ export default function StrategyClient(
           onFilterChange={handleFilter}
           isCustomRange={isCustomRange}
           selectedMarket={selectedMarket}
-          onSelectedMarketChange={setSelectedMarket}
+          onSelectedMarketChange={(market) => startFilterTransition(() => setSelectedMarket(market))}
           markets={markets}
           selectedExecution={selectedExecution}
           onSelectedExecutionChange={(execution) => {
             // Analytics page doesn't support 'all' option, so map it to 'executed'
-            setSelectedExecution(execution === 'all' ? 'executed' : execution);
+            startFilterTransition(() => setSelectedExecution(execution === 'all' ? 'executed' : execution));
           }}
           displayStartDate={earliestTradeDate}
         />
@@ -820,7 +798,7 @@ export default function StrategyClient(
         months={MONTHS}
         monthlyStatsAllTrades={monthlyStatsToUse}
         isYearDataLoading={accountOverviewLoadingState}
-        tradesCount={tradesToUse.length}
+        tradesCount={stats?.totalTrades ?? tradesToUse.length}
       />
 
       {/* Month Stats Cards - Only show in yearly mode */}

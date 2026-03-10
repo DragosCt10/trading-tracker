@@ -103,7 +103,7 @@ export function EditStrategyModal({
 
   return (
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogContent className="max-w-lg max-h-[90vh] flex flex-col fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl px-6 py-5 overflow-hidden">
+      <AlertDialogContent className="max-w-lg max-h-[90vh] flex flex-col fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl p-0 overflow-hidden">
         {/* Gradient orbs background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
           <div
@@ -126,9 +126,9 @@ export function EditStrategyModal({
         {/* Top accent line */}
         <div className="absolute -top-px left-0 right-0 h-0.5 opacity-60" style={{ background: 'linear-gradient(to right, transparent, var(--tc-primary), transparent)' }} />
 
-        {/* Scrollable body: only this area scrolls so the footer (and its button) stay pinned at bottom */}
-        <div className="relative flex-1 min-h-0 overflow-y-auto">
-          <AlertDialogHeader className="space-y-1.5 mb-4">
+        {/* Fixed Header */}
+        <div className="relative px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
+          <AlertDialogHeader className="space-y-1.5">
             <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
               <div className="p-2 rounded-lg" style={{ background: 'var(--tc-subtle)', border: '1px solid var(--tc-border)' }}>
                 <Target className="h-5 w-5" style={{ color: 'var(--tc-primary)' }} />
@@ -139,8 +139,11 @@ export function EditStrategyModal({
               Update your strategy name. The URL slug will be updated automatically.
             </AlertDialogDescription>
           </AlertDialogHeader>
+        </div>
 
-          <form id="edit-strategy-form" onSubmit={handleSubmit} className="space-y-4 mt-2">
+        {/* Scrollable content */}
+        <div className="relative flex-1 min-h-0 overflow-y-auto px-6 py-5">
+          <form id="edit-strategy-form" onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label
                 htmlFor="edit-strategy-name"
@@ -173,8 +176,8 @@ export function EditStrategyModal({
           </form>
         </div>
 
-        {/* Footer outside scroll area so it stays pinned and button gradient doesn't glitch on scroll */}
-        <AlertDialogFooter className="relative flex-shrink-0 flex items-center justify-between pt-4 mt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+        {/* Footer outside scroll area so it stays pinned */}
+        <AlertDialogFooter className="relative flex-shrink-0 flex items-center justify-between px-6 pt-4 pb-5 border-t border-slate-200/50 dark:border-slate-700/50">
           <AlertDialogCancel
             type="button"
             onClick={() => handleOpenChange(false)}

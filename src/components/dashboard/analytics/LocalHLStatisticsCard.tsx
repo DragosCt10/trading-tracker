@@ -172,6 +172,7 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
       const data = payload[0].payload;
       const colorMap: Record<string, { dot: string }> = {
         teal: { dot: 'bg-teal-500 dark:bg-teal-400 ring-teal-200/50 dark:ring-teal-500/30' },
+        // Use a warm amber highlight only in the tooltip dot for "Not liquidated"
         amber: { dot: 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30' },
       };
       const colors = colorMap[data.color] ?? colorMap.teal;
@@ -206,7 +207,7 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
               </div>
               <div className="flex items-baseline justify-between gap-4">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
-                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                <span className="text-lg font-bold text-slate-600 dark:text-slate-300">
                   {breakEven}
                   {hasBEBreakdown && (
                     <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">
@@ -275,7 +276,8 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
 
     const legendColors: Record<string, string> = {
       teal: 'text-teal-600 dark:text-teal-400',
-      amber: 'text-amber-600 dark:text-amber-400',
+      // Not liquidated — use amber to visually match tooltip + chart slice
+      amber: 'text-amber-500 dark:text-amber-400',
     };
 
     return (
@@ -318,15 +320,17 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <defs>
+                    {/* Liquidated — teal gradient */}
                     <linearGradient id="localHLGrad0" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#14b8a6" stopOpacity={1} />
                       <stop offset="50%" stopColor="#0d9488" stopOpacity={0.95} />
                       <stop offset="100%" stopColor="#0f766e" stopOpacity={0.9} />
                     </linearGradient>
+                    {/* Not liquidated — warm amber/orange gradient to match tooltip dot */}
                     <linearGradient id="localHLGrad1" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
-                      <stop offset="50%" stopColor="#d97706" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#b45309" stopOpacity={0.9} />
+                      <stop offset="0%" stopColor="#fbbf24" stopOpacity={1} />
+                      <stop offset="50%" stopColor="#f59e0b" stopOpacity={0.96} />
+                      <stop offset="100%" stopColor="#d97706" stopOpacity={0.9} />
                     </linearGradient>
                   </defs>
                   <Pie

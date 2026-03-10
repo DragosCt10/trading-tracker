@@ -460,7 +460,7 @@ export default function ImportTradesModal({
             if (!Array.isArray(key)) return false;
             const first = key[0] as string | undefined;
             // Global caches span all strategies — always invalidate
-            if (first === 'all-strategy-trades' || first === 'all-strategy-stats') return true;
+            if (first === 'all-strategy-trades' || first === 'all-strategy-stats' || first === 'strategies-overview') return true;
             // Per-strategy queries — scope to the imported strategy only
             if (first === 'allTrades') return (key[5] ?? null) === (strategyId || null);
             if (first === 'filteredTrades' || first === 'nonExecutedTrades') return (key[7] ?? null) === (strategyId || null);

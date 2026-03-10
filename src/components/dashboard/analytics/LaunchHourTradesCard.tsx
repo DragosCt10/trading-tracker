@@ -93,7 +93,7 @@ export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.m
     const pieData = [
       { name: 'Wins', value: wins, color: 'emerald', percentage: totalForChart > 0 ? (wins / totalForChart) * 100 : 0 },
       { name: 'Losses', value: losses, color: 'rose', percentage: totalForChart > 0 ? (losses / totalForChart) * 100 : 0 },
-      { name: 'Break Even', value: breakEven, color: 'amber', percentage: totalForChart > 0 ? (breakEven / totalForChart) * 100 : 0 },
+      { name: 'Break Even', value: breakEven, color: 'slate', percentage: totalForChart > 0 ? (breakEven / totalForChart) * 100 : 0 },
     ].filter((item) => item.value > 0); // Only show segments with values
 
     const CustomTooltip = ({ active, payload }: any) => {
@@ -109,9 +109,9 @@ export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.m
           text: 'text-rose-600 dark:text-rose-400',
           dot: 'bg-rose-500 dark:bg-rose-400 ring-rose-200/50 dark:ring-rose-500/30',
         },
-        amber: {
-          text: 'text-amber-600 dark:text-amber-400',
-          dot: 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30',
+        slate: {
+          text: 'text-slate-600 dark:text-slate-300',
+          dot: 'bg-slate-500 dark:bg-slate-400 ring-slate-200/50 dark:ring-slate-500/30',
         },
       };
       const colors = colorMap[data.color] || colorMap.emerald;
@@ -207,11 +207,11 @@ export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.m
                       <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
                       <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
                     </linearGradient>
-                    {/* Break Even gradient - amber */}
+                    {/* Break Even gradient - slate */}
                     <linearGradient id="launchHourBE" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
-                      <stop offset="50%" stopColor="#f97316" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#ea580c" stopOpacity={0.9} />
+                      <stop offset="0%" stopColor="#64748b" stopOpacity={1} />
+                      <stop offset="50%" stopColor="#475569" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#334155" stopOpacity={0.9} />
                     </linearGradient>
                   </defs>
                   <Pie
@@ -289,7 +289,7 @@ export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.m
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                   BE
                 </div>
-                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                <div className="text-lg font-bold text-slate-600 dark:text-slate-300">
                   {breakEven}
                   {totalForChart > 0 && (
                     <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">
