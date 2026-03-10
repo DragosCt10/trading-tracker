@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { QueryClient, dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import { getStrategyBySlug } from '@/lib/server/strategies';
-import { getCachedAccountsForMode } from '@/lib/server/accounts';
+import { resolveActiveAccountFromCookies } from '@/lib/server/accounts';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import { queryKeys } from '@/lib/queryKeys';
@@ -37,40 +37,46 @@ async function DailyJournalDataFetcher({
   user: User;
   strategySlug: string;
 }) {
-  const [strategy, allLiveAccounts] = await Promise.all([
+  const [strategy, { mode, activeAccount }] = await Promise.all([
     getStrategyBySlug(user.id, strategySlug),
-    getCachedAccountsForMode(user.id, 'live'),
+    resolveActiveAccountFromCookies(user.id),
   ]);
   if (!strategy) redirect('/strategies');
-
-  const activeAccount = allLiveAccounts.find((a) => a.is_active) ?? allLiveAccounts[0] ?? null;
 
   let initialTrades: Trade[] = [];
   let currencySymbol = '$';
   let accountBalance: number | null = null;
 
+  // Race prefetch against 300ms timeout: ships skeleton HTML fast even when DB is slow.
+  // On timeout, cache stays empty → client useQuery fetches trades after mount.
+  const PREFETCH_TIMEOUT_MS = 300;
+
   if (activeAccount) {
     const allTime = createAllTimeRange();
-
-    initialTrades = await getFilteredTrades({
-      userId: user.id,
-      accountId: activeAccount.id,
-      mode: 'live',
-      startDate: allTime.startDate,
-      endDate: allTime.endDate,
-      includeNonExecuted: true,
-      strategyId: strategy.id,
-    });
-
+    const tradesResult = await Promise.race([
+      getFilteredTrades({
+        userId: user.id,
+        accountId: activeAccount.id,
+        mode,
+        startDate: allTime.startDate,
+        endDate: allTime.endDate,
+        includeNonExecuted: true,
+        strategyId: strategy.id,
+      }),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), PREFETCH_TIMEOUT_MS)),
+    ]);
+    if (tradesResult !== null) {
+      initialTrades = tradesResult;
+    }
     accountBalance = activeAccount.account_balance ?? null;
     currencySymbol = getCurrencySymbol(activeAccount);
   }
 
   const queryClient = new QueryClient();
-  if (activeAccount) {
+  if (activeAccount && initialTrades.length > 0) {
     const allTime = createAllTimeRange();
     const filteredKey = queryKeys.trades.filtered(
-      'live',
+      mode,
       activeAccount.id,
       user.id,
       'all',
@@ -88,7 +94,7 @@ async function DailyJournalDataFetcher({
         strategyName={strategy.name}
         initialTrades={initialTrades}
         initialActiveAccount={activeAccount}
-        initialMode="live"
+        initialMode={mode}
         initialUserId={user.id}
         currencySymbol={currencySymbol}
         accountBalance={accountBalance}
