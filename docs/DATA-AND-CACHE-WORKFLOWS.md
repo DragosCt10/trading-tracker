@@ -10,9 +10,9 @@ This document describes how data flows from server and RPC through caches to the
 Request
   → Middleware (proxy.ts): updateSession() → 1× Supabase auth (getUser) for protected routes
   → (app)/layout.tsx (RSC): getCachedUserSession() + getCachedAccountsForMode + getCachedAllAccountsForUser
-  → Page (RSC): e.g. StrategyData / ManageTradesData — fetch initial data, pass to client
+  → Page (RSC): e.g. StrategyData / MyTradesData — fetch initial data, pass to client
   → Client layout (AppLayout): setQueryData to hydrate TanStack Query cache from layout props
-  → Client page (StrategyClient / ManageTradesClient): useQuery reads cache or fetches; hydrateQueryCache() may seed more keys
+  → Client page (StrategyClient / MyTradesClient): useQuery reads cache or fetches; hydrateQueryCache() may seed more keys
 ```
 
 - **Auth:** One `getUser()` per request in middleware for protected routes; layout and server modules use `getCachedUserSession()` (React `cache()`), so only one auth call per request.
@@ -42,7 +42,7 @@ These functions are wrapped with React’s `cache()` so that **within a single r
 | `getCachedUserSession` | `src/lib/server/session.ts` | Layout, all server actions that need auth |
 | `getCachedAccountsForMode` | `src/lib/server/accounts.ts` | Layout |
 | `getCachedAllAccountsForUser` | `src/lib/server/accounts.ts` | Layout |
-| `getStrategyBySlug` | `src/lib/server/strategies.ts` | Strategy pages, ManageTradesData, etc. |
+| `getStrategyBySlug` | `src/lib/server/strategies.ts` | Strategy pages, MyTradesData, etc. |
 | `getCalendarTrades` | `src/lib/server/dashboardStats.ts` | useDashboardData (via server action in queryFn) |
 
 **Scope:** Per request only. A new navigation or API call is a new request; cache is not shared across requests.
@@ -123,16 +123,9 @@ The app avoids duplicate work on first load by seeding the client cache from ser
 - **StrategyData (RSC):** Fetches `getDashboardApiResponse(...)` (same params as initial view: live, dateRange, executed, all markets), passes result as `initialDashboardStats` to `StrategyClient`.
 - **StrategyClient (client):** In `hydrateQueryCache()` it does `queryClient.setQueryData(dashboardStatsKey, props.initialDashboardStats)` using the same key shape as `useDashboardData` (mode, accountId, userId, strategyId, year, 'dateRange', initialDateRange, 'executed', 'all'). So `useDashboardData`’s first run sees data and does not call `/api/dashboard-stats`. Optional: also hydrates `filteredTrades`, `allTrades`, `nonExecutedTrades` when those props exist.
 
-### 6.3 Manage-trades page
+### 6.3 My-trades page
 
-- **ManageTradesData (RSC):** Fetches `getFilteredTrades(...)` once, builds `queryKeys.trades.filtered('live', accountId, userId, 'all', initialDateRange.startDate, initialDateRange.endDate, strategyId)`, then:
-  - `queryClient.setQueryData(filteredKey, initialTrades)`
-  - Wraps children in `<HydrationBoundary state={dehydrate(queryClient)}>`.
-- **ManageTradesClient (client):** Uses the same key for the filtered-trades query; when in “initial” context it uses `initialDateRange` for the key so it matches the server-seeded key. So the first `useQuery` run gets data from the hydrated cache and does not call `getFilteredTrades` again. It also uses `initialData: isInitialContext ? initialTrades : undefined` as fallback.
-
-### 6.4 My-trades page
-
-- **MyTradesData (RSC):** Creates a `QueryClient`, prefetches with `queryKeys.trades.filtered(...)` and `queryFn` that calls `getFilteredTrades`, then wraps in `<HydrationBoundary state={dehydrate(queryClient)}>`. Client’s `useQuery` finds the prefetched data and does not refetch on mount.
+- **MyTradesData (RSC):** Creates a `QueryClient`, prefetches with `queryKeys.trades.filtered(...)` and `queryFn` that calls `getFilteredTrades`, then wraps in `<HydrationBoundary state={dehydrate(queryClient)}>`. Client's `useQuery` finds the prefetched data and does not refetch on mount.
 
 ---
 
@@ -142,7 +135,6 @@ The app avoids duplicate work on first load by seeding the client cache from ser
 |------------------|--------------|--------------------------|-------|
 | **App shell** | Layout: session + accounts (cached). | AppLayout sets `userDetails`, `accounts:list`, `accounts:all`, `actionBar:selection`. ActionBar uses initialData for `accounts:all`. | One auth, 2 DB reads (accounts) per layout. |
 | **Strategy dashboard** | StrategyData: `getDashboardApiResponse()`. | useDashboardData: key `dashboardStats`; hydrated from `initialDashboardStats`. Calendar: `getCalendarTrades` (server action) with `STATIC_DATA`. | No API call for dashboard stats on first load. |
-| **Manage-trades** | ManageTradesData: `getFilteredTrades()` + setQueryData + HydrationBoundary. | useQuery `filteredTrades` with key matching server; initialData + hydrated cache. | One getFilteredTrades per load; client uses cache. |
 | **My-trades** | MyTradesData: prefetchQuery filtered trades + HydrationBoundary. | useQuery finds prefetched data. | No duplicate getFilteredTrades on first load. |
 | **Strategies list** | Strategies page may prefetch. | StrategiesClient: useQuery for filtered trades / stats; can setQueryData after fetch. | Key shape must match. |
 | **Calendar (in dashboard)** | — | useQuery with `getCalendarTrades` (server action); key `calendarTrades(mode, accountId, userId, strategyId, start, end)`. `getCalendarTrades` is React-cached on server. | One request per month; optional higher limit to reduce pagination round-trips. |
@@ -170,6 +162,6 @@ The app avoids duplicate work on first load by seeding the client cache from ser
 | Query keys | `src/lib/queryKeys.ts` |
 | Cache presets | `src/constants/queryConfig.ts` |
 | Layout hydration | `src/app/(app)/layout.tsx`, `src/components/shared/layout/AppLayout.tsx`, `src/components/shared/ActionBar.tsx` |
-| Page-level hydration | StrategyData + StrategyClient (`hydrateQueryCache`), ManageTradesData + HydrationBoundary, MyTradesData + HydrationBoundary |
+| Page-level hydration | StrategyData + StrategyClient (`hydrateQueryCache`), MyTradesData + HydrationBoundary |
 
 Use this doc when adding new server data, new RPCs, or new client queries so you can plug into the same auth, cache, and hydration patterns and avoid duplicate requests or hydration mismatches.
