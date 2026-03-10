@@ -516,7 +516,7 @@ export default function DailyJournalClient({
                       <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
                         BE
                       </p>
-                      <p className="text-base font-semibold text-amber-500">
+                      <p className="text-base font-semibold text-slate-600 dark:text-slate-300">
                         {breakEven}
                       </p>
                     </div>
