@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
   const execution = executionParam === 'nonExecuted' ? 'non_executed' : executionParam;
   const market = searchParams.get('market') ?? 'all';
   const includeCompactTrades = searchParams.get('includeCompactTrades') === 'true';
+  const includeSeries = searchParams.get('skipSeries') !== 'true';
 
   if (!accountId || !mode || !startDate || !endDate) {
     return NextResponse.json({ error: 'Missing required params' }, { status: 400 });
@@ -36,6 +37,7 @@ export async function GET(req: NextRequest) {
     execution,
     market,
     includeCompactTrades,
+    includeSeries,
   });
 
   return NextResponse.json(response, {

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { getCalendarTrades } from '@/lib/server/dashboardStats';
+import { getFilteredTrades } from '@/lib/server/trades';
 import { queryKeys } from '@/lib/queryKeys';
 import { TRADES_DATA, STATIC_DATA } from '@/constants/queryConfig';
 import type { RpcReentryStat, RpcTrendStat } from '@/types/dashboard-rpc';
@@ -126,6 +127,11 @@ export function useDashboardData({
     ? `${selectedYear}-12-31`
     : dateRange.endDate;
 
+  // All-time queries (startDate = '2000-01-01') carry a 3-4 MB series[] payload for
+  // large accounts. Skip series and fetch trades separately via getFilteredTrades so
+  // aggregate stats arrive in < 1 s while trade-array components load concurrently.
+  const isAllTimeRange = effectiveStartDate === '2000-01-01';
+
   const statsEnabled =
     !!userId && !!accountId && !!selectedYear && !!mode && !contextLoading && !isSessionLoading;
 
@@ -149,6 +155,7 @@ export function useDashboardData({
         market: selectedMarket,
         ...(strategyId ? { strategyId } : {}),
         ...(includeCompactTrades ? { includeCompactTrades: 'true' } : {}),
+        ...(isAllTimeRange ? { skipSeries: 'true' } : {}),
       });
       const res = await fetch(`/api/dashboard-stats?${params}`);
       if (!res.ok) throw new Error(`Dashboard stats fetch failed: ${res.status}`);
@@ -158,7 +165,33 @@ export function useDashboardData({
     ...TRADES_DATA,
   });
 
-  // ── Query 2: calendar trades for the visible month ────────────────────────
+  // ── Query 2 (all-time only): full Trade[] for equity curve, confidence cards, etc. ──
+  // When isAllTimeRange, series[] is skipped in Query 1 to save 3-4 MB.
+  // This query fills that gap — uses the same key the background prefetch in StrategyClient
+  // seeds, so it's a cache hit most of the time.
+  const { data: allTimeTrades = [], isFetching: allTimeTradesLoading } = useQuery<Trade[]>({
+    queryKey: queryKeys.trades.filtered(
+      mode, accountId, userId, 'dateRange',
+      effectiveStartDate, effectiveEndDate,
+      strategyId ?? null,
+    ),
+    queryFn: async () => {
+      if (!userId || !accountId) return [];
+      return getFilteredTrades({
+        userId,
+        accountId,
+        mode,
+        startDate: effectiveStartDate,
+        endDate: effectiveEndDate,
+        includeNonExecuted: true,
+        strategyId,
+      });
+    },
+    enabled: isAllTimeRange && statsEnabled,
+    ...TRADES_DATA,
+  });
+
+  // ── Query 3: calendar trades for the visible month ────────────────────────
   const { data: calendarTrades = [], isFetching: calendarLoading } = useQuery<Trade[]>({
     queryKey: queryKeys.calendarTrades(
       mode, accountId, userId, strategyId,
@@ -177,8 +210,6 @@ export function useDashboardData({
   });
 
   // ── Prefetch adjacent calendar months in the background ─────────────────────
-  // Once the current month loads (calendarLoading = false), silently queue the
-  // prev and next months that contain trades so navigation feels instant.
   const queryClient = useQueryClient();
   useEffect(() => {
     if (!statsEnabled || !userId || !accountId || calendarLoading) return;
@@ -204,13 +235,10 @@ export function useDashboardData({
   }, [calendarDateRange.startDate, calendarLoading, statsEnabled, userId, accountId, mode, strategyId, apiData?.tradeMonths, queryClient]);
 
   // ── Reentry / break-even / trend stats — now computed in the DB ────────────
-  // These come directly from the RPC response as pre-aggregated arrays.
-  // compact_trades is still returned for components that need raw Trade[] (e.g. my-trades, calendar).
   const reentryStatsFromApi = useMemo(() => {
     const raw = apiData?.reentry_stats ?? [];
     return raw.map((r: RpcReentryStat) => ({
       ...r,
-      // Keep shape compatible with legacy consumers
       total: r.total,
       wins: r.wins,
       losses: r.losses,
@@ -239,24 +267,24 @@ export function useDashboardData({
   }, [apiData?.trend_stats]);
 
   // ── Stable non-executed series ────────────────────────────────────────────
-  // Persists the last known non-executed trades across query-key changes.
-  // When the user switches the execution filter the main query re-fetches and
-  // apiData becomes undefined momentarily — without this, nonExecutedTrades
-  // would flash empty. Mirrors exactly what compact_trades did before Phase 2
-  // (it came from _all with no execution filter, always pre-loaded).
   const [stableNonExecSeries, setStableNonExecSeries] = useState<unknown[]>([]);
 
   useEffect(() => {
-    if (!apiData) return; // loading — keep the previous value
+    if (!apiData) return;
     const series = apiData.compact_trades?.length
       ? apiData.compact_trades.filter((t) => !t.executed)
       : (apiData.nonExecutedStats?.series ?? []);
     setStableNonExecSeries(series);
   }, [apiData]);
 
-  // ── Stats: always from API — market filtering is now done in the DB ────────
-  const isLoading = statsLoading;
+  // ── Trade arrays ──────────────────────────────────────────────────────────
+  // All-time range: series[] is skipped in Query 1; use allTimeTrades from Query 2.
+  // Other ranges: use compact_trades (if extra cards enabled) or series[] from Query 1.
+  const seriesFromApi = (apiData?.compact_trades?.length ? apiData.compact_trades : apiData?.series) ?? [];
+  const tradeArray = isAllTimeRange ? allTimeTrades : seriesFromApi;
+  const tradesLoading = isAllTimeRange ? allTimeTradesLoading : statsLoading;
 
+  // ── Stats: always from API ────────────────────────────────────────────────
   const stats = apiData ? mapApiToStats(apiData) : null;
   const macroStats = apiData ? mapApiToMacro(apiData) : null;
   const setupStats = (apiData?.setup_stats ?? []) as SetupStats[];
@@ -272,10 +300,8 @@ export function useDashboardData({
   const evaluationStats = (apiData?.evaluation_stats ?? []) as EvaluationStat[];
   const riskStats = (apiData?.risk_analysis ?? null) as RiskAnalysis | null;
 
-  // Monthly stats always come from the API (not market-filtered)
   const monthlyStats = apiData ? mapApiToMonthlyStats(apiData) : null;
 
-  // non-executed reference stats always from API
   const nonExecutedStats = apiData?.nonExecutedStats;
   const nonExecutedSetupStats = (nonExecutedStats?.setup_stats ?? []) as SetupStats[];
   const nonExecutedLiquidityStats = (nonExecutedStats?.liquidity_stats ?? []) as LiquidityStats[];
@@ -298,41 +324,39 @@ export function useDashboardData({
     dayStats,
     marketStats,
     nonExecutedMarketStats,
-    marketAllTradesStats: marketStats, // simplified: same range (no separate full-year call)
+    marketAllTradesStats: marketStats,
     slSizeStats,
     macroStats,
     evaluationStats,
     riskStats,
-    allTradesRiskStats: riskStats,     // simplified: same as riskStats
+    allTradesRiskStats: riskStats,
     yearlyPartialTradesCount: apiData?.partials.totalPartialTradesCount ?? 0,
     yearlyPartialsBECount: apiData?.partials.totalPartialsBECount ?? 0,
     nonExecutedTotalTradesCount: apiData?.nonExecutedTotalTradesCount ?? 0,
     tradeMonths: apiData?.tradeMonths ?? (apiData?.trade_months ?? []),
     earliestTradeDate: apiData?.earliestTradeDate ?? (apiData?.earliest_trade_date ?? null),
 
-    // Reentry / breakEven / trend — now from the RPC (computed in DB, not client-side)
+    // Reentry / breakEven / trend — from the RPC
     reentryStats: reentryStatsFromApi,
     breakEvenStats: breakEvenStatsFromApi,
     trendStats: trendStatsFromApi,
 
-    // Trade arrays for components that need raw Trade[].
-    // When compact_trades is present (extra cards enabled): use it (28 fields, full data).
-    // When not present (default): use series[] which now includes market, executed,
-    // confidence_at_entry, mind_state_at_entry, news_name — enough for all always-on components.
-    allTrades: ((apiData?.compact_trades?.length ? apiData.compact_trades : apiData?.series) ?? []) as unknown as Trade[],
-    filteredTrades: ((apiData?.compact_trades?.length ? apiData.compact_trades : apiData?.series) ?? []) as unknown as Trade[],
+    // Trade arrays — all-time uses separate query (no series in dashboardStats);
+    // other ranges use compact_trades or series[] from dashboardStats.
+    allTrades: tradeArray as unknown as Trade[],
+    filteredTrades: tradeArray as unknown as Trade[],
     nonExecutedTrades: stableNonExecSeries as unknown as Trade[],
 
     // Calendar trades
     calendarMonthTrades: calendarTrades,
 
     // Loading states
-    isLoadingStats: isLoading,
+    isLoadingStats: statsLoading,
     isLoadingCalendar: calendarLoading,
-    isLoadingTrades: isLoading,
-    allTradesLoading: isLoading,
-    filteredTradesLoading: isLoading,
+    isLoadingTrades: tradesLoading,
+    allTradesLoading: tradesLoading,
+    filteredTradesLoading: tradesLoading,
     nonExecutedTradesLoading: false,
-    nonExecutedTotalTradesLoading: isLoading,
+    nonExecutedTotalTradesLoading: statsLoading,
   };
 }

@@ -16,6 +16,9 @@ export interface GetDashboardAggregatesParams {
   includeCompactTrades?: boolean;
   /** Market filter — 'all' (default) or a specific market name. Applied in DB. */
   market?: string;
+  /** When false, RPC returns '[]' for series[] — use for all-time queries (10k+ trades)
+   *  to avoid the 3-4 MB payload. The client fetches trades separately via getFilteredTrades(). */
+  includeSeries?: boolean;
 }
 
 /**
@@ -39,6 +42,7 @@ export async function getDashboardAggregates(
     p_account_balance:      params.accountBalance,
     p_include_compact_trades: params.includeCompactTrades ?? false,
     p_market:               params.market ?? 'all',
+    p_include_series:       params.includeSeries ?? true,
   });
 
   if (error) throw error;

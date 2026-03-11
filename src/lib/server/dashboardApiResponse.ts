@@ -20,6 +20,8 @@ export interface GetDashboardApiResponseParams {
   market?: string;
   /** When true, RPC includes compact_trades[] (needed for extra cards: launch_hour, displacement_size, fvg_size, potential_rr) */
   includeCompactTrades?: boolean;
+  /** When false, RPC skips series[] (saves 3-4 MB on all-time queries). Client fetches trades via getFilteredTrades(). */
+  includeSeries?: boolean;
 }
 
 export async function getDashboardApiResponse(
@@ -50,6 +52,7 @@ export async function getDashboardApiResponse(
       accountBalance,
       includeCompactTrades: params.includeCompactTrades ?? false,
       market,
+      includeSeries: params.includeSeries ?? true,
     }),
     nonExecutedNeeded
       ? getDashboardAggregates({

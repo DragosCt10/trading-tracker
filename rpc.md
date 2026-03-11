@@ -18,7 +18,8 @@ p_strategy_id uuid DEFAULT NULL,
 p_execution text DEFAULT 'executed', -- 'executed' | 'non_executed' | 'all'
 p_account_balance numeric DEFAULT 0,
 p_include_compact_trades boolean DEFAULT true,
-p_market text DEFAULT 'all' -- 'all' or specific market name
+p_market text DEFAULT 'all', -- 'all' or specific market name
+p_include_series boolean DEFAULT true -- when false, returns '[]' for series (saves 3-4 MB on all-time queries)
 ) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER AS $func$
 DECLARE
@@ -710,7 +711,10 @@ AND ($8 = 'all' OR COALESCE(NULLIF(market, ''), 'Unknown') = $8)
       ) ORDER BY total DESC), '[]'::jsonb) FROM trend_raw),
 
       -- ── Ordered series for Layer 2 time-series computations ────────────
-      'series', (SELECT COALESCE(jsonb_agg(jsonb_build_object(
+      -- Skipped (returns '[]') when p_include_series = false to avoid 3-4 MB payload
+      -- on all-time queries (10k+ trades). The client fetches trades separately via
+      -- getFilteredTrades() and uses that array for equity curve, confidence cards, etc.
+      'series', CASE WHEN $10 THEN (SELECT COALESCE(jsonb_agg(jsonb_build_object(
         'trade_date',       trade_date,
         'trade_time',       trade_time,
         'trade_outcome',    trade_outcome,
@@ -724,7 +728,7 @@ AND ($8 = 'all' OR COALESCE(NULLIF(market, ''), 'Unknown') = $8)
         'confidence_at_entry', confidence_at_entry,
         'mind_state_at_entry', mind_state_at_entry,
         'news_name',         news_name
-      )), '[]'::jsonb) FROM series_raw),
+      )), '[]'::jsonb) FROM series_raw) ELSE '[]'::jsonb END,
 
       -- ── Trade months & earliest date (replaces compact_trades for nav) ─
       -- Used by: useDashboardData.ts (calendar prefetch, date range init)
@@ -797,7 +801,8 @@ p_strategy_id, -- $5
 p_account_balance, -- $6
 p_execution, -- $7
 p_market, -- $8 market filter ('all' or specific market)
-p_include_compact_trades -- $9
+p_include_compact_trades, -- $9
+p_include_series -- $10
 INTO v_result;
 
 RETURN v_result;
@@ -805,7 +810,7 @@ END;
 $func$;
 
 -- Grant execute to authenticated users (row-level security enforced inside function)
-GRANT EXECUTE ON FUNCTION get_dashboard_aggregates(uuid, uuid, text, date, date, uuid, text, numeric, boolean, text)
+GRANT EXECUTE ON FUNCTION get_dashboard_aggregates(uuid, uuid, text, date, date, uuid, text, numeric, boolean, text, boolean)
 TO authenticated;
 
 -- ─────────────────────────────────────────────────────────────────────────────
