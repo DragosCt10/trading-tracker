@@ -198,8 +198,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       ]);
     }
 
-    // Explicitly refetch active queries for the affected strategies so the UI updates immediately.
-    // dashboardStats  → aggregate stats cards
+    // Refetch all matching queries (not only "active") so cache is updated even when modal/portal
+    // has focus and dashboard queries might not be considered active. Ensures AccountOverviewCard
+    // and calendar show fresh data when the panel closes.
+    // dashboardStats  → AccountOverviewCard (monthly P&L), aggregate stats cards
     // filteredTrades  → tradesToUse array (Phase 1: trade arrays come from a separate query)
     // calendarTrades  → calendar view
     await queryClient.refetchQueries({
@@ -213,7 +215,6 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         if (firstKey === 'filteredTrades') return affectedStrategyIdsArray.includes((key[7] ?? null) as string | null);
         return false;
       },
-      type: 'active',
     });
   }, [queryClient, trade?.strategy_id, selection.activeAccount?.id, selection.mode, userId]);
 
@@ -351,8 +352,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         return;
       }
 
-      // Fire-and-forget: update already succeeded, don't block UI on cache refresh
-      invalidateAndRefetchTradeQueries();
+      // Await so AccountOverviewCard and other stats (dashboardStats + filteredTrades) update before closing
+      await invalidateAndRefetchTradeQueries();
 
       let updatedNews: SavedNewsItem[] | undefined;
       let updatedSetups: string[] | undefined;
