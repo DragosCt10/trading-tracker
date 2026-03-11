@@ -294,7 +294,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     }
 
     // Explicitly refetch active queries for the affected strategy so the UI updates immediately.
-    // dashboardStats  → aggregate stats cards (win rate, P&L, etc.)
+    // dashboardStats  → AccountOverviewCard (monthly P&L), aggregate stats cards (win rate, P&L, etc.)
     // filteredTrades  → tradesToUse array used by equity curve, confidence cards, etc.
     //                   (Phase 1: trade arrays come from a separate query, not from series[])
     // calendarTrades  → calendar view
@@ -599,12 +599,20 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
       if (error) throw new Error(error.message);
 
+      // Await refetch so AccountOverviewCard and calendar show the new trade before modal closes
+      await invalidateAndRefetchTradeQueries({
+        mode: selection.mode,
+        accountId: selection.activeAccount?.id,
+        userId: userId ?? undefined,
+        strategyId: tradeSnapshot.strategy_id ?? null,
+      });
+
       setIsSubmitting(false);
       setTrade(initialTradeState);
       if (onTradeCreated) onTradeCreated();
       onClose();
 
-      // Post-insert sync work (saved lists + query refresh) — do not block UI close.
+      // Post-insert sync work (saved lists + cache) — do not block UI; runs after modal closed
       void (async () => {
         try {
           // Compute updated lists and persist to DB; then update React Query cache so suggestion lists show new data without page refresh
@@ -686,16 +694,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             await queryClient.invalidateQueries({ queryKey: queryKeys.settings(userIdSnapshot) });
             await queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userIdSnapshot) });
           }
-
-          // ✅ Invalidate and refetch trade queries so analytics updates immediately (but don't block the modal close)
-          // Use the same helper; it uses current selection + trade.strategy_id.
-          // If the user navigated in the meantime, it'll still be safe (it only refetches trade-related keys).
-          await invalidateAndRefetchTradeQueries({
-            mode: selection.mode,
-            accountId: selection.activeAccount?.id,
-            userId: userIdSnapshot,
-            strategyId: tradeSnapshot.strategy_id ?? null,
-          });
         } catch (syncErr) {
           console.error('Post-create trade sync failed:', syncErr);
           // Do not surface UI error here — trade was created successfully.
