@@ -16,8 +16,9 @@ export interface GetDashboardAggregatesParams {
   includeCompactTrades?: boolean;
   /** Market filter — 'all' (default) or a specific market name. Applied in DB. */
   market?: string;
-  /** When false, RPC returns '[]' for series[] — use for all-time queries (10k+ trades)
-   *  to avoid the 3-4 MB payload. The client fetches trades separately via getFilteredTrades(). */
+  /** When true, RPC includes series[] in the response. Defaults to false — series_stats in
+   *  the RPC now computes all 6 time-series values (maxDrawdown, streaks, Sharpe, TQI)
+   *  directly in SQL, so series[] is no longer needed for stat computation. */
   includeSeries?: boolean;
 }
 
@@ -42,7 +43,7 @@ export async function getDashboardAggregates(
     p_account_balance:      params.accountBalance,
     p_include_compact_trades: params.includeCompactTrades ?? false,
     p_market:               params.market ?? 'all',
-    p_include_series:       params.includeSeries ?? true,
+    p_include_series:       params.includeSeries ?? false,
   });
 
   if (error) throw error;
