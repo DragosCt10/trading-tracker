@@ -254,7 +254,6 @@ export default function DailyJournalClient({
         if (!entries[0].isIntersecting) return;
         if (!hasMore) return;
         if (tradesLoading) return;
-        observer.disconnect();
         setDisplayedCount((prev) => Math.min(prev + DAYS_PER_LOAD, dayGroups.length));
       },
       { threshold: 0.1 }

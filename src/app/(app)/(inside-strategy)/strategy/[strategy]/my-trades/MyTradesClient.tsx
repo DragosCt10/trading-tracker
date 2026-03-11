@@ -235,7 +235,6 @@ export default function MyTradesClient({
         if (!entries[0].isIntersecting) return;
         if (!hasMore) return;
         if (tradesLoading || tradesFetching) return;
-        observer.disconnect();
         setDisplayedCount((prev) => Math.min(prev + ITEMS_PER_LOAD, trades.length));
       },
       { threshold: 0.1 }
