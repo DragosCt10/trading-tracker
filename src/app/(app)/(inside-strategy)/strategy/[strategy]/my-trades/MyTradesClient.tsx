@@ -235,6 +235,7 @@ export default function MyTradesClient({
         if (!entries[0].isIntersecting) return;
         if (!hasMore) return;
         if (tradesLoading || tradesFetching) return;
+        observer.disconnect();
         setDisplayedCount((prev) => Math.min(prev + ITEMS_PER_LOAD, trades.length));
       },
       { threshold: 0.1 }
@@ -242,9 +243,7 @@ export default function MyTradesClient({
 
     const currentTarget = observerTarget.current;
     if (currentTarget) observer.observe(currentTarget);
-    return () => {
-      if (currentTarget) observer.unobserve(currentTarget);
-    };
+    return () => observer.disconnect();
   }, [mounted, hasMore, tradesLoading, tradesFetching, trades.length]);
 
   // TradeDetailsPanel.invalidateAndRefetchTradeQueries already handles scoped cache invalidation
