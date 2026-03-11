@@ -1446,7 +1446,7 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
               value={liquidity ?? ''}
               onChange={(v) => updateTrade('liquidity', v)}
               options={liquidityOptions}
-              defaultSuggestions={['HOD', 'LOD']}
+              defaultSuggestions={liquidityOptions}
               customValueLabel="conditions / liquidity"
               placeholder="Select or type conditions / liquidity"
               dropdownClassName="z-[100]"
