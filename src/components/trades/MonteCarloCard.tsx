@@ -62,12 +62,12 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
                     side="top"
                     align="start"
                     sideOffset={8}
-                    className="max-w-[18rem] z-[100] rounded-xl border border-slate-200/70 dark:border-slate-700/60 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-lg p-3.5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed"
+                    className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100 z-[100]"
                   >
-                    <p className="font-medium text-slate-700 dark:text-slate-200 mb-2">
+                    <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
                       How to read this chart
-                    </p>
-                    <p className="mb-3">
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
                       500 random sequences are simulated by drawing from your real trade history.
                       Each band shows how many of those sequences landed in that range at each future trade.
                     </p>
@@ -218,8 +218,8 @@ const TooltipBandRow: React.FC<{
       )}
     </div>
     <div>
-      <span className="font-medium text-slate-700 dark:text-slate-200">{label}: </span>
-      <span>{description}</span>
+      <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">{label}: </span>
+      <span className="text-xs text-slate-600 dark:text-slate-400">{description}</span>
     </div>
   </div>
 );
