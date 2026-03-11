@@ -185,9 +185,12 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
   const daysInMonth = getDaysInMonth();
   const firstDay = daysInMonth[0];
 
-  const firstDayOfWeek = firstDay.getDay(); // 0 = Sun
-  const mondayBasedFirstDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
-  const emptyCells = Array(mondayBasedFirstDay).fill(null);
+  // Week layout starts on Saturday, then Sunday, then Monday–Friday
+  // JS getDay(): 0 = Sun, 1 = Mon, ..., 6 = Sat
+  const firstDayOfWeek = firstDay.getDay();
+  const weekdayOrder = [6, 0, 1, 2, 3, 4, 5]; // Sat, Sun, Mon, Tue, Wed, Thu, Fri
+  const firstDayColumn = weekdayOrder.indexOf(firstDayOfWeek);
+  const emptyCells = Array(firstDayColumn < 0 ? 0 : firstDayColumn).fill(null);
 
   return (
     <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
@@ -301,7 +304,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
         <TooltipProvider>
           {/* Calendar grid */}
           <div className="grid grid-cols-7 gap-1">
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+            {['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((day) => (
               <div
                 key={day}
                 className="p-2 text-center text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide"
