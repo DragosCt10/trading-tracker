@@ -155,6 +155,12 @@ export interface RpcSeriesRow {
   calculated_profit: number;
   risk_per_trade: number;       // already COALESCE'd to 0.5
   risk_reward_ratio: number;    // already COALESCE'd to 2.0
+  // Phase 2: added to replace compact_trades for always-on components
+  market: string;
+  executed: boolean;
+  confidence_at_entry: number | null;
+  mind_state_at_entry: number | null;
+  news_name: string | null;
 }
 
 // ── Compact trade for Layer 3 Web Worker ────────────────────────────────────

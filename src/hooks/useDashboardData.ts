@@ -95,6 +95,7 @@ export function useDashboardData({
   strategyId,
   viewMode,
   selectedExecution = 'executed',
+  includeCompactTrades,
 }: {
   session: any;
   dateRange: { startDate: string; endDate: string };
@@ -108,6 +109,9 @@ export function useDashboardData({
   strategyId?: string | null;
   viewMode?: 'yearly' | 'dateRange';
   selectedExecution?: 'all' | 'executed' | 'nonExecuted';
+  /** When true, the API includes compact_trades[] for extra cards that need raw trade fields.
+   *  When false (default), series[] is used — much smaller payload. */
+  includeCompactTrades?: boolean;
 }) {
   const userId = session?.user?.id as string | undefined;
   const accountId = activeAccount?.id as string | undefined;
@@ -144,6 +148,7 @@ export function useDashboardData({
         execution: selectedExecution,
         market: selectedMarket,
         ...(strategyId ? { strategyId } : {}),
+        ...(includeCompactTrades ? { includeCompactTrades: 'true' } : {}),
       });
       const res = await fetch(`/api/dashboard-stats?${params}`);
       if (!res.ok) throw new Error(`Dashboard stats fetch failed: ${res.status}`);
@@ -294,12 +299,24 @@ export function useDashboardData({
     breakEvenStats: breakEvenStatsFromApi,
     trendStats: trendStatsFromApi,
 
-    // Trade arrays for components that need raw Trade[] — computed from compact_trades.
-    // CompactTrade covers most Trade fields; extra-card-specific fields (confidence_level,
-    // mind_state, news_name, displacement_size, fvg_size) will be undefined.
-    allTrades: (apiData?.compact_trades ?? []) as unknown as Trade[],
-    filteredTrades: (apiData?.compact_trades ?? []) as unknown as Trade[],
-    nonExecutedTrades: ((apiData?.compact_trades ?? []).filter((t) => !t.executed)) as unknown as Trade[],
+    // Trade arrays for components that need raw Trade[].
+    // When compact_trades is present (extra cards enabled): use it (28 fields, full data).
+    // When not present (default): use series[] which now includes market, executed,
+    // confidence_at_entry, mind_state_at_entry, news_name — enough for all always-on components.
+    allTrades: ((apiData?.compact_trades?.length ? apiData.compact_trades : apiData?.series) ?? []) as unknown as Trade[],
+    filteredTrades: ((apiData?.compact_trades?.length ? apiData.compact_trades : apiData?.series) ?? []) as unknown as Trade[],
+    nonExecutedTrades: (() => {
+      if (apiData?.compact_trades?.length) {
+        return apiData.compact_trades.filter((t) => !t.executed);
+      }
+      // No compact_trades: non-executed trades come from either the main series
+      // (when the user switched to nonExecuted filter, execution='non_executed' was used)
+      // or from the nonExecutedStats second RPC call (default executed mode).
+      if (selectedExecution === 'nonExecuted') {
+        return apiData?.series ?? [];
+      }
+      return apiData?.nonExecutedStats?.series ?? [];
+    })() as unknown as Trade[],
 
     // Calendar trades
     calendarMonthTrades: calendarTrades,

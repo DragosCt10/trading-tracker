@@ -254,6 +254,15 @@ export default function StrategyClient(
   const extraCards = props?.initialExtraCards ?? [];
   const hasCard = (key: ExtraCardKey) => extraCards.includes(key);
 
+  // compact_trades is only needed for extra cards whose components read fields
+  // that are not in series[]: launch_hour, displacement_size, fvg_size, risk_reward_ratio_long.
+  // All other components (EquityCurveCard, ConfidenceStatsCard, NewsNameChartCard, etc.)
+  // now get their data from series[] which includes market, executed, confidence_at_entry,
+  // mind_state_at_entry, news_name. ~60% smaller payload for most strategies.
+  const includeCompactTrades = extraCards.some((k) =>
+    (['launch_hour', 'avg_displacement', 'displacement_size', 'fvg_size', 'potential_rr'] as ExtraCardKey[]).includes(k)
+  );
+
   // Helper function to hydrate React Query cache
   const hydrateQueryCache = useCallback(() => {
     const uid = props?.initialUserId;
@@ -411,6 +420,7 @@ export default function StrategyClient(
     strategyId,
     viewMode,
     selectedExecution,
+    includeCompactTrades,
   });
 
   // Determine which trades to use based on view mode, market filter, and execution filter

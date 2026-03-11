@@ -37,7 +37,7 @@ export async function getDashboardAggregates(
     p_strategy_id:          params.strategyId ?? null,
     p_execution:            params.execution ?? 'executed',
     p_account_balance:      params.accountBalance,
-    p_include_compact_trades: params.includeCompactTrades ?? true,
+    p_include_compact_trades: params.includeCompactTrades ?? false,
     p_market:               params.market ?? 'all',
   });
 
