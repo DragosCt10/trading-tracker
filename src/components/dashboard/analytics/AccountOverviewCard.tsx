@@ -5,7 +5,7 @@ import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip as ReTooltip, Bar 
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
-import { useEffect, useState } from 'react';
+import React from 'react';
 import { Trade } from '@/types/trade';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
@@ -146,35 +146,9 @@ export function AccountOverviewCard({
 
   const effectiveFallbackName = fallbackAccountName ?? 'No Active Account';
   const displayName = mounted ? (accountName || effectiveFallbackName) : '\u00A0';
-  // Animated counter for current balance – smoothly transitions when updatedBalance changes.
-  const [animatedBalance, setAnimatedBalance] = useState(updatedBalance);
-
-  useEffect(() => {
-    if (!mounted) return;
-    let frameId: number;
-    const duration = 2000; // ms
-    const start = performance.now();
-    const startValue = animatedBalance;
-    const delta = updatedBalance - startValue;
-
-    const animate = (now: number) => {
-      const elapsed = now - start;
-      const t = Math.min(1, elapsed / duration);
-      // Ease-out cubic for a smooth finish
-      const eased = 1 - Math.pow(1 - t, 3);
-      setAnimatedBalance(startValue + delta * eased);
-      if (t < 1) {
-        frameId = requestAnimationFrame(animate);
-      }
-    };
-
-    frameId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frameId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [updatedBalance, mounted]);
 
   const displayBalanceStr = mounted
-    ? `${currencySymbol}${animatedBalance.toLocaleString('en-US', {
+    ? `${currencySymbol}${updatedBalance.toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`
