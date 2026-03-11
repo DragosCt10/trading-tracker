@@ -278,6 +278,26 @@ export interface Database {
       };
 
       // ─────────────────────────────────────────────────────────────
+      // Phase 3: pre-computed per-strategy stats (updated via DB triggers)
+      strategy_stats_cache: {
+        Row: {
+          user_id:      string;
+          account_id:   string;
+          mode:         'live' | 'demo' | 'backtesting';
+          strategy_id:  string;
+          total_trades: number;
+          win_rate:     number;
+          avg_rr:       number;
+          total_rr:     number;
+          total_profit: number;
+          equity_curve: Json; // EquityCurvePoint[] stored as JSONB
+          updated_at:   string;
+        };
+        Insert: never;
+        Update: never;
+      };
+
+      // ─────────────────────────────────────────────────────────────
       // Public share links for strategy analytics
       strategy_shares: {
         Row: {

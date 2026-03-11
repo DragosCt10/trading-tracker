@@ -18,6 +18,8 @@ export interface GetDashboardApiResponseParams {
   /** 'executed' | 'non_executed' | 'all' */
   execution?: string;
   market?: string;
+  /** When true, RPC includes compact_trades[] (needed for extra cards: launch_hour, displacement_size, fvg_size, potential_rr) */
+  includeCompactTrades?: boolean;
 }
 
 export async function getDashboardApiResponse(
@@ -46,7 +48,7 @@ export async function getDashboardApiResponse(
       strategyId,
       execution,
       accountBalance,
-      includeCompactTrades: true,
+      includeCompactTrades: params.includeCompactTrades ?? false,
       market,
     }),
     nonExecutedNeeded

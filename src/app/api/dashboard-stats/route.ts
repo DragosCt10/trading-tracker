@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
   const executionParam = searchParams.get('execution') ?? 'executed';
   const execution = executionParam === 'nonExecuted' ? 'non_executed' : executionParam;
   const market = searchParams.get('market') ?? 'all';
+  const includeCompactTrades = searchParams.get('includeCompactTrades') === 'true';
 
   if (!accountId || !mode || !startDate || !endDate) {
     return NextResponse.json({ error: 'Missing required params' }, { status: 400 });
@@ -34,6 +35,7 @@ export async function GET(req: NextRequest) {
     accountBalance,
     execution,
     market,
+    includeCompactTrades,
   });
 
   return NextResponse.json(response, {

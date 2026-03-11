@@ -242,9 +242,7 @@ export default function MyTradesClient({
 
     const currentTarget = observerTarget.current;
     if (currentTarget) observer.observe(currentTarget);
-    return () => {
-      if (currentTarget) observer.unobserve(currentTarget);
-    };
+    return () => observer.disconnect();
   }, [mounted, hasMore, tradesLoading, tradesFetching, trades.length]);
 
   // TradeDetailsPanel.invalidateAndRefetchTradeQueries already handles scoped cache invalidation

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { getCalendarTrades } from '@/lib/server/dashboardStats';
@@ -95,6 +95,7 @@ export function useDashboardData({
   strategyId,
   viewMode,
   selectedExecution = 'executed',
+  includeCompactTrades,
 }: {
   session: any;
   dateRange: { startDate: string; endDate: string };
@@ -108,6 +109,9 @@ export function useDashboardData({
   strategyId?: string | null;
   viewMode?: 'yearly' | 'dateRange';
   selectedExecution?: 'all' | 'executed' | 'nonExecuted';
+  /** When true, the API includes compact_trades[] for extra cards that need raw trade fields.
+   *  When false (default), series[] is used — much smaller payload. */
+  includeCompactTrades?: boolean;
 }) {
   const userId = session?.user?.id as string | undefined;
   const accountId = activeAccount?.id as string | undefined;
@@ -144,6 +148,7 @@ export function useDashboardData({
         execution: selectedExecution,
         market: selectedMarket,
         ...(strategyId ? { strategyId } : {}),
+        ...(includeCompactTrades ? { includeCompactTrades: 'true' } : {}),
       });
       const res = await fetch(`/api/dashboard-stats?${params}`);
       if (!res.ok) throw new Error(`Dashboard stats fetch failed: ${res.status}`);
@@ -233,6 +238,22 @@ export function useDashboardData({
     return (apiData?.trend_stats ?? []) as RpcTrendStat[];
   }, [apiData?.trend_stats]);
 
+  // ── Stable non-executed series ────────────────────────────────────────────
+  // Persists the last known non-executed trades across query-key changes.
+  // When the user switches the execution filter the main query re-fetches and
+  // apiData becomes undefined momentarily — without this, nonExecutedTrades
+  // would flash empty. Mirrors exactly what compact_trades did before Phase 2
+  // (it came from _all with no execution filter, always pre-loaded).
+  const [stableNonExecSeries, setStableNonExecSeries] = useState<unknown[]>([]);
+
+  useEffect(() => {
+    if (!apiData) return; // loading — keep the previous value
+    const series = apiData.compact_trades?.length
+      ? apiData.compact_trades.filter((t) => !t.executed)
+      : (apiData.nonExecutedStats?.series ?? []);
+    setStableNonExecSeries(series);
+  }, [apiData]);
+
   // ── Stats: always from API — market filtering is now done in the DB ────────
   const isLoading = statsLoading;
 
@@ -294,12 +315,13 @@ export function useDashboardData({
     breakEvenStats: breakEvenStatsFromApi,
     trendStats: trendStatsFromApi,
 
-    // Trade arrays for components that need raw Trade[] — computed from compact_trades.
-    // CompactTrade covers most Trade fields; extra-card-specific fields (confidence_level,
-    // mind_state, news_name, displacement_size, fvg_size) will be undefined.
-    allTrades: (apiData?.compact_trades ?? []) as unknown as Trade[],
-    filteredTrades: (apiData?.compact_trades ?? []) as unknown as Trade[],
-    nonExecutedTrades: ((apiData?.compact_trades ?? []).filter((t) => !t.executed)) as unknown as Trade[],
+    // Trade arrays for components that need raw Trade[].
+    // When compact_trades is present (extra cards enabled): use it (28 fields, full data).
+    // When not present (default): use series[] which now includes market, executed,
+    // confidence_at_entry, mind_state_at_entry, news_name — enough for all always-on components.
+    allTrades: ((apiData?.compact_trades?.length ? apiData.compact_trades : apiData?.series) ?? []) as unknown as Trade[],
+    filteredTrades: ((apiData?.compact_trades?.length ? apiData.compact_trades : apiData?.series) ?? []) as unknown as Trade[],
+    nonExecutedTrades: stableNonExecSeries as unknown as Trade[],
 
     // Calendar trades
     calendarMonthTrades: calendarTrades,

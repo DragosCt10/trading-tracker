@@ -45,6 +45,7 @@ import {
   MONTHS,
   CURRENCY_SYMBOLS,
   getCurrencySymbolFromAccount,
+  computeMonthlyStatsFromTrades,
   calculateTotalYearProfit,
   calculateUpdatedBalance,
 } from '@/components/dashboard/analytics/AccountOverviewCard';
@@ -254,6 +255,15 @@ export default function StrategyClient(
   const extraCards = props?.initialExtraCards ?? [];
   const hasCard = (key: ExtraCardKey) => extraCards.includes(key);
 
+  // compact_trades is only needed for extra cards whose components read fields
+  // that are not in series[]: launch_hour, displacement_size, fvg_size, risk_reward_ratio_long.
+  // All other components (EquityCurveCard, ConfidenceStatsCard, NewsNameChartCard, etc.)
+  // now get their data from series[] which includes market, executed, confidence_at_entry,
+  // mind_state_at_entry, news_name. ~60% smaller payload for most strategies.
+  const includeCompactTrades = extraCards.some((k) =>
+    (['launch_hour', 'avg_displacement', 'displacement_size', 'fvg_size', 'potential_rr'] as ExtraCardKey[]).includes(k)
+  );
+
   // Helper function to hydrate React Query cache
   const hydrateQueryCache = useCallback(() => {
     const uid = props?.initialUserId;
@@ -411,25 +421,37 @@ export default function StrategyClient(
     strategyId,
     viewMode,
     selectedExecution,
+    includeCompactTrades,
   });
 
-  // Determine which trades to use based on view mode, market filter, and execution filter
   const tradesToUse = useMemo(() => {
     let baseTrades: Trade[] = viewMode === 'yearly' ? allTrades : filteredTrades;
 
-    // Apply execution filter for both modes (compact_trades includes all execution types)
     if (selectedExecution === 'nonExecuted') {
-      baseTrades = nonExecutedTrades || [];
-    } else if (selectedExecution === 'executed') {
-      baseTrades = baseTrades.filter((t) => t.executed === true);
+      return nonExecutedTrades || [];
     }
-
-    // market filter is applied in the DB/RPC — compact_trades is already market-filtered
+    if (selectedExecution === 'executed') {
+      return baseTrades.filter((t) => t.executed === true);
+    }
     return baseTrades;
   }, [viewMode, allTrades, filteredTrades, nonExecutedTrades, selectedExecution]);
 
-  // tradeMonths already comes from the RPC (trade_months field) — no O(n) iteration needed.
-  const filteredTradeMonths = tradeMonths;
+  // tradeMonths from RPC covers all trades (no execution filter).
+  // When non-executed filter is active, derive months from nonExecutedTrades instead.
+  const filteredTradeMonths = useMemo(() => {
+    if (selectedExecution === 'nonExecuted') {
+      const months = new Set<string>();
+      for (const t of nonExecutedTrades) {
+        const d = t.trade_date;
+        if (d) {
+          const s = typeof d === 'string' ? d : String(d);
+          months.add(s.slice(0, 7));
+        }
+      }
+      return Array.from(months).sort();
+    }
+    return tradeMonths;
+  }, [selectedExecution, nonExecutedTrades, tradeMonths]);
 
   // Calendar navigation logic
   const {
@@ -562,8 +584,15 @@ export default function StrategyClient(
   // All data comes from the API — always use the hook loading state.
   const accountOverviewLoadingState = viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading;
 
-  // AccountOverviewCard only needs { profit } per month — use RPC data directly, no O(n) iteration.
-  const monthlyStatsToUse = monthlyStats?.monthlyData ?? {};
+  // AccountOverviewCard only needs { profit } per month.
+  // When execution filter is "nonExecuted", derive monthly stats from tradesToUse
+  // so the card reflects non-executed activity instead of executed-only RPC data.
+  const monthlyStatsToUse = useMemo(() => {
+    if (selectedExecution === 'nonExecuted') {
+      return computeMonthlyStatsFromTrades(tradesToUse);
+    }
+    return monthlyStats?.monthlyData ?? {};
+  }, [selectedExecution, tradesToUse, monthlyStats]);
 
   // MonthlyPerformanceChart needs the full wins/losses/winRate shape which differs from RPC MonthlyStats,
   // so compute from tradesToUse. This is now non-blocking because MonthlyPerformanceChart is lazy-loaded.
@@ -597,17 +626,17 @@ export default function StrategyClient(
     // In dateRange mode: use calendarMonthTrades (allTrades filtered by calendar month),
     // so trades outside the date-range filter window but within the calendar month still appear.
     let tradesSource: Trade[] = viewMode === 'yearly' ? allTrades : calendarMonthTrades;
-    
-    // Apply execution filter for both modes (compact_trades includes all execution types)
-    if (selectedExecution === 'nonExecuted') {
-      tradesSource = nonExecutedTrades || [];
-    } else if (selectedExecution === 'executed') {
-      tradesSource = tradesSource.filter((t) => t.executed === true);
-    }
-
     let filteredSource = tradesSource;
 
-    // Apply market filter if needed
+    // Apply execution filter for both modes using the trade.executed flag.
+    // Use !== true for non-executed to catch both false and null (legacy rows).
+    if (selectedExecution === 'nonExecuted') {
+      filteredSource = filteredSource.filter((t) => t.executed !== true);
+    } else if (selectedExecution === 'executed') {
+      filteredSource = filteredSource.filter((t) => t.executed === true);
+    }
+
+    // Apply market filter if needed (calendar trades are not market-filtered in SQL)
     if (selectedMarket !== 'all') {
       filteredSource = filteredSource.filter((t) => t.market === selectedMarket);
     }
@@ -635,7 +664,7 @@ export default function StrategyClient(
     });
     
     return result;
-  }, [viewMode, allTrades, calendarMonthTrades, filteredTrades, nonExecutedTrades, currentDate, selectedMarket, selectedExecution]);
+  }, [viewMode, allTrades, calendarMonthTrades, currentDate, selectedMarket, selectedExecution]);
 
   const weeklyStats = useMemo(
     () =>
