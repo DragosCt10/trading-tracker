@@ -293,10 +293,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       ]);
     }
 
-    // Explicitly refetch active dashboardStats and calendarTrades queries for the affected strategy.
-    // All dashboard data comes from dashboardStats (compact_trades); calendarTrades powers the calendar view.
-    // invalidateQueries triggers an auto-refetch for active observers, but an explicit refetch ensures
-    // the UI updates immediately after the trade is created (e.g. new trade appears in calendar/stats).
+    // Explicitly refetch active queries for the affected strategy so the UI updates immediately.
+    // dashboardStats  → aggregate stats cards (win rate, P&L, etc.)
+    // filteredTrades  → tradesToUse array used by equity curve, confidence cards, etc.
+    //                   (Phase 1: trade arrays come from a separate query, not from series[])
+    // calendarTrades  → calendar view
     await queryClient.refetchQueries({
       predicate: (query) => {
         const key = query.queryKey;
@@ -304,6 +305,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         const firstKey = key[0];
         if (firstKey === 'dashboardStats') return (key[4] ?? null) === strategyId;
         if (firstKey === 'calendarTrades') return (key[4] ?? null) === strategyId;
+        // filteredTrades key: ['filteredTrades', mode, accountId, userId, viewMode, start, end, strategyId]
+        if (firstKey === 'filteredTrades') return (key[7] ?? null) === strategyId;
         return false;
       },
       type: 'active',
