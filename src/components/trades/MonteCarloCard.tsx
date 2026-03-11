@@ -5,7 +5,14 @@ import { Info } from 'lucide-react';
 import { MonteCarloChart } from './MonteCarloChart';
 import { runMonteCarloSimulation } from '@/utils/monteCarloSimulation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useDarkMode } from '@/hooks/useDarkMode';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import type { Trade } from '@/types/trade';
 
 const MIN_TRADES = 20;
@@ -21,7 +28,6 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
   trades,
   currencySymbol = '$',
 }) => {
-  const { isDark } = useDarkMode();
   const [futureTrades, setFutureTrades] = useState<number>(50);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('r');
 
@@ -33,34 +39,39 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
   const hasSufficientData = trades.length >= MIN_TRADES;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm shadow-lg shadow-slate-200/50 dark:shadow-none p-6 mt-6">
-      {isDark && (
-        <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />
-      )}
-
-      <div className="relative">
-        {/* Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-5">
+    <Card className="mb-4 mt-6 z-1 relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm w-full flex flex-col">
+      <CardHeader className="pb-2 flex-shrink-0">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
+              <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
                 Future Equity
-              </h2>
-              <div className="group relative">
-                <Info className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500 cursor-help" />
-                <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-72 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <div className="relative overflow-hidden rounded-xl border border-slate-200/70 dark:border-slate-700/60 bg-slate-50/95 dark:bg-slate-900/90 backdrop-blur-xl shadow-lg p-3.5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                    {isDark && (
-                      <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-xl" />
-                    )}
-                    <p className="relative font-medium text-slate-700 dark:text-slate-200 mb-2">
+              </CardTitle>
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="rounded p-0.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 cursor-help focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-500"
+                      aria-label="How to read this chart"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="top"
+                    align="start"
+                    sideOffset={8}
+                    className="max-w-[18rem] z-[100] rounded-xl border border-slate-200/70 dark:border-slate-700/60 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-lg p-3.5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed"
+                  >
+                    <p className="font-medium text-slate-700 dark:text-slate-200 mb-2">
                       How to read this chart
                     </p>
-                    <p className="relative mb-3">
+                    <p className="mb-3">
                       500 random sequences are simulated by drawing from your real trade history.
                       Each band shows how many of those sequences landed in that range at each future trade.
                     </p>
-                    <div className="relative flex flex-col gap-2">
+                    <div className="flex flex-col gap-2">
                       <TooltipBandRow
                         color="var(--tc-primary, #8b5cf6)"
                         label="75th – 90th pct"
@@ -90,19 +101,18 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
                         description="Bottom 25% of runs — worst realistic scenarios."
                       />
                     </div>
-                  </div>
-                  <div className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 rotate-45 border-r border-b border-slate-200/70 dark:border-slate-700/60 bg-slate-50/95 dark:bg-slate-900/90 -mt-1" />
-                </div>
-              </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <CardDescription className="text-base text-slate-500 dark:text-slate-400">
               {hasSufficientData
                 ? `Based on ${trades.length} trade${trades.length !== 1 ? 's' : ''} · ${futureTrades} future trades projected`
                 : `${trades.length} trade${trades.length !== 1 ? 's' : ''} available · need at least ${MIN_TRADES} for simulation`}
-            </p>
+            </CardDescription>
           </div>
 
-          {hasSufficientData && (
+          {hasSufficientData ? (
             <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
               {/* R / $ toggle */}
               <div className="flex items-center rounded-xl border border-slate-200/70 dark:border-slate-700/50 overflow-hidden h-8 text-xs bg-slate-100/60 dark:bg-slate-800/40">
@@ -150,9 +160,11 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
                 </Select>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
-
+      </CardHeader>
+      <CardContent className="flex-1 pt-2 pb-4">
+        <div className="relative">
         {/* Chart or empty state */}
         {hasSufficientData ? (
           <>
@@ -183,7 +195,8 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
           <EmptyState tradeCount={trades.length} minTrades={MIN_TRADES} />
         )}
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -229,17 +242,17 @@ const EmptyState: React.FC<{ tradeCount: number; minTrades: number }> = ({
   tradeCount,
   minTrades,
 }) => (
-  <div className="flex flex-col items-center justify-center gap-3 py-14 rounded-xl bg-slate-100/40 dark:bg-slate-800/20">
+  <div className="flex flex-col items-center justify-center gap-3 py-14 rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
     <div className="w-10 h-10 rounded-full bg-slate-200/60 dark:bg-slate-700/40 flex items-center justify-center">
       <svg className="w-5 h-5 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
       </svg>
     </div>
     <div className="text-center">
-      <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+      <p className="text-base font-medium text-slate-600 dark:text-slate-300">
         Not enough trades yet
       </p>
-      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
         {minTrades - tradeCount} more trade{minTrades - tradeCount !== 1 ? 's' : ''} needed to run the simulation
       </p>
     </div>
