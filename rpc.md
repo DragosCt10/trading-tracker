@@ -55,9 +55,14 @@ AND account_id = $2
 AND trade_date BETWEEN $3 AND $4
 AND ($5::uuid IS NULL OR strategy_id = $5)
 AND (
-($7 = 'executed' AND executed = true) OR
-($7 = 'non_executed' AND executed = false) OR
-($7 = 'all')
+  -- Execution filter:
+  -- - 'executed'      → executed = true
+  -- - 'non_executed'  → executed is NOT true (false or NULL) so legacy rows with NULL
+  --                    are treated as non-executed, matching MyTradesClient behavior
+  -- - 'all'           → no execution filter
+  ($7 = 'executed'     AND executed = true) OR
+  ($7 = 'non_executed' AND COALESCE(executed, false) = false) OR
+  ($7 = 'all')
 )
 AND ($8 = 'all' OR COALESCE(NULLIF(market, ''), 'Unknown') = $8)
 ),
