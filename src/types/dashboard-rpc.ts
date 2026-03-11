@@ -47,7 +47,17 @@ export interface RpcMacro {
   profitFactor: number;
   consistencyScore: number;
   consistencyScoreWithBE: number;
-  // sharpeWithBE and tradeQualityIndex computed in Layer 2 from series
+}
+
+// ── Series stats: 6 time-series values computed directly in SQL ───────────────
+
+export interface RpcSeriesStats {
+  maxDrawdown: number;
+  currentStreak: number;
+  maxWinningStreak: number;
+  maxLosingStreak: number;
+  sharpeWithBE: number;
+  tradeQualityIndex: number;
 }
 
 // ── Monthly data ─────────────────────────────────────────────────────────────
@@ -206,6 +216,7 @@ export interface DashboardRpcResult {
   core: RpcCore;
   partials: RpcPartials;
   macro: RpcMacro;
+  series_stats: RpcSeriesStats;
   evaluation_stats: RpcEvaluationStat[];
   risk_analysis: Record<string, RpcRiskStats>;
   monthly_data: Record<string, RpcMonthStats>;
