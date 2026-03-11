@@ -152,7 +152,7 @@ export function AccountOverviewCard({
   useEffect(() => {
     if (!mounted) return;
     let frameId: number;
-    const duration = 900; // ms
+    const duration = 2000; // ms
     const start = performance.now();
     const startValue = animatedBalance;
     const delta = updatedBalance - startValue;
