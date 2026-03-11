@@ -330,7 +330,9 @@ export default function StrategyClient(
       'executed',
       'all',
     );
-    if (props?.initialDashboardStats != null && queryClient.getQueryData(dashboardStatsKey) === undefined) {
+    // Always overwrite with server-fetched stats — they are guaranteed fresher than
+    // anything restored from localStorage by PersistQueryClientProvider.
+    if (props?.initialDashboardStats != null) {
       queryClient.setQueryData(dashboardStatsKey, props.initialDashboardStats);
     }
     
