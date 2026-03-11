@@ -249,9 +249,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     userId?: string | undefined;
     strategyId?: string | null;
   }) => {
-    // Signal strategy page to skip re-hydrating from stale initialData (so calendar/list show new trade)
+    // Signal strategy page to skip re-hydrating from stale initialData (so calendar/list show new trade).
+    // Also clear the persisted query cache so stale localStorage stats aren't shown after this trade change.
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
+      localStorage.removeItem('tt-query-cache');
     }
     
     // Get current context for explicit refetch
