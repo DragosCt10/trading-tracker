@@ -198,11 +198,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       ]);
     }
 
-    // Explicitly refetch active dashboardStats and calendarTrades queries for the affected
-    // strategies. useDashboardData no longer uses separate allTrades/filteredTrades queries —
-    // all data comes from dashboardStats (compact_trades). invalidateQueries triggers an
-    // auto-refetch for active observers but an explicit refetch ensures the UI updates
-    // immediately after a trade edit (e.g. risk change → new calculated_profit).
+    // Explicitly refetch active queries for the affected strategies so the UI updates immediately.
+    // dashboardStats  → aggregate stats cards
+    // filteredTrades  → tradesToUse array (Phase 1: trade arrays come from a separate query)
+    // calendarTrades  → calendar view
     await queryClient.refetchQueries({
       predicate: (query) => {
         const key = query.queryKey;
@@ -210,6 +209,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         const firstKey = key[0];
         if (firstKey === 'dashboardStats') return affectedStrategyIdsArray.includes((key[4] ?? null) as string | null);
         if (firstKey === 'calendarTrades') return affectedStrategyIdsArray.includes((key[4] ?? null) as string | null);
+        // filteredTrades key: ['filteredTrades', mode, accountId, userId, viewMode, start, end, strategyId]
+        if (firstKey === 'filteredTrades') return affectedStrategyIdsArray.includes((key[7] ?? null) as string | null);
         return false;
       },
       type: 'active',
