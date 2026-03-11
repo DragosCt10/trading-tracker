@@ -300,9 +300,18 @@ export default function StrategyClient(
     const wasInvalidated = typeof window !== 'undefined' && sessionStorage.getItem('trade-data-invalidated');
     const shouldSkipHydration = wasInvalidated && (Date.now() - parseInt(wasInvalidated, 10)) < 30000; // Skip hydration for 30 seconds after invalidation
     
-    if (queryClient.getQueryData(queryKeyAllTrades) === undefined && !shouldSkipHydration) {
-      queryClient.setQueryData(queryKeyFilteredTrades, props?.initialFilteredTrades ?? []);
-      queryClient.setQueryData(queryKeyAllTrades, props?.initialAllTrades ?? []);
+    // Only hydrate trades cache if the server actually provided trade arrays.
+    // StrategyData.tsx no longer passes initialFilteredTrades/initialAllTrades
+    // (Phase 1: trades come from getFilteredTrades() via useDashboardData Query 2).
+    // Setting the cache to [] would lock it there (refetchOnMount: false) and
+    // prevent Query 2 from ever fetching the real trades.
+    if (
+      props?.initialFilteredTrades != null &&
+      queryClient.getQueryData(queryKeyAllTrades) === undefined &&
+      !shouldSkipHydration
+    ) {
+      queryClient.setQueryData(queryKeyFilteredTrades, props.initialFilteredTrades);
+      queryClient.setQueryData(queryKeyAllTrades, props.initialAllTrades ?? []);
       queryClient.setQueryData(
         queryKeys.trades.nonExecuted(
           mode,
@@ -313,7 +322,7 @@ export default function StrategyClient(
           effectiveEndDate,
           strategyId,
         ),
-        props?.initialNonExecutedTrades ?? []
+        props.initialNonExecutedTrades ?? []
       );
     }
 
