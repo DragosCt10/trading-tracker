@@ -633,7 +633,10 @@ export function StrategiesClient() {
                 currencySymbol={currencySymbol}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
-                isLoading={tradesLoading}
+                // Treat the absence of strategiesOverview (e.g. right after switching
+                // accounts) as a loading state so StrategyCard shows the pulse animation
+                // instead of briefly flashing "No trades yet".
+                isLoading={tradesLoading || !strategiesOverview}
               />
             ))}
 
