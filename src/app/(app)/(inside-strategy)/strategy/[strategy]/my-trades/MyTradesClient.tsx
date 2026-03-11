@@ -244,7 +244,10 @@ export default function MyTradesClient({
 
     const currentTarget = observerTarget.current;
     if (currentTarget) observer.observe(currentTarget);
-    return () => observer.disconnect();
+
+    return () => {
+      if (currentTarget) observer.unobserve(currentTarget);
+    };
   }, [mounted, hasMore, tradesLoading, tradesFetching, trades.length]);
 
   // TradeDetailsPanel.invalidateAndRefetchTradeQueries already handles scoped cache invalidation
@@ -340,6 +343,11 @@ export default function MyTradesClient({
         displayStartDate={earliestTradeDate}
       />
 
+      <MonteCarloCard
+        trades={filteredTrades}
+        currencySymbol={getCurrencySymbolFromAccount(activeAccount ?? undefined)}
+      />
+
       <TradeCardsView
         trades={displayedTrades}
         isLoading={tradesLoading}
@@ -349,8 +357,8 @@ export default function MyTradesClient({
         enableBulkDeleteInTableView
         onBulkDelete={handleBulkDelete}
         externalPagination
+        totalFilteredCount={filteredTrades.length}
         // Sort by control rendered on same row as View toggles
-        // (inside TradeCardsView header, aligned to the left)
         sortControl={
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
@@ -389,11 +397,6 @@ export default function MyTradesClient({
           </div>
         }
       />
-      <MonteCarloCard
-        trades={filteredTrades}
-        currencySymbol={getCurrencySymbolFromAccount(activeAccount ?? undefined)}
-      />
-
       {hasMore && (
         <div
           ref={observerTarget}
