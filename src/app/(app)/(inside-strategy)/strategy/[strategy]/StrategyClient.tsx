@@ -330,9 +330,9 @@ export default function StrategyClient(
       'executed',
       'all',
     );
-    // Always overwrite with server-fetched stats — they are guaranteed fresher than
-    // anything restored from localStorage by PersistQueryClientProvider.
-    if (props?.initialDashboardStats != null) {
+    // Only hydrate if cache is empty — prevents infinite render loop caused by
+    // setQueryData notifying observers (useDashboardData) on every render.
+    if (props?.initialDashboardStats != null && queryClient.getQueryData(dashboardStatsKey) === undefined) {
       queryClient.setQueryData(dashboardStatsKey, props.initialDashboardStats);
     }
     
@@ -342,10 +342,8 @@ export default function StrategyClient(
     }
   }, [props, queryClient, strategyId]);
 
-  // Hydrate React Query cache synchronously so useDashboardData sees server data on first paint (avoids hydration when e.g. no subaccounts)
-  hydrateQueryCache();
-
-  // Also hydrate in useEffect for client navigations / fallback
+  // Hydrate React Query cache once on mount. Calling setQueryData during render is a
+  // side-effect anti-pattern — moved to useEffect to prevent infinite render loops.
   useEffect(() => {
     hydrateQueryCache();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount with server initial data
