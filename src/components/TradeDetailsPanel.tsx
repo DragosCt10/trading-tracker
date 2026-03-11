@@ -154,6 +154,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const invalidateAndRefetchTradeQueries = useCallback(async () => {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
+      // Clear persisted query cache so stale localStorage stats aren't shown after trade edit.
+      localStorage.removeItem('tt-query-cache');
     }
     // Capture both original and possibly-edited strategy IDs (handles trade reassignment)
     const affectedStrategyIds = new Set([
