@@ -6,6 +6,7 @@ import {
   useMemo,
   useCallback,
   useTransition,
+  useRef,
 } from 'react';
 import {
   startOfMonth,
@@ -24,6 +25,7 @@ import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
+import { TRADES_DATA } from '@/constants/queryConfig';
 
 import {
   Chart as ChartJS,
@@ -124,7 +126,9 @@ import {
   type DateRangeState,
   createInitialDateRange,
   isCustomDateRange,
+  createAllTimeRange,
 } from '@/utils/dateRangeHelpers';
+import { getFilteredTrades } from '@/lib/server/trades';
 import { useDateRangeManagement } from '@/hooks/useDateRangeManagement';
 import { useCalendarNavigation } from '@/hooks/useCalendarNavigation';
 import { useFilteredStats } from '@/hooks/useFilteredStats';
@@ -471,6 +475,94 @@ export default function StrategyClient(
     setSelectedYear,
   });
 
+
+  // Background-prefetch all-time data after initial stats load and on tab re-focus.
+  // Seeds three cache entries so subsequent filter/page switches are instant:
+  //   1. dashboardStats all-time  → "All Trades" filter on this page
+  //   2. trades.filtered 'dateRange' → My Trades page
+  //   3. trades.filtered 'all'     → Daily Journal page
+  // getQueryData() === undefined check prevents redundant fetches while cache is live.
+  // visibilitychange re-runs this when the user returns to the tab after gcTime (5 min) expires.
+  const runAllTimePrefetch = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (isLoadingStats) return;
+
+    const accountId = resolvedAccount?.id;
+    const uid = userData?.user?.id;
+    const m = selection.mode;
+    if (!accountId || !uid || !m) return;
+
+    const doPrefetch = () => {
+      const { startDate: allStart, endDate: allEnd } = createAllTimeRange();
+
+      // 1. Prefetch dashboardStats all-time (for "All Trades" filter switch)
+      const dashKey = queryKeys.dashboardStats(
+        m, accountId, uid, strategyId,
+        selectedYear, 'dateRange', allStart, allEnd,
+        selectedExecution, selectedMarket,
+      );
+      if (queryClient.getQueryData(dashKey) === undefined) {
+        queryClient.prefetchQuery({
+          queryKey: dashKey,
+          queryFn: async () => {
+            const params = new URLSearchParams({
+              accountId,
+              mode: m,
+              startDate: allStart,
+              endDate: allEnd,
+              accountBalance: String(resolvedAccount?.account_balance ?? 0),
+              execution: selectedExecution,
+              market: selectedMarket,
+              ...(strategyId ? { strategyId } : {}),
+              ...(includeCompactTrades ? { includeCompactTrades: 'true' } : {}),
+            });
+            const res = await fetch(`/api/dashboard-stats?${params}`);
+            if (!res.ok) return null;
+            return res.json();
+          },
+          ...TRADES_DATA,
+        });
+      }
+
+      // 2 & 3. Fetch full Trade[] once, seed under both page-specific keys
+      const myTradesKey = queryKeys.trades.filtered(m, accountId, uid, 'dateRange', allStart, allEnd, strategyId);
+      const dailyJournalKey = queryKeys.trades.filtered(m, accountId, uid, 'all', allStart, allEnd, strategyId);
+      const needsMyTrades = queryClient.getQueryData(myTradesKey) === undefined;
+      const needsDailyJournal = queryClient.getQueryData(dailyJournalKey) === undefined;
+
+      if (needsMyTrades || needsDailyJournal) {
+        getFilteredTrades({
+          userId: uid,
+          accountId,
+          mode: m,
+          startDate: allStart,
+          endDate: allEnd,
+          includeNonExecuted: true,
+          strategyId,
+        }).then((trades) => {
+          if (needsMyTrades) queryClient.setQueryData(myTradesKey, trades);
+          if (needsDailyJournal) queryClient.setQueryData(dailyJournalKey, trades);
+        }).catch(() => { /* pages will fetch on demand if this fails */ });
+      }
+    };
+
+    // Run immediately after initial load
+    doPrefetch();
+
+    // Re-run on tab focus so cache is re-warmed after gcTime (5 min) expires
+    runAllTimePrefetch.current = doPrefetch;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoadingStats, resolvedAccount?.id, userData?.user?.id, selection.mode]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && runAllTimePrefetch.current) {
+        runAllTimePrefetch.current();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   // session check
   useEffect(() => {
