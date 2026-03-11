@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { getCalendarTrades } from '@/lib/server/dashboardStats';
@@ -126,8 +126,6 @@ export function useDashboardData({
   const effectiveEndDate = resolvedViewMode === 'yearly'
     ? `${selectedYear}-12-31`
     : dateRange.endDate;
-
-  const isAllTimeRange = effectiveStartDate === '2000-01-01';
 
   const statsEnabled =
     !!userId && !!accountId && !!selectedYear && !!mode && !contextLoading && !isSessionLoading;
@@ -263,18 +261,14 @@ export function useDashboardData({
     return (apiData?.trend_stats ?? []) as RpcTrendStat[];
   }, [apiData?.trend_stats]);
 
-  // ── Stable non-executed series ────────────────────────────────────────────
-  const [stableNonExecSeries, setStableNonExecSeries] = useState<unknown[]>([]);
-
-  useEffect(() => {
-    if (!apiData) return;
-    // compact_trades includes all trades (no execution filter) — filter to non-executed.
-    // Otherwise, filter allTimeTrades which also uses includeNonExecuted: true.
-    const nonExec = apiData.compact_trades?.length
+  // ── Non-executed series ───────────────────────────────────────────────────
+  // Computed synchronously so it clears immediately when account/mode changes
+  // (apiData becomes null), preventing stale data from a previous account.
+  const nonExecSeries = useMemo(() => {
+    if (!apiData) return [];
+    return apiData.compact_trades?.length
       ? apiData.compact_trades.filter((t) => !t.executed)
       : allTimeTrades.filter((t) => t.executed !== true);
-    setStableNonExecSeries(nonExec);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiData, allTimeTrades]);
 
   // ── Trade arrays ──────────────────────────────────────────────────────────
@@ -346,7 +340,7 @@ export function useDashboardData({
     // series[] is always '[]' now; stats come from series_stats computed in SQL.
     allTrades: tradeArray as unknown as Trade[],
     filteredTrades: tradeArray as unknown as Trade[],
-    nonExecutedTrades: stableNonExecSeries as unknown as Trade[],
+    nonExecutedTrades: nonExecSeries as unknown as Trade[],
 
     // Calendar trades
     calendarMonthTrades: calendarTrades,
