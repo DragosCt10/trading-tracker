@@ -22,6 +22,8 @@ import { exportTradesToCsv } from '@/utils/exportTradesToCsv';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
+import { MonteCarloCard } from '@/components/trades/MonteCarloCard';
+import { getCurrencySymbolFromAccount } from '@/components/dashboard/analytics/AccountOverviewCard';
 
 const ITEMS_PER_LOAD = 24;
 
@@ -387,6 +389,11 @@ export default function MyTradesClient({
           </div>
         }
       />
+      <MonteCarloCard
+        trades={filteredTrades}
+        currencySymbol={getCurrencySymbolFromAccount(activeAccount ?? undefined)}
+      />
+
       {hasMore && (
         <div
           ref={observerTarget}
