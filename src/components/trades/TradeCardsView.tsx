@@ -195,9 +195,7 @@ export function TradeCardsView({
 
     const currentTarget = observerTarget.current;
     if (currentTarget) observer.observe(currentTarget);
-    return () => {
-      if (currentTarget) observer.unobserve(currentTarget);
-    };
+    return () => observer.disconnect();
   }, [externalPagination, mounted, hasMore, isLoading, isFetching, itemsPerLoad, trades.length]);
 
   const openModal = (trade: Trade) => {
