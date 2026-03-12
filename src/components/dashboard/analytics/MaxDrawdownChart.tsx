@@ -226,6 +226,7 @@ export const MaxDrawdownChart = React.memo(function MaxDrawdownChart({ maxDrawdo
               outerRadius={75}
               paddingAngle={2}
               dataKey="value"
+              cornerRadius={7}
             >
               {data.map((entry, index) => (
                 <Cell
