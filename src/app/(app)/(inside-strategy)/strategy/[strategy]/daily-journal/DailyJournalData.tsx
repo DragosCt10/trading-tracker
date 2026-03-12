@@ -37,10 +37,8 @@ async function DailyJournalDataFetcher({
   user: User;
   strategySlug: string;
 }) {
-  const [strategy, { mode, activeAccount }] = await Promise.all([
-    getStrategyBySlug(user.id, strategySlug),
-    resolveActiveAccountFromCookies(user.id),
-  ]);
+  const { mode, activeAccount } = await resolveActiveAccountFromCookies(user.id);
+  const strategy = await getStrategyBySlug(user.id, strategySlug, activeAccount?.id);
   if (!strategy) redirect('/strategies');
 
   let initialTrades: Trade[] = [];

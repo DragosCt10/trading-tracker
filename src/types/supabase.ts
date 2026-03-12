@@ -245,6 +245,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
+          account_id: string;
           name: string;
           slug: string;
           created_at: string;
@@ -256,6 +257,7 @@ export interface Database {
         };
         Insert: {
           user_id: string;
+          account_id: string;
           name: string;
           slug: string;
           is_active?: boolean;
@@ -266,6 +268,7 @@ export interface Database {
         Update: Partial<{
           id: string;
           user_id: string;
+          account_id: string;
           name: string;
           slug: string;
           created_at: string;

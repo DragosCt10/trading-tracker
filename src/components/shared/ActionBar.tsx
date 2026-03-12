@@ -132,7 +132,7 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
           if (index >= 0) setLastAccountPreference(mode, index);
         }
 
-        const keysToInvalidate = ['allTrades', 'filteredTrades', 'nonExecutedTrades'];
+        const keysToInvalidate = ['allTrades', 'filteredTrades', 'nonExecutedTrades', 'strategies-overview'];
         queryClient.invalidateQueries({
           predicate: (q) => keysToInvalidate.includes((q.queryKey?.[0] as string) ?? ''),
         });

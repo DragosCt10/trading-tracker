@@ -16,7 +16,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CreateStrategyModal } from '@/components/CreateStrategyModal';
 import { EditStrategyModal } from '@/components/EditStrategyModal';
-import { deleteStrategy, permanentlyDeleteStrategy, getInactiveStrategies, reactivateStrategy, deleteArchivedStrategiesOlderThan30Days } from '@/lib/server/strategies';
+import { deleteStrategy, permanentlyDeleteStrategy, getInactiveStrategies, reactivateStrategy, deleteArchivedStrategiesOlderThan30Days, moveStrategy } from '@/lib/server/strategies';
+import { getAllAccountsForUser } from '@/lib/server/accounts';
+import type { AccountRow } from '@/lib/server/accounts';
 import { updateStrategiesPageCustomization } from '@/lib/server/settings';
 
 const DEFAULT_TITLE = 'Strategies';
@@ -25,7 +27,7 @@ const DEFAULT_DESCRIPTION =
 import { Strategy } from '@/types/strategy';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
-import { Target, Archive, RotateCcw, Trash2, Pencil } from 'lucide-react';
+import { Target, Archive, RotateCcw, Trash2, Pencil, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -51,15 +53,20 @@ export function StrategiesClient() {
   const { data: userDetails } = useUserDetails();
   const userId = userDetails?.user?.id;
   const { settings, settingsLoading, refetchSettings } = useSettings({ userId });
-  const { strategies, strategiesLoading, refetchStrategies } = useStrategies({ userId });
   const { selection } = useActionBarSelection();
   const mode = selection.mode;
   const { accounts } = useAccounts({ userId, pendingMode: mode });
+  const activeAccount = selection.activeAccount ?? accounts.find((a) => a.is_active) ?? accounts[0] ?? null;
+  const { strategies, strategiesLoading, refetchStrategies } = useStrategies({ userId, accountId: activeAccount?.id });
   const queryClient = useQueryClient();
   const [editingStrategy, setEditingStrategy] = useState<Strategy | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isArchivedSheetOpen, setIsArchivedSheetOpen] = useState(false);
+  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
+  const [moveTargets, setMoveTargets] = useState<Record<string, string>>({});
+  const [movingStrategyId, setMovingStrategyId] = useState<string | null>(null);
+  const [moveError, setMoveError] = useState<string | null>(null);
   const [reactivatingStrategyId, setReactivatingStrategyId] = useState<string | null>(null);
   const [deletingStrategyId, setDeletingStrategyId] = useState<string | null>(null);
   const [isHeaderEditOpen, setIsHeaderEditOpen] = useState(false);
@@ -71,8 +78,15 @@ export function StrategiesClient() {
   type SortByOption = 'default' | 'winRate' | 'totalRR' | 'totalTrades';
   const [sortBy, setSortBy] = useState<SortByOption>('default');
 
-  // Get active account
-  const activeAccount = accounts.find((a) => a.is_active) ?? accounts[0] ?? null;
+  const { data: allAccounts } = useQuery<AccountRow[]>({
+    queryKey: ['accounts:all', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      return getAllAccountsForUser(userId);
+    },
+    enabled: !!userId && isMoveModalOpen,
+    staleTime: 5 * 60_000,
+  });
 
   // Get currency symbol from active account
   const currencySymbol = activeAccount?.currency === 'USD' ? '$' : activeAccount?.currency === 'EUR' ? '€' : '£';
@@ -162,6 +176,27 @@ export function StrategiesClient() {
     }
   };
 
+  const handleMove = async (strategyId: string): Promise<void> => {
+    if (!userId) return;
+    const targetAccountId = moveTargets[strategyId];
+    if (!targetAccountId) return;
+    setMovingStrategyId(strategyId);
+    setMoveError(null);
+    try {
+      const result = await moveStrategy(strategyId, userId, targetAccountId);
+      if (result.error) {
+        setMoveError(result.error.message);
+      } else {
+        queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userId) });
+        queryClient.invalidateQueries({ queryKey: ['strategies-overview'] });
+        refetchStrategies();
+        setMoveTargets((prev) => { const next = { ...prev }; delete next[strategyId]; return next; });
+      }
+    } finally {
+      setMovingStrategyId(null);
+    }
+  };
+
   const handleReactivate = async (strategyId: string): Promise<void> => {
     if (!userId) return;
     setReactivatingStrategyId(strategyId);
@@ -227,6 +262,91 @@ export function StrategiesClient() {
             </Button>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Move Strategies Modal */}
+            <AlertDialog open={isMoveModalOpen} onOpenChange={(open) => { setIsMoveModalOpen(open); if (!open) { setMoveTargets({}); setMoveError(null); } }}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="flex cursor-pointer items-center gap-2 h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 text-xs sm:text-sm font-medium transition-colors duration-200"
+                >
+                  <ArrowRightLeft className="h-4 w-4" />
+                  <span>Move</span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl px-6 py-5">
+                <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
+                  <div className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl" />
+                  <div className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl" />
+                </div>
+                <div className="absolute -top-px left-0 right-0 h-0.5 themed-accent-line rounded-t-2xl" />
+                <div className="relative flex flex-col h-full">
+                  <div className="absolute top-1 right-1 z-10">
+                    <Button variant="ghost" size="icon" onClick={() => setIsMoveModalOpen(false)} className="rounded-full hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                      <span className="sr-only">Close</span>
+                    </Button>
+                  </div>
+                  <AlertDialogHeader className="space-y-1.5 mb-4">
+                    <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                      <div className="p-2 rounded-lg themed-header-icon-box"><ArrowRightLeft className="h-5 w-5" /></div>
+                      <span>Move Strategies</span>
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
+                      Move strategies from <strong>{activeAccount?.name ?? 'this account'}</strong> to another account.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  {moveError && (
+                    <div className="mb-3 rounded-lg bg-red-500/10 p-3 border border-red-500/20">
+                      <p className="text-xs text-red-600 dark:text-red-400">{moveError}</p>
+                    </div>
+                  )}
+                  <div className="flex-1 overflow-y-auto pr-2 -mr-2">
+                    <div className="space-y-3">
+                      {strategies.length === 0 ? (
+                        <div className="text-center text-slate-500 dark:text-slate-400 py-12">
+                          <ArrowRightLeft className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                          <p>No strategies in this account</p>
+                        </div>
+                      ) : (
+                        strategies.map((strategy) => {
+                          const otherAccounts = (allAccounts ?? []).filter((a) => a.id !== activeAccount?.id);
+                          return (
+                            <div key={strategy.id} className="flex items-center justify-between gap-3 p-4 rounded-xl border border-slate-200/60 dark:border-slate-700/60 bg-transparent hover:bg-slate-100/30 dark:hover:bg-slate-800/30 transition-all duration-200">
+                              <span className="font-semibold text-slate-900 dark:text-slate-100 truncate flex-1 min-w-0">{strategy.name}</span>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <Select value={moveTargets[strategy.id] ?? ''} onValueChange={(val) => setMoveTargets((prev) => ({ ...prev, [strategy.id]: val }))} disabled={otherAccounts.length === 0}>
+                                  <SelectTrigger className="h-8 w-[10rem] rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 text-xs cursor-pointer">
+                                    <SelectValue placeholder={otherAccounts.length === 0 ? 'No other accounts' : 'Select account'} />
+                                  </SelectTrigger>
+                                  <SelectContent className="z-[200] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg text-slate-900 dark:text-slate-50">
+                                    {otherAccounts.map((acc) => (
+                                      <SelectItem key={acc.id} value={acc.id} className="cursor-pointer">
+                                        {acc.name} <span className="text-slate-400 ml-1">({acc.mode})</span>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button size="sm" disabled={!moveTargets[strategy.id] || movingStrategyId === strategy.id} onClick={() => handleMove(strategy.id)} className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold h-8 px-3 group border-0 disabled:opacity-50 disabled:pointer-events-none text-xs">
+                                  <span className="relative z-10 flex items-center gap-1.5">
+                                    {movingStrategyId === strategy.id ? (
+                                      <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" className="opacity-25" /><path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z" /></svg>
+                                    ) : (
+                                      <ArrowRightLeft className="h-3.5 w-3.5" />
+                                    )}
+                                    Move
+                                  </span>
+                                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </AlertDialogContent>
+            </AlertDialog>
             <AlertDialog open={isArchivedSheetOpen} onOpenChange={setIsArchivedSheetOpen}>
               <AlertDialogTrigger asChild>
                 <Button
@@ -642,6 +762,7 @@ export function StrategiesClient() {
 
             <AddStrategyCard onClick={() => setIsCreateModalOpen(true)} />
             <CreateStrategyModal
+              accountId={activeAccount?.id}
               open={isCreateModalOpen}
               onOpenChange={setIsCreateModalOpen}
               onCreated={handleCreateSuccess}

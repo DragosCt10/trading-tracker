@@ -6,6 +6,7 @@ import { deleteNote, updateNote } from '@/lib/server/notes';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
+import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { getTradesForNoteLinking } from '@/lib/server/trades';
 import { AccountModePopover, type AccountModeSelection } from '@/components/shared/AccountModePopover';
 import { AlertCircle, Pencil, Trash2, Pin, X, FileText, Link2, Loader2 } from 'lucide-react';
@@ -48,7 +49,9 @@ export default function NoteDetailsModal({
 }: NoteDetailsModalProps) {
   const { data: userDetails } = useUserDetails();
   const userId = userDetails?.user?.id;
-  const { strategies } = useStrategies({ userId });
+  const { selection } = useActionBarSelection();
+  const accountId = selection.activeAccount?.id;
+  const { strategies } = useStrategies({ userId, accountId });
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);

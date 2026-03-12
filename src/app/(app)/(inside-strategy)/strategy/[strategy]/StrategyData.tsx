@@ -23,10 +23,10 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
   };
 
   // Fetch strategy metadata and resolve active account/mode from cookies in parallel.
-  const [strategy, { mode, activeAccount }] = await Promise.all([
-    strategySlug ? getStrategyBySlug(user.id, strategySlug) : Promise.resolve(null),
-    resolveActiveAccountFromCookies(user.id),
-  ]);
+  const { mode, activeAccount } = await resolveActiveAccountFromCookies(user.id);
+  const strategy = strategySlug
+    ? await getStrategyBySlug(user.id, strategySlug, activeAccount?.id)
+    : null;
 
   const strategyId = strategy?.id ?? null;
   const initialExtraCards = (strategy?.extra_cards ?? []) as ExtraCardKey[];

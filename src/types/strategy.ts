@@ -3,6 +3,7 @@ import type { ExtraCardKey } from '@/constants/extraCards';
 export interface Strategy {
   id: string;
   user_id: string;
+  account_id: string;
   name: string;
   slug: string;
   created_at: string;

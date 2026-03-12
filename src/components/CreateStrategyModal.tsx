@@ -21,13 +21,14 @@ import { ExtraCardsSelector } from '@/components/ExtraCardsSelector';
 import type { ExtraCardKey } from '@/constants/extraCards';
 
 interface CreateStrategyModalProps {
+  accountId?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onCreated?: () => void;
   trigger?: React.ReactNode;
 }
 
-export function CreateStrategyModal({ open: controlledOpen, onOpenChange, onCreated, trigger }: CreateStrategyModalProps) {
+export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenChange, onCreated, trigger }: CreateStrategyModalProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen: (value: boolean) => void = onOpenChange || setInternalOpen;
@@ -53,7 +54,7 @@ export function CreateStrategyModal({ open: controlledOpen, onOpenChange, onCrea
 
     setSubmitting(true);
     try {
-      const { data, error: createError } = await createStrategy(userId.user.id, name.trim(), extraCards);
+      const { data, error: createError } = await createStrategy(userId.user.id, name.trim(), extraCards, accountId);
 
       if (createError) {
         setError(createError.message);

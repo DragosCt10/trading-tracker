@@ -135,10 +135,11 @@ interface NewTradeModalProps {
 export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTradeModalProps) {
   const params = useParams();
   const { selection } = useActionBarSelection();
+  const accountId = selection.activeAccount?.id;
   const { data: userData } = useUserDetails();
   const userId = userData?.user?.id;
   const { settings } = useSettings({ userId });
-  const { strategies } = useStrategies({ userId });
+  const { strategies } = useStrategies({ userId, accountId });
   const queryClient = useQueryClient();
   
   // Get strategy slug from URL params and derive extra_cards from the strategy object
@@ -413,7 +414,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     }
     if (next.length === current.length && exists) return;
     await updateStrategySetupTypes(currentStrategy.id, userId, next);
-    const strategiesKey = queryKeys.strategies(userId);
+    const strategiesKey = queryKeys.strategies(userId, accountId);
     queryClient.setQueryData(
       strategiesKey,
       (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[] }[] | undefined) => {
@@ -447,7 +448,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     }
     if (next.length === current.length && exists) return;
     await updateStrategyLiquidityTypes(currentStrategy.id, userId, next);
-    const strategiesKey = queryKeys.strategies(userId);
+    const strategiesKey = queryKeys.strategies(userId, accountId);
     queryClient.setQueryData(
       strategiesKey,
       (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[] }[] | undefined) => {
@@ -565,6 +566,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       const currentStrategySnapshot = currentStrategy;
       const settingsSnapshot = settings;
       const userIdSnapshot = userId;
+      const accountIdSnapshot = accountId;
 
       const notes = notesRef.current ? notesRef.current.value : currentTrade.notes;
 
@@ -667,7 +669,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             );
 
             if (currentStrategySnapshot && (updatedSetups !== undefined || updatedLiquidity !== undefined)) {
-              const strategiesKey = queryKeys.strategies(userIdSnapshot);
+              const strategiesKey = queryKeys.strategies(userIdSnapshot, accountIdSnapshot);
               queryClient.setQueryData(
                 strategiesKey,
                 (prev:
@@ -689,7 +691,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
             // Keep existing behavior: mark cached settings/strategies stale so any consumers refetch if needed.
             await queryClient.invalidateQueries({ queryKey: queryKeys.settings(userIdSnapshot) });
-            await queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userIdSnapshot) });
+            await queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userIdSnapshot, accountIdSnapshot) });
           }
         } catch (syncErr) {
           console.error('Post-create trade sync failed:', syncErr);

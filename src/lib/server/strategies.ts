@@ -56,73 +56,38 @@ function generateSlug(name: string): string {
  * Creates it only if the user has no active strategies. This prevents duplicate
  * default strategies when the original default strategy is renamed.
  */
-export async function ensureDefaultStrategy(userId: string): Promise<Strategy | null> {
+export async function ensureDefaultStrategy(userId: string, accountId: string): Promise<Strategy | null> {
   const supabase = await createClient();
 
-  // First, check if user has any active strategies
-  const { data: activeStrategies, error: activeCheckError } = await supabase
+  // Only create a default strategy on demo accounts
+  const { data: account } = await supabase
+    .from('account_settings')
+    .select('mode')
+    .eq('id', accountId)
+    .single();
+
+  if (account?.mode !== 'demo') return null;
+
+  // Only create a default if the user has NO strategies at all across any account
+  const { data: anyStrategies } = await supabase
     .from('strategies')
     .select('id')
     .eq('user_id', userId)
     .eq('is_active', true)
     .limit(1);
 
-  if (activeCheckError) {
-    console.error('Error checking for active strategies:', activeCheckError);
-  }
+  if (anyStrategies && anyStrategies.length > 0) return null;
 
-  // If user already has active strategies, don't create a default one
-  // (they may have renamed the default strategy)
-  if (activeStrategies && activeStrategies.length > 0) {
-    // Check if default strategy exists (including inactive ones)
-    const { data: existing } = await supabase
-      .from('strategies')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('slug', 'institutional-strategy')
-      .single();
-
-    if (existing) {
-      // If default strategy exists but is inactive, reactivate it
-      if (!existing.is_active) {
-        const { data: reactivated, error: reactivateError } = await supabase
-          .from('strategies')
-          .update({ is_active: true, updated_at: new Date().toISOString() })
-          .eq('id', existing.id)
-          .select()
-          .single();
-
-        if (reactivateError) {
-          console.error('Error reactivating default strategy:', reactivateError);
-          return existing as Strategy;
-        }
-
-        return reactivated as Strategy;
-      }
-
-      return existing as Strategy;
-    }
-
-    // User has strategies but default doesn't exist (was renamed) - return null
-    // Don't create a duplicate default strategy
-    return null;
-  }
-
-  // User has no active strategies - check if default strategy exists (including inactive)
-  const { data: existing, error: checkError } = await supabase
+  // User has no strategies at all — check if default already exists (including inactive)
+  const { data: existing } = await supabase
     .from('strategies')
     .select('*')
     .eq('user_id', userId)
+    .eq('account_id', accountId)
     .eq('slug', 'institutional-strategy')
-    .single();
-
-  if (checkError && checkError.code !== 'PGRST116') {
-    // PGRST116 is "not found" - that's expected if strategy doesn't exist
-    console.error('Error checking for default strategy:', checkError);
-  }
+    .maybeSingle();
 
   if (existing) {
-    // If default strategy exists but is inactive, reactivate it
     if (!existing.is_active) {
       const { data: reactivated, error: reactivateError } = await supabase
         .from('strategies')
@@ -142,13 +107,14 @@ export async function ensureDefaultStrategy(userId: string): Promise<Strategy | 
     return existing as Strategy;
   }
 
-  // User has no strategies at all - create default strategy
+  // Create the default strategy on this demo account
   const { data: created, error: createError } = await supabase
     .from('strategies')
     .insert({
       user_id: userId,
+      account_id: accountId,
       name: 'Institutional Strategy',
-      slug: 'liquidity-strategy',
+      slug: 'institutional-strategy',
       is_active: true,
       extra_cards: EXTRA_CARDS.map(c => c.key),
     })
@@ -157,7 +123,7 @@ export async function ensureDefaultStrategy(userId: string): Promise<Strategy | 
 
   if (createError || !created) {
     console.error('Error creating default strategy:', createError);
-    throw new Error('Failed to create default strategy');
+    return null;
   }
 
   return created as Strategy;
@@ -168,18 +134,16 @@ export async function ensureDefaultStrategy(userId: string): Promise<Strategy | 
  * Ensures the default strategy exists only if user has no active strategies.
  * Only returns strategies where is_active = true.
  */
-export async function getUserStrategies(userId: string): Promise<Strategy[]> {
+export async function getUserStrategies(userId: string, accountId: string): Promise<Strategy[]> {
   const supabase = await createClient();
 
-  // Ensure default strategy exists only if user has no active strategies
-  // This prevents creating duplicate defaults when the original was renamed
-  await ensureDefaultStrategy(userId);
+  await ensureDefaultStrategy(userId, accountId);
 
-  // Fetch only active strategies
   const { data, error } = await supabase
     .from('strategies')
     .select('*')
     .eq('user_id', userId)
+    .eq('account_id', accountId)
     .eq('is_active', true)
     .order('created_at', { ascending: true });
 
@@ -199,27 +163,29 @@ export async function getUserStrategies(userId: string): Promise<Strategy[]> {
  */
 export const getStrategyBySlug = cache(async (
   userId: string,
-  slug: string
+  slug: string,
+  accountId?: string
 ): Promise<Strategy | null> => {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('strategies')
     .select('*')
     .eq('user_id', userId)
-    .eq('slug', slug)
-    .single();
+    .eq('slug', slug);
+
+  if (accountId) {
+    query = query.eq('account_id', accountId);
+  }
+
+  const { data, error } = await query.limit(1).maybeSingle();
 
   if (error) {
-    if (error.code === 'PGRST116') {
-      // Not found
-      return null;
-    }
     console.error('Error fetching strategy by slug:', error);
     return null;
   }
 
-  return data as Strategy;
+  return data as Strategy | null;
 });
 
 /**
@@ -229,25 +195,29 @@ export const getStrategyBySlug = cache(async (
 export async function createStrategy(
   userId: string,
   name: string,
-  extraCards: string[] = []
+  extraCards: string[] = [],
+  accountId?: string
 ): Promise<{ data: Strategy | null; error: { message: string } | null }> {
   const { user } = await getCachedUserSession();
   if (!user || user.id !== userId) {
     return { data: null, error: { message: 'Unauthorized' } };
   }
 
+  if (!accountId) {
+    return { data: null, error: { message: 'Account is required to create a strategy' } };
+  }
+
   const supabase = await createClient();
   const slug = generateSlug(name);
 
-  // Check if slug already exists for this user (check both active and inactive strategies)
   const { data: existing, error: checkError } = await supabase
     .from('strategies')
     .select('id, is_active')
     .eq('user_id', userId)
+    .eq('account_id', accountId)
     .eq('slug', slug)
     .maybeSingle();
 
-  // If strategy exists (regardless of active status), return error
   if (existing) {
     return {
       data: null,
@@ -255,7 +225,6 @@ export async function createStrategy(
     };
   }
 
-  // If there was an error checking (other than "not found"), log it but continue
   if (checkError && checkError.code !== 'PGRST116') {
     console.error('Error checking for existing strategy:', checkError);
   }
@@ -264,6 +233,7 @@ export async function createStrategy(
     .from('strategies')
     .insert({
       user_id: userId,
+      account_id: accountId,
       name: name.trim(),
       slug,
       is_active: true,
@@ -274,19 +244,10 @@ export async function createStrategy(
 
   if (error) {
     console.error('Error creating strategy:', error);
-    
-    // Handle unique constraint violation with user-friendly message
     if (error.code === '23505' || error.message?.includes('unique constraint') || error.message?.includes('duplicate key')) {
-      return {
-        data: null,
-        error: { message: 'A strategy with this name already exists' },
-      };
+      return { data: null, error: { message: 'A strategy with this name already exists' } };
     }
-    
-    return {
-      data: null,
-      error: { message: 'Failed to create strategy. Please try again.' },
-    };
+    return { data: null, error: { message: 'Failed to create strategy. Please try again.' } };
   }
 
   return { data: data as Strategy, error: null };
@@ -398,6 +359,58 @@ export async function deleteStrategy(
   if (error) {
     console.error('Error deleting strategy:', error);
     return { error: { message: error.message ?? 'Failed to delete strategy' } };
+  }
+
+  return { error: null };
+}
+
+/**
+ * Moves a strategy to a different account.
+ */
+export async function moveStrategy(
+  strategyId: string,
+  userId: string,
+  targetAccountId: string
+): Promise<{ error: { message: string } | null }> {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) {
+    return { error: { message: 'Unauthorized' } };
+  }
+
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from('strategies')
+    .select('slug')
+    .eq('id', strategyId)
+    .eq('user_id', userId)
+    .single();
+
+  if (!existing) {
+    return { error: { message: 'Strategy not found' } };
+  }
+
+  const { data: conflict } = await supabase
+    .from('strategies')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('account_id', targetAccountId)
+    .eq('slug', existing.slug)
+    .maybeSingle();
+
+  if (conflict) {
+    return { error: { message: 'A strategy with the same name already exists in the target account' } };
+  }
+
+  const { error } = await supabase
+    .from('strategies')
+    .update({ account_id: targetAccountId, updated_at: new Date().toISOString() })
+    .eq('id', strategyId)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error moving strategy:', error);
+    return { error: { message: error.message ?? 'Failed to move strategy' } };
   }
 
   return { error: null };
