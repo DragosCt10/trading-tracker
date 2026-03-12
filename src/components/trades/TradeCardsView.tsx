@@ -33,9 +33,10 @@ import TradeDetailsModal from '@/components/TradeDetailsModal';
 import TradeDetailsPanel from '@/components/TradeDetailsPanel';
 import { TradeCard } from '@/components/trades/TradeCard';
 import { TradesTableView } from '@/components/trades/TradesTableView';
+import { MonteCarloCard } from '@/components/trades/MonteCarloCard';
 import { Columns2, Eye, LayoutGrid, Loader2, PanelLeft, Trash2 } from 'lucide-react';
 
-type CardViewMode = 'grid-4' | 'grid-2' | 'split' | 'table';
+type CardViewMode = 'grid-4' | 'grid-2' | 'split' | 'table' | 'monteCarlo';
 
 export type TradeCardsViewProps = {
   trades: Trade[];
@@ -352,6 +353,30 @@ export function TradeCardsView({
                 Compact table view
               </TooltipContent>
             </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => setCardViewMode('monteCarlo')}
+                  className={cn(
+                    'rounded-lg h-6.5 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
+                    cardViewMode === 'monteCarlo'
+                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                  )}
+                  aria-label="Future equity view"
+                  aria-pressed={cardViewMode === 'monteCarlo'}
+                >
+                  Future Equity
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="bottom"
+                className="max-w-[220px] rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 px-3 py-2"
+              >
+                AI-Powered Equity Projection (500 simulations)
+              </TooltipContent>
+            </Tooltip>
           </div>
           </div>
         </div>
@@ -539,6 +564,8 @@ export function TradeCardsView({
               </AlertDialog>
             )}
           </>
+        ) : cardViewMode === 'monteCarlo' ? (
+          <MonteCarloCard trades={trades} />
         ) : (
           <div
             className={cn(
