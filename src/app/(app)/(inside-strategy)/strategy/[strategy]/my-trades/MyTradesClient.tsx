@@ -39,6 +39,85 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
+type GaugeVariant = 'winRate' | 'avgDrawdown';
+
+interface SummaryHalfGaugeProps {
+  variant: GaugeVariant;
+  /** 0–100 normalized value */
+  valueNormalized: number;
+  /** Center text inside the gauge (e.g. "60.0%") */
+  centerLabel: string;
+  /** Left scale label (e.g. "0" or "0%") */
+  minLabel: string;
+  /** Right scale label (e.g. "100" or "20%") */
+  maxLabel: string;
+}
+
+function SummaryHalfGauge({
+  variant,
+  valueNormalized,
+  centerLabel,
+  minLabel,
+  maxLabel,
+}: SummaryHalfGaugeProps) {
+  const gradientId =
+    variant === 'winRate' ? 'winRateGaugeGradient' : 'avgDrawdownGaugeGradient';
+
+  return (
+    <>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <defs>
+            {variant === 'winRate' ? (
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#8b5cf6" stopOpacity={1} />
+                <stop offset="100%" stopColor="#6366f1" stopOpacity={0.9} />
+              </linearGradient>
+            ) : (
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f97316" stopOpacity={1} />
+                <stop offset="100%" stopColor="#ef4444" stopOpacity={0.9} />
+              </linearGradient>
+            )}
+          </defs>
+          <Pie
+            data={[
+              { name: 'Value', value: Math.max(0, Math.min(valueNormalized, 100)) },
+              { name: 'Remaining', value: Math.max(0, 100 - valueNormalized) },
+            ]}
+            cx="50%"
+            cy="80%"
+            startAngle={180}
+            endAngle={0}
+            innerRadius={48}
+            outerRadius={60}
+            paddingAngle={2}
+            cornerRadius={7}
+            dataKey="value"
+          >
+            <Cell fill={`url(#${gradientId})`} stroke="none" />
+            <Cell
+              fill="rgba(148, 163, 184, 0.35)"
+              stroke="none"
+            />
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="absolute inset-0 top-10 flex items-center justify-center pointer-events-none">
+        <span className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">
+          {centerLabel}
+        </span>
+      </div>
+      <div className="absolute left-4 bottom-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+        {minLabel}
+      </div>
+      <div className="absolute right-4 bottom-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+        {maxLabel}
+      </div>
+    </>
+  );
+}
+
 interface MyTradesClientProps {
   /** User id from server (fallback when useUserDetails cache not yet hydrated) */
   initialUserId: string;
@@ -484,56 +563,13 @@ export default function MyTradesClient({
                   </p>
                 </div>
               ) : (
-                <>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <defs>
-                        <linearGradient id="winRateGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#8b5cf6" stopOpacity={1} />
-                          <stop offset="100%" stopColor="#6366f1" stopOpacity={0.9} />
-                        </linearGradient>
-                      </defs>
-                      <Pie
-                        data={[
-                          {
-                            name: 'Win Rate',
-                            value: Math.max(0, Math.min(overviewStats.winRate, 100)),
-                          },
-                          {
-                            name: 'Remaining',
-                            value: Math.max(0, 100 - overviewStats.winRate),
-                          },
-                        ]}
-                        cx="50%"
-                        cy="80%"
-                        startAngle={180}
-                        endAngle={0}
-                        innerRadius={48}
-                        outerRadius={60}
-                        paddingAngle={2}
-                        cornerRadius={7}
-                        dataKey="value"
-                      >
-                        <Cell fill="url(#winRateGradient)" stroke="none" />
-                        <Cell
-                          fill="rgba(148, 163, 184, 0.35)"
-                          stroke="none"
-                        />
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 top-10 flex items-center justify-center pointer-events-none">
-                    <span className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">
-                      {overviewStats.winRate.toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="absolute left-4 bottom-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    0
-                  </div>
-                  <div className="absolute right-4 bottom-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    100
-                  </div>
-                </>
+                <SummaryHalfGauge
+                  variant="winRate"
+                  valueNormalized={overviewStats.winRate}
+                  centerLabel={`${overviewStats.winRate.toFixed(1)}%`}
+                  minLabel="0"
+                  maxLabel="100"
+                />
               )}
             </div>
           </CardContent>
@@ -555,56 +591,13 @@ export default function MyTradesClient({
                   </p>
                 </div>
               ) : (
-                <>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <defs>
-                        <linearGradient id="avgDrawdownGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#f97316" stopOpacity={1} />
-                          <stop offset="100%" stopColor="#ef4444" stopOpacity={0.9} />
-                        </linearGradient>
-                      </defs>
-                      <Pie
-                        data={[
-                          {
-                            name: 'Average Drawdown',
-                            value: normalizedAverageDrawdown,
-                          },
-                          {
-                            name: 'Remaining',
-                            value: Math.max(0, 100 - normalizedAverageDrawdown),
-                          },
-                        ]}
-                        cx="50%"
-                        cy="80%"
-                        startAngle={180}
-                        endAngle={0}
-                        innerRadius={48}
-                        outerRadius={60}
-                        paddingAngle={2}
-                        cornerRadius={7}
-                        dataKey="value"
-                      >
-                        <Cell fill="url(#avgDrawdownGradient)" stroke="none" />
-                        <Cell
-                          fill="rgba(148, 163, 184, 0.35)"
-                          stroke="none"
-                        />
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 top-10 flex items-center justify-center pointer-events-none">
-                    <span className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">
-                      {averageDrawdown.toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="absolute left-4 bottom-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    0%
-                  </div>
-                  <div className="absolute right-4 bottom-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    20%
-                  </div>
-                </>
+                <SummaryHalfGauge
+                  variant="avgDrawdown"
+                  valueNormalized={normalizedAverageDrawdown}
+                  centerLabel={`${averageDrawdown.toFixed(2)}%`}
+                  minLabel="0%"
+                  maxLabel="20%"
+                />
               )}
             </div>
           </CardContent>
