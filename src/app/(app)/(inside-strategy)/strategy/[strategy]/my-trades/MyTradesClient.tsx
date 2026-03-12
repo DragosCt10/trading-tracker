@@ -34,6 +34,7 @@ import { TotalTradesDonut } from '@/components/dashboard/analytics/TotalTradesCh
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
+import { computeStrategyStatsFromTrades } from '@/utils/computeStrategyStatsFromTrades';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
@@ -274,6 +275,24 @@ export default function MyTradesClient({
     [trades],
   );
 
+  const strategyStats = useMemo(
+    () =>
+      computeStrategyStatsFromTrades({
+        tradesToUse: trades,
+        accountBalance: activeAccount?.account_balance || 0,
+        selectedExecution: executionFilter,
+        viewMode: 'dateRange',
+        selectedMarket,
+      }),
+    [trades, activeAccount?.account_balance, executionFilter, selectedMarket],
+  );
+
+  const averageDrawdown = strategyStats.averageDrawdown ?? 0;
+  const normalizedAverageDrawdown = useMemo(() => {
+    const capped = Math.max(0, Math.min(averageDrawdown, 20));
+    return (capped / 20) * 100;
+  }, [averageDrawdown]);
+
   // TradeDetailsPanel.invalidateAndRefetchTradeQueries already handles scoped cache invalidation
   const handleTradeUpdated = useCallback(() => {}, []);
 
@@ -366,7 +385,7 @@ export default function MyTradesClient({
         displayStartDate={earliestTradeDate}
       />
 
-      {/* Summary row: P&L + equity chart + total trades + win rate (tied to current filters) */}
+      {/* Summary row: P&L + equity chart + total trades + win rate + avg drawdown (tied to current filters) */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-4 flex flex-col h-full">
@@ -513,6 +532,77 @@ export default function MyTradesClient({
                   </div>
                   <div className="absolute right-4 bottom-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
                     100
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
+          <CardContent className="p-4 flex flex-col h-full">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  Avg Drawdown
+                </p>
+              </div>
+            </div>
+            <div className="flex-1 h-32 relative">
+              {!mounted || totalTrades === 0 ? (
+                <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
+                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    No data yet
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <defs>
+                        <linearGradient id="avgDrawdownGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#f97316" stopOpacity={1} />
+                          <stop offset="100%" stopColor="#ef4444" stopOpacity={0.9} />
+                        </linearGradient>
+                      </defs>
+                      <Pie
+                        data={[
+                          {
+                            name: 'Average Drawdown',
+                            value: normalizedAverageDrawdown,
+                          },
+                          {
+                            name: 'Remaining',
+                            value: Math.max(0, 100 - normalizedAverageDrawdown),
+                          },
+                        ]}
+                        cx="50%"
+                        cy="80%"
+                        startAngle={180}
+                        endAngle={0}
+                        innerRadius={48}
+                        outerRadius={60}
+                        paddingAngle={2}
+                        cornerRadius={7}
+                        dataKey="value"
+                      >
+                        <Cell fill="url(#avgDrawdownGradient)" stroke="none" />
+                        <Cell
+                          fill="rgba(148, 163, 184, 0.35)"
+                          stroke="none"
+                        />
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 top-10 flex items-center justify-center pointer-events-none">
+                    <span className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">
+                      {averageDrawdown.toFixed(2)}%
+                    </span>
+                  </div>
+                  <div className="absolute left-4 bottom-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    0%
+                  </div>
+                  <div className="absolute right-4 bottom-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    20%
                   </div>
                 </>
               )}
