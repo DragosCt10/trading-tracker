@@ -250,10 +250,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     strategyId?: string | null;
   }) => {
     // Signal strategy page to skip re-hydrating from stale initialData (so calendar/list show new trade).
-    // Also clear the persisted query cache so stale localStorage stats aren't shown after this trade change.
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
-      localStorage.removeItem('tt-query-cache');
     }
     
     // Get current context for explicit refetch
@@ -599,22 +597,21 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
       if (error) throw new Error(error.message);
 
-      // Await refetch so AccountOverviewCard and calendar show the new trade before modal closes
-      await invalidateAndRefetchTradeQueries({
-        mode: selection.mode,
-        accountId: selection.activeAccount?.id,
-        userId: userId ?? undefined,
-        strategyId: tradeSnapshot.strategy_id ?? null,
-      });
-
+      // Close immediately — refetch + sync run in background after modal closes
       setIsSubmitting(false);
       setTrade(initialTradeState);
       if (onTradeCreated) onTradeCreated();
       onClose();
 
-      // Post-insert sync work (saved lists + cache) — do not block UI; runs after modal closed
+      // Background: invalidate queries + sync saved lists + update cache
       void (async () => {
         try {
+          await invalidateAndRefetchTradeQueries({
+            mode: selection.mode,
+            accountId: selection.activeAccount?.id,
+            userId: userId ?? undefined,
+            strategyId: tradeSnapshot.strategy_id ?? null,
+          });
           // Compute updated lists and persist to DB; then update React Query cache so suggestion lists show new data without page refresh
           let updatedNews: SavedNewsItem[] | undefined;
           let updatedSetups: string[] | undefined;
