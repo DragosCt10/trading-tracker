@@ -212,14 +212,9 @@ export function TradeCardsView({
 
   return (
     <TooltipProvider>
-      <div className="mt-6 flex flex-col gap-4">
+      <div className="mt-6 flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4">
-            {totalFilteredCount !== undefined && (
-              <span className="inline-flex h-8 items-center rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none px-3 text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
-                {totalFilteredCount} trade{totalFilteredCount !== 1 ? 's' : ''}
-              </span>
-            )}
             {marketFilter && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
