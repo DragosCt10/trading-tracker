@@ -35,10 +35,11 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
 import { computeStrategyStatsFromTrades } from '@/utils/computeStrategyStatsFromTrades';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 import { Info } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { MonteCarloCard } from '@/components/trades/MonteCarloCard';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -66,11 +67,6 @@ function SummaryHalfGauge({
   maxLabel,
   rawValueForTooltip,
 }: SummaryHalfGaugeProps) {
-  const { isDark } = useDarkMode();
-  const [showTooltip, setShowTooltip] = useState(false);
-  const tooltipActiveRef = useRef(false);
-  const prevActiveRef = useRef(false);
-
   let gradientId: string;
   let gradientDefs: React.ReactNode;
 
@@ -92,7 +88,6 @@ function SummaryHalfGauge({
     // 25–50 -> 5–10%  -> amber
     // 50–75 -> 10–15% -> orange
     // 75–100-> 15–20% -> red
-    const v = Math.max(0, Math.min(valueNormalized, 100));
     if (avgValue <= 2) gradientId = 'avgDrawdownBlue';
     else if (avgValue <= 5) gradientId = 'avgDrawdownEmerald';
     else if (avgValue <= 10) gradientId = 'avgDrawdownAmber';
@@ -124,37 +119,6 @@ function SummaryHalfGauge({
         </linearGradient>
       </>
     );
-    const getTooltipDotColor = () => {
-      if (avgValue <= 2) return 'bg-blue-500 dark:bg-blue-400 ring-blue-200/50 dark:ring-blue-500/30';
-      if (avgValue <= 5) return 'bg-emerald-500 dark:bg-emerald-400 ring-emerald-200/50 dark:ring-emerald-500/30';
-      if (avgValue <= 10) return 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30';
-      if (avgValue <= 15) return 'bg-orange-500 dark:bg-orange-400 ring-orange-200/50 dark:ring-orange-500/30';
-      return 'bg-red-500 dark:bg-red-400 ring-red-200/50 dark:ring-red-500/30';
-    };
-
-    const getTooltipValueColor = () => {
-      if (avgValue <= 2) return 'text-blue-600 dark:text-blue-400';
-      if (avgValue <= 5) return 'text-emerald-600 dark:text-emerald-400';
-      if (avgValue <= 10) return 'text-amber-600 dark:text-amber-400';
-      if (avgValue <= 15) return 'text-orange-600 dark:text-orange-400';
-      return 'text-red-600 dark:text-red-400';
-    };
-
-    const CustomTooltip = ({ active, payload }: any) => {
-      const isActive = active && payload && payload.length > 0;
-
-      tooltipActiveRef.current = isActive;
-
-      if (isActive !== prevActiveRef.current) {
-        prevActiveRef.current = isActive;
-        requestAnimationFrame(() => {
-          setShowTooltip(isActive);
-        });
-      }
-
-      return null;
-    };
-
     gradientDefs = (
       <>
         <linearGradient id="avgDrawdownBlue" x1="0" y1="0" x2="0" y2="1">
@@ -178,54 +142,12 @@ function SummaryHalfGauge({
           <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
           <stop offset="100%" stopColor="#dc2626" stopOpacity={0.9} />
         </linearGradient>
-        {variant === 'avgDrawdown' && (
-          <RechartsTooltip content={<CustomTooltip />} />
-        )}
       </>
     );
   }
 
   return (
     <>
-      {variant === 'avgDrawdown' && showTooltip && (
-        <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 z-10 animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="relative overflow-hidden rounded-2xl p-3 border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100">
-            {isDark && (
-              <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />
-            )}
-            <div className="relative flex flex-col gap-1.5">
-              <div className="flex items-center gap-2">
-                <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', variant === 'avgDrawdown' ? (() => {
-                  const avg = rawValueForTooltip ?? 0;
-                  if (avg <= 2) return 'bg-blue-500 dark:bg-blue-400 ring-blue-200/50 dark:ring-blue-500/30';
-                  if (avg <= 5) return 'bg-emerald-500 dark:bg-emerald-400 ring-emerald-200/50 dark:ring-emerald-500/30';
-                  if (avg <= 10) return 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30';
-                  if (avg <= 15) return 'bg-orange-500 dark:bg-orange-400 ring-orange-200/50 dark:ring-orange-500/30';
-                  return 'bg-red-500 dark:bg-red-400 ring-red-200/50 dark:ring-red-500/30';
-                })() : '')} />
-                <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                  Avg Drawdown:{' '}
-                  <span
-                    className={cn('font-bold', (() => {
-                      const avg = rawValueForTooltip ?? 0;
-                      if (avg <= 2) return 'text-blue-600 dark:text-blue-400';
-                      if (avg <= 5) return 'text-emerald-600 dark:text-emerald-400';
-                      if (avg <= 10) return 'text-amber-600 dark:text-amber-400';
-                      if (avg <= 15) return 'text-orange-600 dark:text-orange-400';
-                      return 'text-red-600 dark:text-red-400';
-                    })())}
-                  >
-                    {(rawValueForTooltip ?? 0).toFixed(2)}%
-                  </span>
-                </div>
-              </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 ml-4">
-                {Math.max(0, Math.min(valueNormalized, 100)).toFixed(1)}% of 0–20% scale
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <defs>{gradientDefs}</defs>
@@ -854,54 +776,69 @@ export default function MyTradesClient({
         </Card>
       </div>
 
-      <TradeCardsView
-        trades={trades}
-        isLoading={tradesLoading}
-        isFetching={tradesFetching}
-        resetKey={`${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${executionFilter}-${sortField}-${showPartialTrades}`}
-        onTradeUpdated={handleTradeUpdated}
-        enableBulkDeleteInTableView
-        onBulkDelete={handleBulkDelete}
-        totalFilteredCount={filteredTrades.length}
-        // Sort by control rendered on same row as View toggles
-        sortControl={
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
-              Sort by:
-            </span>
-            <Select
-              value={sortField}
-              onValueChange={(value) => {
-                if (value === 'partials_only') {
-                  setShowPartialTrades(true);
-                  setSortField('partials_only');
-                  return;
-                }
-                setShowPartialTrades(false);
-                setSortField(value as 'trade_date' | 'market' | 'outcome');
-                setSortConfig((prev) => ({
-                  field: value as 'trade_date' | 'market' | 'outcome',
-                  direction: prev.field === value && prev.direction === 'asc' ? 'desc' : 'asc',
-                }));
-              }}
-            >
-              <SelectTrigger
-                id="sort-by"
-                className="flex w-32 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 !bg-slate-50/50 dark:!bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                suppressHydrationWarning
+      {/* Future Equity (Monte Carlo) card, using the same filtered trades */}
+      <div className="mt-6">
+        <MonteCarloCard trades={trades} currencySymbol={currencySymbol} />
+      </div>
+
+      <div className="mt-10 space-y-2">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            View Mode Trades
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            View your trades as cards, split, or table.
+          </p>
+        </div>
+        <TradeCardsView
+          trades={trades}
+          isLoading={tradesLoading}
+          isFetching={tradesFetching}
+          resetKey={`${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${executionFilter}-${sortField}-${showPartialTrades}`}
+          onTradeUpdated={handleTradeUpdated}
+          enableBulkDeleteInTableView
+          onBulkDelete={handleBulkDelete}
+          totalFilteredCount={filteredTrades.length}
+          // Sort by control rendered on same row as View toggles
+          sortControl={
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
+                Sort by:
+              </span>
+              <Select
+                value={sortField}
+                onValueChange={(value) => {
+                  if (value === 'partials_only') {
+                    setShowPartialTrades(true);
+                    setSortField('partials_only');
+                    return;
+                  }
+                  setShowPartialTrades(false);
+                  setSortField(value as 'trade_date' | 'market' | 'outcome');
+                  setSortConfig((prev) => ({
+                    field: value as 'trade_date' | 'market' | 'outcome',
+                    direction: prev.field === value && prev.direction === 'asc' ? 'desc' : 'asc',
+                  }));
+                }}
               >
-                <SelectValue placeholder="Date" />
-              </SelectTrigger>
-              <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
-                <SelectItem value="trade_date">Date</SelectItem>
-                <SelectItem value="market">Market</SelectItem>
-                <SelectItem value="outcome">Outcome</SelectItem>
-                <SelectItem value="partials_only">Partial trades</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        }
-      />
+                <SelectTrigger
+                  id="sort-by"
+                  className="flex w-32 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 !bg-slate-50/50 dark:!bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                  suppressHydrationWarning
+                >
+                  <SelectValue placeholder="Date" />
+                </SelectTrigger>
+                <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+                  <SelectItem value="trade_date">Date</SelectItem>
+                  <SelectItem value="market">Market</SelectItem>
+                  <SelectItem value="outcome">Outcome</SelectItem>
+                  <SelectItem value="partials_only">Partial trades</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          }
+        />
+      </div>
     </div>
   );
 }
