@@ -360,7 +360,7 @@ export default function MyTradesClient({
       />
 
       {/* Summary row: P&L + equity chart + total trades (tied to current filters) */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3 flex items-start justify-between gap-3">
@@ -422,9 +422,6 @@ export default function MyTradesClient({
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   Total Trades
                 </p>
-                <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">
-                  {totalTrades}
-                </p>
               </div>
             </div>
             <div className="flex-1 h-32">
@@ -438,6 +435,7 @@ export default function MyTradesClient({
                   wins={wins}
                   losses={losses}
                   beTrades={beTrades}
+                  variant="compact"
                 />
               )}
             </div>
