@@ -343,11 +343,6 @@ export default function MyTradesClient({
         displayStartDate={earliestTradeDate}
       />
 
-      <MonteCarloCard
-        trades={filteredTrades}
-        currencySymbol={getCurrencySymbolFromAccount(activeAccount ?? undefined)}
-      />
-
       <TradeCardsView
         trades={displayedTrades}
         isLoading={tradesLoading}
