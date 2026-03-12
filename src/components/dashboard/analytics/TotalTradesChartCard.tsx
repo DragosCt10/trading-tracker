@@ -136,7 +136,7 @@ export const TotalTradesDonut: React.FC<TotalTradesDonutProps> = ({
               innerRadius={variant === 'compact' ? 32 : 65}
               outerRadius={variant === 'compact' ? 44 : 85}
               paddingAngle={5}
-              cornerRadius={5}
+              cornerRadius={7}
               dataKey="value"
             >
               {pieData.map((entry, index) => {
