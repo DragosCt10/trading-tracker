@@ -502,7 +502,7 @@ export default function MyTradesClient({
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="absolute inset-0 top-10 flex items-center justify-center pointer-events-none">
                     <span className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">
                       {overviewStats.winRate.toFixed(1)}%
                     </span>
