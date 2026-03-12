@@ -154,8 +154,6 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const invalidateAndRefetchTradeQueries = useCallback(async () => {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
-      // Clear persisted query cache so stale localStorage stats aren't shown after trade edit.
-      localStorage.removeItem('tt-query-cache');
     }
     // Capture both original and possibly-edited strategy IDs (handles trade reassignment)
     const affectedStrategyIds = new Set([
@@ -352,75 +350,81 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         return;
       }
 
-      // Await so AccountOverviewCard and other stats (dashboardStats + filteredTrades) update before closing
-      await invalidateAndRefetchTradeQueries();
-
-      let updatedNews: SavedNewsItem[] | undefined;
-      let updatedSetups: string[] | undefined;
-      let updatedLiquidity: string[] | undefined;
-      let updatedMarkets: string[] | undefined;
-
-      // Run independent saved-data updates in parallel
-      const savePromises: Promise<unknown>[] = [];
-      if (editedTrade.news_related && editedTrade.news_name?.trim() && userId) {
-        const savedNews = Array.isArray(settings.saved_news) ? settings.saved_news : [];
-        updatedNews = mergeNewsIntoSaved(
-          normalizeNewsName(editedTrade.news_name),
-          editedTrade.news_intensity ?? null,
-          savedNews
-        );
-        savePromises.push(updateSavedNews(updatedNews));
-      }
-      if (editedTrade.setup_type?.trim() && userId && currentStrategy) {
-        updatedSetups = mergeSetupTypeIntoSaved(
-          editedTrade.setup_type,
-          currentStrategy.saved_setup_types ?? []
-        );
-        savePromises.push(updateStrategySetupTypes(currentStrategy.id, userId, updatedSetups));
-      }
-      if (editedTrade.liquidity?.trim() && userId && currentStrategy) {
-        updatedLiquidity = mergeLiquidityTypeIntoSaved(
-          editedTrade.liquidity,
-          currentStrategy.saved_liquidity_types ?? []
-        );
-        savePromises.push(updateStrategyLiquidityTypes(currentStrategy.id, userId, updatedLiquidity));
-      }
-      if (editedTrade.market?.trim() && userId) {
-        const savedMarkets = Array.isArray(settings.saved_markets) ? settings.saved_markets : [];
-        updatedMarkets = mergeMarketIntoSaved(editedTrade.market, savedMarkets);
-        savePromises.push(updateSavedMarkets(updatedMarkets));
-      }
-      await Promise.all(savePromises);
-
-      if (userId) {
-        const settingsKey = queryKeys.settings(userId);
-        queryClient.setQueryData(settingsKey, (prev: { saved_news?: unknown; saved_markets?: string[] } | undefined) => ({
-          ...prev,
-          saved_news: updatedNews ?? prev?.saved_news ?? [],
-          saved_markets: updatedMarkets ?? prev?.saved_markets ?? [],
-        }));
-        if (currentStrategy && (updatedSetups !== undefined || updatedLiquidity !== undefined)) {
-          const strategiesKey = queryKeys.strategies(userId);
-          queryClient.setQueryData(strategiesKey, (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[] }[] | undefined) => {
-            if (!prev) return prev;
-            return prev.map((s) =>
-              s.id === currentStrategy.id
-                ? {
-                    ...s,
-                    saved_setup_types: updatedSetups ?? s.saved_setup_types ?? [],
-                    saved_liquidity_types: updatedLiquidity ?? s.saved_liquidity_types ?? [],
-                  }
-                : s
-            );
-          });
-        }
-      }
-
+      // Update UI immediately — don't wait for refetch
       setIsEditing(false);
       if (onTradeUpdated) onTradeUpdated();
       setIsSaving(false);
       // In inline/split mode, stay on the panel after saving; in modal mode, close
       if (!inlineMode) onClose();
+
+      // Refetch + sync saved lists + cache in background
+      void (async () => {
+        try {
+          await invalidateAndRefetchTradeQueries();
+
+          let updatedNews: SavedNewsItem[] | undefined;
+          let updatedSetups: string[] | undefined;
+          let updatedLiquidity: string[] | undefined;
+          let updatedMarkets: string[] | undefined;
+
+          const savePromises: Promise<unknown>[] = [];
+          if (editedTrade.news_related && editedTrade.news_name?.trim() && userId) {
+            const savedNews = Array.isArray(settings.saved_news) ? settings.saved_news : [];
+            updatedNews = mergeNewsIntoSaved(
+              normalizeNewsName(editedTrade.news_name),
+              editedTrade.news_intensity ?? null,
+              savedNews
+            );
+            savePromises.push(updateSavedNews(updatedNews));
+          }
+          if (editedTrade.setup_type?.trim() && userId && currentStrategy) {
+            updatedSetups = mergeSetupTypeIntoSaved(
+              editedTrade.setup_type,
+              currentStrategy.saved_setup_types ?? []
+            );
+            savePromises.push(updateStrategySetupTypes(currentStrategy.id, userId, updatedSetups));
+          }
+          if (editedTrade.liquidity?.trim() && userId && currentStrategy) {
+            updatedLiquidity = mergeLiquidityTypeIntoSaved(
+              editedTrade.liquidity,
+              currentStrategy.saved_liquidity_types ?? []
+            );
+            savePromises.push(updateStrategyLiquidityTypes(currentStrategy.id, userId, updatedLiquidity));
+          }
+          if (editedTrade.market?.trim() && userId) {
+            const savedMarkets = Array.isArray(settings.saved_markets) ? settings.saved_markets : [];
+            updatedMarkets = mergeMarketIntoSaved(editedTrade.market, savedMarkets);
+            savePromises.push(updateSavedMarkets(updatedMarkets));
+          }
+          await Promise.all(savePromises);
+
+          if (userId) {
+            const settingsKey = queryKeys.settings(userId);
+            queryClient.setQueryData(settingsKey, (prev: { saved_news?: unknown; saved_markets?: string[] } | undefined) => ({
+              ...prev,
+              saved_news: updatedNews ?? prev?.saved_news ?? [],
+              saved_markets: updatedMarkets ?? prev?.saved_markets ?? [],
+            }));
+            if (currentStrategy && (updatedSetups !== undefined || updatedLiquidity !== undefined)) {
+              const strategiesKey = queryKeys.strategies(userId);
+              queryClient.setQueryData(strategiesKey, (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[] }[] | undefined) => {
+                if (!prev) return prev;
+                return prev.map((s) =>
+                  s.id === currentStrategy.id
+                    ? {
+                        ...s,
+                        saved_setup_types: updatedSetups ?? s.saved_setup_types ?? [],
+                        saved_liquidity_types: updatedLiquidity ?? s.saved_liquidity_types ?? [],
+                      }
+                    : s
+                );
+              });
+            }
+          }
+        } catch (syncErr) {
+          console.error('Post-save trade sync failed:', syncErr);
+        }
+      })();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to save trade. Please try again.';
       setError(message);
@@ -455,11 +459,12 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         return;
       }
 
-      await invalidateAndRefetchTradeQueries();
-
       setIsDeleting(false);
       if (onTradeUpdated) onTradeUpdated();
       onClose();
+
+      // Refetch in background
+      void invalidateAndRefetchTradeQueries();
     } catch (err: unknown) {
       setShowDeleteConfirm(false);
       const message = err instanceof Error ? err.message : 'Failed to delete trade. Please try again.';
