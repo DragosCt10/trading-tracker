@@ -60,26 +60,64 @@ function SummaryHalfGauge({
   minLabel,
   maxLabel,
 }: SummaryHalfGaugeProps) {
-  const gradientId =
-    variant === 'winRate' ? 'winRateGaugeGradient' : 'avgDrawdownGaugeGradient';
+  let gradientId: string;
+  let gradientDefs: React.ReactNode;
+
+  if (variant === 'winRate') {
+    gradientId = 'winRateGaugeGradient';
+    gradientDefs = (
+      <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#8b5cf6" stopOpacity={1} />
+        <stop offset="100%" stopColor="#6366f1" stopOpacity={0.9} />
+      </linearGradient>
+    );
+  } else {
+    // Map normalized 0–100 value back onto the same color bands
+    // used in AverageDrawdownChart (0–20% DD):
+    // 0–10  -> 0–2%   -> blue
+    // 10–25 -> 2–5%   -> emerald
+    // 25–50 -> 5–10%  -> amber
+    // 50–75 -> 10–15% -> orange
+    // 75–100-> 15–20% -> red
+    const v = Math.max(0, Math.min(valueNormalized, 100));
+    if (v <= 10) gradientId = 'avgDrawdownBlue';
+    else if (v <= 25) gradientId = 'avgDrawdownEmerald';
+    else if (v <= 50) gradientId = 'avgDrawdownAmber';
+    else if (v <= 75) gradientId = 'avgDrawdownOrange';
+    else gradientId = 'avgDrawdownRed';
+
+    gradientDefs = (
+      <>
+        <linearGradient id="avgDrawdownBlue" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+          <stop offset="100%" stopColor="#2563eb" stopOpacity={0.9} />
+        </linearGradient>
+        <linearGradient id="avgDrawdownEmerald" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+          <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
+          <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
+        </linearGradient>
+        <linearGradient id="avgDrawdownAmber" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
+          <stop offset="100%" stopColor="#d97706" stopOpacity={0.9} />
+        </linearGradient>
+        <linearGradient id="avgDrawdownOrange" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f97316" stopOpacity={1} />
+          <stop offset="100%" stopColor="#ea580c" stopOpacity={0.9} />
+        </linearGradient>
+        <linearGradient id="avgDrawdownRed" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
+          <stop offset="100%" stopColor="#dc2626" stopOpacity={0.9} />
+        </linearGradient>
+      </>
+    );
+  }
 
   return (
     <>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
-          <defs>
-            {variant === 'winRate' ? (
-              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#8b5cf6" stopOpacity={1} />
-                <stop offset="100%" stopColor="#6366f1" stopOpacity={0.9} />
-              </linearGradient>
-            ) : (
-              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#f97316" stopOpacity={1} />
-                <stop offset="100%" stopColor="#ef4444" stopOpacity={0.9} />
-              </linearGradient>
-            )}
-          </defs>
+          <defs>{gradientDefs}</defs>
           <Pie
             data={[
               { name: 'Value', value: Math.max(0, Math.min(valueNormalized, 100)) },
@@ -567,8 +605,8 @@ export default function MyTradesClient({
                   variant="winRate"
                   valueNormalized={overviewStats.winRate}
                   centerLabel={`${overviewStats.winRate.toFixed(1)}%`}
-                  minLabel="0"
-                  maxLabel="100"
+                  minLabel="0%"
+                  maxLabel="100%"
                 />
               )}
             </div>
