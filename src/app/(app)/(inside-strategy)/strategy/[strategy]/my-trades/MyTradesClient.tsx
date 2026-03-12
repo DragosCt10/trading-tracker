@@ -742,13 +742,18 @@ export default function MyTradesClient({
                     <TooltipContent
                       side="top"
                       align="center"
-                      className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
-                      sideOffset={6}
+                      className="w-[320px] text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-700/80 bg-slate-900/90 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.7)] text-slate-50"
+                      sideOffset={8}
                     >
                       {isDark && (
                         <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />
                       )}
-                      <div className="relative">{avgDrawdownTooltipContent}</div>
+                      <div className="relative text-left">
+                        <div className="text-[11px] font-extrabold tracking-[0.18em] text-slate-300 mb-2">
+                          AVERAGE DRAWDOWN INTERPRETATION
+                        </div>
+                        {avgDrawdownTooltipContent}
+                      </div>
                     </TooltipContent>
                   </UITooltip>
                 </TooltipProvider>
