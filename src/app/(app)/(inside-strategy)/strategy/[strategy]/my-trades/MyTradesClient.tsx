@@ -20,10 +20,16 @@ import {
 import { queryKeys } from '@/lib/queryKeys';
 import { exportTradesToCsv } from '@/utils/exportTradesToCsv';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
-import { MonteCarloCard } from '@/components/trades/MonteCarloCard';
-import { getCurrencySymbolFromAccount } from '@/components/dashboard/analytics/AccountOverviewCard';
+import { Loader2, TrendingUp, TrendingDown } from 'lucide-react';
+import {
+  getCurrencySymbolFromAccount,
+  computeMonthlyStatsFromTrades,
+  calculateTotalYearProfit,
+} from '@/components/dashboard/analytics/AccountOverviewCard';
+import { buildEquityPointsFromTrades } from '@/components/dashboard/analytics/EquityCurveCard';
+import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
 
 const ITEMS_PER_LOAD = 24;
 
@@ -217,6 +223,31 @@ export default function MyTradesClient({
     return list;
   }, [filteredTrades, sortConfig, getOutcomeValue]);
 
+  const currencySymbol = useMemo(
+    () => getCurrencySymbolFromAccount(activeAccount ?? undefined),
+    [activeAccount]
+  );
+
+  // Reuse AccountOverviewCard helpers to compute net cumulative P&L from the current filtered trades
+  const monthlyStatsForPeriod = useMemo(
+    () => computeMonthlyStatsFromTrades(filteredTrades),
+    [filteredTrades]
+  );
+  const netCumulativePnl = useMemo(
+    () => calculateTotalYearProfit(monthlyStatsForPeriod),
+    [monthlyStatsForPeriod]
+  );
+
+  const pnlPercent = useMemo(() => {
+    const base = activeAccount?.account_balance || 1;
+    return (netCumulativePnl / base) * 100;
+  }, [netCumulativePnl, activeAccount?.account_balance]);
+
+  const equityChartData = useMemo(
+    () => buildEquityPointsFromTrades(filteredTrades),
+    [filteredTrades]
+  );
+
   const displayedTrades = useMemo(() => trades.slice(0, displayedCount), [trades, displayedCount]);
   const hasMore = displayedCount < trades.length;
 
@@ -342,6 +373,54 @@ export default function MyTradesClient({
         showAllTradesOption={true}
         displayStartDate={earliestTradeDate}
       />
+
+      {/* Summary row: P&L + compact equity chart tied to current filters */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
+          <CardContent className="p-4 flex flex-col h-full">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  Net P&amp;L
+                </p>
+                <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+                  {currencySymbol}
+                  {Math.abs(netCumulativePnl).toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {netCumulativePnl >= 0 ? (
+                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                ) : (
+                  <TrendingDown className="w-4 h-4 text-rose-500" />
+                )}
+                <div
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
+                    netCumulativePnl >= 0
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                      : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                  }`}
+                >
+                  {netCumulativePnl >= 0 ? '+' : ''}
+                  {pnlPercent.toFixed(2)}%
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 h-32">
+              <EquityCurveChart
+                data={equityChartData}
+                currencySymbol={currencySymbol}
+                hasTrades={equityChartData.length > 0 ? true : false}
+                isLoading={tradesLoading}
+                variant="compact"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <TradeCardsView
         trades={displayedTrades}
