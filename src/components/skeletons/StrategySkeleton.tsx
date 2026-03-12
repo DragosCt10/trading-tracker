@@ -36,7 +36,7 @@ export function StrategySkeleton() {
         </h2>
       </div>
       <p className="text-slate-500 dark:text-slate-400 mb-6">
-        Account balance, yearly P&amp;L, and best and worst month for the selected year.
+        Account balance, yearly P&amp;L, and best and worst month for the selected period.
       </p>
 
       {/* Account Overview Card skeleton */}
