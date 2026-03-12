@@ -6,6 +6,7 @@ import { MonteCarloChart } from './MonteCarloChart';
 import { runMonteCarloSimulation } from '@/utils/monteCarloSimulation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useDarkMode } from '@/hooks/useDarkMode';
 import {
   Card,
   CardHeader,
@@ -30,6 +31,7 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
 }) => {
   const [futureTrades, setFutureTrades] = useState<number>(50);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('r');
+  const { isDark } = useDarkMode();
 
   const simulationData = useMemo(
     () => runMonteCarloSimulation(trades, 500, futureTrades),
@@ -39,7 +41,7 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
   const hasSufficientData = trades.length >= MIN_TRADES;
 
   return (
-    <Card className="mb-4 z-1 relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm w-full flex flex-col">
+    <Card className="mb-4 z-1 relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm w-full flex flex-col">
       <CardHeader className="pb-2 flex-shrink-0">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-1">
@@ -62,16 +64,20 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
                     side="top"
                     align="start"
                     sideOffset={8}
-                    className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100 z-[100]"
+                    className="w-[320px] text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-700/80 bg-slate-900/90 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.7)] text-slate-50 z-[100]"
                   >
-                    <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                      How to read this chart
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
-                      500 random sequences are simulated by drawing from your real trade history.
-                      Each band shows how many of those sequences landed in that range at each future trade.
-                    </p>
-                    <div className="flex flex-col gap-2">
+                    {isDark && (
+                      <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />
+                    )}
+                    <div className="relative text-left">
+                      <div className="text-[11px] font-extrabold tracking-[0.18em] text-slate-300 mb-2">
+                        HOW TO READ THIS CHART
+                      </div>
+                      <p className="text-xs text-slate-200/90 mb-3">
+                        500 random sequences are simulated by drawing from your real trade history.
+                        Each band shows how many of those sequences landed in that range at each future trade.
+                      </p>
+                      <div className="flex flex-col gap-2">
                       <TooltipBandRow
                         color="var(--tc-primary, #8b5cf6)"
                         label="75th – 90th pct"
@@ -95,11 +101,12 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
                         description="Below-average outcomes. Still within normal variance."
                         opacity={0.5}
                       />
-                      <TooltipBandRow
-                        color="#f43f5e"
-                        label="10th – 25th pct"
-                        description="Bottom 25% of runs — worst realistic scenarios."
-                      />
+                        <TooltipBandRow
+                          color="#f43f5e"
+                          label="10th – 25th pct"
+                          description="Bottom 25% of runs — worst realistic scenarios."
+                        />
+                      </div>
                     </div>
                   </TooltipContent>
                 </Tooltip>
