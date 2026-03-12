@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef, useTransition } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Trade } from '@/types/trade';
 import { deleteTrade, updateTrade } from '@/lib/server/trades';
@@ -118,7 +118,6 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isEditPending, startEditTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showExtraScreens, setShowExtraScreens] = useState(false);
   const queryClient = useQueryClient();
@@ -1587,12 +1586,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             {!effectiveIsEditing ? (
               <>
                 <Button
-                  onClick={() => startEditTransition(() => setIsEditing(true))}
-                  disabled={isEditPending}
+                  onClick={() => setIsEditing(true)}
                   className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-5 py-2 group border-0 disabled:opacity-60 flex items-center gap-2"
                 >
-                  {isEditPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                  <span className="relative z-10">{isEditPending ? 'Loading...' : 'Edit Trade'}</span>
+                  <span className="relative z-10">Edit Trade</span>
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 </Button>
                 <Button
@@ -1609,10 +1606,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               <>
                 <Button
                   variant="outline"
-                  onClick={() => startEditTransition(() => {
+                  onClick={() => {
                     setIsEditing(false);
                     setEditedTrade(trade);
-                  })}
+                  }}
                   className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
                 >
                   Cancel
