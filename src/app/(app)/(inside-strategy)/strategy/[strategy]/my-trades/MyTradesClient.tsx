@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Trade } from '@/types/trade';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -35,7 +35,10 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
 import { computeStrategyStatsFromTrades } from '@/utils/computeStrategyStatsFromTrades';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
+import { cn } from '@/lib/utils';
+import { Info } from 'lucide-react';
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -51,6 +54,8 @@ interface SummaryHalfGaugeProps {
   minLabel: string;
   /** Right scale label (e.g. "100" or "20%") */
   maxLabel: string;
+  /** Raw value used for tooltip interpretation (e.g. 3.5 for 3.5% drawdown) */
+  rawValueForTooltip?: number;
 }
 
 function SummaryHalfGauge({
@@ -59,7 +64,13 @@ function SummaryHalfGauge({
   centerLabel,
   minLabel,
   maxLabel,
+  rawValueForTooltip,
 }: SummaryHalfGaugeProps) {
+  const { isDark } = useDarkMode();
+  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipActiveRef = useRef(false);
+  const prevActiveRef = useRef(false);
+
   let gradientId: string;
   let gradientDefs: React.ReactNode;
 
@@ -72,6 +83,8 @@ function SummaryHalfGauge({
       </linearGradient>
     );
   } else {
+    const avgValue = rawValueForTooltip ?? (Math.max(0, Math.min(valueNormalized, 100)) / 100) * 20;
+
     // Map normalized 0–100 value back onto the same color bands
     // used in AverageDrawdownChart (0–20% DD):
     // 0–10  -> 0–2%   -> blue
@@ -80,10 +93,10 @@ function SummaryHalfGauge({
     // 50–75 -> 10–15% -> orange
     // 75–100-> 15–20% -> red
     const v = Math.max(0, Math.min(valueNormalized, 100));
-    if (v <= 10) gradientId = 'avgDrawdownBlue';
-    else if (v <= 25) gradientId = 'avgDrawdownEmerald';
-    else if (v <= 50) gradientId = 'avgDrawdownAmber';
-    else if (v <= 75) gradientId = 'avgDrawdownOrange';
+    if (avgValue <= 2) gradientId = 'avgDrawdownBlue';
+    else if (avgValue <= 5) gradientId = 'avgDrawdownEmerald';
+    else if (avgValue <= 10) gradientId = 'avgDrawdownAmber';
+    else if (avgValue <= 15) gradientId = 'avgDrawdownOrange';
     else gradientId = 'avgDrawdownRed';
 
     gradientDefs = (
@@ -111,10 +124,108 @@ function SummaryHalfGauge({
         </linearGradient>
       </>
     );
+    const getTooltipDotColor = () => {
+      if (avgValue <= 2) return 'bg-blue-500 dark:bg-blue-400 ring-blue-200/50 dark:ring-blue-500/30';
+      if (avgValue <= 5) return 'bg-emerald-500 dark:bg-emerald-400 ring-emerald-200/50 dark:ring-emerald-500/30';
+      if (avgValue <= 10) return 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30';
+      if (avgValue <= 15) return 'bg-orange-500 dark:bg-orange-400 ring-orange-200/50 dark:ring-orange-500/30';
+      return 'bg-red-500 dark:bg-red-400 ring-red-200/50 dark:ring-red-500/30';
+    };
+
+    const getTooltipValueColor = () => {
+      if (avgValue <= 2) return 'text-blue-600 dark:text-blue-400';
+      if (avgValue <= 5) return 'text-emerald-600 dark:text-emerald-400';
+      if (avgValue <= 10) return 'text-amber-600 dark:text-amber-400';
+      if (avgValue <= 15) return 'text-orange-600 dark:text-orange-400';
+      return 'text-red-600 dark:text-red-400';
+    };
+
+    const CustomTooltip = ({ active, payload }: any) => {
+      const isActive = active && payload && payload.length > 0;
+
+      tooltipActiveRef.current = isActive;
+
+      if (isActive !== prevActiveRef.current) {
+        prevActiveRef.current = isActive;
+        requestAnimationFrame(() => {
+          setShowTooltip(isActive);
+        });
+      }
+
+      return null;
+    };
+
+    gradientDefs = (
+      <>
+        <linearGradient id="avgDrawdownBlue" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+          <stop offset="100%" stopColor="#2563eb" stopOpacity={0.9} />
+        </linearGradient>
+        <linearGradient id="avgDrawdownEmerald" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+          <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
+          <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
+        </linearGradient>
+        <linearGradient id="avgDrawdownAmber" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
+          <stop offset="100%" stopColor="#d97706" stopOpacity={0.9} />
+        </linearGradient>
+        <linearGradient id="avgDrawdownOrange" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f97316" stopOpacity={1} />
+          <stop offset="100%" stopColor="#ea580c" stopOpacity={0.9} />
+        </linearGradient>
+        <linearGradient id="avgDrawdownRed" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
+          <stop offset="100%" stopColor="#dc2626" stopOpacity={0.9} />
+        </linearGradient>
+        {variant === 'avgDrawdown' && (
+          <RechartsTooltip content={<CustomTooltip />} />
+        )}
+      </>
+    );
   }
 
   return (
     <>
+      {variant === 'avgDrawdown' && showTooltip && (
+        <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 z-10 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="relative overflow-hidden rounded-2xl p-3 border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100">
+            {isDark && (
+              <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />
+            )}
+            <div className="relative flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', variant === 'avgDrawdown' ? (() => {
+                  const avg = rawValueForTooltip ?? 0;
+                  if (avg <= 2) return 'bg-blue-500 dark:bg-blue-400 ring-blue-200/50 dark:ring-blue-500/30';
+                  if (avg <= 5) return 'bg-emerald-500 dark:bg-emerald-400 ring-emerald-200/50 dark:ring-emerald-500/30';
+                  if (avg <= 10) return 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30';
+                  if (avg <= 15) return 'bg-orange-500 dark:bg-orange-400 ring-orange-200/50 dark:ring-orange-500/30';
+                  return 'bg-red-500 dark:bg-red-400 ring-red-200/50 dark:ring-red-500/30';
+                })() : '')} />
+                <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  Avg Drawdown:{' '}
+                  <span
+                    className={cn('font-bold', (() => {
+                      const avg = rawValueForTooltip ?? 0;
+                      if (avg <= 2) return 'text-blue-600 dark:text-blue-400';
+                      if (avg <= 5) return 'text-emerald-600 dark:text-emerald-400';
+                      if (avg <= 10) return 'text-amber-600 dark:text-amber-400';
+                      if (avg <= 15) return 'text-orange-600 dark:text-orange-400';
+                      return 'text-red-600 dark:text-red-400';
+                    })())}
+                  >
+                    {(rawValueForTooltip ?? 0).toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 ml-4">
+                {Math.max(0, Math.min(valueNormalized, 100)).toFixed(1)}% of 0–20% scale
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <defs>{gradientDefs}</defs>
@@ -193,7 +304,7 @@ export default function MyTradesClient({
   const mode = selection.mode ?? initialMode;
   // Stable today string — same format StrategiesClient uses when seeding filteredTrades cache
   const todayStr = useMemo(() => createAllTimeRange().endDate, []);
-  const { mounted } = useDarkMode();
+  const { mounted, isDark } = useDarkMode();
 
   // Initialize selection from server props if not already set
   useEffect(() => {
@@ -410,6 +521,81 @@ export default function MyTradesClient({
     return (capped / 20) * 100;
   }, [averageDrawdown]);
 
+  const avgDrawdownTooltipContent = (
+    <div className="space-y-3">
+      <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+        Average Drawdown Interpretation
+      </div>
+      <div className="space-y-2">
+        <div
+          className={cn(
+            'rounded-xl p-2.5 transition-all',
+            averageDrawdown <= 2
+              ? 'bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30'
+              : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30',
+          )}
+        >
+          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🔹 0% – 2%</span>
+          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+            Excellent — Very low average drawdown, consistent performance.
+          </div>
+        </div>
+        <div
+          className={cn(
+            'rounded-xl p-2.5 transition-all',
+            averageDrawdown > 2 && averageDrawdown <= 5
+              ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/30'
+              : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30',
+          )}
+        >
+          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">✅ 2% – 5%</span>
+          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+            Healthy — Acceptable average drawdown for most strategies.
+          </div>
+        </div>
+        <div
+          className={cn(
+            'rounded-xl p-2.5 transition-all',
+            averageDrawdown > 5 && averageDrawdown <= 10
+              ? 'bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30'
+              : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30',
+          )}
+        >
+          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">⚠️ 5% – 10%</span>
+          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+            Moderate — Higher average drawdown, monitor risk management.
+          </div>
+        </div>
+        <div
+          className={cn(
+            'rounded-xl p-2.5 transition-all',
+            averageDrawdown > 10 && averageDrawdown <= 15
+              ? 'bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/50 dark:border-orange-800/30'
+              : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30',
+          )}
+        >
+          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">❗ 10% – 15%</span>
+          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+            High Risk — Significant average drawdown exposure.
+          </div>
+        </div>
+        <div
+          className={cn(
+            'rounded-xl p-2.5 transition-all',
+            averageDrawdown > 15
+              ? 'bg-red-50/80 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/30'
+              : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30',
+          )}
+        >
+          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🚫 15%+</span>
+          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+            Danger Zone — Extreme average drawdown, immediate review required.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   // TradeDetailsPanel.invalidateAndRefetchTradeQueries already handles scoped cache invalidation
   const handleTradeUpdated = useCallback(() => {}, []);
 
@@ -615,10 +801,35 @@ export default function MyTradesClient({
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
+              <div className="flex items-center gap-1.5">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   Avg Drawdown
                 </p>
+                <TooltipProvider>
+                  <UITooltip delayDuration={150}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        tabIndex={0}
+                        className="inline-flex h-3.5 w-3.5 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
+                        aria-label="Average drawdown info"
+                      >
+                        <Info className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      align="center"
+                      className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
+                      sideOffset={6}
+                    >
+                      {isDark && (
+                        <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />
+                      )}
+                      <div className="relative">{avgDrawdownTooltipContent}</div>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
               </div>
             </div>
             <div className="flex-1 h-32 relative">
@@ -635,6 +846,7 @@ export default function MyTradesClient({
                   centerLabel={`${averageDrawdown.toFixed(2)}%`}
                   minLabel="0%"
                   maxLabel="20%"
+                  rawValueForTooltip={averageDrawdown}
                 />
               )}
             </div>
