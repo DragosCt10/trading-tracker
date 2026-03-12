@@ -30,6 +30,8 @@ import {
 } from '@/components/dashboard/analytics/AccountOverviewCard';
 import { buildEquityPointsFromTrades } from '@/components/dashboard/analytics/EquityCurveCard';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
+import { BouncePulse } from '@/components/ui/bounce-pulse';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -54,7 +56,7 @@ export default function MyTradesClient({
   const [dateRange, setDateRange] = useState<DateRangeState>(() => buildPresetRange('year').dateRange);
   const [activeFilter, setActiveFilter] = useState<FilterType>('year');
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
-  const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'nonExecuted'>('all');
+  const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'nonExecuted'>('executed');
   const [showPartialTrades, setShowPartialTrades] = useState(false);
   const [sortField, setSortField] = useState<'trade_date' | 'market' | 'outcome' | 'partials_only'>('trade_date');
   const [sortConfig, setSortConfig] = useState<{ field: 'trade_date' | 'market' | 'outcome'; direction: 'asc' | 'desc' }>({
@@ -70,6 +72,7 @@ export default function MyTradesClient({
   const mode = selection.mode ?? initialMode;
   // Stable today string — same format StrategiesClient uses when seeding filteredTrades cache
   const todayStr = useMemo(() => createAllTimeRange().endDate, []);
+  const { mounted } = useDarkMode();
 
   // Initialize selection from server props if not already set
   useEffect(() => {
@@ -237,11 +240,8 @@ export default function MyTradesClient({
     return (netCumulativePnl / base) * 100;
   }, [netCumulativePnl, activeAccount?.account_balance]);
 
-  const equityChartData = useMemo(
-    () => buildEquityPointsFromTrades(filteredTrades),
-    [filteredTrades]
-  );
-
+  const equityChartData = useMemo(() => buildEquityPointsFromTrades(trades), [trades]);
+  const hasEquityData = equityChartData.length > 0;
 
   // TradeDetailsPanel.invalidateAndRefetchTradeQueries already handles scoped cache invalidation
   const handleTradeUpdated = useCallback(() => {}, []);
@@ -335,21 +335,18 @@ export default function MyTradesClient({
         displayStartDate={earliestTradeDate}
       />
 
-      {/* Summary row: P&L + compact equity chart tied to current filters */}
+      {/* Summary row: P&L + equity chart tied to current filters (same visual style as DailyJournal) */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-4 flex flex-col h-full">
-            <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                   Net P&amp;L
                 </p>
                 <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">
                   {currencySymbol}
-                  {Math.abs(netCumulativePnl).toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                  {netCumulativePnl.toFixed(2)}
                 </p>
               </div>
               <div className="flex items-center gap-1.5">
@@ -359,7 +356,7 @@ export default function MyTradesClient({
                   <TrendingDown className="w-4 h-4 text-rose-500" />
                 )}
                 <div
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
                     netCumulativePnl >= 0
                       ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
                       : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
@@ -370,14 +367,27 @@ export default function MyTradesClient({
                 </div>
               </div>
             </div>
-            <div className="flex-1 h-32">
-              <EquityCurveChart
-                data={equityChartData}
-                currencySymbol={currencySymbol}
-                hasTrades={equityChartData.length > 0 ? true : false}
-                isLoading={tradesLoading}
-                variant="compact"
-              />
+            <div className="flex-1 min-h-[80px]">
+              {!mounted ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <BouncePulse size="md" />
+                </div>
+              ) : !hasEquityData ? (
+                <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
+                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    No data yet
+                  </p>
+                </div>
+              ) : (
+                <EquityCurveChart
+                  data={equityChartData}
+                  currencySymbol={currencySymbol}
+                  hasTrades={hasEquityData}
+                  isLoading={false}
+                  variant="card"
+                  hideAxisLabels
+                />
+              )}
             </div>
           </CardContent>
         </Card>
