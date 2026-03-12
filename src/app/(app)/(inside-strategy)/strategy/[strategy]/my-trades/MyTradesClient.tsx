@@ -30,6 +30,7 @@ import {
 } from '@/components/dashboard/analytics/AccountOverviewCard';
 import { buildEquityPointsFromTrades } from '@/components/dashboard/analytics/EquityCurveCard';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
+import { TotalTradesDonut } from '@/components/dashboard/analytics/TotalTradesChartCard';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
@@ -243,6 +244,29 @@ export default function MyTradesClient({
   const equityChartData = useMemo(() => buildEquityPointsFromTrades(trades), [trades]);
   const hasEquityData = equityChartData.length > 0;
 
+  const totalTrades = trades.length;
+  const wins = useMemo(
+    () =>
+      trades.filter(
+        (t) => !t.break_even && t.trade_outcome === 'Win',
+      ).length,
+    [trades],
+  );
+  const losses = useMemo(
+    () =>
+      trades.filter(
+        (t) => !t.break_even && t.trade_outcome === 'Lose',
+      ).length,
+    [trades],
+  );
+  const beTrades = useMemo(
+    () =>
+      trades.filter(
+        (t) => t.break_even || t.trade_outcome === 'BE',
+      ).length,
+    [trades],
+  );
+
   // TradeDetailsPanel.invalidateAndRefetchTradeQueries already handles scoped cache invalidation
   const handleTradeUpdated = useCallback(() => {}, []);
 
@@ -335,7 +359,7 @@ export default function MyTradesClient({
         displayStartDate={earliestTradeDate}
       />
 
-      {/* Summary row: P&L + equity chart tied to current filters (same visual style as DailyJournal) */}
+      {/* Summary row: P&L + equity chart + total trades (tied to current filters) */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-4 flex flex-col h-full">
@@ -386,6 +410,34 @@ export default function MyTradesClient({
                   isLoading={false}
                   variant="card"
                   hideAxisLabels
+                />
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
+          <CardContent className="p-4 flex flex-col h-full">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  Total Trades
+                </p>
+                <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+                  {totalTrades}
+                </p>
+              </div>
+            </div>
+            <div className="flex-1 h-32">
+              {!mounted ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <BouncePulse size="md" />
+                </div>
+              ) : (
+                <TotalTradesDonut
+                  totalTrades={totalTrades}
+                  wins={wins}
+                  losses={losses}
+                  beTrades={beTrades}
                 />
               )}
             </div>
