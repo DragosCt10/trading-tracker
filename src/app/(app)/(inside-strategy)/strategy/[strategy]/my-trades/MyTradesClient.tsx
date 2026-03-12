@@ -489,9 +489,10 @@ export default function MyTradesClient({
                         cy="80%"
                         startAngle={180}
                         endAngle={0}
-                        innerRadius={49}
+                        innerRadius={48}
                         outerRadius={60}
                         paddingAngle={2}
+                        cornerRadius={7}
                         dataKey="value"
                       >
                         <Cell fill="url(#winRateGradient)" stroke="none" />
