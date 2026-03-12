@@ -55,19 +55,23 @@ function buildIntradayEquityChartData(trades: Trade[]): EquityPoint[] {
   });
 }
 
+/** Shared helper: build equity points from a Trade[] using the same rules as EquityCurveCard. */
+export function buildEquityPointsFromTrades(trades: Trade[]): EquityPoint[] {
+  if (trades.length === 0) return [];
+
+  const uniqueDays = new Set(trades.map((t) => toDayKey(t.trade_date)));
+  const isSingleDay = uniqueDays.size === 1;
+
+  return isSingleDay ? buildIntradayEquityChartData(trades) : buildDailyEquityChartData(trades);
+}
+
 export const EquityCurveCard = React.memo(function EquityCurveCard({
   trades,
   currencySymbol,
 }: EquityCurveCardProps) {
   const { mounted } = useDarkMode();
   const chartData = useMemo(() => {
-    if (trades.length === 0) return [];
-
-    // If all trades occur on the same day, use intraday (per-trade) equity data.
-    const uniqueDays = new Set(trades.map((t) => toDayKey(t.trade_date)));
-    const isSingleDay = uniqueDays.size === 1;
-
-    return isSingleDay ? buildIntradayEquityChartData(trades) : buildDailyEquityChartData(trades);
+    return buildEquityPointsFromTrades(trades);
   }, [trades]);
   const hasData = chartData.length > 0;
 

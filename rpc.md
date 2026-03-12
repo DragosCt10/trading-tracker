@@ -56,14 +56,14 @@ AND account_id = $2
 AND trade_date BETWEEN $3 AND $4
 AND ($5::uuid IS NULL OR strategy_id = $5)
 AND (
-  -- Execution filter:
-  -- - 'executed'      → executed = true
-  -- - 'non_executed'  → executed is NOT true (false or NULL) so legacy rows with NULL
-  --                    are treated as non-executed, matching MyTradesClient behavior
-  -- - 'all'           → no execution filter
-  ($7 = 'executed'     AND executed = true) OR
-  ($7 = 'non_executed' AND COALESCE(executed, false) = false) OR
-  ($7 = 'all')
+-- Execution filter:
+-- - 'executed' → executed = true
+-- - 'non_executed' → executed is NOT true (false or NULL) so legacy rows with NULL
+-- are treated as non-executed, matching MyTradesClient behavior
+-- - 'all' → no execution filter
+($7 = 'executed' AND executed = true) OR
+($7 = 'non_executed' AND COALESCE(executed, false) = false) OR
+($7 = 'all')
 )
 AND ($8 = 'all' OR COALESCE(NULLIF(market, ''), 'Unknown') = $8)
 ),
@@ -464,6 +464,126 @@ AND ($8 = 'all' OR COALESCE(NULLIF(market, ''), 'Unknown') = $8)
         news_name
       FROM _t
       ORDER BY trade_date, COALESCE(trade_time, '00:00')
+    ),
+
+    -- ── Series stats: compute all 6 time-series values directly in SQL ─────
+    -- Eliminates series[] transfer (~4 MB for 50k trades).
+    -- Mirrors calculateFromSeries.ts logic exactly.
+
+    -- Drawdown: running equity on non-BE trades only (mirrors calculateProfit.ts)
+    _equity_ordered AS (
+      SELECT
+        ROW_NUMBER() OVER (ORDER BY trade_date, COALESCE(trade_time, '00:00')) AS rn,
+        $6 + SUM(COALESCE(calculated_profit, 0))
+              OVER (ORDER BY trade_date, COALESCE(trade_time, '00:00')
+                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)          AS running_balance
+      FROM _t
+      WHERE NOT COALESCE(break_even, false)
+    ),
+    _equity_with_peak AS (
+      SELECT
+        running_balance,
+        MAX(running_balance) OVER (ORDER BY rn
+          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)                    AS peak_so_far
+      FROM _equity_ordered
+    ),
+    _drawdown_calc AS (
+      SELECT
+        COALESCE(MAX(
+          CASE WHEN peak_so_far > 0
+            THEN (peak_so_far - running_balance) / peak_so_far * 100
+            ELSE 0
+          END
+        ), 0)                                                                   AS max_drawdown
+      FROM _equity_with_peak
+    ),
+
+    -- Streaks: non-BE Win/Lose trades only (gap-and-islands pattern)
+    _non_be_streaks AS (
+      SELECT
+        trade_outcome,
+        ROW_NUMBER() OVER (ORDER BY trade_date, COALESCE(trade_time, '00:00')) AS rn
+      FROM _t
+      WHERE NOT COALESCE(break_even, false) AND trade_outcome IN ('Win', 'Lose')
+    ),
+    _streak_islands AS (
+      SELECT
+        trade_outcome,
+        rn,
+        rn - ROW_NUMBER() OVER (PARTITION BY trade_outcome ORDER BY rn)        AS island
+      FROM _non_be_streaks
+    ),
+    _streak_groups AS (
+      SELECT
+        trade_outcome,
+        island,
+        COUNT(*)  AS streak_len,
+        MAX(rn)   AS last_rn
+      FROM _streak_islands
+      GROUP BY trade_outcome, island
+    ),
+    _streak_stats AS (
+      SELECT
+        COALESCE(MAX(streak_len) FILTER (WHERE trade_outcome = 'Win'),  0)     AS max_win_streak,
+        COALESCE(MAX(streak_len) FILTER (WHERE trade_outcome = 'Lose'), 0)     AS max_lose_streak,
+        COALESCE(
+          (SELECT CASE WHEN trade_outcome = 'Win' THEN streak_len ELSE -streak_len END
+           FROM _streak_groups ORDER BY last_rn DESC LIMIT 1),
+          0
+        )                                                                       AS current_streak
+      FROM _streak_groups
+    ),
+
+    -- Sharpe: AVG(return) / STDDEV_SAMP(return) — mirrors calcSharpe()
+    -- BE without partials → return = 0; real trades → ±riskAmt×RR
+    _trade_returns AS (
+      SELECT
+        CASE
+          WHEN (NOT COALESCE(break_even, false) OR
+                (COALESCE(break_even, false) AND COALESCE(partials_taken, false)))
+               AND trade_outcome = 'Win'
+            THEN $6 * (COALESCE(risk_per_trade, 0.5) / 100.0) * COALESCE(risk_reward_ratio, 2.0)
+          WHEN (NOT COALESCE(break_even, false) OR
+                (COALESCE(break_even, false) AND COALESCE(partials_taken, false)))
+               AND trade_outcome = 'Lose'
+            THEN -$6 * (COALESCE(risk_per_trade, 0.5) / 100.0)
+          ELSE 0.0
+        END AS return_val
+      FROM _t
+    ),
+    _sharpe_stats AS (
+      SELECT
+        CASE
+          WHEN COUNT(*) < 2 THEN 0
+          WHEN STDDEV_SAMP(return_val) > 0
+            THEN ROUND((AVG(return_val) / STDDEV_SAMP(return_val))::numeric, 4)
+          ELSE 0
+        END AS sharpe_with_be
+      FROM _trade_returns
+    ),
+
+    -- TQI: winRate × 1/(1+STDDEV_POP(R)) — mirrors calculateTradeQualityIndex()
+    -- R-values: BE→0, non-BE Win→+RR, non-BE Lose→-1
+    _tqi_base AS (
+      SELECT
+        CASE
+          WHEN COALESCE(break_even, false)       THEN  0.0
+          WHEN trade_outcome = 'Win'  THEN  COALESCE(risk_reward_ratio, 2.0)
+          WHEN trade_outcome = 'Lose' THEN -1.0
+          ELSE NULL
+        END                                                                     AS r_val,
+        CASE WHEN NOT COALESCE(break_even, false) AND trade_outcome = 'Win'
+             THEN 1 ELSE 0 END                                                  AS is_win
+      FROM _t
+      WHERE COALESCE(break_even, false) OR trade_outcome IN ('Win', 'Lose')
+    ),
+    _tqi_stats AS (
+      SELECT
+        COUNT(*)      AS total,
+        SUM(is_win)   AS wins,
+        STDDEV_POP(r_val) AS r_stddev
+      FROM _tqi_base
+      WHERE r_val IS NOT NULL
     )
 
     -- ── Build final JSON ───────────────────────────────────────────────────
@@ -710,10 +830,23 @@ AND ($8 = 'all' OR COALESCE(NULLIF(market, ''), 'Unknown') = $8)
         'winRateWithBE', CASE WHEN total>0 THEN ROUND(wins::numeric/total*100,4) ELSE 0 END
       ) ORDER BY total DESC), '[]'::jsonb) FROM trend_raw),
 
+      -- ── Series stats: 6 time-series values computed in SQL (no series[] needed) ─
+      'series_stats', jsonb_build_object(
+        'maxDrawdown',       ROUND(COALESCE((SELECT max_drawdown   FROM _drawdown_calc), 0)::numeric, 4),
+        'currentStreak',     COALESCE((SELECT current_streak  FROM _streak_stats), 0),
+        'maxWinningStreak',  COALESCE((SELECT max_win_streak   FROM _streak_stats), 0),
+        'maxLosingStreak',   COALESCE((SELECT max_lose_streak  FROM _streak_stats), 0),
+        'sharpeWithBE',      COALESCE((SELECT sharpe_with_be   FROM _sharpe_stats),  0),
+        'tradeQualityIndex', ROUND(COALESCE(
+          (SELECT CASE WHEN total > 0
+                  THEN (wins::numeric / total) * (1.0 / (1.0 + COALESCE(r_stddev, 0)))
+                  ELSE 0 END FROM _tqi_stats),
+          0)::numeric, 4)
+      ),
+
       -- ── Ordered series for Layer 2 time-series computations ────────────
-      -- Skipped (returns '[]') when p_include_series = false to avoid 3-4 MB payload
-      -- on all-time queries (10k+ trades). The client fetches trades separately via
-      -- getFilteredTrades() and uses that array for equity curve, confidence cards, etc.
+      -- Kept for backwards compatibility; defaults to '[]' (p_include_series = false).
+      -- series_stats above replaces the need to transfer series[] for stat computation.
       'series', CASE WHEN $10 THEN (SELECT COALESCE(jsonb_agg(jsonb_build_object(
         'trade_date',       trade_date,
         'trade_time',       trade_time,
@@ -941,192 +1074,192 @@ TO authenticated;
 
 -- 2. Helper: recompute + upsert stats for one (user, account, mode, strategy) combo
 -- Called by the trigger function. SECURITY DEFINER bypasses RLS from trigger context.
-CREATE OR REPLACE FUNCTION _refresh_strategy_cache_row(
-  p_user_id     UUID,
-  p_account_id  UUID,
-  p_mode        TEXT,
-  p_strategy_id UUID,
-  p_table       TEXT
+CREATE OR REPLACE FUNCTION \_refresh_strategy_cache_row(
+p_user_id UUID,
+p_account_id UUID,
+p_mode TEXT,
+p_strategy_id UUID,
+p_table TEXT
 ) RETURNS VOID
 LANGUAGE plpgsql SECURITY DEFINER AS $func$
 DECLARE
-  v_total_trades  INTEGER;
-  v_win_rate      NUMERIC;
-  v_avg_rr        NUMERIC;
-  v_total_rr      NUMERIC;
-  v_total_profit  NUMERIC;
-  v_equity_curve  JSONB;
+v_total_trades INTEGER;
+v_win_rate NUMERIC;
+v_avg_rr NUMERIC;
+v_total_rr NUMERIC;
+v_total_profit NUMERIC;
+v_equity_curve JSONB;
 BEGIN
-  EXECUTE format($q$
-    SELECT
-      COUNT(*)::integer,
-      ROUND(
-        COUNT(*) FILTER (WHERE NOT COALESCE(break_even,false) AND trade_outcome = 'Win')::numeric
-        / NULLIF(COUNT(*) FILTER (WHERE NOT COALESCE(break_even,false)
-            AND trade_outcome IN ('Win','Lose')), 0) * 100,
-        2),
-      ROUND(AVG(COALESCE(risk_reward_ratio,0)) FILTER (WHERE risk_reward_ratio > 0), 2),
-      ROUND(SUM(CASE
-        WHEN COALESCE(break_even,false)     THEN 0
-        WHEN trade_outcome = 'Win'  THEN COALESCE(risk_reward_ratio, 2.0)
-        WHEN trade_outcome = 'Lose' THEN -1
-        ELSE 0
-      END), 2),
-      ROUND(SUM(COALESCE(calculated_profit,0))
-        FILTER (WHERE NOT COALESCE(break_even,false)), 4)
-    FROM %I
-    WHERE user_id    = $1
+EXECUTE format($q$
+SELECT
+COUNT(_)::integer,
+ROUND(
+COUNT(_) FILTER (WHERE NOT COALESCE(break_even,false) AND trade_outcome = 'Win')::numeric
+/ NULLIF(COUNT(_) FILTER (WHERE NOT COALESCE(break_even,false)
+AND trade_outcome IN ('Win','Lose')), 0) _ 100,
+2),
+ROUND(AVG(COALESCE(risk_reward_ratio,0)) FILTER (WHERE risk_reward_ratio > 0), 2),
+ROUND(SUM(CASE
+WHEN COALESCE(break_even,false) THEN 0
+WHEN trade_outcome = 'Win' THEN COALESCE(risk_reward_ratio, 2.0)
+WHEN trade_outcome = 'Lose' THEN -1
+ELSE 0
+END), 2),
+ROUND(SUM(COALESCE(calculated_profit,0))
+FILTER (WHERE NOT COALESCE(break_even,false)), 4)
+FROM %I
+WHERE user_id = $1
       AND account_id = $2
       AND strategy_id = $3
       AND executed   = true
   $q$, p_table)
-  USING p_user_id, p_account_id, p_strategy_id
-  INTO v_total_trades, v_win_rate, v_avg_rr, v_total_rr, v_total_profit;
+USING p_user_id, p_account_id, p_strategy_id
+INTO v_total_trades, v_win_rate, v_avg_rr, v_total_rr, v_total_profit;
 
-  IF COALESCE(v_total_trades, 0) = 0 THEN
-    DELETE FROM strategy_stats_cache
-    WHERE user_id    = p_user_id
-      AND account_id = p_account_id
-      AND mode       = p_mode
-      AND strategy_id = p_strategy_id;
-    RETURN;
-  END IF;
+IF COALESCE(v_total_trades, 0) = 0 THEN
+DELETE FROM strategy_stats_cache
+WHERE user_id = p_user_id
+AND account_id = p_account_id
+AND mode = p_mode
+AND strategy_id = p_strategy_id;
+RETURN;
+END IF;
 
-  EXECUTE format($q$
-    SELECT jsonb_agg(
-      jsonb_build_object('d', trade_date, 'p', ROUND(cum_profit::numeric, 4))
-      ORDER BY trade_date, trade_time
-    )
-    FROM (
-      SELECT
-        trade_date,
-        COALESCE(trade_time, '00:00') AS trade_time,
-        SUM(COALESCE(calculated_profit, 0)) OVER (
-          ORDER BY trade_date, COALESCE(trade_time, '00:00')
-          ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-        ) AS cum_profit
-      FROM %I
-      WHERE user_id    = $1
+EXECUTE format($q$
+SELECT jsonb_agg(
+jsonb_build_object('d', trade_date, 'p', ROUND(cum_profit::numeric, 4))
+ORDER BY trade_date, trade_time
+)
+FROM (
+SELECT
+trade_date,
+COALESCE(trade_time, '00:00') AS trade_time,
+SUM(COALESCE(calculated_profit, 0)) OVER (
+ORDER BY trade_date, COALESCE(trade_time, '00:00')
+ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+) AS cum_profit
+FROM %I
+WHERE user_id = $1
         AND account_id = $2
         AND strategy_id = $3
         AND executed   = true
     ) _eq
   $q$, p_table)
-  USING p_user_id, p_account_id, p_strategy_id
-  INTO v_equity_curve;
+USING p_user_id, p_account_id, p_strategy_id
+INTO v_equity_curve;
 
-  INSERT INTO strategy_stats_cache (
-    user_id, account_id, mode, strategy_id,
-    total_trades, win_rate, avg_rr, total_rr, total_profit, equity_curve, updated_at
-  ) VALUES (
-    p_user_id, p_account_id, p_mode, p_strategy_id,
-    v_total_trades,
-    COALESCE(v_win_rate,     0),
-    COALESCE(v_avg_rr,       0),
-    COALESCE(v_total_rr,     0),
-    COALESCE(v_total_profit, 0),
-    COALESCE(v_equity_curve, '[]'::jsonb),
-    now()
-  )
-  ON CONFLICT (user_id, account_id, mode, strategy_id) DO UPDATE SET
-    total_trades = EXCLUDED.total_trades,
-    win_rate     = EXCLUDED.win_rate,
-    avg_rr       = EXCLUDED.avg_rr,
-    total_rr     = EXCLUDED.total_rr,
-    total_profit = EXCLUDED.total_profit,
-    equity_curve = EXCLUDED.equity_curve,
-    updated_at   = EXCLUDED.updated_at;
+INSERT INTO strategy_stats_cache (
+user_id, account_id, mode, strategy_id,
+total_trades, win_rate, avg_rr, total_rr, total_profit, equity_curve, updated_at
+) VALUES (
+p_user_id, p_account_id, p_mode, p_strategy_id,
+v_total_trades,
+COALESCE(v_win_rate, 0),
+COALESCE(v_avg_rr, 0),
+COALESCE(v_total_rr, 0),
+COALESCE(v_total_profit, 0),
+COALESCE(v_equity_curve, '[]'::jsonb),
+now()
+)
+ON CONFLICT (user_id, account_id, mode, strategy_id) DO UPDATE SET
+total_trades = EXCLUDED.total_trades,
+win_rate = EXCLUDED.win_rate,
+avg_rr = EXCLUDED.avg_rr,
+total_rr = EXCLUDED.total_rr,
+total_profit = EXCLUDED.total_profit,
+equity_curve = EXCLUDED.equity_curve,
+updated_at = EXCLUDED.updated_at;
 END;
 $func$;
 
-
 -- 3. Trigger function (shared by all three trade tables via TG_TABLE_NAME)
--- INSERT          -> refresh NEW.strategy_id
--- UPDATE (same)   -> refresh NEW.strategy_id
--- UPDATE (moved)  -> refresh OLD.strategy_id + NEW.strategy_id (trade moved A->B)
--- DELETE          -> refresh OLD.strategy_id (row removed if 0 trades remain)
+-- INSERT -> refresh NEW.strategy_id
+-- UPDATE (same) -> refresh NEW.strategy_id
+-- UPDATE (moved) -> refresh OLD.strategy_id + NEW.strategy_id (trade moved A->B)
+-- DELETE -> refresh OLD.strategy_id (row removed if 0 trades remain)
 CREATE OR REPLACE FUNCTION trg_refresh_strategy_stats_cache()
 RETURNS TRIGGER
 LANGUAGE plpgsql SECURITY DEFINER AS $func$
 DECLARE
-  v_mode TEXT;
+v_mode TEXT;
 BEGIN
-  v_mode := CASE TG_TABLE_NAME
-    WHEN 'live_trades'        THEN 'live'
-    WHEN 'demo_trades'        THEN 'demo'
-    WHEN 'backtesting_trades' THEN 'backtesting'
-    ELSE NULL
-  END;
-  IF v_mode IS NULL THEN RETURN NULL; END IF;
+v_mode := CASE TG_TABLE_NAME
+WHEN 'live_trades' THEN 'live'
+WHEN 'demo_trades' THEN 'demo'
+WHEN 'backtesting_trades' THEN 'backtesting'
+ELSE NULL
+END;
+IF v_mode IS NULL THEN RETURN NULL; END IF;
 
-  IF TG_OP = 'DELETE' THEN
-    IF OLD.strategy_id IS NOT NULL THEN
-      PERFORM _refresh_strategy_cache_row(
-        OLD.user_id, OLD.account_id, v_mode, OLD.strategy_id, TG_TABLE_NAME
-      );
-    END IF;
-    RETURN OLD;
-  END IF;
+IF TG_OP = 'DELETE' THEN
+IF OLD.strategy_id IS NOT NULL THEN
+PERFORM \_refresh_strategy_cache_row(
+OLD.user_id, OLD.account_id, v_mode, OLD.strategy_id, TG_TABLE_NAME
+);
+END IF;
+RETURN OLD;
+END IF;
 
-  IF TG_OP = 'UPDATE' AND OLD.strategy_id IS DISTINCT FROM NEW.strategy_id THEN
-    IF OLD.strategy_id IS NOT NULL THEN
-      PERFORM _refresh_strategy_cache_row(
-        OLD.user_id, OLD.account_id, v_mode, OLD.strategy_id, TG_TABLE_NAME
-      );
-    END IF;
-  END IF;
+IF TG_OP = 'UPDATE' AND OLD.strategy_id IS DISTINCT FROM NEW.strategy_id THEN
+IF OLD.strategy_id IS NOT NULL THEN
+PERFORM \_refresh_strategy_cache_row(
+OLD.user_id, OLD.account_id, v_mode, OLD.strategy_id, TG_TABLE_NAME
+);
+END IF;
+END IF;
 
-  IF NEW.strategy_id IS NOT NULL THEN
-    PERFORM _refresh_strategy_cache_row(
-      NEW.user_id, NEW.account_id, v_mode, NEW.strategy_id, TG_TABLE_NAME
-    );
-  END IF;
+IF NEW.strategy_id IS NOT NULL THEN
+PERFORM \_refresh_strategy_cache_row(
+NEW.user_id, NEW.account_id, v_mode, NEW.strategy_id, TG_TABLE_NAME
+);
+END IF;
 
-  RETURN NEW;
+RETURN NEW;
 END;
 $func$;
-
 
 -- 4. Attach triggers to all three trade tables
 DROP TRIGGER IF EXISTS trg_strategy_stats_cache ON live_trades;
 CREATE TRIGGER trg_strategy_stats_cache
-  AFTER INSERT OR UPDATE OR DELETE ON live_trades
-  FOR EACH ROW EXECUTE FUNCTION trg_refresh_strategy_stats_cache();
+AFTER INSERT OR UPDATE OR DELETE ON live_trades
+FOR EACH ROW EXECUTE FUNCTION trg_refresh_strategy_stats_cache();
 
 DROP TRIGGER IF EXISTS trg_strategy_stats_cache ON demo_trades;
 CREATE TRIGGER trg_strategy_stats_cache
-  AFTER INSERT OR UPDATE OR DELETE ON demo_trades
-  FOR EACH ROW EXECUTE FUNCTION trg_refresh_strategy_stats_cache();
+AFTER INSERT OR UPDATE OR DELETE ON demo_trades
+FOR EACH ROW EXECUTE FUNCTION trg_refresh_strategy_stats_cache();
 
 DROP TRIGGER IF EXISTS trg_strategy_stats_cache ON backtesting_trades;
 CREATE TRIGGER trg_strategy_stats_cache
-  AFTER INSERT OR UPDATE OR DELETE ON backtesting_trades
-  FOR EACH ROW EXECUTE FUNCTION trg_refresh_strategy_stats_cache();
-
+AFTER INSERT OR UPDATE OR DELETE ON backtesting_trades
+FOR EACH ROW EXECUTE FUNCTION trg_refresh_strategy_stats_cache();
 
 -- 5. Backfill existing trades into the cache (safe to re-run)
 DO $$
 DECLARE r RECORD;
 BEGIN
-  FOR r IN
-    SELECT DISTINCT user_id, account_id, strategy_id FROM live_trades
-    WHERE executed = true AND strategy_id IS NOT NULL
-  LOOP
-    PERFORM _refresh_strategy_cache_row(r.user_id, r.account_id, 'live', r.strategy_id, 'live_trades');
-  END LOOP;
+FOR r IN
+SELECT DISTINCT user_id, account_id, strategy_id FROM live_trades
+WHERE executed = true AND strategy_id IS NOT NULL
+LOOP
+PERFORM \_refresh_strategy_cache_row(r.user_id, r.account_id, 'live', r.strategy_id, 'live_trades');
+END LOOP;
 
-  FOR r IN
-    SELECT DISTINCT user_id, account_id, strategy_id FROM demo_trades
-    WHERE executed = true AND strategy_id IS NOT NULL
-  LOOP
-    PERFORM _refresh_strategy_cache_row(r.user_id, r.account_id, 'demo', r.strategy_id, 'demo_trades');
-  END LOOP;
+FOR r IN
+SELECT DISTINCT user_id, account_id, strategy_id FROM demo_trades
+WHERE executed = true AND strategy_id IS NOT NULL
+LOOP
+PERFORM \_refresh_strategy_cache_row(r.user_id, r.account_id, 'demo', r.strategy_id, 'demo_trades');
+END LOOP;
 
-  FOR r IN
-    SELECT DISTINCT user_id, account_id, strategy_id FROM backtesting_trades
-    WHERE executed = true AND strategy_id IS NOT NULL
-  LOOP
-    PERFORM _refresh_strategy_cache_row(r.user_id, r.account_id, 'backtesting', r.strategy_id, 'backtesting_trades');
-  END LOOP;
+FOR r IN
+SELECT DISTINCT user_id, account_id, strategy_id FROM backtesting_trades
+WHERE executed = true AND strategy_id IS NOT NULL
+LOOP
+PERFORM \_refresh_strategy_cache_row(r.user_id, r.account_id, 'backtesting', r.strategy_id, 'backtesting_trades');
+END LOOP;
 END;
-$$;
+
+$$
+;
+$$

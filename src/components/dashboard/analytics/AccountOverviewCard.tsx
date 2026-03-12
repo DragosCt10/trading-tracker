@@ -5,6 +5,7 @@ import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip as ReTooltip, Bar 
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
+import React from 'react';
 import { Trade } from '@/types/trade';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
@@ -145,8 +146,12 @@ export function AccountOverviewCard({
 
   const effectiveFallbackName = fallbackAccountName ?? 'No Active Account';
   const displayName = mounted ? (accountName || effectiveFallbackName) : '\u00A0';
+
   const displayBalanceStr = mounted
-    ? `${currencySymbol}${updatedBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    ? `${currencySymbol}${updatedBalance.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
     : '\u00A0';
 
   return (

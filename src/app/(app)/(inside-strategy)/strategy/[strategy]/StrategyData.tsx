@@ -76,6 +76,7 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
         accountBalance: activeAccount.account_balance ?? 0,
         execution: 'executed',
         market: 'all',
+        includeSeries: false,
         includeCompactTrades: initialExtraCards.some((k) =>
           (['launch_hour', 'avg_displacement', 'displacement_size', 'fvg_size', 'potential_rr'] as ExtraCardKey[]).includes(k)
         ),

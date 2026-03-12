@@ -300,9 +300,18 @@ export default function StrategyClient(
     const wasInvalidated = typeof window !== 'undefined' && sessionStorage.getItem('trade-data-invalidated');
     const shouldSkipHydration = wasInvalidated && (Date.now() - parseInt(wasInvalidated, 10)) < 30000; // Skip hydration for 30 seconds after invalidation
     
-    if (queryClient.getQueryData(queryKeyAllTrades) === undefined && !shouldSkipHydration) {
-      queryClient.setQueryData(queryKeyFilteredTrades, props?.initialFilteredTrades ?? []);
-      queryClient.setQueryData(queryKeyAllTrades, props?.initialAllTrades ?? []);
+    // Only hydrate trades cache if the server actually provided trade arrays.
+    // StrategyData.tsx no longer passes initialFilteredTrades/initialAllTrades
+    // (Phase 1: trades come from getFilteredTrades() via useDashboardData Query 2).
+    // Setting the cache to [] would lock it there (refetchOnMount: false) and
+    // prevent Query 2 from ever fetching the real trades.
+    if (
+      props?.initialFilteredTrades != null &&
+      queryClient.getQueryData(queryKeyAllTrades) === undefined &&
+      !shouldSkipHydration
+    ) {
+      queryClient.setQueryData(queryKeyFilteredTrades, props.initialFilteredTrades);
+      queryClient.setQueryData(queryKeyAllTrades, props.initialAllTrades ?? []);
       queryClient.setQueryData(
         queryKeys.trades.nonExecuted(
           mode,
@@ -313,7 +322,7 @@ export default function StrategyClient(
           effectiveEndDate,
           strategyId,
         ),
-        props?.initialNonExecutedTrades ?? []
+        props.initialNonExecutedTrades ?? []
       );
     }
 
@@ -330,6 +339,8 @@ export default function StrategyClient(
       'executed',
       'all',
     );
+    // Only hydrate if cache is empty — prevents infinite render loop caused by
+    // setQueryData notifying observers (useDashboardData) on every render.
     if (props?.initialDashboardStats != null && queryClient.getQueryData(dashboardStatsKey) === undefined) {
       queryClient.setQueryData(dashboardStatsKey, props.initialDashboardStats);
     }
@@ -340,10 +351,8 @@ export default function StrategyClient(
     }
   }, [props, queryClient, strategyId]);
 
-  // Hydrate React Query cache synchronously so useDashboardData sees server data on first paint (avoids hydration when e.g. no subaccounts)
-  hydrateQueryCache();
-
-  // Also hydrate in useEffect for client navigations / fallback
+  // Hydrate React Query cache once on mount. Calling setQueryData during render is a
+  // side-effect anti-pattern — moved to useEffect to prevent infinite render loops.
   useEffect(() => {
     hydrateQueryCache();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount with server initial data
@@ -906,7 +915,7 @@ export default function StrategyClient(
         )}
       </div>
       <p className="text-slate-500 dark:text-slate-400 mb-6">
-        Account balance, yearly P&amp;L, and best and worst month for the selected year.
+        Account balance, yearly P&amp;L, and best and worst month for the selected period.
       </p>
 
       {/* Account Overview Card - use resolved account (props first) so server and client match; card defers display until mount to avoid hydration when e.g. no subaccounts */}

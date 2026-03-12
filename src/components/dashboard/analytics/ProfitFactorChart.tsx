@@ -238,6 +238,7 @@ export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesT
               outerRadius={75}
               paddingAngle={2}
               dataKey="value"
+              cornerRadius={7}
             >
               {data.map((entry, index) => (
                 <Cell

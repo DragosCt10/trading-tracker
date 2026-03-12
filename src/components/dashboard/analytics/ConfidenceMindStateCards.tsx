@@ -105,8 +105,9 @@ function NeedlePieChart({
             endAngle={0}
             innerRadius={45}
             outerRadius={75}
-            paddingAngle={0}
+            paddingAngle={2}
             dataKey="value"
+            cornerRadius={7}
           >
             {gaugeData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.fill} stroke="none" />

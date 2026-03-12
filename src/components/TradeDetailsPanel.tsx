@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef, useTransition } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Trade } from '@/types/trade';
 import { deleteTrade, updateTrade } from '@/lib/server/trades';
@@ -118,7 +118,6 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isEditPending, startEditTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showExtraScreens, setShowExtraScreens] = useState(false);
   const queryClient = useQueryClient();
@@ -196,11 +195,12 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       ]);
     }
 
-    // Explicitly refetch active dashboardStats and calendarTrades queries for the affected
-    // strategies. useDashboardData no longer uses separate allTrades/filteredTrades queries —
-    // all data comes from dashboardStats (compact_trades). invalidateQueries triggers an
-    // auto-refetch for active observers but an explicit refetch ensures the UI updates
-    // immediately after a trade edit (e.g. risk change → new calculated_profit).
+    // Refetch all matching queries (not only "active") so cache is updated even when modal/portal
+    // has focus and dashboard queries might not be considered active. Ensures AccountOverviewCard
+    // and calendar show fresh data when the panel closes.
+    // dashboardStats  → AccountOverviewCard (monthly P&L), aggregate stats cards
+    // filteredTrades  → tradesToUse array (Phase 1: trade arrays come from a separate query)
+    // calendarTrades  → calendar view
     await queryClient.refetchQueries({
       predicate: (query) => {
         const key = query.queryKey;
@@ -208,9 +208,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         const firstKey = key[0];
         if (firstKey === 'dashboardStats') return affectedStrategyIdsArray.includes((key[4] ?? null) as string | null);
         if (firstKey === 'calendarTrades') return affectedStrategyIdsArray.includes((key[4] ?? null) as string | null);
+        // filteredTrades key: ['filteredTrades', mode, accountId, userId, viewMode, start, end, strategyId]
+        if (firstKey === 'filteredTrades') return affectedStrategyIdsArray.includes((key[7] ?? null) as string | null);
         return false;
       },
-      type: 'active',
     });
   }, [queryClient, trade?.strategy_id, selection.activeAccount?.id, selection.mode, userId]);
 
@@ -348,75 +349,81 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         return;
       }
 
-      // Fire-and-forget: update already succeeded, don't block UI on cache refresh
-      invalidateAndRefetchTradeQueries();
-
-      let updatedNews: SavedNewsItem[] | undefined;
-      let updatedSetups: string[] | undefined;
-      let updatedLiquidity: string[] | undefined;
-      let updatedMarkets: string[] | undefined;
-
-      // Run independent saved-data updates in parallel
-      const savePromises: Promise<unknown>[] = [];
-      if (editedTrade.news_related && editedTrade.news_name?.trim() && userId) {
-        const savedNews = Array.isArray(settings.saved_news) ? settings.saved_news : [];
-        updatedNews = mergeNewsIntoSaved(
-          normalizeNewsName(editedTrade.news_name),
-          editedTrade.news_intensity ?? null,
-          savedNews
-        );
-        savePromises.push(updateSavedNews(updatedNews));
-      }
-      if (editedTrade.setup_type?.trim() && userId && currentStrategy) {
-        updatedSetups = mergeSetupTypeIntoSaved(
-          editedTrade.setup_type,
-          currentStrategy.saved_setup_types ?? []
-        );
-        savePromises.push(updateStrategySetupTypes(currentStrategy.id, userId, updatedSetups));
-      }
-      if (editedTrade.liquidity?.trim() && userId && currentStrategy) {
-        updatedLiquidity = mergeLiquidityTypeIntoSaved(
-          editedTrade.liquidity,
-          currentStrategy.saved_liquidity_types ?? []
-        );
-        savePromises.push(updateStrategyLiquidityTypes(currentStrategy.id, userId, updatedLiquidity));
-      }
-      if (editedTrade.market?.trim() && userId) {
-        const savedMarkets = Array.isArray(settings.saved_markets) ? settings.saved_markets : [];
-        updatedMarkets = mergeMarketIntoSaved(editedTrade.market, savedMarkets);
-        savePromises.push(updateSavedMarkets(updatedMarkets));
-      }
-      await Promise.all(savePromises);
-
-      if (userId) {
-        const settingsKey = queryKeys.settings(userId);
-        queryClient.setQueryData(settingsKey, (prev: { saved_news?: unknown; saved_markets?: string[] } | undefined) => ({
-          ...prev,
-          saved_news: updatedNews ?? prev?.saved_news ?? [],
-          saved_markets: updatedMarkets ?? prev?.saved_markets ?? [],
-        }));
-        if (currentStrategy && (updatedSetups !== undefined || updatedLiquidity !== undefined)) {
-          const strategiesKey = queryKeys.strategies(userId);
-          queryClient.setQueryData(strategiesKey, (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[] }[] | undefined) => {
-            if (!prev) return prev;
-            return prev.map((s) =>
-              s.id === currentStrategy.id
-                ? {
-                    ...s,
-                    saved_setup_types: updatedSetups ?? s.saved_setup_types ?? [],
-                    saved_liquidity_types: updatedLiquidity ?? s.saved_liquidity_types ?? [],
-                  }
-                : s
-            );
-          });
-        }
-      }
-
+      // Update UI immediately — don't wait for refetch
       setIsEditing(false);
       if (onTradeUpdated) onTradeUpdated();
       setIsSaving(false);
       // In inline/split mode, stay on the panel after saving; in modal mode, close
       if (!inlineMode) onClose();
+
+      // Refetch + sync saved lists + cache in background
+      void (async () => {
+        try {
+          await invalidateAndRefetchTradeQueries();
+
+          let updatedNews: SavedNewsItem[] | undefined;
+          let updatedSetups: string[] | undefined;
+          let updatedLiquidity: string[] | undefined;
+          let updatedMarkets: string[] | undefined;
+
+          const savePromises: Promise<unknown>[] = [];
+          if (editedTrade.news_related && editedTrade.news_name?.trim() && userId) {
+            const savedNews = Array.isArray(settings.saved_news) ? settings.saved_news : [];
+            updatedNews = mergeNewsIntoSaved(
+              normalizeNewsName(editedTrade.news_name),
+              editedTrade.news_intensity ?? null,
+              savedNews
+            );
+            savePromises.push(updateSavedNews(updatedNews));
+          }
+          if (editedTrade.setup_type?.trim() && userId && currentStrategy) {
+            updatedSetups = mergeSetupTypeIntoSaved(
+              editedTrade.setup_type,
+              currentStrategy.saved_setup_types ?? []
+            );
+            savePromises.push(updateStrategySetupTypes(currentStrategy.id, userId, updatedSetups));
+          }
+          if (editedTrade.liquidity?.trim() && userId && currentStrategy) {
+            updatedLiquidity = mergeLiquidityTypeIntoSaved(
+              editedTrade.liquidity,
+              currentStrategy.saved_liquidity_types ?? []
+            );
+            savePromises.push(updateStrategyLiquidityTypes(currentStrategy.id, userId, updatedLiquidity));
+          }
+          if (editedTrade.market?.trim() && userId) {
+            const savedMarkets = Array.isArray(settings.saved_markets) ? settings.saved_markets : [];
+            updatedMarkets = mergeMarketIntoSaved(editedTrade.market, savedMarkets);
+            savePromises.push(updateSavedMarkets(updatedMarkets));
+          }
+          await Promise.all(savePromises);
+
+          if (userId) {
+            const settingsKey = queryKeys.settings(userId);
+            queryClient.setQueryData(settingsKey, (prev: { saved_news?: unknown; saved_markets?: string[] } | undefined) => ({
+              ...prev,
+              saved_news: updatedNews ?? prev?.saved_news ?? [],
+              saved_markets: updatedMarkets ?? prev?.saved_markets ?? [],
+            }));
+            if (currentStrategy && (updatedSetups !== undefined || updatedLiquidity !== undefined)) {
+              const strategiesKey = queryKeys.strategies(userId);
+              queryClient.setQueryData(strategiesKey, (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[] }[] | undefined) => {
+                if (!prev) return prev;
+                return prev.map((s) =>
+                  s.id === currentStrategy.id
+                    ? {
+                        ...s,
+                        saved_setup_types: updatedSetups ?? s.saved_setup_types ?? [],
+                        saved_liquidity_types: updatedLiquidity ?? s.saved_liquidity_types ?? [],
+                      }
+                    : s
+                );
+              });
+            }
+          }
+        } catch (syncErr) {
+          console.error('Post-save trade sync failed:', syncErr);
+        }
+      })();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to save trade. Please try again.';
       setError(message);
@@ -451,11 +458,12 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         return;
       }
 
-      await invalidateAndRefetchTradeQueries();
-
       setIsDeleting(false);
       if (onTradeUpdated) onTradeUpdated();
       onClose();
+
+      // Refetch in background
+      void invalidateAndRefetchTradeQueries();
     } catch (err: unknown) {
       setShowDeleteConfirm(false);
       const message = err instanceof Error ? err.message : 'Failed to delete trade. Please try again.';
@@ -1578,12 +1586,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             {!effectiveIsEditing ? (
               <>
                 <Button
-                  onClick={() => startEditTransition(() => setIsEditing(true))}
-                  disabled={isEditPending}
+                  onClick={() => setIsEditing(true)}
                   className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-5 py-2 group border-0 disabled:opacity-60 flex items-center gap-2"
                 >
-                  {isEditPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                  <span className="relative z-10">{isEditPending ? 'Loading...' : 'Edit Trade'}</span>
+                  <span className="relative z-10">Edit Trade</span>
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 </Button>
                 <Button
@@ -1600,10 +1606,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               <>
                 <Button
                   variant="outline"
-                  onClick={() => startEditTransition(() => {
+                  onClick={() => {
                     setIsEditing(false);
                     setEditedTrade(trade);
-                  })}
+                  }}
                   className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
                 >
                   Cancel

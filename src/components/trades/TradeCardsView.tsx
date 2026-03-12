@@ -69,6 +69,8 @@ export type TradeCardsViewProps = {
   onBulkDelete?: (ids: string[]) => Promise<void>;
   /** Optional left-side control row content (e.g. Sort by) rendered on same row as View toggles. */
   sortControl?: ReactNode;
+  /** When set, show "N trade(s)" on the left of the header row (filtered/period count). */
+  totalFilteredCount?: number;
   /**
    * When true, pagination is controlled by the parent (e.g. MyTradesClient).
    * TradeCardsView shows all trades passed and does not run the observer or show the sentinel.
@@ -91,6 +93,7 @@ export function TradeCardsView({
   enableBulkDeleteInTableView = false,
   onBulkDelete,
   sortControl,
+  totalFilteredCount,
   externalPagination = false,
 }: TradeCardsViewProps) {
   const [mounted, setMounted] = useState(false);
@@ -191,9 +194,7 @@ export function TradeCardsView({
 
     const currentTarget = observerTarget.current;
     if (currentTarget) observer.observe(currentTarget);
-    return () => {
-      if (currentTarget) observer.unobserve(currentTarget);
-    };
+    return () => observer.disconnect();
   }, [externalPagination, mounted, hasMore, isLoading, isFetching, itemsPerLoad, trades.length]);
 
   const openModal = (trade: Trade) => {
@@ -210,7 +211,7 @@ export function TradeCardsView({
 
   return (
     <TooltipProvider>
-      <div className="mt-6 flex flex-col gap-4">
+      <div className="mt-6 flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             {marketFilter && (
