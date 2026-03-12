@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Trade } from '@/types/trade';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -31,8 +31,6 @@ import {
 import { buildEquityPointsFromTrades } from '@/components/dashboard/analytics/EquityCurveCard';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
 
-const ITEMS_PER_LOAD = 24;
-
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
 interface MyTradesClientProps {
@@ -49,7 +47,6 @@ interface MyTradesClientProps {
 export default function MyTradesClient({
   initialUserId,
   initialFilteredTrades,
-  initialDateRange,
   initialMode,
   initialActiveAccount,
   initialStrategyId,
@@ -65,9 +62,6 @@ export default function MyTradesClient({
     direction: 'asc',
   });
   const [exporting, setExporting] = useState(false);
-  const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_LOAD);
-  const [mounted, setMounted] = useState(false);
-  const observerTarget = useRef<HTMLDivElement | null>(null);
 
   const queryClient = useQueryClient();
   const { data: userDetails } = useUserDetails();
@@ -248,38 +242,6 @@ export default function MyTradesClient({
     [filteredTrades]
   );
 
-  const displayedTrades = useMemo(() => trades.slice(0, displayedCount), [trades, displayedCount]);
-  const hasMore = displayedCount < trades.length;
-
-  useEffect(() => setMounted(true), []);
-
-  // Reset pagination when filters/sort change (same pattern as DailyJournalClient)
-  useEffect(() => {
-    setDisplayedCount(ITEMS_PER_LOAD);
-  }, [dateRange.startDate, dateRange.endDate, selectedMarket, executionFilter, sortField, showPartialTrades, trades.length]);
-
-  // IntersectionObserver for infinite scroll (same pattern as DailyJournalClient)
-  useEffect(() => {
-    if (!mounted) return;
-    if (typeof window === 'undefined') return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries[0].isIntersecting) return;
-        if (!hasMore) return;
-        if (tradesLoading || tradesFetching) return;
-        setDisplayedCount((prev) => Math.min(prev + ITEMS_PER_LOAD, trades.length));
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentTarget = observerTarget.current;
-    if (currentTarget) observer.observe(currentTarget);
-
-    return () => {
-      if (currentTarget) observer.unobserve(currentTarget);
-    };
-  }, [mounted, hasMore, tradesLoading, tradesFetching, trades.length]);
 
   // TradeDetailsPanel.invalidateAndRefetchTradeQueries already handles scoped cache invalidation
   const handleTradeUpdated = useCallback(() => {}, []);
@@ -307,7 +269,6 @@ export default function MyTradesClient({
         console.error('Bulk delete error:', error);
         return;
       }
-      const defaultAllRange = createAllTimeRange();
       queryClient.invalidateQueries({
         queryKey: queryKeys.trades.filtered(
           mode,
@@ -423,14 +384,13 @@ export default function MyTradesClient({
       </div>
 
       <TradeCardsView
-        trades={displayedTrades}
+        trades={trades}
         isLoading={tradesLoading}
         isFetching={tradesFetching}
         resetKey={`${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${executionFilter}-${sortField}-${showPartialTrades}`}
         onTradeUpdated={handleTradeUpdated}
         enableBulkDeleteInTableView
         onBulkDelete={handleBulkDelete}
-        externalPagination
         totalFilteredCount={filteredTrades.length}
         // Sort by control rendered on same row as View toggles
         sortControl={
@@ -465,27 +425,12 @@ export default function MyTradesClient({
                 <SelectItem value="trade_date">Date</SelectItem>
                 <SelectItem value="market">Market</SelectItem>
                 <SelectItem value="outcome">Outcome</SelectItem>
-                <SelectItem value="partials_only">Partial trades only</SelectItem>
+                <SelectItem value="partials_only">Partial trades</SelectItem>
               </SelectContent>
             </Select>
           </div>
         }
       />
-      {hasMore && (
-        <div
-          ref={observerTarget}
-          className="flex justify-center py-6 text-sm text-slate-500 dark:text-slate-400"
-        >
-          {tradesFetching ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Loading more trades...</span>
-            </div>
-          ) : (
-            <span>Loading more trades...</span>
-          )}
-        </div>
-      )}
     </div>
   );
 }
