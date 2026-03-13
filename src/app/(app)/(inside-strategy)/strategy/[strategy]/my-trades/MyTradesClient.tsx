@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Trade } from '@/types/trade';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TRADES_DATA } from '@/constants/queryConfig';
 import { TradeFiltersBar, DateRangeValue } from '@/components/dashboard/analytics/TradeFiltersBar';
-import { getFilteredTrades, deleteTrades } from '@/lib/server/trades';
+import { getFilteredTrades, deleteTrades, moveTradestoStrategy } from '@/lib/server/trades';
 import type { Database } from '@/types/supabase';
 import { TradeCardsView } from '@/components/trades/TradeCardsView';
 import {
@@ -18,6 +19,7 @@ import {
   FilterType,
 } from '@/utils/dateRangeHelpers';
 import { queryKeys } from '@/lib/queryKeys';
+import { useStrategies } from '@/hooks/useStrategies';
 import { exportTradesToCsv } from '@/utils/exportTradesToCsv';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -219,6 +221,7 @@ export default function MyTradesClient({
   });
   const [exporting, setExporting] = useState(false);
 
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { data: userDetails } = useUserDetails();
   const { selection, setSelection } = useActionBarSelection();
@@ -240,6 +243,12 @@ export default function MyTradesClient({
 
   // Resolve account: use selection when set, else initial from server (so query can run before action bar hydrates)
   const activeAccount = selection.activeAccount ?? initialActiveAccount;
+
+  // Strategies for this account — used for the "move trades" feature
+  const { strategies } = useStrategies({ userId, accountId: activeAccount?.id });
+  const moveToStrategies = strategies
+    .filter((s) => s.id !== initialStrategyId)
+    .map((s) => ({ id: s.id, name: s.name }));
 
   // Single query: prefetched on server (one getFilteredTrades), so client uses hydrated cache when key matches.
   // Date range, market, and execution filtering all happen client-side on this dataset.
@@ -536,6 +545,35 @@ export default function MyTradesClient({
     }
   }, [trades, dateRange.startDate, dateRange.endDate]);
 
+  const handleBulkMoveToStrategy = useCallback(
+    async (ids: string[], newStrategyId: string) => {
+      if (ids.length === 0) return;
+      const { error } = await moveTradestoStrategy(ids, newStrategyId, mode as 'live' | 'backtesting' | 'demo');
+      if (error) {
+        console.error('Move trades error:', error);
+        return;
+      }
+      // Invalidate all trade + stats caches — refetchType:'all' forces a background
+      // refetch of inactive queries too (e.g. StrategyClient while unmounted),
+      // so the data is fresh before the user navigates back.
+      const TRADE_PREFIXES = new Set([
+        'allTrades', 'filteredTrades', 'nonExecutedTrades',
+        'dashboardStats', 'calendarTrades', 'compactTrades', 'strategies-overview',
+      ]);
+      queryClient.invalidateQueries({
+        predicate: (q) => Array.isArray(q.queryKey) && TRADE_PREFIXES.has(q.queryKey[0] as string),
+        refetchType: 'all',
+      });
+      // Tell StrategyClient's hydrateQueryCache to skip stale server-props on next mount
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
+      }
+      // Flush Next.js router cache so navigating back to the strategy dashboard re-fetches
+      router.refresh();
+    },
+    [mode, activeAccount?.id, userId, todayStr, initialStrategyId, queryClient, router]
+  );
+
   const handleBulkDelete = useCallback(
     async (ids: string[]) => {
       if (ids.length === 0) return;
@@ -803,6 +841,8 @@ export default function MyTradesClient({
           onTradeUpdated={handleTradeUpdated}
           enableBulkDeleteInTableView
           onBulkDelete={handleBulkDelete}
+          moveToStrategies={moveToStrategies}
+          onBulkMoveToStrategy={handleBulkMoveToStrategy}
           totalFilteredCount={filteredTrades.length}
           // Sort by control rendered on same row as View toggles
           sortControl={
