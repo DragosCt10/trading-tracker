@@ -24,7 +24,7 @@ import { exportTradesToCsv } from '@/utils/exportTradesToCsv';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, TrendingUp, TrendingDown } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Columns2, LayoutGrid, PanelLeft } from 'lucide-react';
 import {
   getCurrencySymbolFromAccount,
   computeMonthlyStatsFromTrades,
@@ -220,6 +220,7 @@ export default function MyTradesClient({
     direction: 'asc',
   });
   const [exporting, setExporting] = useState(false);
+  const [cardViewMode, setCardViewMode] = useState<'grid-4' | 'grid-2' | 'split' | 'table'>('grid-4');
 
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -824,28 +825,17 @@ export default function MyTradesClient({
         <MonteCarloCard trades={trades} currencySymbol={currencySymbol} />
       </div>
 
-      <div className="mt-10 space-y-2">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            View Mode Trades
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            View your trades as cards, split, or table.
-          </p>
-        </div>
-        <TradeCardsView
-          trades={trades}
-          isLoading={tradesLoading}
-          isFetching={tradesFetching}
-          resetKey={`${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${executionFilter}-${sortField}-${showPartialTrades}`}
-          onTradeUpdated={handleTradeUpdated}
-          enableBulkDeleteInTableView
-          onBulkDelete={handleBulkDelete}
-          moveToStrategies={moveToStrategies}
-          onBulkMoveToStrategy={handleBulkMoveToStrategy}
-          totalFilteredCount={filteredTrades.length}
-          // Sort by control rendered on same row as View toggles
-          sortControl={
+      <div className="mt-6 flex flex-col">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              View Mode Trades
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              View your trades as cards, split, or table.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
                 Sort by:
@@ -881,7 +871,83 @@ export default function MyTradesClient({
                 </SelectContent>
               </Select>
             </div>
-          }
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
+              View:
+            </span>
+            <div className="inline-flex h-8 items-center rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none p-0.5">
+              <button
+                type="button"
+                onClick={() => setCardViewMode('grid-2')}
+                className={cn(
+                  'rounded-lg h-6 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
+                  cardViewMode === 'grid-2'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                )}
+                aria-label="2 cards per row"
+                aria-pressed={cardViewMode === 'grid-2'}
+              >
+                <Columns2 className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setCardViewMode('grid-4')}
+                className={cn(
+                  'rounded-lg h-6 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
+                  cardViewMode === 'grid-4'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                )}
+                aria-label="4 cards per row"
+                aria-pressed={cardViewMode === 'grid-4'}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setCardViewMode('split')}
+                className={cn(
+                  'rounded-lg h-6 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
+                  cardViewMode === 'split'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                )}
+                aria-label="Split view"
+                aria-pressed={cardViewMode === 'split'}
+              >
+                <PanelLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setCardViewMode('table')}
+                className={cn(
+                  'rounded-lg h-6 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
+                  cardViewMode === 'table'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                )}
+                aria-label="Table view"
+                aria-pressed={cardViewMode === 'table'}
+              >
+                Table
+              </button>
+            </div>
+          </div>
+        </div>
+        <TradeCardsView
+          trades={trades}
+          isLoading={tradesLoading}
+          isFetching={tradesFetching}
+          resetKey={`${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${executionFilter}-${sortField}-${showPartialTrades}`}
+          onTradeUpdated={handleTradeUpdated}
+          enableBulkDeleteInTableView
+          onBulkDelete={handleBulkDelete}
+          moveToStrategies={moveToStrategies}
+          onBulkMoveToStrategy={handleBulkMoveToStrategy}
+          totalFilteredCount={filteredTrades.length}
+          cardViewMode={cardViewMode}
+          onCardViewModeChange={setCardViewMode}
+          suppressHeaderControls
         />
       </div>
     </div>
