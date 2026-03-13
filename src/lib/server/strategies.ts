@@ -365,58 +365,6 @@ export async function deleteStrategy(
 }
 
 /**
- * Moves a strategy to a different account.
- */
-export async function moveStrategy(
-  strategyId: string,
-  userId: string,
-  targetAccountId: string
-): Promise<{ error: { message: string } | null }> {
-  const { user } = await getCachedUserSession();
-  if (!user || user.id !== userId) {
-    return { error: { message: 'Unauthorized' } };
-  }
-
-  const supabase = await createClient();
-
-  const { data: existing } = await supabase
-    .from('strategies')
-    .select('slug')
-    .eq('id', strategyId)
-    .eq('user_id', userId)
-    .single();
-
-  if (!existing) {
-    return { error: { message: 'Strategy not found' } };
-  }
-
-  const { data: conflict } = await supabase
-    .from('strategies')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('account_id', targetAccountId)
-    .eq('slug', existing.slug)
-    .maybeSingle();
-
-  if (conflict) {
-    return { error: { message: 'A strategy with the same name already exists in the target account' } };
-  }
-
-  const { error } = await supabase
-    .from('strategies')
-    .update({ account_id: targetAccountId, updated_at: new Date().toISOString() })
-    .eq('id', strategyId)
-    .eq('user_id', userId);
-
-  if (error) {
-    console.error('Error moving strategy:', error);
-    return { error: { message: error.message ?? 'Failed to move strategy' } };
-  }
-
-  return { error: null };
-}
-
-/**
  * Permanently deletes a strategy. Related trades (live, backtesting, demo) are
  * removed automatically by the database via ON DELETE CASCADE on strategy_id.
  */
