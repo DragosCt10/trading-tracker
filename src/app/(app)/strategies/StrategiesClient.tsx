@@ -623,10 +623,10 @@ export function StrategiesClient() {
                 currencySymbol={currencySymbol}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
-                // Show loading if the query is fetching OR if this specific strategy
-                // doesn't have data yet (e.g., just created). Prevents "No trades yet"
-                // flash on initial load and on new strategy creation.
-                isLoading={tradesLoading || !strategiesOverview?.[strategy.id]}
+                // Only show loading while actually fetching data. A newly created strategy
+                // without trades won't have an overview entry, but that's okay—it will show
+                // "No trades yet" once loading completes.
+                isLoading={tradesLoading}
               />
             ))}
 
