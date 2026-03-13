@@ -57,7 +57,7 @@ export default function ResetPasswordClient() {
 
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex items-start justify-center px-4 pb-4 pt-15 transition-colors duration-500 bg-transparent">
+    <div className="min-h-screen relative overflow-hidden flex items-start justify-center px-4 pb-4 pt-15 transition-colors duration-500">
       {/* Noise texture overlay */}
       <div
         className="absolute inset-0 opacity-[0.015] dark:opacity-0 mix-blend-overlay pointer-events-none"
