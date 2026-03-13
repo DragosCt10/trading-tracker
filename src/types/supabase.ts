@@ -43,8 +43,6 @@ export interface Database {
           saved_news: Json;
           saved_markets: Json;
           feature_flags: Json;
-          strategies_page_title: string | null;
-          strategies_page_description: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -53,8 +51,6 @@ export interface Database {
           saved_news?: Json;
           saved_markets?: Json;
           feature_flags?: Json;
-          strategies_page_title?: string | null;
-          strategies_page_description?: string | null;
         };
         Update: Partial<Omit<Database['public']['Tables']['user_settings']['Row'], 'user_id'>>;
       };
