@@ -32,6 +32,15 @@ export function useTheme() {
       document.documentElement.classList.remove('dark');
     }
     localStorage.setItem('theme', theme);
+
+    // Force Safari to repaint and recalculate styles
+    // Safari sometimes caches styles and doesn't update when class changes
+    if (typeof window !== 'undefined') {
+      // Trigger a reflow by accessing offsetHeight
+      void document.documentElement.offsetHeight;
+      // Also dispatch a custom event that components can listen to
+      window.dispatchEvent(new CustomEvent('theme-change', { detail: { theme } }));
+    }
   }, [theme, mounted]);
 
   const toggleTheme = () => {

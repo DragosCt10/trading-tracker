@@ -698,6 +698,448 @@ html.dark[data-color-theme="ice"] {
   --tc-text: #60a5fa;
 }
 
+/* === Palette 6: Crimson Red === */
+html[data-color-theme="crimson"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 245 245 / 0.6);
+  --grad-to: rgb(255 240 240 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 235 235 / 0.8);
+  --modal-grad-to: rgb(255 225 225 / 0.7);
+  --orb-1: rgb(255 59 59 / 0.08);
+  --orb-2: rgb(153 27 27 / 0.08);
+  --tc-primary: #FF3B3B;
+  --tc-accent: #991B1B;
+  --tc-accent-end: #660000;
+  --tc-subtle: rgb(255 59 59 / 0.05);
+  --tc-border: rgb(255 59 59 / 0.3);
+  --tc-text: #991B1B;
+  --tc-text-dark: #FF6B6B;
+  --sidebar-overlay-from: rgb(255 59 59 / 0.05);
+  --sidebar-overlay-to: rgb(153 27 27 / 0.05);
+}
+html.dark[data-color-theme="crimson"] {
+  --grad-from: #0B0B0B;
+  --grad-via: #1a0a0a;
+  --grad-to: #0f0707;
+  --modal-grad-from: #0B0B0B;
+  --modal-grad-via: #1a0a0a;
+  --modal-grad-to: #0f0707;
+  --orb-1: rgb(255 59 59 / 0.10);
+  --orb-2: rgb(153 27 27 / 0.10);
+  --tc-subtle: rgb(255 59 59 / 0.10);
+  --tc-border: rgb(255 59 59 / 0.25);
+  --tc-text: #FF6B6B;
+}
+
+/* === Palette 7: Neon Pink === */
+html[data-color-theme="neon-pink"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 240 255 / 0.6);
+  --grad-to: rgb(255 235 255 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 225 255 / 0.8);
+  --modal-grad-to: rgb(255 210 255 / 0.7);
+  --orb-1: rgb(255 43 214 / 0.08);
+  --orb-2: rgb(192 38 211 / 0.08);
+  --tc-primary: #FF2BD6;
+  --tc-accent: #C026D3;
+  --tc-accent-end: #A00BA5;
+  --tc-subtle: rgb(255 43 214 / 0.05);
+  --tc-border: rgb(255 43 214 / 0.3);
+  --tc-text: #C026D3;
+  --tc-text-dark: #FF6BE9;
+  --sidebar-overlay-from: rgb(255 43 214 / 0.05);
+  --sidebar-overlay-to: rgb(192 38 211 / 0.05);
+}
+html.dark[data-color-theme="neon-pink"] {
+  --grad-from: #140F2A;
+  --grad-via: #1f1530;
+  --grad-to: #1a1228;
+  --modal-grad-from: #140F2A;
+  --modal-grad-via: #1f1530;
+  --modal-grad-to: #1a1228;
+  --orb-1: rgb(255 43 214 / 0.10);
+  --orb-2: rgb(192 38 211 / 0.10);
+  --tc-subtle: rgb(255 43 214 / 0.10);
+  --tc-border: rgb(255 43 214 / 0.25);
+  --tc-text: #FF6BE9;
+}
+
+/* === Palette 8: Steel Gray === */
+html[data-color-theme="steel-gray"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(245 248 250 / 0.6);
+  --grad-to: rgb(240 245 248 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(240 245 248 / 0.8);
+  --modal-grad-to: rgb(235 240 245 / 0.7);
+  --orb-1: rgb(138 143 152 / 0.08);
+  --orb-2: rgb(75 85 99 / 0.08);
+  --tc-primary: #8A8F98;
+  --tc-accent: #4B5563;
+  --tc-accent-end: #2a3547;
+  --tc-subtle: rgb(138 143 152 / 0.05);
+  --tc-border: rgb(138 143 152 / 0.3);
+  --tc-text: #4B5563;
+  --tc-text-dark: #B0B5C4;
+  --sidebar-overlay-from: rgb(138 143 152 / 0.05);
+  --sidebar-overlay-to: rgb(75 85 99 / 0.05);
+}
+html.dark[data-color-theme="steel-gray"] {
+  --grad-from: #111827;
+  --grad-via: #1f2937;
+  --grad-to: #1a202c;
+  --modal-grad-from: #111827;
+  --modal-grad-via: #1f2937;
+  --modal-grad-to: #1a202c;
+  --orb-1: rgb(138 143 152 / 0.10);
+  --orb-2: rgb(75 85 99 / 0.10);
+  --tc-subtle: rgb(138 143 152 / 0.10);
+  --tc-border: rgb(138 143 152 / 0.25);
+  --tc-text: #B0B5C4;
+}
+
+/* === Palette 9: Sunset Orange === */
+html[data-color-theme="sunset"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 245 235 / 0.6);
+  --grad-to: rgb(255 240 220 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 240 220 / 0.8);
+  --modal-grad-to: rgb(255 230 200 / 0.7);
+  --orb-1: rgb(255 122 24 / 0.08);
+  --orb-2: rgb(194 65 12 / 0.08);
+  --tc-primary: #FF7A18;
+  --tc-accent: #C2410C;
+  --tc-accent-end: #8B2500;
+  --tc-subtle: rgb(255 122 24 / 0.05);
+  --tc-border: rgb(255 122 24 / 0.3);
+  --tc-text: #C2410C;
+  --tc-text-dark: #FFB347;
+  --sidebar-overlay-from: rgb(255 122 24 / 0.05);
+  --sidebar-overlay-to: rgb(194 65 12 / 0.05);
+}
+html.dark[data-color-theme="sunset"] {
+  --grad-from: #121212;
+  --grad-via: #1e1e1e;
+  --grad-to: #1a1a1a;
+  --modal-grad-from: #121212;
+  --modal-grad-via: #1e1e1e;
+  --modal-grad-to: #1a1a1a;
+  --orb-1: rgb(255 122 24 / 0.10);
+  --orb-2: rgb(194 65 12 / 0.10);
+  --tc-subtle: rgb(255 122 24 / 0.10);
+  --tc-border: rgb(255 122 24 / 0.25);
+  --tc-text: #FFB347;
+}
+
+/* === Palette 10: Solar Yellow === */
+html[data-color-theme="solar"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 250 230 / 0.6);
+  --grad-to: rgb(255 245 210 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 245 200 / 0.8);
+  --modal-grad-to: rgb(255 240 180 / 0.7);
+  --orb-1: rgb(255 212 0 / 0.08);
+  --orb-2: rgb(250 204 21 / 0.08);
+  --tc-primary: #FFD400;
+  --tc-accent: #FACC15;
+  --tc-accent-end: #DCAF2A;
+  --tc-subtle: rgb(255 212 0 / 0.05);
+  --tc-border: rgb(255 212 0 / 0.3);
+  --tc-text: #DCAF2A;
+  --tc-text-dark: #FFE066;
+  --sidebar-overlay-from: rgb(255 212 0 / 0.05);
+  --sidebar-overlay-to: rgb(250 204 21 / 0.05);
+}
+html.dark[data-color-theme="solar"] {
+  --grad-from: #0A0A0A;
+  --grad-via: #151515;
+  --grad-to: #0f0f0f;
+  --modal-grad-from: #0A0A0A;
+  --modal-grad-via: #151515;
+  --modal-grad-to: #0f0f0f;
+  --orb-1: rgb(255 212 0 / 0.10);
+  --orb-2: rgb(250 204 21 / 0.10);
+  --tc-subtle: rgb(255 212 0 / 0.10);
+  --tc-border: rgb(255 212 0 / 0.25);
+  --tc-text: #FFE066;
+}
+
+/* === Palette 11: Indigo Night === */
+html[data-color-theme="indigo"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(240 245 255 / 0.6);
+  --grad-to: rgb(230 240 255 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(235 240 255 / 0.8);
+  --modal-grad-to: rgb(225 235 255 / 0.7);
+  --orb-1: rgb(99 102 241 / 0.08);
+  --orb-2: rgb(55 48 163 / 0.08);
+  --tc-primary: #6366F1;
+  --tc-accent: #3730A3;
+  --tc-accent-end: #1f1a60;
+  --tc-subtle: rgb(99 102 241 / 0.05);
+  --tc-border: rgb(99 102 241 / 0.3);
+  --tc-text: #3730A3;
+  --tc-text-dark: #9CA3FF;
+  --sidebar-overlay-from: rgb(99 102 241 / 0.05);
+  --sidebar-overlay-to: rgb(55 48 163 / 0.05);
+}
+html.dark[data-color-theme="indigo"] {
+  --grad-from: #0B1020;
+  --grad-via: #151a35;
+  --grad-to: #0f1428;
+  --modal-grad-from: #0B1020;
+  --modal-grad-via: #151a35;
+  --modal-grad-to: #0f1428;
+  --orb-1: rgb(99 102 241 / 0.10);
+  --orb-2: rgb(55 48 163 / 0.10);
+  --tc-subtle: rgb(99 102 241 / 0.10);
+  --tc-border: rgb(99 102 241 / 0.25);
+  --tc-text: #9CA3FF;
+}
+
+/* === Palette 12: Ocean Teal === */
+html[data-color-theme="teal"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(240 250 248 / 0.6);
+  --grad-to: rgb(225 245 240 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(225 245 240 / 0.8);
+  --modal-grad-to: rgb(210 240 235 / 0.7);
+  --orb-1: rgb(20 184 166 / 0.08);
+  --orb-2: rgb(15 118 110 / 0.08);
+  --tc-primary: #14B8A6;
+  --tc-accent: #0F766E;
+  --tc-accent-end: #004D47;
+  --tc-subtle: rgb(20 184 166 / 0.05);
+  --tc-border: rgb(20 184 166 / 0.3);
+  --tc-text: #0F766E;
+  --tc-text-dark: #5EE7D9;
+  --sidebar-overlay-from: rgb(20 184 166 / 0.05);
+  --sidebar-overlay-to: rgb(15 118 110 / 0.05);
+}
+html.dark[data-color-theme="teal"] {
+  --grad-from: #0A1A24;
+  --grad-via: #112630;
+  --grad-to: #0d1f28;
+  --modal-grad-from: #0A1A24;
+  --modal-grad-via: #112630;
+  --modal-grad-to: #0d1f28;
+  --orb-1: rgb(20 184 166 / 0.10);
+  --orb-2: rgb(15 118 110 / 0.10);
+  --tc-subtle: rgb(20 184 166 / 0.10);
+  --tc-border: rgb(20 184 166 / 0.25);
+  --tc-text: #5EE7D9;
+}
+
+/* === Palette 13: Silver Tech === */
+html[data-color-theme="silver"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(248 250 252 / 0.6);
+  --grad-to: rgb(245 248 250 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(245 248 250 / 0.8);
+  --modal-grad-to: rgb(240 245 248 / 0.7);
+  --orb-1: rgb(192 198 207 / 0.08);
+  --orb-2: rgb(107 114 128 / 0.08);
+  --tc-primary: #C0C6CF;
+  --tc-accent: #6B7280;
+  --tc-accent-end: #3f4652;
+  --tc-subtle: rgb(192 198 207 / 0.05);
+  --tc-border: rgb(192 198 207 / 0.3);
+  --tc-text: #6B7280;
+  --tc-text-dark: #D4DADF;
+  --sidebar-overlay-from: rgb(192 198 207 / 0.05);
+  --sidebar-overlay-to: rgb(107 114 128 / 0.05);
+}
+html.dark[data-color-theme="silver"] {
+  --grad-from: #0D0D0D;
+  --grad-via: #1a1a1a;
+  --grad-to: #121212;
+  --modal-grad-from: #0D0D0D;
+  --modal-grad-via: #1a1a1a;
+  --modal-grad-to: #121212;
+  --orb-1: rgb(192 198 207 / 0.10);
+  --orb-2: rgb(107 114 128 / 0.10);
+  --tc-subtle: rgb(192 198 207 / 0.10);
+  --tc-border: rgb(192 198 207 / 0.25);
+  --tc-text: #D4DADF;
+}
+
+/* === Palette 14: Burgundy Elite === */
+html[data-color-theme="burgundy"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 242 245 / 0.6);
+  --grad-to: rgb(255 235 240 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 225 235 / 0.8);
+  --modal-grad-to: rgb(255 210 225 / 0.7);
+  --orb-1: rgb(159 18 57 / 0.08);
+  --orb-2: rgb(76 5 25 / 0.08);
+  --tc-primary: #9F1239;
+  --tc-accent: #4C0519;
+  --tc-accent-end: #1a0208;
+  --tc-subtle: rgb(159 18 57 / 0.05);
+  --tc-border: rgb(159 18 57 / 0.3);
+  --tc-text: #4C0519;
+  --tc-text-dark: #D94B6F;
+  --sidebar-overlay-from: rgb(159 18 57 / 0.05);
+  --sidebar-overlay-to: rgb(76 5 25 / 0.05);
+}
+html.dark[data-color-theme="burgundy"] {
+  --grad-from: #0B0B0B;
+  --grad-via: #1a0a0f;
+  --grad-to: #0f0709;
+  --modal-grad-from: #0B0B0B;
+  --modal-grad-via: #1a0a0f;
+  --modal-grad-to: #0f0709;
+  --orb-1: rgb(159 18 57 / 0.10);
+  --orb-2: rgb(76 5 25 / 0.10);
+  --tc-subtle: rgb(159 18 57 / 0.10);
+  --tc-border: rgb(159 18 57 / 0.25);
+  --tc-text: #D94B6F;
+}
+
+/* === Palette 15: Copper Pro === */
+html[data-color-theme="copper"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 245 240 / 0.6);
+  --grad-to: rgb(255 240 230 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 235 220 / 0.8);
+  --modal-grad-to: rgb(255 230 210 / 0.7);
+  --orb-1: rgb(196 106 46 / 0.08);
+  --orb-2: rgb(146 64 14 / 0.08);
+  --tc-primary: #C46A2E;
+  --tc-accent: #92400E;
+  --tc-accent-end: #5a2305;
+  --tc-subtle: rgb(196 106 46 / 0.05);
+  --tc-border: rgb(196 106 46 / 0.3);
+  --tc-text: #92400E;
+  --tc-text-dark: #E0996B;
+  --sidebar-overlay-from: rgb(196 106 46 / 0.05);
+  --sidebar-overlay-to: rgb(146 64 14 / 0.05);
+}
+html.dark[data-color-theme="copper"] {
+  --grad-from: #0C0C0C;
+  --grad-via: #1a0f08;
+  --grad-to: #0f0a06;
+  --modal-grad-from: #0C0C0C;
+  --modal-grad-via: #1a0f08;
+  --modal-grad-to: #0f0a06;
+  --orb-1: rgb(196 106 46 / 0.10);
+  --orb-2: rgb(146 64 14 / 0.10);
+  --tc-subtle: rgb(196 106 46 / 0.10);
+  --tc-border: rgb(196 106 46 / 0.25);
+  --tc-text: #E0996B;
+}
+
+/* === Palette 16: Ruby Red === */
+html[data-color-theme="ruby"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 242 245 / 0.6);
+  --grad-to: rgb(255 235 240 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 225 235 / 0.8);
+  --modal-grad-to: rgb(255 210 225 / 0.7);
+  --orb-1: rgb(225 29 72 / 0.08);
+  --orb-2: rgb(159 18 57 / 0.08);
+  --tc-primary: #E11D48;
+  --tc-accent: #9F1239;
+  --tc-accent-end: #660018;
+  --tc-subtle: rgb(225 29 72 / 0.05);
+  --tc-border: rgb(225 29 72 / 0.3);
+  --tc-text: #9F1239;
+  --tc-text-dark: #FF5B7F;
+  --sidebar-overlay-from: rgb(225 29 72 / 0.05);
+  --sidebar-overlay-to: rgb(159 18 57 / 0.05);
+}
+html.dark[data-color-theme="ruby"] {
+  --grad-from: #0A0A0A;
+  --grad-via: #1a0a0f;
+  --grad-to: #0f0709;
+  --modal-grad-from: #0A0A0A;
+  --modal-grad-via: #1a0a0f;
+  --modal-grad-to: #0f0709;
+  --orb-1: rgb(225 29 72 / 0.10);
+  --orb-2: rgb(159 18 57 / 0.10);
+  --tc-subtle: rgb(225 29 72 / 0.10);
+  --tc-border: rgb(225 29 72 / 0.25);
+  --tc-text: #FF5B7F;
+}
+
+/* === Palette 17: Rose Pink === */
+html[data-color-theme="rose"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 245 250 / 0.6);
+  --grad-to: rgb(255 240 250 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 235 245 / 0.8);
+  --modal-grad-to: rgb(255 225 240 / 0.7);
+  --orb-1: rgb(244 114 182 / 0.08);
+  --orb-2: rgb(190 24 93 / 0.08);
+  --tc-primary: #F472B6;
+  --tc-accent: #BE185D;
+  --tc-accent-end: #831843;
+  --tc-subtle: rgb(244 114 182 / 0.05);
+  --tc-border: rgb(244 114 182 / 0.3);
+  --tc-text: #BE185D;
+  --tc-text-dark: #F99FCC;
+  --sidebar-overlay-from: rgb(244 114 182 / 0.05);
+  --sidebar-overlay-to: rgb(190 24 93 / 0.05);
+}
+html.dark[data-color-theme="rose"] {
+  --grad-from: #140C1F;
+  --grad-via: #1f1530;
+  --grad-to: #1a1228;
+  --modal-grad-from: #140C1F;
+  --modal-grad-via: #1f1530;
+  --modal-grad-to: #1a1228;
+  --orb-1: rgb(244 114 182 / 0.10);
+  --orb-2: rgb(190 24 93 / 0.10);
+  --tc-subtle: rgb(244 114 182 / 0.10);
+  --tc-border: rgb(244 114 182 / 0.25);
+  --tc-text: #F99FCC;
+}
+
+/* === Palette 18: Violet Pulse === */
+html[data-color-theme="violet"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(245 240 255 / 0.6);
+  --grad-to: rgb(240 235 255 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(240 230 255 / 0.8);
+  --modal-grad-to: rgb(235 220 255 / 0.7);
+  --orb-1: rgb(139 92 246 / 0.08);
+  --orb-2: rgb(91 33 182 / 0.08);
+  --tc-primary: #8B5CF6;
+  --tc-accent: #5B21B6;
+  --tc-accent-end: #38086d;
+  --tc-subtle: rgb(139 92 246 / 0.05);
+  --tc-border: rgb(139 92 246 / 0.3);
+  --tc-text: #5B21B6;
+  --tc-text-dark: #D8B4FE;
+  --sidebar-overlay-from: rgb(139 92 246 / 0.05);
+  --sidebar-overlay-to: rgb(91 33 182 / 0.05);
+}
+html.dark[data-color-theme="violet"] {
+  --grad-from: #0E0B20;
+  --grad-via: #1a1535;
+  --grad-to: #13102a;
+  --modal-grad-from: #0E0B20;
+  --modal-grad-via: #1a1535;
+  --modal-grad-to: #13102a;
+  --orb-1: rgb(139 92 246 / 0.10);
+  --orb-2: rgb(91 33 182 / 0.10);
+  --tc-subtle: rgb(139 92 246 / 0.10);
+  --tc-border: rgb(139 92 246 / 0.25);
+  --tc-text: #D8B4FE;
+}
+
 /* ============================================================
  * Theme utility classes
  * ============================================================ */
@@ -817,13 +1259,35 @@ html.dark[data-color-theme="ice"] {
   box-shadow: 0 0 0 2px color-mix(in oklch, var(--tc-primary) 20%, transparent) !important;
 }
 
-/* ---- Themed live mode badge ---- */
+/* ---- Themed mode badges (live, demo, backtesting) ---- */
 .themed-badge-live {
   background-color: var(--tc-subtle) !important;
   color: var(--tc-text) !important;
   border-color: var(--tc-border) !important;
 }
 .dark .themed-badge-live {
+  color: var(--tc-text-dark) !important;
+  background-color: var(--tc-subtle) !important;
+  border-color: var(--tc-border) !important;
+}
+
+.themed-badge-demo {
+  background-color: var(--tc-subtle) !important;
+  color: var(--tc-text) !important;
+  border-color: var(--tc-border) !important;
+}
+.dark .themed-badge-demo {
+  color: var(--tc-text-dark) !important;
+  background-color: var(--tc-subtle) !important;
+  border-color: var(--tc-border) !important;
+}
+
+.themed-badge-backtesting {
+  background-color: var(--tc-subtle) !important;
+  color: var(--tc-text) !important;
+  border-color: var(--tc-border) !important;
+}
+.dark .themed-badge-backtesting {
   color: var(--tc-text-dark) !important;
   background-color: var(--tc-subtle) !important;
   border-color: var(--tc-border) !important;

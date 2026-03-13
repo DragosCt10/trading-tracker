@@ -30,8 +30,8 @@ const MODE_LABELS: Record<Mode, string> = {
 
 const MODE_BADGE: Record<Mode, string> = {
   live: 'themed-badge-live',
-  demo: 'bg-sky-50/90 text-sky-700 border border-sky-200/80 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/25',
-  backtesting: 'bg-violet-50/90 text-violet-700 border border-violet-200/80 dark:bg-violet-500/10 dark:text-violet-300 dark:border-violet-500/25',
+  demo: 'themed-badge-demo',
+  backtesting: 'themed-badge-backtesting',
 };
 
 /** Optional server-fetched initial data. When provided, hydrates TanStack cache so hooks use it without client fetch. */

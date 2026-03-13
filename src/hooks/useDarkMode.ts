@@ -13,12 +13,21 @@ export function useDarkMode(): { mounted: boolean; isDark: boolean } {
     setMounted(true);
     const checkDarkMode = () => setIsDark(document.documentElement.classList.contains('dark'));
     checkDarkMode();
+
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['class'],
     });
-    return () => observer.disconnect();
+
+    // Also listen for custom theme-change event (fixes Safari repaint issues)
+    const handleThemeChange = () => checkDarkMode();
+    window.addEventListener('theme-change', handleThemeChange);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('theme-change', handleThemeChange);
+    };
   }, []);
 
   return { mounted, isDark };
