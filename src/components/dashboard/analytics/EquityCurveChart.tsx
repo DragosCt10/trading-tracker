@@ -184,7 +184,7 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
             stroke="var(--tc-primary, #8b5cf6)"
             strokeWidth={2}
             dot={false}
-            activeDot={{ r: 4 }}
+            activeDot={false}
           />
         </AreaChart>
       </ResponsiveContainer>
@@ -231,7 +231,7 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
             stroke="var(--tc-primary)"
             strokeWidth={2}
             dot={false}
-            activeDot={{ r: 4 }}
+            activeDot={false}
           />
         </LineChart>
       </ResponsiveContainer>
