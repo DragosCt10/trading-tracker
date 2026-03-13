@@ -277,11 +277,12 @@ export async function moveTradestoStrategy(
   if (!user) return { error: { message: 'Unauthorized' } };
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from(`${mode}_trades`)
-    .update({ strategy_id: newStrategyId })
-    .eq('user_id', user.id)
-    .in('id', tradeIds);
+  const { error } = await supabase.rpc('move_trades_to_strategy', {
+    p_trade_ids: tradeIds,
+    p_new_strategy_id: newStrategyId,
+    p_mode: mode,
+    p_user_id: user.id,
+  });
 
   if (error) {
     console.error('Error moving trades to strategy:', error);
