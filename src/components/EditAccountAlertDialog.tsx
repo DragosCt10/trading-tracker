@@ -54,12 +54,15 @@ interface EditAccountAlertDialogProps {
   account: AccountSettings | null;
   onUpdated?: (updated: AccountSettings) => void;
   onDeleted?: () => void;
+  /** When false, the delete button is disabled (e.g. last demo account). Defaults to true. */
+  isDeletable?: boolean;
 }
 
 export function EditAccountAlertDialog({
   account,
   onUpdated,
   onDeleted,
+  isDeletable = true,
 }: EditAccountAlertDialogProps) {
   const queryClient = useQueryClient();
   const { data: userId } = useUserDetails();
@@ -415,19 +418,32 @@ export function EditAccountAlertDialog({
 
               <AlertDialogFooter className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex w-full sm:w-auto order-2 sm:order-1">
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    disabled={!account || submitting || deleting}
-                    onClick={() => setDeleteConfirmOpen(true)}
-                    className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 gap-2"
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
-                      {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
-                      {deleting ? 'Deleting account' : 'Delete account'}
-                    </span>
-                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={!isDeletable ? 'cursor-not-allowed' : undefined}>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            disabled={!account || submitting || deleting || !isDeletable}
+                            onClick={() => setDeleteConfirmOpen(true)}
+                            className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 gap-2"
+                          >
+                            <span className="relative z-10 flex items-center gap-2">
+                              {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                              {deleting ? 'Deleting account' : 'Delete account'}
+                            </span>
+                            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      {!isDeletable && (
+                        <TooltipContent className="w-64 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-3">
+                          You must keep at least one demo account. Create another demo account before deleting this one.
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto justify-end order-1 sm:order-2">
                   <AlertDialogCancel
