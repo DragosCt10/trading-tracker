@@ -498,6 +498,17 @@
   --sidebar-overlay-to: rgb(217 70 239 / 0.05);     /* fuchsia-500/5 */
 }
 
+/* Light mode background */
+html {
+  background-color: #ffffff !important;
+  background-image: linear-gradient(
+    to bottom right,
+    var(--grad-from) 0%,
+    var(--grad-via) 50%,
+    var(--grad-to) 100%
+  ) !important;
+}
+
 html.dark {
   --grad-from: #0d0a12;
   --grad-via: #120d16;
@@ -508,6 +519,13 @@ html.dark {
   --orb-1: rgb(168 85 247 / 0.10);
   --orb-2: rgb(139 92 246 / 0.10);
   --tc-text: #c084fc;
+  background-color: #0d0a12 !important;
+  background-image: linear-gradient(
+    to bottom right,
+    var(--grad-from) 0%,
+    var(--grad-via) 50%,
+    var(--grad-to) 100%
+  ) !important;
 }
 
 /* === Palette 1: Midnight Blue + Electric Cyan — Tailwind sky/cyan (soft equilibrium like purple) === */

@@ -18,8 +18,8 @@ export const queryKeys = {
   accounts: (userId?: string, mode?: string) =>
     ['accounts:list', userId, mode] as const,
 
-  strategies: (userId?: string) =>
-    ['strategies:list', userId] as const,
+  strategies: (userId?: string, accountId?: string) =>
+    ['strategies:list', userId, accountId] as const,
 
   archivedStrategies: (userId?: string) =>
     ['archived-strategies', userId] as const,

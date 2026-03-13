@@ -6,41 +6,34 @@ import { queryKeys } from '@/lib/queryKeys';
 
 interface UseStrategiesOptions {
   userId?: string;
+  accountId?: string;
 }
 
-export function useStrategies({ userId }: UseStrategiesOptions) {
+export function useStrategies({ userId, accountId }: UseStrategiesOptions) {
   const queryClient = useQueryClient();
-  const key = queryKeys.strategies(userId);
+  const key = queryKeys.strategies(userId, accountId);
 
-  // If cache exists, we won't auto-fetch.
   const cached = queryClient.getQueryData<Strategy[]>(key);
-  const shouldAutoFetch = !!userId && !cached;
+  const shouldAutoFetch = !!userId && !!accountId && !cached;
 
   const query = useQuery<Strategy[]>({
     queryKey: key,
-    // Only auto-fetch when there is no cache yet.
     enabled: shouldAutoFetch,
-
-    // Seed the query with cache if present (prevents an extra fetch).
     initialData: cached,
-
-    // Never auto-refetch later — you control refresh via refetch()
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     ...STATIC_DATA,
-
-    // Server-side fetch: no client Supabase call
     queryFn: async (): Promise<Strategy[]> => {
-      if (!userId) return [];
-      return getUserStrategies(userId);
+      if (!userId || !accountId) return [];
+      return getUserStrategies(userId, accountId);
     },
   });
 
   return {
     strategies: query.data ?? [],
     strategiesLoading: query.isFetching,
-    refetchStrategies: query.refetch, // manual refresh when you want
+    refetchStrategies: query.refetch,
     ...query,
   };
 }

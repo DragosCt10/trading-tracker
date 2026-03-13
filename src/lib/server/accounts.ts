@@ -147,6 +147,7 @@ export async function updateAccount(
 
 /**
  * Deletes an account. Only the owner (from session) can delete.
+ * The last demo account cannot be deleted — users must always have at least one demo account.
  */
 export async function deleteAccount(
   accountId: string
@@ -154,6 +155,26 @@ export async function deleteAccount(
   const { user } = await getCachedUserSession();
   if (!user) return { error: { message: 'Unauthorized' } };
   const supabase = await createClient();
+
+  // Guard: prevent deleting the last demo account
+  const { data: accountToDelete } = await supabase
+    .from('account_settings')
+    .select('mode')
+    .eq('id', accountId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (accountToDelete?.mode === 'demo') {
+    const { count } = await supabase
+      .from('account_settings')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('mode', 'demo');
+
+    if ((count ?? 0) <= 1) {
+      return { error: { message: 'You must keep at least one demo account.' } };
+    }
+  }
 
   const { error } = await supabase
     .from('account_settings')

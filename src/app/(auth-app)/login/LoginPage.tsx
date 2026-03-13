@@ -81,7 +81,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex items-start justify-center px-4 pb-4 pt-15 transition-colors duration-500 outline-none border-none bg-transparent">
+    <div className="min-h-screen relative overflow-hidden flex items-start justify-center px-4 pb-4 pt-15 transition-colors duration-500 outline-none border-none">
       {/* Noise texture overlay */}
       <div
         className="absolute inset-0 opacity-[0.015] dark:opacity-0 mix-blend-overlay pointer-events-none"
@@ -137,7 +137,7 @@ export default function LoginPage() {
             <div className="relative group">
               <div className="absolute -inset-3 rounded-2xl opacity-75 blur-xl group-hover:opacity-100 transition duration-500" style={{ background: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))', opacity: 0.2 }} />
               <div className="relative grid h-20 w-20 place-content-center rounded-xl bg-muted/50 border border-border backdrop-blur-sm shadow-2xl">
-                <Logo width={64} height={64} />
+                <Logo width={64} height={64} className="mt-2" />
               </div>
             </div>
 

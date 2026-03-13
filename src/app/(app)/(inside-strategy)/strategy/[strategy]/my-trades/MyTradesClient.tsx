@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Trade } from '@/types/trade';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TRADES_DATA } from '@/constants/queryConfig';
 import { TradeFiltersBar, DateRangeValue } from '@/components/dashboard/analytics/TradeFiltersBar';
-import { getFilteredTrades, deleteTrades } from '@/lib/server/trades';
+import { getFilteredTrades, deleteTrades, moveTradestoStrategy } from '@/lib/server/trades';
 import type { Database } from '@/types/supabase';
 import { TradeCardsView } from '@/components/trades/TradeCardsView';
 import {
@@ -18,11 +19,12 @@ import {
   FilterType,
 } from '@/utils/dateRangeHelpers';
 import { queryKeys } from '@/lib/queryKeys';
+import { useStrategies } from '@/hooks/useStrategies';
 import { exportTradesToCsv } from '@/utils/exportTradesToCsv';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, TrendingUp, TrendingDown } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, Columns2, LayoutGrid, PanelLeft } from 'lucide-react';
 import {
   getCurrencySymbolFromAccount,
   computeMonthlyStatsFromTrades,
@@ -218,7 +220,9 @@ export default function MyTradesClient({
     direction: 'asc',
   });
   const [exporting, setExporting] = useState(false);
+  const [cardViewMode, setCardViewMode] = useState<'grid-4' | 'grid-2' | 'split' | 'table'>('grid-4');
 
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { data: userDetails } = useUserDetails();
   const { selection, setSelection } = useActionBarSelection();
@@ -240,6 +244,12 @@ export default function MyTradesClient({
 
   // Resolve account: use selection when set, else initial from server (so query can run before action bar hydrates)
   const activeAccount = selection.activeAccount ?? initialActiveAccount;
+
+  // Strategies for this account — used for the "move trades" feature
+  const { strategies } = useStrategies({ userId, accountId: activeAccount?.id });
+  const moveToStrategies = strategies
+    .filter((s) => s.id !== initialStrategyId)
+    .map((s) => ({ id: s.id, name: s.name }));
 
   // Single query: prefetched on server (one getFilteredTrades), so client uses hydrated cache when key matches.
   // Date range, market, and execution filtering all happen client-side on this dataset.
@@ -536,6 +546,35 @@ export default function MyTradesClient({
     }
   }, [trades, dateRange.startDate, dateRange.endDate]);
 
+  const handleBulkMoveToStrategy = useCallback(
+    async (ids: string[], newStrategyId: string) => {
+      if (ids.length === 0) return;
+      const { error } = await moveTradestoStrategy(ids, newStrategyId, mode as 'live' | 'backtesting' | 'demo');
+      if (error) {
+        console.error('Move trades error:', error);
+        return;
+      }
+      // Invalidate all trade + stats caches — refetchType:'all' forces a background
+      // refetch of inactive queries too (e.g. StrategyClient while unmounted),
+      // so the data is fresh before the user navigates back.
+      const TRADE_PREFIXES = new Set([
+        'allTrades', 'filteredTrades', 'nonExecutedTrades',
+        'dashboardStats', 'calendarTrades', 'compactTrades', 'strategies-overview',
+      ]);
+      queryClient.invalidateQueries({
+        predicate: (q) => Array.isArray(q.queryKey) && TRADE_PREFIXES.has(q.queryKey[0] as string),
+        refetchType: 'all',
+      });
+      // Tell StrategyClient's hydrateQueryCache to skip stale server-props on next mount
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
+      }
+      // Flush Next.js router cache so navigating back to the strategy dashboard re-fetches
+      router.refresh();
+    },
+    [mode, activeAccount?.id, userId, todayStr, initialStrategyId, queryClient, router]
+  );
+
   const handleBulkDelete = useCallback(
     async (ids: string[]) => {
       if (ids.length === 0) return;
@@ -786,26 +825,17 @@ export default function MyTradesClient({
         <MonteCarloCard trades={trades} currencySymbol={currencySymbol} />
       </div>
 
-      <div className="mt-10 space-y-2">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            View Mode Trades
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            View your trades as cards, split, or table.
-          </p>
-        </div>
-        <TradeCardsView
-          trades={trades}
-          isLoading={tradesLoading}
-          isFetching={tradesFetching}
-          resetKey={`${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${executionFilter}-${sortField}-${showPartialTrades}`}
-          onTradeUpdated={handleTradeUpdated}
-          enableBulkDeleteInTableView
-          onBulkDelete={handleBulkDelete}
-          totalFilteredCount={filteredTrades.length}
-          // Sort by control rendered on same row as View toggles
-          sortControl={
+      <div className="mt-6 flex flex-col">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              View Mode Trades
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              View your trades as cards, split, or table.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
                 Sort by:
@@ -841,7 +871,83 @@ export default function MyTradesClient({
                 </SelectContent>
               </Select>
             </div>
-          }
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
+              View:
+            </span>
+            <div className="inline-flex h-8 items-center rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none p-0.5">
+              <button
+                type="button"
+                onClick={() => setCardViewMode('grid-2')}
+                className={cn(
+                  'rounded-lg h-6 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
+                  cardViewMode === 'grid-2'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                )}
+                aria-label="2 cards per row"
+                aria-pressed={cardViewMode === 'grid-2'}
+              >
+                <Columns2 className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setCardViewMode('grid-4')}
+                className={cn(
+                  'rounded-lg h-6 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
+                  cardViewMode === 'grid-4'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                )}
+                aria-label="4 cards per row"
+                aria-pressed={cardViewMode === 'grid-4'}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setCardViewMode('split')}
+                className={cn(
+                  'rounded-lg h-6 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
+                  cardViewMode === 'split'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                )}
+                aria-label="Split view"
+                aria-pressed={cardViewMode === 'split'}
+              >
+                <PanelLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setCardViewMode('table')}
+                className={cn(
+                  'rounded-lg h-6 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
+                  cardViewMode === 'table'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                )}
+                aria-label="Table view"
+                aria-pressed={cardViewMode === 'table'}
+              >
+                Table
+              </button>
+            </div>
+          </div>
+        </div>
+        <TradeCardsView
+          trades={trades}
+          isLoading={tradesLoading}
+          isFetching={tradesFetching}
+          resetKey={`${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${executionFilter}-${sortField}-${showPartialTrades}`}
+          onTradeUpdated={handleTradeUpdated}
+          enableBulkDeleteInTableView
+          onBulkDelete={handleBulkDelete}
+          moveToStrategies={moveToStrategies}
+          onBulkMoveToStrategy={handleBulkMoveToStrategy}
+          totalFilteredCount={filteredTrades.length}
+          cardViewMode={cardViewMode}
+          onCardViewModeChange={setCardViewMode}
+          suppressHeaderControls
         />
       </div>
     </div>

@@ -38,6 +38,7 @@ export default function NotesClient({
   const { data: userDetails } = useUserDetails();
   const queryClient = useQueryClient();
   const { selection } = useActionBarSelection();
+  const accountId = selection.activeAccount?.id;
   const userId = userDetails?.user?.id ?? initialUserId;
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,7 +49,7 @@ export default function NotesClient({
   const [mounted, setMounted] = useState(false);
   const observerTarget = useRef<HTMLDivElement>(null);
 
-  const { strategies } = useStrategies({ userId });
+  const { strategies } = useStrategies({ userId, accountId });
 
   // Prevent hydration mismatch
   useEffect(() => {

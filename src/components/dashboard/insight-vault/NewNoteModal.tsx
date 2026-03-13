@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createNote } from '@/lib/server/notes';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
+import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { getTradesForNoteLinking } from '@/lib/server/trades';
 import type { TradeRef } from '@/types/note';
@@ -36,7 +37,9 @@ interface NewNoteModalProps {
 export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNoteModalProps) {
   const { data: userDetails } = useUserDetails();
   const userId = userDetails?.user?.id;
-  const { strategies } = useStrategies({ userId });
+  const { selection } = useActionBarSelection();
+  const accountId = selection.activeAccount?.id;
+  const { strategies } = useStrategies({ userId, accountId });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);

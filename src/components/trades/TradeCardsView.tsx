@@ -33,7 +33,7 @@ import TradeDetailsModal from '@/components/TradeDetailsModal';
 import TradeDetailsPanel from '@/components/TradeDetailsPanel';
 import { TradeCard } from '@/components/trades/TradeCard';
 import { TradesTableView } from '@/components/trades/TradesTableView';
-import { Columns2, Eye, LayoutGrid, Loader2, PanelLeft, Trash2 } from 'lucide-react';
+import { Columns2, Eye, LayoutGrid, Loader2, MoveRight, PanelLeft, Trash2 } from 'lucide-react';
 
 type CardViewMode = 'grid-4' | 'grid-2' | 'split' | 'table';
 
@@ -67,6 +67,10 @@ export type TradeCardsViewProps = {
   enableBulkDeleteInTableView?: boolean;
   /** Called when user confirms bulk delete in table view. Clear selection after resolve. */
   onBulkDelete?: (ids: string[]) => Promise<void>;
+  /** Strategies to move selected trades to (excludes the current one). */
+  moveToStrategies?: { id: string; name: string }[];
+  /** Called when user confirms move to strategy. Clear selection after resolve. */
+  onBulkMoveToStrategy?: (ids: string[], strategyId: string) => Promise<void>;
   /** Optional left-side control row content (e.g. Sort by) rendered on same row as View toggles. */
   sortControl?: ReactNode;
   /** When set, show "N trade(s)" on the left of the header row (filtered/period count). */
@@ -76,6 +80,12 @@ export type TradeCardsViewProps = {
    * TradeCardsView shows all trades passed and does not run the observer or show the sentinel.
    */
   externalPagination?: boolean;
+  /** Current card view mode. */
+  cardViewMode?: CardViewMode;
+  /** Called when user changes the view mode. */
+  onCardViewModeChange?: (mode: CardViewMode) => void;
+  /** When true, hide header controls (view toggles, cards per row). */
+  suppressHeaderControls?: boolean;
 };
 
 export function TradeCardsView({
@@ -92,18 +102,36 @@ export function TradeCardsView({
   marketFilter,
   enableBulkDeleteInTableView = false,
   onBulkDelete,
+  moveToStrategies,
+  onBulkMoveToStrategy,
   sortControl,
   totalFilteredCount,
   externalPagination = false,
+  cardViewMode,
+  onCardViewModeChange,
+  suppressHeaderControls = false,
 }: TradeCardsViewProps) {
   const [mounted, setMounted] = useState(false);
   const [displayedCount, setDisplayedCount] = useState(itemsPerLoad);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [cardViewMode, setCardViewMode] = useState<CardViewMode>(initialViewMode);
+  const [internalCardViewMode, setInternalCardViewMode] = useState<CardViewMode>(initialViewMode);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [moveTargetStrategyId, setMoveTargetStrategyId] = useState('');
+  const [bulkMoving, setBulkMoving] = useState(false);
+
+  // Use prop if provided (controlled), otherwise use internal state (uncontrolled)
+  const currentViewMode = cardViewMode !== undefined ? cardViewMode : internalCardViewMode;
+  const handleViewModeChange = (mode: CardViewMode) => {
+    if (onCardViewModeChange) {
+      onCardViewModeChange(mode);
+    } else {
+      setInternalCardViewMode(mode);
+    }
+  };
   const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => setMounted(true), []);
@@ -129,7 +157,7 @@ export function TradeCardsView({
   );
 
   const showTableBulkActions =
-    cardViewMode === 'table' && enableBulkDeleteInTableView && typeof onBulkDelete === 'function';
+    currentViewMode === 'table' && enableBulkDeleteInTableView && typeof onBulkDelete === 'function';
   const tablePageIds = useMemo(
     () => displayedTrades.map((t) => t.id).filter((id): id is string => !!id),
     [displayedTrades]
@@ -172,11 +200,24 @@ export function TradeCardsView({
     }
   }, [onBulkDelete, selectedIds]);
 
+  const handleBulkMoveConfirm = useCallback(async () => {
+    if (!onBulkMoveToStrategy || selectedIds.size === 0 || !moveTargetStrategyId) return;
+    setBulkMoving(true);
+    try {
+      await onBulkMoveToStrategy(Array.from(selectedIds), moveTargetStrategyId);
+      setSelectedIds(new Set());
+      setShowMoveDialog(false);
+      setMoveTargetStrategyId('');
+    } finally {
+      setBulkMoving(false);
+    }
+  }, [onBulkMoveToStrategy, selectedIds, moveTargetStrategyId]);
+
   useEffect(() => {
-    if (cardViewMode === 'split' && displayedTrades.length > 0 && !selectedTrade) {
+    if (currentViewMode === 'split' && displayedTrades.length > 0 && !selectedTrade) {
       setSelectedTrade(displayedTrades[0]);
     }
-  }, [cardViewMode, displayedTrades, selectedTrade]);
+  }, [currentViewMode, displayedTrades, selectedTrade]);
 
   useEffect(() => {
     if (externalPagination || !mounted) return;
@@ -239,6 +280,7 @@ export function TradeCardsView({
             )}
           </div>
 
+          {!suppressHeaderControls && (
           <div className="flex items-center justify-end gap-3">
             {sortControl && (
               <div className="flex items-center gap-2">
@@ -253,15 +295,15 @@ export function TradeCardsView({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  onClick={() => setCardViewMode('grid-2')}
+                  onClick={() => handleViewModeChange('grid-2')}
                   className={cn(
                     'rounded-lg h-6.5 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
-                    cardViewMode === 'grid-2'
+                    currentViewMode === 'grid-2'
                       ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                   )}
                   aria-label="2 cards per row"
-                  aria-pressed={cardViewMode === 'grid-2'}
+                  aria-pressed={currentViewMode === 'grid-2'}
                 >
                   <Columns2 className="h-4 w-4" />
                 </button>
@@ -277,15 +319,15 @@ export function TradeCardsView({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  onClick={() => setCardViewMode('grid-4')}
+                  onClick={() => handleViewModeChange('grid-4')}
                   className={cn(
                     'rounded-lg h-6.5 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
-                    cardViewMode === 'grid-4'
+                    currentViewMode === 'grid-4'
                       ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                   )}
                   aria-label="4 cards per row"
-                  aria-pressed={cardViewMode === 'grid-4'}
+                  aria-pressed={currentViewMode === 'grid-4'}
                 >
                   <LayoutGrid className="h-4 w-4" />
                 </button>
@@ -301,15 +343,15 @@ export function TradeCardsView({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  onClick={() => setCardViewMode('split')}
+                  onClick={() => handleViewModeChange('split')}
                   className={cn(
                     'rounded-lg h-6.5 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
-                    cardViewMode === 'split'
+                    currentViewMode === 'split'
                       ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                   )}
                   aria-label="Split view"
-                  aria-pressed={cardViewMode === 'split'}
+                  aria-pressed={currentViewMode === 'split'}
                 >
                   <PanelLeft className="h-4 w-4" />
                 </button>
@@ -325,15 +367,15 @@ export function TradeCardsView({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  onClick={() => setCardViewMode('table')}
+                  onClick={() => handleViewModeChange('table')}
                   className={cn(
                     'rounded-lg h-6.5 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
-                    cardViewMode === 'table'
+                    currentViewMode === 'table'
                       ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                   )}
                   aria-label="Table view"
-                  aria-pressed={cardViewMode === 'table'}
+                  aria-pressed={currentViewMode === 'table'}
                 >
                   Table
                 </button>
@@ -347,9 +389,10 @@ export function TradeCardsView({
             </Tooltip>
           </div>
           </div>
+          )}
         </div>
 
-        {cardViewMode === 'split' ? (
+        {currentViewMode === 'split' ? (
           <div className="flex flex-col md:flex-row rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-transparent shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden md:h-[calc(100vh-100px)] md:min-h-[700px]">
             <div className="flex-shrink-0 md:w-80 overflow-x-auto overflow-y-hidden md:overflow-x-hidden md:overflow-y-auto border-b md:border-b-0 md:border-r border-slate-200/60 dark:border-slate-700/50 bg-slate-50/30 dark:bg-slate-900/20">
               {showSkeletons ? (
@@ -428,7 +471,7 @@ export function TradeCardsView({
               )}
             </div>
           </div>
-        ) : cardViewMode === 'table' ? (
+        ) : currentViewMode === 'table' ? (
           <>
             {showTableBulkActions && selectedIds.size > 0 && (
               <div className="mb-4 flex items-center gap-4 rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-3">
@@ -447,7 +490,7 @@ export function TradeCardsView({
                   variant="destructive"
                   size="sm"
                   onClick={() => setShowBulkDeleteConfirm(true)}
-                  disabled={bulkDeleting}
+                  disabled={bulkDeleting || bulkMoving}
                   className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 gap-2"
                 >
                   <span className="relative z-10 flex items-center gap-2">
@@ -456,6 +499,18 @@ export function TradeCardsView({
                   </span>
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 </Button>
+                {onBulkMoveToStrategy && moveToStrategies && moveToStrategies.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMoveDialog(true)}
+                    disabled={bulkDeleting || bulkMoving}
+                    className="cursor-pointer rounded-xl px-4 py-2 text-sm transition-all duration-200 border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 disabled:opacity-60 flex items-center gap-2"
+                  >
+                    <MoveRight className="h-4 w-4" />
+                    {bulkMoving ? 'Moving…' : `Move to strategy`}
+                  </Button>
+                )}
               </div>
             )}
             <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
@@ -531,12 +586,82 @@ export function TradeCardsView({
                 </AlertDialogContent>
               </AlertDialog>
             )}
+            {showTableBulkActions && onBulkMoveToStrategy && (
+              <AlertDialog open={showMoveDialog} onOpenChange={(open) => { setShowMoveDialog(open); if (!open) setMoveTargetStrategyId(''); }}>
+                <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl p-0 overflow-hidden">
+                  {/* Gradient orbs */}
+                  <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
+                    <div className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl" />
+                    <div className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl" />
+                  </div>
+
+                  {/* Top accent line */}
+                  <div className="absolute -top-px left-0 right-0 h-0.5 themed-accent-line rounded-t-2xl" />
+
+                  {/* Header */}
+                  <div className="relative px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
+                    <AlertDialogHeader className="space-y-1.5">
+                      <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                        <div className="p-2 rounded-lg themed-header-icon-box">
+                          <MoveRight className="h-5 w-5" />
+                        </div>
+                        <span>Move trades to strategy</span>
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
+                        Select the destination strategy for {selectedIds.size} selected trade{selectedIds.size !== 1 ? 's' : ''}. The trades will be moved within the same account.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                  </div>
+
+                  {/* Content */}
+                  <div className="relative px-6 py-5">
+                    <Select value={moveTargetStrategyId} onValueChange={setMoveTargetStrategyId}>
+                      <SelectTrigger className="h-12 w-full rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                        <SelectValue placeholder="Select a strategy…" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[200] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg text-slate-900 dark:text-slate-50">
+                        {moveToStrategies?.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Footer */}
+                  <AlertDialogFooter className="relative flex-shrink-0 flex items-center justify-between px-6 pt-4 pb-5 border-t border-slate-200/50 dark:border-slate-700/50">
+                    <AlertDialogCancel asChild>
+                      <Button
+                        variant="outline"
+                        onClick={() => { setShowMoveDialog(false); setMoveTargetStrategyId(''); }}
+                        disabled={bulkMoving}
+                        className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200"
+                      >
+                        Cancel
+                      </Button>
+                    </AlertDialogCancel>
+                    <AlertDialogAction asChild>
+                      <Button
+                        onClick={(e) => { e.preventDefault(); handleBulkMoveConfirm(); }}
+                        disabled={bulkMoving || !moveTargetStrategyId}
+                        className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60 text-sm"
+                      >
+                        <span className="relative z-10 flex items-center justify-center gap-2">
+                          {bulkMoving && <Loader2 className="h-4 w-4 animate-spin" />}
+                          {bulkMoving ? 'Moving…' : 'Move trades'}
+                        </span>
+                        <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                      </Button>
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </>
         ) : (
           <div
             className={cn(
               'grid gap-6',
-              cardViewMode === 'grid-2'
+              currentViewMode === 'grid-2'
                 ? 'grid-cols-1 sm:grid-cols-2'
                 : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
             )}

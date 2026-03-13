@@ -43,8 +43,6 @@ export interface Database {
           saved_news: Json;
           saved_markets: Json;
           feature_flags: Json;
-          strategies_page_title: string | null;
-          strategies_page_description: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -53,8 +51,6 @@ export interface Database {
           saved_news?: Json;
           saved_markets?: Json;
           feature_flags?: Json;
-          strategies_page_title?: string | null;
-          strategies_page_description?: string | null;
         };
         Update: Partial<Omit<Database['public']['Tables']['user_settings']['Row'], 'user_id'>>;
       };
@@ -245,6 +241,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
+          account_id: string;
           name: string;
           slug: string;
           created_at: string;
@@ -256,6 +253,7 @@ export interface Database {
         };
         Insert: {
           user_id: string;
+          account_id: string;
           name: string;
           slug: string;
           is_active?: boolean;
@@ -266,6 +264,7 @@ export interface Database {
         Update: Partial<{
           id: string;
           user_id: string;
+          account_id: string;
           name: string;
           slug: string;
           created_at: string;

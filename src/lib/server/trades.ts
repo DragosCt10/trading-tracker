@@ -267,6 +267,30 @@ export async function deleteTrade(
  * Deletes multiple trades by id. Only the owner (from session) can delete.
  * Pass non-empty array of trade ids; no-op if empty.
  */
+export async function moveTradestoStrategy(
+  tradeIds: string[],
+  newStrategyId: string,
+  mode: 'live' | 'backtesting' | 'demo'
+): Promise<{ error: { message: string } | null }> {
+  if (tradeIds.length === 0) return { error: null };
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: { message: 'Unauthorized' } };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('move_trades_to_strategy', {
+    p_trade_ids: tradeIds,
+    p_new_strategy_id: newStrategyId,
+    p_mode: mode,
+    p_user_id: user.id,
+  });
+
+  if (error) {
+    console.error('Error moving trades to strategy:', error);
+    return { error: { message: error.message ?? 'Failed to move trades' } };
+  }
+  return { error: null };
+}
+
 export async function deleteTrades(
   tradeIds: string[],
   mode: 'live' | 'backtesting' | 'demo'

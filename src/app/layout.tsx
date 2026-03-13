@@ -33,8 +33,10 @@ export default function RootLayout({
                   var isDark = theme ? theme === 'dark' : systemDark;
                   if (isDark) {
                     document.documentElement.classList.add('dark');
+                    document.documentElement.style.backgroundColor = '#0d0a12';
                   } else {
                     document.documentElement.classList.remove('dark');
+                    document.documentElement.style.backgroundColor = '#ffffff';
                   }
                   var colorTheme = localStorage.getItem('color-theme');
                   if (colorTheme) {

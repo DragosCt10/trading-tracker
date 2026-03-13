@@ -5,15 +5,11 @@ import type { SavedNewsItem } from '@/types/account-settings';
 export interface SettingsRow {
   saved_news: SavedNewsItem[];
   saved_markets: string[];
-  strategies_page_title: string | null;
-  strategies_page_description: string | null;
 }
 
 const DEFAULT_SETTINGS: SettingsRow = {
   saved_news: [],
   saved_markets: [],
-  strategies_page_title: null,
-  strategies_page_description: null,
 };
 
 /**
@@ -25,7 +21,7 @@ export async function getSettings(userId: string): Promise<SettingsRow> {
   const supabase = await createClient();
   const { data, error } = await (supabase as any)
     .from('user_settings')
-    .select('saved_news, saved_markets, strategies_page_title, strategies_page_description')
+    .select('saved_news, saved_markets')
     .eq('user_id', userId)
     .single();
 
@@ -39,16 +35,12 @@ export async function getSettings(userId: string): Promise<SettingsRow> {
   const raw = data as {
     saved_news?: unknown;
     saved_markets?: unknown;
-    strategies_page_title?: string | null;
-    strategies_page_description?: string | null;
   };
   const rawNews = raw?.saved_news;
   const rawMarkets = raw?.saved_markets;
   return {
     saved_news: Array.isArray(rawNews) ? (rawNews as SavedNewsItem[]) : [],
     saved_markets: Array.isArray(rawMarkets) ? (rawMarkets as string[]) : [],
-    strategies_page_title: raw?.strategies_page_title ?? null,
-    strategies_page_description: raw?.strategies_page_description ?? null,
   };
 }
 
@@ -108,36 +100,6 @@ export async function updateSavedMarkets(
   if (error) {
     console.error('Error updating user saved markets:', error);
     return { error: { message: error.message ?? 'Failed to update saved markets' } };
-  }
-
-  return { error: null };
-}
-
-/**
- * Updates the current user's strategies page title and description in user_settings.
- */
-export async function updateStrategiesPageCustomization(
-  title: string | null,
-  description: string | null
-): Promise<{ error: { message: string } | null }> {
-  const { user } = await getCachedUserSession();
-  if (!user) return { error: { message: 'Unauthorized' } };
-
-  const supabase = await createClient();
-  const { error } = await (supabase as any)
-    .from('user_settings')
-    .upsert(
-      {
-        user_id: user.id,
-        strategies_page_title: title?.trim() || null,
-        strategies_page_description: description?.trim() || null,
-      },
-      { onConflict: 'user_id' }
-    );
-
-  if (error) {
-    console.error('Error updating strategies page customization:', error);
-    return { error: { message: error.message ?? 'Failed to update strategies page' } };
   }
 
   return { error: null };

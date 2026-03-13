@@ -125,7 +125,7 @@ export function AccountModePopover({
         sideOffset={6}
         className="w-auto min-w-[200px] max-w-[min(280px,calc(100vw-2rem))] max-h-[min(320px,70vh)] flex flex-col rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 pt-2 pb-2 text-slate-900 dark:text-slate-50"
       >
-        <div className="overflow-y-auto overscroll-contain">
+        <div className="overflow-y-auto overscroll-contain flex flex-col gap-1">
           {MODES.map((mode, i) => {
             const modeAccounts = accountsByMode[mode];
             return (
@@ -153,6 +153,7 @@ export function AccountModePopover({
                         className={clsx(
                           'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-left cursor-pointer',
                           'transition-colors duration-150',
+                          'focus:outline-none',
                           isActive
                             ? 'bg-[var(--tc-subtle)] text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] font-semibold'
                             : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium'
@@ -174,7 +175,21 @@ export function AccountModePopover({
                               : 'opacity-0'
                           )}
                         />
-                        <span className="truncate">{account.name}</span>
+                        <span className="truncate flex-1">{account.name}</span>
+                        {account.account_balance != null && (
+                          <span className={clsx(
+                            'text-xs flex-shrink-0 tabular-nums',
+                            isActive
+                              ? 'text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] opacity-70'
+                              : 'text-slate-400 dark:text-slate-500'
+                          )}>
+                            {new Intl.NumberFormat('en-US', {
+                              style: 'currency',
+                              currency: account.currency ?? 'USD',
+                              maximumFractionDigits: 0,
+                            }).format(account.account_balance)}
+                          </span>
+                        )}
                       </button>
                     );
                   })

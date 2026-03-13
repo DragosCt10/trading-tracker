@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import clsx from 'clsx';
 import type { AccountRow, AccountMode } from '@/lib/server/accounts';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
@@ -34,6 +35,22 @@ export default function AppLayout({
   const showActionBar = pathname === '/strategies' || (pathname?.startsWith('/strategy/') ?? false);
   const actionBarSelectionHydratedRef = useRef(false);
 
+  const [actionBarVisible, setActionBarVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    if (!showActionBar) return;
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const diff = currentY - lastScrollY.current;
+      if (diff > 6) setActionBarVisible(false);
+      else if (diff < -6) setActionBarVisible(true);
+      lastScrollY.current = currentY;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [showActionBar]);
+
   // Accounts for the initial active mode — seeds ['accounts:list', userId, mode] so useAccounts doesn't client-fetch on first paint
   const accountsForInitialMode =
     initialAllAccounts?.filter((a) => a.mode === initialActiveAccountMode) ?? [];
@@ -57,7 +74,7 @@ export default function AppLayout({
 
   return (
     <>
-      <div className="mt-30 sm:mt-48 max-w-(--breakpoint-xl) mx-auto flex min-h-screen flex-col">
+      <div className="pt-30 sm:pt-44 max-w-(--breakpoint-xl) mx-auto flex min-h-screen flex-col">
         <Navbar
           centerContent={
             showActionBar ? (
@@ -86,7 +103,13 @@ export default function AppLayout({
           }
         />
         {showActionBar && (
-          <div className="hidden lg:block fixed top-20 left-1/2 z-40 w-auto max-w-[calc(100vw-2rem)] -translate-x-1/2 transform">
+          <div className={clsx(
+            "hidden lg:block fixed top-20 left-1/2 z-40 w-auto max-w-[calc(100vw-2rem)] -translate-x-1/2",
+            "transition-all duration-300 ease-in-out",
+            actionBarVisible
+              ? "opacity-100 translate-y-0 pointer-events-auto"
+              : "opacity-0 -translate-y-3 pointer-events-none"
+          )}>
             <div className="inline-block mx-2 sm:mx-4 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 sm:px-4 py-3">
               <ActionBar
                 initialData={

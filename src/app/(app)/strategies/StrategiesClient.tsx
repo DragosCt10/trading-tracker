@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
 import { useSettings } from '@/hooks/useSettings';
@@ -11,21 +11,14 @@ import { TRADES_DATA } from '@/constants/queryConfig';
 import { getStrategiesOverview, type StrategiesOverviewResult } from '@/lib/server/strategiesOverview';
 import { StrategyCard } from '@/components/dashboard/strategy/StrategyCard';
 import { AddStrategyCard } from '@/components/dashboard/strategy/AddStrategyCard';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 import { CreateStrategyModal } from '@/components/CreateStrategyModal';
 import { EditStrategyModal } from '@/components/EditStrategyModal';
-import { deleteStrategy, permanentlyDeleteStrategy, getInactiveStrategies, reactivateStrategy, deleteArchivedStrategiesOlderThan30Days } from '@/lib/server/strategies';
-import { updateStrategiesPageCustomization } from '@/lib/server/settings';
+import { deleteStrategy, permanentlyDeleteStrategy, getInactiveStrategies, reactivateStrategy } from '@/lib/server/strategies';
 
-const DEFAULT_TITLE = 'Strategies';
-const DEFAULT_DESCRIPTION =
-  'Organize and track your trading strategies separately. Each strategy shows its own performance metrics and analytics.';
 import { Strategy } from '@/types/strategy';
 import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/lib/queryKeys';
-import { Target, Archive, RotateCcw, Trash2, Pencil } from 'lucide-react';
+import { Target, Archive, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -50,11 +43,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 export function StrategiesClient() {
   const { data: userDetails } = useUserDetails();
   const userId = userDetails?.user?.id;
-  const { settings, settingsLoading, refetchSettings } = useSettings({ userId });
-  const { strategies, strategiesLoading, refetchStrategies } = useStrategies({ userId });
   const { selection } = useActionBarSelection();
   const mode = selection.mode;
   const { accounts } = useAccounts({ userId, pendingMode: mode });
+  const activeAccount = selection.activeAccount ?? accounts.find((a) => a.is_active) ?? accounts[0] ?? null;
+  const { strategies, strategiesLoading, refetchStrategies } = useStrategies({ userId, accountId: activeAccount?.id });
   const queryClient = useQueryClient();
   const [editingStrategy, setEditingStrategy] = useState<Strategy | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -62,20 +55,17 @@ export function StrategiesClient() {
   const [isArchivedSheetOpen, setIsArchivedSheetOpen] = useState(false);
   const [reactivatingStrategyId, setReactivatingStrategyId] = useState<string | null>(null);
   const [deletingStrategyId, setDeletingStrategyId] = useState<string | null>(null);
-  const [isHeaderEditOpen, setIsHeaderEditOpen] = useState(false);
-  const [headerEditTitle, setHeaderEditTitle] = useState('');
-  const [headerEditDescription, setHeaderEditDescription] = useState('');
-  const [headerEditSaving, setHeaderEditSaving] = useState(false);
 
   // Sort strategies by metric (default = original order)
   type SortByOption = 'default' | 'winRate' | 'totalRR' | 'totalTrades';
   const [sortBy, setSortBy] = useState<SortByOption>('default');
 
-  // Get active account
-  const activeAccount = accounts.find((a) => a.is_active) ?? accounts[0] ?? null;
-
   // Get currency symbol from active account
   const currencySymbol = activeAccount?.currency === 'USD' ? '$' : activeAccount?.currency === 'EUR' ? '€' : '£';
+
+  const DEFAULT_DESCRIPTION = 'Track your strategies, each with its own metrics, and monitor your overall performance.';
+  // const accountDescription = activeAccount?.description?.trim() || DEFAULT_DESCRIPTION;
+  const accountDescription = DEFAULT_DESCRIPTION;
 
   // Fetch per-strategy aggregated stats + equity curves via a single RPC call.
   // Replaces the old bulk getFilteredTrades() which paginated N×500-item pages.
@@ -91,6 +81,7 @@ export function StrategiesClient() {
     enabled: !!userId && !!activeAccount?.id && !!mode && strategies.length > 0,
     ...TRADES_DATA,
   });
+
 
   // Sort strategies by selected metric (highest first)
   const sortedStrategies = useMemo(() => {
@@ -120,19 +111,8 @@ export function StrategiesClient() {
     staleTime: 2 * 60_000, // 2 min — avoid refetch when reopening archived sheet
   });
 
-  // Ensure default strategy exists on mount
-  useEffect(() => {
-    if (userId && !strategiesLoading && strategies.length === 0) {
-      // This will trigger ensureDefaultStrategy via getUserStrategies
-      refetchStrategies();
-    }
-  }, [userId, strategiesLoading, strategies.length, refetchStrategies]);
-
-  // Purge archived strategies older than 30 days (permanent delete via permanentlyDeleteStrategy)
-  useEffect(() => {
-    if (!userId) return;
-    deleteArchivedStrategiesOlderThan30Days(userId);
-  }, [userId]);
+  // Archived strategies are automatically deleted by Supabase pg_cron trigger
+  // after 30 days. No client-side cleanup needed.
 
   const handleCreateSuccess = () => {
     setIsCreateModalOpen(false);
@@ -177,28 +157,6 @@ export function StrategiesClient() {
     }
   };
 
-  const strategiesTitle = settings?.strategies_page_title?.trim() || DEFAULT_TITLE;
-  const strategiesDescription = settings?.strategies_page_description?.trim() || DEFAULT_DESCRIPTION;
-
-  const openHeaderEdit = () => {
-    setHeaderEditTitle(settings?.strategies_page_title ?? '');
-    setHeaderEditDescription(settings?.strategies_page_description ?? '');
-    setIsHeaderEditOpen(true);
-  };
-
-  const saveHeaderEdit = async () => {
-    setHeaderEditSaving(true);
-    const result = await updateStrategiesPageCustomization(
-      headerEditTitle.trim() || null,
-      headerEditDescription.trim() || null
-    );
-    setHeaderEditSaving(false);
-    if (!result.error) {
-      queryClient.invalidateQueries({ queryKey: queryKeys.settings(userId) });
-      refetchSettings();
-      setIsHeaderEditOpen(false);
-    }
-  };
 
   return (
     <div className="space-y-8">
@@ -209,22 +167,22 @@ export function StrategiesClient() {
             <div className="p-2.5 rounded-xl shadow-sm themed-header-icon-box">
               <Target className="w-6 h-6" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-              {settingsLoading ? (
-                <span className="inline-block h-9 w-48 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse" />
-              ) : (
-                strategiesTitle
-              )}
-            </h1>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={openHeaderEdit}
-              className="rounded-xl h-8 w-8 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
-              aria-label="Edit title and description"
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                {!activeAccount ? (
+                  <span className="inline-block h-9 w-48 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                ) : (
+                  activeAccount.name
+                )}
+              </h1>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                {!activeAccount ? (
+                  <span className="inline-block h-4 w-64 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                ) : (
+                  accountDescription
+                )}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <AlertDialog open={isArchivedSheetOpen} onOpenChange={setIsArchivedSheetOpen}>
@@ -457,107 +415,7 @@ export function StrategiesClient() {
           </AlertDialog>
           </div>
         </div>
-        <p className="text-sm text-slate-600 dark:text-slate-400 ml-[52px]">
-          {strategiesDescription}
-        </p>
       </div>
-
-      {/* Edit title & description dialog */}
-      <AlertDialog open={isHeaderEditOpen} onOpenChange={setIsHeaderEditOpen}>
-        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl px-6 py-5">
-          {/* Gradient orbs background */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
-            <div
-              className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl"
-            />
-            <div
-              className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl"
-            />
-          </div>
-
-          {/* Noise texture overlay */}
-          <div
-            className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-              backgroundRepeat: 'repeat',
-            }}
-          />
-
-          {/* Top accent line */}
-          <div className="absolute -top-px left-0 right-0 h-0.5 opacity-60" style={{ background: 'linear-gradient(to right, transparent, var(--tc-primary), transparent)' }} />
-
-          <div className="relative">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-slate-900 dark:text-slate-50">
-                Customize title and description
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-slate-600 dark:text-slate-400">
-                The page uses the default title and description unless you set your own. Leave a field blank to keep (or revert to) the default.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="strategies-title" className="text-slate-700 dark:text-slate-300">
-                  Title (optional)
-                </Label>
-                <Input
-                  id="strategies-title"
-                  value={headerEditTitle}
-                  onChange={(e) => setHeaderEditTitle(e.target.value)}
-                  placeholder={`Default: ${DEFAULT_TITLE}`}
-                  className="rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="strategies-desc" className="text-slate-700 dark:text-slate-300">
-                  Description (optional)
-                </Label>
-                <Input
-                  id="strategies-desc"
-                  value={headerEditDescription}
-                  onChange={(e) => setHeaderEditDescription(e.target.value)}
-                  placeholder="Default: Organize and track your strategies…"
-                  className="rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50"
-                />
-              </div>
-            </div>
-            <AlertDialogFooter className="flex">
-              <AlertDialogCancel asChild>
-                <Button
-                  variant="outline"
-                  disabled={headerEditSaving}
-                  className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700"
-                >
-                  Cancel
-                </Button>
-              </AlertDialogCancel>
-            <AlertDialogAction asChild>
-              <Button
-                variant="outline"
-                disabled={headerEditSaving}
-                onClick={(e) => {
-                  e.preventDefault();
-                  saveHeaderEdit();
-                }}
-                className="cursor-pointer relative overflow-hidden rounded-xl themed-btn-primary text-white font-semibold group border-0 disabled:opacity-60 disabled:pointer-events-none [&_svg]:text-white px-4"
-              >
-                <span className="relative z-10 flex items-center justify-center gap-2 group-hover:text-white">
-                  {headerEditSaving && (
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z" />
-                    </svg>
-                  )}
-                  <span className="group-hover:text-white">{headerEditSaving ? 'Saving…' : 'Save'}</span>
-                </span>
-                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-              </Button>
-            </AlertDialogAction>
-            </AlertDialogFooter>
-          </div>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Sort strategies: above the cards */}
       <div className="flex items-center gap-2" aria-label="Sort strategies">
@@ -631,17 +489,19 @@ export function StrategiesClient() {
                 mode={mode as 'live' | 'backtesting' | 'demo'}
                 userId={userId ?? ''}
                 currencySymbol={currencySymbol}
+                accountBalance={activeAccount?.account_balance}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
-                // Treat the absence of strategiesOverview (e.g. right after switching
-                // accounts) as a loading state so StrategyCard shows the pulse animation
-                // instead of briefly flashing "No trades yet".
-                isLoading={tradesLoading || !strategiesOverview}
+                // Only show loading while actually fetching data. A newly created strategy
+                // without trades won't have an overview entry, but that's okay—it will show
+                // "No trades yet" once loading completes.
+                isLoading={tradesLoading}
               />
             ))}
 
             <AddStrategyCard onClick={() => setIsCreateModalOpen(true)} />
             <CreateStrategyModal
+              accountId={activeAccount?.id}
               open={isCreateModalOpen}
               onOpenChange={setIsCreateModalOpen}
               onCreated={handleCreateSuccess}

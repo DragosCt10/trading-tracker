@@ -255,6 +255,8 @@ export default function StrategyClient(
   // Store strategyId from props
   const strategyId = props?.initialStrategyId ?? null;
 
+  const userId = userData?.user?.id;
+
   // Per-strategy extra cards configuration
   const extraCards = props?.initialExtraCards ?? [];
   const hasCard = (key: ExtraCardKey) => extraCards.includes(key);

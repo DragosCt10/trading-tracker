@@ -99,9 +99,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const params = useParams();
   const strategySlug = (params?.strategy as string | undefined) ?? '';
   const { selection } = useActionBarSelection();
+  const accountId = selection.activeAccount?.id;
   const { data: userData } = useUserDetails();
   const userId = userData?.user?.id;
-  const { strategies } = useStrategies({ userId });
+  const { strategies } = useStrategies({ userId, accountId });
   // Derive extra_cards from the current strategy
   const currentStrategy = useMemo(
     () => strategies.find((s) => s.slug === strategySlug),
@@ -405,7 +406,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               saved_markets: updatedMarkets ?? prev?.saved_markets ?? [],
             }));
             if (currentStrategy && (updatedSetups !== undefined || updatedLiquidity !== undefined)) {
-              const strategiesKey = queryKeys.strategies(userId);
+              const strategiesKey = queryKeys.strategies(userId, accountId);
               queryClient.setQueryData(strategiesKey, (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[] }[] | undefined) => {
                 if (!prev) return prev;
                 return prev.map((s) =>

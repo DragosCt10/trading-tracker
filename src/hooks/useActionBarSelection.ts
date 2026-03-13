@@ -36,9 +36,9 @@ export function useActionBarSelection() {
   }, [queryClient]);
 
   return {
-    selection: data!,      // { mode, activeAccount }
-    setSelection,          // writer
-    key: KEY,              // (optional) exported key
-    actionBarloading: isLoading,    // loading state
+    selection: data!,
+    setSelection,
+    key: KEY,
+    actionBarloading: isLoading,
   };
 }
