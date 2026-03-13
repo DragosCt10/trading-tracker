@@ -70,6 +70,7 @@ export function StrategySelectPopover({ strategies, currentSlug }: StrategySelec
                 className={clsx(
                   'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm text-left cursor-pointer',
                   'transition-colors duration-150',
+                  'focus:outline-none',
                   isActive
                     ? 'bg-[var(--tc-subtle)] text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] font-semibold'
                     : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium'
