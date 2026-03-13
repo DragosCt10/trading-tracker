@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Target } from 'lucide-react';
 import { createStrategy } from '@/lib/server/strategies';
+import type { Strategy } from '@/types/strategy';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { ExtraCardsSelector } from '@/components/ExtraCardsSelector';
 import type { ExtraCardKey } from '@/constants/extraCards';
@@ -24,7 +25,7 @@ interface CreateStrategyModalProps {
   accountId?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onCreated?: () => void;
+  onCreated?: (strategy: Strategy) => void;
   trigger?: React.ReactNode;
 }
 
@@ -65,7 +66,7 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
         setName('');
         setExtraCards([]);
         setOpen(false);
-        onCreated?.();
+        onCreated?.(data);
       }
     } catch (err) {
       setError('An unexpected error occurred');

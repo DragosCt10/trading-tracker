@@ -125,7 +125,7 @@ export function AccountModePopover({
         sideOffset={6}
         className="w-auto min-w-[200px] max-w-[min(280px,calc(100vw-2rem))] max-h-[min(320px,70vh)] flex flex-col rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 pt-2 pb-2 text-slate-900 dark:text-slate-50"
       >
-        <div className="overflow-y-auto overscroll-contain">
+        <div className="overflow-y-auto overscroll-contain flex flex-col gap-1">
           {MODES.map((mode, i) => {
             const modeAccounts = accountsByMode[mode];
             return (

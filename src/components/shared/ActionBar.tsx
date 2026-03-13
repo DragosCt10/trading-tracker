@@ -10,10 +10,17 @@ import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { STATIC_DATA } from '@/constants/queryConfig';
 
+import { usePathname, useRouter } from 'next/navigation';
 import { AccountModePopover, type Mode } from '@/components/shared/AccountModePopover';
 import { EditAccountAlertDialog } from '../EditAccountAlertDialog';
 import { CreateAccountAlertDialog } from '../CreateAccountModal';
 import { setLastAccountPreference } from '@/utils/lastAccountCookie';
+import { StrategySelectPopover } from '@/components/shared/StrategySelectPopover';
+import { CreateStrategyModal } from '@/components/CreateStrategyModal';
+import { useStrategies } from '@/hooks/useStrategies';
+import { queryKeys } from '@/lib/queryKeys';
+import type { Strategy } from '@/types/strategy';
+import { Plus } from 'lucide-react';
 
 const MODE_LABELS: Record<Mode, string> = {
   live: 'Live',
@@ -45,6 +52,7 @@ interface ActionBarProps {
 
 export default function ActionBar({ initialData, showAddButton = true }: ActionBarProps) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const hydratedRef = useRef(false);
 
   // Hydrate TanStack cache from server-fetched initial data (before paint)
@@ -66,6 +74,7 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
   const { data: userDetails } = useUserDetails();
   const { selection, setSelection } = useActionBarSelection();
   const [applying, setApplying] = React.useState(false);
+  const [isCreateStrategyOpen, setIsCreateStrategyOpen] = React.useState(false);
   const autoAppliedRef = useRef(false);
 
   const userId = userDetails?.user?.id;
@@ -180,9 +189,23 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
     applyWith(pickedMode, pick.id);
   }, [userId, accountsLoading, accountsByMode, applyWith, selection.activeAccount]);
 
+  // Detect strategy page synchronously (no flash — no useEffect needed)
+  const pathname = usePathname();
+  const strategySlug = pathname?.match(/\/strategy\/([^/]+)/)?.[1] ?? null;
+  const isStrategyPage = !!strategySlug;
+
+  // Only fetch strategies when on a strategy page
+  const { strategies, strategiesLoading } = useStrategies({
+    userId: isStrategyPage ? userId : undefined,
+    accountId: isStrategyPage ? (activeAccount?.id ?? undefined) : undefined,
+  });
+
+  const strategyOptions = strategies.map((s) => ({ id: s.id, name: s.name, slug: s.slug }));
+  const accountId = activeAccount?.id ?? null;
+
   return (
     <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 min-w-0">
-      {/* Mode badge — left of account selector */}
+      {/* Mode badge — left of account/strategy selector */}
       <div
         title={`Current mode: ${activeMode}`}
         className={clsx(
@@ -194,50 +217,93 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
         <span className="leading-none">{MODE_LABELS[activeMode]}</span>
       </div>
 
-      <AccountModePopover
-        userId={userId}
-        value={{
-          mode: activeMode,
-          accountId: activeAccount?.id ?? null,
-          account: activeAccount,
-        }}
-        onChange={handleAccountModeChange}
-        placeholder="Select account"
-        disabled={applying}
-        variant="default"
-        loading={applying}
-        triggerLabel={applying ? 'Applying…' : (accountDisplayName ?? undefined)}
-      />
+      {isStrategyPage ? (
+        /* Strategy page: show strategy switcher + add strategy button */
+        <>
+          {strategiesLoading || strategyOptions.length === 0 ? (
+            /* Skeleton while strategies are loading */
+            <div className="h-8 w-36 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
+          ) : (
+            <StrategySelectPopover
+              strategies={strategyOptions}
+              currentSlug={strategySlug ?? ''}
+            />
+          )}
 
-      {/* Edit the currently active account */}
-      <EditAccountAlertDialog
-        account={
-          activeAccount
-            ? {
-                id: activeAccount.id,
-                name: activeAccount.name,
-                account_balance: activeAccount.account_balance,
-                currency: activeAccount.currency,
-                mode: activeAccount.mode,
-                description: activeAccount.description,
-              }
-            : null
-        }
-        onUpdated={async () => {
-          refetchAccounts();
-        }}
-        onDeleted={async () => {
-          refetchAccounts();
-        }}
-      />
+          {showAddButton && (
+            <>
+              {strategiesLoading || strategyOptions.length === 0 ? (
+                <div className="h-8 w-8 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsCreateStrategyOpen(true)}
+                  aria-label="Add strategy"
+                  className="flex items-center justify-center h-8 w-8 rounded-xl border border-slate-200/80 bg-transparent text-slate-700 hover:bg-slate-100/60 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-transparent dark:text-slate-200 dark:hover:bg-slate-800/50 dark:hover:text-slate-50 dark:hover:border-slate-600/80 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 cursor-pointer"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              )}
+              <CreateStrategyModal
+                accountId={accountId ?? undefined}
+                open={isCreateStrategyOpen}
+                onOpenChange={setIsCreateStrategyOpen}
+                onCreated={(newStrategy) => {
+                  setIsCreateStrategyOpen(false);
+                  // Immediately update the cache with the new strategy — no network round-trip,
+                  // no race condition between refetch and router.push.
+                  const key = queryKeys.strategies(userId, accountId ?? undefined);
+                  const cached = queryClient.getQueryData<Strategy[]>(key) ?? [];
+                  if (!cached.some((s) => s.id === newStrategy.id)) {
+                    queryClient.setQueryData(key, [...cached, newStrategy]);
+                  }
+                  router.push(`/strategy/${newStrategy.slug}`);
+                }}
+              />
+            </>
+          )}
+        </>
+      ) : (
+        /* Normal pages: account selector + edit/add */
+        <>
+          <AccountModePopover
+            userId={userId}
+            value={{
+              mode: activeMode,
+              accountId: activeAccount?.id ?? null,
+              account: activeAccount,
+            }}
+            onChange={handleAccountModeChange}
+            placeholder="Select account"
+            disabled={applying}
+            variant="default"
+            loading={applying}
+            triggerLabel={applying ? 'Applying…' : (accountDisplayName ?? undefined)}
+          />
 
-      {/* Add Account — hidden when shown in mobile lateral menu */}
-      {showAddButton && (
-        <CreateAccountAlertDialog
-          onCreated={async () => {
-            refetchAccounts();
-          }}
-        />
+          <EditAccountAlertDialog
+            account={
+              activeAccount
+                ? {
+                    id: activeAccount.id,
+                    name: activeAccount.name,
+                    account_balance: activeAccount.account_balance,
+                    currency: activeAccount.currency,
+                    mode: activeAccount.mode,
+                    description: activeAccount.description,
+                  }
+                : null
+            }
+            onUpdated={async () => { refetchAccounts(); }}
+            onDeleted={async () => { refetchAccounts(); }}
+          />
+
+          {showAddButton && (
+            <CreateAccountAlertDialog
+              onCreated={async () => { refetchAccounts(); }}
+            />
+          )}
+        </>
       )}
     </div>
   );
