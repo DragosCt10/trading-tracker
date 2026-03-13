@@ -1230,6 +1230,14 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
   onEditSavedSetup,
   onEditSavedLiquidity,
 }: MarketAndSetupSectionProps) {
+  // Local state to track FVG custom input while typing
+  const [fvgInputValue, setFvgInputValue] = useState<string>(String(fvgSize ?? ''));
+
+  useEffect(() => {
+    // Sync local state when fvgSize prop changes (e.g., from blur validation)
+    setFvgInputValue(String(fvgSize ?? ''));
+  }, [fvgSize]);
+
   return (
     <>
       {/* Market & Direction */}
@@ -1394,40 +1402,29 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
               !FVG_SIZE_PRESET_VALUES.includes(fvgSize) && (
                 <div className="pt-1">
                   <Input
-                    type="number"
-                    step="0.5"
-                    min={FVG_SIZE_CUSTOM_MIN}
+                    type="text"
                     inputMode="decimal"
-                    value={String(fvgSize)}
+                    value={fvgInputValue}
                     onChange={(e) => {
-                      const raw = parseFloat(e.target.value);
-                      if (Number.isNaN(raw)) {
-                        updateTrade('fvg_size', FVG_SIZE_CUSTOM_MIN);
-                        return;
-                      }
-                      const snapped = snapToHalfStep(raw);
-                      const clamped =
-                        snapped < FVG_SIZE_CUSTOM_MIN ? FVG_SIZE_CUSTOM_MIN : snapped;
-                      updateTrade('fvg_size', clamped);
+                      // Just update display value, allow anything while typing
+                      setFvgInputValue(e.target.value);
                     }}
                     onBlur={(e) => {
-                      const raw = parseFloat(e.target.value);
-                      if (Number.isNaN(raw) || raw < FVG_SIZE_CUSTOM_MIN) {
-                        updateTrade(
-                          'fvg_size',
-                          fvgSize != null && fvgSize >= FVG_SIZE_CUSTOM_MIN
-                            ? fvgSize
-                            : FVG_SIZE_CUSTOM_MIN,
-                        );
+                      const text = e.target.value;
+                      const raw = parseFloat(text);
+                      if (Number.isNaN(raw) || text === '' || raw < FVG_SIZE_CUSTOM_MIN) {
+                        // Invalid: restore previous valid value
+                        setFvgInputValue(String(fvgSize ?? FVG_SIZE_CUSTOM_MIN));
                         return;
                       }
                       const snapped = snapToHalfStep(raw);
                       const clamped =
                         snapped < FVG_SIZE_CUSTOM_MIN ? FVG_SIZE_CUSTOM_MIN : snapped;
                       updateTrade('fvg_size', clamped);
+                      // Local state will sync via useEffect when fvgSize updates
                     }}
                     className="h-10 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 themed-focus text-slate-900 dark:text-slate-50"
-                    placeholder="e.g. 3.5, 4, 4.5 (0.5 steps only)"
+                    placeholder="e.g. 3.5, 4, 4.5"
                   />
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     Only 0.5 steps from 3.5 onward (e.g. 3.5, 4, 4.5). Values are rounded to
