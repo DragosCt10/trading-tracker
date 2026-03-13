@@ -39,6 +39,8 @@ interface StrategyCardProps {
   onDelete: (strategyId: string) => Promise<void>;
   /** When true, data is still loading; avoid showing "No trades yet" until false */
   isLoading?: boolean;
+  /** Account balance for P&L % calculation */
+  accountBalance?: number;
 }
 
 export const StrategyCard: React.FC<StrategyCardProps> = ({
@@ -51,6 +53,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
   onEdit,
   onDelete,
   isLoading = false,
+  accountBalance,
 }) => {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -64,6 +67,18 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
     if (!overviewStats?.equityCurve?.length) return [];
     return overviewStats.equityCurve.map((pt) => ({ date: pt.d, profit: pt.p }));
   }, [overviewStats?.equityCurve]);
+
+  // Calculate cumulative P&L from the last equity curve point
+  const totalProfit = useMemo(() => {
+    if (!overviewStats?.equityCurve?.length) return 0;
+    return overviewStats.equityCurve[overviewStats.equityCurve.length - 1]?.p ?? 0;
+  }, [overviewStats?.equityCurve]);
+
+  // Calculate P&L percentage
+  const pnlPercent = useMemo(() => {
+    if (!accountBalance) return 0;
+    return (totalProfit / accountBalance) * 100;
+  }, [totalProfit, accountBalance]);
 
   // Lazy-fetch full trades only when the share modal is opened.
   // This avoids fetching 30k trades on page load; share is an infrequent action.
@@ -163,6 +178,31 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
                 {avgRR.toFixed(2)}
               </span>
             </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs text-slate-500 dark:text-slate-400">P&L</span>
+              <span className={`text-base font-bold ${
+                totalProfit >= 0
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-rose-600 dark:text-rose-400'
+              }`}>
+                {currencySymbol}{Math.abs(totalProfit).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            {accountBalance && (
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-xs text-slate-500 dark:text-slate-400">Return</span>
+                <div
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
+                    totalProfit >= 0
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                      : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                  }`}
+                >
+                  {totalProfit >= 0 ? '+' : ''}
+                  {pnlPercent.toFixed(2)}%
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
