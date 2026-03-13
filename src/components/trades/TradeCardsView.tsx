@@ -33,7 +33,7 @@ import TradeDetailsModal from '@/components/TradeDetailsModal';
 import TradeDetailsPanel from '@/components/TradeDetailsPanel';
 import { TradeCard } from '@/components/trades/TradeCard';
 import { TradesTableView } from '@/components/trades/TradesTableView';
-import { Columns2, Eye, LayoutGrid, Loader2, PanelLeft, Trash2 } from 'lucide-react';
+import { Columns2, Eye, LayoutGrid, Loader2, MoveRight, PanelLeft, Trash2 } from 'lucide-react';
 
 type CardViewMode = 'grid-4' | 'grid-2' | 'split' | 'table';
 
@@ -67,6 +67,10 @@ export type TradeCardsViewProps = {
   enableBulkDeleteInTableView?: boolean;
   /** Called when user confirms bulk delete in table view. Clear selection after resolve. */
   onBulkDelete?: (ids: string[]) => Promise<void>;
+  /** Strategies to move selected trades to (excludes the current one). */
+  moveToStrategies?: { id: string; name: string }[];
+  /** Called when user confirms move to strategy. Clear selection after resolve. */
+  onBulkMoveToStrategy?: (ids: string[], strategyId: string) => Promise<void>;
   /** Optional left-side control row content (e.g. Sort by) rendered on same row as View toggles. */
   sortControl?: ReactNode;
   /** When set, show "N trade(s)" on the left of the header row (filtered/period count). */
@@ -92,6 +96,8 @@ export function TradeCardsView({
   marketFilter,
   enableBulkDeleteInTableView = false,
   onBulkDelete,
+  moveToStrategies,
+  onBulkMoveToStrategy,
   sortControl,
   totalFilteredCount,
   externalPagination = false,
@@ -104,6 +110,9 @@ export function TradeCardsView({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [moveTargetStrategyId, setMoveTargetStrategyId] = useState('');
+  const [bulkMoving, setBulkMoving] = useState(false);
   const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => setMounted(true), []);
@@ -171,6 +180,19 @@ export function TradeCardsView({
       setBulkDeleting(false);
     }
   }, [onBulkDelete, selectedIds]);
+
+  const handleBulkMoveConfirm = useCallback(async () => {
+    if (!onBulkMoveToStrategy || selectedIds.size === 0 || !moveTargetStrategyId) return;
+    setBulkMoving(true);
+    try {
+      await onBulkMoveToStrategy(Array.from(selectedIds), moveTargetStrategyId);
+      setSelectedIds(new Set());
+      setShowMoveDialog(false);
+      setMoveTargetStrategyId('');
+    } finally {
+      setBulkMoving(false);
+    }
+  }, [onBulkMoveToStrategy, selectedIds, moveTargetStrategyId]);
 
   useEffect(() => {
     if (cardViewMode === 'split' && displayedTrades.length > 0 && !selectedTrade) {
@@ -447,7 +469,7 @@ export function TradeCardsView({
                   variant="destructive"
                   size="sm"
                   onClick={() => setShowBulkDeleteConfirm(true)}
-                  disabled={bulkDeleting}
+                  disabled={bulkDeleting || bulkMoving}
                   className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 gap-2"
                 >
                   <span className="relative z-10 flex items-center gap-2">
@@ -456,6 +478,18 @@ export function TradeCardsView({
                   </span>
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 </Button>
+                {onBulkMoveToStrategy && moveToStrategies && moveToStrategies.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMoveDialog(true)}
+                    disabled={bulkDeleting || bulkMoving}
+                    className="cursor-pointer rounded-xl px-4 py-2 text-sm transition-all duration-200 border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 disabled:opacity-60 flex items-center gap-2"
+                  >
+                    <MoveRight className="h-4 w-4" />
+                    {bulkMoving ? 'Moving…' : `Move to strategy`}
+                  </Button>
+                )}
               </div>
             )}
             <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
@@ -525,6 +559,76 @@ export function TradeCardsView({
                         className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
                       >
                         {bulkDeleting ? 'Deleting...' : 'Yes, Delete'}
+                      </Button>
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            {showTableBulkActions && onBulkMoveToStrategy && (
+              <AlertDialog open={showMoveDialog} onOpenChange={(open) => { setShowMoveDialog(open); if (!open) setMoveTargetStrategyId(''); }}>
+                <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl p-0 overflow-hidden">
+                  {/* Gradient orbs */}
+                  <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
+                    <div className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl" />
+                    <div className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl" />
+                  </div>
+
+                  {/* Top accent line */}
+                  <div className="absolute -top-px left-0 right-0 h-0.5 themed-accent-line rounded-t-2xl" />
+
+                  {/* Header */}
+                  <div className="relative px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
+                    <AlertDialogHeader className="space-y-1.5">
+                      <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                        <div className="p-2 rounded-lg themed-header-icon-box">
+                          <MoveRight className="h-5 w-5" />
+                        </div>
+                        <span>Move trades to strategy</span>
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
+                        Select the destination strategy for {selectedIds.size} selected trade{selectedIds.size !== 1 ? 's' : ''}. The trades will be moved within the same account.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                  </div>
+
+                  {/* Content */}
+                  <div className="relative px-6 py-5">
+                    <Select value={moveTargetStrategyId} onValueChange={setMoveTargetStrategyId}>
+                      <SelectTrigger className="h-12 w-full rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                        <SelectValue placeholder="Select a strategy…" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[200] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg text-slate-900 dark:text-slate-50">
+                        {moveToStrategies?.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Footer */}
+                  <AlertDialogFooter className="relative flex-shrink-0 flex items-center justify-between px-6 pt-4 pb-5 border-t border-slate-200/50 dark:border-slate-700/50">
+                    <AlertDialogCancel asChild>
+                      <Button
+                        variant="outline"
+                        onClick={() => { setShowMoveDialog(false); setMoveTargetStrategyId(''); }}
+                        disabled={bulkMoving}
+                        className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200"
+                      >
+                        Cancel
+                      </Button>
+                    </AlertDialogCancel>
+                    <AlertDialogAction asChild>
+                      <Button
+                        onClick={(e) => { e.preventDefault(); handleBulkMoveConfirm(); }}
+                        disabled={bulkMoving || !moveTargetStrategyId}
+                        className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60 text-sm"
+                      >
+                        <span className="relative z-10 flex items-center justify-center gap-2">
+                          {bulkMoving && <Loader2 className="h-4 w-4 animate-spin" />}
+                          {bulkMoving ? 'Moving…' : 'Move trades'}
+                        </span>
+                        <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                       </Button>
                     </AlertDialogAction>
                   </AlertDialogFooter>
