@@ -1,5 +1,5 @@
 import AppLayout from '@/components/shared/layout/AppLayout';
-import { getCachedAllAccountsForUser } from '@/lib/server/accounts';
+import { getCachedAllAccountsForUser, ensureDefaultAccount } from '@/lib/server/accounts';
 import type { AccountRow, AccountMode } from '@/lib/server/accounts';
 import { getCachedUserSession } from '@/lib/server/session';
 import { redirect } from 'next/navigation';
@@ -22,6 +22,10 @@ export default async function AppLayoutComponent({ children }: AppLayoutProps) {
   }
 
   const userId = initialUserDetails.user.id;
+
+  // Ensure user always has at least one demo account (no-op if accounts already exist)
+  await ensureDefaultAccount();
+
   const initialAllAccounts = await getCachedAllAccountsForUser(userId);
 
   let initialActiveAccount: AccountRow | null = null;
