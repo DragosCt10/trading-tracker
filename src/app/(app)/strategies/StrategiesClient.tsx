@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
 import { useSettings } from '@/hooks/useSettings';
@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CreateStrategyModal } from '@/components/CreateStrategyModal';
 import { EditStrategyModal } from '@/components/EditStrategyModal';
-import { deleteStrategy, permanentlyDeleteStrategy, getInactiveStrategies, reactivateStrategy, deleteArchivedStrategiesOlderThan30Days } from '@/lib/server/strategies';
+import { deleteStrategy, permanentlyDeleteStrategy, getInactiveStrategies, reactivateStrategy } from '@/lib/server/strategies';
 import { updateStrategiesPageCustomization } from '@/lib/server/settings';
 
 const DEFAULT_TITLE = 'Strategies';
@@ -118,11 +118,8 @@ export function StrategiesClient() {
     staleTime: 2 * 60_000, // 2 min — avoid refetch when reopening archived sheet
   });
 
-  // Purge archived strategies older than 30 days (permanent delete via permanentlyDeleteStrategy)
-  useEffect(() => {
-    if (!userId) return;
-    deleteArchivedStrategiesOlderThan30Days(userId);
-  }, [userId]);
+  // Archived strategies are automatically deleted by Supabase pg_cron trigger
+  // after 30 days. No client-side cleanup needed.
 
   const handleCreateSuccess = () => {
     setIsCreateModalOpen(false);
