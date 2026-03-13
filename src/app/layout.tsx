@@ -4,6 +4,7 @@ import './globals.css';
 import { LoadingProvider } from '@/context/LoadingContext';
 import QueryProvider from '@/context/QueryContext';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { ThemeSync } from '@/components/ThemeSync';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 
@@ -55,13 +56,15 @@ export default function RootLayout({
           <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] orb-bg-2 rounded-full blur-3xl" />
         </div>
         <ThemeProvider>
-          <QueryProvider>
-            <LoadingProvider>
-              <main className="relative z-10 mx-auto p-4 sm:p-0">
-                {children}
-              </main>
-            </LoadingProvider>
-          </QueryProvider>
+          <ThemeSync>
+            <QueryProvider>
+              <LoadingProvider>
+                <main className="relative z-10 mx-auto p-4 sm:p-0">
+                  {children}
+                </main>
+              </LoadingProvider>
+            </QueryProvider>
+          </ThemeSync>
         </ThemeProvider>
       </body>
     </html>
