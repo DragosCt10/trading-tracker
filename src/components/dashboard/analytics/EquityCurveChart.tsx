@@ -23,15 +23,19 @@ const EquityTooltipContent: React.FC<{
   isDark: boolean;
 }> = ({ date, value, currencySymbol, isDark }) => {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
+    <div className={`relative overflow-hidden rounded-2xl border backdrop-blur-xl p-4 ${
+      isDark
+        ? 'border-slate-800/70 bg-slate-900/70 shadow-black/40 text-slate-100'
+        : 'border-slate-200/70 bg-slate-50/80 shadow-slate-900/5 text-slate-900'
+    } shadow-lg`}>
       {isDark && (
         <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />
       )}
       <div className="relative flex flex-col gap-2">
-        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+        <p className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
           {format(new Date(date), 'MMM d, yyyy')}
         </p>
-        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+        <p className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
           {currencySymbol}
           {value.toLocaleString('en-US', {
             minimumFractionDigits: 2,
