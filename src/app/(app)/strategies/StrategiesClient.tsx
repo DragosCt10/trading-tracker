@@ -118,14 +118,6 @@ export function StrategiesClient() {
     staleTime: 2 * 60_000, // 2 min — avoid refetch when reopening archived sheet
   });
 
-  // Ensure default strategy exists on mount
-  useEffect(() => {
-    if (userId && !strategiesLoading && strategies.length === 0) {
-      // This will trigger ensureDefaultStrategy via getUserStrategies
-      refetchStrategies();
-    }
-  }, [userId, strategiesLoading, strategies.length, refetchStrategies]);
-
   // Purge archived strategies older than 30 days (permanent delete via permanentlyDeleteStrategy)
   useEffect(() => {
     if (!userId) return;
