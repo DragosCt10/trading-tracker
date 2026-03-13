@@ -85,7 +85,7 @@ export function Footer() {
                 className="inline-flex items-center text-lg font-semibold text-slate-900 dark:text-slate-50 tracking-tight hover:opacity-90 transition-opacity cursor-pointer"
                 aria-label="AlphaStats Home"
               >
-                <Logo width={40} height={40} className="flex-shrink-0 -mt-1.5" />
+                <Logo className="flex-shrink-0 mt-1 w-10 h-10" />
                 AlphaStats
               </Link>
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
