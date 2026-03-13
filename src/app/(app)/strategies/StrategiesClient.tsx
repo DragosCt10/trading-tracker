@@ -11,7 +11,7 @@ import { TRADES_DATA } from '@/constants/queryConfig';
 import { getStrategiesOverview, type StrategiesOverviewResult } from '@/lib/server/strategiesOverview';
 import { StrategyCard } from '@/components/dashboard/strategy/StrategyCard';
 import { AddStrategyCard } from '@/components/dashboard/strategy/AddStrategyCard';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { CreateStrategyModal } from '@/components/CreateStrategyModal';
 import { EditStrategyModal } from '@/components/EditStrategyModal';
 import { deleteStrategy, permanentlyDeleteStrategy, getInactiveStrategies, reactivateStrategy } from '@/lib/server/strategies';
@@ -81,6 +81,7 @@ export function StrategiesClient() {
     enabled: !!userId && !!activeAccount?.id && !!mode && strategies.length > 0,
     ...TRADES_DATA,
   });
+
 
   // Sort strategies by selected metric (highest first)
   const sortedStrategies = useMemo(() => {
@@ -488,6 +489,7 @@ export function StrategiesClient() {
                 mode={mode as 'live' | 'backtesting' | 'demo'}
                 userId={userId ?? ''}
                 currencySymbol={currencySymbol}
+                accountBalance={activeAccount?.account_balance}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 // Only show loading while actually fetching data. A newly created strategy
