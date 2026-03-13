@@ -80,6 +80,12 @@ export type TradeCardsViewProps = {
    * TradeCardsView shows all trades passed and does not run the observer or show the sentinel.
    */
   externalPagination?: boolean;
+  /** Current card view mode. */
+  cardViewMode?: CardViewMode;
+  /** Called when user changes the view mode. */
+  onCardViewModeChange?: (mode: CardViewMode) => void;
+  /** When true, hide header controls (view toggles, cards per row). */
+  suppressHeaderControls?: boolean;
 };
 
 export function TradeCardsView({
@@ -101,18 +107,31 @@ export function TradeCardsView({
   sortControl,
   totalFilteredCount,
   externalPagination = false,
+  cardViewMode,
+  onCardViewModeChange,
+  suppressHeaderControls = false,
 }: TradeCardsViewProps) {
   const [mounted, setMounted] = useState(false);
   const [displayedCount, setDisplayedCount] = useState(itemsPerLoad);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [cardViewMode, setCardViewMode] = useState<CardViewMode>(initialViewMode);
+  const [internalCardViewMode, setInternalCardViewMode] = useState<CardViewMode>(initialViewMode);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [moveTargetStrategyId, setMoveTargetStrategyId] = useState('');
   const [bulkMoving, setBulkMoving] = useState(false);
+
+  // Use prop if provided (controlled), otherwise use internal state (uncontrolled)
+  const currentViewMode = cardViewMode !== undefined ? cardViewMode : internalCardViewMode;
+  const handleViewModeChange = (mode: CardViewMode) => {
+    if (onCardViewModeChange) {
+      onCardViewModeChange(mode);
+    } else {
+      setInternalCardViewMode(mode);
+    }
+  };
   const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => setMounted(true), []);
@@ -138,7 +157,7 @@ export function TradeCardsView({
   );
 
   const showTableBulkActions =
-    cardViewMode === 'table' && enableBulkDeleteInTableView && typeof onBulkDelete === 'function';
+    currentViewMode === 'table' && enableBulkDeleteInTableView && typeof onBulkDelete === 'function';
   const tablePageIds = useMemo(
     () => displayedTrades.map((t) => t.id).filter((id): id is string => !!id),
     [displayedTrades]
@@ -195,10 +214,10 @@ export function TradeCardsView({
   }, [onBulkMoveToStrategy, selectedIds, moveTargetStrategyId]);
 
   useEffect(() => {
-    if (cardViewMode === 'split' && displayedTrades.length > 0 && !selectedTrade) {
+    if (currentViewMode === 'split' && displayedTrades.length > 0 && !selectedTrade) {
       setSelectedTrade(displayedTrades[0]);
     }
-  }, [cardViewMode, displayedTrades, selectedTrade]);
+  }, [currentViewMode, displayedTrades, selectedTrade]);
 
   useEffect(() => {
     if (externalPagination || !mounted) return;
@@ -261,6 +280,7 @@ export function TradeCardsView({
             )}
           </div>
 
+          {!suppressHeaderControls && (
           <div className="flex items-center justify-end gap-3">
             {sortControl && (
               <div className="flex items-center gap-2">
@@ -275,15 +295,15 @@ export function TradeCardsView({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  onClick={() => setCardViewMode('grid-2')}
+                  onClick={() => handleViewModeChange('grid-2')}
                   className={cn(
                     'rounded-lg h-6.5 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
-                    cardViewMode === 'grid-2'
+                    currentViewMode === 'grid-2'
                       ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                   )}
                   aria-label="2 cards per row"
-                  aria-pressed={cardViewMode === 'grid-2'}
+                  aria-pressed={currentViewMode === 'grid-2'}
                 >
                   <Columns2 className="h-4 w-4" />
                 </button>
@@ -299,15 +319,15 @@ export function TradeCardsView({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  onClick={() => setCardViewMode('grid-4')}
+                  onClick={() => handleViewModeChange('grid-4')}
                   className={cn(
                     'rounded-lg h-6.5 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
-                    cardViewMode === 'grid-4'
+                    currentViewMode === 'grid-4'
                       ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                   )}
                   aria-label="4 cards per row"
-                  aria-pressed={cardViewMode === 'grid-4'}
+                  aria-pressed={currentViewMode === 'grid-4'}
                 >
                   <LayoutGrid className="h-4 w-4" />
                 </button>
@@ -323,15 +343,15 @@ export function TradeCardsView({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  onClick={() => setCardViewMode('split')}
+                  onClick={() => handleViewModeChange('split')}
                   className={cn(
                     'rounded-lg h-6.5 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
-                    cardViewMode === 'split'
+                    currentViewMode === 'split'
                       ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                   )}
                   aria-label="Split view"
-                  aria-pressed={cardViewMode === 'split'}
+                  aria-pressed={currentViewMode === 'split'}
                 >
                   <PanelLeft className="h-4 w-4" />
                 </button>
@@ -347,15 +367,15 @@ export function TradeCardsView({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  onClick={() => setCardViewMode('table')}
+                  onClick={() => handleViewModeChange('table')}
                   className={cn(
                     'rounded-lg h-6.5 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
-                    cardViewMode === 'table'
+                    currentViewMode === 'table'
                       ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                   )}
                   aria-label="Table view"
-                  aria-pressed={cardViewMode === 'table'}
+                  aria-pressed={currentViewMode === 'table'}
                 >
                   Table
                 </button>
@@ -369,9 +389,10 @@ export function TradeCardsView({
             </Tooltip>
           </div>
           </div>
+          )}
         </div>
 
-        {cardViewMode === 'split' ? (
+        {currentViewMode === 'split' ? (
           <div className="flex flex-col md:flex-row rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-transparent shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden md:h-[calc(100vh-100px)] md:min-h-[700px]">
             <div className="flex-shrink-0 md:w-80 overflow-x-auto overflow-y-hidden md:overflow-x-hidden md:overflow-y-auto border-b md:border-b-0 md:border-r border-slate-200/60 dark:border-slate-700/50 bg-slate-50/30 dark:bg-slate-900/20">
               {showSkeletons ? (
@@ -450,7 +471,7 @@ export function TradeCardsView({
               )}
             </div>
           </div>
-        ) : cardViewMode === 'table' ? (
+        ) : currentViewMode === 'table' ? (
           <>
             {showTableBulkActions && selectedIds.size > 0 && (
               <div className="mb-4 flex items-center gap-4 rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-3">
@@ -640,7 +661,7 @@ export function TradeCardsView({
           <div
             className={cn(
               'grid gap-6',
-              cardViewMode === 'grid-2'
+              currentViewMode === 'grid-2'
                 ? 'grid-cols-1 sm:grid-cols-2'
                 : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
             )}
