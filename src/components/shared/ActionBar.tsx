@@ -294,6 +294,7 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
                   }
                 : null
             }
+            isDeletable={activeAccount?.mode !== 'demo' || accountsByMode.demo.length > 1}
             onUpdated={async () => { refetchAccounts(); }}
             onDeleted={async () => { refetchAccounts(); }}
           />
