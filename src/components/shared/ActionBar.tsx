@@ -239,9 +239,12 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
                   type="button"
                   onClick={() => setIsCreateStrategyOpen(true)}
                   aria-label="Add strategy"
-                  className="flex items-center justify-center h-8 w-8 rounded-xl border border-slate-200/80 bg-transparent text-slate-700 hover:bg-slate-100/60 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-transparent dark:text-slate-200 dark:hover:bg-slate-800/50 dark:hover:text-slate-50 dark:hover:border-slate-600/80 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 cursor-pointer"
+                  className="flex items-center justify-center h-8 w-8 rounded-xl themed-btn-primary text-white font-semibold border-0 overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 cursor-pointer relative"
                 >
-                  <Plus className="h-4 w-4" />
+                  <span className="relative z-10 flex items-center justify-center">
+                    <Plus className="h-4 w-4" />
+                  </span>
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 </button>
               )}
               <CreateStrategyModal
