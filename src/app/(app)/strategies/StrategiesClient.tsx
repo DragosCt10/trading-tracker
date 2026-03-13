@@ -623,10 +623,10 @@ export function StrategiesClient() {
                 currencySymbol={currencySymbol}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
-                // Treat the absence of strategiesOverview (e.g. right after switching
-                // accounts) as a loading state so StrategyCard shows the pulse animation
-                // instead of briefly flashing "No trades yet".
-                isLoading={tradesLoading || !strategiesOverview}
+                // Show loading if the query is fetching OR if this specific strategy
+                // doesn't have data yet (e.g., just created). Prevents "No trades yet"
+                // flash on initial load and on new strategy creation.
+                isLoading={tradesLoading || !strategiesOverview?.[strategy.id]}
               />
             ))}
 
