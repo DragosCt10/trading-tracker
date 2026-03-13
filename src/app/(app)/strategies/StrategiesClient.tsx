@@ -64,7 +64,8 @@ export function StrategiesClient() {
   const currencySymbol = activeAccount?.currency === 'USD' ? '$' : activeAccount?.currency === 'EUR' ? '€' : '£';
 
   const DEFAULT_DESCRIPTION = 'Track your strategies, each with its own metrics, and monitor your overall performance.';
-  const accountDescription = activeAccount?.description?.trim() || DEFAULT_DESCRIPTION;
+  // const accountDescription = activeAccount?.description?.trim() || DEFAULT_DESCRIPTION;
+  const accountDescription = DEFAULT_DESCRIPTION;
 
   // Fetch per-strategy aggregated stats + equity curves via a single RPC call.
   // Replaces the old bulk getFilteredTrades() which paginated N×500-item pages.
