@@ -5,6 +5,7 @@ import { TIME_INTERVALS } from '@/constants/analytics';
 import { calculateIntervalStats } from '@/utils/calculateCategoryStats';
 import { calculateStreaksFromTrades } from '@/utils/calculateStreaks';
 import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
+import { calculateMaxDrawdown, calculateAverageDrawdown } from '@/utils/analyticsCalculations';
 
 export interface TimeIntervalChartResult {
   intervalStats: IntervalStats[];
@@ -162,34 +163,8 @@ export function computeStrategyStatsFromTrades({
         : 0;
   }
 
-  let maxDrawdown = 0;
-  const currentBalance = accountBalance;
-
-  const initialBalance = Math.max(0, currentBalance - totalProfit);
-  let peak = initialBalance;
-  let runningBalance = initialBalance;
-  const drawdowns: number[] = [];
-
-  sortedTrades.forEach((trade) => {
-    runningBalance += trade.calculated_profit || 0;
-    if (runningBalance > peak) {
-      peak = runningBalance;
-    }
-    if (peak > 0) {
-      const drawdown = ((peak - runningBalance) / peak) * 100;
-      if (drawdown > 0.0001) {
-        drawdowns.push(drawdown);
-      }
-      maxDrawdown = Math.max(maxDrawdown, drawdown);
-    }
-  });
-
-  const averageDrawdown =
-    drawdowns.length > 0
-      ? drawdowns.reduce((sum, dd) => sum + dd, 0) / drawdowns.length
-      : maxDrawdown > 0
-        ? maxDrawdown
-        : 0;
+  const maxDrawdown = calculateMaxDrawdown(tradesForProfitCalculations, accountBalance);
+  const averageDrawdown = calculateAverageDrawdown(tradesForProfitCalculations, accountBalance);
 
   const balanceForPnL = accountBalance || 1;
   const averagePnLPercentage =
