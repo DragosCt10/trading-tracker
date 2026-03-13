@@ -198,18 +198,16 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
                 {avgRR.toFixed(2)}
               </span>
             </div>
-            {accountBalance && (
-              <div className="flex items-baseline gap-2">
-                <span className="text-xs text-slate-500 dark:text-slate-400">Balance</span>
-                <span className={`text-base font-bold ${
-                  totalProfit >= 0
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-rose-600 dark:text-rose-400'
-                }`}>
-                  {currencySymbol}{totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-            )}
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs text-slate-500 dark:text-slate-400">Profit</span>
+              <span className={`text-base font-bold ${
+                totalProfit >= 0
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-rose-600 dark:text-rose-400'
+              }`}>
+                {totalProfit >= 0 ? '+' : ''}{currencySymbol}{Math.abs(totalProfit).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
           </div>
         </div>
 
