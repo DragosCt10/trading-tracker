@@ -174,7 +174,21 @@ export function AccountModePopover({
                               : 'opacity-0'
                           )}
                         />
-                        <span className="truncate">{account.name}</span>
+                        <span className="truncate flex-1">{account.name}</span>
+                        {account.account_balance != null && (
+                          <span className={clsx(
+                            'text-xs flex-shrink-0 tabular-nums',
+                            isActive
+                              ? 'text-[var(--tc-text)] dark:text-[var(--tc-text-dark)] opacity-70'
+                              : 'text-slate-400 dark:text-slate-500'
+                          )}>
+                            {new Intl.NumberFormat('en-US', {
+                              style: 'currency',
+                              currency: account.currency ?? 'USD',
+                              maximumFractionDigits: 0,
+                            }).format(account.account_balance)}
+                          </span>
+                        )}
                       </button>
                     );
                   })
