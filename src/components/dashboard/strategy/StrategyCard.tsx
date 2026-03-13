@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useDarkMode } from '@/hooks/useDarkMode';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Archive, Pencil, ChartBar, Share2 } from 'lucide-react';
@@ -56,6 +57,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
   accountBalance,
 }) => {
   const router = useRouter();
+  const { isDark } = useDarkMode();
   const [mounted, setMounted] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -118,7 +120,11 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
 
   if (!mounted) {
     return (
-      <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm">
+      <Card className={`relative overflow-hidden shadow-none backdrop-blur-sm ${
+        isDark
+          ? 'border-slate-600 bg-slate-800/30'
+          : 'border-slate-200/60 bg-slate-50/50'
+      }`}>
         <div className="relative p-6 h-[320px]" aria-hidden />
       </Card>
     );
@@ -134,7 +140,11 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
   const isChartReady = !isLoading;
 
   return (
-    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm">
+    <Card className={`relative overflow-hidden shadow-none backdrop-blur-sm ${
+      isDark
+        ? 'border-slate-600 bg-slate-800/30'
+        : 'border-slate-200/60 bg-slate-50/50'
+    }`}>
       <div className="relative p-6 flex flex-col h-full">
         {/* Strategy Name + Share button (top-right) */}
         <div className="flex items-start justify-between mb-2 gap-3">
