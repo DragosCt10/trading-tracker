@@ -80,6 +80,12 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
     return (totalProfit / accountBalance) * 100;
   }, [totalProfit, accountBalance]);
 
+  // Calculate total account value (balance + profit)
+  const totalValue = useMemo(() => {
+    if (!accountBalance) return 0;
+    return accountBalance + totalProfit;
+  }, [accountBalance, totalProfit]);
+
   // Lazy-fetch full trades only when the share modal is opened.
   // This avoids fetching 30k trades on page load; share is an infrequent action.
   const { data: shareTrades = [] } = useQuery<Trade[]>({
@@ -131,20 +137,34 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
     <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm">
       <div className="relative p-6 flex flex-col h-full">
         {/* Strategy Name + Share button (top-right) */}
-        <div className="flex items-start justify-between mb-4 gap-3">
+        <div className="flex items-start justify-between mb-2 gap-3">
           <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
             {strategy.name}
           </h3>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setIsShareOpen(true)}
-            disabled={!hasTrades || !isChartReady}
-            className="h-8 w-8 cursor-pointer shrink-0 rounded-full border-slate-200/80 bg-slate-50/80 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-50 disabled:opacity-60 disabled:pointer-events-none"
-            aria-label="Share strategy stats"
-          >
-            <Share2 className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {accountBalance && (
+              <div
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                  totalProfit >= 0
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                    : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                }`}
+              >
+                {totalProfit >= 0 ? '+' : ''}
+                {pnlPercent.toFixed(2)}%
+              </div>
+            )}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setIsShareOpen(true)}
+              disabled={!hasTrades || !isChartReady}
+              className="h-8 w-8 cursor-pointer shrink-0 rounded-full border-slate-200/80 bg-slate-50/80 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-50 disabled:opacity-60 disabled:pointer-events-none"
+              aria-label="Share strategy stats"
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Performance Graph */}
@@ -178,29 +198,16 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
                 {avgRR.toFixed(2)}
               </span>
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-xs text-slate-500 dark:text-slate-400">P&L</span>
-              <span className={`text-base font-bold ${
-                totalProfit >= 0
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-rose-600 dark:text-rose-400'
-              }`}>
-                {currencySymbol}{Math.abs(totalProfit).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
             {accountBalance && (
-              <div className="flex items-center gap-2 pt-1">
-                <span className="text-xs text-slate-500 dark:text-slate-400">Return</span>
-                <div
-                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
-                    totalProfit >= 0
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                      : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
-                  }`}
-                >
-                  {totalProfit >= 0 ? '+' : ''}
-                  {pnlPercent.toFixed(2)}%
-                </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-xs text-slate-500 dark:text-slate-400">Balance</span>
+                <span className={`text-base font-bold ${
+                  totalProfit >= 0
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-rose-600 dark:text-rose-400'
+                }`}>
+                  {currencySymbol}{totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
               </div>
             )}
           </div>
