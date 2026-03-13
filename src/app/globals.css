@@ -1259,13 +1259,35 @@ html.dark[data-color-theme="violet"] {
   box-shadow: 0 0 0 2px color-mix(in oklch, var(--tc-primary) 20%, transparent) !important;
 }
 
-/* ---- Themed live mode badge ---- */
+/* ---- Themed mode badges (live, demo, backtesting) ---- */
 .themed-badge-live {
   background-color: var(--tc-subtle) !important;
   color: var(--tc-text) !important;
   border-color: var(--tc-border) !important;
 }
 .dark .themed-badge-live {
+  color: var(--tc-text-dark) !important;
+  background-color: var(--tc-subtle) !important;
+  border-color: var(--tc-border) !important;
+}
+
+.themed-badge-demo {
+  background-color: var(--tc-subtle) !important;
+  color: var(--tc-text) !important;
+  border-color: var(--tc-border) !important;
+}
+.dark .themed-badge-demo {
+  color: var(--tc-text-dark) !important;
+  background-color: var(--tc-subtle) !important;
+  border-color: var(--tc-border) !important;
+}
+
+.themed-badge-backtesting {
+  background-color: var(--tc-subtle) !important;
+  color: var(--tc-text) !important;
+  border-color: var(--tc-border) !important;
+}
+.dark .themed-badge-backtesting {
   color: var(--tc-text-dark) !important;
   background-color: var(--tc-subtle) !important;
   border-color: var(--tc-border) !important;
