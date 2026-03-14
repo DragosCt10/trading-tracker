@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 export type GaugeVariant = 'winRate' | 'avgDrawdown';
@@ -19,6 +19,10 @@ export interface SummaryHalfGaugeProps {
   rawValueForTooltip?: number;
 }
 
+/** Radii as fraction of the smaller dimension so the half-pie fits (cy=80%) */
+const INNER_RADIUS_RATIO = 0.38;
+const OUTER_RADIUS_RATIO = 0.48;
+
 export function SummaryHalfGauge({
   variant,
   valueNormalized,
@@ -27,6 +31,29 @@ export function SummaryHalfGauge({
   maxLabel,
   rawValueForTooltip,
 }: SummaryHalfGaugeProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  const updateSize = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const { width, height } = el.getBoundingClientRect();
+    setSize((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
+  }, []);
+
+  useEffect(() => {
+    updateSize();
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(updateSize);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [updateSize]);
+
+  const minDim = Math.min(size.width, size.height);
+  const innerRadius = minDim > 0 ? minDim * INNER_RADIUS_RATIO : 48;
+  const outerRadius = minDim > 0 ? minDim * OUTER_RADIUS_RATIO : 60;
+
   let gradientId: string;
   let gradientDefs: React.ReactNode;
 
@@ -75,8 +102,8 @@ export function SummaryHalfGauge({
   }
 
   return (
-    <>
-      <ResponsiveContainer width="100%" height="100%">
+    <div ref={containerRef} className="relative w-full h-full min-h-[6rem]">
+      <ResponsiveContainer width="100%" height="100%" minHeight={96}>
         <PieChart>
           <defs>{gradientDefs}</defs>
           <Pie
@@ -88,8 +115,8 @@ export function SummaryHalfGauge({
             cy="80%"
             startAngle={180}
             endAngle={0}
-            innerRadius={48}
-            outerRadius={60}
+            innerRadius={innerRadius}
+            outerRadius={outerRadius}
             paddingAngle={2}
             cornerRadius={7}
             dataKey="value"
@@ -102,17 +129,15 @@ export function SummaryHalfGauge({
           </Pie>
         </PieChart>
       </ResponsiveContainer>
-      <div className="absolute inset-0 top-10 flex items-center justify-center pointer-events-none">
-        <span className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none pt-[15%] sm:pt-[20%]">
+        <span className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-slate-900 dark:text-slate-100 tabular-nums">
           {centerLabel}
         </span>
       </div>
-      <div className="absolute left-4 bottom-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-        {minLabel}
+      <div className="absolute left-1 bottom-0.5 right-1 flex justify-between text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400 pointer-events-none">
+        <span>{minLabel}</span>
+        <span>{maxLabel}</span>
       </div>
-      <div className="absolute right-4 bottom-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-        {maxLabel}
-      </div>
-    </>
+    </div>
   );
 }
