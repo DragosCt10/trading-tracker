@@ -143,6 +143,7 @@ export function useDashboardData({
       effectiveStartDate, effectiveEndDate,
       selectedExecution, selectedMarket,
     ),
+    placeholderData: (prev) => prev ?? null,
     queryFn: async () => {
       if (!userId || !accountId) return null;
 
