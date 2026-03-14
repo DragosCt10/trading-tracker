@@ -5,7 +5,7 @@ import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from '@/lib/server/session';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import type { Database } from '@/types/supabase';
-import type { Strategy } from '@/types/strategy';
+import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
 import { EXTRA_CARDS } from '@/constants/extraCards';
 
 export type StrategyRow = Database['public']['Tables']['strategies']['Row'];
@@ -509,6 +509,58 @@ export async function updateStrategyLiquidityTypes(
   if (error) {
     console.error('Error updating strategy liquidity types:', error);
   }
+}
+
+const MAX_FAVOURITES_PER_KIND = 10;
+
+/**
+ * Toggles a favourite/pin for a combobox kind on a strategy. Persists to DB.
+ * Max 10 pins per kind; adding when full drops the oldest.
+ * Returns the new saved_favourites on success so the client can update TanStack Query cache.
+ */
+export async function updateStrategyFavourites(
+  strategyId: string,
+  userId: string,
+  kind: SavedFavouritesKind,
+  itemId: string
+): Promise<Record<string, string[]> | null> {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== userId) return null;
+
+  const supabase = await createClient();
+  const { data: row, error: fetchError } = await supabase
+    .from('strategies')
+    .select('saved_favourites')
+    .eq('id', strategyId)
+    .eq('user_id', userId)
+    .single();
+
+  if (fetchError || !row) {
+    console.error('Error fetching strategy for favourites:', fetchError);
+    return null;
+  }
+
+  const current = (row.saved_favourites ?? {}) as Record<string, string[]>;
+  const list = current[kind] ?? [];
+  const idx = list.indexOf(itemId);
+  const next =
+    idx >= 0
+      ? list.filter((_, i) => i !== idx)
+      : [...list, itemId].slice(-MAX_FAVOURITES_PER_KIND);
+
+  const updated: Record<string, string[]> = { ...current, [kind]: next };
+
+  const { error: updateError } = await supabase
+    .from('strategies')
+    .update({ saved_favourites: updated, updated_at: new Date().toISOString() })
+    .eq('id', strategyId)
+    .eq('user_id', userId);
+
+  if (updateError) {
+    console.error('Error updating strategy favourites:', updateError);
+    return null;
+  }
+  return updated;
 }
 
 /**
