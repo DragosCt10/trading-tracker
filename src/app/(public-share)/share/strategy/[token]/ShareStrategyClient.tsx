@@ -22,6 +22,7 @@ import {
   MONTHS,
   computeMonthlyStatsFromTrades,
   calculateTotalYearProfit,
+  calculatePnlPercentFromOverview,
 } from '@/components/dashboard/analytics/AccountOverviewCard';
 import {
   TradesCalendarCard,
@@ -749,6 +750,8 @@ export default function ShareStrategyClient({
               currencySymbol={currencySymbol}
               hydrated={hydrated}
               accountBalance={accountBalance ?? undefined}
+              totalProfitFromOverview={totalRangeProfit}
+              pnlPercentFromOverview={calculatePnlPercentFromOverview(totalRangeProfit, accountBalance)}
               viewMode="dateRange"
               showTitle={false}
               partialRowProps={partialRowProps}
