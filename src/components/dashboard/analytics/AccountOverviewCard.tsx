@@ -86,6 +86,21 @@ export function calculateUpdatedBalance(
   return (accountBalance ?? 0) + totalYearProfit;
 }
 
+/** Normalized account balance for overview PnL % (avoids division by zero). Use everywhere overview % is computed. */
+export function getAccountBalanceForOverview(
+  accountBalance: number | null | undefined
+): number {
+  return accountBalance || 1;
+}
+
+/** PnL % for overview: (totalYearProfit / accountBalance) * 100. Use with getAccountBalanceForOverview for consistency. */
+export function calculatePnlPercentFromOverview(
+  totalYearProfit: number,
+  accountBalance: number | null | undefined
+): number {
+  return (totalYearProfit / getAccountBalanceForOverview(accountBalance)) * 100;
+}
+
 interface MonthlyStats {
   [month: string]: {
     profit: number;
@@ -135,7 +150,7 @@ export function AccountOverviewCard({
       ? Number(
           (
             (monthlyStatsAllTrades[month].profit /
-              (accountBalance || 1)) *
+              getAccountBalanceForOverview(accountBalance)) *
             100
           ).toFixed(2)
         )
@@ -204,7 +219,7 @@ export function AccountOverviewCard({
                     }`}
                   >
                     {totalYearProfit >= 0 ? '+' : ''}
-                    {((totalYearProfit / (accountBalance || 1)) * 100).toFixed(2)}% YTD
+                    {calculatePnlPercentFromOverview(totalYearProfit, accountBalance).toFixed(2)}% YTD
                   </div>
                 </>
               )}
