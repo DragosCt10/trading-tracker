@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { createNote } from '@/lib/server/notes';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
@@ -41,7 +42,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
   const accountId = selection.activeAccount?.id;
   const { strategies } = useStrategies({ userId, accountId });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { error, setError } = useProgressDialog();
   const [mounted, setMounted] = useState(false);
   const [isPreview, setIsPreview] = useState(false);
 

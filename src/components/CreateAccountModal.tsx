@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useState, useEffect } from 'react';
+import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { createAccount, setActiveAccount } from '@/lib/server/accounts';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -58,7 +59,7 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { error, setError } = useProgressDialog();
 
   const [name, setName] = useState('');
   const [balance, setBalance] = useState('');

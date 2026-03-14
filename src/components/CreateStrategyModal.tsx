@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useState } from 'react';
+import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,7 +36,7 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
   const setOpen: (value: boolean) => void = onOpenChange || setInternalOpen;
   const [name, setName] = useState('');
   const [extraCards, setExtraCards] = useState<ExtraCardKey[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const { error, setError } = useProgressDialog();
   const [submitting, setSubmitting] = useState(false);
   const { data: userId } = useUserDetails();
 

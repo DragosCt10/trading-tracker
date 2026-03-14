@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { Note } from '@/types/note';
 import { deleteNote, updateNote } from '@/lib/server/notes';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -55,7 +56,7 @@ export default function NoteDetailsModal({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { error, setError } = useProgressDialog();
   const [isPreview, setIsPreview] = useState(false);
 
   const [editedNote, setEditedNote] = useState<Note>({
