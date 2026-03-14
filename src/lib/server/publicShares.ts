@@ -5,6 +5,8 @@ import type { Trade } from '@/types/trade';
 import { createClient as createSupabaseServerClient } from '@/utils/supabase/server';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getCachedUserSession } from '@/lib/server/session';
+import { getDashboardAggregates } from '@/lib/server/dashboardAggregates';
+import type { DashboardRpcResult } from '@/types/dashboard-rpc';
 
 export type StrategyShareRow =
   Database['public']['Tables']['strategy_shares']['Row'];
@@ -158,11 +160,59 @@ async function createStrategyShare(params: {
     };
   }
 
+  const newShare = data as StrategyShareRow;
+
+  // Populate the stats cache so share page visits need only one DB read.
+  // Non-fatal: if this fails the share link still works (cache miss handled gracefully).
+  try {
+    const { data: accountRow } = await supabase
+      .from('account_settings')
+      .select('account_balance')
+      .eq('id', params.accountId)
+      .single();
+    const accountBalance = (accountRow as { account_balance?: number | null } | null)
+      ?.account_balance ?? 0;
+
+    const stats = await getDashboardAggregates({
+      userId: params.userId,
+      accountId: params.accountId,
+      mode: params.mode,
+      startDate: params.startDate,
+      endDate: params.endDate,
+      strategyId: params.strategyId,
+      execution: 'executed',
+      accountBalance,
+      includeCompactTrades: true,
+      market: 'all',
+      includeSeries: false,
+    });
+
+    await supabase
+      .from('share_stats_cache')
+      .upsert({ share_id: newShare.id, stats: stats as unknown as Record<string, unknown> });
+  } catch (cacheErr) {
+    console.error('Failed to populate share_stats_cache (non-fatal):', cacheErr);
+  }
+
   return {
-    shareToken: (data as StrategyShareRow).share_token,
-    shareRow: data as StrategyShareRow,
+    shareToken: newShare.share_token,
+    shareRow: newShare,
     error: null,
   };
+}
+
+/**
+ * Reads pre-computed analytics from the cache for a share.
+ * Returns null if the cache is cold (will be rare — populated at share creation).
+ */
+export async function getShareStatsCache(shareId: string): Promise<DashboardRpcResult | null> {
+  const supabase = createServiceRoleClient();
+  const { data } = await (supabase as any)
+    .from('share_stats_cache')
+    .select('stats')
+    .eq('share_id', shareId)
+    .single();
+  return (data?.stats as DashboardRpcResult) ?? null;
 }
 
 export async function getShareByToken(
