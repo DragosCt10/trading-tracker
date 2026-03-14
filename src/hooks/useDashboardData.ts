@@ -150,12 +150,15 @@ export function useDashboardData({
       // derive stats client-side (same formulas as SQL) — no network call needed.
       // Skip when includeCompactTrades is requested (compact_trades has extra fields not in Trade[]).
       // Skip when the all-time cache is invalidated (trade mutation happened) — must refetch fresh data.
+      // Skip when this is the all-time query itself: the allTimeKey would hold stale data from
+      // Query 2's self-referential loop — use the server instead for the full range.
       if (!includeCompactTrades) {
         const { startDate: allStart, endDate: allEnd } = createAllTimeRange();
         const allTimeKey = queryKeys.trades.filtered(mode, accountId, userId, 'dateRange', allStart, allEnd, strategyId ?? null);
         const allTimeState = queryClient.getQueryState(allTimeKey);
         const cached = queryClient.getQueryData<Trade[]>(allTimeKey);
-        if (cached && cached.length > 0 && cached.length <= CLIENT_COMPUTE_MAX_TRADES && !allTimeState?.isInvalidated) {
+        const isAllTimeQuery = effectiveStartDate === allStart && effectiveEndDate === allEnd;
+        if (!isAllTimeQuery && cached && cached.length > 0 && cached.length <= CLIENT_COMPUTE_MAX_TRADES && !allTimeState?.isInvalidated) {
           const subset = cached.filter(t => t.trade_date >= effectiveStartDate && t.trade_date <= effectiveEndDate);
           return computeAllDashboardStats(subset, accountBalance, selectedExecution, selectedMarket);
         }
@@ -196,11 +199,14 @@ export function useDashboardData({
 
       // Cache-first: if the all-time Trade[] is cached and fresh, return a filtered slice.
       // Skip when invalidated — trade mutation happened and we must fetch fresh data.
+      // Skip when this query's own key IS the all-time key (self-referential: reading our own
+      // stale value would lock it in permanently, preventing real refetches from ever running).
       const { startDate: allStart, endDate: allEnd } = createAllTimeRange();
       const allTimeKey = queryKeys.trades.filtered(mode, accountId, userId, 'dateRange', allStart, allEnd, strategyId ?? null);
       const allTimeState = queryClient.getQueryState(allTimeKey);
       const cached = queryClient.getQueryData<Trade[]>(allTimeKey);
-      if (cached && cached.length > 0 && !allTimeState?.isInvalidated) {
+      const isAllTimeQuery = effectiveStartDate === allStart && effectiveEndDate === allEnd;
+      if (!isAllTimeQuery && cached && cached.length > 0 && !allTimeState?.isInvalidated) {
         return cached.filter(t => t.trade_date >= effectiveStartDate && t.trade_date <= effectiveEndDate);
       }
 
