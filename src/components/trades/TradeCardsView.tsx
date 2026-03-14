@@ -396,13 +396,13 @@ export function TradeCardsView({
         </div>
 
         {currentViewMode === 'split' ? (
-          <div className="flex flex-col md:flex-row rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-transparent shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden md:h-[calc(100vh-100px)] md:min-h-[700px]">
-            <div className="flex-shrink-0 md:w-80 overflow-x-auto overflow-y-hidden md:overflow-x-hidden md:overflow-y-auto border-b md:border-b-0 md:border-r border-slate-200/60 dark:border-slate-700/50 bg-slate-50/30 dark:bg-slate-900/20">
+          <div className="flex flex-col md:flex-row rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-transparent shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden md:h-[calc(100vh-100px)] md:min-h-[700px]">
+            <div className="flex-shrink-0 md:w-80 overflow-x-auto overflow-y-hidden md:overflow-x-hidden md:overflow-y-auto border-b md:border-b-0 md:border-r border-slate-300/40 dark:border-slate-700/50 bg-slate-50/30 dark:bg-slate-900/20">
               {showSkeletons ? (
                 <div className="flex md:flex-col gap-3 p-3 h-full">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div key={`skeleton-split-${i}`} className="w-64 md:w-auto flex-shrink-0 md:flex-shrink">
-                      <Card className="relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+                      <Card className="relative overflow-hidden rounded-xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
                         <CardContent className="px-5 py-5">
                           <div className="flex items-center justify-between mb-4">
                             <Skeleton className="h-7 w-24" />
@@ -478,7 +478,7 @@ export function TradeCardsView({
         ) : currentViewMode === 'table' ? (
           <>
             {showTableBulkActions && selectedIds.size > 0 && (
-              <div className="mb-4 flex items-center gap-4 rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-3">
+              <div className="mb-4 flex items-center gap-4 rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-3">
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   {selectedIds.size} trade{selectedIds.size !== 1 ? 's' : ''} selected
                 </span>
@@ -517,7 +517,7 @@ export function TradeCardsView({
                 )}
               </div>
             )}
-            <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+            <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
               <TradesTableView
                 trades={displayedTrades}
                 isLoading={showSkeletons}
@@ -675,7 +675,7 @@ export function TradeCardsView({
                 {Array.from({ length: 12 }).map((_, index) => (
                   <Card
                     key={`skeleton-${index}`}
-                    className="relative overflow-hidden rounded-xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm"
+                    className="relative overflow-hidden rounded-xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm"
                   >
                     <div className="p-3">
                       <Skeleton className="aspect-video w-full rounded-lg" />
