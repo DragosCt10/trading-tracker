@@ -7,7 +7,7 @@ import { ALLOWED_MARKETS, filterAllowedMarkets } from '@/constants/allowedMarket
 import { normalizeMarket } from '@/utils/validateMarket';
 import { cn } from '@/lib/utils';
 import { Pencil, Loader2, Star } from 'lucide-react';
-import { useComboboxPins, sortByPins } from '@/hooks/useComboboxPins';
+import { sortByPins } from '@/utils/helpers/sortByPins';
 
 const MAX_SUGGESTIONS = 80;
 const MAX_CHARS = 8;
@@ -26,9 +26,7 @@ export interface MarketComboboxProps {
   defaultSuggestions?: string[];
   /** Optional callback when a saved market is renamed from the suggestions list. */
   onEditSavedMarket?: (oldValue: string, newValue: string) => Promise<void> | void;
-  /** When set, enables favourite star on suggestions; pinned items appear first (max 10). Default: 'market-combobox'. */
-  pinsStorageKey?: string;
-  /** When provided with onTogglePin, use DB-backed pins (from strategy.saved_favourites) instead of localStorage. */
+  /** When provided with onTogglePin, show favourite star and sort by DB-backed pins (strategy.saved_favourites). */
   pinnedIds?: string[];
   /** Callback to toggle pin (persist to DB). When provided with pinnedIds, favourites are stored on the strategy. */
   onTogglePin?: (itemId: string) => void;
@@ -45,16 +43,12 @@ export function MarketCombobox({
   disabled,
   defaultSuggestions,
   onEditSavedMarket,
-  pinsStorageKey = 'market-combobox',
-  pinnedIds: pinnedIdsProp,
-  onTogglePin: onTogglePinProp,
+  pinnedIds = [],
+  onTogglePin,
 }: MarketComboboxProps) {
   const [open, setOpen] = useState(false);
-  const fromHook = useComboboxPins(onTogglePinProp ? undefined : pinsStorageKey);
-  const pinnedIds = pinnedIdsProp ?? fromHook.pinnedIds;
-  const togglePin = onTogglePinProp ?? fromHook.togglePin;
+  const showPin = Boolean(onTogglePin);
   const isPinned = (id: string) => pinnedIds.includes(id);
-  const showPin = Boolean(onTogglePinProp || pinsStorageKey);
   const [inputValue, setInputValue] = useState(value);
   const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -318,7 +312,7 @@ export function MarketCombobox({
                             onMouseDown={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              togglePin(market);
+                              onTogglePin?.(market);
                             }}
                           >
                             <Star
@@ -457,7 +451,7 @@ export function MarketCombobox({
                                 onMouseDown={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  togglePin(market);
+                                  onTogglePin?.(market);
                                 }}
                               >
                                 <Star
