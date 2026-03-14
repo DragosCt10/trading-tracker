@@ -421,7 +421,7 @@ export default function MyTradesClient({
     try {
       exportTradesToCsv({
         trades,
-        filename: `trades_${dateRange.startDate}_to_${dateRange.endDate}`,
+        filename: `alpha_stats_trades_${dateRange.startDate}_to_${dateRange.endDate}`,
       });
     } catch (error) {
       console.error('Error exporting trades:', error);
