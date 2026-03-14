@@ -930,6 +930,7 @@ export default function StrategyClient(
         months={MONTHS}
         monthlyStatsAllTrades={monthlyStatsToUse}
         isYearDataLoading={accountOverviewLoadingState}
+        isFetching={isLoadingStats}
         tradesCount={stats?.totalTrades ?? tradesToUse.length}
       />
 
