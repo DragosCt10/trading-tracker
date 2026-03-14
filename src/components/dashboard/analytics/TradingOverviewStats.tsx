@@ -88,7 +88,10 @@ interface TradingOverviewStatsProps {
 }
 
 export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, totalProfitFromOverview, pnlPercentFromOverview, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps, allTradesRiskStats, aboveRiskPerTradeRow, hideEmptyChartCards = false }: TradingOverviewStatsProps) {
-  const stats = useMemo(() => calculateTradingOverviewStats(trades), [trades]);
+  const stats = useMemo(
+    () => calculateTradingOverviewStats(trades, totalProfitFromOverview),
+    [trades, totalProfitFromOverview]
+  );
   const totalProfitToShow = totalProfitFromOverview ?? stats.totalProfit;
   const totalExecutedTrades = useMemo(() => trades.filter((t) => t.executed === true).length, [trades]);
   const nonExecutedTotalTradesCount = useMemo(() => trades.filter((t) => t.executed !== true).length, [trades]);
