@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo, useTransition, useEffect, useRef } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DateRange } from 'react-date-range';
 import { format } from 'date-fns';
-import { CalendarIcon, Copy, Link as LinkIcon, Loader2, Share2 } from 'lucide-react';
+import { Copy, Link as LinkIcon, Loader2, Search, Share2, X } from 'lucide-react';
 import { Trade } from '@/types/trade';
 import type { Strategy } from '@/types/strategy';
 import {
@@ -25,8 +25,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+
+const MODE_BADGE: Record<'live' | 'demo' | 'backtesting', string> = {
+  live: 'themed-badge-live',
+  demo: 'themed-badge-demo',
+  backtesting: 'themed-badge-backtesting',
+};
 import type { DateRangeValue } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { useColorTheme } from '@/hooks/useColorTheme';
 
@@ -60,10 +65,14 @@ export function ShareStrategyModal({
     startDate: format(initialFrom, 'yyyy-MM-dd'),
     endDate: format(initialTo, 'yyyy-MM-dd'),
   });
+  /** Applied only when user clicks "Search trades"; used for filtering and generate link */
+  const [appliedDateRange, setAppliedDateRange] = useState<DateRangeValue>({
+    startDate: format(initialFrom, 'yyyy-MM-dd'),
+    endDate: format(initialTo, 'yyyy-MM-dd'),
+  });
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copyLabel, setCopyLabel] = useState<'Copy' | 'Copied!'>('Copy');
   const [isPending, startTransition] = useTransition();
-  const [showCalendar, setShowCalendar] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -81,15 +90,13 @@ export function ShareStrategyModal({
     staleTime: 5 * 60 * 1000, // 5 min cache so reopening modal or coming back to page shows list instantly
   });
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const dateRangeTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const pickerRef = useRef<HTMLDivElement | null>(null);
 
-  const hasRange = Boolean(dateRange.startDate && dateRange.endDate);
+  const hasAppliedRange = Boolean(appliedDateRange.startDate && appliedDateRange.endDate);
 
   const filteredTrades = useMemo(() => {
-    if (!hasRange || !dateRange.startDate || !dateRange.endDate) return [];
-    const from = new Date(dateRange.startDate);
-    const to = new Date(dateRange.endDate);
+    if (!hasAppliedRange || !appliedDateRange.startDate || !appliedDateRange.endDate) return [];
+    const from = new Date(appliedDateRange.startDate);
+    const to = new Date(appliedDateRange.endDate);
     const fromTime = new Date(
       from.getFullYear(),
       from.getMonth(),
@@ -112,25 +119,29 @@ export function ShareStrategyModal({
       const d = new Date(t.trade_date).getTime();
       return d >= fromTime && d <= toTime;
     });
-  }, [trades, hasRange, dateRange.startDate, dateRange.endDate]);
+  }, [trades, hasAppliedRange, appliedDateRange.startDate, appliedDateRange.endDate]);
 
   const executedTradesCount = useMemo(
     () => filteredTrades.filter((t) => t.executed !== false).length,
     [filteredTrades]
   );
 
-  const canGenerate = hasRange && executedTradesCount > 0 && !isPending;
+  const canGenerate = hasAppliedRange && executedTradesCount > 0 && !isPending;
+
+  const handleSearchTrades = () => {
+    setAppliedDateRange(dateRange);
+  };
 
   const handleGenerate = () => {
-    if (!hasRange) return;
+    if (!hasAppliedRange) return;
     startTransition(async () => {
       setCopyLabel('Copy');
       const { url, share, error } = await createStrategyShareAction({
         strategyId: strategy.id,
         accountId,
         mode,
-        startDate: dateRange.startDate,
-        endDate: dateRange.endDate,
+        startDate: appliedDateRange.startDate,
+        endDate: appliedDateRange.endDate,
         userId,
       });
       if (error || !url) {
@@ -165,34 +176,14 @@ export function ShareStrategyModal({
   };
 
   const tradeSummary = (() => {
-    if (!hasRange) return 'Select a date range to preview trade count.';
+    if (!hasAppliedRange) return 'Select a date range and click "Search trades" to preview.';
     if (executedTradesCount === 0) {
-      return 'No executed trades in this period. Select a different range to enable sharing.';
+      return 'No executed trades in this period. Select a different range and search again.';
     }
     return `${executedTradesCount} executed trade${
       executedTradesCount === 1 ? '' : 's'
     } in this period.`;
   })();
-
-  // Click-outside to close date picker (same approach as TradeFiltersBar)
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!showCalendar) return;
-
-      const target = event.target as Node;
-      if (
-        pickerRef.current &&
-        !pickerRef.current.contains(target) &&
-        dateRangeTriggerRef.current &&
-        !dateRangeTriggerRef.current.contains(target)
-      ) {
-        setShowCalendar(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showCalendar]);
 
   const handleClose = (next: boolean) => {
     if (!next) {
@@ -267,114 +258,108 @@ export function ShareStrategyModal({
         {/* Top accent line */}
         <div className="absolute -top-px left-0 right-0 h-0.5 themed-accent-line rounded-t-2xl" />
 
-        {/* Body (no internal scroll so dropdown calendar is fully visible) */}
-        <div className="relative flex-1 min-h-0">
-          <AlertDialogHeader className="mb-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1.5">
-                <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                  <div className="p-2 rounded-lg themed-header-icon-box">
-                    <Share2 className="h-5 w-5" />
-                  </div>
-                  <span>Share strategy stats</span>
-                </AlertDialogTitle>
-                <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
-                  Generate a public, read-only link for this strategy&apos;s performance over a
-                  specific date range. Viewers can&apos;t edit or see individual trades.
-                </AlertDialogDescription>
+        {/* Fixed Header (same structure as NewTradeModal) */}
+        <div className="relative pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
+          <AlertDialogHeader className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                <div className="p-2 rounded-lg themed-header-icon-box">
+                  <Share2 className="h-5 w-5" />
+                </div>
+                <span>Share strategy stats</span>
+              </AlertDialogTitle>
+              <div className="flex items-center gap-3">
+                <div
+                  title={`Current mode: ${mode}`}
+                  className={cn(
+                    'flex items-center justify-center h-4 p-2.5 rounded-xl border pointer-events-none shrink-0',
+                    'text-xs font-medium',
+                    MODE_BADGE[mode]
+                  )}
+                >
+                  <span className="leading-none">{mode.toUpperCase()} MODE</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleClose(false)}
+                  className="cursor-pointer rounded-sm ring-offset-background transition-all hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none h-8 w-8 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:text-black dark:hover:text-white"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <Badge
-                variant="outline"
-                className="text-[11px] border-slate-300/70 dark:border-slate-700 whitespace-nowrap self-start"
-              >
-                {mode.toUpperCase()} MODE
-              </Badge>
             </div>
+            <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
+              Generate a public, read-only link for this strategy&apos;s performance over a
+              specific date range. Viewers can&apos;t edit or see individual trades.
+            </AlertDialogDescription>
           </AlertDialogHeader>
+        </div>
 
-          <div className="space-y-6">
+        {/* Scrollable content wrapper */}
+        <div className="relative overflow-y-auto flex-1 min-h-0 pt-4">
+          <div className="space-y-12">
             {/* Step 1: Date range selection */}
             <div className="space-y-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-800 dark:text-slate-400">
                   Step 1 · Select date range
                 </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Only trades in this window will be included in the shared analytics.
                 </p>
               </div>
 
-              <div className="relative">
-                <button
-                  ref={dateRangeTriggerRef}
+              <div className="w-full rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-100 dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-sm [&_.rdrCalendarWrapper]:!w-full [&_.rdrCalendarWrapper]:bg-slate-100 [&_.rdrCalendarWrapper]:dark:bg-transparent [&_.rdrMonth]:!w-full [&_.rdrMonthAndYearWrapper]:!w-full">
+                <div className="relative w-full py-2">
+                  <DateRange
+                    ranges={[
+                      {
+                        startDate: new Date(dateRange.startDate),
+                        endDate: new Date(dateRange.endDate),
+                        key: 'selection',
+                      },
+                    ]}
+                    onChange={(ranges) => {
+                      const { startDate, endDate } = ranges.selection;
+                      const safeStart = startDate ?? initialFrom;
+                      const safeEnd = endDate ?? safeStart;
+                      setDateRange({
+                        startDate: format(safeStart, 'yyyy-MM-dd'),
+                        endDate: format(safeEnd, 'yyyy-MM-dd'),
+                      });
+                    }}
+                    moveRangeOnFirstSelection={false}
+                    editableDateInputs={false}
+                    maxDate={new Date()}
+                    showMonthAndYearPickers
+                    rangeColors={['var(--tc-primary, #8b5cf6)']}
+                    direction="vertical"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 w-full">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Selected: {format(new Date(dateRange.startDate), 'MMM d, yyyy')}
+                  {dateRange.startDate !== dateRange.endDate &&
+                    ` – ${format(new Date(dateRange.endDate), 'MMM d, yyyy')}`}
+                </span>
+                <Button
                   type="button"
-                  onClick={() => setShowCalendar((v) => !v)}
-                  className="w-full cursor-pointer rounded-xl border border-slate-200/70 dark:border-slate-800/70 bg-white/70 dark:bg-slate-900/40 px-3 py-2.5 text-left text-sm text-slate-700 dark:text-slate-200 shadow-sm flex items-center justify-between gap-3"
+                  onClick={handleSearchTrades}
+                  size="sm"
+                  variant="outline"
+                  className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium h-8"
                 >
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4 text-slate-500" />
-                    <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                      {hasRange
-                        ? `${dateRange.startDate} ~ ${dateRange.endDate}`
-                        : 'Select date range'}
-                    </span>
-                  </div>
-                </button>
-
-                {showCalendar && (
-                  <div
-                    ref={pickerRef}
-                    className="absolute left-0 z-[10000] mt-2 rounded-2xl overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50 dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-lg shadow-slate-300/30 dark:shadow-slate-900/30"
-                  >
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl hidden dark:block">
-                      <div className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl" />
-                      <div className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl" />
-                    </div>
-                    <div
-                      className="absolute inset-0 opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl hidden dark:block"
-                      style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-                        backgroundRepeat: 'repeat',
-                      }}
-                    />
-                    <div className="absolute -top-px left-0 right-0 h-0.5 opacity-60 hidden dark:block" style={{ background: 'linear-gradient(to right, transparent, var(--tc-primary), transparent)' }} />
-
-                    <div className="relative p-2">
-                      <DateRange
-                        ranges={[
-                          {
-                            startDate: new Date(dateRange.startDate),
-                            endDate: new Date(dateRange.endDate),
-                            key: 'selection',
-                          },
-                        ]}
-                        onChange={(ranges) => {
-                          const { startDate, endDate } = ranges.selection;
-                          const safeStart = startDate ?? initialFrom;
-                          const safeEnd = endDate ?? safeStart;
-                          setDateRange({
-                            startDate: format(safeStart, 'yyyy-MM-dd'),
-                            endDate: format(safeEnd, 'yyyy-MM-dd'),
-                          });
-                        }}
-                        moveRangeOnFirstSelection={false}
-                        editableDateInputs={false}
-                        maxDate={new Date()}
-                        showMonthAndYearPickers
-                        rangeColors={['var(--tc-primary, #8b5cf6)']}
-                        direction="vertical"
-                      />
-                    </div>
-                  </div>
-                )}
+                  <Search className="h-3.5 w-3.5" />
+                  Search trades
+                </Button>
               </div>
 
               <p
                 className={cn(
-                  'text-xs',
-                  executedTradesCount === 0
-                    ? 'text-amber-600 dark:text-amber-400'
-                    : 'text-slate-500 dark:text-slate-400'
+                  'text-base font-semibold tracking-tight text-slate-900 dark:text-slate-50',
                 )}
               >
                 {tradeSummary}
@@ -382,8 +367,8 @@ export function ShareStrategyModal({
             </div>
 
             {/* Step 2: Generate link */}
-            <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            <div className="space-y-3 ">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-800 dark:text-slate-400">
                 Step 2 · Generate share link
               </p>
               <div className="flex flex-col sm:flex-row gap-2">
@@ -440,7 +425,7 @@ export function ShareStrategyModal({
                     {copyLabel}
                   </Button>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-500">
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">
                   Anyone with this link can view a read-only analytics dashboard for this strategy
                   and date range. They won&apos;t be able to modify your data.
                 </p>
@@ -451,10 +436,10 @@ export function ShareStrategyModal({
 
         {existingShares.length > 0 && (
           <div className="space-y-2 pt-4 border-t border-slate-200/60 dark:border-slate-700/50">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-800 dark:text-slate-400">
               Active share links
             </p>
-            <p className="text-[11px] text-slate-500 dark:text-slate-500 mb-1">
+            <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-2">
               Turn a link off to immediately make it private.
             </p>
             <div className="space-y-2">
@@ -482,7 +467,7 @@ export function ShareStrategyModal({
                         variant="outline"
                         size="sm"
                         onClick={() => handleCopyShareLink(share)}
-                        className="cursor-pointer rounded-lg border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 h-7 px-2.5 text-xs font-medium gap-1.5"
+                        className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 h-7 px-2.5 text-xs font-medium gap-1.5"
                         title="Copy share link"
                       >
                         {copiedShareId === share.id ? (
@@ -520,7 +505,7 @@ export function ShareStrategyModal({
                         size="icon"
                         onClick={() => handleDeleteShare(share)}
                         disabled={isDeleting || isRevoking}
-                        className="h-7 w-7 cursor-pointer rounded-full text-[11px] text-red-500 hover:text-red-600 hover:bg-red-500/10 disabled:opacity-60"
+                        className="h-7 w-7 cursor-pointer rounded-full text-[11px] text-slate-500 hover:text-slate-600 hover:bg-slate-500/10 disabled:opacity-60"
                       >
                         {isDeleting ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />

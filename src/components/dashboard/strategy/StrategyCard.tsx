@@ -137,14 +137,13 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
   const totalRR = overviewStats?.totalRR ?? 0;
 
   const hasTrades = totalTrades > 0;
-  const showNoTradesMessage = !isLoading && !hasTrades;
   const isChartReady = !isLoading;
 
   return (
     <Card className={`relative overflow-hidden shadow-none backdrop-blur-sm ${
       isDark
         ? 'border-slate-600 bg-slate-800/30'
-        : 'border-slate-200/60 bg-slate-50/50'
+        : 'border-slate-300/40 bg-slate-50/50'
     }`}>
       <div className="relative p-6 flex flex-col h-full">
         {/* Strategy Name + Share button (top-right) */}

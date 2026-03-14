@@ -193,7 +193,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
   const emptyCells = Array(firstDayColumn < 0 ? 0 : firstDayColumn).fill(null);
 
   return (
-    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+    <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
       {/* Header */}
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <Button
@@ -203,9 +203,9 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
           disabled={!canNavigateMonth('prev')}
           onClick={() => onMonthNavigate('prev')}
           className={cn(
-            'h-9 w-9 rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 shadow-sm hover:bg-slate-200/80 dark:hover:bg-slate-700/60 hover:border-slate-300/80 dark:hover:border-slate-600/80 transition-all duration-200',
+            'h-9 w-9 rounded-xl border border-slate-300/60 dark:border-slate-700/70 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 shadow-sm hover:bg-slate-200/80 dark:hover:bg-slate-700/60 hover:border-slate-300/80 dark:hover:border-slate-600/80 transition-all duration-200',
             !canNavigateMonth('prev') &&
-              'cursor-not-allowed text-slate-400 dark:text-slate-600 hover:bg-slate-100/60 dark:hover:bg-slate-900/40 hover:border-slate-200/70 dark:hover:border-slate-700/70',
+              'cursor-not-allowed text-slate-400 dark:text-slate-600 hover:bg-slate-100/60 dark:hover:bg-slate-900/40 hover:border-slate-300/60 dark:hover:border-slate-700/70',
           )}
         >
           <ChevronLeft className="h-4 w-4" />
@@ -222,9 +222,9 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
           disabled={!canNavigateMonth('next')}
           onClick={() => onMonthNavigate('next')}
           className={cn(
-            'h-9 w-9 rounded-xl border border-slate-200/70 dark:border-slate-700/70 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 shadow-sm hover:bg-slate-200/80 dark:hover:bg-slate-700/60 hover:border-slate-300/80 dark:hover:border-slate-600/80 transition-all duration-200',
+            'h-9 w-9 rounded-xl border border-slate-300/60 dark:border-slate-700/70 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 shadow-sm hover:bg-slate-200/80 dark:hover:bg-slate-700/60 hover:border-slate-300/80 dark:hover:border-slate-600/80 transition-all duration-200',
             !canNavigateMonth('next') &&
-              'cursor-not-allowed text-slate-400 dark:text-slate-600 hover:bg-slate-100/60 dark:hover:bg-slate-900/40 hover:border-slate-200/70 dark:hover:border-slate-700/70',
+              'cursor-not-allowed text-slate-400 dark:text-slate-600 hover:bg-slate-100/60 dark:hover:bg-slate-900/40 hover:border-slate-300/60 dark:hover:border-slate-700/70',
           )}
         >
           <ChevronRight className="h-4 w-4" />
@@ -240,14 +240,14 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
             return (
               <div
                 key={idx}
-                className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm px-5 py-4 flex flex-col justify-between shadow-none rounded-2xl mb-4"
+                className="relative overflow-hidden border-slate-300/60 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm px-5 py-4 flex flex-col justify-between shadow-none rounded-2xl mb-4"
               >
                 {/* Header: Week + trades pill */}
                 <div className="flex items-start justify-between">
                   <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                     {`Week ${idx + 1}`}
                   </div>
-                  <span className="inline-flex items-center rounded-full bg-slate-100/80 dark:bg-slate-700/50 border border-slate-200/60 dark:border-slate-600/50 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-400">
+                  <span className="inline-flex items-center rounded-full bg-slate-100/80 dark:bg-slate-700/50 border border-slate-300/60 dark:border-slate-600/50 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-400">
                     {mounted ? (week.wins + week.losses + week.beCount) : '\u2014'} trades
                   </span>
                 </div>
@@ -280,7 +280,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                   </div>
 
                   {/* Divider */}
-                  <div className="mt-2 border-t border-slate-200/60 dark:border-slate-700/50" />
+                  <div className="mt-2 border-t border-slate-300/60 dark:border-slate-700/50" />
 
                   {/* P&L % row – styled like Win Rate in the Risk card */}
                   <div className="flex items-center justify-between pt-2">
@@ -318,7 +318,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                 return (
                   <div
                     key={`empty-${index}`}
-                    className="min-h-[80px] rounded-xl border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/20 p-3"
+                    className="min-h-[80px] rounded-xl border border-slate-300/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/20 p-3"
                   />
                 );
               }
@@ -384,7 +384,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                   ? 'bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-500/15 dark:hover:bg-emerald-500/28 hover:border-emerald-300 dark:hover:border-emerald-700'
                   : hasBE && beOutcome === 'Lose'
                   ? 'bg-rose-500/10 dark:bg-rose-500/20 border border-rose-200 dark:border-rose-800 hover:bg-rose-500/15 dark:hover:bg-rose-500/28 hover:border-rose-300 dark:hover:border-rose-700'
-                  : 'bg-slate-50/50 dark:bg-slate-800/20 border border-slate-200/60 dark:border-slate-700/50 hover:bg-slate-100/70 dark:hover:bg-slate-800/30 hover:border-slate-300/80 dark:hover:border-slate-600/60';
+                  : 'bg-slate-50/50 dark:bg-slate-800/20 border border-slate-300/60 dark:border-slate-700/50 hover:bg-slate-100/70 dark:hover:bg-slate-800/30 hover:border-slate-300/80 dark:hover:border-slate-600/60';
 
               const dayCellContent = (
                 <>
@@ -437,7 +437,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                 <div
                   className={cn(
                     'group relative min-h-[80px] rounded-xl p-3 transition-all duration-200',
-                    !mounted ? 'bg-slate-50/50 dark:bg-slate-800/20 border border-slate-200/60 dark:border-slate-700/50' : [filteredDayTrades.length > 0 && 'cursor-pointer', baseColor],
+                    !mounted ? 'bg-slate-50/50 dark:bg-slate-800/20 border border-slate-300/60 dark:border-slate-700/50' : [filteredDayTrades.length > 0 && 'cursor-pointer', baseColor],
                   )}
                   {...(mounted && filteredDayTrades.length > 0 ? { tabIndex: 0 } : {})}
                 >
@@ -462,7 +462,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                     <TooltipContent
                       side="top"
                       align="center"
-                      className="w-56 rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
+                      className="w-56 rounded-2xl p-4 relative overflow-hidden border border-slate-300/60 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
                       sideOffset={6}
                     >
                       {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
@@ -534,7 +534,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                             </button>
                           ))}
 
-                          <div className="my-2.5 border-t border-slate-200/60 dark:border-slate-600/40 md:hidden" />
+                          <div className="my-2.5 border-t border-slate-300/60 dark:border-slate-600/40 md:hidden" />
 
                           {/* Summary rows visible only on small screens */}
                           <div className="flex items-center justify-between md:hidden pt-1">

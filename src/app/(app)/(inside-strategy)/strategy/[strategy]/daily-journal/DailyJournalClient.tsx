@@ -368,7 +368,7 @@ export default function DailyJournalClient({
 
       <div className="space-y-4 mt-4">
         {!activeAccount && (
-          <Card className="rounded-2xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm py-10 px-6 flex items-center justify-center text-center">
+          <Card className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm py-10 px-6 flex items-center justify-center text-center">
             <div className="space-y-2">
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                 No account selected
@@ -380,7 +380,7 @@ export default function DailyJournalClient({
           </Card>
         )}
         {activeAccount && !tradesLoading && visibleDayGroups.length === 0 && (
-          <Card className="rounded-2xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm py-10 px-6 flex items-center justify-center text-center">
+          <Card className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm py-10 px-6 flex items-center justify-center text-center">
             <div className="space-y-2">
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                 No trades match the current filters
@@ -422,7 +422,7 @@ export default function DailyJournalClient({
           return (
             <Card
               key={group.date}
-              className="rounded-2xl border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden"
+              className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden"
             >
               <div
                 role="button"
