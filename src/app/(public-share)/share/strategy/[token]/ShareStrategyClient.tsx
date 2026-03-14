@@ -308,7 +308,7 @@ function SharedMyTradesView({
                 </p>
               </div>
             </div>
-            <div className="flex-1 h-32">
+            <div className="flex-1 h-32 min-h-[7rem] w-full">
               <TotalTradesDonut
                 totalTrades={totalTrades}
                 wins={wins}
@@ -328,7 +328,7 @@ function SharedMyTradesView({
                 </p>
               </div>
             </div>
-            <div className="flex-1 h-32 relative">
+            <div className="flex-1 h-32 min-h-[7rem] relative w-full">
               {totalTrades === 0 ? (
                 <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
                   <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
@@ -386,7 +386,7 @@ function SharedMyTradesView({
                 </TooltipProvider>
               </div>
             </div>
-            <div className="flex-1 h-32 relative">
+            <div className="flex-1 h-32 min-h-[7rem] relative w-full">
               {totalTrades === 0 ? (
                 <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
                   <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
