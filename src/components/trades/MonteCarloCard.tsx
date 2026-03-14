@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/card';
 import type { Trade } from '@/types/trade';
 
-const MIN_TRADES = 20;
+export const MONTE_CARLO_MIN_TRADES = 20;
 const FUTURE_TRADE_OPTIONS = [25, 50, 75, 100, 150, 200, 500, 750, 1000] as const;
 type DisplayMode = 'r' | 'dollar';
 
@@ -38,7 +38,7 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
     [trades, futureTrades]
   );
 
-  const hasSufficientData = trades.length >= MIN_TRADES;
+  const hasSufficientData = trades.length >= MONTE_CARLO_MIN_TRADES;
 
   return (
     <Card className="mb-4 relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm w-full flex flex-col">
@@ -115,7 +115,7 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
             <CardDescription className="text-base text-slate-500 dark:text-slate-400">
               {hasSufficientData
                 ? `Based on ${trades.length} trade${trades.length !== 1 ? 's' : ''} · ${futureTrades} future trades projected`
-                : `${trades.length} trade${trades.length !== 1 ? 's' : ''} available · need at least ${MIN_TRADES} for simulation`}
+                : `${trades.length} trade${trades.length !== 1 ? 's' : ''} available · need at least ${MONTE_CARLO_MIN_TRADES} for simulation`}
             </CardDescription>
           </div>
 
@@ -199,7 +199,7 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
             </div>
           </>
         ) : (
-          <EmptyState tradeCount={trades.length} minTrades={MIN_TRADES} />
+          <EmptyState tradeCount={trades.length} minTrades={MONTE_CARLO_MIN_TRADES} />
         )}
       </div>
       </CardContent>
