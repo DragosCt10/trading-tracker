@@ -60,11 +60,21 @@ export function calculateSharpeRatio(
  * Max drawdown (in %) over the equity curve from non-BE trades.
  * Running balance from accountBalance + cumulative profit; drawdown at each step = (peak - balance) / peak * 100.
  */
-export function calculateMaxDrawdown(trades: Trade[], accountBalance: number): number {
-  const nonBETrades = trades
-    .filter((t) => !t.break_even)
+function sortTradesChronologicallyStable(trades: Trade[]): Trade[] {
+  return trades
     .slice()
-    .sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime());
+    .sort((a, b) => {
+      const tA = new Date(a.trade_date).getTime();
+      const tB = new Date(b.trade_date).getTime();
+      if (tA !== tB) return tA - tB;
+      return String(a.id ?? '').localeCompare(String(b.id ?? ''));
+    });
+}
+
+export function calculateMaxDrawdown(trades: Trade[], accountBalance: number): number {
+  const nonBETrades = sortTradesChronologicallyStable(
+    trades.filter((t) => !t.break_even),
+  );
 
   let balance = accountBalance;
   let peak = balance;
@@ -86,10 +96,9 @@ export function calculateMaxDrawdown(trades: Trade[], accountBalance: number): n
  * At each step, drawdown from current peak; returns the mean of those drawdowns.
  */
 export function calculateAverageDrawdown(trades: Trade[], accountBalance: number): number {
-  const nonBETrades = trades
-    .filter((t) => !t.break_even)
-    .slice()
-    .sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime());
+  const nonBETrades = sortTradesChronologicallyStable(
+    trades.filter((t) => !t.break_even),
+  );
 
   if (nonBETrades.length === 0) return 0;
 
