@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useParams } from 'next/navigation';
 import { createTrade } from '@/lib/server/trades';
 import { Trade } from '@/types/trade';
@@ -154,7 +155,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   // Backward compat: treat any extra card being enabled as "institutional" for layout/validation
   const hasAnyExtraCard = strategyExtraCards.length > 0;
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { error, setError } = useProgressDialog(3000);
   const [mounted, setMounted] = useState(false);
 
   // Prevent hydration mismatch by only rendering on client
@@ -359,13 +360,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     () => calculateTradePnl(trade, accountBalance),
     [accountBalance, trade.break_even, trade.trade_outcome, trade.risk_per_trade, trade.risk_reward_ratio]
   );
-
-  // Auto-dismiss error after 3 seconds
-  useEffect(() => {
-    if (!error) return;
-    const t = setTimeout(() => setError(null), 3000);
-    return () => clearTimeout(t);
-  }, [error]);
 
   const handleEditSavedMarket = useCallback(async (oldName: string, newName: string) => {
     if (!userId) return;
