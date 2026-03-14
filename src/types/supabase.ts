@@ -250,6 +250,8 @@ export interface Database {
           extra_cards: string[];
           saved_setup_types: string[];
           saved_liquidity_types: string[];
+          /** Pinned/favourite items per combobox kind (setup, liquidity, market, news). Max 10 per kind. */
+          saved_favourites: Record<string, string[]> | null;
         };
         Insert: {
           user_id: string;
@@ -260,6 +262,7 @@ export interface Database {
           extra_cards?: string[];
           saved_setup_types?: string[];
           saved_liquidity_types?: string[];
+          saved_favourites?: Record<string, string[]> | null;
         };
         Update: Partial<{
           id: string;
@@ -273,6 +276,7 @@ export interface Database {
           extra_cards: string[];
           saved_setup_types: string[];
           saved_liquidity_types: string[];
+          saved_favourites: Record<string, string[]> | null;
         }>;
       };
 
@@ -320,6 +324,26 @@ export interface Database {
           created_by: string;
         };
         Update: Partial<Database['public']['Tables']['strategy_shares']['Row']>;
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // Cache of precomputed analytics for a share link (one row per share)
+      share_stats_cache: {
+        Row: {
+          share_id: string;
+          stats: Record<string, unknown>;
+          updated_at: string;
+        };
+        Insert: {
+          share_id: string;
+          stats: Record<string, unknown>;
+          updated_at?: string;
+        };
+        Update: Partial<{
+          share_id: string;
+          stats: Record<string, unknown>;
+          updated_at: string;
+        }>;
       };
 
       // ─────────────────────────────────────────────────────────────
