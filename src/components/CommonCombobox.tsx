@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Pencil, Loader2, Star } from 'lucide-react';
-import { useComboboxPins, sortByPins } from '@/hooks/useComboboxPins';
+import { sortByPins } from '@/utils/helpers/sortByPins';
 
 const MAX_SUGGESTIONS = 20;
 const MAX_CHARS = 12;
@@ -29,9 +29,7 @@ export interface CommonComboboxProps {
   disabled?: boolean;
   /** Optional callback when a saved option is renamed from the suggestions list. */
   onEditSavedOption?: (oldValue: string, newValue: string) => Promise<void> | void;
-  /** When set, enables favourite star on suggestions; pinned items appear first (max 10). Omit to disable. Default: 'common-combobox'. */
-  pinsStorageKey?: string;
-  /** When provided with onTogglePin, use DB-backed pins (from strategy.saved_favourites) instead of localStorage. */
+  /** When provided with onTogglePin, show favourite star and sort by DB-backed pins (strategy.saved_favourites). */
   pinnedIds?: string[];
   /** Callback to toggle pin (persist to DB). When provided with pinnedIds, favourites are stored on the strategy. */
   onTogglePin?: (itemId: string) => void;
@@ -49,16 +47,12 @@ export function CommonCombobox({
   dropdownClassName,
   disabled,
   onEditSavedOption,
-  pinsStorageKey = 'common-combobox',
-  pinnedIds: pinnedIdsProp,
-  onTogglePin: onTogglePinProp,
+  pinnedIds = [],
+  onTogglePin,
 }: CommonComboboxProps) {
   const [open, setOpen] = useState(false);
-  const fromHook = useComboboxPins(onTogglePinProp ? undefined : pinsStorageKey);
-  const pinnedIds = pinnedIdsProp ?? fromHook.pinnedIds;
-  const togglePin = onTogglePinProp ?? fromHook.togglePin;
+  const showPin = Boolean(onTogglePin);
   const isPinned = (id: string) => pinnedIds.includes(id);
-  const showPin = Boolean(onTogglePinProp || pinsStorageKey);
   const [inputValue, setInputValue] = useState(value ?? '');
   const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -324,7 +318,7 @@ export function CommonCombobox({
                               onMouseDown={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                togglePin(item);
+                                onTogglePin?.(item);
                               }}
                             >
                               <Star
@@ -473,7 +467,7 @@ export function CommonCombobox({
                                   onMouseDown={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    togglePin(item);
+                                    onTogglePin?.(item);
                                   }}
                                 >
                                   <Star
