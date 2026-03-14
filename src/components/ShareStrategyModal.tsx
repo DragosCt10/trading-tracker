@@ -339,7 +339,7 @@ export function ShareStrategyModal({
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 w-full">
                 <span className="text-xs text-slate-500 dark:text-slate-400">
                   Selected: {format(new Date(dateRange.startDate), 'MMM d, yyyy')}
                   {dateRange.startDate !== dateRange.endDate &&
@@ -467,7 +467,7 @@ export function ShareStrategyModal({
                         variant="outline"
                         size="sm"
                         onClick={() => handleCopyShareLink(share)}
-                        className="cursor-pointer rounded-lg border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 h-7 px-2.5 text-xs font-medium gap-1.5"
+                        className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 h-7 px-2.5 text-xs font-medium gap-1.5"
                         title="Copy share link"
                       >
                         {copiedShareId === share.id ? (
