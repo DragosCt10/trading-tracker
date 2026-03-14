@@ -741,7 +741,11 @@ export default function MyTradesClient({
               </div>
             </div>
             <div className="flex-1 h-32 relative">
-              {!mounted || totalTrades === 0 ? (
+              {!mounted || tradesLoading ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <BouncePulse size="md" />
+                </div>
+              ) : totalTrades === 0 ? (
                 <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
                   <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                     No trades yet
@@ -799,7 +803,11 @@ export default function MyTradesClient({
               </div>
             </div>
             <div className="flex-1 h-32 relative">
-              {!mounted || totalTrades === 0 ? (
+              {!mounted || tradesLoading ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <BouncePulse size="md" />
+                </div>
+              ) : totalTrades === 0 ? (
                 <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
                   <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                     No trades yet
