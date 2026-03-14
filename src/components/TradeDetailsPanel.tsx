@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useParams } from 'next/navigation';
 import { Trade } from '@/types/trade';
 import { deleteTrade, updateTrade } from '@/lib/server/trades';
@@ -124,7 +125,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { error, setError } = useProgressDialog(5000);
   const [showExtraScreens, setShowExtraScreens] = useState(false);
   const queryClient = useQueryClient();
 
@@ -147,13 +148,6 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       setEditedTrade(trade);
     }
   }, [trade, isEditing]);
-
-  // Auto-dismiss error after 5 seconds
-  useEffect(() => {
-    if (!error) return;
-    const t = setTimeout(() => setError(null), 5000);
-    return () => clearTimeout(t);
-  }, [error]);
 
   // Helper: invalidate trade queries — scoped to the affected strategy only
   const invalidateAndRefetchTradeQueries = useCallback(async () => {
