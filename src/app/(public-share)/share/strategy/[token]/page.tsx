@@ -47,12 +47,12 @@ export default async function ShareStrategyPage({ params }: PageProps) {
   const share = await getShareByToken(token);
 
   if (!share) {
-    // Show a simple not-found state for invalid or revoked links.
+    // Show a not-found state matching the share page / app: same gradient background and card design.
     return (
-      <main className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-50">
-        <div className="max-w-md px-6 py-8 rounded-2xl border border-slate-800/70 bg-slate-900/60 shadow-xl shadow-black/40">
+      <main className="min-h-screen max-w-(--breakpoint-xl) mx-auto w-full flex items-center justify-center px-4">
+        <div className="max-w-md w-full px-6 py-8 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50">
           <h1 className="text-2xl font-semibold mb-3">Link not found or expired</h1>
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             This shared strategy analytics link is no longer available. It may have been revoked by
             the owner or the URL is incorrect.
           </p>
