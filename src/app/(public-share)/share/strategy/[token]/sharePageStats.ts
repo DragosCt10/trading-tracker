@@ -94,10 +94,6 @@ export interface SharePageStats {
   dateRangeLabel: string;
 }
 
-const LONG_MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
 
 /**
  * Maps a CompactTrade (from the RPC cache) to the canonical Trade type.
@@ -185,14 +181,11 @@ export function buildSharePageStatsFromCache(
   const partials = calculatePartialTradesStats(trades);
   const newsNameStats = calculateNewsNameStats(trades, { includeUnnamed: true });
 
-  // --- Monthly profit stats: YYYY-MM keys → long month names ---
+  // --- Monthly profit stats: RPC monthly_data keys are already full month names ---
   const monthlyProfitStats: { [key: string]: { profit: number } } = {};
-  for (const [key, stats] of Object.entries(cachedStats.monthly_data ?? {})) {
-    const monthIndex = parseInt(key.split('-')[1], 10) - 1;
-    const monthName = LONG_MONTHS[monthIndex];
-    if (!monthName) continue;
+  for (const [monthName, stats] of Object.entries(cachedStats.monthly_data ?? {})) {
+    if (!monthName || !stats) continue;
     if (monthlyProfitStats[monthName]) {
-      // Accumulate across years for the same calendar month
       monthlyProfitStats[monthName].profit += stats.profit;
     } else {
       monthlyProfitStats[monthName] = { profit: stats.profit };
