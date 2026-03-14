@@ -59,7 +59,8 @@ import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
-import { updateStrategySetupTypes, updateStrategyLiquidityTypes } from '@/lib/server/strategies';
+import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyFavourites } from '@/lib/server/strategies';
+import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
 
 const MSS_OPTIONS = ['Normal', 'Aggressive', 'Wick', 'Internal'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
@@ -497,6 +498,23 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     );
   }, [userId, settings.saved_news, queryClient]);
 
+  const handleToggleFavourite = useCallback(
+    (kind: SavedFavouritesKind) => (itemId: string) => {
+      if (!currentStrategy || !userId || !accountId) return;
+      const strategyId = currentStrategy.id;
+      void updateStrategyFavourites(strategyId, userId, kind, itemId).then((nextSavedFavourites) => {
+        if (nextSavedFavourites == null) return;
+        const key = queryKeys.strategies(userId, accountId);
+        queryClient.setQueryData(key, (prev: Strategy[] | undefined) =>
+          prev?.map((s) =>
+            s.id === strategyId ? { ...s, saved_favourites: nextSavedFavourites } : s
+          )
+        );
+      });
+    },
+    [currentStrategy, userId, accountId, queryClient]
+  );
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -905,6 +923,12 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               onEditSavedMarket={handleEditSavedMarket}
               onEditSavedSetup={handleEditSavedSetup}
               onEditSavedLiquidity={handleEditSavedLiquidity}
+              pinnedIdsMarket={currentStrategy?.saved_favourites?.market}
+              onTogglePinMarket={currentStrategy ? handleToggleFavourite('market') : undefined}
+              pinnedIdsSetup={currentStrategy?.saved_favourites?.setup}
+              onTogglePinSetup={currentStrategy ? handleToggleFavourite('setup') : undefined}
+              pinnedIdsLiquidity={currentStrategy?.saved_favourites?.liquidity}
+              onTogglePinLiquidity={currentStrategy ? handleToggleFavourite('liquidity') : undefined}
             />
 
             {/* Risk Management Section */}
@@ -957,6 +981,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                       placeholder="e.g. CPI, NFP, FOMC"
                       className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
                       onEditSavedNews={handleEditSavedNews}
+                      pinnedIds={currentStrategy?.saved_favourites?.news}
+                      onTogglePin={currentStrategy ? handleToggleFavourite('news') : undefined}
                     />
                   </div>
                   {/* Star rating 1–3 */}
@@ -1202,6 +1228,12 @@ interface MarketAndSetupSectionProps {
   onEditSavedMarket: (oldName: string, newName: string) => void | Promise<void>;
   onEditSavedSetup: (oldName: string, newName: string) => void | Promise<void>;
   onEditSavedLiquidity: (oldName: string, newName: string) => void | Promise<void>;
+  pinnedIdsMarket?: string[];
+  onTogglePinMarket?: (itemId: string) => void;
+  pinnedIdsSetup?: string[];
+  onTogglePinSetup?: (itemId: string) => void;
+  pinnedIdsLiquidity?: string[];
+  onTogglePinLiquidity?: (itemId: string) => void;
 }
 
 const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
@@ -1229,6 +1261,12 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
   onEditSavedMarket,
   onEditSavedSetup,
   onEditSavedLiquidity,
+  pinnedIdsMarket,
+  onTogglePinMarket,
+  pinnedIdsSetup,
+  onTogglePinSetup,
+  pinnedIdsLiquidity,
+  onTogglePinLiquidity,
 }: MarketAndSetupSectionProps) {
   // Local state to track FVG custom input while typing
   const [fvgInputValue, setFvgInputValue] = useState<string>(String(fvgSize ?? ''));
@@ -1259,6 +1297,8 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
             dropdownClassName="z-[100]"
             defaultSuggestions={savedMarkets}
             onEditSavedMarket={onEditSavedMarket}
+            pinnedIds={pinnedIdsMarket}
+            onTogglePin={onTogglePinMarket}
           />
         </div>
         <div className="space-y-2">
@@ -1339,6 +1379,8 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
               placeholder="Select or type pattern / setup"
               dropdownClassName="z-[100]"
               onEditSavedOption={onEditSavedSetup}
+              pinnedIds={pinnedIdsSetup}
+              onTogglePin={onTogglePinSetup}
             />
           </div>
         )}
@@ -1450,6 +1492,8 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
               placeholder="Select or type conditions / liquidity"
               dropdownClassName="z-[100]"
               onEditSavedOption={onEditSavedLiquidity}
+              pinnedIds={pinnedIdsLiquidity}
+              onTogglePin={onTogglePinLiquidity}
             />
           </div>
         )}
