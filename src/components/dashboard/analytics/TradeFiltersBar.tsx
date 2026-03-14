@@ -121,15 +121,21 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
   } = props;
 
   const [showDatePicker, setShowDatePicker] = React.useState(false);
-  const [tempRange, setTempRange] = React.useState<DateRangeValue>(dateRange);
+  const [tempRange, setTempRange] = React.useState<DateRangeValue>({
+    startDate: displayStartDate ?? dateRange.startDate,
+    endDate: dateRange.endDate,
+  });
 
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const pickerRef = React.useRef<HTMLDivElement | null>(null);
 
   // keep tempRange in sync if parent changes dateRange
   React.useEffect(() => {
-    setTempRange(dateRange);
-  }, [dateRange]);
+    setTempRange({
+      startDate: displayStartDate ?? dateRange.startDate,
+      endDate: dateRange.endDate,
+    });
+  }, [dateRange, displayStartDate]);
 
 
   // click-outside to close date picker
@@ -145,7 +151,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
         !inputRef.current.contains(target)
       ) {
         // discard changes
-        setTempRange(dateRange);
+        setTempRange({ startDate: displayStartDate ?? dateRange.startDate, endDate: dateRange.endDate });
         setShowDatePicker(false);
       }
     };
@@ -168,7 +174,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
   };
 
   const handleCancel = () => {
-    setTempRange({ ...dateRange });
+    setTempRange({ startDate: displayStartDate ?? dateRange.startDate, endDate: dateRange.endDate });
     setShowDatePicker(false);
   };
 
