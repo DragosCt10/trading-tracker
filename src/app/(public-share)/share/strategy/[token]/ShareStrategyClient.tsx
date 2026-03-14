@@ -83,7 +83,7 @@ import { buildEquityPointsFromTrades } from '@/components/dashboard/analytics/Eq
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
 import { TotalTradesDonut } from '@/components/dashboard/analytics/TotalTradesChartCard';
 import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';
-import { MonteCarloCard } from '@/components/trades/MonteCarloCard';
+import { MonteCarloCard, MONTE_CARLO_MIN_TRADES } from '@/components/trades/MonteCarloCard';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
 import { calculateAverageDrawdown } from '@/utils/analyticsCalculations';
 import { useDarkMode } from '@/hooks/useDarkMode';
@@ -408,10 +408,12 @@ function SharedMyTradesView({
         </Card>
       </div>
 
-      {/* Future Equity (Monte Carlo) card */}
-      <div>
-        <MonteCarloCard trades={filteredTrades} currencySymbol={currencySymbol} />
-      </div>
+      {/* Future Equity (Monte Carlo) card — only when enough trades for simulation */}
+      {filteredTrades.length >= MONTE_CARLO_MIN_TRADES && (
+        <div>
+          <MonteCarloCard trades={filteredTrades} currencySymbol={currencySymbol} />
+        </div>
+      )}
 
       <TradeCardsView
         trades={filteredTrades}
