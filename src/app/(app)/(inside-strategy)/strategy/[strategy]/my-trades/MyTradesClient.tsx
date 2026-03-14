@@ -689,7 +689,7 @@ export default function MyTradesClient({
               ) : !hasEquityData ? (
                 <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
                   <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    No data yet
+                    No trades yet
                   </p>
                 </div>
               ) : (
@@ -744,7 +744,7 @@ export default function MyTradesClient({
               {!mounted || totalTrades === 0 ? (
                 <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
                   <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    No data yet
+                    No trades yet
                   </p>
                 </div>
               ) : (
@@ -802,7 +802,7 @@ export default function MyTradesClient({
               {!mounted || totalTrades === 0 ? (
                 <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
                   <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    No data yet
+                    No trades yet
                   </p>
                 </div>
               ) : (
