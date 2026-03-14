@@ -111,7 +111,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
   return (
     <>
       <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-(--breakpoint-xl) px-4 sm:px-0">
-        <div className="relative rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40">
+        <div className="relative rounded-2xl border border-slate-300/60 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40">
           <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
           <div className="relative flex items-center px-3 py-2 sm:px-4 sm:py-2.5">
             <Link
