@@ -3,7 +3,13 @@
 
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip as ReTooltip, Bar as ReBar, Cell, LabelList } from 'recharts';
 import { Card, CardTitle, CardContent } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, Info } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import React from 'react';
 import { Trade } from '@/types/trade';
@@ -190,8 +196,34 @@ export function AccountOverviewCard({
           </div>
 
           <div className="text-right space-y-2">
-            <div className="text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500">
-              Balance incl. year profit
+            <div className="flex items-center justify-end gap-1.5 text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500">
+              <span>Balance incl. year profit</span>
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex h-4 w-4 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none shrink-0"
+                      aria-label="Explanation of balance including year profit"
+                    >
+                      <Info className="h-3 w-3" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="top"
+                    align="end"
+                    sideOffset={6}
+                    className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
+                  >
+                    {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+                    <div className="relative">
+                      <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-300">
+                        This is not cumulative P&amp;L. It uses a <strong>geometric (theoretical compounded)</strong> model: starting balance plus year profit, not a running equity curve.
+                      </p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div className="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
               {displayBalanceStr}
