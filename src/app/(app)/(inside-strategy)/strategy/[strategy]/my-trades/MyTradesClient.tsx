@@ -863,7 +863,7 @@ export default function MyTradesClient({
                 >
                   <SelectValue placeholder="Date" />
                 </SelectTrigger>
-                <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+                <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
                   <SelectItem value="trade_date">Date</SelectItem>
                   <SelectItem value="market">Market</SelectItem>
                   <SelectItem value="outcome">Outcome</SelectItem>
