@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { Pencil, Loader2, Star } from 'lucide-react';
-import { useComboboxPins, sortByPins } from '@/hooks/useComboboxPins';
+import { sortByPins } from '@/utils/helpers/sortByPins';
 
 const MAX_SUGGESTIONS = 8;
 const FILTER_THRESHOLD = 30; // loose threshold while typing
@@ -36,9 +36,7 @@ export interface NewsComboboxProps {
   maxLength?: number;
   /** Optional callback when a saved news item is renamed from the suggestions list. */
   onEditSavedNews?: (item: SavedNewsItem, newName: string) => Promise<void> | void;
-  /** When set, enables favourite star on suggestions; pinned items appear first (max 10). Default: 'news-combobox'. */
-  pinsStorageKey?: string;
-  /** When provided with onTogglePin, use DB-backed pins (from strategy.saved_favourites) instead of localStorage. */
+  /** When provided with onTogglePin, show favourite star and sort by DB-backed pins (strategy.saved_favourites). */
   pinnedIds?: string[];
   /** Callback to toggle pin (persist to DB). When provided with pinnedIds, favourites are stored on the strategy. */
   onTogglePin?: (itemId: string) => void;
@@ -54,16 +52,12 @@ export function NewsCombobox({
   id,
   maxLength = NEWS_INPUT_MAX_LENGTH,
   onEditSavedNews,
-  pinsStorageKey = 'news-combobox',
-  pinnedIds: pinnedIdsProp,
-  onTogglePin: onTogglePinProp,
+  pinnedIds = [],
+  onTogglePin,
 }: NewsComboboxProps) {
   const [open, setOpen] = useState(false);
-  const fromHook = useComboboxPins(onTogglePinProp ? undefined : pinsStorageKey);
-  const pinnedIds = pinnedIdsProp ?? fromHook.pinnedIds;
-  const togglePin = onTogglePinProp ?? fromHook.togglePin;
+  const showPin = Boolean(onTogglePin);
   const isPinned = (id: string) => pinnedIds.includes(id);
-  const showPin = Boolean(onTogglePinProp || pinsStorageKey);
   const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -295,7 +289,7 @@ export function NewsCombobox({
                         onMouseDown={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          togglePin(item.id);
+                          onTogglePin?.(item.id);
                         }}
                       >
                         <Star
