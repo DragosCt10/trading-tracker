@@ -40,6 +40,12 @@ export const TotalProfitStatCard: React.FC<TotalProfitStatCardProps> = React.mem
     return (
       <StatCard
         title="Total Profit"
+        tooltipVariant="default"
+        tooltipContent={
+          <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-300">
+            This is not cumulative P&amp;L. It is the sum of trade profits in the period (geometric/theoretical compounded model, matching the Account overview).
+          </p>
+        }
         value={
           <p className={cn('text-2xl font-bold', colorClass)}>
             {formatTotalProfitValue(totalProfit, currencySymbol, hydrated)}
