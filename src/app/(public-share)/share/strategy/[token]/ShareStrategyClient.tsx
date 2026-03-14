@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import type { Trade } from '@/types/trade';
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { StrategyShareRow } from '@/lib/server/publicShares';
+import type { SharePageStats } from './sharePageStats';
 import { TradeCardsView } from '@/components/trades/TradeCardsView';
 import { TradingOverviewStats } from '@/components/dashboard/analytics/TradingOverviewStats';
 import { EquityCurveCard } from '@/components/dashboard/analytics/EquityCurveCard';
@@ -13,21 +14,15 @@ import {
   MonthlyPerformanceChart,
   computeFullMonthlyStatsFromTrades,
 } from '@/components/dashboard/analytics/MonthlyPerformanceChart';
-import { RiskRewardStats, DISPLAY_RATIOS } from '@/components/dashboard/analytics/RiskRewardStats';
-import {
-  SetupStatisticsCard,
-  calculateSetupStats,
-} from '@/components/dashboard/analytics/SetupStatisticsCard';
-import {
-  LiquidityStatisticsCard,
-  calculateLiquidityStats,
-} from '@/components/dashboard/analytics/LiquidityStatisticsCard';
+import { RiskRewardStats } from '@/components/dashboard/analytics/RiskRewardStats';
+import { SetupStatisticsCard } from '@/components/dashboard/analytics/SetupStatisticsCard';
+import { LiquidityStatisticsCard } from '@/components/dashboard/analytics/LiquidityStatisticsCard';
 import {
   AccountOverviewCard,
   MONTHS,
   computeMonthlyStatsFromTrades,
   calculateTotalYearProfit,
-  calculateUpdatedBalance,
+  calculatePnlPercentFromOverview,
 } from '@/components/dashboard/analytics/AccountOverviewCard';
 import {
   TradesCalendarCard,
@@ -38,33 +33,12 @@ import {
   ConfidenceStatsCard,
   MindStateStatsCard,
 } from '@/components/dashboard/analytics/ConfidenceMindStateCards';
-import {
-  calculateDirectionStats,
-  calculateReentryStats,
-  calculateBreakEvenStats,
-  calculateTrendStats,
-  calculateMarketStats,
-  calculateSLSizeStats,
-  calculateMssStats,
-  calculateLocalHLStats,
-  calculateDayStats,
-  calculateNewsNameStats,
-} from '@/utils/calculateCategoryStats';
-import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
-import { calculateEvaluationStats } from '@/utils/calculateEvaluationStats';
-import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
-import { calculateRiskPerTradeStats } from '@/utils/calculateRiskPerTrade';
 import { ConsistencyScoreChart } from '@/components/dashboard/analytics/ConsistencyScoreChart';
 import { AverageDrawdownChart } from '@/components/dashboard/analytics/AverageDrawdownChart';
 import { MaxDrawdownChart } from '@/components/dashboard/analytics/MaxDrawdownChart';
 import { ProfitFactorChart } from '@/components/dashboard/analytics/ProfitFactorChart';
 import { SharpeRatioChart } from '@/components/dashboard/analytics/SharpeRatioChart';
 import { TQIChart } from '@/components/dashboard/analytics/TQIChart';
-import {
-  computeStrategyStatsFromTrades,
-  computeTimeIntervalChartData,
-} from '@/utils/computeStrategyStatsFromTrades';
-import { calculateFilteredMacroStats } from '@/utils/calculateFilteredMacroStats';
 import { chartOptions } from '@/utils/chartConfig';
 import { MarketStatisticsCard } from '@/components/dashboard/analytics/MarketStatisticsCard';
 import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketProfitStats';
@@ -96,17 +70,27 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Footer } from '@/components/shared/Footer';
 import { cn } from '@/lib/utils';
-import { getIntervalForTime } from '@/constants/analytics';
 import {
   BarChart3,
-  Eye,
+  Info,
   Lock,
   Share2,
+  TrendingDown,
   TrendingUp,
 } from 'lucide-react';
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { buildEquityPointsFromTrades } from '@/components/dashboard/analytics/EquityCurveCard';
+import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
+import { TotalTradesDonut } from '@/components/dashboard/analytics/TotalTradesChartCard';
+import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';
+import { MonteCarloCard, MONTE_CARLO_MIN_TRADES } from '@/components/trades/MonteCarloCard';
+import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
+import { calculateAverageDrawdown } from '@/utils/analyticsCalculations';
+import { useDarkMode } from '@/hooks/useDarkMode';
 
 type ShareStrategyClientProps = {
   trades: Trade[];
+  precomputedStats: SharePageStats;
   strategy: {
     name: string;
     extra_cards: ExtraCardKey[];
@@ -116,8 +100,21 @@ type ShareStrategyClientProps = {
   accountBalance: number | null;
 };
 
-function SharedMyTradesView({ trades, strategyName }: { trades: Trade[]; strategyName: string }) {
+function SharedMyTradesView({
+  trades,
+  strategyName,
+  currencySymbol,
+  accountBalance,
+  extraCards,
+}: {
+  trades: Trade[];
+  strategyName: string;
+  currencySymbol: string;
+  accountBalance: number | null;
+  extraCards: string[];
+}) {
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
+  const { isDark } = useDarkMode();
 
   const markets = useMemo(
     () => Array.from(new Set(trades.map((t) => t.market).filter(Boolean))),
@@ -129,12 +126,300 @@ function SharedMyTradesView({ trades, strategyName }: { trades: Trade[]; strateg
     return trades.filter((t) => t.market === selectedMarket);
   }, [trades, selectedMarket]);
 
+  const monthlyStatsForPeriod = useMemo(
+    () => computeMonthlyStatsFromTrades(filteredTrades),
+    [filteredTrades]
+  );
+  const netCumulativePnl = useMemo(
+    () => calculateTotalYearProfit(monthlyStatsForPeriod),
+    [monthlyStatsForPeriod]
+  );
+  const pnlPercent = useMemo(() => {
+    const base = accountBalance ?? 1;
+    return (netCumulativePnl / base) * 100;
+  }, [netCumulativePnl, accountBalance]);
+
+  const equityChartData = useMemo(() => buildEquityPointsFromTrades(filteredTrades), [filteredTrades]);
+  const hasEquityData = equityChartData.length > 0;
+
+  const totalTrades = filteredTrades.length;
+  const wins = useMemo(
+    () => filteredTrades.filter((t) => !t.break_even && t.trade_outcome === 'Win').length,
+    [filteredTrades]
+  );
+  const losses = useMemo(
+    () => filteredTrades.filter((t) => !t.break_even && t.trade_outcome === 'Lose').length,
+    [filteredTrades]
+  );
+  const beTrades = useMemo(
+    () => filteredTrades.filter((t) => t.break_even || t.trade_outcome === 'BE').length,
+    [filteredTrades]
+  );
+
+  const overviewStats = useMemo(
+    () => calculateTradingOverviewStats(filteredTrades),
+    [filteredTrades]
+  );
+
+  const averageDrawdown = useMemo(
+    () => calculateAverageDrawdown(filteredTrades, accountBalance ?? 0),
+    [filteredTrades, accountBalance],
+  );
+  const normalizedAverageDrawdown = useMemo(() => {
+    const capped = Math.max(0, Math.min(averageDrawdown, 20));
+    return (capped / 20) * 100;
+  }, [averageDrawdown]);
+
+  const avgDrawdownTooltipContent = (
+    <div className="space-y-3">
+      <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+        Average Drawdown Interpretation
+      </div>
+      <div className="space-y-2">
+        <div
+          className={cn(
+            'rounded-xl p-2.5 transition-all',
+            averageDrawdown <= 2
+              ? 'bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30'
+              : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30'
+          )}
+        >
+          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🔹 0% – 2%</span>
+          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+            Excellent — Very low average drawdown, consistent performance.
+          </div>
+        </div>
+        <div
+          className={cn(
+            'rounded-xl p-2.5 transition-all',
+            averageDrawdown > 2 && averageDrawdown <= 5
+              ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/30'
+              : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30'
+          )}
+        >
+          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">✅ 2% – 5%</span>
+          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+            Healthy — Acceptable average drawdown for most strategies.
+          </div>
+        </div>
+        <div
+          className={cn(
+            'rounded-xl p-2.5 transition-all',
+            averageDrawdown > 5 && averageDrawdown <= 10
+              ? 'bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30'
+              : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30'
+          )}
+        >
+          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">⚠️ 5% – 10%</span>
+          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+            Moderate — Higher average drawdown, monitor risk management.
+          </div>
+        </div>
+        <div
+          className={cn(
+            'rounded-xl p-2.5 transition-all',
+            averageDrawdown > 10 && averageDrawdown <= 15
+              ? 'bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/50 dark:border-orange-800/30'
+              : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30'
+          )}
+        >
+          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">❗ 10% – 15%</span>
+          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+            High Risk — Significant average drawdown exposure.
+          </div>
+        </div>
+        <div
+          className={cn(
+            'rounded-xl p-2.5 transition-all',
+            averageDrawdown > 15
+              ? 'bg-red-50/80 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/30'
+              : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30'
+          )}
+        >
+          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🚫 15%+</span>
+          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+            Danger Zone — Extreme average drawdown, immediate review required.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Summary row: P&L + equity chart + total trades + win rate + avg drawdown */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
+          <CardContent className="p-4 flex flex-col h-full">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  Net P&amp;L
+                </p>
+                <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+                  {currencySymbol}
+                  {netCumulativePnl.toFixed(2)}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {netCumulativePnl >= 0 ? (
+                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                ) : (
+                  <TrendingDown className="w-4 h-4 text-rose-500" />
+                )}
+                <div
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
+                    netCumulativePnl >= 0
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                      : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                  }`}
+                >
+                  {netCumulativePnl >= 0 ? '+' : ''}
+                  {pnlPercent.toFixed(2)}%
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 min-h-[80px]">
+              {!hasEquityData ? (
+                <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
+                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    No trades yet
+                  </p>
+                </div>
+              ) : (
+                <EquityCurveChart
+                  data={equityChartData}
+                  currencySymbol={currencySymbol}
+                  hasTrades={hasEquityData}
+                  isLoading={false}
+                  variant="card"
+                  hideAxisLabels
+                />
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
+          <CardContent className="p-4 flex flex-col h-full">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  Total Trades
+                </p>
+              </div>
+            </div>
+            <div className="flex-1 h-32 min-h-[7rem] w-full">
+              <TotalTradesDonut
+                totalTrades={totalTrades}
+                wins={wins}
+                losses={losses}
+                beTrades={beTrades}
+                variant="compact"
+              />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
+          <CardContent className="p-4 flex flex-col h-full">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  Win Rate
+                </p>
+              </div>
+            </div>
+            <div className="flex-1 h-32 min-h-[7rem] relative w-full">
+              {totalTrades === 0 ? (
+                <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
+                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    No trades yet
+                  </p>
+                </div>
+              ) : (
+                <SummaryHalfGauge
+                  variant="winRate"
+                  valueNormalized={overviewStats.winRate}
+                  centerLabel={`${overviewStats.winRate.toFixed(1)}%`}
+                  minLabel="0%"
+                  maxLabel="100%"
+                />
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
+          <CardContent className="p-4 flex flex-col h-full">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="flex items-center gap-1.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                  Avg Drawdown
+                </p>
+                <TooltipProvider>
+                  <UITooltip delayDuration={150}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        tabIndex={0}
+                        className="inline-flex h-3.5 w-3.5 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none"
+                        aria-label="Average drawdown info"
+                      >
+                        <Info className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      align="center"
+                      className="w-[320px] text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-700/80 bg-slate-900/90 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.7)] text-slate-50"
+                      sideOffset={8}
+                    >
+                      {isDark && (
+                        <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />
+                      )}
+                      <div className="relative text-left">
+                        <div className="text-[11px] font-extrabold tracking-[0.18em] text-slate-300 mb-2">
+                          AVERAGE DRAWDOWN INTERPRETATION
+                        </div>
+                        {avgDrawdownTooltipContent}
+                      </div>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
+              </div>
+            </div>
+            <div className="flex-1 h-32 min-h-[7rem] relative w-full">
+              {totalTrades === 0 ? (
+                <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
+                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    No trades yet
+                  </p>
+                </div>
+              ) : (
+                <SummaryHalfGauge
+                  variant="avgDrawdown"
+                  valueNormalized={normalizedAverageDrawdown}
+                  centerLabel={`${averageDrawdown.toFixed(2)}%`}
+                  minLabel="0%"
+                  maxLabel="20%"
+                  rawValueForTooltip={averageDrawdown}
+                />
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Future Equity (Monte Carlo) card — only when enough trades for simulation */}
+      {filteredTrades.length >= MONTE_CARLO_MIN_TRADES && (
+        <div>
+          <MonteCarloCard trades={filteredTrades} currencySymbol={currencySymbol} />
+        </div>
+      )}
+
       <TradeCardsView
         trades={filteredTrades}
         readOnly
         strategyName={strategyName}
+        extraCards={extraCards}
         resetKey={selectedMarket}
         emptyMessage="No trades found."
         marketFilter={{
@@ -149,6 +434,7 @@ function SharedMyTradesView({ trades, strategyName }: { trades: Trade[]; strateg
 
 export default function ShareStrategyClient({
   trades,
+  precomputedStats,
   strategy,
   shareData,
   currencySymbol,
@@ -179,21 +465,25 @@ export default function ShareStrategyClient({
     }
   }, [searchParams]);
 
-  const dateRangeLabel = useMemo(() => {
-    const start = new Date(shareData.start_date);
-    const end = new Date(shareData.end_date);
-    const sameYear = start.getFullYear() === end.getFullYear();
-    const sameMonth = sameYear && start.getMonth() === end.getMonth();
+  // Precomputed server values — no client-side useMemo needed for these
+  const {
+    dateRangeLabel,
+    setupStats, liquidityStats, marketStats, slSizeStats,
+    timeIntervalChartData, dayStats, mssStats, localHLStats,
+    monthlyProfitStats, totalRangeProfit, updatedBalance,
+    partials: partialStatsFromTrades,
+    evaluationStats, reentryStats, breakEvenStats, trendStats,
+    directionStats,
+    allTradesRiskStats, statsToUse, macroStatsToUse,
+    calendarMonthKeys,
+    hasSetupData, hasLiquidityData, hasMarketData, hasSLSizeData,
+    hasTimeIntervalData, hasDayStatsData, hasMssData, hasLocalHLData,
+    hasNewsNameData, hasPotentialRRData, hasLaunchHourData,
+    hasAvgDisplacementData, hasDisplacementSizeData, hasFvgSizeData,
+    hasConfidenceData, hasMindStateData,
+  } = precomputedStats;
 
-    if (sameYear && sameMonth) {
-      return `${format(start, 'MMM d')} – ${format(end, 'd, yyyy')}`;
-    }
-    if (sameYear) {
-      return `${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')}`;
-    }
-    return `${format(start, 'MMM d, yyyy')} – ${format(end, 'MMM d, yyyy')}`;
-  }, [shareData.start_date, shareData.end_date]);
-
+  // Still computed client-side — fast, pure, from compact_trades
   const monthlyStatsAllTrades = useMemo(
     () => computeFullMonthlyStatsFromTrades(trades),
     [trades]
@@ -201,62 +491,12 @@ export default function ShareStrategyClient({
 
   const hasSetupCard = strategy.extra_cards.includes('setup_stats');
   const hasLiquidityCard = strategy.extra_cards.includes('liquidity_stats');
-  const setupStats = useMemo(
-    () => (hasSetupCard ? calculateSetupStats(trades) : []),
-    [hasSetupCard, trades]
-  );
-  const liquidityStats = useMemo(
-    () => (hasLiquidityCard ? calculateLiquidityStats(trades) : []),
-    [hasLiquidityCard, trades]
-  );
-
-  const marketStats = useMemo(
-    () => calculateMarketStats(trades, accountBalance ?? 0),
-    [trades, accountBalance]
-  );
-
-  const slSizeStats = useMemo(() => calculateSLSizeStats(trades), [trades]);
-
-  const { timeIntervalChartData } = useMemo(
-    () => computeTimeIntervalChartData(trades),
-    [trades]
-  );
-
-  const dayStats = useMemo(() => calculateDayStats(trades), [trades]);
-
-  const mssStats = useMemo(() => calculateMssStats(trades), [trades]);
-
-  const localHLStats = useMemo(() => calculateLocalHLStats(trades), [trades]);
 
   const getCurrencySymbol = () => currencySymbol;
 
-  // Monthly profit stats for the shared period (date range)
-  const monthlyProfitStats = useMemo(
-    () => computeMonthlyStatsFromTrades(trades),
-    [trades]
-  );
-
-  const totalRangeProfit = useMemo(
-    () => calculateTotalYearProfit(monthlyProfitStats),
-    [monthlyProfitStats]
-  );
-
-  const updatedBalance = useMemo(
-    () => calculateUpdatedBalance(accountBalance ?? 0, totalRangeProfit),
-    [accountBalance, totalRangeProfit]
-  );
-
-  // Calendar range: only months that have at least one trade (so we don't show empty months)
+  // Calendar range: built from precomputed trade_months (YYYY-MM strings)
   const calendarRange = useMemo(() => {
-    const monthKeys = new Set<string>();
-    trades.forEach((t) => {
-      const dateStr =
-        typeof t.trade_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t.trade_date)
-          ? t.trade_date
-          : format(new Date(t.trade_date), 'yyyy-MM-dd');
-      monthKeys.add(dateStr.slice(0, 7)); // "YYYY-MM"
-    });
-    const sorted = Array.from(monthKeys).sort();
+    const sorted = [...calendarMonthKeys].sort();
     if (sorted.length === 0) {
       const fallback = startOfMonth(new Date(shareData.start_date));
       return { firstMonth: fallback, lastMonth: fallback, initialCalendarMonth: fallback };
@@ -266,7 +506,7 @@ export default function ShareStrategyClient({
     const firstMonth = new Date(fy, fm - 1, 1);
     const lastMonth = new Date(ly, lm - 1, 1);
     return { firstMonth, lastMonth, initialCalendarMonth: lastMonth };
-  }, [trades, shareData.start_date]);
+  }, [calendarMonthKeys, shareData.start_date]);
 
   const { firstMonth, lastMonth } = calendarRange;
 
@@ -340,166 +580,38 @@ export default function ShareStrategyClient({
     [currentDate, calendarMonthTrades, accountBalance]
   );
 
-  const directionStats = useMemo(() => calculateDirectionStats(trades), [trades]);
-  const partialStatsFromTrades = useMemo(
-    () => calculatePartialTradesStats(trades),
-    [trades]
-  );
-
-  const partialRowProps = useMemo(
-    () => ({
-      partialStats: {
-        totalPartials: partialStatsFromTrades.totalPartialTradesCount,
-        partialWinningTrades: partialStatsFromTrades.partialWinningTrades,
-        partialLosingTrades: partialStatsFromTrades.partialLosingTrades,
-        partialBETrades: partialStatsFromTrades.partialBETrades,
-      },
-      initialNonExecutedTotalTradesCount: null as number | null,
-      directionStats,
-      includeTotalTradesForDirection: true,
-      chartsLoadingState: false,
-    }),
-    [
-      partialStatsFromTrades,
-      directionStats,
-    ]
-  );
-
-  const evaluationStats = useMemo(
-    () => calculateEvaluationStats(trades) as EvaluationStat[],
-    [trades]
-  );
-  const reentryStats = useMemo(() => calculateReentryStats(trades), [trades]);
-  const breakEvenStats = useMemo(() => calculateBreakEvenStats(trades), [trades]);
-  const trendStats = useMemo(() => calculateTrendStats(trades), [trades]);
-  const allTradesRiskStats = useMemo(() => calculateRiskPerTradeStats(trades), [trades]);
-
-  // Same calculation as StrategyClient: statsToUse and macroStatsToUse for Consistency & drawdown and Performance ratios
-  const statsToUse = useMemo(
-    () =>
-      computeStrategyStatsFromTrades({
-        tradesToUse: trades,
-        accountBalance: accountBalance ?? 0,
-        selectedExecution: null,
-        viewMode: 'dateRange',
-        selectedMarket: 'all',
-        statsFromHook: {},
-      }),
-    [trades, accountBalance]
-  );
-
-  const macroStatsToUse = useMemo(
-    () =>
-      calculateFilteredMacroStats({
-        viewMode: 'dateRange',
-        selectedMarket: 'all',
-        tradesToUse: trades,
-        statsToUse,
-        monthlyStatsToUse: monthlyProfitStats,
-        nonExecutedTrades: null,
-        nonExecutedTotalTradesCount: 0,
-        yearlyPartialTradesCount: 0,
-        yearlyPartialsBECount: 0,
-        macroStats: {},
-      }),
-    [trades, statsToUse, monthlyProfitStats]
-  );
-
-  const hasConfidenceData = useMemo(
-    () =>
-      trades.some(
-        (t) =>
-          t.confidence_at_entry != null &&
-          t.confidence_at_entry >= 1 &&
-          t.confidence_at_entry <= 5
-      ),
-    [trades]
-  );
-  const hasMindStateData = useMemo(
-    () =>
-      trades.some(
-        (t) =>
-          t.mind_state_at_entry != null &&
-          t.mind_state_at_entry >= 1 &&
-          t.mind_state_at_entry <= 5
-      ),
-    [trades]
-  );
-
   const hasCard = (key: ExtraCardKey) => strategy.extra_cards.includes(key);
 
-  // Only show cards when trades have data for that card type
-  const newsNameStats = useMemo(
-    () => calculateNewsNameStats(trades, { includeUnnamed: true }),
-    [trades]
-  );
-  const hasNewsNameData = newsNameStats.length > 0;
-  const hasPotentialRRData = useMemo(
-    () =>
-      trades.some(
-        (t) =>
-          typeof t.risk_reward_ratio_long === 'number' &&
-          DISPLAY_RATIOS.includes(t.risk_reward_ratio_long)
-      ),
-    [trades]
-  );
-  const hasSLSizeData = slSizeStats.length > 0;
-  const hasMarketData = marketStats.length > 0;
-  const hasTimeIntervalData = useMemo(
-    () => timeIntervalChartData.some((d) => (d.totalTrades ?? 0) > 0),
-    [timeIntervalChartData]
-  );
-  const hasDayStatsData = dayStats.length > 0;
-  const hasMssData = mssStats.length > 0;
-  const hasLaunchHourData = useMemo(
-    () => trades.some((t) => t.launch_hour === true),
-    [trades]
-  );
-  const hasAvgDisplacementData = useMemo(
-    () =>
-      trades.some(
-        (t) => typeof t.displacement_size === 'number' && t.displacement_size > 0
-      ),
-    [trades]
-  );
-  const hasDisplacementSizeData = useMemo(
-    () => trades.some((t) => typeof t.displacement_size === 'number'),
-    [trades]
-  );
-  const hasLocalHLData = useMemo(
-    () =>
-      (localHLStats.liquidated?.total ?? 0) > 0 ||
-      (localHLStats.notLiquidated?.total ?? 0) > 0,
-    [localHLStats]
-  );
-  const hasFvgSizeData = useMemo(
-    () => trades.some((t) => typeof t.fvg_size === 'number'),
-    [trades]
-  );
-  const hasSetupData = setupStats.length > 0;
-  const hasLiquidityData = liquidityStats.length > 0;
+  const partialRowProps = {
+    partialStats: {
+      totalPartials: partialStatsFromTrades.totalPartialTradesCount,
+      partialWinningTrades: partialStatsFromTrades.partialWinningTrades,
+      partialLosingTrades: partialStatsFromTrades.partialLosingTrades,
+      partialBETrades: partialStatsFromTrades.partialBETrades,
+    },
+    initialNonExecutedTotalTradesCount: null as number | null,
+    directionStats,
+    includeTotalTradesForDirection: true,
+    chartsLoadingState: false,
+  };
 
-  const aboveRiskPerTradeRow = useMemo(
-    () => ({
-      evaluationStats,
-      reentryStats,
-      breakEvenStats,
-      trendStats,
-      chartsLoadingState: false,
-      includeTotalTrades: true,
-      showEvaluationCard:
-        hasCard('evaluation_stats') && evaluationStats.length > 0,
-      showTrendCard: hasCard('trend_stats') && trendStats.length > 0,
-    }),
-    [evaluationStats, reentryStats, breakEvenStats, trendStats, strategy.extra_cards]
-  );
+  const aboveRiskPerTradeRow = {
+    evaluationStats,
+    reentryStats,
+    breakEvenStats,
+    trendStats,
+    chartsLoadingState: false,
+    includeTotalTrades: true,
+    showEvaluationCard: hasCard('evaluation_stats') && evaluationStats.length > 0,
+    showTrendCard: hasCard('trend_stats') && trendStats.length > 0,
+  };
 
   return (
     <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-50 w-full">
       <main className="flex-1 w-full mt-12">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium shadow-sm themed-badge-live">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--tc-primary)]/50 px-3 py-1 text-xs font-medium shadow-sm bg-[var(--tc-primary)]/10 text-[var(--tc-primary)]">
               <Share2 className="h-3.5 w-3.5" />
               <span>Read-only shared view</span>
             </div>
@@ -517,7 +629,7 @@ export default function ShareStrategyClient({
             <div className="flex flex-wrap items-center gap-2">
               <Badge
                 variant="outline"
-                className="themed-badge-live text-[11px] font-semibold uppercase tracking-wide px-3 py-1 rounded-full"
+                className="text-[11px] font-semibold uppercase tracking-wide px-3 py-1 rounded-full border-[var(--tc-primary)]/60 bg-[var(--tc-primary)]/15 text-[var(--tc-primary)]"
               >
                 {shareData.mode.toUpperCase()} MODE
               </Badge>
@@ -539,10 +651,10 @@ export default function ShareStrategyClient({
               <button
                 type="button"
                 onClick={() => setActiveView('trades')}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-semibold uppercase tracking-wide transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-semibold uppercase tracking-wide transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
                   activeView === 'trades'
-                    ? 'bg-emerald-500 text-white shadow shadow-emerald-500/20'
-                    : 'text-slate-600 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/50'
+                    ? 'themed-btn-primary text-white'
+                    : 'text-slate-600 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/50 focus-visible:ring-[var(--tc-primary)]'
                 }`}
                 aria-pressed={activeView === 'trades'}
               >
@@ -552,10 +664,10 @@ export default function ShareStrategyClient({
               <button
                 type="button"
                 onClick={() => setActiveView('analytics')}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-semibold uppercase tracking-wide transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-semibold uppercase tracking-wide transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 ${
                   activeView === 'analytics'
-                    ? 'bg-emerald-500 text-white shadow shadow-emerald-500/20'
-                    : 'text-slate-600 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/50'
+                    ? 'themed-btn-primary text-white'
+                    : 'text-slate-600 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/50 focus-visible:ring-[var(--tc-primary)]'
                 }`}
                 aria-pressed={activeView === 'analytics'}
               >
@@ -568,7 +680,15 @@ export default function ShareStrategyClient({
 
         <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
 
-        {activeView === 'trades' && <SharedMyTradesView trades={trades} strategyName={strategy.name} />}
+        {activeView === 'trades' && (
+          <SharedMyTradesView
+            trades={trades}
+            strategyName={strategy.name}
+            currencySymbol={currencySymbol}
+            accountBalance={accountBalance}
+            extraCards={strategy.extra_cards}
+          />
+        )}
 
         {activeView === 'analytics' && (
         <>
@@ -632,6 +752,8 @@ export default function ShareStrategyClient({
               currencySymbol={currencySymbol}
               hydrated={hydrated}
               accountBalance={accountBalance ?? undefined}
+              totalProfitFromOverview={totalRangeProfit}
+              pnlPercentFromOverview={calculatePnlPercentFromOverview(totalRangeProfit, accountBalance)}
               viewMode="dateRange"
               showTitle={false}
               partialRowProps={partialRowProps}

@@ -59,6 +59,9 @@ interface TradingOverviewStatsProps {
   currencySymbol: string;
   hydrated: boolean;
   accountBalance?: number | null | undefined;
+  /** When set, TotalProfitStatCard and PNL % card show these values to match AccountOverviewCard. */
+  totalProfitFromOverview?: number;
+  pnlPercentFromOverview?: number;
   viewMode?: 'yearly' | 'dateRange';
   monthlyStats?: MonthlyStatsForCard | null;
   /** When false, the section title and description are not rendered (e.g. when a parent provides them). */
@@ -84,8 +87,12 @@ interface TradingOverviewStatsProps {
   hideEmptyChartCards?: boolean;
 }
 
-export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps, allTradesRiskStats, aboveRiskPerTradeRow, hideEmptyChartCards = false }: TradingOverviewStatsProps) {
-  const stats = useMemo(() => calculateTradingOverviewStats(trades), [trades]);
+export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, totalProfitFromOverview, pnlPercentFromOverview, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps, allTradesRiskStats, aboveRiskPerTradeRow, hideEmptyChartCards = false }: TradingOverviewStatsProps) {
+  const stats = useMemo(
+    () => calculateTradingOverviewStats(trades, totalProfitFromOverview),
+    [trades, totalProfitFromOverview]
+  );
+  const totalProfitToShow = totalProfitFromOverview ?? stats.totalProfit;
   const totalExecutedTrades = useMemo(() => trades.filter((t) => t.executed === true).length, [trades]);
   const nonExecutedTotalTradesCount = useMemo(() => trades.filter((t) => t.executed !== true).length, [trades]);
 
@@ -189,7 +196,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
       <WinRateStatCard winRate={stats.winRate} winRateWithBE={stats.winRateWithBE} hydrated={hydrated} />
 
       <TotalProfitStatCard
-        totalProfit={stats.totalProfit}
+        totalProfit={totalProfitToShow}
         currencySymbol={currencySymbol}
         hydrated={hydrated}
       />
@@ -205,7 +212,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
       {/* Key metrics: RR Multiple, P&L %, Average Days Between Trades; in year mode also Average Monthly Trades */}
       <div className={`col-span-full grid grid-cols-1 gap-6 w-full [&>*]:min-w-0 ${viewMode === 'yearly' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
         <RRMultipleStatCard tradesToUse={trades} />
-        <PNLPercentageStatCard tradesToUse={trades} accountBalance={accountBalance} hydrated={hydrated} />
+        <PNLPercentageStatCard tradesToUse={trades} accountBalance={accountBalance} pnlPercent={pnlPercentFromOverview} hydrated={hydrated} />
         <AverageDaysBetweenTradesCard
           averageDaysBetweenTrades={stats.averageDaysBetweenTrades}
           viewMode={viewMode}

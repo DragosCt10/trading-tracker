@@ -90,7 +90,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
               >
                 <SelectValue placeholder="All Markets" />
               </SelectTrigger>
-              <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+              <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
                 <SelectItem value="all">All Markets</SelectItem>
                 {markets.map((market) => (
                   <SelectItem key={market} value={market}>
@@ -121,15 +121,21 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
   } = props;
 
   const [showDatePicker, setShowDatePicker] = React.useState(false);
-  const [tempRange, setTempRange] = React.useState<DateRangeValue>(dateRange);
+  const [tempRange, setTempRange] = React.useState<DateRangeValue>({
+    startDate: displayStartDate ?? dateRange.startDate,
+    endDate: dateRange.endDate,
+  });
 
   const inputRef = React.useRef<HTMLInputElement | null>(null);
   const pickerRef = React.useRef<HTMLDivElement | null>(null);
 
   // keep tempRange in sync if parent changes dateRange
   React.useEffect(() => {
-    setTempRange(dateRange);
-  }, [dateRange]);
+    setTempRange({
+      startDate: displayStartDate ?? dateRange.startDate,
+      endDate: dateRange.endDate,
+    });
+  }, [dateRange, displayStartDate]);
 
 
   // click-outside to close date picker
@@ -145,7 +151,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
         !inputRef.current.contains(target)
       ) {
         // discard changes
-        setTempRange(dateRange);
+        setTempRange({ startDate: displayStartDate ?? dateRange.startDate, endDate: dateRange.endDate });
         setShowDatePicker(false);
       }
     };
@@ -168,7 +174,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
   };
 
   const handleCancel = () => {
-    setTempRange({ ...dateRange });
+    setTempRange({ startDate: displayStartDate ?? dateRange.startDate, endDate: dateRange.endDate });
     setShowDatePicker(false);
   };
 
@@ -325,7 +331,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
             >
               <SelectValue placeholder="All Markets" />
             </SelectTrigger>
-            <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+            <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
               <SelectItem value="all">All Markets</SelectItem>
               {markets.map((market) => (
                 <SelectItem key={market} value={market}>
@@ -351,7 +357,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
             >
               <SelectValue placeholder={showAllTradesOption ? "All" : "Executed"} />
             </SelectTrigger>
-<SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+<SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
             {showAllTradesOption && (
                 <SelectItem value="all">All</SelectItem>
               )}

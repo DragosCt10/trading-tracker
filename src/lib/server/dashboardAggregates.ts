@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
+import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import type { DashboardRpcResult } from '@/types/dashboard-rpc';
 
 export interface GetDashboardAggregatesParams {
@@ -44,6 +45,34 @@ export async function getDashboardAggregates(
     p_include_compact_trades: params.includeCompactTrades ?? false,
     p_market:               params.market ?? 'all',
     p_include_series:       params.includeSeries ?? false,
+  });
+
+  if (error) throw error;
+  return data as DashboardRpcResult;
+}
+
+/**
+ * Same as getDashboardAggregates but uses the service-role client.
+ * Requires the RPC to allow service_role calls (auth.role() = 'service_role' bypass).
+ * Used by the public share page to refresh the stats cache without a user session.
+ */
+export async function getDashboardAggregatesServiceRole(
+  params: GetDashboardAggregatesParams
+): Promise<DashboardRpcResult> {
+  const supabase = createServiceRoleClient();
+
+  const { data, error } = await (supabase as any).rpc('get_dashboard_aggregates', {
+    p_user_id:                params.userId,
+    p_account_id:             params.accountId,
+    p_mode:                   params.mode,
+    p_start_date:             params.startDate,
+    p_end_date:               params.endDate,
+    p_strategy_id:            params.strategyId ?? null,
+    p_execution:              params.execution ?? 'executed',
+    p_account_balance:        params.accountBalance,
+    p_include_compact_trades: params.includeCompactTrades ?? false,
+    p_market:                 params.market ?? 'all',
+    p_include_series:         params.includeSeries ?? false,
   });
 
   if (error) throw error;

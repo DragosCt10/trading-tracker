@@ -16,8 +16,8 @@ import {
 } from '@/components/ui/card';
 import type { Trade } from '@/types/trade';
 
-const MIN_TRADES = 20;
-const FUTURE_TRADE_OPTIONS = [25, 50, 75, 100, 150, 200] as const;
+export const MONTE_CARLO_MIN_TRADES = 20;
+const FUTURE_TRADE_OPTIONS = [25, 50, 75, 100, 150, 200, 500, 750, 1000] as const;
 type DisplayMode = 'r' | 'dollar';
 
 interface MonteCarloCardProps {
@@ -38,10 +38,10 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
     [trades, futureTrades]
   );
 
-  const hasSufficientData = trades.length >= MIN_TRADES;
+  const hasSufficientData = trades.length >= MONTE_CARLO_MIN_TRADES;
 
   return (
-    <Card className="mb-4 z-1 relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm w-full flex flex-col">
+    <Card className="mb-4 relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm w-full flex flex-col">
       <CardHeader className="pb-2 flex-shrink-0">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-1">
@@ -115,7 +115,7 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
             <CardDescription className="text-base text-slate-500 dark:text-slate-400">
               {hasSufficientData
                 ? `Based on ${trades.length} trade${trades.length !== 1 ? 's' : ''} · ${futureTrades} future trades projected`
-                : `${trades.length} trade${trades.length !== 1 ? 's' : ''} available · need at least ${MIN_TRADES} for simulation`}
+                : `${trades.length} trade${trades.length !== 1 ? 's' : ''} available · need at least ${MONTE_CARLO_MIN_TRADES} for simulation`}
             </CardDescription>
           </div>
 
@@ -157,7 +157,7 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
                   <SelectTrigger className="w-20 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 !bg-slate-50/50 dark:!bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+                  <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
                     {FUTURE_TRADE_OPTIONS.map((opt) => (
                       <SelectItem key={opt} value={String(opt)}>
                         {opt}
@@ -199,7 +199,7 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
             </div>
           </>
         ) : (
-          <EmptyState tradeCount={trades.length} minTrades={MIN_TRADES} />
+          <EmptyState tradeCount={trades.length} minTrades={MONTE_CARLO_MIN_TRADES} />
         )}
       </div>
       </CardContent>

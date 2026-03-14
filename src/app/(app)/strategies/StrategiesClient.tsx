@@ -8,6 +8,7 @@ import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useQuery } from '@tanstack/react-query';
 import { TRADES_DATA } from '@/constants/queryConfig';
+import { queryKeys } from '@/lib/queryKeys';
 import { getStrategiesOverview, type StrategiesOverviewResult } from '@/lib/server/strategiesOverview';
 import { StrategyCard } from '@/components/dashboard/strategy/StrategyCard';
 import { AddStrategyCard } from '@/components/dashboard/strategy/AddStrategyCard';
@@ -73,7 +74,7 @@ export function StrategiesClient() {
     data: strategiesOverview,
     isFetching: tradesLoading,
   } = useQuery<StrategiesOverviewResult>({
-    queryKey: ['strategies-overview', userId, activeAccount?.id, mode],
+    queryKey: queryKeys.strategiesOverview(userId, activeAccount?.id, mode),
     queryFn: async () => {
       if (!activeAccount?.id) return {};
       return getStrategiesOverview(activeAccount.id, mode);

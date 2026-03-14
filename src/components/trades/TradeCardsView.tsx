@@ -48,6 +48,8 @@ export type TradeCardsViewProps = {
   itemsPerLoad?: number;
   readOnly?: boolean;
   strategyName?: string;
+  /** Extra card keys for read-only mode (e.g. public share where no auth session exists). */
+  extraCards?: string[];
   onTradeUpdated?: () => void | Promise<void>;
   emptyMessage?: string;
   initialViewMode?: CardViewMode;
@@ -96,6 +98,7 @@ export function TradeCardsView({
   itemsPerLoad = 12,
   readOnly = false,
   strategyName,
+  extraCards,
   onTradeUpdated,
   emptyMessage = 'No trades found for the selected period.',
   initialViewMode = 'grid-4',
@@ -460,6 +463,7 @@ export function TradeCardsView({
                   inlineMode
                   readOnly={readOnly}
                   strategyName={strategyName}
+                  extraCards={extraCards}
                 />
               ) : (
                 <div className="flex h-full items-center justify-center">
@@ -726,6 +730,7 @@ export function TradeCardsView({
           onTradeUpdated={onTradeUpdated}
           readOnly={readOnly}
           strategyName={strategyName}
+          extraCards={extraCards}
         />
       )}
     </TooltipProvider>

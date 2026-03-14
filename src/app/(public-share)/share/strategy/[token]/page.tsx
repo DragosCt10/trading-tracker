@@ -1,9 +1,14 @@
 import { notFound } from 'next/navigation';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
-import { getShareByToken } from '@/lib/server/publicShares';
+import { getShareByToken, getShareStatsCache, getPublicTradesForShare } from '@/lib/server/publicShares';
 import { getStrategyById } from '@/lib/server/strategies';
+import { getDashboardAggregatesServiceRole } from '@/lib/server/dashboardAggregates';
 import ShareStrategyClient from './ShareStrategyClient';
 import type { StrategyShareRow } from '@/lib/server/publicShares';
+import {
+  buildSharePageStatsFromCache,
+  buildEmptySharePageStats,
+} from './sharePageStats';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,26 +82,65 @@ export default async function ShareStrategyPage({ params }: PageProps) {
   const currencySymbol = getCurrencySymbolFromCode(typedAccount?.currency ?? 'USD');
   const accountBalance = typedAccount?.account_balance ?? null;
 
-  // Extend end date to today so the same share link shows new trades on refresh
-  // without creating a new share (start_date stays as set when share was created).
-  const today = new Date().toISOString().slice(0, 10);
-  const endDate =
-    share.end_date >= today ? share.end_date : today;
+  // Always fetch full trades for MY TRADES tab (images, notes, all fields).
+  // For analytics: use cache if available; on cache miss call the RPC via service role,
+  // store the result, and use it — so subsequent visits are served from cache.
+  const [trades, cachedStats] = await Promise.all([
+    getPublicTradesForShare({
+      accountId: share.account_id,
+      mode: share.mode as 'live' | 'backtesting' | 'demo',
+      strategyId: share.strategy_id,
+      startDate: share.start_date,
+      endDate: share.end_date,
+    }),
+    getShareStatsCache(share.id),
+  ]);
+
+  let rpcResult = cachedStats;
+
+  if (!rpcResult) {
+    // Cache miss: run the RPC with the service role client (bypasses auth, requires DB
+    // to allow service_role calls — see get_dashboard_aggregates auth check).
+    try {
+      rpcResult = await getDashboardAggregatesServiceRole({
+        userId: share.created_by,
+        accountId: share.account_id,
+        mode: share.mode,
+        startDate: share.start_date,
+        endDate: share.end_date,
+        strategyId: share.strategy_id,
+        execution: 'executed',
+        accountBalance: accountBalance ?? 0,
+        includeCompactTrades: true,
+        market: 'all',
+        includeSeries: false,
+      });
+
+      // Persist so the next visit is served from cache.
+      const serviceSupabase = createServiceRoleClient();
+      await (serviceSupabase as any)
+        .from('share_stats_cache')
+        .upsert({ share_id: share.id, stats: rpcResult as unknown as Record<string, unknown> });
+    } catch (err) {
+      console.error('Failed to compute share stats on cache miss (non-fatal):', err);
+    }
+  }
+
+  const precomputedStats = rpcResult
+    ? buildSharePageStatsFromCache(
+        rpcResult,
+        accountBalance ?? 0,
+        share.mode,
+        share.start_date,
+        share.end_date,
+      )
+    : buildEmptySharePageStats();
 
   return (
     <main className="min-h-screen max-w-(--breakpoint-xl) mx-auto w-full">
       <ShareStrategyClient
-        trades={await (async () => {
-          // Lazily import to avoid circular dependency at module evaluation.
-          const { getPublicTradesForShare } = await import('@/lib/server/publicShares');
-          return getPublicTradesForShare({
-            accountId: share.account_id,
-            mode: share.mode,
-            strategyId: share.strategy_id,
-            startDate: share.start_date,
-            endDate,
-          });
-        })()}
+        trades={trades}
+        precomputedStats={precomputedStats}
         strategy={{
           name: strategy.name,
           extra_cards: strategy.extra_cards,

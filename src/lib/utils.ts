@@ -10,3 +10,8 @@ export function formatPercent(value: number): string {
   const rounded = Math.round(value * 100) / 100
   return Number.isInteger(rounded) ? String(Math.round(rounded)) : value.toFixed(2)
 }
+
+/** Round to 2 decimal places (cents) for consistent currency display across components. */
+export function roundToCents(value: number): number {
+  return Math.round(value * 100) / 100
+}

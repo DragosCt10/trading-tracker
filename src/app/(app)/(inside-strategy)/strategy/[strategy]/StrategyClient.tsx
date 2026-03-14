@@ -50,6 +50,8 @@ import {
   computeMonthlyStatsFromTrades,
   calculateTotalYearProfit,
   calculateUpdatedBalance,
+  getAccountBalanceForOverview,
+  calculatePnlPercentFromOverview,
 } from '@/components/dashboard/analytics/AccountOverviewCard';
 import { ViewModeToggle } from '@/components/dashboard/analytics/ViewModeToggle';
 import { YearSelector } from '@/components/dashboard/analytics/YearSelector';
@@ -717,6 +719,12 @@ export default function StrategyClient(
     [resolvedAccount, totalYearProfit]
   );
 
+  const rawAccountBalance = ((selection.activeAccount ?? props?.initialActiveAccount) as { account_balance?: number } | null)?.account_balance;
+  const pnlPercentFromOverview = useMemo(
+    () => calculatePnlPercentFromOverview(totalYearProfit, rawAccountBalance),
+    [totalYearProfit, rawAccountBalance]
+  );
+
   const getDaysInMonth = useMemo(
     () => getDaysInMonthForDate(currentDate),
     [currentDate]
@@ -930,6 +938,7 @@ export default function StrategyClient(
         months={MONTHS}
         monthlyStatsAllTrades={monthlyStatsToUse}
         isYearDataLoading={accountOverviewLoadingState}
+        isFetching={isLoadingStats}
         tradesCount={stats?.totalTrades ?? tradesToUse.length}
       />
 
@@ -979,6 +988,8 @@ export default function StrategyClient(
             currencySymbol={currencySymbol}
             hydrated={hydrated}
             accountBalance={selection.activeAccount?.account_balance}
+            totalProfitFromOverview={totalYearProfit}
+            pnlPercentFromOverview={pnlPercentFromOverview}
             viewMode={viewMode}
             monthlyStats={viewMode === 'yearly' ? monthlyStats : undefined}
             showTitle={false}

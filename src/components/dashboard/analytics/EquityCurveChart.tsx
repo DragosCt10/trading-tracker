@@ -174,6 +174,8 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
             baseValue={0}
             fill="url(#equityPositive)"
             stroke="none"
+            dot={false}
+            activeDot={false}
           />
           <Area
             type="monotone"
@@ -181,6 +183,8 @@ export const EquityCurveChart: React.FC<EquityCurveChartProps> = ({
             baseValue={0}
             fill="url(#equityNegative)"
             stroke="none"
+            dot={false}
+            activeDot={false}
           />
           <Line
             type="monotone"

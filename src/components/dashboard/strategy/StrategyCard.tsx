@@ -25,6 +25,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/comp
 import { EXTRA_CARDS } from '@/constants/extraCards';
 import { ShareStrategyModal } from '@/components/ShareStrategyModal';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
+import { formatPercent, roundToCents } from '@/lib/utils';
 import type { StrategyOverviewRow } from '@/lib/server/strategiesOverview';
 
 interface StrategyCardProps {
@@ -192,7 +193,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
           <div className="flex flex-col">
             <span className="text-xs text-slate-500 dark:text-slate-400">Win rate</span>
             <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-              {winRate.toFixed(1)}%
+              {formatPercent(winRate)}%
             </span>
           </div>
           <div className="flex flex-col items-end gap-1">
@@ -215,7 +216,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
                   ? 'text-emerald-600 dark:text-emerald-400'
                   : 'text-rose-600 dark:text-rose-400'
               }`}>
-                {totalProfit >= 0 ? '+' : ''}{currencySymbol}{Math.abs(totalProfit).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {totalProfit >= 0 ? '+' : ''}{currencySymbol}{Math.abs(roundToCents(totalProfit)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
           </div>

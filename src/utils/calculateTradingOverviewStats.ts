@@ -19,7 +19,10 @@ export interface TradingOverviewStats {
   averageDaysBetweenTrades: number;
 }
 
-export function calculateTradingOverviewStats(trades: Trade[]): TradingOverviewStats {
+export function calculateTradingOverviewStats(
+  trades: Trade[],
+  totalProfitFromOverview?: number
+): TradingOverviewStats {
   // Calculate all stats from trades
   const nonBETrades = trades.filter((t) => !t.break_even);
   const beTrades = trades.filter((t) => t.break_even);
@@ -36,7 +39,13 @@ export function calculateTradingOverviewStats(trades: Trade[]): TradingOverviewS
   const totalLosses = losses;
 
   const totalProfit = trades.reduce((sum, t) => sum + (t.calculated_profit || 0), 0);
-  const averageProfit = totalTrades > 0 ? totalProfit / totalTrades : 0;
+  const totalProfitToShow = totalProfitFromOverview ?? totalProfit;
+  const averageProfit =
+    totalProfitFromOverview !== undefined && trades.length > 0
+      ? totalProfitToShow / trades.length
+      : totalTrades > 0
+        ? totalProfit / totalTrades
+        : 0;
 
   // Win rate (excluding BE trades entirely)
   const nonBETotal = wins + losses;

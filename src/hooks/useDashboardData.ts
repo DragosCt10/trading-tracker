@@ -7,6 +7,8 @@ import { getCalendarTrades } from '@/lib/server/dashboardStats';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { queryKeys } from '@/lib/queryKeys';
 import { TRADES_DATA, STATIC_DATA } from '@/constants/queryConfig';
+import { computeAllDashboardStats, CLIENT_COMPUTE_MAX_TRADES } from '@/utils/computeAllDashboardStats';
+import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import type { RpcReentryStat, RpcTrendStat } from '@/types/dashboard-rpc';
 import type { Trade } from '@/types/trade';
 import type { AccountSettings } from '@/types/account-settings';
@@ -130,6 +132,9 @@ export function useDashboardData({
   const statsEnabled =
     !!userId && !!accountId && !!selectedYear && !!mode && !contextLoading && !isSessionLoading;
 
+  // Needed inside queryFns below — must be called before useQuery hooks.
+  const queryClient = useQueryClient();
+
   // ── Query 1: dashboard stats from /api/dashboard-stats ───────────────────
   const { data: apiData, isFetching: statsLoading } = useQuery<DashboardApiResponse | null>({
     queryKey: queryKeys.dashboardStats(
@@ -138,8 +143,28 @@ export function useDashboardData({
       effectiveStartDate, effectiveEndDate,
       selectedExecution, selectedMarket,
     ),
+    placeholderData: (prev) => prev ?? null,
     queryFn: async () => {
       if (!userId || !accountId) return null;
+
+      // Cache-first: if the all-time Trade[] is already cached and within the compute limit,
+      // derive stats client-side (same formulas as SQL) — no network call needed.
+      // Skip when includeCompactTrades is requested (compact_trades has extra fields not in Trade[]).
+      // Skip when the all-time cache is invalidated (trade mutation happened) — must refetch fresh data.
+      // Skip when this is the all-time query itself: the allTimeKey would hold stale data from
+      // Query 2's self-referential loop — use the server instead for the full range.
+      if (!includeCompactTrades) {
+        const { startDate: allStart, endDate: allEnd } = createAllTimeRange();
+        const allTimeKey = queryKeys.trades.filtered(mode, accountId, userId, 'dateRange', allStart, allEnd, strategyId ?? null);
+        const allTimeState = queryClient.getQueryState(allTimeKey);
+        const cached = queryClient.getQueryData<Trade[]>(allTimeKey);
+        const isAllTimeQuery = effectiveStartDate === allStart && effectiveEndDate === allEnd;
+        if (!isAllTimeQuery && cached && cached.length > 0 && cached.length <= CLIENT_COMPUTE_MAX_TRADES && !allTimeState?.isInvalidated) {
+          const subset = cached.filter(t => t.trade_date >= effectiveStartDate && t.trade_date <= effectiveEndDate);
+          return computeAllDashboardStats(subset, accountBalance, selectedExecution, selectedMarket);
+        }
+      }
+
       const params = new URLSearchParams({
         accountId,
         mode,
@@ -172,6 +197,20 @@ export function useDashboardData({
     ),
     queryFn: async () => {
       if (!userId || !accountId) return [];
+
+      // Cache-first: if the all-time Trade[] is cached and fresh, return a filtered slice.
+      // Skip when invalidated — trade mutation happened and we must fetch fresh data.
+      // Skip when this query's own key IS the all-time key (self-referential: reading our own
+      // stale value would lock it in permanently, preventing real refetches from ever running).
+      const { startDate: allStart, endDate: allEnd } = createAllTimeRange();
+      const allTimeKey = queryKeys.trades.filtered(mode, accountId, userId, 'dateRange', allStart, allEnd, strategyId ?? null);
+      const allTimeState = queryClient.getQueryState(allTimeKey);
+      const cached = queryClient.getQueryData<Trade[]>(allTimeKey);
+      const isAllTimeQuery = effectiveStartDate === allStart && effectiveEndDate === allEnd;
+      if (!isAllTimeQuery && cached && cached.length > 0 && !allTimeState?.isInvalidated) {
+        return cached.filter(t => t.trade_date >= effectiveStartDate && t.trade_date <= effectiveEndDate);
+      }
+
       return getFilteredTrades({
         userId,
         accountId,
@@ -205,7 +244,6 @@ export function useDashboardData({
   });
 
   // ── Prefetch adjacent calendar months in the background ─────────────────────
-  const queryClient = useQueryClient();
   useEffect(() => {
     if (!statsEnabled || !userId || !accountId || calendarLoading) return;
     const tradeMonths: string[] = apiData?.tradeMonths ?? [];

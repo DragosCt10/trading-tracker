@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TRADES_DATA } from '@/constants/queryConfig';
 import { TradeFiltersBar, DateRangeValue } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { getFilteredTrades, deleteTrades, moveTradestoStrategy } from '@/lib/server/trades';
+import { getStrategiesOverview } from '@/lib/server/strategiesOverview';
 import type { Database } from '@/types/supabase';
 import { TradeCardsView } from '@/components/trades/TradeCardsView';
 import {
@@ -36,160 +37,14 @@ import { TotalTradesDonut } from '@/components/dashboard/analytics/TotalTradesCh
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
-import { computeStrategyStatsFromTrades } from '@/utils/computeStrategyStatsFromTrades';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { cn } from '@/lib/utils';
+import { calculateAverageDrawdown } from '@/utils/analyticsCalculations';
+import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';
+import { cn, formatPercent, roundToCents } from '@/lib/utils';
 import { Info } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { MonteCarloCard } from '@/components/trades/MonteCarloCard';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
-
-type GaugeVariant = 'winRate' | 'avgDrawdown';
-
-interface SummaryHalfGaugeProps {
-  variant: GaugeVariant;
-  /** 0–100 normalized value */
-  valueNormalized: number;
-  /** Center text inside the gauge (e.g. "60.0%") */
-  centerLabel: string;
-  /** Left scale label (e.g. "0" or "0%") */
-  minLabel: string;
-  /** Right scale label (e.g. "100" or "20%") */
-  maxLabel: string;
-  /** Raw value used for tooltip interpretation (e.g. 3.5 for 3.5% drawdown) */
-  rawValueForTooltip?: number;
-}
-
-function SummaryHalfGauge({
-  variant,
-  valueNormalized,
-  centerLabel,
-  minLabel,
-  maxLabel,
-  rawValueForTooltip,
-}: SummaryHalfGaugeProps) {
-  let gradientId: string;
-  let gradientDefs: React.ReactNode;
-
-  if (variant === 'winRate') {
-    gradientId = 'winRateGaugeGradient';
-    gradientDefs = (
-      <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#8b5cf6" stopOpacity={1} />
-        <stop offset="100%" stopColor="#6366f1" stopOpacity={0.9} />
-      </linearGradient>
-    );
-  } else {
-    const avgValue = rawValueForTooltip ?? (Math.max(0, Math.min(valueNormalized, 100)) / 100) * 20;
-
-    // Map normalized 0–100 value back onto the same color bands
-    // used in AverageDrawdownChart (0–20% DD):
-    // 0–10  -> 0–2%   -> blue
-    // 10–25 -> 2–5%   -> emerald
-    // 25–50 -> 5–10%  -> amber
-    // 50–75 -> 10–15% -> orange
-    // 75–100-> 15–20% -> red
-    if (avgValue <= 2) gradientId = 'avgDrawdownBlue';
-    else if (avgValue <= 5) gradientId = 'avgDrawdownEmerald';
-    else if (avgValue <= 10) gradientId = 'avgDrawdownAmber';
-    else if (avgValue <= 15) gradientId = 'avgDrawdownOrange';
-    else gradientId = 'avgDrawdownRed';
-
-    gradientDefs = (
-      <>
-        <linearGradient id="avgDrawdownBlue" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
-          <stop offset="100%" stopColor="#2563eb" stopOpacity={0.9} />
-        </linearGradient>
-        <linearGradient id="avgDrawdownEmerald" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
-          <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
-          <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
-        </linearGradient>
-        <linearGradient id="avgDrawdownAmber" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
-          <stop offset="100%" stopColor="#d97706" stopOpacity={0.9} />
-        </linearGradient>
-        <linearGradient id="avgDrawdownOrange" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f97316" stopOpacity={1} />
-          <stop offset="100%" stopColor="#ea580c" stopOpacity={0.9} />
-        </linearGradient>
-        <linearGradient id="avgDrawdownRed" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
-          <stop offset="100%" stopColor="#dc2626" stopOpacity={0.9} />
-        </linearGradient>
-      </>
-    );
-    gradientDefs = (
-      <>
-        <linearGradient id="avgDrawdownBlue" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
-          <stop offset="100%" stopColor="#2563eb" stopOpacity={0.9} />
-        </linearGradient>
-        <linearGradient id="avgDrawdownEmerald" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
-          <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
-          <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
-        </linearGradient>
-        <linearGradient id="avgDrawdownAmber" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
-          <stop offset="100%" stopColor="#d97706" stopOpacity={0.9} />
-        </linearGradient>
-        <linearGradient id="avgDrawdownOrange" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#f97316" stopOpacity={1} />
-          <stop offset="100%" stopColor="#ea580c" stopOpacity={0.9} />
-        </linearGradient>
-        <linearGradient id="avgDrawdownRed" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
-          <stop offset="100%" stopColor="#dc2626" stopOpacity={0.9} />
-        </linearGradient>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <defs>{gradientDefs}</defs>
-          <Pie
-            data={[
-              { name: 'Value', value: Math.max(0, Math.min(valueNormalized, 100)) },
-              { name: 'Remaining', value: Math.max(0, 100 - valueNormalized) },
-            ]}
-            cx="50%"
-            cy="80%"
-            startAngle={180}
-            endAngle={0}
-            innerRadius={48}
-            outerRadius={60}
-            paddingAngle={2}
-            cornerRadius={7}
-            dataKey="value"
-          >
-            <Cell fill={`url(#${gradientId})`} stroke="none" />
-            <Cell
-              fill="rgba(148, 163, 184, 0.35)"
-              stroke="none"
-            />
-          </Pie>
-        </PieChart>
-      </ResponsiveContainer>
-      <div className="absolute inset-0 top-10 flex items-center justify-center pointer-events-none">
-        <span className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">
-          {centerLabel}
-        </span>
-      </div>
-      <div className="absolute left-4 bottom-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-        {minLabel}
-      </div>
-      <div className="absolute right-4 bottom-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-        {maxLabel}
-      </div>
-    </>
-  );
-}
 
 interface MyTradesClientProps {
   /** User id from server (fallback when useUserDetails cache not yet hydrated) */
@@ -250,6 +105,26 @@ export default function MyTradesClient({
   const moveToStrategies = strategies
     .filter((s) => s.id !== initialStrategyId)
     .map((s) => ({ id: s.id, name: s.name }));
+
+  // Strategy overview (same cache as Strategies list) — for "All trades" cumulative PnL to match StrategyCard
+  const { data: strategiesOverview } = useQuery({
+    queryKey: queryKeys.strategiesOverview(userId, activeAccount?.id, selection.mode ?? initialMode),
+    queryFn: async () => {
+      if (!activeAccount?.id) return {};
+      return getStrategiesOverview(activeAccount.id, selection.mode ?? initialMode);
+    },
+    enabled: !!userId && !!activeAccount?.id && !!mode,
+    ...TRADES_DATA,
+  });
+
+  const strategyCumulativePnl = useMemo(() => {
+    const row = strategiesOverview?.[initialStrategyId];
+    const curve = row?.equityCurve;
+    if (!curve?.length) return undefined;
+    return curve[curve.length - 1]?.p ?? undefined;
+  }, [strategiesOverview, initialStrategyId]);
+
+  const strategyWinRate = strategiesOverview?.[initialStrategyId]?.winRate;
 
   // Single query: prefetched on server (one getFilteredTrades), so client uses hydrated cache when key matches.
   // Date range, market, and execution filtering all happen client-side on this dataset.
@@ -399,10 +274,18 @@ export default function MyTradesClient({
     [monthlyStatsForPeriod]
   );
 
+  // When "All trades" + all markets + not "Non-executed only", use strategy overview (same as StrategyCard)
+  const useOverviewPnl =
+    activeFilter === 'all' &&
+    selectedMarket === 'all' &&
+    executionFilter !== 'nonExecuted' &&
+    strategyCumulativePnl !== undefined;
+  const displayCumulativePnl = useOverviewPnl ? strategyCumulativePnl : netCumulativePnl;
+
   const pnlPercent = useMemo(() => {
     const base = activeAccount?.account_balance || 1;
-    return (netCumulativePnl / base) * 100;
-  }, [netCumulativePnl, activeAccount?.account_balance]);
+    return (displayCumulativePnl / base) * 100;
+  }, [displayCumulativePnl, activeAccount?.account_balance]);
 
   const equityChartData = useMemo(() => buildEquityPointsFromTrades(trades), [trades]);
   const hasEquityData = equityChartData.length > 0;
@@ -434,20 +317,21 @@ export default function MyTradesClient({
     () => calculateTradingOverviewStats(trades),
     [trades],
   );
+  const displayWinRate =
+    useOverviewPnl && typeof strategyWinRate === 'number' ? strategyWinRate : overviewStats.winRate;
 
-  const strategyStats = useMemo(
+  // Use same trade set as StrategyClient for drawdown: executed-only when execution is "all" or "executed"
+  const tradesForDrawdown = useMemo(
     () =>
-      computeStrategyStatsFromTrades({
-        tradesToUse: trades,
-        accountBalance: activeAccount?.account_balance || 0,
-        selectedExecution: executionFilter,
-        viewMode: 'dateRange',
-        selectedMarket,
-      }),
-    [trades, activeAccount?.account_balance, executionFilter, selectedMarket],
+      executionFilter === 'nonExecuted'
+        ? trades
+        : trades.filter((t) => t.executed === true),
+    [trades, executionFilter],
   );
-
-  const averageDrawdown = strategyStats.averageDrawdown ?? 0;
+  const averageDrawdown = useMemo(
+    () => calculateAverageDrawdown(tradesForDrawdown, activeAccount?.account_balance || 0),
+    [tradesForDrawdown, activeAccount?.account_balance],
+  );
   const normalizedAverageDrawdown = useMemo(() => {
     const capped = Math.max(0, Math.min(averageDrawdown, 20));
     return (capped / 20) * 100;
@@ -537,7 +421,7 @@ export default function MyTradesClient({
     try {
       exportTradesToCsv({
         trades,
-        filename: `trades_${dateRange.startDate}_to_${dateRange.endDate}`,
+        filename: `alpha_stats_trades_${dateRange.startDate}_to_${dateRange.endDate}`,
       });
     } catch (error) {
       console.error('Error exporting trades:', error);
@@ -593,6 +477,9 @@ export default function MyTradesClient({
           todayStr,
           initialStrategyId
         ),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.strategiesOverview(userId, activeAccount?.id, mode),
       });
       queryClient.invalidateQueries({
         predicate: (q) => {
@@ -660,23 +547,23 @@ export default function MyTradesClient({
                 </p>
                 <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">
                   {currencySymbol}
-                  {netCumulativePnl.toFixed(2)}
+                  {roundToCents(displayCumulativePnl).toFixed(2)}
                 </p>
               </div>
               <div className="flex items-center gap-1.5">
-                {netCumulativePnl >= 0 ? (
+                {displayCumulativePnl >= 0 ? (
                   <TrendingUp className="w-4 h-4 text-emerald-500" />
                 ) : (
                   <TrendingDown className="w-4 h-4 text-rose-500" />
                 )}
                 <div
                   className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
-                    netCumulativePnl >= 0
+                    displayCumulativePnl >= 0
                       ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
                       : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
                   }`}
                 >
-                  {netCumulativePnl >= 0 ? '+' : ''}
+                  {displayCumulativePnl >= 0 ? '+' : ''}
                   {pnlPercent.toFixed(2)}%
                 </div>
               </div>
@@ -689,7 +576,7 @@ export default function MyTradesClient({
               ) : !hasEquityData ? (
                 <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
                   <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    No data yet
+                    No trades yet
                   </p>
                 </div>
               ) : (
@@ -714,7 +601,7 @@ export default function MyTradesClient({
                 </p>
               </div>
             </div>
-            <div className="flex-1 h-32">
+            <div className="flex-1 h-32 min-h-[7rem] w-full">
               {!mounted ? (
                 <div className="w-full h-full flex items-center justify-center">
                   <BouncePulse size="md" />
@@ -740,18 +627,22 @@ export default function MyTradesClient({
                 </p>
               </div>
             </div>
-            <div className="flex-1 h-32 relative">
-              {!mounted || totalTrades === 0 ? (
+            <div className="flex-1 h-32 min-h-[7rem] relative w-full">
+              {!mounted || tradesLoading ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <BouncePulse size="md" />
+                </div>
+              ) : totalTrades === 0 ? (
                 <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
                   <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    No data yet
+                    No trades yet
                   </p>
                 </div>
               ) : (
                 <SummaryHalfGauge
                   variant="winRate"
-                  valueNormalized={overviewStats.winRate}
-                  centerLabel={`${overviewStats.winRate.toFixed(1)}%`}
+                  valueNormalized={displayWinRate}
+                  centerLabel={`${formatPercent(displayWinRate)}%`}
                   minLabel="0%"
                   maxLabel="100%"
                 />
@@ -798,11 +689,15 @@ export default function MyTradesClient({
                 </TooltipProvider>
               </div>
             </div>
-            <div className="flex-1 h-32 relative">
-              {!mounted || totalTrades === 0 ? (
+            <div className="flex-1 h-32 min-h-[7rem] relative w-full">
+              {!mounted || tradesLoading ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <BouncePulse size="md" />
+                </div>
+              ) : totalTrades === 0 ? (
                 <div className="w-full h-full flex items-center justify-center rounded-lg bg-slate-100/50 dark:bg-slate-800/30">
                   <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                    No data yet
+                    No trades yet
                   </p>
                 </div>
               ) : (
@@ -863,7 +758,7 @@ export default function MyTradesClient({
                 >
                   <SelectValue placeholder="Date" />
                 </SelectTrigger>
-                <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+                <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
                   <SelectItem value="trade_date">Date</SelectItem>
                   <SelectItem value="market">Market</SelectItem>
                   <SelectItem value="outcome">Outcome</SelectItem>

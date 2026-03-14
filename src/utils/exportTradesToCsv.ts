@@ -1,34 +1,41 @@
 import type { Trade } from '@/types/trade';
 import { formatTradeTimeForDisplay } from '@/utils/formatTradeTime';
 
-const CSV_HEADERS = [
-  'Date',
-  'Time',
-  'Day of Week',
-  'Market',
-  'Direction',
-  'Setup',
-  'Outcome',
-  'Risk %',
-  'Trade Screen 1',
-  'Trade Screen 2',
-  'Trade Screen 3',
-  'Trade Screen 4',
-  'Local High/Low',
-  'News Related',
-  'ReEntry',
-  'Break Even',
-  'MSS',
-  'Risk:Reward Ratio',
-  'Risk:Reward Ratio Long',
-  'SL Size',
-  'Calculated Profit',
-  'P/L %',
-  'Evaluation',
-  'Notes',
-  'Executed',
-  'Trend',
-  'FVG Size',
+/** CSV column headers for trade export (notes last). */
+const EXPORT_HEADERS = [
+  'trade_screens',
+  'trade_time',
+  'trade_date',
+  'day_of_week',
+  'market',
+  'setup_type',
+  'liquidity',
+  'sl_size',
+  'direction',
+  'trade_outcome',
+  'reentry',
+  'news_related',
+  'mss',
+  'risk_reward',
+  'potential_rr',
+  'local_high_low',
+  'risk_per_trade',
+  'calculated_profit',
+  'mode',
+  'pnl_percentage',
+  'quarter',
+  'evaluation',
+  'partials_taken',
+  'executed',
+  'launch_hour',
+  'fvg_size',
+  'trend',
+  'confidence_at_entry',
+  'mind_state_at_entry',
+  'be_final_result',
+  'news_name',
+  'news_intensity',
+  'notes',
 ] as const;
 
 function escapeCSV(value: unknown): string {
@@ -37,46 +44,90 @@ function escapeCSV(value: unknown): string {
   return `"${str}"`;
 }
 
-function tradeToCsvRow(trade: Trade): string {
+function getExportValues(trade: Trade): string[] {
+  const tradeScreens = trade.trade_screens ?? [];
+  const tradeScreensStr = tradeScreens.filter(Boolean).join(',');
+  const bool = (v: boolean | null | undefined) =>
+    v === true ? 'true' : v === false ? 'false' : '';
   return [
-    trade.trade_date,
+    tradeScreensStr,
     formatTradeTimeForDisplay(trade.trade_time),
+    trade.trade_date,
     trade.day_of_week,
     trade.market,
-    trade.direction,
     trade.setup_type,
+    trade.liquidity ?? '',
+    String(trade.sl_size ?? ''),
+    trade.direction,
     trade.trade_outcome,
-    trade.risk_per_trade,
-    trade.trade_screens?.[0] ?? '',
-    trade.trade_screens?.[1] ?? '',
-    trade.trade_screens?.[2] ?? '',
-    trade.trade_screens?.[3] ?? '',
-    trade.local_high_low ? 'Yes' : 'No',
-    trade.news_related ? 'Yes' : 'No',
-    trade.reentry ? 'Yes' : 'No',
-    trade.break_even ? 'Yes' : 'No',
+    bool(trade.reentry ?? null),
+    bool(trade.news_related ?? null),
     trade.mss,
-    trade.risk_reward_ratio,
-    trade.risk_reward_ratio_long,
-    trade.sl_size,
-    trade.calculated_profit ?? '',
-    trade.pnl_percentage ?? '',
+    String(trade.risk_reward_ratio ?? ''),
+    String(trade.risk_reward_ratio_long ?? ''),
+    bool(trade.local_high_low ?? null),
+    String(trade.risk_per_trade ?? ''),
+    String(trade.calculated_profit ?? ''),
+    trade.mode ?? '',
+    String(trade.pnl_percentage ?? ''),
+    trade.quarter ?? '',
     trade.evaluation ?? '',
-    trade.notes ?? '',
-    trade.executed ? 'Yes' : 'No',
+    bool(trade.partials_taken ?? null),
+    bool(trade.executed ?? null),
+    bool(trade.launch_hour ?? null),
+    String(trade.fvg_size ?? ''),
     trade.trend ?? '',
-    trade.fvg_size ?? '',
-  ]
-    .map(escapeCSV)
-    .join(',');
+    String(trade.confidence_at_entry ?? ''),
+    String(trade.mind_state_at_entry ?? ''),
+    trade.be_final_result ?? '',
+    trade.news_name ?? '',
+    String(trade.news_intensity ?? ''),
+    trade.notes ?? '',
+  ];
+}
+
+/** True if at least one export column has a non-empty value. */
+function hasAnyExportValue(trade: Trade): boolean {
+  const values = getExportValues(trade);
+  return values.some((v) => String(v).trim() !== '');
+}
+
+/** Column indices that have at least one non-empty value across the given trades. */
+function getNonEmptyColumnIndices(trades: Trade[]): number[] {
+  if (trades.length === 0) return [];
+  const numCols = EXPORT_HEADERS.length;
+  const indices: number[] = [];
+  for (let i = 0; i < numCols; i++) {
+    const hasValue = trades.some((t) => {
+      const v = getExportValues(t)[i];
+      return String(v).trim() !== '';
+    });
+    if (hasValue) indices.push(i);
+  }
+  return indices;
 }
 
 /**
- * Build CSV content from an array of trades (same columns as Manage Trades export).
+ * Build CSV content from an array of trades.
+ * Trades with no values in any export column are omitted.
+ * Columns that are empty for every trade are omitted (no header, no cells).
  */
 export function buildTradesCsvContent(trades: Trade[]): string {
-  const headerRow = CSV_HEADERS.map(escapeCSV).join(',');
-  const dataRows = trades.map(tradeToCsvRow);
+  const withData = trades.filter(hasAnyExportValue);
+  const columnIndices = getNonEmptyColumnIndices(withData);
+  if (columnIndices.length === 0) return '';
+
+  const headerRow = columnIndices
+    .map((i) => EXPORT_HEADERS[i])
+    .map(escapeCSV)
+    .join(',');
+  const dataRows = withData.map((trade) => {
+    const values = getExportValues(trade);
+    return columnIndices
+      .map((i) => values[i])
+      .map(escapeCSV)
+      .join(',');
+  });
   return [headerRow, ...dataRows].join('\n');
 }
 
@@ -89,13 +140,12 @@ export interface ExportTradesToCsvOptions {
 
 /**
  * Export trades to a CSV file and trigger download in the browser.
- * Uses the same column set as Manage Trades export.
  */
 export function exportTradesToCsv(options: ExportTradesToCsvOptions): void {
   const { trades, filename } = options;
-  if (trades.length === 0) return;
-
   const csvContent = buildTradesCsvContent(trades);
+  if (!csvContent) return;
+
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);

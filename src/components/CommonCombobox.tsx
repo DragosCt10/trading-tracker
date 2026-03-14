@@ -4,7 +4,8 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import { createPortal } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Pencil, Loader2 } from 'lucide-react';
+import { Pencil, Loader2, Star } from 'lucide-react';
+import { sortByPins } from '@/utils/helpers/sortByPins';
 
 const MAX_SUGGESTIONS = 20;
 const MAX_CHARS = 12;
@@ -28,6 +29,10 @@ export interface CommonComboboxProps {
   disabled?: boolean;
   /** Optional callback when a saved option is renamed from the suggestions list. */
   onEditSavedOption?: (oldValue: string, newValue: string) => Promise<void> | void;
+  /** When provided with onTogglePin, show favourite star and sort by DB-backed pins (strategy.saved_favourites). */
+  pinnedIds?: string[];
+  /** Callback to toggle pin (persist to DB). When provided with pinnedIds, favourites are stored on the strategy. */
+  onTogglePin?: (itemId: string) => void;
 }
 
 export function CommonCombobox({
@@ -42,8 +47,12 @@ export function CommonCombobox({
   dropdownClassName,
   disabled,
   onEditSavedOption,
+  pinnedIds = [],
+  onTogglePin,
 }: CommonComboboxProps) {
   const [open, setOpen] = useState(false);
+  const showPin = Boolean(onTogglePin);
+  const isPinned = (id: string) => pinnedIds.includes(id);
   const [inputValue, setInputValue] = useState(value ?? '');
   const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -66,25 +75,28 @@ export function CommonCombobox({
 
   const suggestions = useMemo(() => {
     const q = inputValue.trim().toLowerCase();
+    let list: string[];
     if (!q) {
       const defaultList =
         defaultSuggestions != null && defaultSuggestions.length > 0
           ? defaultSuggestions.filter((s) => normalizedOptions.includes(s))
           : normalizedOptions;
-      return defaultList.slice(0, MAX_SUGGESTIONS);
+      list = defaultList.slice(0, MAX_SUGGESTIONS);
+    } else {
+      const startsWith: string[] = [];
+      const contains: string[] = [];
+      normalizedOptions.forEach((opt) => {
+        const lower = opt.toLowerCase();
+        if (lower.startsWith(q)) {
+          startsWith.push(opt);
+        } else if (lower.includes(q)) {
+          contains.push(opt);
+        }
+      });
+      list = [...startsWith, ...contains].slice(0, MAX_SUGGESTIONS);
     }
-    const startsWith: string[] = [];
-    const contains: string[] = [];
-    normalizedOptions.forEach((opt) => {
-      const lower = opt.toLowerCase();
-      if (lower.startsWith(q)) {
-        startsWith.push(opt);
-      } else if (lower.includes(q)) {
-        contains.push(opt);
-      }
-    });
-    return [...startsWith, ...contains].slice(0, MAX_SUGGESTIONS);
-  }, [inputValue, normalizedOptions, defaultSuggestions]);
+    return showPin && pinnedIds.length > 0 ? sortByPins(list, pinnedIds, (s) => s) : list;
+  }, [inputValue, normalizedOptions, defaultSuggestions, showPin, pinnedIds]);
 
   // When portaling: measure trigger and position dropdown; update on scroll/resize when open
   useLayoutEffect(() => {
@@ -297,20 +309,38 @@ export function CommonCombobox({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate">{item}</span>
-                        {onEditSavedOption && (
-                          <span
-                            role="button"
-                            aria-label={`Edit ${customValueLabel}`}
-                            className="ml-2 inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-700"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              startEditOption(item);
-                            }}
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </span>
-                        )}
+                        <span className="flex items-center gap-0.5 shrink-0">
+                          {showPin && (
+                            <span
+                              role="button"
+                              aria-label={isPinned(item) ? 'Unpin' : 'Pin to top'}
+                              className="inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onTogglePin?.(item);
+                              }}
+                            >
+                              <Star
+                                className={cn('h-3.5 w-3.5', isPinned(item) && 'fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400')}
+                              />
+                            </span>
+                          )}
+                          {onEditSavedOption && (
+                            <span
+                              role="button"
+                              aria-label={`Edit ${customValueLabel}`}
+                              className="ml-0.5 inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-700"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                startEditOption(item);
+                              }}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </span>
+                          )}
+                        </span>
                       </div>
                     </button>
                   )}
@@ -428,20 +458,38 @@ export function CommonCombobox({
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span className="truncate">{item}</span>
-                            {onEditSavedOption && (
-                              <span
-                                role="button"
-                                aria-label={`Edit ${customValueLabel}`}
-                                className="ml-2 inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-700"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  startEditOption(item);
-                                }}
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </span>
-                            )}
+                            <span className="flex items-center gap-0.5 shrink-0">
+                              {showPin && (
+                                <span
+                                  role="button"
+                                  aria-label={isPinned(item) ? 'Unpin' : 'Pin to top'}
+                                  className="inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    onTogglePin?.(item);
+                                  }}
+                                >
+                                  <Star
+                                    className={cn('h-3.5 w-3.5', isPinned(item) && 'fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400')}
+                                  />
+                                </span>
+                              )}
+                              {onEditSavedOption && (
+                                <span
+                                  role="button"
+                                  aria-label={`Edit ${customValueLabel}`}
+                                  className="ml-0.5 inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-700"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    startEditOption(item);
+                                  }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </span>
+                              )}
+                            </span>
                           </div>
                         </button>
                       )}

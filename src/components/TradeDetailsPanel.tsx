@@ -81,7 +81,8 @@ import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
-import { updateStrategySetupTypes, updateStrategyLiquidityTypes } from '@/lib/server/strategies';
+import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyFavourites } from '@/lib/server/strategies';
+import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
 
 interface TradeDetailsPanelProps {
   trade: Trade | null;
@@ -93,9 +94,11 @@ interface TradeDetailsPanelProps {
   readOnly?: boolean;
   /** Strategy name to show in top-right header (e.g. shared strategy name). */
   strategyName?: string;
+  /** Extra card keys to show in read-only mode (e.g. from public share page where no auth session exists). */
+  extraCards?: string[];
 }
 
-export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inlineMode, readOnly = false, strategyName: strategyNameProp }: TradeDetailsPanelProps) {
+export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inlineMode, readOnly = false, strategyName: strategyNameProp, extraCards: extraCardsProp }: TradeDetailsPanelProps) {
   const params = useParams();
   const strategySlug = (params?.strategy as string | undefined) ?? '';
   const { selection } = useActionBarSelection();
@@ -108,7 +111,9 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     () => strategies.find((s) => s.slug === strategySlug),
     [strategies, strategySlug]
   );
-  const strategyExtraCards = currentStrategy?.extra_cards ?? [];
+  // In read-only mode (e.g. public share page), there's no auth session so useStrategies
+  // returns empty — use the extraCards prop directly when provided.
+  const strategyExtraCards = (readOnly && extraCardsProp != null) ? extraCardsProp : (currentStrategy?.extra_cards ?? []);
   const hasCard = useCallback(
     (key: string) => strategyExtraCards.includes(key as any),
     [strategyExtraCards]
@@ -442,6 +447,23 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     onClose,
     inlineMode,
   ]);
+
+  const handleToggleFavourite = useCallback(
+    (kind: SavedFavouritesKind) => (itemId: string) => {
+      if (!currentStrategy || !userId || !accountId) return;
+      const strategyId = currentStrategy.id;
+      void updateStrategyFavourites(strategyId, userId, kind, itemId).then((nextSavedFavourites) => {
+        if (nextSavedFavourites == null) return;
+        const key = queryKeys.strategies(userId, accountId);
+        queryClient.setQueryData(key, (prev: Strategy[] | undefined) =>
+          prev?.map((s) =>
+            s.id === strategyId ? { ...s, saved_favourites: nextSavedFavourites } : s
+          )
+        );
+      });
+    },
+    [currentStrategy, userId, accountId, queryClient]
+  );
 
   const handleDelete = useCallback(async () => {
     if (!trade || !trade.id) return;
@@ -840,6 +862,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
               dropdownClassName="z-[100]"
               defaultSuggestions={settings.saved_markets}
+              pinnedIds={currentStrategy?.saved_favourites?.market}
+              onTogglePin={currentStrategy ? handleToggleFavourite('market') : undefined}
             />
           </div>
         );
@@ -872,6 +896,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 options={setupOptions}
                 placeholder="Select or type setup"
                 dropdownClassName="z-[100]"
+                pinnedIds={currentStrategy?.saved_favourites?.setup}
+                onTogglePin={currentStrategy ? handleToggleFavourite('setup') : undefined}
               />
             </div>
           );
@@ -889,6 +915,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 customValueLabel="conditions / liquidity"
                 placeholder="Select or type conditions / liquidity"
                 dropdownClassName="z-[100]"
+                pinnedIds={currentStrategy?.saved_favourites?.liquidity}
+                onTogglePin={currentStrategy ? handleToggleFavourite('liquidity') : undefined}
               />
             </div>
           );
@@ -1280,6 +1308,8 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                           savedNews={settings.saved_news as SavedNewsItem[]}
                           placeholder="e.g. CPI, NFP, FOMC"
                           className={`${inputClass} placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+                          pinnedIds={currentStrategy?.saved_favourites?.news}
+                          onTogglePin={currentStrategy ? handleToggleFavourite('news') : undefined}
                         />
                         <div className="flex items-center gap-1" role="group" aria-label="News intensity">
                           {[1, 2, 3].map((star) => (
