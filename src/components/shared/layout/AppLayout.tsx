@@ -110,7 +110,7 @@ export default function AppLayout({
               ? "opacity-100 translate-y-0 pointer-events-auto"
               : "opacity-0 -translate-y-3 pointer-events-none"
           )}>
-            <div className="inline-block mx-2 sm:mx-4 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 sm:px-4 py-3">
+            <div className="inline-block mx-2 sm:mx-4 rounded-2xl border border-slate-300/60 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 px-3 sm:px-4 py-3">
               <ActionBar
                 initialData={
                   userId && initialAllAccounts != null
