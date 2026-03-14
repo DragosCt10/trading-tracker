@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { ALLOWED_MARKETS, filterAllowedMarkets } from '@/constants/allowedMarkets';
 import { normalizeMarket } from '@/utils/validateMarket';
 import { cn } from '@/lib/utils';
-import { Pencil, Loader2 } from 'lucide-react';
+import { Pencil, Loader2, Star } from 'lucide-react';
+import { useComboboxPins, sortByPins } from '@/hooks/useComboboxPins';
 
 const MAX_SUGGESTIONS = 80;
 const MAX_CHARS = 8;
@@ -25,6 +26,12 @@ export interface MarketComboboxProps {
   defaultSuggestions?: string[];
   /** Optional callback when a saved market is renamed from the suggestions list. */
   onEditSavedMarket?: (oldValue: string, newValue: string) => Promise<void> | void;
+  /** When set, enables favourite star on suggestions; pinned items appear first (max 10). Default: 'market-combobox'. */
+  pinsStorageKey?: string;
+  /** When provided with onTogglePin, use DB-backed pins (from strategy.saved_favourites) instead of localStorage. */
+  pinnedIds?: string[];
+  /** Callback to toggle pin (persist to DB). When provided with pinnedIds, favourites are stored on the strategy. */
+  onTogglePin?: (itemId: string) => void;
 }
 
 export function MarketCombobox({
@@ -38,8 +45,16 @@ export function MarketCombobox({
   disabled,
   defaultSuggestions,
   onEditSavedMarket,
+  pinsStorageKey = 'market-combobox',
+  pinnedIds: pinnedIdsProp,
+  onTogglePin: onTogglePinProp,
 }: MarketComboboxProps) {
   const [open, setOpen] = useState(false);
+  const fromHook = useComboboxPins(onTogglePinProp ? undefined : pinsStorageKey);
+  const pinnedIds = pinnedIdsProp ?? fromHook.pinnedIds;
+  const togglePin = onTogglePinProp ?? fromHook.togglePin;
+  const isPinned = (id: string) => pinnedIds.includes(id);
+  const showPin = Boolean(onTogglePinProp || pinsStorageKey);
   const [inputValue, setInputValue] = useState(value);
   const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -64,23 +79,26 @@ export function MarketCombobox({
   // On focus (empty input): show only saved_markets (defaultSuggestions). When typing: filter allowed markets and put saved matches first.
   const suggestions = useMemo(() => {
     const q = inputValue.trim().toUpperCase();
+    let list: string[];
     if (!q) {
-      return normalizedSaved.slice(0, MAX_SUGGESTIONS);
+      list = normalizedSaved.slice(0, MAX_SUGGESTIONS);
+    } else {
+      const fromAllowed = filterAllowedMarkets(inputValue, MAX_SUGGESTIONS);
+      const lower = inputValue.trim().toLowerCase();
+      const startsWith: string[] = [];
+      const contains: string[] = [];
+      normalizedSaved.forEach((m) => {
+        const mLower = m.toLowerCase();
+        if (mLower.startsWith(lower)) startsWith.push(m);
+        else if (mLower.includes(lower)) contains.push(m);
+      });
+      const savedMatches = [...startsWith, ...contains];
+      const allowedSet = new Set(fromAllowed.map((x) => x.toUpperCase()));
+      const savedNotInAllowed = savedMatches.filter((m) => !allowedSet.has(m.toUpperCase()));
+      list = [...savedNotInAllowed, ...fromAllowed].slice(0, MAX_SUGGESTIONS);
     }
-    const fromAllowed = filterAllowedMarkets(inputValue, MAX_SUGGESTIONS);
-    const lower = inputValue.trim().toLowerCase();
-    const startsWith: string[] = [];
-    const contains: string[] = [];
-    normalizedSaved.forEach((m) => {
-      const mLower = m.toLowerCase();
-      if (mLower.startsWith(lower)) startsWith.push(m);
-      else if (mLower.includes(lower)) contains.push(m);
-    });
-    const savedMatches = [...startsWith, ...contains];
-    const allowedSet = new Set(fromAllowed.map((x) => x.toUpperCase()));
-    const savedNotInAllowed = savedMatches.filter((m) => !allowedSet.has(m.toUpperCase()));
-    return [...savedNotInAllowed, ...fromAllowed].slice(0, MAX_SUGGESTIONS);
-  }, [inputValue, normalizedSaved]);
+    return showPin && pinnedIds.length > 0 ? sortByPins(list, pinnedIds, (s) => s) : list;
+  }, [inputValue, normalizedSaved, showPin, pinnedIds]);
 
   // When portaling: measure trigger and position dropdown; update on scroll/resize when open
   useLayoutEffect(() => {
@@ -292,20 +310,36 @@ export function MarketCombobox({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate">{market}</span>
-                        {onEditSavedMarket && normalizedSaved.includes(market) && (
+                        <span className="flex items-center gap-0.5 shrink-0">
                           <span
                             role="button"
-                            aria-label="Edit saved market"
-                            className="ml-2 inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-700"
+                            aria-label={isPinned(market) ? 'Unpin' : 'Pin to top'}
+                            className="inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400"
                             onMouseDown={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              startEditMarket(market);
+                              togglePin(market);
                             }}
                           >
-                            <Pencil className="h-3 w-3" />
+                            <Star
+                              className={cn('h-3.5 w-3.5', isPinned(market) && 'fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400')}
+                            />
                           </span>
-                        )}
+                          {onEditSavedMarket && normalizedSaved.includes(market) && (
+                            <span
+                              role="button"
+                              aria-label="Edit saved market"
+                              className="ml-0.5 inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-700"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                startEditMarket(market);
+                              }}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </span>
+                          )}
+                        </span>
                       </div>
                     </button>
                   )}
@@ -415,20 +449,36 @@ export function MarketCombobox({
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span className="truncate">{market}</span>
-                            {onEditSavedMarket && normalizedSaved.includes(market) && (
+                            <span className="flex items-center gap-0.5 shrink-0">
                               <span
                                 role="button"
-                                aria-label="Edit saved market"
-                                className="ml-2 inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-700"
+                                aria-label={isPinned(market) ? 'Unpin' : 'Pin to top'}
+                                className="inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400"
                                 onMouseDown={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  startEditMarket(market);
+                                  togglePin(market);
                                 }}
                               >
-                                <Pencil className="h-3 w-3" />
+                                <Star
+                                  className={cn('h-3.5 w-3.5', isPinned(market) && 'fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400')}
+                                />
                               </span>
-                            )}
+                              {onEditSavedMarket && normalizedSaved.includes(market) && (
+                                <span
+                                  role="button"
+                                  aria-label="Edit saved market"
+                                  className="ml-0.5 inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-700"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    startEditMarket(market);
+                                  }}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </span>
+                              )}
+                            </span>
                           </div>
                         </button>
                       )}
