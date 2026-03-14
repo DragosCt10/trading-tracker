@@ -21,6 +21,10 @@ export const queryKeys = {
   strategies: (userId?: string, accountId?: string) =>
     ['strategies:list', userId, accountId] as const,
 
+  /** Per-account strategy stats + equity curves (StrategyCard, My Trades cumulative PnL). Invalidate on trade mutations. */
+  strategiesOverview: (userId?: string, accountId?: string, mode?: string) =>
+    ['strategies-overview', userId, accountId, mode] as const,
+
   archivedStrategies: (userId?: string) =>
     ['archived-strategies', userId] as const,
 
