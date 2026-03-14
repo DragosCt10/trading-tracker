@@ -38,7 +38,7 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
 import { calculateAverageDrawdown } from '@/utils/analyticsCalculations';
 import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';
-import { cn } from '@/lib/utils';
+import { cn, formatPercent } from '@/lib/utils';
 import { Info } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { MonteCarloCard } from '@/components/trades/MonteCarloCard';
@@ -608,7 +608,7 @@ export default function MyTradesClient({
                 <SummaryHalfGauge
                   variant="winRate"
                   valueNormalized={overviewStats.winRate}
-                  centerLabel={`${overviewStats.winRate.toFixed(1)}%`}
+                  centerLabel={`${formatPercent(overviewStats.winRate)}%`}
                   minLabel="0%"
                   maxLabel="100%"
                 />
