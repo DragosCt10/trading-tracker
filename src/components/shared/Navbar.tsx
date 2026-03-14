@@ -122,6 +122,9 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               <span className="hidden lg:inline text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-50 ml-9">
                 AlphaStats
               </span>
+              <span className="hidden lg:inline-block themed-pro-text ml-1.5 text-[11px] font-bold uppercase">
+                PRO
+              </span>
             </Link>
 
           <Separator orientation="vertical" className="mx-3 hidden h-6 lg:flex" />
