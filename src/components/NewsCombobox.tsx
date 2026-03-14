@@ -5,7 +5,8 @@ import * as fuzz from 'fuzzball';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { SavedNewsItem } from '@/types/account-settings';
-import { Pencil, Loader2 } from 'lucide-react';
+import { Pencil, Loader2, Star } from 'lucide-react';
+import { useComboboxPins, sortByPins } from '@/hooks/useComboboxPins';
 
 const MAX_SUGGESTIONS = 8;
 const FILTER_THRESHOLD = 30; // loose threshold while typing
@@ -35,6 +36,12 @@ export interface NewsComboboxProps {
   maxLength?: number;
   /** Optional callback when a saved news item is renamed from the suggestions list. */
   onEditSavedNews?: (item: SavedNewsItem, newName: string) => Promise<void> | void;
+  /** When set, enables favourite star on suggestions; pinned items appear first (max 10). Default: 'news-combobox'. */
+  pinsStorageKey?: string;
+  /** When provided with onTogglePin, use DB-backed pins (from strategy.saved_favourites) instead of localStorage. */
+  pinnedIds?: string[];
+  /** Callback to toggle pin (persist to DB). When provided with pinnedIds, favourites are stored on the strategy. */
+  onTogglePin?: (itemId: string) => void;
 }
 
 export function NewsCombobox({
@@ -47,8 +54,16 @@ export function NewsCombobox({
   id,
   maxLength = NEWS_INPUT_MAX_LENGTH,
   onEditSavedNews,
+  pinsStorageKey = 'news-combobox',
+  pinnedIds: pinnedIdsProp,
+  onTogglePin: onTogglePinProp,
 }: NewsComboboxProps) {
   const [open, setOpen] = useState(false);
+  const fromHook = useComboboxPins(onTogglePinProp ? undefined : pinsStorageKey);
+  const pinnedIds = pinnedIdsProp ?? fromHook.pinnedIds;
+  const togglePin = onTogglePinProp ?? fromHook.togglePin;
+  const isPinned = (id: string) => pinnedIds.includes(id);
+  const showPin = Boolean(onTogglePinProp || pinsStorageKey);
   const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -62,27 +77,29 @@ export function NewsCombobox({
   const suggestions = useMemo<SavedNewsItem[]>(() => {
     if (savedNews.length === 0) return [];
     const q = inputValue.trim().toLowerCase();
+    let list: SavedNewsItem[];
 
     if (!q) {
       // Empty input → show all saved news (most recent first, capped)
-      return savedNews.slice(-MAX_SUGGESTIONS).reverse();
+      list = savedNews.slice(-MAX_SUGGESTIONS).reverse();
+    } else {
+      list = savedNews
+        .map((item) => {
+          const candidates = [item.name, ...(item.aliases ?? [])].map((s) =>
+            s.toLowerCase()
+          );
+          const score = Math.max(
+            ...candidates.map((c) => fuzz.token_set_ratio(q, c))
+          );
+          return { item, score };
+        })
+        .filter(({ score }) => score >= FILTER_THRESHOLD)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, MAX_SUGGESTIONS)
+        .map(({ item }) => item);
     }
-
-    return savedNews
-      .map((item) => {
-        const candidates = [item.name, ...(item.aliases ?? [])].map((s) =>
-          s.toLowerCase()
-        );
-        const score = Math.max(
-          ...candidates.map((c) => fuzz.token_set_ratio(q, c))
-        );
-        return { item, score };
-      })
-      .filter(({ score }) => score >= FILTER_THRESHOLD)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, MAX_SUGGESTIONS)
-      .map(({ item }) => item);
-  }, [inputValue, savedNews]);
+    return showPin && pinnedIds.length > 0 ? sortByPins(list, pinnedIds, (item) => item.id) : list;
+  }, [inputValue, savedNews, showPin, pinnedIds]);
 
   // Close on outside click
   useEffect(() => {
@@ -269,20 +286,38 @@ export function NewsCombobox({
                   }}
                 >
                   <span className="flex-1 truncate">{item.name}</span>
-                  {onEditSavedNews && (
-                    <span
-                      role="button"
-                      aria-label="Edit saved news"
-                      className="inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-700"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        startEditNews(item);
-                      }}
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </span>
-                  )}
+                  <span className="flex items-center gap-0.5 shrink-0">
+                    {showPin && (
+                      <span
+                        role="button"
+                        aria-label={isPinned(item.id) ? 'Unpin' : 'Pin to top'}
+                        className="inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          togglePin(item.id);
+                        }}
+                      >
+                        <Star
+                          className={cn('h-3.5 w-3.5', isPinned(item.id) && 'fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400')}
+                        />
+                      </span>
+                    )}
+                    {onEditSavedNews && (
+                      <span
+                        role="button"
+                        aria-label="Edit saved news"
+                        className="inline-flex items-center justify-center rounded-md p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-100 dark:hover:bg-slate-700"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          startEditNews(item);
+                        }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </span>
+                    )}
+                  </span>
                   <StarsIndicator intensity={item.intensity} />
                 </button>
               )}
