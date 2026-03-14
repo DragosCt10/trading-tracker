@@ -17,7 +17,7 @@ import {
 import type { Trade } from '@/types/trade';
 
 const MIN_TRADES = 20;
-const FUTURE_TRADE_OPTIONS = [25, 50, 75, 100, 150, 200] as const;
+const FUTURE_TRADE_OPTIONS = [25, 50, 75, 100, 150, 200, 500, 750, 1000] as const;
 type DisplayMode = 'r' | 'dollar';
 
 interface MonteCarloCardProps {
@@ -157,7 +157,7 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
                   <SelectTrigger className="w-20 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 !bg-slate-50/50 dark:!bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="z-[100] border border-slate-200/70 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50">
+                  <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
                     {FUTURE_TRADE_OPTIONS.map((opt) => (
                       <SelectItem key={opt} value={String(opt)}>
                         {opt}
