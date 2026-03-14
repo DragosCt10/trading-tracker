@@ -102,6 +102,8 @@ interface AccountOverviewCardProps {
   monthlyStatsAllTrades: MonthlyStats;
   /** When true, year data (allTrades) is still loading; avoid showing "No trades found" until false */
   isYearDataLoading?: boolean;
+  /** When true, data is being refetched (e.g. filter change); show pulse instead of empty state */
+  isFetching?: boolean;
   /** Number of trades in the period. When set, "No trades found" is shown only when this is 0 (so BE-only trades still show the chart). */
   tradesCount?: number;
   /** Optional fallback label when accountName is null/empty (defaults to "No Active Account"). */
@@ -117,6 +119,7 @@ export function AccountOverviewCard({
   months,
   monthlyStatsAllTrades,
   isYearDataLoading = false,
+  isFetching = false,
   tradesCount,
   fallbackAccountName,
 }: AccountOverviewCardProps) {
@@ -141,7 +144,7 @@ export function AccountOverviewCard({
 
   const hasNonZeroProfit = chartData.some(item => item.profit !== 0);
   const hasAnyTrades = tradesCount !== undefined ? tradesCount > 0 : hasNonZeroProfit;
-  const showEmptyState = !isYearDataLoading && (!hasAnyTrades || !hasNonZeroProfit);
+  const showEmptyState = !isYearDataLoading && !isFetching && (!hasAnyTrades || !hasNonZeroProfit);
   const emptyStateNoTrades = !hasAnyTrades;
 
   const effectiveFallbackName = fallbackAccountName ?? 'No Active Account';
@@ -226,7 +229,7 @@ export function AccountOverviewCard({
                 />
               ))}
             </div>
-          ) : isYearDataLoading ? (
+          ) : isYearDataLoading || isFetching ? (
             <div className="w-full h-full min-h-[200px] flex items-center justify-center" aria-hidden>
               <BouncePulse size="md" />
             </div>
