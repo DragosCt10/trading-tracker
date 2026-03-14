@@ -601,7 +601,7 @@ export default function MyTradesClient({
                 </p>
               </div>
             </div>
-            <div className="flex-1 h-32">
+            <div className="flex-1 h-32 min-h-[7rem] w-full">
               {!mounted ? (
                 <div className="w-full h-full flex items-center justify-center">
                   <BouncePulse size="md" />
@@ -627,7 +627,7 @@ export default function MyTradesClient({
                 </p>
               </div>
             </div>
-            <div className="flex-1 h-32 relative">
+            <div className="flex-1 h-32 min-h-[7rem] relative w-full">
               {!mounted || tradesLoading ? (
                 <div className="w-full h-full flex items-center justify-center">
                   <BouncePulse size="md" />
@@ -689,7 +689,7 @@ export default function MyTradesClient({
                 </TooltipProvider>
               </div>
             </div>
-            <div className="flex-1 h-32 relative">
+            <div className="flex-1 h-32 min-h-[7rem] relative w-full">
               {!mounted || tradesLoading ? (
                 <div className="w-full h-full flex items-center justify-center">
                   <BouncePulse size="md" />
