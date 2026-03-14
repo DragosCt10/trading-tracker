@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TRADES_DATA } from '@/constants/queryConfig';
 import { TradeFiltersBar, DateRangeValue } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { getFilteredTrades, deleteTrades, moveTradestoStrategy } from '@/lib/server/trades';
+import { getStrategiesOverview } from '@/lib/server/strategiesOverview';
 import type { Database } from '@/types/supabase';
 import { TradeCardsView } from '@/components/trades/TradeCardsView';
 import {
@@ -38,7 +39,7 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
 import { calculateAverageDrawdown } from '@/utils/analyticsCalculations';
 import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';
-import { cn, formatPercent } from '@/lib/utils';
+import { cn, formatPercent, roundToCents } from '@/lib/utils';
 import { Info } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { MonteCarloCard } from '@/components/trades/MonteCarloCard';
@@ -104,6 +105,26 @@ export default function MyTradesClient({
   const moveToStrategies = strategies
     .filter((s) => s.id !== initialStrategyId)
     .map((s) => ({ id: s.id, name: s.name }));
+
+  // Strategy overview (same cache as Strategies list) — for "All trades" cumulative PnL to match StrategyCard
+  const { data: strategiesOverview } = useQuery({
+    queryKey: queryKeys.strategiesOverview(userId, activeAccount?.id, selection.mode ?? initialMode),
+    queryFn: async () => {
+      if (!activeAccount?.id) return {};
+      return getStrategiesOverview(activeAccount.id, selection.mode ?? initialMode);
+    },
+    enabled: !!userId && !!activeAccount?.id && !!mode,
+    ...TRADES_DATA,
+  });
+
+  const strategyCumulativePnl = useMemo(() => {
+    const row = strategiesOverview?.[initialStrategyId];
+    const curve = row?.equityCurve;
+    if (!curve?.length) return undefined;
+    return curve[curve.length - 1]?.p ?? undefined;
+  }, [strategiesOverview, initialStrategyId]);
+
+  const strategyWinRate = strategiesOverview?.[initialStrategyId]?.winRate;
 
   // Single query: prefetched on server (one getFilteredTrades), so client uses hydrated cache when key matches.
   // Date range, market, and execution filtering all happen client-side on this dataset.
@@ -253,10 +274,18 @@ export default function MyTradesClient({
     [monthlyStatsForPeriod]
   );
 
+  // When "All trades" + all markets + not "Non-executed only", use strategy overview (same as StrategyCard)
+  const useOverviewPnl =
+    activeFilter === 'all' &&
+    selectedMarket === 'all' &&
+    executionFilter !== 'nonExecuted' &&
+    strategyCumulativePnl !== undefined;
+  const displayCumulativePnl = useOverviewPnl ? strategyCumulativePnl : netCumulativePnl;
+
   const pnlPercent = useMemo(() => {
     const base = activeAccount?.account_balance || 1;
-    return (netCumulativePnl / base) * 100;
-  }, [netCumulativePnl, activeAccount?.account_balance]);
+    return (displayCumulativePnl / base) * 100;
+  }, [displayCumulativePnl, activeAccount?.account_balance]);
 
   const equityChartData = useMemo(() => buildEquityPointsFromTrades(trades), [trades]);
   const hasEquityData = equityChartData.length > 0;
@@ -288,6 +317,8 @@ export default function MyTradesClient({
     () => calculateTradingOverviewStats(trades),
     [trades],
   );
+  const displayWinRate =
+    useOverviewPnl && typeof strategyWinRate === 'number' ? strategyWinRate : overviewStats.winRate;
 
   // Use same trade set as StrategyClient for drawdown: executed-only when execution is "all" or "executed"
   const tradesForDrawdown = useMemo(
@@ -448,6 +479,9 @@ export default function MyTradesClient({
         ),
       });
       queryClient.invalidateQueries({
+        queryKey: queryKeys.strategiesOverview(userId, activeAccount?.id, mode),
+      });
+      queryClient.invalidateQueries({
         predicate: (q) => {
           const key = q.queryKey;
           if (!Array.isArray(key)) return false;
@@ -513,23 +547,23 @@ export default function MyTradesClient({
                 </p>
                 <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">
                   {currencySymbol}
-                  {netCumulativePnl.toFixed(2)}
+                  {roundToCents(displayCumulativePnl).toFixed(2)}
                 </p>
               </div>
               <div className="flex items-center gap-1.5">
-                {netCumulativePnl >= 0 ? (
+                {displayCumulativePnl >= 0 ? (
                   <TrendingUp className="w-4 h-4 text-emerald-500" />
                 ) : (
                   <TrendingDown className="w-4 h-4 text-rose-500" />
                 )}
                 <div
                   className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
-                    netCumulativePnl >= 0
+                    displayCumulativePnl >= 0
                       ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
                       : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
                   }`}
                 >
-                  {netCumulativePnl >= 0 ? '+' : ''}
+                  {displayCumulativePnl >= 0 ? '+' : ''}
                   {pnlPercent.toFixed(2)}%
                 </div>
               </div>
@@ -607,8 +641,8 @@ export default function MyTradesClient({
               ) : (
                 <SummaryHalfGauge
                   variant="winRate"
-                  valueNormalized={overviewStats.winRate}
-                  centerLabel={`${formatPercent(overviewStats.winRate)}%`}
+                  valueNormalized={displayWinRate}
+                  centerLabel={`${formatPercent(displayWinRate)}%`}
                   minLabel="0%"
                   maxLabel="100%"
                 />
