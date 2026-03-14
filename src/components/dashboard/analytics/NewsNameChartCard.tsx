@@ -51,7 +51,7 @@ interface ChartDatum {
 
 /** Card className matching DayStatisticsCard (including shadow); taller on responsive */
 const CARD_CLASS =
-  'relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[32rem] sm:h-96 flex flex-col';
+  'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[32rem] sm:h-96 flex flex-col';
 
 const FILTER_BTN_ACTIVE =
   'themed-btn-primary text-white font-semibold shadow-md border-0';

@@ -179,7 +179,7 @@ export function AccountOverviewCard({
     : '\u00A0';
 
   return (
-    <Card className="relative mb-6 overflow-hidden border-slate-300/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+    <Card className="relative mb-6 overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
       <div className="relative p-8">
         {/* Header */}
         <div className="flex justify-between items-start mb-8">

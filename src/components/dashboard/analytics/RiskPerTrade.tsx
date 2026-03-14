@@ -87,7 +87,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
 
   return (
     <Card
-      className={`col-span-3 relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm ${className}`}
+      className={`col-span-3 relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm ${className}`}
     >
       <div className="relative p-8">
         {/* Header */}
@@ -153,7 +153,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
               {visibleRiskLevels.map(({ key, label, stats }) => (
                 <Card
                   key={key}
-                  className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm p-4 flex flex-col justify-between shadow-none rounded-2xl shrink-0 w-[calc((100%-2rem)/3)]"
+                  className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm p-4 flex flex-col justify-between shadow-none rounded-2xl shrink-0 w-[calc((100%-2rem)/3)]"
                   style={{ scrollSnapAlign: 'start' }}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -177,7 +177,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
                       <span className="text-sm text-slate-500 dark:text-slate-400">Break Even</span>
                       <span className="text-sm font-bold text-slate-500 dark:text-slate-300">{stats.breakEven}</span>
                     </div>
-                    <div className="flex items-center justify-between py-2 border-t border-slate-200/60 dark:border-slate-700/50">
+                    <div className="flex items-center justify-between py-2 border-t border-slate-300/40 dark:border-slate-700/50">
                       <span className="text-sm text-slate-500 dark:text-slate-400">Win Rate</span>
                       <span className="text-base font-bold text-slate-900 dark:text-slate-100">
                         {formatPercent(stats.winrate)}%
@@ -196,7 +196,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
             {visibleRiskLevels.map(({ key, label, stats }) => (
               <Card
                 key={key}
-                className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm p-4 flex flex-col justify-between shadow-none rounded-2xl"
+                className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm p-4 flex flex-col justify-between shadow-none rounded-2xl"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1.5">
@@ -221,7 +221,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
                     <span className="text-sm text-slate-500 dark:text-slate-400">Break Even</span>
                     <span className="text-sm font-bold text-slate-500 dark:text-slate-300">{stats.breakEven}</span>
                   </div>
-                  <div className="flex items-center justify-between py-2 border-t border-slate-200/60 dark:border-slate-700/50">
+                  <div className="flex items-center justify-between py-2 border-t border-slate-300/40 dark:border-slate-700/50">
                     <span className="text-sm text-slate-500 dark:text-slate-400">Win Rate</span>
                     <span className="text-base font-bold text-slate-900 dark:text-slate-100">
                       {formatPercent(stats.winrate)}%
@@ -236,7 +236,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
             {Array.from({ length: extraCardsNeeded }).map((_, idx) => (
               <Card
                 key={`risk-empty-${idx}`}
-                className="border border-dashed border-slate-200/60 dark:border-slate-700/50 bg-slate-50/40 dark:bg-slate-800/30 p-4 flex flex-col items-center justify-center shadow-none rounded-2xl text-center"
+                className="border border-dashed border-slate-300/40 dark:border-slate-700/50 bg-slate-50/40 dark:bg-slate-800/30 p-4 flex flex-col items-center justify-center shadow-none rounded-2xl text-center"
               >
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   No trades for this

@@ -223,7 +223,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
         )}
       </div>
 
-      <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
+      <hr className="col-span-full my-8 border-t border-slate-300/40 dark:border-slate-700" />
 
       {/* Six cards: when hideEmptyChartCards, only visible cards in one auto-arranging grid; otherwise fixed 3-col grid */}
       {hideEmptyChartCards ? (
@@ -283,7 +283,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
           : 'col-span-full grid grid-cols-1 md:grid-cols-3 gap-6 w-full [&>*]:min-w-0';
         return (
           <>
-            <hr className="col-span-full my-8 border-t border-slate-200 dark:border-slate-700" />
+            <hr className="col-span-full my-8 border-t border-slate-300/40 dark:border-slate-700" />
             <div className={gridClass}>
               {showEval && (
                 <EvaluationStats

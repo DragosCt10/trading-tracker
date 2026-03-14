@@ -76,7 +76,7 @@ export const EquityCurveCard = React.memo(function EquityCurveCard({
   const hasData = chartData.length > 0;
 
   return (
-    <Card className="relative overflow-hidden border-slate-200/60 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm w-full flex flex-col">
+    <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm w-full flex flex-col">
       <CardContent className="flex-1 min-h-[320px] px-4 pt-6 pb-4">
         {!mounted ? (
           <div className="w-full h-[320px] flex items-center justify-center">
