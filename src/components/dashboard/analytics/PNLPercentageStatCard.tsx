@@ -39,15 +39,18 @@ export function formatPNLPercentageValue(averagePnLPercentage: number | null | u
 interface PNLPercentageStatCardProps {
   tradesToUse: Trade[];
   accountBalance: number | null | undefined;
+  /** When set, display this value to match AccountOverviewCard YTD % (total profit / balance * 100). */
+  pnlPercent?: number | null;
   hydrated?: boolean;
 }
 
 export const PNLPercentageStatCard: React.FC<PNLPercentageStatCardProps> = React.memo(
-  function PNLPercentageStatCard({ tradesToUse, accountBalance, hydrated = true }) {
-    // Calculate average P&L percentage from trades
+  function PNLPercentageStatCard({ tradesToUse, accountBalance, pnlPercent, hydrated = true }) {
+    // Use overview YTD % when provided (matches AccountOverviewCard); otherwise average P&L % from trades
     const averagePnLPercentage = useMemo(() => {
+      if (typeof pnlPercent === 'number') return pnlPercent;
       return calculateAveragePnLPercentage(tradesToUse, accountBalance);
-    }, [tradesToUse, accountBalance]);
+    }, [pnlPercent, tradesToUse, accountBalance]);
 
     return (
       <StatCard
@@ -55,7 +58,7 @@ export const PNLPercentageStatCard: React.FC<PNLPercentageStatCardProps> = React
         tooltipVariant="default"
         tooltipContent={
           <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-300">
-            Average P&amp;L % over starting balance.
+            {typeof pnlPercent === 'number' ? 'Return over starting balance (matches Account overview).' : 'Average P&amp;L % over starting balance.'}
           </p>
         }
         value={
