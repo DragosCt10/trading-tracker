@@ -25,6 +25,7 @@ import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarC
 import { calculateLiquidityStats as calculateLiquidityStatsUtil } from '@/utils/calculateCategoryStats';
 import type { LiquidityStats } from '@/types/dashboard';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { useBECalc } from '@/contexts/BECalcContext';
 
 /** Short display labels for liquidity categories on the chart (aligned with NewTradeModal/TradeDetailsModal LIQUIDITY_OPTIONS). */
 const LIQUIDITY_DISPLAY_LABELS: Record<string, string> = {
@@ -90,6 +91,7 @@ export function convertFilteredLiquidityStatsToChartData(liquidityStats: Liquidi
 export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = React.memo(
   function LiquidityStatisticsCard({ liquidityStats, isLoading, includeTotalTrades = false }) {
     const { mounted, isDark } = useDarkMode();
+    const { beCalcEnabled } = useBECalc();
 
     const chartDataRaw = convertLiquidityStatsToChartData(liquidityStats, includeTotalTrades);
     const withTotals: TradeStatDatum[] = chartDataRaw.map((d) => {
@@ -161,10 +163,7 @@ export const LiquidityStatisticsCard: React.FC<LiquidityStatisticsCardProps> = R
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
                 <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {formatPercent(winRate)}%
-                  <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
-                    ({formatPercent(winRateWithBE)}% w/BE)
-                  </span>
+                  {formatPercent(beCalcEnabled ? winRateWithBE : winRate)}%
                 </span>
               </div>
             </div>

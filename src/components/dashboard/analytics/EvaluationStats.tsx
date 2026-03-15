@@ -15,6 +15,7 @@ import { TradeStatDatum } from './TradesStatsBarCard';
 import { calculateEvaluationStats as calculateEvaluationStatsUtil } from '@/utils/calculateEvaluationStats';
 import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { useBECalc } from '@/contexts/BECalcContext';
 
 export interface EvaluationStatsProps {
   stats: EvaluationStat[];
@@ -69,6 +70,7 @@ interface EvaluationChartDatum extends TradeStatDatum {
 export const EvaluationStats: React.FC<EvaluationStatsProps> = React.memo(
   function EvaluationStats({ stats, isLoading: externalLoading }) {
     const { mounted, isDark } = useDarkMode();
+    const { beCalcEnabled } = useBECalc();
     const [isLoading, setIsLoading] = useState(true);
 
 
@@ -142,12 +144,7 @@ export const EvaluationStats: React.FC<EvaluationStatsProps> = React.memo(
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
                 <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {formatPercent(winRate)}%
-                  {d.winRateWithBE !== undefined && (
-                    <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
-                      ({formatPercent(winRateWithBE)}% w/BE)
-                    </span>
-                  )}
+                  {formatPercent(beCalcEnabled ? winRateWithBE : winRate)}%
                 </span>
               </div>
             </div>

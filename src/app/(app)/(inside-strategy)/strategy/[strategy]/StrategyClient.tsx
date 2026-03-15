@@ -879,7 +879,7 @@ export default function StrategyClient(
   const selectedHalfWidthCards = HALF_WIDTH_EXTRA_CARDS.filter(c => hasCard(c.key));
 
   return (
-    <> 
+    <>
       {/* View Mode Toggle */}
       <ViewModeToggle
         viewMode={viewMode}

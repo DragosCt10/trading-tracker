@@ -7,6 +7,7 @@ import { PlusCircle, TrendingUp, BarChart3, NotebookPen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { NewTradeModal } from '@/components/dynamicComponents';
+import { BECalcProvider } from '@/contexts/BECalcContext';
 
 interface InsideStrategyLayoutProps {
   children: ReactNode;
@@ -57,7 +58,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
     );
 
   return (
-    <>
+    <BECalcProvider>
       {children}
 
       {/* Floating Left Bar - Centered Middle */}
@@ -123,6 +124,6 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
           setNewTradeModalOpen(false);
         }}
       />
-    </>
+    </BECalcProvider>
   );
 }

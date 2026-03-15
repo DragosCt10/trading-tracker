@@ -36,6 +36,7 @@ import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveCh
 import { TotalTradesDonut } from '@/components/dashboard/analytics/TotalTradesChartCard';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { useBECalc } from '@/contexts/BECalcContext';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
 import { calculateAverageDrawdown } from '@/utils/analyticsCalculations';
 import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';
@@ -86,6 +87,7 @@ export default function MyTradesClient({
   // Stable today string — same format StrategiesClient uses when seeding filteredTrades cache
   const todayStr = useMemo(() => createAllTimeRange().endDate, []);
   const { mounted, isDark } = useDarkMode();
+  const { beCalcEnabled } = useBECalc();
 
   // Initialize selection from server props if not already set
   useEffect(() => {
@@ -319,6 +321,8 @@ export default function MyTradesClient({
   );
   const displayWinRate =
     useOverviewPnl && typeof strategyWinRate === 'number' ? strategyWinRate : overviewStats.winRate;
+  const winRateWithBE = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
+  const effectiveWinRate = beCalcEnabled ? winRateWithBE : displayWinRate;
 
   // Use same trade set as StrategyClient for drawdown: executed-only when execution is "all" or "executed"
   const tradesForDrawdown = useMemo(
@@ -508,7 +512,7 @@ export default function MyTradesClient({
             Browse your trading history with visual cards
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-4 flex-shrink-0">
           <Button
             onClick={handleExportTrades}
             disabled={exporting || trades.length === 0}
@@ -641,8 +645,8 @@ export default function MyTradesClient({
               ) : (
                 <SummaryHalfGauge
                   variant="winRate"
-                  valueNormalized={displayWinRate}
-                  centerLabel={`${formatPercent(displayWinRate)}%`}
+                  valueNormalized={effectiveWinRate}
+                  centerLabel={`${formatPercent(effectiveWinRate)}%`}
                   minLabel="0%"
                   maxLabel="100%"
                 />

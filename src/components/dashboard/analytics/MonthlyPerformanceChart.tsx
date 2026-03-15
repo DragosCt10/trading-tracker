@@ -22,6 +22,7 @@ import { Trade } from '@/types/trade';
 import { formatPercent } from '@/lib/utils';
 import { MONTHS } from '@/components/dashboard/analytics/AccountOverviewCard';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { useBECalc } from '@/contexts/BECalcContext';
 
 export interface MonthlyStatsAllTrades {
   [month: string]: {
@@ -85,6 +86,7 @@ export function MonthlyPerformanceChart({
   months,
 }: MonthlyPerformanceChartProps) {
   const { mounted, isDark } = useDarkMode();
+  const { beCalcEnabled } = useBECalc();
 
   const axisTextColor = isDark ? '#cbd5e1' : '#64748b';
 
@@ -194,10 +196,7 @@ export function MonthlyPerformanceChart({
           <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
             <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-              {formatPercent(d.winRate ?? 0)}%
-              <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
-                ({formatPercent(d.winRateWithBE ?? 0)}% w/BE)
-              </span>
+              {formatPercent(beCalcEnabled ? (d.winRateWithBE ?? 0) : (d.winRate ?? 0))}%
             </span>
           </div>
           </div>
