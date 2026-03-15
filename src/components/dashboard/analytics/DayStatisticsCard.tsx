@@ -24,6 +24,7 @@ import { Trade } from '@/types/trade';
 import { calculateDayStats as calculateDayStatsUtil } from '@/utils/calculateCategoryStats';
 import type { DayStats, BaseStats } from '@/types/dashboard';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { useBECalc } from '@/contexts/BECalcContext';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -123,6 +124,7 @@ export function convertFilteredDayStatsToChartData(dayStats: DayStatsLike[]) {
 export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
   function DayStatisticsCard({ dayStats, isLoading: externalLoading, includeTotalTrades = false }) {
     const { mounted, isDark } = useDarkMode();
+    const { beCalcEnabled } = useBECalc();
     const [isLoading, setIsLoading] = useState(true);
 
 
@@ -225,10 +227,7 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
                 <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {formatPercent(d.winRate ?? 0)}%
-                  <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
-                    ({formatPercent(d.winRateWithBE ?? 0)}% w/BE)
-                  </span>
+                  {formatPercent(beCalcEnabled ? (d.winRateWithBE ?? 0) : (d.winRate ?? 0))}%
                 </span>
               </div>
             </div>

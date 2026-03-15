@@ -13,6 +13,7 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { cn } from '@/lib/utils';
 import type { TradeTypeStats } from '@/types/dashboard';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { useBECalc } from '@/contexts/BECalcContext';
 
 export interface TrendStatisticsCardProps {
   trendStats: TradeTypeStats[];
@@ -41,6 +42,7 @@ const TREND_SHORT_LABELS: Record<string, string> = {
 export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.memo(
   function TrendStatisticsCard({ trendStats, isLoading: externalLoading, includeTotalTrades = false }) {
     const { mounted, isDark } = useDarkMode();
+    const { beCalcEnabled } = useBECalc();
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -138,10 +140,7 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
                 <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {winRate.toFixed(2)}%
-                  <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
-                    ({winRateWithBE.toFixed(2)}% w/BE)
-                  </span>
+                  {(beCalcEnabled ? winRateWithBE : winRate).toFixed(2)}%
                 </span>
               </div>
             </div>

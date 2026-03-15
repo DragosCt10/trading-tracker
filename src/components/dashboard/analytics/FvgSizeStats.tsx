@@ -20,6 +20,7 @@ import { Trade } from '@/types/trade';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { formatPercent } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { useBECalc } from '@/contexts/BECalcContext';
 
 export interface FvgSizeStatsProps {
   trades: Trade[];
@@ -58,6 +59,7 @@ export const FvgSizeStats: React.FC<FvgSizeStatsProps> = React.memo(
       new Set(filteredTrades.map((t) => t.market || 'Unknown'))
     ).sort();
 
+    const { beCalcEnabled } = useBECalc();
     const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
 
@@ -107,7 +109,7 @@ export const FvgSizeStats: React.FC<FvgSizeStatsProps> = React.memo(
           const wins = tradesInBucketForMarket.filter((t) => t.trade_outcome === 'Win').length;
           const losses = tradesInBucketForMarket.filter((t) => t.trade_outcome === 'Lose').length;
           const breakEven = tradesInBucketForMarket.filter((t) => t.trade_outcome === 'BE').length;
-          const totalForWinrate = wins + losses;
+          const totalForWinrate = beCalcEnabled ? wins + losses + breakEven : wins + losses;
           const winRate = totalForWinrate > 0 ? (wins / totalForWinrate) * 100 : 0;
 
           return {

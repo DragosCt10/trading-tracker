@@ -14,6 +14,7 @@ import {
 import { Info, ChevronRight } from 'lucide-react';
 import { formatPercent } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { useBECalc } from '@/contexts/BECalcContext';
 
 export type RiskStats = {
   total: number;
@@ -55,6 +56,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
   className = '',
 }) => {
   const { isDark } = useDarkMode();
+  const { beCalcEnabled } = useBECalc();
   const scrollRef = useRef<HTMLDivElement>(null);
 
 
@@ -180,10 +182,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
                     <div className="flex items-center justify-between py-2 border-t border-slate-300/40 dark:border-slate-700/50">
                       <span className="text-sm text-slate-500 dark:text-slate-400">Win Rate</span>
                       <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                        {formatPercent(stats.winrate)}%
-                        <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
-                          ({formatPercent(stats.winrateWithBE)}% w/BE)
-                        </span>
+                        {formatPercent(beCalcEnabled ? stats.winrateWithBE : stats.winrate)}%
                       </span>
                     </div>
                   </div>
@@ -224,10 +223,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
                   <div className="flex items-center justify-between py-2 border-t border-slate-300/40 dark:border-slate-700/50">
                     <span className="text-sm text-slate-500 dark:text-slate-400">Win Rate</span>
                     <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                      {formatPercent(stats.winrate)}%
-                      <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
-                        ({formatPercent(stats.winrateWithBE)}% w/BE)
-                      </span>
+                      {formatPercent(beCalcEnabled ? stats.winrateWithBE : stats.winrate)}%
                     </span>
                   </div>
                 </div>

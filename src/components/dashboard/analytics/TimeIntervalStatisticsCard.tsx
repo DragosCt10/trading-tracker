@@ -22,6 +22,7 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { formatPercent } from '@/lib/utils';
 import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { useBECalc } from '@/contexts/BECalcContext';
 
 export interface TimeIntervalStatisticsCardProps {
   /** Stats per time interval (same buckets as TIME_INTERVALS). */
@@ -34,6 +35,7 @@ export interface TimeIntervalStatisticsCardProps {
 export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProps> = React.memo(
   function TimeIntervalStatisticsCard({ data, isLoading, selectedIntervalLabel }) {
     const { mounted, isDark } = useDarkMode();
+    const { beCalcEnabled } = useBECalc();
 
     // When a specific interval is selected, show only that row (data already includes legacy trades bucketed by trade_time)
     const dataToShow = selectedIntervalLabel
@@ -108,10 +110,7 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
             <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
               <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                {formatPercent(winRate)}%
-                <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
-                  ({formatPercent(winRateWithBE)}% w/BE)
-                </span>
+                {formatPercent(beCalcEnabled ? winRateWithBE : winRate)}%
               </span>
             </div>
           </div>

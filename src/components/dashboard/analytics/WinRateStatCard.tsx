@@ -3,6 +3,7 @@
 import React from 'react';
 import { formatPercent } from '@/lib/utils';
 import { StatCard } from '@/components/dashboard/analytics/StatCard';
+import { useBECalc } from '@/contexts/BECalcContext';
 
 interface WinRateStatCardProps {
   winRate: number;
@@ -13,17 +14,13 @@ interface WinRateStatCardProps {
 
 export const WinRateStatCard: React.FC<WinRateStatCardProps> = React.memo(
   function WinRateStatCard({ winRate, winRateWithBE, hydrated = true }) {
+    const { beCalcEnabled } = useBECalc();
     return (
       <StatCard
         title="Win Rate"
         value={
           <p className="text-2xl font-bold text-slate-900 dark:text-slate-100" suppressHydrationWarning>
-            {hydrated ? `${formatPercent(winRate)}%` : '—'}
-            {hydrated && (
-              <span className="text-slate-500 text-sm ml-1">
-                ({formatPercent(winRateWithBE)}% w/ BE)
-              </span>
-            )}
+            {hydrated ? `${formatPercent(beCalcEnabled ? winRateWithBE : winRate)}%` : '—'}
           </p>
         }
       />

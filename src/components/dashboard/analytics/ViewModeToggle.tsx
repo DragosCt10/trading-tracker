@@ -15,51 +15,53 @@ export function ViewModeToggle({ viewMode, onViewModeChange }: ViewModeTogglePro
           {viewMode === 'yearly' ? 'Year in Review' : 'Date Range Analytics'}
         </h1>
         <p className="text-slate-500 dark:text-slate-400 mt-1">
-          {viewMode === 'yearly' 
+          {viewMode === 'yearly'
             ? 'Your yearly trading performance and statistics. Select a year to view.'
             : 'Your trading performance for the selected date range.'}
         </p>
       </div>
-      
-      {/* Toggle Switch - Fancy Design */}
-      <div className="flex items-center gap-3 shrink-0">
-        <span className={cn(
-          "text-sm font-semibold transition-all duration-300",
-          viewMode === 'yearly' 
-            ? "text-slate-900 dark:text-slate-100" 
-            : "text-slate-500 dark:text-slate-400"
-        )}>
-          Yearly
-        </span>
-        
-        <button
-          type="button"
-          onClick={() => onViewModeChange(viewMode === 'yearly' ? 'dateRange' : 'yearly')}
-          className={cn(
-            "relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 themed-focus focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 shadow-md cursor-pointer",
-            viewMode === 'dateRange'
-              ? "themed-toggle-active bg-gradient-to-r from-purple-500 to-violet-600 shadow-purple-500/40 dark:shadow-purple-900/50"
-              : "bg-gradient-to-r from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-700"
-          )}
-        >
-          <span
+
+      <div className="flex items-center gap-6 shrink-0">
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-3">
+          <span className={cn(
+            "text-sm font-semibold transition-all duration-300",
+            viewMode === 'yearly'
+              ? "text-slate-900 dark:text-slate-100"
+              : "text-slate-500 dark:text-slate-400"
+          )}>
+            Yearly
+          </span>
+
+          <button
+            type="button"
+            onClick={() => onViewModeChange(viewMode === 'yearly' ? 'dateRange' : 'yearly')}
             className={cn(
-              "inline-block h-5 w-5 transform rounded-full bg-white transition-all duration-300 shadow-md border",
+              "relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 themed-focus focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 shadow-md cursor-pointer",
               viewMode === 'dateRange'
-                ? "translate-x-[24px] border-white/50"
-                : "translate-x-[4px] border-slate-200/50 dark:border-slate-600/50"
+                ? "themed-toggle-active bg-gradient-to-r from-purple-500 to-violet-600 shadow-purple-500/40 dark:shadow-purple-900/50"
+                : "bg-gradient-to-r from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-700"
             )}
-          />
-        </button>
-        
-        <span className={cn(
-          "text-sm font-semibold transition-all duration-300",
-          viewMode === 'dateRange' 
-            ? "text-slate-900 dark:text-slate-100" 
-            : "text-slate-500 dark:text-slate-400"
-        )}>
-          Date Range
-        </span>
+          >
+            <span
+              className={cn(
+                "inline-block h-5 w-5 transform rounded-full bg-white transition-all duration-300 shadow-md border",
+                viewMode === 'dateRange'
+                  ? "translate-x-[24px] border-white/50"
+                  : "translate-x-[4px] border-slate-200/50 dark:border-slate-600/50"
+              )}
+            />
+          </button>
+
+          <span className={cn(
+            "text-sm font-semibold transition-all duration-300",
+            viewMode === 'dateRange'
+              ? "text-slate-900 dark:text-slate-100"
+              : "text-slate-500 dark:text-slate-400"
+          )}>
+            Date Range
+          </span>
+        </div>
       </div>
     </div>
   );

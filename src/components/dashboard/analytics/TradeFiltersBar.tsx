@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { format } from 'date-fns';
 import { DateRange } from 'react-date-range';
-import { Calendar } from 'lucide-react';
+import { Calendar, Info } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,8 +15,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useColorTheme } from '@/hooks/useColorTheme';
+import { useBECalc } from '@/contexts/BECalcContext';
 
 type PresetKey = 'year' | '15days' | '30days' | 'month' | 'all';
 
@@ -65,6 +72,7 @@ type TradeFiltersBarProps = FullTradeFiltersBarProps | MarketOnlyTradeFiltersBar
 
 export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
   const { colorTheme } = useColorTheme();
+  const { beCalcEnabled, toggleBECalc } = useBECalc();
   const rangeColor = React.useMemo(() => {
     if (typeof window === 'undefined') return '#a855f7';
     const value = getComputedStyle(document.documentElement)
@@ -314,58 +322,91 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
           </div>
         </div>
 
-        {/* Right: Market and Execution filters (unchanged position) */}
-        <div className="ml-auto flex flex-wrap items-center gap-3">
-        {/* Market filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
-            Market:
-          </span>
-          <Select
-            value={selectedMarket}
-            onValueChange={onSelectedMarketChange}
-          >
-            <SelectTrigger
-              className="flex w-28 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-              suppressHydrationWarning
-            >
-              <SelectValue placeholder="All Markets" />
-            </SelectTrigger>
-            <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
-              <SelectItem value="all">All Markets</SelectItem>
-              {markets.map((market) => (
-                <SelectItem key={market} value={market}>
-                  {market}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Right: filters column */}
+        <div className="ml-auto flex flex-col items-end gap-4">
+          {/* Row 1: Market + Execution */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Market filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
+                Market:
+              </span>
+              <Select value={selectedMarket} onValueChange={onSelectedMarketChange}>
+                <SelectTrigger
+                  className="flex w-28 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                  suppressHydrationWarning
+                >
+                  <SelectValue placeholder="All Markets" />
+                </SelectTrigger>
+                <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
+                  <SelectItem value="all">All Markets</SelectItem>
+                  {markets.map((market) => (
+                    <SelectItem key={market} value={market}>{market}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        {/* Execution filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
-            Execution:
-          </span>
-          <Select
-            value={selectedExecution}
-            onValueChange={onSelectedExecutionChange}
-          >
-            <SelectTrigger
-              className="flex w-28 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-              suppressHydrationWarning
-            >
-              <SelectValue placeholder={showAllTradesOption ? "All" : "Executed"} />
-            </SelectTrigger>
-<SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
-            {showAllTradesOption && (
-                <SelectItem value="all">All</SelectItem>
+            {/* Execution filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">
+                Execution:
+              </span>
+              <Select value={selectedExecution} onValueChange={onSelectedExecutionChange}>
+                <SelectTrigger
+                  className="flex w-28 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+                  suppressHydrationWarning
+                >
+                  <SelectValue placeholder={showAllTradesOption ? "All" : "Executed"} />
+                </SelectTrigger>
+                <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
+                  {showAllTradesOption && <SelectItem value="all">All</SelectItem>}
+                  <SelectItem value="executed">Executed</SelectItem>
+                  <SelectItem value="nonExecuted">Non Executed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Row 2: BE incl. toggle */}
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip delayDuration={150}>
+                <TooltipTrigger asChild>
+                  <span className={cn(
+                    "flex items-center gap-1 text-xs font-semibold transition-all duration-300 cursor-default whitespace-nowrap",
+                    beCalcEnabled ? "text-slate-900 dark:text-slate-100" : "text-slate-500 dark:text-slate-300"
+                  )}>
+                    BE incl.
+                    <Info className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="bottom"
+                  align="end"
+                  sideOffset={6}
+                  className="w-64 text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50"
+                >
+                  When enabled, all win rate values include break-even trades in the calculation.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <button
+              type="button"
+              onClick={toggleBECalc}
+              className={cn(
+                "relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 shadow-md cursor-pointer",
+                beCalcEnabled
+                  ? "themed-toggle-active bg-gradient-to-r from-purple-500 to-violet-600 shadow-purple-500/40 dark:shadow-purple-900/50"
+                  : "bg-gradient-to-r from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-700"
               )}
-              <SelectItem value="executed">Executed</SelectItem>
-              <SelectItem value="nonExecuted">Non Executed</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            >
+              <span className={cn(
+                "inline-block h-5 w-5 transform rounded-full bg-white transition-all duration-300 shadow-md border",
+                beCalcEnabled ? "translate-x-[24px] border-white/50" : "translate-x-[4px] border-slate-200/50 dark:border-slate-600/50"
+              )} />
+            </button>
+          </div>
         </div>
 
         {/* <button

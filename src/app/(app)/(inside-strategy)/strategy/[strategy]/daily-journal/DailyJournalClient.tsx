@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { cn, formatPercent } from '@/lib/utils';
+import { useBECalc } from '@/contexts/BECalcContext';
 import type { Trade } from '@/types/trade';
 import type { Database } from '@/types/supabase';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
@@ -84,6 +85,7 @@ export default function DailyJournalClient({
   accountBalance: initialAccountBalance,
 }: DailyJournalClientProps) {
   const { data: userDetails } = useUserDetails();
+  const { beCalcEnabled } = useBECalc();
   const { selection, setSelection } = useActionBarSelection();
   const userId = userDetails?.user?.id ?? initialUserId;
   const activeAccount = selection.activeAccount ?? initialActiveAccount;
@@ -339,13 +341,15 @@ export default function DailyJournalClient({
     <TooltipProvider>
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-          Daily Journal
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">
-          Log daily notes and reflections for {strategyName}
-        </p>
-      </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+              Daily Journal
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">
+              Log daily notes and reflections for {strategyName}
+            </p>
+          </div>
+        </div>
 
       {activeAccount && (
         <div className="mb-6">
@@ -399,7 +403,9 @@ export default function DailyJournalClient({
           const winners = group.trades.filter((t) => t.trade_outcome === 'Win').length;
           const losers = group.trades.filter((t) => t.trade_outcome === 'Lose').length;
           const breakEven = group.trades.filter((t) => t.break_even).length;
-          const winRate = totalTrades > 0 ? (winners / totalTrades) * 100 : 0;
+          const nonBE = winners + losers;
+          const winRate = nonBE > 0 ? (winners / nonBE) * 100 : 0;
+          const winRateWithBE = totalTrades > 0 ? (winners / totalTrades) * 100 : 0;
           const totalPnLPct = calculateAveragePnLPercentage(
             group.trades,
             accountBalance
@@ -533,7 +539,7 @@ export default function DailyJournalClient({
                         Winrate
                       </p>
                       <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                        {formatPercent(winRate)}%
+                        {formatPercent(beCalcEnabled ? winRateWithBE : winRate)}%
                       </p>
                     </div>
                     <div>

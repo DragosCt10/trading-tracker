@@ -24,6 +24,7 @@ import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarC
 import { calculateMarketStats as calculateMarketStatsUtil } from '@/utils/calculateCategoryStats';
 import type { MarketStats, BaseStats } from '@/types/dashboard';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { useBECalc } from '@/contexts/BECalcContext';
 
 type MarketStatsLike = BaseStats & {
   market?: string;
@@ -69,6 +70,7 @@ export function convertFilteredMarketStatsToChartData(marketStats: MarketStatsLi
 export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.memo(
   function MarketStatisticsCard({ marketStats, isLoading, includeTotalTrades = false }) {
     const { mounted, isDark } = useDarkMode();
+    const { beCalcEnabled } = useBECalc();
 
     const chartDataRaw = convertMarketStatsToChartData(marketStats, includeTotalTrades);
     // Keep wins/losses as in source (same as Market Profit Stats); total = stat.total (actual trade count)
@@ -132,10 +134,7 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
               <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
                 <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {formatPercent(winRate)}%
-                  <span className="text-slate-500 dark:text-slate-400 text-sm ml-1 font-medium">
-                    ({formatPercent(winRateWithBE)}% w/BE)
-                  </span>
+                  {formatPercent(beCalcEnabled ? winRateWithBE : winRate)}%
                 </span>
               </div>
             </div>
