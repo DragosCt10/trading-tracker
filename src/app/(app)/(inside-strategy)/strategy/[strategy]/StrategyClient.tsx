@@ -112,10 +112,13 @@ import {
 } from '@/components/dashboard/analytics/FvgSizeStats';
 import dynamic from 'next/dynamic';
 import { chartOptions } from '@/utils/chartConfig';
+import { computeRecoveryFactorAndDrawdownCount } from '@/utils/analyticsCalculations';
 
 // Below-fold components: code-split so they don't block the initial bundle parse.
-const ProfitFactorChart    = dynamic(() => import('@/components/dashboard/analytics/ProfitFactorChart').then(m => ({ default: m.ProfitFactorChart })));
-const SharpeRatioChart     = dynamic(() => import('@/components/dashboard/analytics/SharpeRatioChart').then(m => ({ default: m.SharpeRatioChart })));
+const ProfitFactorChart      = dynamic(() => import('@/components/dashboard/analytics/ProfitFactorChart').then(m => ({ default: m.ProfitFactorChart })));
+const SharpeRatioChart       = dynamic(() => import('@/components/dashboard/analytics/SharpeRatioChart').then(m => ({ default: m.SharpeRatioChart })));
+const RecoveryFactorChart    = dynamic(() => import('@/components/dashboard/analytics/RecoveryFactorChart').then(m => ({ default: m.RecoveryFactorChart })));
+const DrawdownCountChart     = dynamic(() => import('@/components/dashboard/analytics/DrawdownCountChart').then(m => ({ default: m.DrawdownCountChart })));
 const AverageDrawdownChart = dynamic(() => import('@/components/dashboard/analytics/AverageDrawdownChart').then(m => ({ default: m.AverageDrawdownChart })));
 const MaxDrawdownChart     = dynamic(() => import('@/components/dashboard/analytics/MaxDrawdownChart').then(m => ({ default: m.MaxDrawdownChart })));
 const TQIChart             = dynamic(() => import('@/components/dashboard/analytics/TQIChart').then(m => ({ default: m.TQIChart })));
@@ -833,6 +836,17 @@ export default function StrategyClient(
     });
   }, [viewMode, selectedMarket, tradesToUse, statsToUse, monthlyStatsToUse, nonExecutedTrades, nonExecutedTotalTradesCount, yearlyPartialTradesCount, yearlyPartialsBECount, macroStats]);
 
+  // Recovery Factor & Drawdown Count — derived from statsToUse via shared helper.
+  const { recoveryFactor, drawdownCount } = useMemo(
+    () =>
+      computeRecoveryFactorAndDrawdownCount({
+        averagePnLPercentage: statsToUse.averagePnLPercentage,
+        maxDrawdown: statsToUse.maxDrawdown,
+        drawdownCount: statsToUse.drawdownCount,
+      }),
+    [statsToUse.averagePnLPercentage, statsToUse.maxDrawdown, statsToUse.drawdownCount],
+  );
+
   // Derive market list from pre-aggregated RPC market stats — no O(n) trade iteration.
   const markets = marketStats.map((s) => s.market).filter(Boolean);
 
@@ -1015,6 +1029,11 @@ export default function StrategyClient(
               showEvaluationCard: hasCard('evaluation_stats'),
               showTrendCard: hasCard('trend_stats'),
             }}
+            beforeRiskPerTradeRow={{
+              trades: tradesToUse,
+              currencySymbol,
+              isLoading: chartsLoadingState,
+            }}
             allTradesRiskStats={
               (viewMode === 'yearly'
                 ? (filteredRiskStats || allTradesRiskStats)
@@ -1064,6 +1083,10 @@ export default function StrategyClient(
         <ProfitFactorChart tradesToUse={tradesToUse} totalWins={statsToUse.totalWins} totalLosses={statsToUse.totalLosses} />
         <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} />
         <TQIChart tradesToUse={tradesToUse} />
+      </div>
+      <div className="flex flex-col md:grid md:grid-cols-2 gap-6 w-full mt-6">
+        <RecoveryFactorChart recoveryFactor={recoveryFactor} />
+        <DrawdownCountChart drawdownCount={drawdownCount} />
       </div>
 
       <AnalysisModal
