@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  BarChart,
-  Bar,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
-  Cell,
+  CartesianGrid,
 } from 'recharts';
 import {
   Card,
@@ -58,7 +58,6 @@ const CustomBarTooltip = ({ active, payload, currencySymbol }: any) => {
 
 export function AvgWinLossCard({ trades, currencySymbol = '$', isLoading }: AvgWinLossCardProps) {
   const { mounted, isDark } = useDarkMode();
-  const [activeBar, setActiveBar] = useState<string | null>(null);
 
   const { avgWin, avgLoss, winLossRatio } = calculateAvgWinLoss(trades);
   const hasData = trades.some(t => t.trade_outcome === 'Win' || t.trade_outcome === 'Lose');
@@ -169,24 +168,28 @@ export function AvgWinLossCard({ trades, currencySymbol = '$', isLoading }: AvgW
           <>
             {/* W/L Ratio headline */}
             <div className="flex items-baseline gap-2 mb-4">
-              <span className={cn('text-3xl font-bold tabular-nums', ratioColor)}>{ratioLabel}</span>
-              <span className="text-sm text-slate-500 dark:text-slate-400">W/L Ratio</span>
+              <span className={cn('text-2xl font-bold tabular-nums', ratioColor)}>{ratioLabel}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">W/L Ratio</span>
             </div>
 
-            {/* Bar chart */}
+            {/* Smooth comparison chart */}
             <div className="h-32 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }} barCategoryGap="30%">
+                <AreaChart
+                  data={chartData}
+                  margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
+                >
                   <defs>
-                    <linearGradient id="avgWinGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#059669" stopOpacity={0.85} />
-                    </linearGradient>
-                    <linearGradient id="avgLossGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#e11d48" stopOpacity={0.85} />
+                    <linearGradient id="avgWinLossGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--tc-primary, #8b5cf6)" stopOpacity={0.55} />
+                      <stop offset="100%" stopColor="var(--tc-primary, #8b5cf6)" stopOpacity={0.1} />
                     </linearGradient>
                   </defs>
+                  <CartesianGrid
+                    stroke={isDark ? 'rgba(30,41,59,0.7)' : 'rgba(226,232,240,0.7)'}
+                    vertical={false}
+                    strokeDasharray="3 3"
+                  />
                   <XAxis
                     dataKey="name"
                     axisLine={false}
@@ -198,18 +201,16 @@ export function AvgWinLossCard({ trades, currencySymbol = '$', isLoading }: AvgW
                     content={<CustomBarTooltip currencySymbol={currencySymbol} />}
                     cursor={{ fill: isDark ? 'rgba(51,65,85,0.3)' : 'rgba(226,232,240,0.4)' }}
                   />
-                  <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={80}>
-                    {chartData.map((entry) => (
-                      <Cell
-                        key={entry.key}
-                        fill={`url(#${entry.key === 'win' ? 'avgWinGrad' : 'avgLossGrad'})`}
-                        opacity={activeBar === null || activeBar === entry.key ? 1 : 0.5}
-                        onMouseEnter={() => setActiveBar(entry.key)}
-                        onMouseLeave={() => setActiveBar(null)}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="var(--tc-primary, #8b5cf6)"
+                    strokeWidth={2.5}
+                    fill="url(#avgWinLossGrad)"
+                    dot={{ r: 4, strokeWidth: 0 }}
+                    activeDot={{ r: 5 }}
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
 
