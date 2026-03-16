@@ -155,4 +155,5 @@ export interface Stats {
   totalPartialsBECount: number;
   tradeQualityIndex: number;
   multipleR: number;
+  drawdownCount: number;
   }

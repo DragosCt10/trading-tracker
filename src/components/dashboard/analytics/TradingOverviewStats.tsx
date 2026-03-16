@@ -24,6 +24,8 @@ import { TrendStatisticsCard } from './TrendStatisticsCard';
 import type { TradeTypeStats } from '@/types/dashboard';
 import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
 import RiskPerTrade, { type RiskAnalysis } from './RiskPerTrade';
+import { AvgWinLossCard } from './AvgWinLossCard';
+import { ExpectancyCard } from './ExpectancyCard';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
 
 interface MonthlyStatsForCard {
@@ -83,11 +85,17 @@ interface TradingOverviewStatsProps {
     /** When false, Trend card is hidden (extra card not enabled for strategy). Default true. */
     showTrendCard?: boolean;
   } | null;
+  /** When provided, renders Avg Win/Loss + Expectancy row just before the RiskPerTrade card. */
+  beforeRiskPerTradeRow?: {
+    trades: Trade[];
+    currencySymbol?: string;
+    isLoading?: boolean;
+  } | null;
   /** When true, only render chart cards that have data and use a single auto-arranging grid (e.g. share view). */
   hideEmptyChartCards?: boolean;
 }
 
-export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, totalProfitFromOverview, pnlPercentFromOverview, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps, allTradesRiskStats, aboveRiskPerTradeRow, hideEmptyChartCards = false }: TradingOverviewStatsProps) {
+export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, totalProfitFromOverview, pnlPercentFromOverview, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps, allTradesRiskStats, aboveRiskPerTradeRow, beforeRiskPerTradeRow, hideEmptyChartCards = false }: TradingOverviewStatsProps) {
   const stats = useMemo(
     () => calculateTradingOverviewStats(trades, totalProfitFromOverview),
     [trades, totalProfitFromOverview]
@@ -283,7 +291,6 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
           : 'col-span-full grid grid-cols-1 md:grid-cols-3 gap-6 w-full [&>*]:min-w-0';
         return (
           <>
-            <hr className="col-span-full my-8 border-t border-slate-300/40 dark:border-slate-700" />
             <div className={gridClass}>
               {showEval && (
                 <EvaluationStats
@@ -309,6 +316,25 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
           </>
         );
       })()}
+
+      {beforeRiskPerTradeRow && (
+        <>
+          <hr className="col-span-full my-4 border-t border-slate-300/40 dark:border-slate-700" />
+          <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-6">
+            <AvgWinLossCard
+              trades={beforeRiskPerTradeRow.trades}
+              currencySymbol={beforeRiskPerTradeRow.currencySymbol}
+              isLoading={beforeRiskPerTradeRow.isLoading}
+            />
+            <ExpectancyCard
+              trades={beforeRiskPerTradeRow.trades}
+              currencySymbol={beforeRiskPerTradeRow.currencySymbol}
+              isLoading={beforeRiskPerTradeRow.isLoading}
+            />
+          </div>
+          <hr className="col-span-full my-8 border-t border-slate-300/40 dark:border-slate-700" />
+        </>
+      )}
 
       {allTradesRiskStats !== undefined && (
         <>
