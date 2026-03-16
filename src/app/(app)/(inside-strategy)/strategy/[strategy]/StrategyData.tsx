@@ -84,7 +84,7 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
       timeout(1000),
     ]);
   } catch (error) {
-    console.error('Error fetching initial dashboard stats:', error);
+    console.error('Error fetching initial dashboard stats:', (error as any)?.message ?? error);
   }
 
   return (
