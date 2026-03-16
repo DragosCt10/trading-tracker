@@ -53,6 +53,7 @@ export interface RpcMacro {
 
 export interface RpcSeriesStats {
   maxDrawdown: number;
+  drawdownCount: number;
   currentStreak: number;
   maxWinningStreak: number;
   maxLosingStreak: number;
@@ -248,6 +249,8 @@ export interface DashboardRpcResult {
 export interface DashboardApiResponse extends DashboardRpcResult {
   /** maxDrawdown computed in Layer 2 from series (%) */
   maxDrawdown: number;
+  /** Number of distinct equity drawdown periods (computed in SQL alongside maxDrawdown) */
+  drawdownCount: number;
   /** Current streak: positive = win streak, negative = lose streak */
   currentStreak: number;
   maxWinningStreak: number;

@@ -84,6 +84,7 @@ export async function getDashboardApiResponse(
   const response: DashboardApiResponse = {
     ...main,
     maxDrawdown: ss?.maxDrawdown ?? 0,
+    drawdownCount: ss?.drawdownCount ?? 0,
     currentStreak: ss?.currentStreak ?? 0,
     maxWinningStreak: ss?.maxWinningStreak ?? 0,
     maxLosingStreak: ss?.maxLosingStreak ?? 0,

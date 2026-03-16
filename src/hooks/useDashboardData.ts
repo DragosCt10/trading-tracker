@@ -61,6 +61,7 @@ function mapApiToStats(api: DashboardApiResponse): Stats {
     totalPartialsBECount: api.partials.totalPartialsBECount,
     tradeQualityIndex: api.tradeQualityIndex,
     multipleR: api.multipleR,
+    drawdownCount: api.drawdownCount,
   };
 }
 

@@ -146,6 +146,46 @@ export function calculateAveragePnLPercentage(
 }
 
 /**
+ * Average win/loss size and win-to-loss ratio from realized P&L.
+ * Filters by trade_outcome ('Win' / 'Lose'). BE trades excluded.
+ */
+export function calculateAvgWinLoss(trades: Trade[]): {
+  avgWin: number;
+  avgLoss: number;
+  winLossRatio: number;
+} {
+  const winners = trades.filter(t => t.trade_outcome === 'Win');
+  const losers  = trades.filter(t => t.trade_outcome === 'Lose');
+  const avgWin  = winners.reduce((s, t) => s + (t.calculated_profit ?? 0), 0) / (winners.length || 1);
+  const avgLoss = Math.abs(losers.reduce((s, t) => s + (t.calculated_profit ?? 0), 0) / (losers.length || 1));
+  const winLossRatio = avgLoss > 0 ? avgWin / avgLoss : avgWin > 0 ? Infinity : 0;
+  return { avgWin, avgLoss, winLossRatio };
+}
+
+/**
+ * Expectancy per trade in currency: (WR × AvgWin) − (LR × AvgLoss).
+ * Returns expectancy value plus a 0–100 normalized score:
+ *   0  = worst case (-avgLoss), 50 = breakeven, 100 = best case (+avgWin).
+ */
+export function calculateExpectancy(trades: Trade[]): {
+  expectancy: number;
+  normalized: number;
+  avgWin: number;
+  avgLoss: number;
+} {
+  const { avgWin, avgLoss } = calculateAvgWinLoss(trades);
+  const winners  = trades.filter(t => t.trade_outcome === 'Win').length;
+  const losers   = trades.filter(t => t.trade_outcome === 'Lose').length;
+  const total    = winners + losers;
+  const winRate  = total > 0 ? winners / total : 0;
+  const expectancy = (winRate * avgWin) - ((1 - winRate) * avgLoss);
+  const maxVal   = Math.max(avgWin, avgLoss, 1);
+  const normalized = Math.min(100, Math.max(0, ((expectancy + maxVal) / (2 * maxVal)) * 100));
+  return { expectancy, normalized, avgWin, avgLoss };
+}
+
+
+/**
  * Trade Quality Index (TQI)
  *
  * TQI = WinRate * RRStability
@@ -199,4 +239,24 @@ export function calculateTradeQualityIndex(trades: Trade[]): number {
 
   const tqi = winRate * rrStability;
   return tqi;
+}
+
+/**
+ * Recovery Factor & Drawdown Count helper.
+ *
+ * - Recovery Factor = Total P&L% / Max Drawdown%
+ * - Drawdown Count  = stats-provided drawdownCount, defaulting to 0
+ */
+export function computeRecoveryFactorAndDrawdownCount(stats: {
+  averagePnLPercentage?: number | null;
+  maxDrawdown?: number | null;
+  drawdownCount?: number | null;
+}): { recoveryFactor: number; drawdownCount: number } {
+  const pnlPct = stats.averagePnLPercentage ?? 0;
+  const maxDD = stats.maxDrawdown ?? 0;
+  const recoveryFactor = maxDD > 0 ? pnlPct / maxDD : 0;
+
+  const drawdownCount = stats.drawdownCount ?? 0;
+
+  return { recoveryFactor, drawdownCount };
 }
