@@ -156,8 +156,8 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
               <div
                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
                   totalProfit >= 0
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                    : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
+                    : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
                 }`}
               >
                 {totalProfit >= 0 ? '+' : ''}
