@@ -291,7 +291,6 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
           : 'col-span-full grid grid-cols-1 md:grid-cols-3 gap-6 w-full [&>*]:min-w-0';
         return (
           <>
-            <hr className="col-span-full my-8 border-t border-slate-300/40 dark:border-slate-700" />
             <div className={gridClass}>
               {showEval && (
                 <EvaluationStats
@@ -320,7 +319,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
 
       {beforeRiskPerTradeRow && (
         <>
-          <hr className="col-span-full my-8 border-t border-slate-300/40 dark:border-slate-700" />
+          <hr className="col-span-full my-4 border-t border-slate-300/40 dark:border-slate-700" />
           <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-6">
             <AvgWinLossCard
               trades={beforeRiskPerTradeRow.trades}
@@ -333,6 +332,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
               isLoading={beforeRiskPerTradeRow.isLoading}
             />
           </div>
+          <hr className="col-span-full my-8 border-t border-slate-300/40 dark:border-slate-700" />
         </>
       )}
 
