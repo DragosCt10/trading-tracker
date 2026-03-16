@@ -256,7 +256,7 @@ export function ExpectancyCard({ trades, currencySymbol = '$', isLoading }: Expe
             </div>
 
             {/* Value below gauge */}
-            <div className="mt-2 text-center">
+            <div className="text-center -mt-6">
               <div className={cn('text-2xl font-bold tabular-nums', getTextColor())}>
                 {formatCurrency(expectancy, currencySymbol)}
               </div>
