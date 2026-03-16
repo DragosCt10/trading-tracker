@@ -8,9 +8,11 @@ import { ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trade } from '@/types/trade';
-import { cn } from '@/lib/utils';
+import { cn, formatPercent } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { useBECalc } from '@/contexts/BECalcContext';
 import { calculateAveragePnLPercentage } from '@/utils/analyticsCalculations';
+import { calculateWinRates } from '@/utils/calculateWinRates';
 
 /**
  * Parse trade_date string to a local Date object, avoiding timezone issues
@@ -115,6 +117,8 @@ export function buildWeeklyStats(
 
     const pnlPercent = calculateAveragePnLPercentage(filteredTrades, accountBalance);
 
+    const { winRate, winRateWithBE } = calculateWinRates(filteredTrades);
+
     return {
       totalProfit,
       wins,
@@ -122,6 +126,8 @@ export function buildWeeklyStats(
       beCount,
       weekLabel,
       pnlPercent,
+      winRate,
+      winRateWithBE,
       index: idx,
     };
   });
@@ -142,6 +148,8 @@ interface WeeklyStat {
   beCount: number;
   weekLabel: string;
   pnlPercent: number;
+  winRate: number;
+  winRateWithBE: number;
 }
 
 type Direction = 'prev' | 'next';
@@ -177,7 +185,7 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
   onTradeClick,
 }) => {
   const { isDark } = useDarkMode();
-  const balance = accountBalance || 1;
+  const { beCalcEnabled } = useBECalc();
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -287,6 +295,16 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
                     <span className="text-sm text-slate-500 dark:text-slate-400">P&amp;L</span>
                     <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {mounted ? `${pnlPercent.toFixed(2)}%` : '\u2014'}
+                    </span>
+                  </div>
+
+                  {/* WR row (Win rate) */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-500 dark:text-slate-400">WR</span>
+                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {mounted
+                        ? `${formatPercent(beCalcEnabled ? week.winRateWithBE : week.winRate)}%`
+                        : '\u2014'}
                     </span>
                   </div>
                 </div>

@@ -38,6 +38,7 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
+import { calculateWinRates } from '@/utils/calculateWinRates';
 import { calculateAverageDrawdown } from '@/utils/analyticsCalculations';
 import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';
 import { cn, formatPercent, roundToCents } from '@/lib/utils';
@@ -321,7 +322,7 @@ export default function MyTradesClient({
   );
   const displayWinRate =
     useOverviewPnl && typeof strategyWinRate === 'number' ? strategyWinRate : overviewStats.winRate;
-  const winRateWithBE = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
+  const { winRateWithBE } = calculateWinRates(trades);
   const effectiveWinRate = beCalcEnabled ? winRateWithBE : displayWinRate;
 
   // Use same trade set as StrategyClient for drawdown: executed-only when execution is "all" or "executed"
