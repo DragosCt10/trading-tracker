@@ -24,6 +24,7 @@ import {
   type DateRangeValue,
 } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { calculateProfitFactor, calculateAveragePnLPercentage } from '@/utils/analyticsCalculations';
+import { calculateWinRates } from '@/utils/calculateWinRates';
 import { getIntervalForTime } from '@/constants/analytics';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import NotesModal from '@/components/NotesModal';
@@ -400,12 +401,10 @@ export default function DailyJournalClient({
           const dayChartData = buildDayChartData(group.trades);
           const hasTrades = group.trades.length > 0;
           const totalTrades = group.trades.length;
-          const winners = group.trades.filter((t) => t.trade_outcome === 'Win').length;
-          const losers = group.trades.filter((t) => t.trade_outcome === 'Lose').length;
+          const winners = group.trades.filter((t) => !t.break_even && t.trade_outcome === 'Win').length;
+          const losers = group.trades.filter((t) => !t.break_even && t.trade_outcome === 'Lose').length;
           const breakEven = group.trades.filter((t) => t.break_even).length;
-          const nonBE = winners + losers;
-          const winRate = nonBE > 0 ? (winners / nonBE) * 100 : 0;
-          const winRateWithBE = totalTrades > 0 ? (winners / totalTrades) * 100 : 0;
+          const { winRate, winRateWithBE } = calculateWinRates(group.trades);
           const totalPnLPct = calculateAveragePnLPercentage(
             group.trades,
             accountBalance
