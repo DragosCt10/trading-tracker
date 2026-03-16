@@ -136,6 +136,7 @@ function emptyStats(): Stats {
     totalPartialsBECount: 0,
     tradeQualityIndex: 0,
     multipleR: 0,
+    drawdownCount: 0,
   };
 }
 
@@ -298,6 +299,7 @@ export async function getDashboardStats({
       partialWinningTrades, partialLosingTrades, partialBETrades,
       totalPartialTradesCount, totalPartialsBECount,
       tradeQualityIndex, multipleR,
+      drawdownCount: 0,
     };
 
     evaluationStats = calculateEvaluationStats(tradesToUse);
