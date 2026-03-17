@@ -24,7 +24,7 @@ export interface PartialTradesChartCardProps {
   isLoading?: boolean;
 }
 
-function CustomTooltip({ active, payload, totalPartials, isDark }: { active?: boolean; payload?: Array<{ payload?: { name: string; value: number; color: string; pct?: number } }>; totalPartials: number; isDark?: boolean }) {
+function CustomTooltip({ active, payload, totalPartials, isDark }: { active?: boolean; payload?: ReadonlyArray<{ payload?: { name: string; value: number; color: string; pct?: number } }>; totalPartials: number; isDark?: boolean }) {
   if (!active || !payload?.length) return null;
   const data = payload[0].payload;
   if (!data) return null;
