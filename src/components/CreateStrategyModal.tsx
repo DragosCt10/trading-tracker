@@ -20,6 +20,7 @@ import { createStrategy } from '@/lib/server/strategies';
 import type { Strategy } from '@/types/strategy';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useStrategies } from '@/hooks/useStrategies';
 import { ExtraCardsSelector } from '@/components/ExtraCardsSelector';
 import type { ExtraCardKey } from '@/constants/extraCards';
 
@@ -40,7 +41,9 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
   const { error, setError } = useProgressDialog();
   const [submitting, setSubmitting] = useState(false);
   const { data: userId } = useUserDetails();
-  const { isPro } = useSubscription({ userId: userId?.user?.id });
+  const { isPro, withinLimit } = useSubscription({ userId: userId?.user?.id });
+  const { strategies } = useStrategies({ userId: userId?.user?.id, accountId });
+  const isAtStrategyLimit = !isPro && !withinLimit('maxStrategies', strategies.length);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -147,6 +150,17 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
               isPro={isPro}
             />
 
+            {isAtStrategyLimit && (
+              <div className="rounded-lg bg-amber-500/10 backdrop-blur-sm p-3 border border-amber-500/20">
+                <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">Strategy limit reached</p>
+                <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5">
+                  Starter plan includes 1 strategy.{' '}
+                  <a href="/billing" className="underline font-medium hover:text-amber-700 dark:hover:text-amber-300">Upgrade to PRO</a>{' '}
+                  for unlimited strategies.
+                </p>
+              </div>
+            )}
+
             {error && (
               <div className="rounded-lg bg-red-500/10 backdrop-blur-sm p-4 border border-red-500/20">
                 <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -169,7 +183,7 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
           <Button
             type="submit"
             form="create-strategy-form"
-            disabled={submitting || !name.trim()}
+            disabled={submitting || !name.trim() || isAtStrategyLimit}
             className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60 text-sm"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
