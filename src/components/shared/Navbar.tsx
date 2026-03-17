@@ -130,12 +130,12 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               className="flex items-center font-semibold text-slate-900 dark:text-slate-50"
             >
               <Logo className="absolute top-2.5 lg:w-10 lg:h-10 w-12 h-12" />
-              <div className="hidden lg:flex flex-col ml-9 leading-none gap-0.5">
+              <div className="hidden lg:flex flex-col ml-9 leading-none">
                 <span className="text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-50">
                   AlphaStats
                 </span>
                 <span
-                  className="text-[9px] font-semibold uppercase tracking-widest bg-clip-text text-transparent -mt-1"
+                  className="text-[9px] font-semibold uppercase tracking-widest bg-clip-text text-transparent -mt-0.5"
                   style={{ backgroundImage: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent))' }}
                 >
                   {tierDef.badge.label}
