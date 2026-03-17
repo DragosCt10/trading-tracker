@@ -18,6 +18,8 @@ import { Target } from 'lucide-react';
 import { updateStrategy } from '@/lib/server/strategies';
 import { Strategy } from '@/types/strategy';
 import { ExtraCardsSelector } from '@/components/ExtraCardsSelector';
+import { useUserDetails } from '@/hooks/useUserDetails';
+import { useSubscription } from '@/hooks/useSubscription';
 import type { ExtraCardKey } from '@/constants/extraCards';
 
 interface EditStrategyModalProps {
@@ -37,6 +39,8 @@ export function EditStrategyModal({
   const [extraCards, setExtraCards] = useState<ExtraCardKey[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { data: userDetails } = useUserDetails();
+  const { isPro } = useSubscription({ userId: userDetails?.user?.id });
 
   useEffect(() => {
     if (strategy) {
@@ -166,6 +170,7 @@ export function EditStrategyModal({
               selected={extraCards}
               onChange={setExtraCards}
               disabled={submitting}
+              isPro={isPro}
             />
 
             {error && (

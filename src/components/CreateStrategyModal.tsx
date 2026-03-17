@@ -19,6 +19,7 @@ import { Target } from 'lucide-react';
 import { createStrategy } from '@/lib/server/strategies';
 import type { Strategy } from '@/types/strategy';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { useSubscription } from '@/hooks/useSubscription';
 import { ExtraCardsSelector } from '@/components/ExtraCardsSelector';
 import type { ExtraCardKey } from '@/constants/extraCards';
 
@@ -39,6 +40,7 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
   const { error, setError } = useProgressDialog();
   const [submitting, setSubmitting] = useState(false);
   const { data: userId } = useUserDetails();
+  const { isPro } = useSubscription({ userId: userId?.user?.id });
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -142,6 +144,7 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
               selected={extraCards}
               onChange={setExtraCards}
               disabled={submitting}
+              isPro={isPro}
             />
 
             {error && (

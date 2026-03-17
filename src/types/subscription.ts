@@ -8,6 +8,8 @@ export interface TierLimits {
   maxStrategies: number | null;
   /** null = all */
   maxExtraCards: number | null;
+  /** null = unlimited */
+  maxAccounts: number | null;
   /** Which account modes this tier can access */
   allowedModes: AccountMode[];
 }

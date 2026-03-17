@@ -4,6 +4,7 @@ import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from '@/lib/server/session';
+import { canAddAccount } from '@/lib/server/subscription';
 import type { Database } from '@/types/supabase';
 import type { SavedNewsItem } from '@/types/account-settings';
 import {
@@ -86,6 +87,17 @@ export async function createAccount(params: {
   if (!user) return { data: null, error: { message: 'Unauthorized' } };
 
   const supabase = await createClient();
+
+  const { count: currentCount } = await supabase
+    .from('account_settings')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+
+  const allowed = await canAddAccount(user.id, currentCount ?? 0);
+  if (!allowed) {
+    return { data: null, error: { message: 'Account limit reached. Upgrade to PRO to create more accounts.' } };
+  }
+
   const { data, error } = await supabase
     .from('account_settings')
     .insert({

@@ -1,5 +1,3 @@
--- Run this in your Supabase SQL editor (once)
-
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 1. subscriptions table
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -50,6 +48,11 @@ CREATE TABLE public.admin_roles (
 );
 
 -- No client read/write — all access via service role
+ALTER TABLE public.admin_roles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "No client access to admin_roles" ON public.admin_roles
+  AS RESTRICTIVE
+  FOR ALL
+  USING (FALSE);
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. Bootstrap: insert yourself as first super admin (replace with your UUID)

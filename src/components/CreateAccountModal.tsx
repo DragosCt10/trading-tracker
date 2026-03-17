@@ -6,6 +6,11 @@ import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { createAccount, setActiveAccount } from '@/lib/server/accounts';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useQuery } from '@tanstack/react-query';
+import { getAllAccountsForUser } from '@/lib/server/accounts';
+import { queryKeys } from '@/lib/queryKeys';
+import { STATIC_DATA } from '@/constants/queryConfig';
 import { Loader2, UserPlus } from 'lucide-react';
 
 // shadcn/ui
@@ -55,6 +60,17 @@ interface CreateAccountAlertDialogProps {
 export function CreateAccountAlertDialog({ onCreated, triggerClassName }: CreateAccountAlertDialogProps) {
   const queryClient = useQueryClient();
   const { data: userId } = useUserDetails();
+  const { isPro, subscription } = useSubscription({ userId: userId?.user?.id });
+
+  const { data: allAccounts } = useQuery({
+    queryKey: queryKeys.accounts(userId?.user?.id, 'all' as never),
+    queryFn: () => getAllAccountsForUser(userId!.user!.id),
+    enabled: !!userId?.user?.id && !isPro,
+    ...STATIC_DATA,
+  });
+
+  const maxAccounts = subscription?.definition.limits.maxAccounts ?? null;
+  const isAtAccountLimit = !isPro && maxAccounts !== null && (allAccounts?.length ?? 0) >= maxAccounts;
 
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -171,8 +187,10 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
           <Button
             type="button"
             size="sm"
+            disabled={isAtAccountLimit}
+            title={isAtAccountLimit ? 'Upgrade to PRO to create more accounts' : undefined}
             className={cn(
-              'themed-btn-primary cursor-pointer w-auto shrink-0 h-8 relative overflow-hidden rounded-xl text-white font-semibold border-0 px-2.5 group [&_svg]:text-white',
+              'themed-btn-primary cursor-pointer w-auto shrink-0 h-8 relative overflow-hidden rounded-xl text-white font-semibold border-0 px-2.5 group [&_svg]:text-white disabled:opacity-50 disabled:cursor-not-allowed',
               triggerClassName
             )}
           >

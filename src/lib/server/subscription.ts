@@ -190,3 +190,13 @@ export async function canAddStrategy(userId: string, currentCount: number): Prom
   if (max === null) return true;
   return currentCount < max;
 }
+
+/**
+ * Check if a user can add more accounts (enforces maxAccounts limit).
+ */
+export async function canAddAccount(userId: string, currentCount: number): Promise<boolean> {
+  const sub = await getCachedSubscription(userId);
+  const max = sub.definition.limits.maxAccounts;
+  if (max === null) return true;
+  return currentCount < max;
+}

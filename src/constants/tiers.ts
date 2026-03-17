@@ -17,8 +17,9 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
     },
     polarProductId: null,
     limits: {
-      maxStrategies: 2,
+      maxStrategies: 1,
       maxExtraCards: 3,
+      maxAccounts: 1,
       allowedModes: ['demo'],
     },
     features: {
@@ -56,6 +57,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
     limits: {
       maxStrategies: null,  // unlimited
       maxExtraCards: null,  // all
+      maxAccounts: null,    // unlimited
       allowedModes: ['demo', 'live', 'backtesting'],
     },
     features: {
@@ -86,6 +88,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
     limits: {
       maxStrategies: null,
       maxExtraCards: null,
+      maxAccounts: null,    // unlimited
       allowedModes: ['demo', 'live', 'backtesting'],
     },
     features: {

@@ -33,3 +33,15 @@ export const EXTRA_CARDS: readonly ExtraCardDefinition[] = [
   { key: 'trend_stats',      label: 'Trend Statistics',             image: '/images/extra-cards/placeholder.svg', tooltip: 'See performance by trend type (trend-following vs counter-trend). Use when you tag trades by trend alignment.' },
   { key: 'sl_size_stats',    label: 'SL Size Stats',                image: '/images/extra-cards/placeholder.svg', tooltip: 'See stop loss size (points/pips) distribution and win rate by range. Use when you track SL size per trade.' },
 ] as const;
+
+/**
+ * Extra cards that are locked to PRO/Elite tier.
+ * These are shown at the top of the ExtraCardsSelector grid for Starter users,
+ * with a PRO badge overlay and no toggle capability.
+ */
+export const PRO_ONLY_EXTRA_CARD_KEYS: readonly ExtraCardKey[] = [
+  'avg_displacement',
+  'displacement_size',
+  'potential_rr',
+  'evaluation_stats',
+] as const;
