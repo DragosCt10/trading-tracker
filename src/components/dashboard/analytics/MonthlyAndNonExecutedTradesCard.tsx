@@ -37,7 +37,7 @@ export interface MonthlyAndNonExecutedTradesCardProps {
   isLoading?: boolean;
 }
 
-function CustomTooltip({ active, payload, totalTrades }: { active?: boolean; payload?: any[]; totalTrades: number }) {
+function CustomTooltip({ active, payload, totalTrades }: { active?: boolean; payload?: readonly any[]; totalTrades: number }) {
   if (!active || !payload || payload.length === 0) return null;
 
   const data = payload[0].payload;

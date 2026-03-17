@@ -39,7 +39,7 @@ const TREND_SHORT_LABELS: Record<string, string> = {
   Consolidation: 'Consol',
 };
 
-function CustomTooltip({ active, payload, isDark, beCalcEnabled }: { active?: boolean; payload?: { payload: PieDatum }[]; isDark?: boolean; beCalcEnabled: boolean }) {
+function CustomTooltip({ active, payload, isDark, beCalcEnabled }: { active?: boolean; payload?: readonly { payload: PieDatum }[]; isDark?: boolean; beCalcEnabled: boolean }) {
   if (!active || !payload?.length) return null;
 
   const data = payload[0].payload;

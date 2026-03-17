@@ -37,7 +37,7 @@ function CustomTooltip({
   isDark,
 }: {
   active?: boolean;
-  payload?: any[];
+  payload?: readonly any[];
   label?: string;
   chartDataWithData: any[];
   isDark?: boolean;

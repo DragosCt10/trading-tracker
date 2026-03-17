@@ -29,7 +29,7 @@ function CustomTooltip({
   beCalcEnabled,
 }: {
   active?: boolean;
-  payload?: { payload: EvaluationChartDatum }[];
+  payload?: readonly { payload: EvaluationChartDatum }[];
   isDark?: boolean;
   beCalcEnabled: boolean;
 }) {

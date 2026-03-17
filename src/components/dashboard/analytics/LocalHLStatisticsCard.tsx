@@ -26,7 +26,7 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
 
 /** English labels for local H/L categories (trading-related) */
-function CustomTooltip({ active, payload, beCalcEnabled }: { active?: boolean; payload?: { payload: PieDatum }[]; beCalcEnabled: boolean }) {
+function CustomTooltip({ active, payload, beCalcEnabled }: { active?: boolean; payload?: readonly { payload: PieDatum }[]; beCalcEnabled: boolean }) {
   if (!active || !payload?.length) return null;
 
   const data = payload[0].payload;

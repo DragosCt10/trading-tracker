@@ -48,7 +48,7 @@ function CustomTooltip({
   getCurrencySymbol,
 }: {
   active?: boolean;
-  payload?: any[];
+  payload?: readonly any[];
   isDark?: boolean;
   getCurrencySymbol: () => string;
 }) {

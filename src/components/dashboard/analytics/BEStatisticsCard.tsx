@@ -60,7 +60,7 @@ function CustomTooltip({
   totalTrades,
 }: {
   active?: boolean;
-  payload?: { payload: { name: string; value: number; color: string; pct?: number } }[];
+  payload?: readonly { payload: { name: string; value: number; color: string; pct?: number } }[];
   isDark?: boolean;
   totalTrades: number;
 }) {

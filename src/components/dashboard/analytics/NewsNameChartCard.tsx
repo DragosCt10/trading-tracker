@@ -66,7 +66,7 @@ function CustomTooltip({
   beCalcEnabled,
 }: {
   active?: boolean;
-  payload?: { payload: ChartDatum }[];
+  payload?: readonly { payload: ChartDatum }[];
   isDark?: boolean;
   beCalcEnabled: boolean;
 }) {

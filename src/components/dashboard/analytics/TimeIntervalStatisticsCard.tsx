@@ -39,7 +39,7 @@ function CustomTooltip({
   beCalcEnabled,
 }: {
   active?: boolean;
-  payload?: { payload: TradeStatDatum }[];
+  payload?: readonly { payload: TradeStatDatum }[];
   isDark?: boolean;
   beCalcEnabled: boolean;
 }) {

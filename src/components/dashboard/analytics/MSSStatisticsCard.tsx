@@ -35,7 +35,7 @@ export interface MSSStatisticsCardProps {
  * @param trades - Array of trades to compute stats from
  * @returns Array of Market Structure Shift Stats
  */
-function CustomTooltip({ active, payload, isDark, beCalcEnabled }: { active?: boolean; payload?: { payload: PieDatum }[]; isDark?: boolean; beCalcEnabled: boolean }) {
+function CustomTooltip({ active, payload, isDark, beCalcEnabled }: { active?: boolean; payload?: readonly { payload: PieDatum }[]; isDark?: boolean; beCalcEnabled: boolean }) {
   if (!active || !payload?.length) return null;
 
   const data = payload[0].payload;

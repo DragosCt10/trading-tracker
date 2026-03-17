@@ -46,7 +46,7 @@ function CustomTooltip({
   beCalcEnabled,
 }: {
   active?: boolean;
-  payload?: any[];
+  payload?: readonly any[];
   isDark?: boolean;
   beCalcEnabled: boolean;
 }) {
