@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
+import { Crown } from 'lucide-react';
 import { formatPercent, cn } from '@/lib/utils';
 import { Trade } from '@/types/trade';
 import { calculateNewsNameStats, NEWS_NO_EVENT_LABEL } from '@/utils/calculateCategoryStats';
@@ -28,6 +29,7 @@ import { useBECalc } from '@/contexts/BECalcContext';
 export interface NewsNameChartCardProps {
   trades: Trade[];
   isLoading?: boolean;
+  isPro?: boolean;
 }
 
 type IntensityFilter = null | 1 | 2 | 3;
@@ -108,7 +110,8 @@ function CustomTooltip({
 }
 
 export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
-  function NewsNameChartCard({ trades, isLoading: externalLoading }) {
+  function NewsNameChartCard({ trades: rawTrades, isLoading: externalLoading, isPro }) {
+    const trades = isPro ? rawTrades : [];
     const { mounted, isDark } = useDarkMode();
     const { beCalcEnabled } = useBECalc();
     const [isLoading, setIsLoading]         = useState(true);
@@ -174,9 +177,14 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     const header = (
       <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2 flex-shrink-0 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="flex-1 min-w-0">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            News Stats
-          </CardTitle>
+          <div className="flex items-center gap-2 mb-1">
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+              News Stats
+            </CardTitle>
+            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
+          </div>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Wins, losses and BE per news event
           </CardDescription>
@@ -192,7 +200,7 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
               size="sm"
               onClick={() => setUnnamedOnly(false)}
               className={cn(
-                'cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-200 relative overflow-hidden group',
+                'cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-200 relative overflow-hidden group focus-visible:ring-0 focus-visible:ring-transparent focus-visible:border-transparent',
                 !unnamedOnly ? FILTER_BTN_ACTIVE : FILTER_BTN_INACTIVE
               )}
             >
@@ -207,7 +215,7 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
               size="sm"
               onClick={() => setUnnamedOnly(true)}
               className={cn(
-                'cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-200 relative overflow-hidden group',
+                'cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-200 relative overflow-hidden group focus-visible:ring-0 focus-visible:ring-transparent focus-visible:border-transparent',
                 unnamedOnly ? FILTER_BTN_ACTIVE : FILTER_BTN_INACTIVE
               )}
             >
@@ -237,7 +245,7 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
                   disabled={unnamedOnly}
                   onClick={() => !unnamedOnly && setIntensityFilter(opt.value)}
                   className={cn(
-                    'cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-200 relative overflow-hidden group',
+                    'cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-200 relative overflow-hidden group focus-visible:ring-0 focus-visible:ring-transparent focus-visible:border-transparent',
                     isActive ? FILTER_BTN_ACTIVE : FILTER_BTN_INACTIVE,
                     unnamedOnly && 'cursor-not-allowed'
                   )}
