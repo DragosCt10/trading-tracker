@@ -203,7 +203,7 @@ export async function deleteAccount(
 
 /**
  * Ensures the user has at least one account across all modes.
- * If they have none, creates a default "Account1" demo account.
+ * If they have none, creates a default "Account Name" demo account.
  * Safe to call on every login/signup — no-ops when accounts already exist.
  */
 export async function ensureDefaultAccount(): Promise<void> {
@@ -220,7 +220,7 @@ export async function ensureDefaultAccount(): Promise<void> {
 
   await supabase.from('account_settings').insert({
     user_id: user.id,
-    name: 'Account1',
+    name: 'Account Name',
     account_balance: 10000,
     currency: 'USD',
     mode: 'demo',
