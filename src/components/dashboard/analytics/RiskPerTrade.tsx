@@ -127,8 +127,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
                     Risk Per Trade
                   </div>
                   <p className="text-slate-400 dark:text-slate-300 text-xs sm:text-sm">
-                    Trades grouped by risk %. Win Rate uses only wins &amp; losses.
-                    Win Rate w/BE adds BE trades to the denominator.
+                    Trades are grouped by risk %.
                   </p>
                 </div>
               </TooltipContent>
