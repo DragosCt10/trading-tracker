@@ -1176,7 +1176,7 @@ export default function StrategyClient(
       </div>
       {/* News by event - full width */}
       <div className="my-8">
-        <NewsNameChartCard trades={tradesToUse} isLoading={chartsLoadingState} />
+        <NewsNameChartCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
       </div>
 
       {/* Potential Risk/Reward Ratio Stats & Stop Loss Size Stats — extra cards */}
