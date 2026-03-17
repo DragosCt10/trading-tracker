@@ -50,7 +50,7 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
     setError(null);
 
     if (!name.trim()) {
-      setError('Please enter a strategy name.');
+      setError('Please enter a Stats Board name.');
       return;
     }
 
@@ -114,7 +114,7 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
               <div className="p-2 rounded-lg themed-header-icon-box">
                 <Target className="h-5 w-5" />
               </div>
-              <span>Create new strategy</span>
+              <span>Create new Stats Board</span>
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
               Add a new trading strategy to track your performance separately.
@@ -130,7 +130,7 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
                 htmlFor="strategy-name"
                 className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
               >
-                Strategy name
+                Stats Board name
               </Label>
               <Input
                 id="strategy-name"
@@ -187,7 +187,7 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
             className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60 text-sm"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
-              {submitting ? 'Creating...' : 'Create Strategy'}
+              {submitting ? 'Creating...' : 'Create Stats Board'}
             </span>
             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
           </Button>

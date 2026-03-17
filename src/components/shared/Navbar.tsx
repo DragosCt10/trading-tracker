@@ -88,7 +88,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
   }, [queryClient, router]);
 
   const isActive = useCallback((path: string) => {
-    if (path === '/strategies') return pathname.startsWith('/strategies');
+    if (path === '/stats') return pathname.startsWith('/stats');
     if (path === '/insight-vault') return pathname.startsWith('/insight-vault');
     return pathname === path;
   }, [pathname]);
@@ -113,7 +113,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
     await handleSignOut();
   }, [handleSignOut]);
 
-  const isStrategiesActive = useMemo(() => isActive('/strategies'), [isActive]);
+  const isStrategiesActive = useMemo(() => isActive('/stats'), [isActive]);
   const isInsightVaultActive = useMemo(() => isActive('/insight-vault'), [isActive]);
 
   return (
@@ -147,9 +147,9 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   size="sm"
                   className={navButtonClass(isStrategiesActive)}
                 >
-                  <Link href="/strategies">
+                  <Link href="/stats">
                     <Target className="h-4 w-4" />
-                    <span>My Strategies</span>
+                    <span>Stats Center</span>
                   </Link>
                 </Button>
               </li>
@@ -305,9 +305,9 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   asChild
                   className={cn('w-full justify-start', navButtonClass(isStrategiesActive))}
                 >
-                  <Link href="/strategies" onClick={closeMobileMenu}>
+                  <Link href="/stats" onClick={closeMobileMenu}>
                     <Target className="h-4 w-4" />
-                    My Strategies
+                    Stats Center
                   </Link>
                 </Button>
 

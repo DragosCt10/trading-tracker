@@ -25,15 +25,15 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
 
   // Get URLs with the strategy slug
   const analyticsUrl = useMemo(() => {
-    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}` : '/strategies';
+    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}` : '/stats';
   }, [currentStrategySlug]);
 
   const myTradesUrl = useMemo(() => {
-    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}/my-trades` : '/strategies';
+    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}/my-trades` : '/stats';
   }, [currentStrategySlug]);
 
   const dailyJournalUrl = useMemo(() => {
-    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}/daily-journal` : '/strategies';
+    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}/daily-journal` : '/stats';
   }, [currentStrategySlug]);
 
   const isActive = (path: string) => {

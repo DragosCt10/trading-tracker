@@ -39,7 +39,7 @@ async function DailyJournalDataFetcher({
 }) {
   const { mode, activeAccount } = await resolveActiveAccountFromCookies(user.id);
   const strategy = await getStrategyBySlug(user.id, strategySlug, activeAccount?.id);
-  if (!strategy) redirect('/strategies');
+  if (!strategy) redirect('/stats');
 
   let initialTrades: Trade[] = [];
   let currencySymbol = '$';

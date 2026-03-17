@@ -45,7 +45,7 @@ export default function LoginPage() {
     // If user is already logged in, redirect to strategies or redirectTo
     if (userData?.user && userData?.session) {
       const to = safeRedirectPath(searchParams.get('redirectTo'));
-      router.push(to ?? '/strategies');
+      router.push(to ?? '/stats');
     }
   }, [userData, router, searchParams]);
 
@@ -68,7 +68,7 @@ export default function LoginPage() {
       } else {
         // Full page nav so the next request sends the session cookies set by the action
         const to = safeRedirectPath(searchParams.get('redirectTo'));
-        window.location.href = to ?? '/strategies';
+        window.location.href = to ?? '/stats';
         return;
       }
     } catch (err) {

@@ -36,7 +36,7 @@ export default function AppLayout({
   const queryClient = useQueryClient();
   const pathname = usePathname();
   const userId = initialUserDetails?.user?.id;
-  const showActionBar = pathname === '/strategies' || (pathname?.startsWith('/strategy/') ?? false);
+  const showActionBar = pathname === '/stats' || (pathname?.startsWith('/strategy/') ?? false);
 
   const [actionBarVisible, setActionBarVisible] = useState(true);
   const lastScrollY = useRef(0);

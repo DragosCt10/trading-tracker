@@ -64,7 +64,7 @@ export function StrategiesClient() {
   // Get currency symbol from active account
   const currencySymbol = activeAccount?.currency === 'USD' ? '$' : activeAccount?.currency === 'EUR' ? '€' : '£';
 
-  const DEFAULT_DESCRIPTION = 'Track your strategies, each with its own metrics, and monitor your overall performance.';
+  const DEFAULT_DESCRIPTION = 'Track your Stats Boards, each with its own metrics, and monitor your overall performance.';
   // const accountDescription = activeAccount?.description?.trim() || DEFAULT_DESCRIPTION;
   const accountDescription = DEFAULT_DESCRIPTION;
 
@@ -243,16 +243,16 @@ export function StrategiesClient() {
                     <div className="p-2 rounded-lg themed-header-icon-box">
                       <Archive className="h-5 w-5" />
                     </div>
-                    <span>Archived Strategies</span>
+                    <span>Archived Stats Boards</span>
                   </AlertDialogTitle>
                   <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
-                    View and reactivate your archived trading strategies. Reactivated strategies will appear in your main strategies list.
+                    View and reactivate your archived Stats Boards. Reactivated Stats Boards will appear in your main Stats Center.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
 
                 <Alert className="mb-4 rounded-xl border-slate-200/80 bg-slate-100/60 dark:border-slate-700/80 dark:bg-slate-800/40">
                   <AlertDescription className="text-xs text-slate-600 dark:text-slate-400">
-                    Important: Archived strategies and all related trades are automatically deleted after 30 days.
+                    Important: Archived Stats Boards and all related trades are automatically deleted after 30 days.
                   </AlertDescription>
                 </Alert>
 

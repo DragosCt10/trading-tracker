@@ -19,7 +19,7 @@ export const AddStrategyCard: React.FC<AddStrategyCardProps> = ({ onClick }) => 
           <Plus className="w-8 h-8" />
         </div>
         <p className="text-base font-medium text-slate-500 dark:text-slate-400 dark:text-slate-100">
-          Create new strategy
+          Create new Stats Board
         </p>
       </div>
     </Card>
