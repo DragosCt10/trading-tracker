@@ -172,6 +172,7 @@ export type StrategyClientInitialProps = {
   initialMode: 'live' | 'backtesting' | 'demo';
   initialActiveAccount: { id: string; [key: string]: unknown } | null;
   initialStrategyId: string | null;
+  initialStrategyName: string | null;
   initialExtraCards: ExtraCardKey[];
   /** Server-fetched dashboard stats (API shape) for initial hydration — avoids client /api/dashboard-stats call (audit 2.1). */
   initialDashboardStats?: DashboardApiResponse | null;
@@ -947,7 +948,7 @@ export default function StrategyClient(
 
       {/* Account Overview Card - use resolved account (props first) so server and client match; card defers display until mount to avoid hydration when e.g. no subaccounts */}
       <AccountOverviewCard
-        accountName={resolvedAccountDisplayName}
+        accountName={props?.initialStrategyName ?? null}
         currencySymbol={currencySymbol}
         updatedBalance={updatedBalance}
         totalYearProfit={totalYearProfit}
