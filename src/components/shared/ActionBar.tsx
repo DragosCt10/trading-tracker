@@ -18,6 +18,7 @@ import { setLastAccountPreference } from '@/utils/lastAccountCookie';
 import { StrategySelectPopover } from '@/components/shared/StrategySelectPopover';
 import { CreateStrategyModal } from '@/components/CreateStrategyModal';
 import { useStrategies } from '@/hooks/useStrategies';
+import { useSubscription } from '@/hooks/useSubscription';
 import { queryKeys } from '@/lib/queryKeys';
 import type { Strategy } from '@/types/strategy';
 import { Plus } from 'lucide-react';
