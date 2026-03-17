@@ -38,8 +38,8 @@ function CustomTooltip({
 }: {
   active?: boolean;
   payload?: readonly any[];
-  label?: string;
-  chartDataWithData: any[];
+  label?: string | number;
+  chartDataWithData: Record<string, any>[];
   isDark?: boolean;
 }) {
   if (!active || !payload || payload.length === 0) {
