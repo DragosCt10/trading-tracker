@@ -93,9 +93,10 @@ interface TradingOverviewStatsProps {
   } | null;
   /** When true, only render chart cards that have data and use a single auto-arranging grid (e.g. share view). */
   hideEmptyChartCards?: boolean;
+  isPro?: boolean;
 }
 
-export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, totalProfitFromOverview, pnlPercentFromOverview, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps, allTradesRiskStats, aboveRiskPerTradeRow, beforeRiskPerTradeRow, hideEmptyChartCards = false }: TradingOverviewStatsProps) {
+export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, totalProfitFromOverview, pnlPercentFromOverview, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps, allTradesRiskStats, aboveRiskPerTradeRow, beforeRiskPerTradeRow, hideEmptyChartCards = false, isPro }: TradingOverviewStatsProps) {
   const stats = useMemo(
     () => calculateTradingOverviewStats(trades, totalProfitFromOverview),
     [trades, totalProfitFromOverview]
@@ -155,6 +156,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
           partialLosingTrades={partialRowProps.partialStats.partialLosingTrades}
           partialBETrades={partialRowProps.partialStats.partialBETrades}
           isLoading={partialRowProps.chartsLoadingState}
+          isPro={isPro}
         />
       );
     }
@@ -190,6 +192,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
     totalExecutedTrades,
     nonExecutedTotalTradesCount,
     trades,
+    isPro,
   ]);
 
   return (
@@ -215,7 +218,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
         hydrated={hydrated}
       />
 
-      <BestRRStatCard tradesToUse={trades} />
+      <BestRRStatCard tradesToUse={trades} isPro={isPro} />
 
       {/* Key metrics: RR Multiple, P&L %, Average Days Between Trades; in year mode also Average Monthly Trades */}
       <div className={`col-span-full grid grid-cols-1 gap-6 w-full [&>*]:min-w-0 ${viewMode === 'yearly' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
@@ -225,6 +228,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
           averageDaysBetweenTrades={stats.averageDaysBetweenTrades}
           viewMode={viewMode}
           monthlyStats={monthlyStats ?? undefined}
+          isPro={isPro}
         />
         {viewMode === 'yearly' && monthlyStats?.monthlyData && (
           <AverageMonthlyTradesCard monthlyStats={monthlyStats} />
@@ -263,6 +267,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
                 partialLosingTrades={partialRowProps.partialStats.partialLosingTrades}
                 partialBETrades={partialRowProps.partialStats.partialBETrades}
                 isLoading={partialRowProps.chartsLoadingState}
+                isPro={isPro}
               />
               <ExecutedNonExecutedTradesCard
                 totalExecutedTrades={totalExecutedTrades}
@@ -325,11 +330,13 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
               trades={beforeRiskPerTradeRow.trades}
               currencySymbol={beforeRiskPerTradeRow.currencySymbol}
               isLoading={beforeRiskPerTradeRow.isLoading}
+              isPro={isPro}
             />
             <ExpectancyCard
               trades={beforeRiskPerTradeRow.trades}
               currencySymbol={beforeRiskPerTradeRow.currencySymbol}
               isLoading={beforeRiskPerTradeRow.isLoading}
+              isPro={isPro}
             />
           </div>
           <hr className="col-span-full my-8 border-t border-slate-300/40 dark:border-slate-700" />
@@ -339,7 +346,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
       {allTradesRiskStats !== undefined && (
         <>
           <div className="col-span-full">
-            <RiskPerTrade className="mt-2" allTradesRiskStats={allTradesRiskStats} />
+            <RiskPerTrade className="mt-2" allTradesRiskStats={allTradesRiskStats} isPro={isPro} />
           </div>
         </>
       )}

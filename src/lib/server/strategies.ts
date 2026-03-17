@@ -117,7 +117,7 @@ export async function ensureDefaultStrategy(userId: string, accountId: string): 
       name: 'Institutional Strategy',
       slug: 'institutional-strategy',
       is_active: true,
-      extra_cards: EXTRA_CARDS.map(c => c.key),
+      extra_cards: [],
     })
     .select()
     .single();

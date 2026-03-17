@@ -26,8 +26,8 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { TRADES_DATA } from '@/constants/queryConfig';
+import { Crown } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
-import { FeatureGate } from '@/components/subscription/FeatureGate';
 
 import {
   Chart as ChartJS,
@@ -189,7 +189,6 @@ export default function StrategyClient(
 ) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { hasFeature } = useSubscription({ userId: props?.initialUserId });
 
   const initialRange = props?.initialDateRange ?? defaultInitialRange;
   const initialYear = props?.initialSelectedYear ?? defaultSelectedYear;
@@ -264,6 +263,7 @@ export default function StrategyClient(
   const strategyId = props?.initialStrategyId ?? null;
 
   const userId = userData?.user?.id;
+  const { isPro } = useSubscription({ userId: props?.initialUserId });
 
   // Per-strategy extra cards configuration
   const extraCards = props?.initialExtraCards ?? [];
@@ -1043,82 +1043,61 @@ export default function StrategyClient(
                 : (filteredRiskStats || riskStats)
               ) as RiskAnalysis | null ?? null
             }
+            isPro={isPro}
           />
         </div>
       )}
 
-      {/* Confidence & Mind State — PRO only */}
+      {/* Confidence & Mind State — PRO */}
       {(viewMode === 'dateRange' || viewMode === 'yearly') && (
         <>
           <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Psychological Factors</h2>
           <p className="text-slate-500 dark:text-slate-400 mt-1 mb-6">Confidence and mind state at entry across your trades.</p>
-          <FeatureGate
-            feature="allPsychologicalFactors"
-            blurred
-            upgradeContext={{ title: 'Psychological Factors', description: 'Analyse your confidence and mind state across all trades.' }}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-6">
-              <ConfidenceStatsCard trades={tradesToUse} isLoading={chartsLoadingState} />
-              <MindStateStatsCard trades={tradesToUse} isLoading={chartsLoadingState} />
-            </div>
-          </FeatureGate>
-        </>
-      )}
-
-      {/* Equity Curve — PRO only (futureEquityChart flag) */}
-      {(viewMode === 'dateRange' || viewMode === 'yearly') && (
-        <>
-          <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Equity Curve</h2>
-          <p className="text-slate-500 dark:text-slate-400 mb-6">Cumulative P&L over time.</p>
-          <div className="w-full mb-6">
-            {hasFeature('futureEquityChart') ? (
-              <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
-            ) : (
-              <FeatureGate
-                feature="futureEquityChart"
-                blurred
-                upgradeContext={{ title: 'Equity Curve', description: 'Track your cumulative P&L over time with the Equity Curve chart.' }}
-              >
-                <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
-              </FeatureGate>
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-6">
+            <ConfidenceStatsCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
+            <MindStateStatsCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
           </div>
         </>
       )}
 
-      {/* Consistency & drawdown — PRO only */}
-      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Consistency & drawdown</h2>
-      <p className="text-slate-500 dark:text-slate-400 mb-6">Consistency and capital preservation metrics.</p>
-      <FeatureGate
-        feature="allConsistencyDrawdown"
-        blurred
-        upgradeContext={{ title: 'Consistency & Drawdown', description: 'Full drawdown analysis and consistency scoring for your strategy.' }}
-      >
-        <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
-          <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} />
-          <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} />
-          <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} />
-        </div>
-      </FeatureGate>
+      {/* Equity Curve */}
+      {(viewMode === 'dateRange' || viewMode === 'yearly') && (
+        <>
+          <div className="flex items-center justify-between mt-14 mb-2">
+            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Equity Curve</h2>
+          </div>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">Cumulative P&L over time.</p>
+          <div className="w-full mb-6">
+            <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
+          </div>
+        </>
+      )}
 
-      {/* Performance ratios — PRO only */}
-      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Performance ratios</h2>
+      {/* Consistency & drawdown — PRO */}
+      <div className="flex items-center justify-between mt-14 mb-2">
+        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Consistency & drawdown</h2>
+      </div>
+      <p className="text-slate-500 dark:text-slate-400 mb-6">Consistency and capital preservation metrics.</p>
+      <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
+        <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} isPro={isPro} />
+        <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} isPro={isPro} />
+        <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} isPro={isPro} />
+      </div>
+
+      {/* Performance ratios — PRO */}
+      <div className="flex items-center justify-between mt-14 mb-2">
+        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Performance ratios</h2>
+      </div>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Return and risk-adjusted metrics.</p>
-      <FeatureGate
-        feature="allPerformanceRatios"
-        blurred
-        upgradeContext={{ title: 'Performance Ratios', description: 'Sharpe ratio, profit factor, recovery factor and more.' }}
-      >
-        <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
-          <ProfitFactorChart tradesToUse={tradesToUse} totalWins={statsToUse.totalWins} totalLosses={statsToUse.totalLosses} />
-          <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} />
-          <TQIChart tradesToUse={tradesToUse} />
-        </div>
-        <div className="flex flex-col md:grid md:grid-cols-2 gap-6 w-full mt-6">
-          <RecoveryFactorChart recoveryFactor={recoveryFactor} />
-          <DrawdownCountChart drawdownCount={drawdownCount} />
-        </div>
-      </FeatureGate>
+      <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
+        <ProfitFactorChart tradesToUse={tradesToUse} totalWins={statsToUse.totalWins} totalLosses={statsToUse.totalLosses} isPro={isPro} />
+        <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} isPro={isPro} />
+        <TQIChart tradesToUse={tradesToUse} isPro={isPro} />
+      </div>
+      <div className="flex flex-col md:grid md:grid-cols-2 gap-6 w-full mt-6">
+        <RecoveryFactorChart recoveryFactor={recoveryFactor} isPro={isPro} />
+        <DrawdownCountChart drawdownCount={drawdownCount} isPro={isPro} />
+      </div>
 
       <AnalysisModal
         isOpen={openAnalyzeModal}
@@ -1157,6 +1136,7 @@ export default function StrategyClient(
           }
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
+          isPro={isPro}
         />
       </div>
 
@@ -1171,6 +1151,7 @@ export default function StrategyClient(
           }
           chartOptions={chartOptions}
           getCurrencySymbol={getCurrencySymbol}
+          isPro={isPro}
         />
       </div>
 
@@ -1180,6 +1161,7 @@ export default function StrategyClient(
         <TimeIntervalStatisticsCard
           data={timeIntervalChartDataToUse}
           isLoading={chartsLoadingState}
+          isPro={isPro}
         />
       </div>
 

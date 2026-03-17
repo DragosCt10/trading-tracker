@@ -36,7 +36,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       allExtraCards: false,
       alphaHub: false,
     },
-    badge: { label: 'Free', colorClass: 'text-zinc-400 border-zinc-700' },
+    badge: { label: 'Starter', colorClass: 'text-zinc-400 border-zinc-700' },
   },
 
   pro: {

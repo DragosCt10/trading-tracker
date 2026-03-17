@@ -23,7 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Info } from 'lucide-react';
+import { Info, Crown } from 'lucide-react';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { calculateAvgWinLoss } from '@/utils/analyticsCalculations';
 import { Trade } from '@/types/trade';
@@ -33,6 +33,7 @@ interface AvgWinLossCardProps {
   trades: Trade[];
   currencySymbol?: string;
   isLoading?: boolean;
+  isPro?: boolean;
 }
 
 function formatCurrency(value: number, symbol = '$'): string {
@@ -56,8 +57,9 @@ const CustomBarTooltip = ({ active, payload, currencySymbol }: any) => {
   );
 };
 
-export function AvgWinLossCard({ trades, currencySymbol = '$', isLoading }: AvgWinLossCardProps) {
+export function AvgWinLossCard({ trades: rawTrades, currencySymbol = '$', isLoading, isPro }: AvgWinLossCardProps) {
   const { mounted, isDark } = useDarkMode();
+  const trades = isPro ? rawTrades : [];
 
   const { avgWin, avgLoss, winLossRatio } = calculateAvgWinLoss(trades);
   const hasData = trades.some(t => t.trade_outcome === 'Win' || t.trade_outcome === 'Lose');
@@ -128,6 +130,10 @@ export function AvgWinLossCard({ trades, currencySymbol = '$', isLoading }: AvgW
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Avg Win / Avg Loss
           </CardTitle>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
           <TooltipProvider>
             <Tooltip delayDuration={150}>
               <TooltipTrigger asChild>
@@ -151,6 +157,7 @@ export function AvgWinLossCard({ trades, currencySymbol = '$', isLoading }: AvgW
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          </div>
         </div>
         <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
           Win size vs loss size
@@ -158,10 +165,17 @@ export function AvgWinLossCard({ trades, currencySymbol = '$', isLoading }: AvgW
       </CardHeader>
 
       <CardContent className="pt-0 pb-4">
-        {!hasData || isLoading ? (
+        {isLoading ? (
           <div className="flex flex-col justify-center items-center w-full min-h-[160px]">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              {isLoading ? 'Loading…' : 'No trades found'}
+            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Loading…</div>
+          </div>
+        ) : isPro && !hasData ? (
+          <div className="flex flex-col justify-center items-center w-full min-h-[160px]">
+            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
+              No trades found
+            </div>
+            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
+              There are no trades to display for this category yet. Start trading to see your statistics here!
             </div>
           </div>
         ) : (
@@ -217,10 +231,10 @@ export function AvgWinLossCard({ trades, currencySymbol = '$', isLoading }: AvgW
             {/* Win / Loss amount labels */}
             <div className="flex justify-between mt-2 text-xs text-slate-500 dark:text-slate-400">
               <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                {formatCurrency(avgWin, currencySymbol)} avg win
+                {hasData ? formatCurrency(avgWin, currencySymbol) : '–'} avg win
               </span>
               <span className="text-rose-600 dark:text-rose-400 font-semibold">
-                {formatCurrency(avgLoss, currencySymbol)} avg loss
+                {hasData ? formatCurrency(avgLoss, currencySymbol) : '–'} avg loss
               </span>
             </div>
           </>

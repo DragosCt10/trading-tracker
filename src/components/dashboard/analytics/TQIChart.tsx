@@ -3,7 +3,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Info } from 'lucide-react';
+import { Info, Crown } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Trade } from '@/types/trade';
@@ -16,6 +16,7 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 
 interface TQIChartProps {
   tradesToUse: Trade[];
+  isPro?: boolean;
 }
 
 function CustomTooltip({ active, payload, tooltipActiveRef, prevActiveRef, setShowTooltip }: any) {
@@ -35,7 +36,8 @@ function CustomTooltip({ active, payload, tooltipActiveRef, prevActiveRef, setSh
   return null; // We'll render the tooltip separately
 }
 
-export const TQIChart = React.memo(function TQIChart({ tradesToUse }: TQIChartProps) {
+export const TQIChart = React.memo(function TQIChart({ tradesToUse: rawTrades, isPro }: TQIChartProps) {
+  const tradesToUse = useMemo(() => isPro ? rawTrades : [], [isPro, rawTrades]);
   // Calculate TQI from trades
   const tradeQualityIndex = useMemo(() => {
     return calculateTradeQualityIndex(tradesToUse);
@@ -147,7 +149,11 @@ export const TQIChart = React.memo(function TQIChart({ tradesToUse }: TQIChartPr
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             TQI
           </CardTitle>
-          <TooltipProvider>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
+            <TooltipProvider>
             <UITooltip delayDuration={150}>
               <TooltipTrigger asChild>
                 <button
@@ -170,12 +176,19 @@ export const TQIChart = React.memo(function TQIChart({ tradesToUse }: TQIChartPr
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
+          </div>
         </div>
         <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
           Trade Quality Index
         </CardDescription>
       </CardHeader>
       <CardContent className="h-48 flex flex-col items-center justify-center relative pt-0 pb-2">
+        {isPro && rawTrades.length === 0 ? (
+          <div className="flex flex-col justify-center items-center w-full h-full">
+            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">No trades found</div>
+            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">There are no trades to display for this category yet. Start trading to see your statistics here!</div>
+          </div>
+        ) : (<>
         {/* Custom Tooltip positioned above chart */}
         {showTooltip && (
           <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -263,12 +276,13 @@ export const TQIChart = React.memo(function TQIChart({ tradesToUse }: TQIChartPr
         </div>
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
           <div className={cn('text-2xl font-bold', getTextColor())}>
-            {tradeQualityIndex !== null && tradeQualityIndex !== undefined ? tradeQualityIndex.toFixed(2) : '—'}
+            {!isPro ? '–' : tradeQualityIndex !== null && tradeQualityIndex !== undefined ? tradeQualityIndex.toFixed(2) : '—'}
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Target: 0.30+
           </div>
         </div>
+        </>)}
       </CardContent>
     </Card>
   );

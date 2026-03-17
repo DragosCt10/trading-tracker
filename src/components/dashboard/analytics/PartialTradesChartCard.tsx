@@ -12,6 +12,7 @@ import {
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { cn, formatPercent } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { Crown } from 'lucide-react';
 
 export interface PartialTradesChartCardProps {
   totalPartials: number;
@@ -22,6 +23,7 @@ export interface PartialTradesChartCardProps {
   /** Break-even (all partial trades that are BE, one bucket). */
   partialBETrades: number;
   isLoading?: boolean;
+  isPro?: boolean;
 }
 
 function CustomTooltip({ active, payload, totalPartials, isDark }: { active?: boolean; payload?: ReadonlyArray<{ payload?: { name: string; value: number; color: string; pct?: number } }>; totalPartials: number; isDark?: boolean }) {
@@ -55,11 +57,12 @@ function CustomTooltip({ active, payload, totalPartials, isDark }: { active?: bo
 
 export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = React.memo(
   function PartialTradesChartCard({
-    totalPartials,
-    partialWinningTrades,
-    partialLosingTrades,
-    partialBETrades,
+    totalPartials: rawTotalPartials,
+    partialWinningTrades: rawWins,
+    partialLosingTrades: rawLosses,
+    partialBETrades: rawBE,
     isLoading: externalLoading,
+    isPro,
   }) {
     const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
@@ -85,10 +88,11 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
       }
     }, [mounted, externalLoading]);
 
-    // Three buckets: Wins, Losses, Break-even. Total = totalPartials.
-    const wins = partialWinningTrades;
-    const losses = partialLosingTrades;
-    const be = partialBETrades;
+    // Shadow data when not PRO
+    const totalPartials = isPro ? rawTotalPartials : 0;
+    const wins = isPro ? rawWins : 0;
+    const losses = isPro ? rawLosses : 0;
+    const be = isPro ? rawBE : 0;
 
     const pieData = [
       { name: 'Wins', value: wins, color: 'emerald', gradientId: 'partialWins', pct: totalPartials > 0 ? (wins / totalPartials) * 100 : 0 },
@@ -115,7 +119,7 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
       );
     }
 
-    if (totalPartials === 0) {
+    if (isPro && rawTotalPartials === 0) {
       return (
         <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
@@ -143,9 +147,14 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
     return (
       <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Partial Trades
-          </CardTitle>
+          <div className="flex items-center justify-between mb-1">
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+              Partial Trades
+            </CardTitle>
+            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
+          </div>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Distribution of partial trades by outcome
           </CardDescription>
@@ -210,10 +219,10 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span
                   className={`font-bold text-slate-900 dark:text-slate-100 ${
-                    totalPartials >= 1000 ? 'text-2xl' : totalPartials >= 100 ? 'text-2xl' : 'text-3xl'
+                    !isPro ? 'text-3xl' : totalPartials >= 1000 ? 'text-2xl' : totalPartials >= 100 ? 'text-2xl' : 'text-3xl'
                   }`}
                 >
-                  {totalPartials}
+                  {!isPro ? '–' : totalPartials}
                 </span>
                 <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1.5">
                   Total Trades
@@ -229,7 +238,7 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
                   Win rate
                 </div>
                 <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {totalPartials > 0 ? formatPercent((wins / totalPartials) * 100) : '0'}%
+                  {!isPro ? '–' : totalPartials > 0 ? `${formatPercent((wins / totalPartials) * 100)}%` : '0%'}
                 </div>
               </div>
               <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
@@ -238,7 +247,7 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
                   Win rate w/BE
                 </div>
                 <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {totalPartials > 0 ? formatPercent(((wins + be) / totalPartials) * 100) : '0'}%
+                  {!isPro ? '–' : totalPartials > 0 ? `${formatPercent(((wins + be) / totalPartials) * 100)}%` : '0%'}
                 </div>
               </div>
             </div>

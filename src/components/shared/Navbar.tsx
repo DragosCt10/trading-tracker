@@ -18,6 +18,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { TierBadge } from '@/components/subscription/TierBadge';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '@/hooks/useTheme';
+import { TIER_DEFINITIONS } from '@/constants/tiers';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -116,6 +117,8 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
   const isStrategiesActive = useMemo(() => isActive('/stats'), [isActive]);
   const isInsightVaultActive = useMemo(() => isActive('/insight-vault'), [isActive]);
 
+  const tierDef = TIER_DEFINITIONS[tier ?? 'starter'];
+
   return (
     <>
       <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-(--breakpoint-xl) px-4 sm:px-0">
@@ -126,13 +129,18 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               href="/"
               className="flex items-center font-semibold text-slate-900 dark:text-slate-50"
             >
-              <Logo className="absolute top-2.5 lg:w-9 lg:h-9 w-12 h-12" />
-              <span className="hidden lg:inline text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-50 ml-9">
-                AlphaStats
-              </span>
-              <span className="hidden lg:inline-block themed-pro-text ml-1.5 text-[11px] font-bold uppercase">
-                PRO
-              </span>
+              <Logo className="absolute top-2.5 lg:w-10 lg:h-10 w-12 h-12" />
+              <div className="hidden lg:flex flex-col ml-9 leading-none gap-0.5">
+                <span className="text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                  AlphaStats
+                </span>
+                <span
+                  className="text-[9px] font-semibold uppercase tracking-widest bg-clip-text text-transparent -mt-1"
+                  style={{ backgroundImage: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent))' }}
+                >
+                  {tierDef.badge.label}
+                </span>
+              </div>
             </Link>
 
           <Separator orientation="vertical" className="mx-3 hidden h-6 lg:flex" />

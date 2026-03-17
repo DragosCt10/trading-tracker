@@ -15,7 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Info } from 'lucide-react';
+import { Info, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { calculateExpectancy } from '@/utils/analyticsCalculations';
@@ -25,6 +25,7 @@ interface ExpectancyCardProps {
   trades: Trade[];
   currencySymbol?: string;
   isLoading?: boolean;
+  isPro?: boolean;
 }
 
 function formatCurrency(value: number, symbol = '$'): string {
@@ -42,17 +43,18 @@ function CustomTooltip({ active, payload, tooltipActiveRef, prevActiveRef, setSh
   return null;
 }
 
-export function ExpectancyCard({ trades, currencySymbol = '$', isLoading }: ExpectancyCardProps) {
+export function ExpectancyCard({ trades: rawTrades, currencySymbol = '$', isLoading, isPro }: ExpectancyCardProps) {
   const { mounted, isDark } = useDarkMode();
   const [showTooltip, setShowTooltip] = useState(false);
   const tooltipActiveRef = useRef(false);
   const prevActiveRef = useRef(false);
+  const trades = isPro ? rawTrades : [];
 
   const { expectancy, normalized, avgWin, avgLoss } = calculateExpectancy(trades);
   const hasData = trades.some(t => t.trade_outcome === 'Win' || t.trade_outcome === 'Lose');
 
-  // Normalize: 0–100 where 50 = breakeven
-  const percentage = normalized;
+  // Normalize: 0–100 where 50 = breakeven; force 0 when not pro (empty teaser)
+  const percentage = !isPro ? 0 : normalized;
   const remainingPercentage = 100 - percentage;
 
   const data = [
@@ -136,6 +138,10 @@ export function ExpectancyCard({ trades, currencySymbol = '$', isLoading }: Expe
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Expectancy
           </CardTitle>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
           <TooltipProvider>
             <UITooltip delayDuration={150}>
               <TooltipTrigger asChild>
@@ -159,6 +165,7 @@ export function ExpectancyCard({ trades, currencySymbol = '$', isLoading }: Expe
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
+          </div>
         </div>
         <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
           Expected return per trade
@@ -166,10 +173,17 @@ export function ExpectancyCard({ trades, currencySymbol = '$', isLoading }: Expe
       </CardHeader>
 
       <CardContent className="h-48 flex flex-col items-center justify-center relative pt-0 pb-2">
-        {!hasData || isLoading ? (
+        {isLoading ? (
           <div className="flex flex-col justify-center items-center w-full h-full">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              {isLoading ? 'Loading…' : 'No trades found'}
+            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Loading…</div>
+          </div>
+        ) : isPro && !hasData ? (
+          <div className="flex flex-col justify-center items-center w-full h-full">
+            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
+              No trades found
+            </div>
+            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
+              There are no trades to display for this category yet. Start trading to see your statistics here!
             </div>
           </div>
         ) : (
@@ -259,7 +273,7 @@ export function ExpectancyCard({ trades, currencySymbol = '$', isLoading }: Expe
             {/* Value below gauge */}
             <div className="text-center -mt-6">
               <div className={cn('text-2xl font-bold tabular-nums', getTextColor())}>
-                {formatCurrency(expectancy, currencySymbol)}
+                {hasData ? formatCurrency(expectancy, currencySymbol) : '–'}
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Target: &gt; 0

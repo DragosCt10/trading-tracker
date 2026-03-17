@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Lock } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import type { TierFeatureFlags, TierLimits } from '@/types/subscription';
@@ -14,11 +14,10 @@ interface FeatureGateProps {
   /** Gate by a count-based limit */
   limit?: { key: keyof TierLimits; current: number };
   /**
-   * If true: render children with a blur + lock overlay instead of hiding completely.
-   * Clicking the overlay opens the PaywallModal.
+   * @deprecated kept for backwards-compat — all locked states now use the badge design.
    */
   blurred?: boolean;
-  /** Context passed to the PaywallModal when blurred=true */
+  /** Context passed to the PaywallModal and shown as the locked-state message */
   upgradeContext?: { title: string; description: string };
   children: React.ReactNode;
   className?: string;
@@ -27,7 +26,7 @@ interface FeatureGateProps {
 export function FeatureGate({
   feature,
   limit,
-  blurred = false,
+  blurred: _blurred,
   upgradeContext,
   children,
   className,
@@ -37,7 +36,6 @@ export function FeatureGate({
   const { hasFeature, withinLimit } = useSubscription({ userId });
   const [paywallOpen, setPaywallOpen] = useState(false);
 
-  // Determine if access is allowed
   const allowed =
     feature !== undefined
       ? hasFeature(feature)
@@ -47,40 +45,50 @@ export function FeatureGate({
 
   if (allowed) return <>{children}</>;
 
-  // Hidden — render nothing
-  if (!blurred) return null;
-
-  // Blurred — render children with overlay
+  // Locked — render a clean "PRO - Unlock" empty state card (no ghost children).
   return (
     <>
       <div
-        className={cn('relative cursor-pointer select-none', className)}
+        className={cn(
+          'w-full min-h-[200px] flex flex-col items-center justify-center gap-3',
+          'rounded-xl border border-dashed border-amber-300/60 dark:border-amber-500/30',
+          'bg-amber-50/40 dark:bg-amber-900/10 cursor-pointer px-6 py-10',
+          className,
+        )}
         onClick={() => setPaywallOpen(true)}
         role="button"
         aria-label="Upgrade to PRO to unlock this feature"
       >
-        {/* Blurred content */}
-        <div className="pointer-events-none blur-sm brightness-75 saturate-0">
-          {children}
+        {/* Crown icon */}
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/40">
+          <Crown className="w-5 h-5 text-amber-500" />
         </div>
 
-        {/* Lock overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-black/40">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/20 ring-1 ring-amber-500/40">
-            <Lock className="h-5 w-5 text-amber-400" />
-          </div>
-          <span className="text-xs font-medium text-white/80">PRO feature</span>
-        </div>
+        {/* PRO badge */}
+        <span className="text-xs font-semibold tracking-widest uppercase text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full">
+          PRO
+        </span>
+
+        {/* Title + description */}
+        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 text-center">
+          {upgradeContext?.title ?? 'Upgrade to PRO'}
+        </p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 text-center max-w-xs">
+          {upgradeContext?.description ?? 'Upgrade to unlock this feature'}
+        </p>
+
+        {/* CTA */}
+        <span className="mt-1 text-xs font-medium text-amber-600 dark:text-amber-400 underline underline-offset-2">
+          Unlock feature →
+        </span>
       </div>
 
-      {upgradeContext && (
-        <PaywallModal
-          open={paywallOpen}
-          onClose={() => setPaywallOpen(false)}
-          title={upgradeContext.title}
-          description={upgradeContext.description}
-        />
-      )}
+      <PaywallModal
+        open={paywallOpen}
+        onClose={() => setPaywallOpen(false)}
+        title={upgradeContext?.title}
+        description={upgradeContext?.description}
+      />
     </>
   );
 }

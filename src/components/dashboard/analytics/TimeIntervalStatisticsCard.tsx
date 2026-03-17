@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Crown } from 'lucide-react';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -30,6 +31,7 @@ export interface TimeIntervalStatisticsCardProps {
   isLoading?: boolean;
   /** Optional: show only this interval (e.g. "08:00 – 11:59"). Legacy trades with simple time are still counted in the correct bucket via data. */
   selectedIntervalLabel?: string | null;
+  isPro?: boolean;
 }
 
 function CustomTooltip({
@@ -84,14 +86,15 @@ function CustomTooltip({
 }
 
 export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProps> = React.memo(
-  function TimeIntervalStatisticsCard({ data, isLoading, selectedIntervalLabel }) {
+  function TimeIntervalStatisticsCard({ data: rawData, isLoading, selectedIntervalLabel, isPro }) {
+    const effectiveData = isPro ? rawData : [];
     const { mounted, isDark } = useDarkMode();
     const { beCalcEnabled } = useBECalc();
 
     // When a specific interval is selected, show only that row (data already includes legacy trades bucketed by trade_time)
     const dataToShow = selectedIntervalLabel
-      ? data.filter((d) => d.category === selectedIntervalLabel)
-      : data;
+      ? effectiveData.filter((d) => d.category === selectedIntervalLabel)
+      : effectiveData;
 
     // BE new flow: wins, losses, breakEven separate; totalTrades = wins + losses + breakEven
     const withTotals: TradeStatDatum[] = dataToShow.map((d) => {
@@ -187,9 +190,20 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
       return (
         <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
-            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-              Time Interval Stats
-            </CardTitle>
+            {!isPro ? (
+              <div className="flex items-center justify-between mb-1">
+                <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                  Time Interval Stats
+                </CardTitle>
+                <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                  <Crown className="w-3 h-3" /> PRO
+                </span>
+              </div>
+            ) : (
+              <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+                Time Interval Stats
+              </CardTitle>
+            )}
             <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
               Distribution of trades based on time interval
             </CardDescription>
@@ -209,9 +223,14 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
     return (
       <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Time Interval Stats
-          </CardTitle>
+          <div className="flex items-center justify-between mb-1">
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+              Time Interval Stats
+            </CardTitle>
+            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
+          </div>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Distribution of trades based on time interval
           </CardDescription>

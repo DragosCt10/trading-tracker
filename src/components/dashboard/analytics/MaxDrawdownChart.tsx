@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Info } from 'lucide-react';
+import { Info, Crown } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
@@ -14,6 +14,7 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 
 interface MaxDrawdownChartProps {
   maxDrawdown: number | null | undefined;
+  isPro?: boolean;
 }
 
 function CustomTooltip({ active, payload, tooltipActiveRef, prevActiveRef, setShowTooltip }: any) {
@@ -33,7 +34,8 @@ function CustomTooltip({ active, payload, tooltipActiveRef, prevActiveRef, setSh
   return null; // We'll render the tooltip separately
 }
 
-export const MaxDrawdownChart = React.memo(function MaxDrawdownChart({ maxDrawdown }: MaxDrawdownChartProps) {
+export const MaxDrawdownChart = React.memo(function MaxDrawdownChart({ maxDrawdown: rawMaxDrawdown, isPro }: MaxDrawdownChartProps) {
+  const maxDrawdown = isPro ? rawMaxDrawdown : null;
   const { mounted, isDark } = useDarkMode();
   const [showTooltip, setShowTooltip] = useState(false);
   const tooltipActiveRef = React.useRef(false);
@@ -141,7 +143,11 @@ export const MaxDrawdownChart = React.memo(function MaxDrawdownChart({ maxDrawdo
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Max Drawdown
           </CardTitle>
-          <TooltipProvider>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
+            <TooltipProvider>
             <UITooltip delayDuration={150}>
               <TooltipTrigger asChild>
                 <button
@@ -164,6 +170,7 @@ export const MaxDrawdownChart = React.memo(function MaxDrawdownChart({ maxDrawdo
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
+          </div>
         </div>
         <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
           Maximum drawdown percentage

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
+import { Crown } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Trade } from '@/types/trade';
 import {
@@ -139,10 +140,11 @@ function NeedlePieChart({
 export interface ConfidenceStatsCardProps {
   trades: Trade[];
   isLoading?: boolean;
+  isPro?: boolean;
 }
 
 export const ConfidenceStatsCard: React.FC<ConfidenceStatsCardProps> = React.memo(
-  function ConfidenceStatsCard({ trades, isLoading: externalLoading }) {
+  function ConfidenceStatsCard({ trades, isLoading: externalLoading, isPro }) {
     const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
 
@@ -159,8 +161,8 @@ export const ConfidenceStatsCard: React.FC<ConfidenceStatsCardProps> = React.mem
     }, [mounted, externalLoading]);
 
     const { counts, total, average } = useMemo(
-      () => computeScaleStats(trades, 'confidence_at_entry'),
-      [trades]
+      () => computeScaleStats(isPro ? trades : [], 'confidence_at_entry'),
+      [isPro, trades]
     );
     const needlePct = total > 0 ? ((average - 1) / 4) * 100 : 0;
 
@@ -185,9 +187,14 @@ export const ConfidenceStatsCard: React.FC<ConfidenceStatsCardProps> = React.mem
     return (
       <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Confidence
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+              Confidence
+            </CardTitle>
+            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
+          </div>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Distribution of confidence (1–5) at entry
           </CardDescription>
@@ -221,10 +228,11 @@ export const ConfidenceStatsCard: React.FC<ConfidenceStatsCardProps> = React.mem
 export interface MindStateStatsCardProps {
   trades: Trade[];
   isLoading?: boolean;
+  isPro?: boolean;
 }
 
 export const MindStateStatsCard: React.FC<MindStateStatsCardProps> = React.memo(
-  function MindStateStatsCard({ trades, isLoading: externalLoading }) {
+  function MindStateStatsCard({ trades, isLoading: externalLoading, isPro }) {
     const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
 
@@ -241,8 +249,8 @@ export const MindStateStatsCard: React.FC<MindStateStatsCardProps> = React.memo(
     }, [mounted, externalLoading]);
 
     const { counts, total, average } = useMemo(
-      () => computeScaleStats(trades, 'mind_state_at_entry'),
-      [trades]
+      () => computeScaleStats(isPro ? trades : [], 'mind_state_at_entry'),
+      [isPro, trades]
     );
 
     if (!mounted || isLoading) {
@@ -266,9 +274,14 @@ export const MindStateStatsCard: React.FC<MindStateStatsCardProps> = React.memo(
     return (
       <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Mind State
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+              Mind State
+            </CardTitle>
+            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
+          </div>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Distribution of mind state (1–5) at entry
           </CardDescription>

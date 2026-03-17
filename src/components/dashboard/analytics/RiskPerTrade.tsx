@@ -11,7 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Info, ChevronRight } from 'lucide-react';
+import { Info, ChevronRight, Crown } from 'lucide-react';
 import { formatPercent } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
@@ -49,11 +49,13 @@ export function parseRiskKey(key: string): number | null {
 interface RiskPerTradeProps {
   allTradesRiskStats: RiskAnalysis | null;
   className?: string;
+  isPro?: boolean;
 }
 
 const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
   allTradesRiskStats,
   className = '',
+  isPro,
 }) => {
   const { isDark } = useDarkMode();
   const { beCalcEnabled } = useBECalc();
@@ -73,7 +75,8 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
       .sort((a, b) => a.percentNum - b.percentNum);
   }, [allTradesRiskStats]);
 
-  const isScrollable = visibleRiskLevels.length > 3;
+  const effectiveRiskLevels = isPro ? visibleRiskLevels : visibleRiskLevels.slice(0, 1);
+  const isScrollable = effectiveRiskLevels.length > 3;
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -86,8 +89,8 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
 
   const GRID_COLS = 3;
   const extraCardsNeeded =
-    !isScrollable && visibleRiskLevels.length > 0 && visibleRiskLevels.length % GRID_COLS !== 0
-      ? GRID_COLS - (visibleRiskLevels.length % GRID_COLS)
+    !isScrollable && effectiveRiskLevels.length > 0 && effectiveRiskLevels.length % GRID_COLS !== 0
+      ? GRID_COLS - (effectiveRiskLevels.length % GRID_COLS)
       : 0;
 
   return (
@@ -96,7 +99,8 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
     >
       <div className="relative p-8">
         {/* Header */}
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Risk Per Trade
           </CardTitle>
@@ -130,9 +134,13 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          </div>
+          <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+            <Crown className="w-3 h-3" /> PRO
+          </span>
         </div>
 
-        {visibleRiskLevels.length === 0 ? (
+        {effectiveRiskLevels.length === 0 ? (
           <div className="flex flex-col justify-center items-center w-full min-h-[200px] py-8">
             <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
               No trades found
@@ -155,7 +163,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
               className="flex gap-4 overflow-x-auto pb-3 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               style={{ scrollSnapType: 'x mandatory' }}
             >
-              {visibleRiskLevels.map(({ key, label, stats }) => (
+              {effectiveRiskLevels.map(({ key, label, stats }) => (
                 <Card
                   key={key}
                   className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm p-4 flex flex-col justify-between shadow-none rounded-2xl shrink-0 w-[calc((100%-2rem)/3)]"
@@ -195,7 +203,7 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
           </div>
         ) : (
           <div className="grid gap-3 sm:gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-            {visibleRiskLevels.map(({ key, label, stats }) => (
+            {effectiveRiskLevels.map(({ key, label, stats }) => (
               <Card
                 key={key}
                 className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm p-4 flex flex-col justify-between shadow-none rounded-2xl"

@@ -15,12 +15,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Info } from 'lucide-react';
+import { Info, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
 
 interface RecoveryFactorChartProps {
   recoveryFactor: number;
+  isPro?: boolean;
 }
 
 const MAX_SCALE = 5.0;
@@ -36,8 +37,10 @@ function CustomTooltip({ active, payload, tooltipActiveRef, prevActiveRef, setSh
 }
 
 export const RecoveryFactorChart = React.memo(function RecoveryFactorChart({
-  recoveryFactor,
+  recoveryFactor: rawFactor,
+  isPro,
 }: RecoveryFactorChartProps) {
+  const recoveryFactor = isPro ? rawFactor : 0;
   const { mounted, isDark } = useDarkMode();
   const [showTooltip, setShowTooltip] = useState(false);
   const tooltipActiveRef = useRef(false);
@@ -137,7 +140,11 @@ export const RecoveryFactorChart = React.memo(function RecoveryFactorChart({
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Recovery Factor
           </CardTitle>
-          <TooltipProvider>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
+            <TooltipProvider>
             <UITooltip delayDuration={150}>
               <TooltipTrigger asChild>
                 <button
@@ -160,6 +167,7 @@ export const RecoveryFactorChart = React.memo(function RecoveryFactorChart({
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
+          </div>
         </div>
         <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
           Profit vs max drawdown
@@ -167,6 +175,12 @@ export const RecoveryFactorChart = React.memo(function RecoveryFactorChart({
       </CardHeader>
 
       <CardContent className="h-48 flex flex-col items-center justify-center relative pt-0 pb-2">
+        {isPro && rawFactor === 0 ? (
+          <div className="flex flex-col justify-center items-center w-full h-full">
+            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">No trades found</div>
+            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">There are no trades to display for this category yet. Start trading to see your statistics here!</div>
+          </div>
+        ) : (<>
         {/* Hover tooltip */}
         {showTooltip && (
           <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -257,12 +271,13 @@ export const RecoveryFactorChart = React.memo(function RecoveryFactorChart({
         {/* Center value */}
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
           <div className={cn('text-2xl font-bold tabular-nums', getTextColor())}>
-            {displayValue}
+            {!isPro ? '–' : displayValue}
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Target: 1.0+
           </div>
         </div>
+        </>)}
       </CardContent>
     </Card>
   );

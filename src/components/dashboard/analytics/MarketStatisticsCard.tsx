@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Crown } from 'lucide-react';
 import { Trade } from '@/types/trade';
 import {
   ResponsiveContainer,
@@ -35,6 +36,7 @@ export interface MarketStatisticsCardProps {
   marketStats: MarketStatsLike[];
   isLoading?: boolean;
   includeTotalTrades?: boolean;
+  isPro?: boolean;
 }
 
 function CustomTooltip({
@@ -119,10 +121,11 @@ export function convertFilteredMarketStatsToChartData(marketStats: MarketStatsLi
 }
 
 export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.memo(
-  function MarketStatisticsCard({ marketStats, isLoading, includeTotalTrades = false }) {
+  function MarketStatisticsCard({ marketStats: rawMarketStats, isLoading, includeTotalTrades = false, isPro }) {
     const { mounted, isDark } = useDarkMode();
     const { beCalcEnabled } = useBECalc();
 
+    const marketStats = isPro ? rawMarketStats : [];
     const chartDataRaw = convertMarketStatsToChartData(marketStats, includeTotalTrades);
     // Keep wins/losses as in source (same as Market Profit Stats); total = stat.total (actual trade count)
     const withTotals: TradeStatDatum[] = chartDataRaw.map((d) => {
@@ -173,9 +176,20 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
       return (
         <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
-            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-              Market Stats
-            </CardTitle>
+            {!isPro ? (
+              <div className="flex items-center justify-between mb-1">
+                <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                  Market Stats
+                </CardTitle>
+                <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                  <Crown className="w-3 h-3" /> PRO
+                </span>
+              </div>
+            ) : (
+              <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+                Market Stats
+              </CardTitle>
+            )}
             <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
               Distribution of trades based on market
             </CardDescription>
@@ -195,9 +209,14 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
     return (
       <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Market Stats
-          </CardTitle>
+          <div className="flex items-center justify-between mb-1">
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+              Market Stats
+            </CardTitle>
+            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
+          </div>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Distribution of trades based on market
           </CardDescription>
