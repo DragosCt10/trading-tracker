@@ -187,10 +187,8 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
           <Button
             type="button"
             size="sm"
-            disabled={isAtAccountLimit}
-            title={isAtAccountLimit ? 'Upgrade to PRO to create more accounts' : undefined}
             className={cn(
-              'themed-btn-primary cursor-pointer w-auto shrink-0 h-8 relative overflow-hidden rounded-xl text-white font-semibold border-0 px-2.5 group [&_svg]:text-white disabled:opacity-50 disabled:cursor-not-allowed',
+              'themed-btn-primary cursor-pointer w-auto shrink-0 h-8 relative overflow-hidden rounded-xl text-white font-semibold border-0 px-2.5 group [&_svg]:text-white',
               triggerClassName
             )}
           >
@@ -345,6 +343,17 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
                 </div>
               )}
 
+              {isAtAccountLimit && (
+                <div className="rounded-lg bg-amber-500/10 backdrop-blur-sm p-3 border border-amber-500/20">
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">Account limit reached</p>
+                  <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5">
+                    Starter plan includes 1 account.{' '}
+                    <a href="/billing" className="underline font-medium hover:text-amber-700 dark:hover:text-amber-300">Upgrade to PRO</a>{' '}
+                    for unlimited accounts.
+                  </p>
+                </div>
+              )}
+
               <AlertDialogFooter className="mt-4 flex items-center justify-between">
                 <AlertDialogCancel
                   type="button"
@@ -357,7 +366,7 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
                 {/* Just a submit button – form + handleSubmit control closing */}
                 <Button
                   type="submit"
-                  disabled={!canSubmit}
+                  disabled={!canSubmit || isAtAccountLimit}
                   className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60"
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
