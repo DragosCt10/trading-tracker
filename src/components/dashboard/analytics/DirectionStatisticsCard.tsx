@@ -48,6 +48,7 @@ function CustomTooltip({ active, payload, isDark, beCalcEnabled,
   };
 
   const colors = colorMap[data.color] || colorMap.blue;
+  const totalTrades = data.totalTrades ?? 0;
   const percentage = totalTrades > 0 ? (data.value / totalTrades) * 100 : 0;
   const wins = data.wins ?? 0;
   const losses = data.losses ?? 0;

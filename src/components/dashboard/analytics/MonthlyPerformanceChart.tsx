@@ -52,7 +52,7 @@ function CustomTooltip({
 }) {
   if (!active || !payload || payload.length === 0) return null;
 
-  const d = payload[0].payload as (typeof chartData)[number];
+  const d = payload[0].payload as { month: string; totalTrades: number; wins: number; losses: number; breakEven: number; winRate: number; winRateWithBE: number };
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">

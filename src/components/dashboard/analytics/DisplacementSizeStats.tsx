@@ -36,7 +36,23 @@ function CustomTooltip({
   active?: boolean;
   payload?: readonly any[];
   isDark?: boolean;
-  chartData: any[];
+  chartData: Array<{
+    range: string;
+    rangeKey: string;
+    percentage: number;
+    totalTradesInBucket: number;
+    totalTrades: number;
+    marketDetails: Array<{
+      market: string;
+      percentage: number;
+      tradesWithBucket: number;
+      totalTrades: number;
+      wins: number;
+      losses: number;
+      breakEven: number;
+      winRate: number;
+    }>;
+  }>;
 }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
