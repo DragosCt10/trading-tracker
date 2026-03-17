@@ -29,6 +29,124 @@ interface RiskRewardStatsProps {
 
 // All valid Potential R:R values: 1 to 10 in 0.5 steps, plus 10+ (stored as 10.5)
 const RATIOS_1_TO_10 = Array.from({ length: 19 }, (_, i) => 1 + i * 0.5) as number[];
+function CustomTooltip({
+  active,
+  payload,
+  label,
+  chartDataWithData,
+  isDark,
+}: {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+  chartDataWithData: any[];
+  isDark?: boolean;
+}) {
+  if (!active || !payload || payload.length === 0) {
+    return null;
+  }
+
+  // Get the underlying ratio key from the payload (string like "3" or "10.5")
+  const first = payload[0]?.payload as any;
+  const ratioKey = first?.ratio ?? label;
+  const ratioStr = ratioKey != null ? String(ratioKey) : undefined;
+  const ratioNum = ratioStr != null ? parseFloat(ratioStr) : NaN;
+  const ratioDisplay =
+    !Number.isNaN(ratioNum) ? formatRatioLabel(ratioNum) : ratioStr ?? '';
+
+  // Find the row data for this ratio (for full market breakdown)
+  const rowData =
+    ratioStr != null ? chartDataWithData.find((d) => d.ratio === ratioStr) : undefined;
+
+  if (!rowData || !rowData.marketDetails || rowData.marketDetails.length === 0) {
+    return null;
+  }
+
+  // Filter market details to only show markets with non-zero values
+  const activeMarkets = rowData.marketDetails.filter((md: any) => md.tradesWithRatio > 0);
+
+  if (activeMarkets.length === 0) {
+    return null;
+  }
+
+  const totalTradesAll = activeMarkets.reduce(
+    (sum: number, md: any) => sum + (md.totalTrades ?? 0),
+    0
+  );
+  const tradesWithRatioAll = activeMarkets.reduce(
+    (sum: number, md: any) => sum + (md.tradesWithRatio ?? 0),
+    0
+  );
+  const overallPct =
+    totalTradesAll > 0 ? (tradesWithRatioAll / totalTradesAll) * 100 : 0;
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
+      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+      <div className="relative text-xs">
+        <div className="font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-3">
+          Risk/Reward {ratioDisplay}
+        </div>
+        <div className="text-xs text-slate-600 dark:text-slate-300 mb-2">
+          Overall:{' '}
+          <span className="font-semibold text-slate-900 dark:text-slate-100">
+            {overallPct.toFixed(1)}%
+          </span>{' '}
+          ({tradesWithRatioAll}/{totalTradesAll} trades)
+        </div>
+      </div>
+      <div className="relative overflow-x-auto text-xs mt-1.5">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-slate-200/60 dark:border-slate-700/60">
+              <th className="text-left py-2 pr-4 font-semibold text-slate-600 dark:text-slate-400">
+                Market
+              </th>
+              <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">
+                %
+              </th>
+              <th className="text-right py-2 pl-2 font-semibold text-slate-600 dark:text-slate-400">
+                Trades
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {activeMarkets.map((marketData: { 
+              market: string; 
+              tradesWithRatio: number; 
+              totalTrades: number;
+              wins: number;
+              losses: number;
+              winRate: number;
+            }) => {
+              const marketPct =
+                (marketData.totalTrades ?? 0) > 0
+                  ? (marketData.tradesWithRatio / marketData.totalTrades) * 100
+                  : 0;
+              return (
+                <tr
+                  key={marketData.market}
+                  className="border-b border-slate-100/60 dark:border-slate-800/60 last:border-0"
+                >
+                  <td className="py-2 pr-4 font-medium text-slate-700 dark:text-slate-300">
+                    {marketData.market}
+                  </td>
+                  <td className="py-2 px-2 text-right font-bold text-slate-900 dark:text-slate-100">
+                    {marketPct.toFixed(1)}%
+                  </td>
+                  <td className="py-2 pl-2 text-right text-slate-600 dark:text-slate-400">
+                    {marketData.tradesWithRatio}/{marketData.totalTrades}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export const DISPLAY_RATIOS: readonly number[] = [...RATIOS_1_TO_10, 10.5];
 
 /** Format ratio for display (10.5 -> "10+") */
@@ -169,7 +287,8 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
       if (externalLoading !== undefined) {
         if (externalLoading) {
           // Still loading externally - keep showing animation
-          setIsLoading(true);
+          const timer = setTimeout(() => setIsLoading(true), 0);
+          return () => clearTimeout(timer);
         } else {
           // External loading is complete, wait minimum time then stop loading
           const timer = setTimeout(() => {
@@ -200,119 +319,6 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
 
   // --- 3. Tooltip --------------------------------------------------------
 
-  const CustomTooltip = ({
-    active,
-    payload,
-    label,
-  }: {
-    active?: boolean;
-    payload?: any[];
-    label?: string;
-  }) => {
-    if (!active || !payload || payload.length === 0) {
-      return null;
-    }
-
-    // Get the underlying ratio key from the payload (string like "3" or "10.5")
-    const first = payload[0]?.payload as any;
-    const ratioKey = first?.ratio ?? label;
-    const ratioStr = ratioKey != null ? String(ratioKey) : undefined;
-    const ratioNum = ratioStr != null ? parseFloat(ratioStr) : NaN;
-    const ratioDisplay =
-      !Number.isNaN(ratioNum) ? formatRatioLabel(ratioNum) : ratioStr ?? '';
-
-    // Find the row data for this ratio (for full market breakdown)
-    const rowData =
-      ratioStr != null ? chartDataWithData.find((d) => d.ratio === ratioStr) : undefined;
-
-    if (!rowData || !rowData.marketDetails || rowData.marketDetails.length === 0) {
-      return null;
-    }
-
-    // Filter market details to only show markets with non-zero values
-    const activeMarkets = rowData.marketDetails.filter((md: any) => md.tradesWithRatio > 0);
-
-    if (activeMarkets.length === 0) {
-      return null;
-    }
-
-    const totalTradesAll = activeMarkets.reduce(
-      (sum: number, md: any) => sum + (md.totalTrades ?? 0),
-      0
-    );
-    const tradesWithRatioAll = activeMarkets.reduce(
-      (sum: number, md: any) => sum + (md.tradesWithRatio ?? 0),
-      0
-    );
-    const overallPct =
-      totalTradesAll > 0 ? (tradesWithRatioAll / totalTradesAll) * 100 : 0;
-
-    return (
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-        {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-        <div className="relative text-xs">
-          <div className="font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-3">
-            Risk/Reward {ratioDisplay}
-          </div>
-          <div className="text-xs text-slate-600 dark:text-slate-300 mb-2">
-            Overall:{' '}
-            <span className="font-semibold text-slate-900 dark:text-slate-100">
-              {overallPct.toFixed(1)}%
-            </span>{' '}
-            ({tradesWithRatioAll}/{totalTradesAll} trades)
-          </div>
-        </div>
-        <div className="relative overflow-x-auto text-xs mt-1.5">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-slate-200/60 dark:border-slate-700/60">
-                <th className="text-left py-2 pr-4 font-semibold text-slate-600 dark:text-slate-400">
-                  Market
-                </th>
-                <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">
-                  %
-                </th>
-                <th className="text-right py-2 pl-2 font-semibold text-slate-600 dark:text-slate-400">
-                  Trades
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeMarkets.map((marketData: { 
-                market: string; 
-                tradesWithRatio: number; 
-                totalTrades: number;
-                wins: number;
-                losses: number;
-                winRate: number;
-              }) => {
-                const marketPct =
-                  (marketData.totalTrades ?? 0) > 0
-                    ? (marketData.tradesWithRatio / marketData.totalTrades) * 100
-                    : 0;
-                return (
-                  <tr
-                    key={marketData.market}
-                    className="border-b border-slate-100/60 dark:border-slate-800/60 last:border-0"
-                  >
-                    <td className="py-2 pr-4 font-medium text-slate-700 dark:text-slate-300">
-                      {marketData.market}
-                    </td>
-                    <td className="py-2 px-2 text-right font-bold text-slate-900 dark:text-slate-100">
-                      {marketPct.toFixed(1)}%
-                    </td>
-                    <td className="py-2 pl-2 text-right text-slate-600 dark:text-slate-400">
-                      {marketData.tradesWithRatio}/{marketData.totalTrades}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
 
   const yAxisTickFormatter = (value: number) =>
     `${Number(value ?? 0).toFixed(0)}%`;
@@ -386,7 +392,7 @@ export function RiskRewardStats({ trades, isLoading: externalLoading }: RiskRewa
                     contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none', minWidth: '180px' }}
                     wrapperStyle={{ outline: 'none', zIndex: 1000 }}
                     cursor={{ fill: 'transparent', radius: 8 }}
-                    content={<CustomTooltip />}
+                    content={(props) => <CustomTooltip {...props} isDark={isDark} chartDataWithData={chartDataWithData} />}
                   />
 
                   <ReBar

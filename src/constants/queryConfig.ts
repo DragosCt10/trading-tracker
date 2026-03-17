@@ -29,3 +29,9 @@ export const STRATEGY_STATS = {
   staleTime: 0,
   gcTime: 5 * MINUTE,
 } as const;
+
+/** Subscription / tier — refresh every 5 min, evict after 10 min. */
+export const SUBSCRIPTION_DATA = {
+  staleTime: 5 * MINUTE,
+  gcTime: 10 * MINUTE,
+} as const;

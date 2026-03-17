@@ -20,6 +20,23 @@ interface ProfitFactorChartProps {
   totalLosses?: number;
 }
 
+function CustomTooltip({ active, payload, tooltipActiveRef, prevActiveRef, setShowTooltip }: any) {
+  const isActive = active && payload && payload.length > 0;
+  
+  // Update ref during render (this is safe - refs can be updated during render)
+  tooltipActiveRef.current = isActive;
+  
+  // Schedule state update outside of render using requestAnimationFrame
+  if (isActive !== prevActiveRef.current) {
+    prevActiveRef.current = isActive;
+    requestAnimationFrame(() => {
+      setShowTooltip(isActive);
+    });
+  }
+  
+  return null; // We'll render the tooltip separately
+}
+
 export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesToUse, totalWins, totalLosses }: ProfitFactorChartProps) {
   // Calculate profit factor from trades
   const wins = totalWins ?? tradesToUse.filter(t => t.trade_outcome === 'Win').length;
@@ -100,22 +117,6 @@ export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesT
     </div>
   );
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    const isActive = active && payload && payload.length > 0;
-    
-    // Update ref during render (this is safe - refs can be updated during render)
-    tooltipActiveRef.current = isActive;
-    
-    // Schedule state update outside of render using requestAnimationFrame
-    if (isActive !== prevActiveRef.current) {
-      prevActiveRef.current = isActive;
-      requestAnimationFrame(() => {
-        setShowTooltip(isActive);
-      });
-    }
-    
-    return null; // We'll render the tooltip separately
-  };
 
   if (!mounted) {
     return (
@@ -254,8 +255,8 @@ export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesT
                 />
               ))}
             </Pie>
-            <Tooltip 
-              content={<CustomTooltip />} 
+            <Tooltip
+              content={(props) => <CustomTooltip {...props} tooltipActiveRef={tooltipActiveRef} prevActiveRef={prevActiveRef} setShowTooltip={setShowTooltip} />}
               allowEscapeViewBox={{ x: false, y: true }}
               cursor={false}
             />

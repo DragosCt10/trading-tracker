@@ -19,7 +19,8 @@ export function useTheme() {
 
   // Mark as mounted after initial render
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Apply theme to document (only update if theme actually changed)

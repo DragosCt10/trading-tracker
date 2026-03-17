@@ -40,14 +40,16 @@ export const AverageMonthlyTradesChartCard: React.FC<AverageMonthlyTradesChartCa
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-      setMounted(true);
+      const timer = setTimeout(() => setMounted(true), 0);
+      return () => clearTimeout(timer);
     }, []);
 
     useEffect(() => {
       if (mounted) {
         if (externalLoading !== undefined) {
           if (externalLoading) {
-            setIsLoading(true);
+            const timer = setTimeout(() => setIsLoading(true), 0);
+            return () => clearTimeout(timer);
           } else {
             const timer = setTimeout(() => {
               setIsLoading(false);

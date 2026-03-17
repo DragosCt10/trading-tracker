@@ -26,6 +26,68 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
 
 /** English labels for local H/L categories (trading-related) */
+function CustomTooltip({ active, payload, beCalcEnabled }: { active?: boolean; payload?: { payload: PieDatum }[]; beCalcEnabled: boolean }) {
+  if (!active || !payload?.length) return null;
+
+  const data = payload[0].payload;
+  const colorMap: Record<string, { dot: string }> = {
+    teal: { dot: 'bg-teal-500 dark:bg-teal-400 ring-teal-200/50 dark:ring-teal-500/30' },
+    // Use a warm amber highlight only in the tooltip dot for "Not liquidated"
+    amber: { dot: 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30' },
+  };
+  const colors = colorMap[data.color] ?? colorMap.teal;
+  const wins = data.wins ?? 0;
+  const losses = data.losses ?? 0;
+  const breakEven = data.breakEven ?? 0;
+  const winRate = data.winRate ?? 0;
+  const winRateWithBE = data.winRateWithBE ?? 0;
+  const beWins = data.beWins ?? 0;
+  const beLosses = data.beLosses ?? 0;
+  const beWinRate = data.beWinRate;
+  const hasBEBreakdown = (beWins + beLosses) > 0 && beWinRate != null;
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
+      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+      <div className="relative flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+            {data.name} — {data.percentage.toFixed(1)}% ({data.value} {data.value === 1 ? 'trade' : 'trades'})
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
+            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{wins}</span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
+            <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{losses}</span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
+            <span className="text-lg font-bold text-slate-600 dark:text-slate-300">
+              {breakEven}
+              {hasBEBreakdown && (
+                <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">
+                  ({beWins} w, {beLosses} l, {formatPercent(beWinRate!)}% wr)
+                </span>
+              )}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
+            <span className="text-base font-bold text-slate-900 dark:text-slate-100">
+              {formatPercent(beCalcEnabled ? winRateWithBE : winRate)}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const LOCAL_HL_LABELS = {
   liquidated: 'Liquidated',
   notLiquidated: 'Not liquidated',
@@ -119,7 +181,8 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
       if (mounted) {
         if (externalLoading !== undefined) {
           if (externalLoading) {
-            setIsLoading(true);
+            const timer = setTimeout(() => setIsLoading(true), 0);
+            return () => clearTimeout(timer);
           } else {
             const timer = setTimeout(() => setIsLoading(false), 600);
             return () => clearTimeout(timer);
@@ -168,67 +231,6 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
       { name: LOCAL_HL_LABELS.notLiquidated, value: pieDataRaw[1]?.value ?? 0, color: 'amber' },
     ];
 
-    const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: { payload: PieDatum }[] }) => {
-      if (!active || !payload?.length) return null;
-
-      const data = payload[0].payload;
-      const colorMap: Record<string, { dot: string }> = {
-        teal: { dot: 'bg-teal-500 dark:bg-teal-400 ring-teal-200/50 dark:ring-teal-500/30' },
-        // Use a warm amber highlight only in the tooltip dot for "Not liquidated"
-        amber: { dot: 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30' },
-      };
-      const colors = colorMap[data.color] ?? colorMap.teal;
-      const wins = data.wins ?? 0;
-      const losses = data.losses ?? 0;
-      const breakEven = data.breakEven ?? 0;
-      const winRate = data.winRate ?? 0;
-      const winRateWithBE = data.winRateWithBE ?? 0;
-      const beWins = data.beWins ?? 0;
-      const beLosses = data.beLosses ?? 0;
-      const beWinRate = data.beWinRate;
-      const hasBEBreakdown = (beWins + beLosses) > 0 && beWinRate != null;
-
-      return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-          {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-          <div className="relative flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-                {data.name} — {data.percentage.toFixed(1)}% ({data.value} {data.value === 1 ? 'trade' : 'trades'})
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
-                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{wins}</span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
-                <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{losses}</span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
-                <span className="text-lg font-bold text-slate-600 dark:text-slate-300">
-                  {breakEven}
-                  {hasBEBreakdown && (
-                    <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">
-                      ({beWins} w, {beLosses} l, {formatPercent(beWinRate!)}% wr)
-                    </span>
-                  )}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
-                <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {formatPercent(beCalcEnabled ? winRateWithBE : winRate)}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    };
 
     if (!mounted || isLoading) {
       return (
@@ -351,7 +353,7 @@ export const LocalHLStatisticsCard: React.FC<LocalHLStatisticsCardProps> = React
                     contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none', minWidth: '160px' }}
                     wrapperStyle={{ outline: 'none', zIndex: 1000 }}
                     cursor={{ fill: 'transparent', radius: 8 }}
-                    content={<CustomTooltip />}
+                    content={(props) => <CustomTooltip {...props} isDark={isDark} beCalcEnabled={beCalcEnabled} />}
                   />
                 </PieChart>
               </ResponsiveContainer>

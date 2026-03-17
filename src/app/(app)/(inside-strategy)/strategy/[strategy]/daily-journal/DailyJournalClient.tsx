@@ -134,7 +134,10 @@ export default function DailyJournalClient({
     ...TRADES_DATA,
   });
 
-  const allTradesData = rawTrades ?? (isInitialContext && initialTrades.length > 0 ? initialTrades : []);
+  const allTradesData = useMemo(
+    () => rawTrades ?? (isInitialContext && initialTrades.length > 0 ? initialTrades : []),
+    [rawTrades, isInitialContext, initialTrades]
+  );
 
   const currencySymbol = activeAccount
     ? getCurrencySymbolFromAccount(activeAccount)

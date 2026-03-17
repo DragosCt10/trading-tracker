@@ -188,7 +188,10 @@ export const TradesCalendarCard: React.FC<TradesCalendarCardProps> = ({
   const { beCalcEnabled } = useBECalc();
 
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const daysInMonth = getDaysInMonth();
   const firstDay = daysInMonth[0];

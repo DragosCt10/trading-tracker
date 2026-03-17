@@ -16,6 +16,23 @@ interface MaxDrawdownChartProps {
   maxDrawdown: number | null | undefined;
 }
 
+function CustomTooltip({ active, payload, tooltipActiveRef, prevActiveRef, setShowTooltip }: any) {
+  const isActive = active && payload && payload.length > 0;
+  
+  // Update ref during render (this is safe - refs can be updated during render)
+  tooltipActiveRef.current = isActive;
+  
+  // Schedule state update outside of render using requestAnimationFrame
+  if (isActive !== prevActiveRef.current) {
+    prevActiveRef.current = isActive;
+    requestAnimationFrame(() => {
+      setShowTooltip(isActive);
+    });
+  }
+  
+  return null; // We'll render the tooltip separately
+}
+
 export const MaxDrawdownChart = React.memo(function MaxDrawdownChart({ maxDrawdown }: MaxDrawdownChartProps) {
   const { mounted, isDark } = useDarkMode();
   const [showTooltip, setShowTooltip] = useState(false);
@@ -98,22 +115,6 @@ export const MaxDrawdownChart = React.memo(function MaxDrawdownChart({ maxDrawdo
     </div>
   );
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    const isActive = active && payload && payload.length > 0;
-    
-    // Update ref during render (this is safe - refs can be updated during render)
-    tooltipActiveRef.current = isActive;
-    
-    // Schedule state update outside of render using requestAnimationFrame
-    if (isActive !== prevActiveRef.current) {
-      prevActiveRef.current = isActive;
-      requestAnimationFrame(() => {
-        setShowTooltip(isActive);
-      });
-    }
-    
-    return null; // We'll render the tooltip separately
-  };
 
   if (!mounted) {
     return (
@@ -242,7 +243,7 @@ export const MaxDrawdownChart = React.memo(function MaxDrawdownChart({ maxDrawdo
                 />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={(props) => <CustomTooltip {...props} tooltipActiveRef={tooltipActiveRef} prevActiveRef={prevActiveRef} setShowTooltip={setShowTooltip} />} />
           </PieChart>
         </ResponsiveContainer>
         </div>

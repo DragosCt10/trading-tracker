@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -36,6 +36,83 @@ export interface TradeStatDatum {
 }
 
 type Mode = 'winsLossesWinRate' | 'singleValue';
+
+interface StatsTooltipProps {
+  active?: boolean;
+  payload?: readonly any[];
+  mode: Mode;
+  valueKey: string;
+  valueLabel: string;
+  beCalcEnabled: boolean;
+}
+
+function StatsTooltip({ active, payload, mode, valueKey, valueLabel, beCalcEnabled }: StatsTooltipProps) {
+  if (!active || !payload || payload.length === 0) return null;
+
+  const d = payload[0].payload as TradeStatDatum;
+
+  if (mode === 'singleValue') {
+    const v = Number(d[valueKey as keyof TradeStatDatum] ?? 0);
+    const displayValue = Number.isInteger(v) ? v.toString() : v.toFixed(2);
+    return (
+      <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
+          {d.category}
+        </div>
+        <div className="flex items-baseline justify-between gap-4">
+          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{valueLabel}</span>
+          <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
+            {displayValue}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  const wins = d.wins ?? 0;
+  const losses = d.losses ?? 0;
+  const beWins = d.beWins ?? 0;
+  const beLosses = d.beLosses ?? 0;
+  const breakEven = d.breakEven ?? 0;
+  const winRate = d.winRate ?? 0;
+  const winRateWithBE = d.winRateWithBE ?? d.winRate ?? 0;
+  const totalTrades = d.totalTrades ?? (wins + losses + breakEven || (wins + losses + beWins + beLosses) || undefined);
+  const useSimpleBE = breakEven > 0;
+
+  return (
+    <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
+      <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
+        {d.category} {typeof totalTrades === 'number' ? `(${totalTrades} trade${totalTrades === 1 ? '' : 's'})` : ''}
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-baseline justify-between gap-4">
+          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
+          <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+            {wins} {!useSimpleBE && beWins > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beWins} BE)</span>}
+          </span>
+        </div>
+        <div className="flex items-baseline justify-between gap-4">
+          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
+          <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
+            {losses} {!useSimpleBE && beLosses > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beLosses} BE)</span>}
+          </span>
+        </div>
+        {useSimpleBE && (
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even:</span>
+            <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{breakEven}</span>
+          </div>
+        )}
+        <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
+          <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+            {(beCalcEnabled && d.winRateWithBE !== undefined ? winRateWithBE : winRate).toFixed(2)}%
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface TradeStatsBarCardProps {
   title: string;
@@ -78,7 +155,7 @@ export function TradeStatsBarCard({
   }, [mounted, externalLoading]);
 
   // Keep data ref updated
-  dataRef.current = data;
+  useLayoutEffect(() => { dataRef.current = data; });
 
   const dataHasContent =
     mode === 'winsLossesWinRate'
@@ -106,15 +183,15 @@ export function TradeStatsBarCard({
 
     // While parent says "loading", always show loader.
     if (externalLoading === true) {
-      setSettling(false);
-      return;
+      const timer = setTimeout(() => setSettling(false), 0);
+      return () => clearTimeout(timer);
     }
 
     // When parent finishes loading, keep loader briefly so derived chart data can materialize
     // (prevents 1-frame "No trades" flash).
     if (prev === true && externalLoading === false) {
-      setSettling(true);
       // Give enough time for derived chart data to recompute (usually happens synchronously but can take a frame or two)
+      const settleTimer = setTimeout(() => setSettling(true), 0);
       const timer = setTimeout(() => {
         // Check current data state using ref to get latest value
         const currentData = dataRef.current ?? [];
@@ -133,21 +210,24 @@ export function TradeStatsBarCard({
                 return v !== undefined && v !== null && isFinite(Number(v));
               })
             : false;
-        
+
         // Only stop settling if data still doesn't have content after the delay
         // If data has content, the other effect will have already stopped settling
         if (!hasContentNow) {
           setSettling(false);
         }
       }, 1200);
-      return () => clearTimeout(timer);
+      return () => { clearTimeout(settleTimer); clearTimeout(timer); };
     }
-  }, [mounted, externalLoading]);
+  }, [mounted, externalLoading, mode, valueKey]);
 
   useEffect(() => {
     // As soon as data is ready, stop settling immediately.
     if (!mounted) return;
-    if (dataHasContent) setSettling(false);
+    if (dataHasContent) {
+      const timer = setTimeout(() => setSettling(false), 0);
+      return () => clearTimeout(timer);
+    }
   }, [mounted, dataHasContent]);
 
   // Dynamic colors based on dark mode
@@ -228,83 +308,6 @@ export function TradeStatsBarCard({
     Number(value ?? 0).toLocaleString('en-US', {
       maximumFractionDigits: mode === 'singleValue' ? 2 : 0,
     });
-
-  // --- Tooltip renderers ----------------------------------------------------
-
-  const StatsTooltip = ({
-    active,
-    payload,
-  }: {
-    active?: boolean;
-    payload?: any[];
-  }) => {
-    if (!active || !payload || payload.length === 0) return null;
-
-    const d = payload[0].payload as TradeStatDatum;
-
-    if (mode === 'singleValue') {
-      const v = Number(d[valueKey] ?? 0);
-      // Display as integer if it's a whole number, otherwise show 2 decimal places
-      const displayValue = Number.isInteger(v) ? v.toString() : v.toFixed(2);
-      return (
-        <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-            {d.category}
-          </div>
-          <div className="flex items-baseline justify-between gap-4">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{valueLabel}</span>
-            <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              {displayValue}
-            </span>
-          </div>
-        </div>
-      );
-    }
-
-    const wins = d.wins ?? 0;
-    const losses = d.losses ?? 0;
-    const beWins = d.beWins ?? 0;
-    const beLosses = d.beLosses ?? 0;
-    const breakEven = d.breakEven ?? 0;
-    const winRate = d.winRate ?? 0;
-    const winRateWithBE = d.winRateWithBE ?? d.winRate ?? 0;
-    const totalTrades = d.totalTrades ?? (wins + losses + breakEven || (wins + losses + beWins + beLosses) || undefined);
-    const useSimpleBE = breakEven > 0;
-
-    return (
-      <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/60 dark:border-slate-700/60 rounded-2xl p-4 shadow-2xl">
-        <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-          {d.category} {typeof totalTrades === 'number' ? `(${totalTrades} trade${totalTrades === 1 ? '' : 's'})` : ''}
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-baseline justify-between gap-4">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins:</span>
-            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-              {wins} {!useSimpleBE && beWins > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beWins} BE)</span>}
-            </span>
-          </div>
-          <div className="flex items-baseline justify-between gap-4">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses:</span>
-            <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
-              {losses} {!useSimpleBE && beLosses > 0 && <span className="text-sm font-normal text-slate-500 dark:text-slate-400">({beLosses} BE)</span>}
-            </span>
-          </div>
-          {useSimpleBE && (
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even:</span>
-              <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{breakEven}</span>
-            </div>
-          )}
-          <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate:</span>
-            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
-              {(beCalcEnabled && d.winRateWithBE !== undefined ? winRateWithBE : winRate).toFixed(2)}%
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   // --- X axis tick with (n) count like MonthlyPerformanceChart ----
   const renderXAxisTick = (props: any) => {
@@ -454,7 +457,7 @@ export function TradeStatsBarCard({
                   fill: 'transparent', 
                   radius: 8,
                 }}
-                content={<StatsTooltip />}
+                content={(props) => <StatsTooltip {...props} mode={mode} valueKey={valueKey} valueLabel={valueLabel} beCalcEnabled={beCalcEnabled} />}
               />
 
               {mode === 'winsLossesWinRate' ? (

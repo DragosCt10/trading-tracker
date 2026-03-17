@@ -7,6 +7,7 @@ import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import type { Database } from '@/types/supabase';
 import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
 import { EXTRA_CARDS } from '@/constants/extraCards';
+import { canAddStrategy } from './subscription';
 
 export type StrategyRow = Database['public']['Tables']['strategies']['Row'];
 
@@ -208,6 +209,18 @@ export async function createStrategy(
   }
 
   const supabase = await createClient();
+
+  // Enforce maxStrategies limit (Starter = 2)
+  const { count: strategyCount } = await supabase
+    .from('strategies')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('is_active', true);
+
+  const allowed = await canAddStrategy(userId, strategyCount ?? 0);
+  if (!allowed) {
+    return { data: null, error: { message: 'Upgrade to PRO to create more than 2 strategies' } };
+  }
   const slug = generateSlug(name);
 
   const { data: existing, error: checkError } = await supabase

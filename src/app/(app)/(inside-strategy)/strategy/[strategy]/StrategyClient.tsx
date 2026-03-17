@@ -26,6 +26,8 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { TRADES_DATA } from '@/constants/queryConfig';
+import { useSubscription } from '@/hooks/useSubscription';
+import { FeatureGate } from '@/components/subscription/FeatureGate';
 
 import {
   Chart as ChartJS,
@@ -187,6 +189,7 @@ export default function StrategyClient(
 ) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { hasFeature } = useSubscription({ userId: props?.initialUserId });
 
   const initialRange = props?.initialDateRange ?? defaultInitialRange;
   const initialYear = props?.initialSelectedYear ?? defaultSelectedYear;
@@ -1044,50 +1047,78 @@ export default function StrategyClient(
         </div>
       )}
 
-      {/* Confidence & Mind State */}
+      {/* Confidence & Mind State — PRO only */}
       {(viewMode === 'dateRange' || viewMode === 'yearly') && (
         <>
           <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Psychological Factors</h2>
           <p className="text-slate-500 dark:text-slate-400 mt-1 mb-6">Confidence and mind state at entry across your trades.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-6">
-            <ConfidenceStatsCard trades={tradesToUse} isLoading={chartsLoadingState} />
-            <MindStateStatsCard trades={tradesToUse} isLoading={chartsLoadingState} />
-          </div>
+          <FeatureGate
+            feature="allPsychologicalFactors"
+            blurred
+            upgradeContext={{ title: 'Psychological Factors', description: 'Analyse your confidence and mind state across all trades.' }}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-6">
+              <ConfidenceStatsCard trades={tradesToUse} isLoading={chartsLoadingState} />
+              <MindStateStatsCard trades={tradesToUse} isLoading={chartsLoadingState} />
+            </div>
+          </FeatureGate>
         </>
       )}
 
-      {/* Equity Curve - title and description outside card, then full-row card */}
+      {/* Equity Curve — PRO only (futureEquityChart flag) */}
       {(viewMode === 'dateRange' || viewMode === 'yearly') && (
         <>
           <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Equity Curve</h2>
           <p className="text-slate-500 dark:text-slate-400 mb-6">Cumulative P&L over time.</p>
           <div className="w-full mb-6">
-            <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
+            {hasFeature('futureEquityChart') ? (
+              <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
+            ) : (
+              <FeatureGate
+                feature="futureEquityChart"
+                blurred
+                upgradeContext={{ title: 'Equity Curve', description: 'Track your cumulative P&L over time with the Equity Curve chart.' }}
+              >
+                <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
+              </FeatureGate>
+            )}
           </div>
         </>
       )}
 
-      {/* Consistency & drawdown */}
+      {/* Consistency & drawdown — PRO only */}
       <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Consistency & drawdown</h2>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Consistency and capital preservation metrics.</p>
-      <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
-        <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} />
-        <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} />
-        <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} />
-      </div>
+      <FeatureGate
+        feature="allConsistencyDrawdown"
+        blurred
+        upgradeContext={{ title: 'Consistency & Drawdown', description: 'Full drawdown analysis and consistency scoring for your strategy.' }}
+      >
+        <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
+          <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} />
+          <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} />
+          <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} />
+        </div>
+      </FeatureGate>
 
-      {/* Performance ratios */}
+      {/* Performance ratios — PRO only */}
       <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Performance ratios</h2>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Return and risk-adjusted metrics.</p>
-      <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
-        <ProfitFactorChart tradesToUse={tradesToUse} totalWins={statsToUse.totalWins} totalLosses={statsToUse.totalLosses} />
-        <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} />
-        <TQIChart tradesToUse={tradesToUse} />
-      </div>
-      <div className="flex flex-col md:grid md:grid-cols-2 gap-6 w-full mt-6">
-        <RecoveryFactorChart recoveryFactor={recoveryFactor} />
-        <DrawdownCountChart drawdownCount={drawdownCount} />
-      </div>
+      <FeatureGate
+        feature="allPerformanceRatios"
+        blurred
+        upgradeContext={{ title: 'Performance Ratios', description: 'Sharpe ratio, profit factor, recovery factor and more.' }}
+      >
+        <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
+          <ProfitFactorChart tradesToUse={tradesToUse} totalWins={statsToUse.totalWins} totalLosses={statsToUse.totalLosses} />
+          <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} />
+          <TQIChart tradesToUse={tradesToUse} />
+        </div>
+        <div className="flex flex-col md:grid md:grid-cols-2 gap-6 w-full mt-6">
+          <RecoveryFactorChart recoveryFactor={recoveryFactor} />
+          <DrawdownCountChart drawdownCount={drawdownCount} />
+        </div>
+      </FeatureGate>
 
       <AnalysisModal
         isOpen={openAnalyzeModal}

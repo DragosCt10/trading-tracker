@@ -115,3 +115,4 @@ export const StatCard: React.FC<StatCardProps> = React.memo(({
     </Card>
   );
 });
+StatCard.displayName = 'StatCard';

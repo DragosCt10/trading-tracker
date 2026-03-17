@@ -12,6 +12,18 @@ interface ConsistencyScoreChartProps {
   consistencyScore: number;
 }
 
+function CustomTooltip({ active, payload, tooltipActiveRef, prevActiveRef, setShowTooltip }: any) {
+  const isActive = active && payload && payload.length > 0;
+  tooltipActiveRef.current = isActive;
+  if (isActive !== prevActiveRef.current) {
+    prevActiveRef.current = isActive;
+    requestAnimationFrame(() => {
+      setShowTooltip(isActive);
+    });
+  }
+  return null;
+}
+
 export const ConsistencyScoreChart = React.memo(function ConsistencyScoreChart({ consistencyScore }: ConsistencyScoreChartProps) {
   const { mounted, isDark } = useDarkMode();
   const [showTooltip, setShowTooltip] = useState(false);
@@ -91,22 +103,6 @@ export const ConsistencyScoreChart = React.memo(function ConsistencyScoreChart({
     </div>
   );
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    const isActive = active && payload && payload.length > 0;
-    
-    // Update ref during render (this is safe - refs can be updated during render)
-    tooltipActiveRef.current = isActive;
-    
-    // Schedule state update outside of render using requestAnimationFrame
-    if (isActive !== prevActiveRef.current) {
-      prevActiveRef.current = isActive;
-      requestAnimationFrame(() => {
-        setShowTooltip(isActive);
-      });
-    }
-    
-    return null; // We'll render the tooltip separately
-  };
 
   if (!mounted) {
     return (
@@ -235,7 +231,7 @@ export const ConsistencyScoreChart = React.memo(function ConsistencyScoreChart({
                 />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={(props) => <CustomTooltip {...props} tooltipActiveRef={tooltipActiveRef} prevActiveRef={prevActiveRef} setShowTooltip={setShowTooltip} />} />
           </PieChart>
         </ResponsiveContainer>
         </div>

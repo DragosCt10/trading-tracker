@@ -34,7 +34,8 @@ export const StreakStatisticsCard: React.FC<StreakStatisticsCardProps> = React.m
       if (mounted) {
         if (externalLoading !== undefined) {
           if (externalLoading) {
-            setIsLoading(true);
+            const timer = setTimeout(() => setIsLoading(true), 0);
+            return () => clearTimeout(timer);
           } else {
             const timer = setTimeout(() => {
               setIsLoading(false);

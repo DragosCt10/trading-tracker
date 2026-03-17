@@ -69,7 +69,8 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
 
   // Prevent hydration mismatch
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const isNameValid = name.trim().length > 0;

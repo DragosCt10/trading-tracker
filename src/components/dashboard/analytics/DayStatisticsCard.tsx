@@ -89,6 +89,51 @@ export interface DayStatisticsCardProps {
  * @param trades - Array of trades to compute stats from
  * @returns Array of Days Stats
  */
+function CustomTooltip({
+  active,
+  payload,
+  isDark,
+  beCalcEnabled,
+}: {
+  active?: boolean;
+  payload?: readonly any[];
+  isDark?: boolean;
+  beCalcEnabled: boolean;
+}) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
+      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+      <div className="relative flex flex-col gap-3">
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+          {d.day} ({d.totalTrades} trades)
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
+            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{d.wins}</span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
+            <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{d.losses}</span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
+            <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{d.breakEven ?? 0}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
+            <span className="text-base font-bold text-slate-900 dark:text-slate-100">
+              {formatPercent(beCalcEnabled ? (d.winRateWithBE ?? 0) : (d.winRate ?? 0))}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function calculateDayStats(trades: Trade[]): DayStats[] {
   return calculateDayStatsUtil(trades);
 }
@@ -131,7 +176,8 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
     useEffect(() => {
       if (mounted) {
         if (externalLoading) {
-          setIsLoading(true);
+          const timer = setTimeout(() => setIsLoading(true), 0);
+          return () => clearTimeout(timer);
         } else {
           const timer = setTimeout(() => setIsLoading(false), 600);
           return () => clearTimeout(timer);
@@ -195,46 +241,6 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
       ) || chartData.some((d) => d.totalTrades > 0);
     const axisTextColor = isDark ? '#cbd5e1' : '#64748b';
 
-    const CustomTooltip = ({
-      active,
-      payload,
-    }: {
-      active?: boolean;
-      payload?: { payload: (typeof chartData)[number] }[];
-    }) => {
-      if (!active || !payload?.length) return null;
-      const d = payload[0].payload;
-      return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-          {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-          <div className="relative flex flex-col gap-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-              {d.day} ({d.totalTrades} trades)
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
-                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{d.wins}</span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
-                <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{d.losses}</span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
-                <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{d.breakEven ?? 0}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
-                <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {formatPercent(beCalcEnabled ? (d.winRateWithBE ?? 0) : (d.winRate ?? 0))}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    };
 
     const yAxisTickFormatter = (value: number) =>
       Number(value ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
@@ -391,7 +397,7 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
                   contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none', minWidth: '160px' }}
                   wrapperStyle={{ outline: 'none', zIndex: 1000 }}
                   cursor={{ stroke: isDark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.4)', strokeWidth: 1 }}
-                  content={<CustomTooltip />}
+                  content={(props) => <CustomTooltip {...props} isDark={isDark} beCalcEnabled={beCalcEnabled} />}
                 />
 
                 <Area

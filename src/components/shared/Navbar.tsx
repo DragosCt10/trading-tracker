@@ -10,9 +10,12 @@ import {
   Target,
   Lightbulb,
   Palette,
+  CreditCard,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { useSubscription } from '@/hooks/useSubscription';
+import { TierBadge } from '@/components/subscription/TierBadge';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '@/hooks/useTheme';
 import { Button } from '@/components/ui/button';
@@ -40,6 +43,8 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
   const pathname = usePathname();
   const router = useRouter();
   const { data: userData } = useUserDetails();
+  const userId = userData?.user?.id;
+  const { tier } = useSubscription({ userId });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
@@ -47,7 +52,10 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
   const { theme, toggleTheme, mounted } = useTheme();
 
   useEffect(() => {
-    if (userData?.user) setIsSigningOut(false);
+    if (userData?.user) {
+      const timer = setTimeout(() => setIsSigningOut(false), 0);
+      return () => clearTimeout(timer);
+    }
   }, [userData?.user]);
 
   const handleSignOut = useCallback(async () => {
@@ -170,6 +178,19 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
 
           {/* Right actions — same style as Edit btn (EditAccountAlertDialog), icon only */}
           <div className="ml-auto hidden items-center gap-2 lg:flex">
+            {/* Billing link + tier badge */}
+            <Button
+              variant="ghost"
+              asChild
+              size="sm"
+              className={navButtonClass(isActive('/billing'))}
+            >
+              <Link href="/billing" className="flex items-center gap-1.5">
+                <CreditCard className="h-4 w-4" />
+                <span>Billing</span>
+                <TierBadge tier={tier} />
+              </Link>
+            </Button>
             <Button
               type="button"
               size="sm"
@@ -298,6 +319,18 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   <Link href="/insight-vault" onClick={closeMobileMenu}>
                     <Lightbulb className="h-4 w-4" />
                     Insight Vault
+                  </Link>
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  asChild
+                  className={cn('w-full justify-start', navButtonClass(isActive('/billing')))}
+                >
+                  <Link href="/billing" onClick={closeMobileMenu} className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    <span>Billing</span>
+                    <TierBadge tier={tier} />
                   </Link>
                 </Button>
 

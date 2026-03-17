@@ -59,6 +59,54 @@ const FILTER_BTN_ACTIVE =
 const FILTER_BTN_INACTIVE =
   'border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium';
 
+function CustomTooltip({
+  active,
+  payload,
+  isDark,
+  beCalcEnabled,
+}: {
+  active?: boolean;
+  payload?: { payload: ChartDatum }[];
+  isDark?: boolean;
+  beCalcEnabled: boolean;
+}) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
+      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+      <div className="relative flex flex-col gap-3">
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+          {d.newsName}{' '}
+          {d.totalTrades > 0
+            ? `(${d.totalTrades} trade${d.totalTrades === 1 ? '' : 's'})`
+            : ''}
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
+            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{d.wins}</span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
+            <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{d.losses}</span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
+            <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{d.breakEven}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
+            <span className="text-base font-bold text-slate-900 dark:text-slate-100">
+              {formatPercent(beCalcEnabled ? d.winRateWithBE : d.winRate)}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
   function NewsNameChartCard({ trades, isLoading: externalLoading }) {
     const { mounted, isDark } = useDarkMode();
@@ -70,7 +118,8 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     useEffect(() => {
       if (externalLoading !== undefined) {
         if (externalLoading) {
-          setIsLoading(true);
+          const timer = setTimeout(() => setIsLoading(true), 0);
+          return () => clearTimeout(timer);
         } else {
           const timer = setTimeout(() => setIsLoading(false), 400);
           return () => clearTimeout(timer);
@@ -118,49 +167,6 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     /* ------------------------------------------------------------------ */
     /* Tooltip                                                              */
     /* ------------------------------------------------------------------ */
-    const CustomTooltip = ({
-      active,
-      payload,
-    }: {
-      active?: boolean;
-      payload?: { payload: ChartDatum }[];
-    }) => {
-      if (!active || !payload?.length) return null;
-      const d = payload[0].payload;
-      return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-          {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-          <div className="relative flex flex-col gap-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-              {d.newsName}{' '}
-              {d.totalTrades > 0
-                ? `(${d.totalTrades} trade${d.totalTrades === 1 ? '' : 's'})`
-                : ''}
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
-                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{d.wins}</span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
-                <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{d.losses}</span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
-                <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{d.breakEven}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
-                <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {formatPercent(beCalcEnabled ? d.winRateWithBE : d.winRate)}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    };
 
     /* ------------------------------------------------------------------ */
     /* Shared header (filter always visible)                               */
@@ -376,7 +382,7 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
                   contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none', minWidth: '180px' }}
                   wrapperStyle={{ outline: 'none', zIndex: 1000 }}
                   cursor={{ stroke: isDark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.4)', strokeWidth: 1 }}
-                  content={<CustomTooltip />}
+                  content={(props) => <CustomTooltip {...props} isDark={isDark} beCalcEnabled={beCalcEnabled} />}
                 />
 
                 {/* Grouped bars — side by side, matching DayStatisticsCard */}

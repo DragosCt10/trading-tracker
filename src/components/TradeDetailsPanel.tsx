@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
 import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useParams } from 'next/navigation';
 import { Trade } from '@/types/trade';
@@ -114,7 +114,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   );
   // In read-only mode (e.g. public share page), there's no auth session so useStrategies
   // returns empty — use the extraCards prop directly when provided.
-  const strategyExtraCards = (readOnly && extraCardsProp != null) ? extraCardsProp : (currentStrategy?.extra_cards ?? []);
+  const strategyExtraCards = useMemo(
+    () => (readOnly && extraCardsProp != null) ? extraCardsProp : (currentStrategy?.extra_cards ?? []),
+    [readOnly, extraCardsProp, currentStrategy?.extra_cards]
+  );
   const hasCard = useCallback(
     (key: string) => strategyExtraCards.includes(key as any),
     [strategyExtraCards]
@@ -130,24 +133,28 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const queryClient = useQueryClient();
 
   const accountBalanceRef = useRef(selection.activeAccount?.account_balance || 0);
-  accountBalanceRef.current = selection.activeAccount?.account_balance || 0;
-
   const editedTradeRef = useRef(editedTrade);
-  editedTradeRef.current = editedTrade;
+
+  useLayoutEffect(() => {
+    accountBalanceRef.current = selection.activeAccount?.account_balance || 0;
+    editedTradeRef.current = editedTrade;
+  });
 
   // Auto-reveal extra screens if trade has slots 3 or 4 filled
   useEffect(() => {
     if (editedTrade?.trade_screens?.[2] || editedTrade?.trade_screens?.[3]) {
-      setShowExtraScreens(true);
+      const timer = setTimeout(() => setShowExtraScreens(true), 0);
+      return () => clearTimeout(timer);
     }
-  }, [editedTrade?.id]);
+  }, [editedTrade?.id, editedTrade?.trade_screens]);
 
   // Sync editedTrade when trade prop changes (when not editing)
   useEffect(() => {
     if (trade && !isEditing && trade !== editedTrade) {
-      setEditedTrade(trade);
+      const timer = setTimeout(() => setEditedTrade(trade), 0);
+      return () => clearTimeout(timer);
     }
-  }, [trade, isEditing]);
+  }, [trade, isEditing, editedTrade]);
 
   // Helper: invalidate trade queries — scoped to the affected strategy only
   const invalidateAndRefetchTradeQueries = useCallback(async () => {
@@ -237,9 +244,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     return n === 10.5 ? '10+' : n.toFixed(2);
   };
 
-  if (!trade) return null;
-
-  const handleInputChange = useCallback((field: keyof Trade, value: any) => {
+  const handleInputChange = (field: keyof Trade, value: any) => {
     setEditedTrade((prev) => {
       if (!prev) return prev;
 
@@ -284,9 +289,9 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         return { ...prev, [field]: value };
       }
     });
-  }, []); // stable: no deps needed
+  };
 
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     const editedTrade = editedTradeRef.current;
     if (!editedTrade || !editedTrade.id) return;
     setError(null);
@@ -429,37 +434,23 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       setError(message);
       setIsSaving(false);
     }
-  }, [
-    selection.mode,
-    currentStrategy,
-    settings.saved_news,
-    settings.saved_markets,
-    userId,
-    queryClient,
-    invalidateAndRefetchTradeQueries,
-    onTradeUpdated,
-    onClose,
-    inlineMode,
-  ]);
+  };
 
-  const handleToggleFavourite = useCallback(
-    (kind: SavedFavouritesKind) => (itemId: string) => {
-      if (!currentStrategy || !userId || !accountId) return;
-      const strategyId = currentStrategy.id;
-      void updateStrategyFavourites(strategyId, userId, kind, itemId).then((nextSavedFavourites) => {
-        if (nextSavedFavourites == null) return;
-        const key = queryKeys.strategies(userId, accountId);
-        queryClient.setQueryData(key, (prev: Strategy[] | undefined) =>
-          prev?.map((s) =>
-            s.id === strategyId ? { ...s, saved_favourites: nextSavedFavourites } : s
-          )
-        );
-      });
-    },
-    [currentStrategy, userId, accountId, queryClient]
-  );
+  const handleToggleFavourite = (kind: SavedFavouritesKind) => (itemId: string) => {
+    if (!currentStrategy || !userId || !accountId) return;
+    const strategyId = currentStrategy.id;
+    void updateStrategyFavourites(strategyId, userId, kind, itemId).then((nextSavedFavourites) => {
+      if (nextSavedFavourites == null) return;
+      const key = queryKeys.strategies(userId, accountId);
+      queryClient.setQueryData(key, (prev: Strategy[] | undefined) =>
+        prev?.map((s) =>
+          s.id === strategyId ? { ...s, saved_favourites: nextSavedFavourites } : s
+        )
+      );
+    });
+  };
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = async () => {
     if (!trade || !trade.id) return;
     setShowDeleteConfirm(false);
     setError(null);
@@ -487,7 +478,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       setError(message);
       setIsDeleting(false);
     }
-  }, [trade, selection.mode, invalidateAndRefetchTradeQueries, onTradeUpdated, onClose]);
+  };
 
   const renderStatusBadge = (value: boolean | string) => {
     const isActive = typeof value === 'boolean' ? value : value === 'Yes';
@@ -530,7 +521,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     return renderOutcomeBadge(outcome);
   };
 
-  const renderField = useCallback((
+  const renderField = (
     label: string,
     field: keyof Trade,
     type: 'text' | 'number' | 'select' | 'boolean' | 'outcome' | 'market' = 'text',
@@ -985,7 +976,9 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
           </div>
         );
     }
-  }, [effectiveIsEditing, editedTrade, handleInputChange, settings.saved_markets, setupOptions, liquidityOptions]);
+  };
+
+  if (!trade) return null;
 
   return (
     <>
@@ -1368,6 +1361,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                       </label>
                       <a href={url} target="_blank" rel="noopener noreferrer" className="flex flex-col group flex-1 min-h-0">
                         <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300 flex-1 min-h-64">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={url}
                             alt={`Trade Screen ${i + 1}`}

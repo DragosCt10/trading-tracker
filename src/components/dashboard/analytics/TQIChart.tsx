@@ -18,6 +18,23 @@ interface TQIChartProps {
   tradesToUse: Trade[];
 }
 
+function CustomTooltip({ active, payload, tooltipActiveRef, prevActiveRef, setShowTooltip }: any) {
+  const isActive = active && payload && payload.length > 0;
+  
+  // Update ref during render (this is safe - refs can be updated during render)
+  tooltipActiveRef.current = isActive;
+  
+  // Schedule state update outside of render using requestAnimationFrame
+  if (isActive !== prevActiveRef.current) {
+    prevActiveRef.current = isActive;
+    requestAnimationFrame(() => {
+      setShowTooltip(isActive);
+    });
+  }
+  
+  return null; // We'll render the tooltip separately
+}
+
 export const TQIChart = React.memo(function TQIChart({ tradesToUse }: TQIChartProps) {
   // Calculate TQI from trades
   const tradeQualityIndex = useMemo(() => {
@@ -104,22 +121,6 @@ export const TQIChart = React.memo(function TQIChart({ tradesToUse }: TQIChartPr
     </div>
   );
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    const isActive = active && payload && payload.length > 0;
-    
-    // Update ref during render (this is safe - refs can be updated during render)
-    tooltipActiveRef.current = isActive;
-    
-    // Schedule state update outside of render using requestAnimationFrame
-    if (isActive !== prevActiveRef.current) {
-      prevActiveRef.current = isActive;
-      requestAnimationFrame(() => {
-        setShowTooltip(isActive);
-      });
-    }
-    
-    return null; // We'll render the tooltip separately
-  };
 
   if (!mounted) {
     return (
@@ -249,7 +250,7 @@ export const TQIChart = React.memo(function TQIChart({ tradesToUse }: TQIChartPr
                 />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={(props) => <CustomTooltip {...props} tooltipActiveRef={tooltipActiveRef} prevActiveRef={prevActiveRef} setShowTooltip={setShowTooltip} />} />
           </PieChart>
         </ResponsiveContainer>
         </div>

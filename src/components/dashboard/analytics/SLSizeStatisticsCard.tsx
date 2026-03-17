@@ -28,6 +28,37 @@ export interface SLSizeStatisticsCardProps {
   isLoading?: boolean;
 }
 
+function CustomTooltip({
+  active,
+  payload,
+  isDark,
+}: {
+  active?: boolean;
+  payload?: readonly any[];
+  isDark?: boolean;
+}) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
+      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+      <div className="relative flex flex-col gap-3">
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+          {d.market}
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Avg SL Size</span>
+            <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
+              {d.averageSlSize.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function calculateSLSizeStats(trades: Trade[]): SLSizeStats[] {
   return calculateSLSizeStatsUtil(trades);
 }
@@ -48,7 +79,8 @@ export const SLSizeStatisticsCard: React.FC<SLSizeStatisticsCardProps> = React.m
       if (mounted) {
         if (externalLoading !== undefined) {
           if (externalLoading) {
-            setIsLoading(true);
+            const timer = setTimeout(() => setIsLoading(true), 0);
+            return () => clearTimeout(timer);
           } else {
             const timer = setTimeout(() => setIsLoading(false), 600);
             return () => clearTimeout(timer);
@@ -76,34 +108,6 @@ export const SLSizeStatisticsCard: React.FC<SLSizeStatisticsCardProps> = React.m
       end: '#0ea5e9',
     };
 
-    const CustomTooltip = ({
-      active,
-      payload,
-    }: {
-      active?: boolean;
-      payload?: { payload: (typeof chartBarsData)[number] }[];
-    }) => {
-      if (!active || !payload?.length) return null;
-      const d = payload[0].payload;
-      return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-          {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-          <div className="relative flex flex-col gap-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-              {d.market}
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Avg SL Size</span>
-                <span className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {d.averageSlSize.toFixed(2)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    };
 
     if (!mounted || isLoading) {
       return (
@@ -197,7 +201,7 @@ export const SLSizeStatisticsCard: React.FC<SLSizeStatisticsCardProps> = React.m
                     contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none', minWidth: '160px' }}
                     wrapperStyle={{ outline: 'none', zIndex: 1000 }}
                     cursor={{ fill: 'transparent', radius: 8 }}
-                    content={<CustomTooltip />}
+                    content={(props) => <CustomTooltip {...props} isDark={isDark} />}
                   />
 
                   <ReBar

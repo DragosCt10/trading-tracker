@@ -3,7 +3,9 @@
 import { useRef, useState, useEffect } from 'react';
 import clsx from 'clsx';
 import type { AccountRow, AccountMode } from '@/lib/server/accounts';
+import type { ResolvedSubscription } from '@/types/subscription';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
 import Navbar from '@/components/shared/Navbar';
@@ -20,6 +22,7 @@ interface AppLayoutProps {
   initialAllAccounts?: AccountRow[];
   initialActiveAccount?: AccountRow | null;
   initialActiveAccountMode?: AccountMode;
+  initialSubscription?: ResolvedSubscription;
 }
 
 export default function AppLayout({
@@ -28,12 +31,12 @@ export default function AppLayout({
   initialAllAccounts,
   initialActiveAccount,
   initialActiveAccountMode = 'live',
+  initialSubscription,
 }: AppLayoutProps) {
   const queryClient = useQueryClient();
   const pathname = usePathname();
   const userId = initialUserDetails?.user?.id;
   const showActionBar = pathname === '/strategies' || (pathname?.startsWith('/strategy/') ?? false);
-  const actionBarSelectionHydratedRef = useRef(false);
 
   const [actionBarVisible, setActionBarVisible] = useState(true);
   const lastScrollY = useRef(0);
@@ -65,11 +68,15 @@ export default function AppLayout({
   if (userId != null && initialAllAccounts != null && queryClient.getQueryData(['accounts:all', userId]) === undefined) {
     queryClient.setQueryData(['accounts:all', userId], initialAllAccounts);
   }
+  // Seed subscription cache so useSubscription() has data on first render (no loading flash).
+  if (userId != null && initialSubscription != null && queryClient.getQueryData(queryKeys.subscription(userId)) === undefined) {
+    queryClient.setQueryData(queryKeys.subscription(userId), initialSubscription);
+  }
+
   // Always hydrate selection from server on first paint so client matches server (avoids hydration error
   // when persisted cache had a different mode, e.g. user was on demo then refreshed and server picked live).
-  if (userId != null && initialActiveAccount !== undefined && initialAllAccounts != null && !actionBarSelectionHydratedRef.current) {
+  if (userId != null && initialActiveAccount !== undefined && initialAllAccounts != null && queryClient.getQueryData(['actionBar:selection']) === undefined) {
     queryClient.setQueryData(['actionBar:selection'], { mode: initialActiveAccountMode, activeAccount: initialActiveAccount ?? null });
-    actionBarSelectionHydratedRef.current = true;
   }
 
   return (

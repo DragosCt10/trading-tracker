@@ -163,7 +163,10 @@ export default function MyTradesClient({
     ...TRADES_DATA,
   });
 
-  const baseList = allTrades ?? initialFilteredTrades ?? [];
+  const baseList = useMemo(
+    () => allTrades ?? initialFilteredTrades ?? [],
+    [allTrades, initialFilteredTrades]
+  );
 
   // Markets are derived from the full unfiltered dataset so the dropdown stays stable
   const markets = useMemo(
@@ -461,7 +464,7 @@ export default function MyTradesClient({
       // Flush Next.js router cache so navigating back to the strategy dashboard re-fetches
       router.refresh();
     },
-    [mode, activeAccount?.id, userId, todayStr, initialStrategyId, queryClient, router]
+    [mode, queryClient, router]
   );
 
   const handleBulkDelete = useCallback(

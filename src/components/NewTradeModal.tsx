@@ -147,7 +147,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   // Get strategy slug from URL params and derive extra_cards from the strategy object
   const strategySlug = params?.strategy as string | undefined;
   const currentStrategy = strategies.find((s) => s.slug === strategySlug);
-  const strategyExtraCards = currentStrategy?.extra_cards ?? [];
+  const strategyExtraCards = useMemo(() => currentStrategy?.extra_cards ?? [], [currentStrategy?.extra_cards]);
   const hasCard = useCallback(
     (key: string) => strategyExtraCards.includes(key as any),
     [strategyExtraCards],
@@ -312,7 +312,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       },
       type: 'active',
     });
-  }, [selection.mode, selection.activeAccount?.id, userId, queryClient]);
+  }, [selection, userId, queryClient]);
 
   // keep weekday + quarter in sync when the committed date changes (use local date to avoid timezone shifting day)
   useEffect(() => {
@@ -343,7 +343,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     ) {
       setTrade((prev) => ({ ...prev, risk_reward_ratio_long: undefined as any }));
     }
-  }, [trade.risk_reward_ratio, trade.trade_outcome]);
+  }, [trade.risk_reward_ratio, trade.trade_outcome, trade.risk_reward_ratio_long]);
 
   // -------- Derived calculations --------
   const accountBalance = selection.activeAccount?.account_balance ?? 0;
@@ -358,7 +358,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
   const { pnl_percentage: pnlPercentage, calculated_profit: signedProfit } = useMemo(
     () => calculateTradePnl(trade, accountBalance),
-    [accountBalance, trade.break_even, trade.trade_outcome, trade.risk_per_trade, trade.risk_reward_ratio]
+    [accountBalance, trade]
   );
 
   const handleEditSavedMarket = useCallback(async (oldName: string, newName: string) => {
@@ -424,7 +424,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         );
       }
     );
-  }, [userId, currentStrategy, queryClient]);
+  }, [userId, accountId, currentStrategy, queryClient]);
 
   const handleEditSavedLiquidity = useCallback(async (oldName: string, newName: string) => {
     if (!userId || !currentStrategy) return;
@@ -458,7 +458,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         );
       }
     );
-  }, [userId, currentStrategy, queryClient]);
+  }, [userId, accountId, currentStrategy, queryClient]);
 
   const handleEditSavedNews = useCallback(async (item: SavedNewsItem, newName: string) => {
     if (!userId) return;
@@ -714,7 +714,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       setError(err?.message ?? 'Failed to create trade. Please check your data and try again.');
       setIsSubmitting(false);
     }
-  }, [hasCard, hasAnyExtraCard, selection, userId, settings, currentStrategy, queryClient, invalidateAndRefetchTradeQueries, initialTradeState, onTradeCreated, onClose]);
+  }, [hasCard, selection, userId, accountId, settings, currentStrategy, queryClient, invalidateAndRefetchTradeQueries, initialTradeState, onTradeCreated, onClose, setError]);
 
   if (!mounted || !isOpen) return null;
 
@@ -1267,7 +1267,8 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
 
   useEffect(() => {
     // Sync local state when fvgSize prop changes (e.g., from blur validation)
-    setFvgInputValue(String(fvgSize ?? ''));
+    const timer = setTimeout(() => setFvgInputValue(String(fvgSize ?? '')), 0);
+    return () => clearTimeout(timer);
   }, [fvgSize]);
 
   return (

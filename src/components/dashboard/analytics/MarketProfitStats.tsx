@@ -41,6 +41,72 @@ export interface MarketStat {
  * @param accountBalance - Account balance for P&L percentage calculation
  * @returns Array of Market Stats
  */
+function CustomTooltip({
+  active,
+  payload,
+  isDark,
+  getCurrencySymbol,
+}: {
+  active?: boolean;
+  payload?: any[];
+  isDark?: boolean;
+  getCurrencySymbol: () => string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const stat: MarketStat & { tradeCount: number } = payload[0].payload;
+  const beCount = stat.breakEven ?? 0;
+  const currencySymbol = getCurrencySymbol();
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
+      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+      <div className="relative flex flex-col gap-3">
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+          {stat.market} ({stat.tradeCount} trade{stat.tradeCount === 1 ? '' : 's'})
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Profit</span>
+            <span
+              className={`text-lg font-bold ${
+                stat.profit >= 0
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-rose-600 dark:text-rose-400'
+              }`}
+            >
+              {currencySymbol}
+              {stat.profit.toFixed(2)}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">P&amp;L</span>
+            <span
+              className={`text-base font-bold ${
+                stat.pnlPercentage >= 0
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-rose-600 dark:text-rose-400'
+              }`}
+            >
+              {stat.pnlPercentage >= 0 ? '+' : ''}
+              {stat.pnlPercentage.toFixed(2)}%
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Results</span>
+            <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+              <span className="text-emerald-600 dark:text-emerald-400">{stat.wins}W</span>
+              <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
+              <span className="text-rose-600 dark:text-rose-400">{stat.losses}L</span>
+              <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
+              <span className="text-slate-600 dark:text-slate-300">{beCount}BE</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function calculateMarketStats(trades: Trade[], accountBalance: number): MarketStats[] {
   return calculateMarketStatsUtil(trades, accountBalance);
 }
@@ -67,7 +133,8 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
     if (mounted) {
       if (externalLoading !== undefined) {
         if (externalLoading) {
-          setIsLoading(true);
+          const timer = setTimeout(() => setIsLoading(true), 0);
+          return () => clearTimeout(timer);
         } else {
           const timer = setTimeout(() => setIsLoading(false), 600);
           return () => clearTimeout(timer);
@@ -141,67 +208,6 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
   const getBarColor = (profit: number) =>
     profit >= 0 ? 'url(#profitGradient)' : 'url(#lossGradient)';
 
-  const CustomTooltip = ({
-    active,
-    payload,
-  }: {
-    active?: boolean;
-    payload?: any[];
-  }) => {
-    if (!active || !payload || payload.length === 0) return null;
-    const stat: MarketStat & { tradeCount: number } = payload[0].payload;
-    const beCount = stat.breakEven ?? 0;
-    const currencySymbol = getCurrencySymbol();
-
-    return (
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-        {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-        <div className="relative flex flex-col gap-3">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-            {stat.market} ({stat.tradeCount} trade{stat.tradeCount === 1 ? '' : 's'})
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Profit</span>
-              <span
-                className={`text-lg font-bold ${
-                  stat.profit >= 0
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-rose-600 dark:text-rose-400'
-                }`}
-              >
-                {currencySymbol}
-                {stat.profit.toFixed(2)}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">P&amp;L</span>
-              <span
-                className={`text-base font-bold ${
-                  stat.pnlPercentage >= 0
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-rose-600 dark:text-rose-400'
-                }`}
-              >
-                {stat.pnlPercentage >= 0 ? '+' : ''}
-                {stat.pnlPercentage.toFixed(2)}%
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Results</span>
-              <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                <span className="text-emerald-600 dark:text-emerald-400">{stat.wins}W</span>
-                <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
-                <span className="text-rose-600 dark:text-rose-400">{stat.losses}L</span>
-                <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
-                <span className="text-slate-600 dark:text-slate-300">{beCount}BE</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   // X-Axis: custom tick (market + tradeCount + pnl%)
   const renderXAxisTick = (props: any) => {
@@ -334,7 +340,7 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
                   zIndex: 1000
                 }}
                 cursor={{ stroke: isDark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.4)', strokeWidth: 1 }}
-                content={<CustomTooltip />}
+                content={(props) => <CustomTooltip {...props} isDark={isDark} getCurrencySymbol={getCurrencySymbol} />}
               />
               <Area
                 type="monotone"

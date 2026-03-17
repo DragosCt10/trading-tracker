@@ -59,6 +59,7 @@ export function TradeCard({
                 rel="noopener noreferrer"
                 className="block aspect-video bg-slate-100 dark:bg-slate-700/50 rounded-lg relative overflow-hidden cursor-pointer hover:opacity-95 transition-opacity group"
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={activeScreen}
                   alt={`${trade.market} trade screen ${activeIdx + 1}`}

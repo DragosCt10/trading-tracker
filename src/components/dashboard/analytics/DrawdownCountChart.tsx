@@ -25,6 +25,16 @@ interface DrawdownCountChartProps {
 
 const MAX_SCALE = 20;
 
+function CustomTooltip({ active, payload, tooltipActiveRef, prevActiveRef, setShowTooltip }: any) {
+  const isActive = active && payload && payload.length > 0 && payload[0]?.payload?.name === 'Drawdown Periods';
+  tooltipActiveRef.current = isActive;
+  if (isActive !== prevActiveRef.current) {
+    prevActiveRef.current = isActive;
+    requestAnimationFrame(() => setShowTooltip(isActive));
+  }
+  return null;
+}
+
 export const DrawdownCountChart = React.memo(function DrawdownCountChart({
   drawdownCount,
 }: DrawdownCountChartProps) {
@@ -102,15 +112,6 @@ export const DrawdownCountChart = React.memo(function DrawdownCountChart({
     </div>
   );
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    const isActive = active && payload && payload.length > 0 && payload[0]?.payload?.name === 'Drawdown Periods';
-    tooltipActiveRef.current = isActive;
-    if (isActive !== prevActiveRef.current) {
-      prevActiveRef.current = isActive;
-      requestAnimationFrame(() => setShowTooltip(isActive));
-    }
-    return null;
-  };
 
   if (!mounted) {
     return (
@@ -239,7 +240,7 @@ export const DrawdownCountChart = React.memo(function DrawdownCountChart({
                   />
                 ))}
               </Pie>
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={(props) => <CustomTooltip {...props} tooltipActiveRef={tooltipActiveRef} prevActiveRef={prevActiveRef} setShowTooltip={setShowTooltip} />} />
             </PieChart>
           </ResponsiveContainer>
         </div>

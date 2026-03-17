@@ -182,7 +182,7 @@ export function useCalendarNavigation({
     if (viewMode === 'dateRange') {
       setSelectedYear(targetDate.getFullYear());
     }
-  }, [canNavigateMonth, currentDate, viewMode, selectedYear, monthsWithTradesYearly, monthsWithTradesDateRange, dateRange, setCurrentDate, setCalendarDateRange, setSelectedYear]);
+  }, [canNavigateMonth, currentDate, viewMode, monthsWithTradesYearly, monthsWithTradesDateRange, dateRange, setCurrentDate, setCalendarDateRange, setSelectedYear]);
 
   // update calendar for yearly mode after filtered trades are available
   useEffect(() => {

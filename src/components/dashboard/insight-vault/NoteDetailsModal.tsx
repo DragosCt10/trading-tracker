@@ -98,7 +98,7 @@ export default function NoteDetailsModal({
         trade_refs: displayNote.trade_refs ?? [],
       });
     }
-  }, [displayNote.id, displayNote.strategy_id, displayNote.strategy_ids, displayNote.trade_refs, editedNote.id, isEditing]);
+  }, [displayNote, editedNote.id, isEditing]);
 
   const {
     data: tradesForLinkingData,
@@ -305,7 +305,7 @@ export default function NoteDetailsModal({
                               <span className="text-red-500 dark:text-red-400 font-semibold text-lg">Confirm Delete</span>
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              <span className="text-slate-600 dark:text-slate-400">Are you sure you want to delete "{editedNote.title}"? This action cannot be undone.</span>
+                              <span className="text-slate-600 dark:text-slate-400">Are you sure you want to delete &quot;{editedNote.title}&quot;? This action cannot be undone.</span>
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter className="flex gap-3">

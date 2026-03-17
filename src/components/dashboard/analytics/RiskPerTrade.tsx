@@ -76,7 +76,10 @@ const RiskPerTrade: React.FC<RiskPerTradeProps> = ({
   const isScrollable = visibleRiskLevels.length > 3;
 
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
 
   if (!mounted) return null;

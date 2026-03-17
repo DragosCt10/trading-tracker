@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Note } from '@/types/note';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
@@ -53,7 +53,8 @@ export default function NotesClient({
 
   // Prevent hydration mismatch
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Prefetch first page of trades-for-linking so "Link trades" picker opens instantly (same key as modals when no strategy filter)
@@ -114,7 +115,8 @@ export default function NotesClient({
 
   // Reset displayed count when filters change
   useEffect(() => {
-    setDisplayedCount(ITEMS_PER_LOAD);
+    const timer = setTimeout(() => setDisplayedCount(ITEMS_PER_LOAD), 0);
+    return () => clearTimeout(timer);
   }, [selectedStrategy, searchQuery]);
 
   // Get displayed notes (for infinite scroll)
@@ -129,10 +131,12 @@ export default function NotesClient({
   const notesLoadingRef = useRef(notesLoading);
   const notesFetchingRef = useRef(notesFetching);
   const filteredLengthRef = useRef(filteredNotes.length);
-  hasMoreRef.current = hasMore;
-  notesLoadingRef.current = notesLoading;
-  notesFetchingRef.current = notesFetching;
-  filteredLengthRef.current = filteredNotes.length;
+  useLayoutEffect(() => {
+    hasMoreRef.current = hasMore;
+    notesLoadingRef.current = notesLoading;
+    notesFetchingRef.current = notesFetching;
+    filteredLengthRef.current = filteredNotes.length;
+  });
 
   // Intersection Observer for infinite scroll — set up once after mount, never recreated
   useEffect(() => {

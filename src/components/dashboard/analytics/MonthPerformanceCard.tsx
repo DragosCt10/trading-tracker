@@ -37,7 +37,8 @@ export const MonthPerformanceCard: React.FC<MonthPerformanceCardProps> = ({
   // Avoid hydration mismatch: server and parent may pass different data on first paint
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   return (

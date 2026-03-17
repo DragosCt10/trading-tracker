@@ -149,7 +149,8 @@ export const ConfidenceStatsCard: React.FC<ConfidenceStatsCardProps> = React.mem
     useEffect(() => {
       if (mounted) {
         if (externalLoading !== undefined) {
-          setIsLoading(externalLoading);
+          const timer = setTimeout(() => setIsLoading(externalLoading), 0);
+          return () => clearTimeout(timer);
         } else {
           const t = setTimeout(() => setIsLoading(false), 600);
           return () => clearTimeout(t);
@@ -230,7 +231,8 @@ export const MindStateStatsCard: React.FC<MindStateStatsCardProps> = React.memo(
     useEffect(() => {
       if (mounted) {
         if (externalLoading !== undefined) {
-          setIsLoading(externalLoading);
+          const timer = setTimeout(() => setIsLoading(externalLoading), 0);
+          return () => clearTimeout(timer);
         } else {
           const t = setTimeout(() => setIsLoading(false), 600);
           return () => clearTimeout(t);

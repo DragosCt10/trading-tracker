@@ -33,6 +33,7 @@ export interface Database {
           mode: 'live' | 'backtesting' | 'demo';
         };
         Update: Partial<Database['public']['Tables']['account_settings']['Row']>;
+        Relationships: never[];
       };
 
       // ─────────────────────────────────────────────────────────────
@@ -53,6 +54,7 @@ export interface Database {
           feature_flags?: Json;
         };
         Update: Partial<Omit<Database['public']['Tables']['user_settings']['Row'], 'user_id'>>;
+        Relationships: never[];
       };
 
       // ─────────────────────────────────────────────────────────────
@@ -115,6 +117,7 @@ export interface Database {
           trade_outcome: string; // 'Win' | 'Lose';
         };
         Update: Partial<Database['public']['Tables']['live_trades']['Row']>;
+        Relationships: never[];
       };
 
       backtesting_trades: {
@@ -174,6 +177,7 @@ export interface Database {
           trade_outcome: string; // 'Win' | 'Lose';
         };
         Update: Partial<Database['public']['Tables']['backtesting_trades']['Row']>;
+        Relationships: never[];
       };
 
       demo_trades: {
@@ -233,6 +237,7 @@ export interface Database {
           trade_outcome: string; // 'Win' | 'Lose';
         };
         Update: Partial<Database['public']['Tables']['demo_trades']['Row']>;
+        Relationships: never[];
       };
 
       // ─────────────────────────────────────────────────────────────
@@ -278,6 +283,7 @@ export interface Database {
           saved_liquidity_types: string[];
           saved_favourites: Record<string, string[]> | null;
         }>;
+        Relationships: never[];
       };
 
       // ─────────────────────────────────────────────────────────────
@@ -298,6 +304,7 @@ export interface Database {
         };
         Insert: never;
         Update: never;
+        Relationships: never[];
       };
 
       // ─────────────────────────────────────────────────────────────
@@ -324,6 +331,7 @@ export interface Database {
           created_by: string;
         };
         Update: Partial<Database['public']['Tables']['strategy_shares']['Row']>;
+        Relationships: never[];
       };
 
       // ─────────────────────────────────────────────────────────────
@@ -344,6 +352,66 @@ export interface Database {
           stats: Record<string, unknown>;
           updated_at: string;
         }>;
+        Relationships: never[];
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // Subscription tiers
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          tier: 'starter' | 'pro' | 'elite';
+          status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'admin_granted' | 'refunded';
+          billing_period: 'monthly' | 'annual' | null;
+          provider: 'polar' | 'stripe' | 'paddle' | 'admin';
+          provider_subscription_id: string | null;
+          provider_customer_id: string | null;
+          current_period_start: string | null;
+          current_period_end: string | null;
+          cancel_at_period_end: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          tier?: 'starter' | 'pro' | 'elite';
+          status?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'admin_granted' | 'refunded';
+          billing_period?: 'monthly' | 'annual' | null;
+          provider?: 'polar' | 'stripe' | 'paddle' | 'admin';
+          provider_subscription_id?: string | null;
+          provider_customer_id?: string | null;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+        };
+        Update: Partial<{
+          id: string; user_id: string; tier: 'starter' | 'pro' | 'elite';
+          status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'admin_granted' | 'refunded';
+          billing_period: 'monthly' | 'annual' | null; provider: 'polar' | 'stripe' | 'paddle' | 'admin';
+          provider_subscription_id: string | null; provider_customer_id: string | null;
+          current_period_start: string | null; current_period_end: string | null;
+          cancel_at_period_end: boolean; created_at: string; updated_at: string;
+        }>;
+        Relationships: never[];
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // Super admin roles
+      admin_roles: {
+        Row: {
+          user_id: string;
+          role: 'super_admin';
+          granted_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          role?: 'super_admin';
+          granted_by?: string | null;
+        };
+        Update: Record<string, never>;
+        Relationships: never[];
       };
 
       // ─────────────────────────────────────────────────────────────
@@ -379,6 +447,7 @@ export interface Database {
           is_pinned: boolean | null;
           tags: string[] | null;
         }>;
+        Relationships: never[];
       };
     };
     Views: {

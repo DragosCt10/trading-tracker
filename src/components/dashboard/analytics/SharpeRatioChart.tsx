@@ -16,6 +16,23 @@ interface SharpeRatioChartProps {
   sharpeRatio: number;
 }
 
+function CustomTooltip({ active, payload, tooltipActiveRef, prevActiveRef, setShowTooltip }: any) {
+  const isActive = active && payload && payload.length > 0;
+  
+  // Update ref during render (this is safe - refs can be updated during render)
+  tooltipActiveRef.current = isActive;
+  
+  // Schedule state update outside of render using requestAnimationFrame
+  if (isActive !== prevActiveRef.current) {
+    prevActiveRef.current = isActive;
+    requestAnimationFrame(() => {
+      setShowTooltip(isActive);
+    });
+  }
+  
+  return null; // We'll render the tooltip separately
+}
+
 export const SharpeRatioChart = React.memo(function SharpeRatioChart({ sharpeRatio }: SharpeRatioChartProps) {
   const { mounted, isDark } = useDarkMode();
   const [showTooltip, setShowTooltip] = useState(false);
@@ -96,22 +113,6 @@ export const SharpeRatioChart = React.memo(function SharpeRatioChart({ sharpeRat
     </div>
   );
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    const isActive = active && payload && payload.length > 0;
-    
-    // Update ref during render (this is safe - refs can be updated during render)
-    tooltipActiveRef.current = isActive;
-    
-    // Schedule state update outside of render using requestAnimationFrame
-    if (isActive !== prevActiveRef.current) {
-      prevActiveRef.current = isActive;
-      requestAnimationFrame(() => {
-        setShowTooltip(isActive);
-      });
-    }
-    
-    return null; // We'll render the tooltip separately
-  };
 
   if (!mounted) {
     return (
@@ -240,7 +241,7 @@ export const SharpeRatioChart = React.memo(function SharpeRatioChart({ sharpeRat
                 />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={(props) => <CustomTooltip {...props} tooltipActiveRef={tooltipActiveRef} prevActiveRef={prevActiveRef} setShowTooltip={setShowTooltip} />} />
           </PieChart>
         </ResponsiveContainer>
         </div>

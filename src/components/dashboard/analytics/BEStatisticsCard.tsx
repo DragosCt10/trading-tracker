@@ -53,6 +53,43 @@ function getBEStats(trades: Trade[]) {
   };
 }
 
+function CustomTooltip({
+  active,
+  payload,
+  isDark,
+  totalTrades,
+}: {
+  active?: boolean;
+  payload?: { payload: { name: string; value: number; color: string; pct?: number } }[];
+  isDark?: boolean;
+  totalTrades: number;
+}) {
+  if (!active || !payload?.length) return null;
+  const data = payload[0].payload;
+  const colorMap: Record<string, { text: string; dot: string }> = {
+    emerald: { text: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500 dark:bg-emerald-400 ring-emerald-200/50 dark:ring-emerald-500/30' },
+    rose: { text: 'text-rose-600 dark:text-rose-400', dot: 'bg-rose-500 dark:bg-rose-400 ring-rose-200/50 dark:ring-rose-500/30' },
+  };
+  const colors = colorMap[data.color] || colorMap.emerald;
+  const percentage = data.pct ?? (totalTrades > 0 ? (data.value / totalTrades) * 100 : 0);
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-3 text-slate-900 dark:text-slate-100">
+      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+      <div className="relative flex flex-col">
+        <div className="flex items-center gap-2">
+          <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
+          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {data.name}: <span className={cn('font-bold', colors.text)}>{data.value}</span>
+          </div>
+        </div>
+        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 ml-4 font-medium">
+          {percentage.toFixed(1)}% of total
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const BEStatisticsCard: React.FC<BEStatisticsCardProps> = React.memo(
   function BEStatisticsCard({ trades, isLoading: externalLoading }) {
     const { mounted, isDark } = useDarkMode();
@@ -62,7 +99,8 @@ export const BEStatisticsCard: React.FC<BEStatisticsCardProps> = React.memo(
       if (mounted) {
         if (externalLoading !== undefined) {
           if (externalLoading) {
-            setIsLoading(true);
+            const timer = setTimeout(() => setIsLoading(true), 0);
+            return () => clearTimeout(timer);
           } else {
             const timer = setTimeout(() => setIsLoading(false), 600);
             return () => clearTimeout(timer);
@@ -81,38 +119,6 @@ export const BEStatisticsCard: React.FC<BEStatisticsCardProps> = React.memo(
       { name: 'Losses', value: stats.losses, color: 'rose', gradientId: 'beStatsLosses', pct: totalTrades > 0 ? (stats.losses / totalTrades) * 100 : 0 },
     ].filter((d) => d.value > 0);
 
-    const CustomTooltip = ({
-      active,
-      payload,
-    }: {
-      active?: boolean;
-      payload?: { payload: { name: string; value: number; color: string; pct?: number } }[];
-    }) => {
-      if (!active || !payload?.length) return null;
-      const data = payload[0].payload;
-      const colorMap: Record<string, { text: string; dot: string }> = {
-        emerald: { text: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500 dark:bg-emerald-400 ring-emerald-200/50 dark:ring-emerald-500/30' },
-        rose: { text: 'text-rose-600 dark:text-rose-400', dot: 'bg-rose-500 dark:bg-rose-400 ring-rose-200/50 dark:ring-rose-500/30' },
-      };
-      const colors = colorMap[data.color] || colorMap.emerald;
-      const percentage = data.pct ?? (totalTrades > 0 ? (data.value / totalTrades) * 100 : 0);
-      return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-3 text-slate-900 dark:text-slate-100">
-          {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-          <div className="relative flex flex-col">
-            <div className="flex items-center gap-2">
-              <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
-              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                {data.name}: <span className={cn('font-bold', colors.text)}>{data.value}</span>
-              </div>
-            </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 ml-4 font-medium">
-              {percentage.toFixed(1)}% of total
-            </div>
-          </div>
-        </div>
-      );
-    };
 
     if (!mounted || isLoading) {
       return (
@@ -232,7 +238,7 @@ export const BEStatisticsCard: React.FC<BEStatisticsCardProps> = React.memo(
                     }}
                     wrapperStyle={{ outline: 'none', zIndex: 1000 }}
                     cursor={{ fill: 'transparent', radius: 8 }}
-                    content={<CustomTooltip />}
+                    content={(props) => <CustomTooltip {...props} isDark={isDark} totalTrades={totalTrades} />}
                   />
                 </PieChart>
               </ResponsiveContainer>

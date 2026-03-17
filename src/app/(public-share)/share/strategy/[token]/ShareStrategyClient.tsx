@@ -442,7 +442,10 @@ export default function ShareStrategyClient({
 }: ShareStrategyClientProps) {
   const [hydrated, setHydrated] = useState(false);
   const [activeView, setActiveView] = useState<'trades' | 'analytics'>('trades');
-  useEffect(() => setHydrated(true), []);
+  useEffect(() => {
+    const timer = setTimeout(() => setHydrated(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const searchParams = useSearchParams();
 
@@ -518,7 +521,8 @@ export default function ShareStrategyClient({
     const firstKey = format(firstMonth, 'yyyy-MM');
     const lastKey = format(lastMonth, 'yyyy-MM');
     if (currentKey < firstKey || currentKey > lastKey) {
-      setCurrentDate(lastMonth);
+      const timer = setTimeout(() => setCurrentDate(lastMonth), 0);
+      return () => clearTimeout(timer);
     }
   }, [firstMonth, lastMonth, currentDate]);
 

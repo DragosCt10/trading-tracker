@@ -25,6 +25,16 @@ interface RecoveryFactorChartProps {
 
 const MAX_SCALE = 5.0;
 
+function CustomTooltip({ active, payload, tooltipActiveRef, prevActiveRef, setShowTooltip }: any) {
+  const isActive = active && payload && payload.length > 0 && payload[0]?.payload?.name === 'Recovery Factor';
+  tooltipActiveRef.current = isActive;
+  if (isActive !== prevActiveRef.current) {
+    prevActiveRef.current = isActive;
+    requestAnimationFrame(() => setShowTooltip(isActive));
+  }
+  return null;
+}
+
 export const RecoveryFactorChart = React.memo(function RecoveryFactorChart({
   recoveryFactor,
 }: RecoveryFactorChartProps) {
@@ -103,15 +113,6 @@ export const RecoveryFactorChart = React.memo(function RecoveryFactorChart({
     </div>
   );
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    const isActive = active && payload && payload.length > 0 && payload[0]?.payload?.name === 'Recovery Factor';
-    tooltipActiveRef.current = isActive;
-    if (isActive !== prevActiveRef.current) {
-      prevActiveRef.current = isActive;
-      requestAnimationFrame(() => setShowTooltip(isActive));
-    }
-    return null;
-  };
 
   if (!mounted) {
     return (
@@ -240,7 +241,7 @@ export const RecoveryFactorChart = React.memo(function RecoveryFactorChart({
                   />
                 ))}
               </Pie>
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={(props) => <CustomTooltip {...props} tooltipActiveRef={tooltipActiveRef} prevActiveRef={prevActiveRef} setShowTooltip={setShowTooltip} />} />
             </PieChart>
           </ResponsiveContainer>
         </div>

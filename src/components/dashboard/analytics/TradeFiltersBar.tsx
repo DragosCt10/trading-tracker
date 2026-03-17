@@ -79,10 +79,65 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
       .getPropertyValue('--tc-primary')
       .trim();
     return value || '#a855f7';
-  }, [colorTheme]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [colorTheme]); // colorTheme triggers CSS variable recompute when theme changes
 
-  if (props.variant === 'marketOnly') {
-    const { selectedMarket, onSelectedMarketChange, markets } = props;
+  // Extract date-related props safely — only valid in 'full' variant
+  const isMarketOnly = props.variant === 'marketOnly';
+  const fullProps = isMarketOnly ? null : (props as FullTradeFiltersBarProps);
+  const dateRange = React.useMemo(
+    () => fullProps?.dateRange ?? { startDate: '', endDate: '' },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [fullProps?.dateRange?.startDate, fullProps?.dateRange?.endDate]
+  );
+  const displayStartDate = fullProps?.displayStartDate;
+
+  // All hooks must be declared before any early return
+  const [showDatePicker, setShowDatePicker] = React.useState(false);
+  const [tempRange, setTempRange] = React.useState<DateRangeValue>({
+    startDate: displayStartDate ?? dateRange.startDate,
+    endDate: dateRange.endDate,
+  });
+
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const pickerRef = React.useRef<HTMLDivElement | null>(null);
+
+  // keep tempRange in sync if parent changes dateRange
+  React.useEffect(() => {
+    if (isMarketOnly) return;
+    const timer = setTimeout(() => {
+      setTempRange({
+        startDate: displayStartDate ?? dateRange.startDate,
+        endDate: dateRange.endDate,
+      });
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [dateRange, displayStartDate, isMarketOnly]);
+
+  // click-outside to close date picker
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!showDatePicker) return;
+
+      const target = event.target as Node;
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(target) &&
+        inputRef.current &&
+        !inputRef.current.contains(target)
+      ) {
+        // discard changes
+        setTempRange({ startDate: displayStartDate ?? dateRange.startDate, endDate: dateRange.endDate });
+        setShowDatePicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showDatePicker, dateRange, displayStartDate]);
+
+  if (isMarketOnly) {
+    const { selectedMarket, onSelectedMarketChange, markets } = props as MarketOnlyTradeFiltersBarProps;
     return (
       <Card className="mb-4 z-1 relative border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
         <div className="flex flex-wrap items-center gap-3 px-4 py-2.5">
@@ -114,7 +169,6 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
   }
 
   const {
-    dateRange,
     onDateRangeChange,
     activeFilter,
     onFilterChange,
@@ -125,48 +179,7 @@ export const TradeFiltersBar: React.FC<TradeFiltersBarProps> = (props) => {
     selectedExecution,
     onSelectedExecutionChange,
     showAllTradesOption = false,
-    displayStartDate,
-  } = props;
-
-  const [showDatePicker, setShowDatePicker] = React.useState(false);
-  const [tempRange, setTempRange] = React.useState<DateRangeValue>({
-    startDate: displayStartDate ?? dateRange.startDate,
-    endDate: dateRange.endDate,
-  });
-
-  const inputRef = React.useRef<HTMLInputElement | null>(null);
-  const pickerRef = React.useRef<HTMLDivElement | null>(null);
-
-  // keep tempRange in sync if parent changes dateRange
-  React.useEffect(() => {
-    setTempRange({
-      startDate: displayStartDate ?? dateRange.startDate,
-      endDate: dateRange.endDate,
-    });
-  }, [dateRange, displayStartDate]);
-
-
-  // click-outside to close date picker
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!showDatePicker) return;
-
-      const target = event.target as Node;
-      if (
-        pickerRef.current &&
-        !pickerRef.current.contains(target) &&
-        inputRef.current &&
-        !inputRef.current.contains(target)
-      ) {
-        // discard changes
-        setTempRange({ startDate: displayStartDate ?? dateRange.startDate, endDate: dateRange.endDate });
-        setShowDatePicker(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showDatePicker, dateRange]);
+  } = props as FullTradeFiltersBarProps;
 
   const presets: { key: PresetKey; label: string }[] = [
     { key: 'all', label: 'All Trades' },

@@ -32,6 +32,16 @@ function formatCurrency(value: number, symbol = '$'): string {
   return `${sign}${symbol}${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function CustomTooltip({ active, payload, tooltipActiveRef, prevActiveRef, setShowTooltip }: any) {
+  const isActive = active && payload && payload.length > 0 && payload[0]?.payload?.name === 'Expectancy';
+  tooltipActiveRef.current = isActive;
+  if (isActive !== prevActiveRef.current) {
+    prevActiveRef.current = isActive;
+    requestAnimationFrame(() => setShowTooltip(isActive));
+  }
+  return null;
+}
+
 export function ExpectancyCard({ trades, currencySymbol = '$', isLoading }: ExpectancyCardProps) {
   const { mounted, isDark } = useDarkMode();
   const [showTooltip, setShowTooltip] = useState(false);
@@ -102,15 +112,6 @@ export function ExpectancyCard({ trades, currencySymbol = '$', isLoading }: Expe
     </div>
   );
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    const isActive = active && payload && payload.length > 0 && payload[0]?.payload?.name === 'Expectancy';
-    tooltipActiveRef.current = isActive;
-    if (isActive !== prevActiveRef.current) {
-      prevActiveRef.current = isActive;
-      requestAnimationFrame(() => setShowTooltip(isActive));
-    }
-    return null;
-  };
 
   if (!mounted) {
     return (
@@ -242,7 +243,7 @@ export function ExpectancyCard({ trades, currencySymbol = '$', isLoading }: Expe
                       />
                     ))}
                   </Pie>
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={(props) => <CustomTooltip {...props} tooltipActiveRef={tooltipActiveRef} prevActiveRef={prevActiveRef} setShowTooltip={setShowTooltip} />} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
