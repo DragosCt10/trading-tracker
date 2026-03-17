@@ -48,7 +48,7 @@ function CustomTooltip({
   totalReentry,
 }: {
   active?: boolean;
-  payload?: Array<{ payload?: { name: string; value: number; color: string; pct?: number } }>;
+  payload?: ReadonlyArray<{ payload?: { name: string; value: number; color: string; pct?: number } }>;
   isDark?: boolean;
   totalReentry: number;
 }) {
