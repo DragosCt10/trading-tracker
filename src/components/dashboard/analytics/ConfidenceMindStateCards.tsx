@@ -119,7 +119,7 @@ function NeedlePieChart({
         </PieChart>
       </ResponsiveContainer>
       {/* Center overlay: value + label only (no needle) */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center pt-[6%] pointer-events-none">
+      <div className="absolute inset-0 flex flex-col items-center justify-center pt-[18%] pointer-events-none">
         <div className="text-center">
           <div
             className="text-xl font-bold tabular-nums"
