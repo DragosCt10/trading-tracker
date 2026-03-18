@@ -45,6 +45,7 @@ import { cn, formatPercent, roundToCents } from '@/lib/utils';
 import { Info } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { MonteCarloCard } from '@/components/trades/MonteCarloCard';
+import { useSubscription } from '@/hooks/useSubscription';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -89,6 +90,7 @@ export default function MyTradesClient({
   const todayStr = useMemo(() => createAllTimeRange().endDate, []);
   const { mounted, isDark } = useDarkMode();
   const { beCalcEnabled } = useBECalc();
+  const { isPro } = useSubscription({ userId });
 
   // Initialize selection from server props if not already set
   useEffect(() => {
@@ -725,7 +727,7 @@ export default function MyTradesClient({
 
       {/* Future Equity (Monte Carlo) card, using the same filtered trades */}
       <div className="mt-6">
-        <MonteCarloCard trades={trades} currencySymbol={currencySymbol} />
+        <MonteCarloCard trades={trades} currencySymbol={currencySymbol} isPro={isPro} />
       </div>
 
       <div className="mt-6 flex flex-col">

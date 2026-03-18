@@ -29,12 +29,14 @@ function CustomTooltip({
   beCalcEnabled,
 }: {
   active?: boolean;
-  payload?: readonly { payload: EvaluationChartDatum }[];
+  // Keep this permissive: Recharts Tooltip payload entries can have optional `payload`.
+  payload?: ReadonlyArray<{ payload?: EvaluationChartDatum }>;
   isDark?: boolean;
   beCalcEnabled: boolean;
 }) {
   if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
+  const d = payload[0]?.payload;
+  if (!d) return null;
   const wins = d.wins ?? 0;
   const losses = d.losses ?? 0;
   const beTrades = (d as { beTrades?: number }).beTrades ?? 0;

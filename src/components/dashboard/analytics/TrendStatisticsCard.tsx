@@ -39,10 +39,21 @@ const TREND_SHORT_LABELS: Record<string, string> = {
   Consolidation: 'Consol',
 };
 
-function CustomTooltip({ active, payload, isDark, beCalcEnabled }: { active?: boolean; payload?: readonly { payload: PieDatum }[]; isDark?: boolean; beCalcEnabled: boolean }) {
+function CustomTooltip({
+  active,
+  payload,
+  isDark,
+  beCalcEnabled,
+}: {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload?: PieDatum }>;
+  isDark?: boolean;
+  beCalcEnabled: boolean;
+}) {
   if (!active || !payload?.length) return null;
 
-  const data = payload[0].payload;
+  const data = payload[0]?.payload;
+  if (!data) return null;
   const colorMap: Record<string, { dot: string }> = {
     teal: { dot: 'bg-teal-500 dark:bg-teal-400 ring-teal-200/50 dark:ring-teal-500/30' },
     orange: { dot: 'bg-orange-500 dark:bg-orange-400 ring-orange-200/50 dark:ring-orange-500/30' },

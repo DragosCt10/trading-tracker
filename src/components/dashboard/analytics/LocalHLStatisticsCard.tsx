@@ -26,10 +26,21 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
 
 /** English labels for local H/L categories (trading-related) */
-function CustomTooltip({ active, payload, isDark, beCalcEnabled }: { active?: boolean; payload?: readonly { payload: PieDatum }[]; isDark?: boolean; beCalcEnabled: boolean }) {
+function CustomTooltip({
+  active,
+  payload,
+  isDark,
+  beCalcEnabled,
+}: {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload?: PieDatum }>;
+  isDark?: boolean;
+  beCalcEnabled: boolean;
+}) {
   if (!active || !payload?.length) return null;
 
-  const data = payload[0].payload;
+  const data = payload[0]?.payload;
+  if (!data) return null;
   const colorMap: Record<string, { dot: string }> = {
     teal: { dot: 'bg-teal-500 dark:bg-teal-400 ring-teal-200/50 dark:ring-teal-500/30' },
     // Use a warm amber highlight only in the tooltip dot for "Not liquidated"
