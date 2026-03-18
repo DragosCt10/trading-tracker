@@ -106,6 +106,15 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
   const tier = foundUser?.subscription?.tier ?? 'starter';
   const isPro = tier === 'pro' || tier === 'elite';
 
+  const themedGradientStyle = {
+    background: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))',
+    boxShadow:
+      '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
+  } as const;
+
+  const signOutButtonClass =
+    'relative h-9 px-4 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60';
+
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-0">
       <div className="flex items-start justify-between gap-4 mb-8">
@@ -126,13 +135,13 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
 
       {/* Tabs */}
       {isSuperAdmin && (
-        <div className="flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-900/20 p-1 mb-8 backdrop-blur-sm shadow-sm">
+        <div className="flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-900/20 p-1 mb-8 backdrop-blur-sm">
           {(['users', 'team'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={cn(
-                'flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-colors capitalize',
+                'flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-colors capitalize !shadow-none cursor-pointer',
                 tab === t
                   ? 'text-slate-900 dark:text-slate-50 shadow-sm border border-slate-200/70 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/70 via-white/40 to-slate-50/70 dark:from-slate-800/40 dark:via-slate-900/30 dark:to-slate-800/40'
                   : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
@@ -164,11 +173,21 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="flex-1"
+              className="flex-1 h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
             />
-            <Button type="submit" disabled={isSearching || !email} className="gap-2">
-              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              Search
+            <Button
+              type="submit"
+              disabled={isSearching || !email}
+              className="relative h-12 px-5 overflow-hidden rounded-2xl border-0 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group disabled:opacity-60"
+              style={themedGradientStyle}
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                Search
+              </span>
+              {!isSearching && email && (
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
+              )}
             </Button>
           </form>
             </CardContent>
@@ -214,20 +233,28 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
                   size="sm"
                   onClick={handleGrantPro}
                   disabled={isMutating || isPro}
-                    className="gap-2 bg-amber-500 text-slate-950 hover:bg-amber-400 disabled:opacity-50"
+                  className="relative overflow-hidden rounded-xl border-0 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group disabled:opacity-60"
+                  style={themedGradientStyle}
                 >
+                  <span className="relative z-10 flex items-center gap-2">
                     {isMutating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserCheck className="h-3.5 w-3.5" />}
-                  Grant PRO
+                    Grant PRO
+                  </span>
+                  {!isMutating && !isPro && (
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
+                  )}
                 </Button>
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="destructive"
                   onClick={handleRevoke}
                   disabled={isMutating || !isPro}
-                    className="gap-2 border-rose-500/30 text-rose-600 dark:text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
+                  className={cn(signOutButtonClass, 'gap-2')}
                 >
+                  <span className="relative z-10 flex items-center gap-2">
                     {isMutating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserX className="h-3.5 w-3.5" />}
-                  Revoke
+                    Revoke
+                  </span>
                 </Button>
               </div>
               </CardContent>
@@ -272,10 +299,10 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
                     {admin.userId !== currentUserId && admin.role !== 'super_admin' && (
                       <Button
                         size="sm"
-                        variant="ghost"
+                        variant="destructive"
                         onClick={() => handleRemoveAdmin(admin.userId)}
                         disabled={isTeamMutating}
-                        className="text-rose-600 dark:text-rose-300 hover:text-rose-500 hover:bg-rose-500/10"
+                        className={signOutButtonClass}
                       >
                         Remove
                       </Button>
@@ -303,10 +330,21 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
                   value={newAdminEmail}
                   onChange={(e) => setNewAdminEmail(e.target.value)}
                   required
+                  className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
                 />
-                <Button type="submit" disabled={isTeamMutating || !newAdminEmail} className="gap-2">
-                  {isTeamMutating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Add Admin
+                <Button
+                  type="submit"
+                  disabled={isTeamMutating || !newAdminEmail}
+                  className="relative h-12 px-5 overflow-hidden rounded-2xl border-0 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group disabled:opacity-60"
+                  style={themedGradientStyle}
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    {isTeamMutating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Add Admin
+                  </span>
+                  {!isTeamMutating && newAdminEmail && (
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
+                  )}
                 </Button>
               </form>
             </CardContent>
