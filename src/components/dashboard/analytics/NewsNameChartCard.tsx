@@ -2,15 +2,6 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import {
-  ResponsiveContainer,
-  ComposedChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip as ReTooltip,
-} from 'recharts';
-import {
   Card,
   CardHeader,
   CardTitle,
@@ -20,12 +11,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { Crown } from 'lucide-react';
-import { formatPercent, cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { Trade } from '@/types/trade';
 import { calculateNewsNameStats, NEWS_NO_EVENT_LABEL } from '@/utils/calculateCategoryStats';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
 import { buildPreviewTrade } from '@/utils/previewTrades';
+import { ComposedBarWinRateChart, type BarWinRateChartDatum } from './ComposedBarWinRateChart';
 
 export interface NewsNameChartCardProps {
   trades: Trade[];
@@ -62,54 +54,6 @@ const FILTER_BTN_ACTIVE =
 const FILTER_BTN_INACTIVE =
   'border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium';
 
-function CustomTooltip({
-  active,
-  payload,
-  isDark,
-  beCalcEnabled,
-}: {
-  active?: boolean;
-  payload?: readonly { payload?: ChartDatum }[];
-  isDark?: boolean;
-  beCalcEnabled: boolean;
-}) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
-  if (!d) return null;
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-      <div className="relative flex flex-col gap-3">
-        <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-          {d.newsName}{' '}
-          {d.totalTrades > 0
-            ? `(${d.totalTrades} trade${d.totalTrades === 1 ? '' : 's'})`
-            : ''}
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-baseline justify-between gap-4">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
-            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{d.wins}</span>
-          </div>
-          <div className="flex items-baseline justify-between gap-4">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
-            <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{d.losses}</span>
-          </div>
-          <div className="flex items-baseline justify-between gap-4">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
-            <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{d.breakEven}</span>
-          </div>
-          <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
-            <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-              {formatPercent(beCalcEnabled ? d.winRateWithBE : d.winRate)}%
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
   function NewsNameChartCard({ trades: rawTrades, isLoading: externalLoading, isPro }) {
@@ -227,10 +171,6 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     }, [stats, unnamedOnly]);
 
     const hasData  = chartData.length > 0;
-    const maxTotal = hasData
-      ? Math.max(...chartData.map((d) => d.wins + d.losses + d.breakEven), 1)
-      : 1;
-    const axisTextColor = isDark ? '#cbd5e1' : '#64748b';
 
     /* ------------------------------------------------------------------ */
     /* Tooltip                                                              */
@@ -424,105 +364,19 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
           {header}
           <CardContent className="flex-1 flex items-end mt-1 min-h-0 p-4 pt-4 sm:p-6 sm:pt-0 border-t border-slate-200/60 dark:border-slate-700/50 sm:border-t-0">
             <div className="w-full min-w-0 h-[280px] sm:h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart
-                  data={chartData}
-                  margin={{ top: 30, right: 56, left: 56, bottom: 10 }}
-                >
-                <defs>
-                  <linearGradient id="newsNameWinsBar" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor="#10b981" stopOpacity={1}    />
-                    <stop offset="50%"  stopColor="#14b8a6" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9}  />
-                  </linearGradient>
-                  <linearGradient id="newsNameLossesBar" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%"   stopColor="#f43f5e" stopOpacity={1}    />
-                    <stop offset="50%"  stopColor="#fb7185" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9}  />
-                  </linearGradient>
-                  <linearGradient id="newsNameBreakEvenBar" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%"   stopColor="#64748b" stopOpacity={1}    />
-                    <stop offset="50%"  stopColor="#475569" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#334155" stopOpacity={0.9}  />
-                  </linearGradient>
-                </defs>
-
-                <XAxis
-                  dataKey="category"
-                  type="category"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: axisTextColor, fontSize: 11 }}
-                  tickFormatter={(value: string) => {
-                    const item = chartData.find((d) => d.category === value);
-                    return item ? `${value} (${item.totalTrades})` : value;
-                  }}
-                  height={38}
-                />
-                <YAxis
-                  yAxisId="left"
-                  type="number"
-                  tick={{ fill: axisTextColor, fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v: number) =>
-                    Number(v ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 })
-                  }
-                  domain={[0, Math.ceil(maxTotal * 1.15)]}
-                  width={56}
-                  tickMargin={8}
-                  label={{
-                    value: 'Wins / Losses',
-                    angle: -90,
-                    position: 'insideLeft',
-                    offset: 0,
-                    style: { fill: axisTextColor, fontSize: 13, textAnchor: 'middle' },
-                  }}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  type="number"
-                  tick={{ fill: axisTextColor, fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v: number) => `${v}%`}
-                  domain={[0, 100]}
-                  width={56}
-                  tickMargin={8}
-                  label={{
-                    value: 'Win Rate',
-                    angle: 90,
-                    position: 'insideRight',
-                    offset: -8,
-                    style: { fill: axisTextColor, fontSize: 13, textAnchor: 'middle' },
-                  }}
-                />
-                <ReTooltip
-                  contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none', minWidth: '180px' }}
-                  wrapperStyle={{ outline: 'none', zIndex: 1000 }}
-                  cursor={{ stroke: isDark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.4)', strokeWidth: 1 }}
-                  content={(props) => <CustomTooltip {...props} isDark={isDark} beCalcEnabled={beCalcEnabled} />}
-                />
-
-                {/* Grouped bars — side by side, matching DayStatisticsCard */}
-                <Bar dataKey="wins"      name="Wins"       fill="url(#newsNameWinsBar)"      radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" />
-                <Bar dataKey="losses"    name="Losses"     fill="url(#newsNameLossesBar)"    radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" />
-                <Bar dataKey="breakEven" name="Break Even" fill="url(#newsNameBreakEvenBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" />
-
-                {/* Win-rate line — matching DayStatisticsCard */}
-                <Line
-                  type="monotone"
-                  dataKey="winRate"
-                  name="Win Rate"
-                  yAxisId="right"
-                  stroke="#f59e0b"
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={false}
-                />
-                </ComposedChart>
-                </ResponsiveContainer>
+              <ComposedBarWinRateChart
+                data={chartData as BarWinRateChartDatum[]}
+                xAxisDataKey="category"
+                xAxisTickFormatter={(value: string) => {
+                  const item = chartData.find((d) => d.category === value);
+                  return item ? `${value} (${item.totalTrades})` : value;
+                }}
+                tooltipHeaderGetter={(d) => String(d.newsName ?? '')}
+                isDark={isDark}
+                beCalcEnabled={beCalcEnabled}
+                idPrefix="newsName"
+                showArea={false}
+              />
               </div>
           </CardContent>
         </div>
