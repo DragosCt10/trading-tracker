@@ -15,6 +15,7 @@ import type { ResolvedSubscription } from '@/types/subscription';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface AdminUser {
   id: string;
@@ -24,10 +25,11 @@ interface AdminUser {
 
 interface AdminClientProps {
   currentUserId: string;
-  admins: { userId: string; email: string; grantedAt: string }[];
+  admins: { userId: string; email: string; role: 'admin' | 'super_admin'; grantedAt: string }[];
+  isSuperAdmin: boolean;
 }
 
-export default function AdminClient({ currentUserId, admins: initialAdmins }: AdminClientProps) {
+export default function AdminClient({ currentUserId, admins: initialAdmins, isSuperAdmin }: AdminClientProps) {
   const router = useRouter();
   const [tab, setTab] = useState<'users' | 'team'>('users');
 
@@ -88,7 +90,7 @@ export default function AdminClient({ currentUserId, admins: initialAdmins }: Ad
         return;
       }
       await grantAdminRole(user.id);
-      setAdmins((prev) => [...prev, { userId: user.id, email: user.email, grantedAt: new Date().toISOString() }]);
+      setAdmins((prev) => [...prev, { userId: user.id, email: user.email, role: 'admin' as const, grantedAt: new Date().toISOString() }]);
       setNewAdminEmail('');
       router.refresh();
     });
@@ -105,35 +107,57 @@ export default function AdminClient({ currentUserId, admins: initialAdmins }: Ad
   const isPro = tier === 'pro' || tier === 'elite';
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12 sm:px-0">
-      <div className="flex items-center gap-2 mb-1">
-        <Shield className="h-5 w-5 text-amber-400" />
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">Admin</h1>
+    <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-0">
+      <div className="flex items-start justify-between gap-4 mb-8">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/70 dark:bg-slate-800/30 shadow-sm">
+              <Shield className="h-4.5 w-4.5 text-amber-500 dark:text-amber-400" />
+            </span>
+            <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
+              Admin
+            </h1>
+          </div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+            Manage user subscriptions and super admin team.
+          </p>
+        </div>
       </div>
-      <p className="text-sm text-zinc-500 mb-8">Manage user subscriptions and super admin team.</p>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 p-1 mb-8">
-        {(['users', 'team'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={cn(
-              'flex-1 rounded-lg px-4 py-1.5 text-sm font-medium transition-colors capitalize',
-              tab === t
-                ? 'bg-white dark:bg-zinc-700 text-slate-900 dark:text-white shadow-sm'
-                : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-            )}
-          >
-            {t === 'users' ? 'User Subscriptions' : 'Admin Team'}
-          </button>
-        ))}
-      </div>
+      {isSuperAdmin && (
+        <div className="flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-900/20 p-1 mb-8 backdrop-blur-sm shadow-sm">
+          {(['users', 'team'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={cn(
+                'flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-colors capitalize',
+                tab === t
+                  ? 'text-slate-900 dark:text-slate-50 shadow-sm border border-slate-200/70 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/70 via-white/40 to-slate-50/70 dark:from-slate-800/40 dark:via-slate-900/30 dark:to-slate-800/40'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+              )}
+            >
+              {t === 'users' ? 'User Subscriptions' : 'Admin Team'}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* User search tab */}
       {tab === 'users' && (
         <div className="space-y-6">
-          <form onSubmit={handleSearch} className="flex gap-2">
+          <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                Find a user
+              </CardTitle>
+              <CardDescription className="text-sm text-slate-500 dark:text-slate-400">
+                Search by email, then grant or revoke PRO.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <form onSubmit={handleSearch} className="flex gap-2">
             <Input
               type="email"
               placeholder="user@example.com"
@@ -142,44 +166,57 @@ export default function AdminClient({ currentUserId, admins: initialAdmins }: Ad
               required
               className="flex-1"
             />
-            <Button type="submit" disabled={isSearching || !email}>
+            <Button type="submit" disabled={isSearching || !email} className="gap-2">
               {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               Search
             </Button>
           </form>
+            </CardContent>
+          </Card>
 
           {searchError && (
-            <div className="flex items-center gap-2 text-sm text-red-400">
-              <AlertCircle className="h-4 w-4" /> {searchError}
+            <div className="rounded-2xl border border-rose-200/60 dark:border-rose-900/40 bg-rose-50/60 dark:bg-rose-950/20 px-4 py-3 text-sm text-rose-700 dark:text-rose-300 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              <span>{searchError}</span>
             </div>
           )}
 
           {foundUser && (
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 space-y-4">
-              <div>
-                <p className="font-medium text-slate-900 dark:text-slate-50">{foundUser.email}</p>
-                <p className="text-sm text-zinc-500 mt-0.5">
+            <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-50">
+                  {foundUser.email}
+                </CardTitle>
+                <CardDescription className="text-sm text-slate-500 dark:text-slate-400">
                   ID: <span className="font-mono text-xs">{foundUser.id}</span>
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">Current tier:</span>
-                <span className={cn(
-                  'inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
-                  isPro ? 'text-amber-400 border-amber-500/50' : 'text-zinc-400 border-zinc-700'
-                )}>
-                  {tier}
-                </span>
-                <span className="text-xs text-zinc-400">({foundUser.subscription?.status})</span>
-              </div>
-              <div className="flex gap-2">
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0 space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm text-slate-600 dark:text-slate-400">Current tier:</span>
+                  <span
+                    className={cn(
+                      'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide',
+                      isPro
+                        ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/15 border-amber-200 dark:border-amber-800'
+                        : 'text-slate-500 dark:text-slate-300 bg-slate-500/5 dark:bg-slate-50/5 border-slate-200/70 dark:border-slate-700/50'
+                    )}
+                  >
+                    {tier}
+                  </span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500">
+                    ({foundUser.subscription?.status})
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
                   onClick={handleGrantPro}
                   disabled={isMutating || isPro}
-                  className="bg-amber-500 text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+                    className="gap-2 bg-amber-500 text-slate-950 hover:bg-amber-400 disabled:opacity-50"
                 >
-                  {isMutating ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <UserCheck className="mr-1 h-3.5 w-3.5" />}
+                    {isMutating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserCheck className="h-3.5 w-3.5" />}
                   Grant PRO
                 </Button>
                 <Button
@@ -187,13 +224,14 @@ export default function AdminClient({ currentUserId, admins: initialAdmins }: Ad
                   variant="outline"
                   onClick={handleRevoke}
                   disabled={isMutating || !isPro}
-                  className="border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-50"
+                    className="gap-2 border-rose-500/30 text-rose-600 dark:text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
                 >
-                  {isMutating ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <UserX className="mr-1 h-3.5 w-3.5" />}
+                    {isMutating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserX className="h-3.5 w-3.5" />}
                   Revoke
                 </Button>
               </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
@@ -201,48 +239,83 @@ export default function AdminClient({ currentUserId, admins: initialAdmins }: Ad
       {/* Team tab */}
       {tab === 'team' && (
         <div className="space-y-6">
-          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800 overflow-hidden">
-            {admins.length === 0 && (
-              <p className="px-4 py-4 text-sm text-zinc-500">No admins found.</p>
-            )}
-            {admins.map((admin) => (
-              <div key={admin.userId} className="flex items-center justify-between px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{admin.email}</p>
-                  <p className="text-xs text-zinc-400 font-mono">{admin.userId}</p>
-                </div>
-                {admin.userId !== currentUserId && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleRemoveAdmin(admin.userId)}
-                    disabled={isTeamMutating}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                  >
-                    Remove
-                  </Button>
+          <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                Admin team
+              </CardTitle>
+              <CardDescription className="text-sm text-slate-500 dark:text-slate-400">
+                Manage who has admin access.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white/70 dark:bg-slate-900/30 divide-y divide-slate-100 dark:divide-slate-800/60 overflow-hidden">
+                {admins.length === 0 && (
+                  <p className="px-4 py-4 text-sm text-slate-500 dark:text-slate-400">No admins found.</p>
                 )}
+                {admins.map((admin) => (
+                  <div key={admin.userId} className="flex items-center justify-between px-4 py-3">
+                    <div className="min-w-0 flex items-center gap-2">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-50 truncate">{admin.email}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 font-mono truncate">{admin.userId}</p>
+                      </div>
+                      <span className={cn(
+                        'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide shrink-0',
+                        admin.role === 'super_admin'
+                          ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-200 dark:border-amber-800'
+                          : 'text-slate-500 dark:text-slate-400 bg-slate-500/5 border-slate-200/70 dark:border-slate-700/50'
+                      )}>
+                        {admin.role === 'super_admin' ? 'super admin' : 'admin'}
+                      </span>
+                    </div>
+                    {admin.userId !== currentUserId && admin.role !== 'super_admin' && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleRemoveAdmin(admin.userId)}
+                        disabled={isTeamMutating}
+                        className="text-rose-600 dark:text-rose-300 hover:text-rose-500 hover:bg-rose-500/10"
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </CardContent>
+          </Card>
 
-          <form onSubmit={handleAddAdmin} className="flex gap-2">
-            <Input
-              type="email"
-              placeholder="Add admin by email"
-              value={newAdminEmail}
-              onChange={(e) => setNewAdminEmail(e.target.value)}
-              required
-            />
-            <Button type="submit" disabled={isTeamMutating || !newAdminEmail}>
-              {isTeamMutating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Add Admin
-            </Button>
-          </form>
+          <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-50">
+                Add admin
+              </CardTitle>
+              <CardDescription className="text-sm text-slate-500 dark:text-slate-400">
+                Grant admin role to a user by email.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <form onSubmit={handleAddAdmin} className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="Add admin by email"
+                  value={newAdminEmail}
+                  onChange={(e) => setNewAdminEmail(e.target.value)}
+                  required
+                />
+                <Button type="submit" disabled={isTeamMutating || !newAdminEmail} className="gap-2">
+                  {isTeamMutating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Add Admin
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
 
           {teamError && (
-            <div className="flex items-center gap-2 text-sm text-red-400">
-              <AlertCircle className="h-4 w-4" /> {teamError}
+            <div className="rounded-2xl border border-rose-200/60 dark:border-rose-900/40 bg-rose-50/60 dark:bg-rose-950/20 px-4 py-3 text-sm text-rose-700 dark:text-rose-300 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              <span>{teamError}</span>
             </div>
           )}
         </div>
