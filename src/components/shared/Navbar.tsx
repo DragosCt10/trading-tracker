@@ -135,7 +135,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   AlphaStats
                 </span>
                 <span
-                  className="text-[9px] font-semibold uppercase tracking-widest bg-clip-text text-transparent -mt-0.5"
+                  className="text-[9px] font-bold uppercase tracking-widest bg-clip-text text-transparent"
                   style={{ backgroundImage: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent))' }}
                 >
                   {tierDef.badge.label}
