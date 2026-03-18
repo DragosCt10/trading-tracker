@@ -1,6 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema", "partialIndexes"]
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -407,55 +407,58 @@ model sso_providers {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model users {
-  instance_id                 String?                @db.Uuid
-  id                          String                 @id @db.Uuid
-  aud                         String?                @db.VarChar(255)
-  role                        String?                @db.VarChar(255)
-  email                       String?                @unique(map: "users_email_partial_key", where: raw("(is_sso_user = false)")) @db.VarChar(255)
-  encrypted_password          String?                @db.VarChar(255)
-  email_confirmed_at          DateTime?              @db.Timestamptz(6)
-  invited_at                  DateTime?              @db.Timestamptz(6)
-  confirmation_token          String?                @unique(map: "confirmation_token_idx", where: raw("((confirmation_token)::text !~ '^[0-9 ]*$'::text)")) @db.VarChar(255)
-  confirmation_sent_at        DateTime?              @db.Timestamptz(6)
-  recovery_token              String?                @unique(map: "recovery_token_idx", where: raw("((recovery_token)::text !~ '^[0-9 ]*$'::text)")) @db.VarChar(255)
-  recovery_sent_at            DateTime?              @db.Timestamptz(6)
-  email_change_token_new      String?                @unique(map: "email_change_token_new_idx", where: raw("((email_change_token_new)::text !~ '^[0-9 ]*$'::text)")) @db.VarChar(255)
-  email_change                String?                @db.VarChar(255)
-  email_change_sent_at        DateTime?              @db.Timestamptz(6)
-  last_sign_in_at             DateTime?              @db.Timestamptz(6)
-  raw_app_meta_data           Json?
-  raw_user_meta_data          Json?
-  is_super_admin              Boolean?
-  created_at                  DateTime?              @db.Timestamptz(6)
-  updated_at                  DateTime?              @db.Timestamptz(6)
-  phone                       String?                @unique
-  phone_confirmed_at          DateTime?              @db.Timestamptz(6)
-  phone_change                String?                @default("")
-  phone_change_token          String?                @default("") @db.VarChar(255)
-  phone_change_sent_at        DateTime?              @db.Timestamptz(6)
-  confirmed_at                DateTime?              @default(dbgenerated("LEAST(email_confirmed_at, phone_confirmed_at)")) @db.Timestamptz(6)
-  email_change_token_current  String?                @unique(map: "email_change_token_current_idx", where: raw("((email_change_token_current)::text !~ '^[0-9 ]*$'::text)")) @default("") @db.VarChar(255)
-  email_change_confirm_status Int?                   @default(0) @db.SmallInt
-  banned_until                DateTime?              @db.Timestamptz(6)
-  reauthentication_token      String?                @unique(map: "reauthentication_token_idx", where: raw("((reauthentication_token)::text !~ '^[0-9 ]*$'::text)")) @default("") @db.VarChar(255)
-  reauthentication_sent_at    DateTime?              @db.Timestamptz(6)
-  is_sso_user                 Boolean                @default(false)
-  deleted_at                  DateTime?              @db.Timestamptz(6)
-  is_anonymous                Boolean                @default(false)
-  identities                  identities[]
-  mfa_factors                 mfa_factors[]
-  oauth_authorizations        oauth_authorizations[]
-  oauth_consents              oauth_consents[]
-  one_time_tokens             one_time_tokens[]
-  sessions                    sessions[]
-  account_settings            account_settings[]
-  backtesting_trades          backtesting_trades[]
-  demo_trades                 demo_trades[]
-  live_trades                 live_trades[]
-  notes                       notes[]
-  strategies                  strategies[]
-  strategy_stats_cache        strategy_stats_cache[]
-  user_settings               user_settings?
+  instance_id                               String?                @db.Uuid
+  id                                        String                 @id @db.Uuid
+  aud                                       String?                @db.VarChar(255)
+  role                                      String?                @db.VarChar(255)
+  email                                     String?                @unique(map: "users_email_partial_key", where: raw("(is_sso_user = false)")) @db.VarChar(255)
+  encrypted_password                        String?                @db.VarChar(255)
+  email_confirmed_at                        DateTime?              @db.Timestamptz(6)
+  invited_at                                DateTime?              @db.Timestamptz(6)
+  confirmation_token                        String?                @unique(map: "confirmation_token_idx", where: raw("((confirmation_token)::text !~ '^[0-9 ]*$'::text)")) @db.VarChar(255)
+  confirmation_sent_at                      DateTime?              @db.Timestamptz(6)
+  recovery_token                            String?                @unique(map: "recovery_token_idx", where: raw("((recovery_token)::text !~ '^[0-9 ]*$'::text)")) @db.VarChar(255)
+  recovery_sent_at                          DateTime?              @db.Timestamptz(6)
+  email_change_token_new                    String?                @unique(map: "email_change_token_new_idx", where: raw("((email_change_token_new)::text !~ '^[0-9 ]*$'::text)")) @db.VarChar(255)
+  email_change                              String?                @db.VarChar(255)
+  email_change_sent_at                      DateTime?              @db.Timestamptz(6)
+  last_sign_in_at                           DateTime?              @db.Timestamptz(6)
+  raw_app_meta_data                         Json?
+  raw_user_meta_data                        Json?
+  is_super_admin                            Boolean?
+  created_at                                DateTime?              @db.Timestamptz(6)
+  updated_at                                DateTime?              @db.Timestamptz(6)
+  phone                                     String?                @unique
+  phone_confirmed_at                        DateTime?              @db.Timestamptz(6)
+  phone_change                              String?                @default("")
+  phone_change_token                        String?                @default("") @db.VarChar(255)
+  phone_change_sent_at                      DateTime?              @db.Timestamptz(6)
+  confirmed_at                              DateTime?              @default(dbgenerated("LEAST(email_confirmed_at, phone_confirmed_at)")) @db.Timestamptz(6)
+  email_change_token_current                String?                @unique(map: "email_change_token_current_idx", where: raw("((email_change_token_current)::text !~ '^[0-9 ]*$'::text)")) @default("") @db.VarChar(255)
+  email_change_confirm_status               Int?                   @default(0) @db.SmallInt
+  banned_until                              DateTime?              @db.Timestamptz(6)
+  reauthentication_token                    String?                @unique(map: "reauthentication_token_idx", where: raw("((reauthentication_token)::text !~ '^[0-9 ]*$'::text)")) @default("") @db.VarChar(255)
+  reauthentication_sent_at                  DateTime?              @db.Timestamptz(6)
+  is_sso_user                               Boolean                @default(false)
+  deleted_at                                DateTime?              @db.Timestamptz(6)
+  is_anonymous                              Boolean                @default(false)
+  identities                                identities[]
+  mfa_factors                               mfa_factors[]
+  oauth_authorizations                      oauth_authorizations[]
+  oauth_consents                            oauth_consents[]
+  one_time_tokens                           one_time_tokens[]
+  sessions                                  sessions[]
+  account_settings                          account_settings[]
+  admin_roles_admin_roles_granted_byTousers admin_roles[]          @relation("admin_roles_granted_byTousers")
+  admin_roles_admin_roles_user_idTousers    admin_roles?           @relation("admin_roles_user_idTousers")
+  backtesting_trades                        backtesting_trades[]
+  demo_trades                               demo_trades[]
+  live_trades                               live_trades[]
+  notes                                     notes[]
+  strategies                                strategies[]
+  strategy_stats_cache                      strategy_stats_cache[]
+  subscriptions                             subscriptions?
+  user_settings                             user_settings?
 
   @@index([instance_id])
   @@index([is_anonymous])
@@ -771,6 +774,41 @@ model user_settings {
   saved_markets String[] @default([])
   users         users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model admin_roles {
+  user_id                             String   @id @db.Uuid
+  role                                String   @default("super_admin")
+  granted_by                          String?  @db.Uuid
+  created_at                          DateTime @default(now()) @db.Timestamptz(6)
+  users_admin_roles_granted_byTousers users?   @relation("admin_roles_granted_byTousers", fields: [granted_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_admin_roles_user_idTousers    users    @relation("admin_roles_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model subscriptions {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                  String    @unique(map: "subscriptions_user_active_idx", where: raw("(status = ANY (ARRAY['active'::text, 'trialing'::text, 'admin_granted'::text]))")) @db.Uuid
+  tier                     String    @default("starter")
+  status                   String    @default("active")
+  billing_period           String?
+  provider                 String    @default("admin")
+  provider_subscription_id String?
+  provider_customer_id     String?
+  current_period_start     DateTime? @db.Timestamptz(6)
+  current_period_end       DateTime? @db.Timestamptz(6)
+  cancel_at_period_end     Boolean   @default(false)
+  created_at               DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime  @default(now()) @db.Timestamptz(6)
+  users                    users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([provider_subscription_id], map: "subscriptions_provider_sub_idx", where: raw("(provider_subscription_id IS NOT NULL)"))
   @@schema("public")
 }
 
