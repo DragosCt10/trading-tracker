@@ -165,37 +165,6 @@ export function AvgWinLossCard({ trades: rawTrades, currencySymbol = '$', isLoad
             <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
               Avg Win / Avg Loss
             </CardTitle>
-
-            {!isLocked && (
-              <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
-                  <Crown className="w-3 h-3" /> PRO
-                </span>
-                <TooltipProvider>
-                  <Tooltip delayDuration={150}>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        tabIndex={0}
-                        className="inline-flex h-4 w-4 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none shrink-0"
-                        aria-label="More info"
-                      >
-                        <Info className="h-3 w-3" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side="top"
-                      align="center"
-                      className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
-                      sideOffset={6}
-                    >
-                      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-                      <div className="relative">{tooltipContent}</div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            )}
           </div>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Win size vs loss size

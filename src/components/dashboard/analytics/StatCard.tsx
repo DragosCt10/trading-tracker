@@ -15,6 +15,10 @@ interface StatCardProps {
   className?: string;
   align?: 'left' | 'center';
   tooltipVariant?: 'default' | 'calendar';
+  /** When true, blur the card content while keeping the card border sharp. */
+  locked?: boolean;
+  /** Optional chip rendered at top-right when `locked` is true. */
+  lockedChip?: React.ReactNode;
 }
 
 const tooltipClassCalendar = 'w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-300/80 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/10 dark:shadow-black/40 text-slate-900 dark:text-slate-100';
@@ -27,6 +31,8 @@ export const StatCard: React.FC<StatCardProps> = React.memo(({
   className,
   align = 'center',
   tooltipVariant = 'default',
+  locked = false,
+  lockedChip,
 }) => {
   const { isDark } = useDarkMode();
   const useCalendarTooltip = tooltipVariant === 'calendar';
@@ -37,7 +43,17 @@ export const StatCard: React.FC<StatCardProps> = React.memo(({
         className
       )}
     >
-      <div className="relative p-6 flex flex-col flex-1">
+      {locked && lockedChip}
+      {locked && (
+        <div className="pointer-events-none absolute inset-0.5 z-10 rounded-xl bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+      )}
+
+      <div
+        className={cn(
+          'relative p-6 flex flex-col flex-1',
+          locked && 'blur-[3px] opacity-70 pointer-events-none select-none'
+        )}
+      >
         {align === 'center' ? (
           /* Centered: title, value stacked */
           <div className="flex flex-col items-center justify-center text-center gap-3 w-full">

@@ -118,6 +118,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
   const isInsightVaultActive = useMemo(() => isActive('/insight-vault'), [isActive]);
 
   const tierDef = TIER_DEFINITIONS[tier ?? 'starter'];
+  const starterBadgeLabel = TIER_DEFINITIONS.starter.badge.label;
 
   return (
     <>
@@ -138,7 +139,8 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   className="text-[9px] font-bold uppercase tracking-widest bg-clip-text text-transparent"
                   style={{ backgroundImage: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent))' }}
                 >
-                  {tierDef.badge.label}
+                  {/* Avoid hydration mismatch: tier comes from async query; SSR and client initial paint can differ. */}
+                  {mounted ? tierDef.badge.label : starterBadgeLabel}
                 </span>
               </div>
             </Link>
@@ -196,7 +198,8 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               <Link href="/billing" className="flex items-center gap-1.5">
                 <CreditCard className="h-4 w-4" />
                 <span>Billing</span>
-                <TierBadge tier={tier} />
+                {/* Avoid hydration mismatch: subscription tier is loaded async. */}
+                <TierBadge tier={mounted ? (tier as any) : 'starter'} />
               </Link>
             </Button>
             <Button

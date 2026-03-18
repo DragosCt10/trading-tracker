@@ -40,15 +40,23 @@ function formatAverageDays(value: number): string {
 
 export const AverageDaysBetweenTradesCard: React.FC<AverageDaysBetweenTradesCardProps> = React.memo(
   function AverageDaysBetweenTradesCard({ averageDaysBetweenTrades, isPro }) {
-    const effectiveValue = isPro ? averageDaysBetweenTrades : NaN;
+    const isLocked = !isPro;
+    const PREVIEW_AVG_DAYS = 12.7;
+    const effectiveValue = isLocked ? PREVIEW_AVG_DAYS : averageDaysBetweenTrades;
+
+    const lockedChip = (
+      <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+        <Crown className="w-3 h-3" /> PRO
+      </span>
+    );
+
     return (
       <StatCard
+        locked={isLocked}
+        lockedChip={lockedChip}
         title={
           <span className="flex items-center gap-2">
             Avg days between trades
-            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
-              <Crown className="w-3 h-3" /> PRO
-            </span>
           </span>
         }
         tooltipVariant="default"

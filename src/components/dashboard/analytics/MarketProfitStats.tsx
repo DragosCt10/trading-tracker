@@ -405,11 +405,6 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
             <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
               Market Profit Stats
             </CardTitle>
-            {!isLocked && (
-              <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
-                <Crown className="w-3 h-3" /> PRO
-              </span>
-            )}
           </div>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Profit and P&amp;L percentage by market
