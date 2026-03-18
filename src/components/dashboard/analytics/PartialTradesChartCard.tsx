@@ -66,6 +66,7 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
   }) {
     const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
+    const isLocked = !isPro;
 
     useEffect(() => {
       if (mounted) {
@@ -146,113 +147,132 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
 
     return (
       <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
-        <CardHeader className="pb-2 flex-shrink-0">
-          <div className="flex items-center justify-between mb-1">
-            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-              Partial Trades
-            </CardTitle>
-            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
-              <Crown className="w-3 h-3" /> PRO
-            </span>
-          </div>
-          <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-            Distribution of partial trades by outcome
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex-1 flex flex-col items-center justify-center relative pt-2 pb-4">
-          <div className="flex-1 w-full flex items-center justify-center min-h-0 relative">
-            <div className="w-full h-full max-h-[200px] relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <defs>
-                    {/* Wins gradient - emerald (same as TotalTradesChartCard) */}
-                    <linearGradient id="partialWins" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
-                      <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
+        {isLocked && (
+          <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+            <Crown className="w-3 h-3" /> PRO
+          </span>
+        )}
+
+        {isLocked && (
+          <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+        )}
+
+        <div
+          className={cn(
+            'relative z-0 flex h-full flex-col',
+            isLocked && 'blur-[3px] opacity-70 pointer-events-none select-none'
+          )}
+        >
+          <CardHeader className="pb-2 flex-shrink-0">
+            <div className="flex items-center justify-between mb-1">
+              <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                Partial Trades
+              </CardTitle>
+              {!isLocked && (
+                <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                  <Crown className="w-3 h-3" /> PRO
+                </span>
+              )}
+            </div>
+            <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
+              Distribution of partial trades by outcome
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 flex flex-col items-center justify-center relative pt-2 pb-4">
+            <div className="flex-1 w-full flex items-center justify-center min-h-0 relative">
+              <div className="w-full h-full max-h-[200px] relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <defs>
+                      {/* Wins gradient - emerald (same as TotalTradesChartCard) */}
+                      <linearGradient id="partialWins" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+                        <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
+                        <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
+                      </linearGradient>
+                      {/* Losses gradient - rose */}
+                      <linearGradient id="partialLosses" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
+                        <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
+                        <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
+                      </linearGradient>
+                    {/* Break Even gradient - slate */}
+                    <linearGradient id="partialBE" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#64748b" stopOpacity={1} />
+                        <stop offset="50%" stopColor="#475569" stopOpacity={0.95} />
+                        <stop offset="100%" stopColor="#334155" stopOpacity={0.9} />
                     </linearGradient>
-                    {/* Losses gradient - rose */}
-                    <linearGradient id="partialLosses" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
-                      <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
-                    </linearGradient>
-                  {/* Break Even gradient - slate */}
-                  <linearGradient id="partialBE" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#64748b" stopOpacity={1} />
-                      <stop offset="50%" stopColor="#475569" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#334155" stopOpacity={0.9} />
-                  </linearGradient>
-                  </defs>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={65}
-                    outerRadius={85}
-                    paddingAngle={5}
-                    cornerRadius={5}
-                    dataKey="value"
+                    </defs>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={65}
+                      outerRadius={85}
+                      paddingAngle={5}
+                      cornerRadius={5}
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={`url(#${entry.gradientId})`}
+                          stroke="none"
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        background: 'transparent',
+                        border: 'none',
+                        padding: 0,
+                        boxShadow: 'none',
+                        minWidth: '160px',
+                      }}
+                      wrapperStyle={{ outline: 'none', zIndex: 1000 }}
+                      cursor={{ fill: 'transparent', radius: 8 }}
+                      content={(props) => <CustomTooltip {...props} isDark={isDark} totalPartials={totalPartials} />}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span
+                    className={`font-bold text-slate-900 dark:text-slate-100 ${
+                      isLocked ? 'text-3xl' : totalPartials >= 1000 ? 'text-2xl' : totalPartials >= 100 ? 'text-2xl' : 'text-3xl'
+                    }`}
                   >
-                    {pieData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={`url(#${entry.gradientId})`}
-                        stroke="none"
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: 'transparent',
-                      border: 'none',
-                      padding: 0,
-                      boxShadow: 'none',
-                      minWidth: '160px',
-                    }}
-                    wrapperStyle={{ outline: 'none', zIndex: 1000 }}
-                    cursor={{ fill: 'transparent', radius: 8 }}
-                    content={(props) => <CustomTooltip {...props} isDark={isDark} totalPartials={totalPartials} />}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span
-                  className={`font-bold text-slate-900 dark:text-slate-100 ${
-                    !isPro ? 'text-3xl' : totalPartials >= 1000 ? 'text-2xl' : totalPartials >= 100 ? 'text-2xl' : 'text-3xl'
-                  }`}
-                >
-                  {!isPro ? '–' : totalPartials}
-                </span>
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1.5">
-                  Total Trades
-                </span>
-              </div>
-            </div>
-          </div>
-          {/* Win rate | Win rate w/BE - same as ReentryTradesChartCard */}
-          <div className="w-full px-4 pt-4 mt-2">
-            <div className="flex items-center justify-center gap-8">
-              <div className="flex flex-col items-center">
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  Win rate
-                </div>
-                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {!isPro ? '–' : totalPartials > 0 ? `${formatPercent((wins / totalPartials) * 100)}%` : '0%'}
-                </div>
-              </div>
-              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
-              <div className="flex flex-col items-center">
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  Win rate w/BE
-                </div>
-                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {!isPro ? '–' : totalPartials > 0 ? `${formatPercent(((wins + be) / totalPartials) * 100)}%` : '0%'}
+                    {isLocked ? '–' : totalPartials}
+                  </span>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1.5">
+                    Total Trades
+                  </span>
                 </div>
               </div>
             </div>
-          </div>
-        </CardContent>
+            {/* Win rate | Win rate w/BE - same as ReentryTradesChartCard */}
+            <div className="w-full px-4 pt-4 mt-2">
+              <div className="flex items-center justify-center gap-8">
+                <div className="flex flex-col items-center">
+                  <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                    Win rate
+                  </div>
+                  <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                    {isLocked ? '–' : totalPartials > 0 ? `${formatPercent((wins / totalPartials) * 100)}%` : '0%'}
+                  </div>
+                </div>
+                <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+                <div className="flex flex-col items-center">
+                  <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                    Win rate w/BE
+                  </div>
+                  <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                    {isLocked ? '–' : totalPartials > 0 ? `${formatPercent(((wins + be) / totalPartials) * 100)}%` : '0%'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </div>
       </Card>
     );
   }
