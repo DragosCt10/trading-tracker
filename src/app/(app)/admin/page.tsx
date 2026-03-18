@@ -1,5 +1,5 @@
 import { getCachedUserSession } from '@/lib/server/session';
-import { isSuperAdmin, listAdmins } from '@/lib/server/admin';
+import { isAdmin, isSuperAdmin, listAdmins } from '@/lib/server/admin';
 import { redirect } from 'next/navigation';
 import AdminClient from './AdminClient';
 
@@ -9,10 +9,11 @@ export default async function AdminPage() {
   const { user } = await getCachedUserSession();
   if (!user) redirect('/login');
 
-  const isAdmin = await isSuperAdmin();
-  if (!isAdmin) redirect('/');
+  const hasAccess = await isAdmin();
+  if (!hasAccess) redirect('/');
 
-  const admins = await listAdmins();
+  const superAdmin = await isSuperAdmin();
+  const admins = superAdmin ? await listAdmins() : [];
 
-  return <AdminClient currentUserId={user.id} admins={admins} />;
+  return <AdminClient currentUserId={user.id} admins={admins} isSuperAdmin={superAdmin} />;
 }
