@@ -3,6 +3,8 @@
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getCachedUserSession } from './session';
 import { grantSubscription, revokeSubscription } from './subscription';
+import { TIER_DEFINITIONS } from '@/constants/tiers';
+import type { ResolvedSubscription, SubscriptionRow } from '@/types/subscription';
 
 // ── Admin checks ──────────────────────────────────────────────────────────────
 
@@ -104,6 +106,53 @@ export async function listAdmins(): Promise<{ userId: string; email: string; rol
 }
 
 // ── Admin subscription management ────────────────────────────────────────────
+
+/**
+ * Fetch a user's subscription via service role (bypasses RLS).
+ * Use this in admin contexts where the target user != logged-in user.
+ */
+export async function adminResolveSubscription(targetUserId: string): Promise<ResolvedSubscription> {
+  if (!(await isAdmin())) throw new Error('Unauthorized');
+
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from('subscriptions')
+    .select('*')
+    .eq('user_id', targetUserId)
+    .in('status', ['active', 'trialing', 'admin_granted', 'past_due'])
+    .maybeSingle();
+
+  if (error || !data) {
+    return {
+      tier: 'starter',
+      definition: TIER_DEFINITIONS.starter,
+      status: 'active',
+      isActive: true,
+      billingPeriod: null,
+      periodEnd: null,
+      cancelAtPeriodEnd: false,
+      providerCustomerId: null,
+      provider: 'admin',
+    };
+  }
+
+  const row = data as SubscriptionRow;
+  const definition = TIER_DEFINITIONS[row.tier] ?? TIER_DEFINITIONS.starter;
+  const periodEnd = row.current_period_end ? new Date(row.current_period_end) : null;
+  const isActive = row.status === 'active' || row.status === 'trialing' || row.status === 'admin_granted';
+
+  return {
+    tier: isActive ? row.tier : 'starter',
+    definition: isActive ? definition : TIER_DEFINITIONS.starter,
+    status: row.status,
+    isActive,
+    billingPeriod: row.billing_period,
+    periodEnd,
+    cancelAtPeriodEnd: row.cancel_at_period_end,
+    providerCustomerId: row.provider_customer_id,
+    provider: row.provider,
+  };
+}
 
 export async function adminGrantSubscription(targetUserId: string, tier: 'pro' | 'elite'): Promise<void> {
   if (!(await isSuperAdmin())) throw new Error('Unauthorized');
