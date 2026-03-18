@@ -1035,3 +1035,78 @@ ALTER TABLE "admin_roles" ADD CONSTRAINT "admin_roles_user_id_fkey" FOREIGN KEY 
 -- AddForeignKey
 ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
+
+-- ── RLS (Prisma does not export these — must be added manually) ────────────────
+
+-- account_settings
+ALTER TABLE public.account_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their own account settings" ON public.account_settings FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own account settings" ON public.account_settings FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own account settings" ON public.account_settings FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own account settings" ON public.account_settings FOR DELETE TO authenticated USING (auth.uid() = user_id);
+
+-- backtesting_trades
+ALTER TABLE public.backtesting_trades ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their own backtesting trades" ON public.backtesting_trades FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own backtesting trades" ON public.backtesting_trades FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own backtesting trades" ON public.backtesting_trades FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own backtesting trades" ON public.backtesting_trades FOR DELETE USING (auth.uid() = user_id);
+
+-- demo_trades
+ALTER TABLE public.demo_trades ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their own demo trades" ON public.demo_trades FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own demo trades" ON public.demo_trades FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own demo trades" ON public.demo_trades FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own demo trades" ON public.demo_trades FOR DELETE USING (auth.uid() = user_id);
+
+-- live_trades
+ALTER TABLE public.live_trades ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their own live trades" ON public.live_trades FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own live trades" ON public.live_trades FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own live trades" ON public.live_trades FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own live trades" ON public.live_trades FOR DELETE USING (auth.uid() = user_id);
+
+-- notes
+ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their own notes" ON public.notes FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own notes" ON public.notes FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own notes" ON public.notes FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own notes" ON public.notes FOR DELETE USING (auth.uid() = user_id);
+
+-- strategies
+ALTER TABLE public.strategies ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their own strategies" ON public.strategies FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own strategies" ON public.strategies FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own strategies" ON public.strategies FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own strategies" ON public.strategies FOR DELETE USING (auth.uid() = user_id);
+
+-- strategy_shares: public read, owner write
+ALTER TABLE public.strategy_shares ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "public_read" ON public.strategy_shares FOR SELECT USING (true);
+CREATE POLICY "owner_insert" ON public.strategy_shares FOR INSERT WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "owner_delete" ON public.strategy_shares FOR DELETE USING (auth.uid() = created_by);
+
+-- share_stats_cache
+ALTER TABLE public.share_stats_cache ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "share_stats_cache_select_own" ON public.share_stats_cache FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM strategy_shares WHERE strategy_shares.id = share_stats_cache.share_id AND strategy_shares.created_by = auth.uid()));
+CREATE POLICY "share_stats_cache_insert_own" ON public.share_stats_cache FOR INSERT TO authenticated WITH CHECK (EXISTS (SELECT 1 FROM strategy_shares WHERE strategy_shares.id = share_stats_cache.share_id AND strategy_shares.created_by = auth.uid()));
+CREATE POLICY "share_stats_cache_update_own" ON public.share_stats_cache FOR UPDATE TO authenticated USING (EXISTS (SELECT 1 FROM strategy_shares WHERE strategy_shares.id = share_stats_cache.share_id AND strategy_shares.created_by = auth.uid()));
+
+-- strategy_stats_cache: service role writes, users read own
+ALTER TABLE public.strategy_stats_cache ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view their own strategy stats cache" ON public.strategy_stats_cache FOR SELECT USING (auth.uid() = user_id);
+
+-- user_settings
+ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can read own user_settings" ON public.user_settings FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own user_settings" ON public.user_settings FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own user_settings" ON public.user_settings FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete own user_settings" ON public.user_settings FOR DELETE USING (auth.uid() = user_id);
+
+-- subscriptions: users read own; all writes via service role
+ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users read own subscription" ON public.subscriptions FOR SELECT USING (auth.uid() = user_id);
+
+-- admin_roles: no client access; all access via service role
+ALTER TABLE public.admin_roles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "No client access to admin_roles" ON public.admin_roles AS RESTRICTIVE FOR ALL USING (false);
