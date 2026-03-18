@@ -7,10 +7,10 @@ import {
   findUserByEmail,
   adminGrantSubscription,
   adminRevokeSubscription,
+  adminResolveSubscription,
   grantAdminRole,
   revokeAdminRole,
 } from '@/lib/server/admin';
-import { resolveSubscription } from '@/lib/server/subscription';
 import type { ResolvedSubscription } from '@/types/subscription';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,7 +57,7 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
         setSearchError('No user found with that email.');
         return;
       }
-      const sub = await resolveSubscription(user.id);
+      const sub = await adminResolveSubscription(user.id);
       setFoundUser({ ...user, subscription: sub });
     });
   }
@@ -66,7 +66,7 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
     if (!foundUser) return;
     startMutateTransition(async () => {
       await adminGrantSubscription(foundUser.id, 'pro');
-      const sub = await resolveSubscription(foundUser.id);
+      const sub = await adminResolveSubscription(foundUser.id);
       setFoundUser((u) => u ? { ...u, subscription: sub } : null);
     });
   }
@@ -75,7 +75,7 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
     if (!foundUser) return;
     startMutateTransition(async () => {
       await adminRevokeSubscription(foundUser.id);
-      const sub = await resolveSubscription(foundUser.id);
+      const sub = await adminResolveSubscription(foundUser.id);
       setFoundUser((u) => u ? { ...u, subscription: sub } : null);
     });
   }
@@ -143,7 +143,7 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
               className={cn(
                 'flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-colors capitalize !shadow-none cursor-pointer',
                 tab === t
-                  ? 'text-slate-900 dark:text-slate-50 shadow-sm border border-slate-200/70 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/70 via-white/40 to-slate-50/70 dark:from-slate-800/40 dark:via-slate-900/30 dark:to-slate-800/40'
+                  ? 'text-slate-900 dark:text-slate-50 shadow-sm border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/30'
                   : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
               )}
             >
