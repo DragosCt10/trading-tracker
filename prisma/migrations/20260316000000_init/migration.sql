@@ -1,2 +1,0 @@
--- Baseline migration: existing schema already applied directly via Supabase
--- This file intentionally left empty to establish Prisma migration history baseline
