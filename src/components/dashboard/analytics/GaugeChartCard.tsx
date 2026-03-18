@@ -121,7 +121,7 @@ export const GaugeChartCard = React.memo(function GaugeChartCard({
             {description}
           </CardDescription>
         </CardHeader>
-        <CardContent className="h-48 flex items-center justify-center">
+        <CardContent className="h-48 flex items-center justify-center pb-10">
           <div className="w-full h-full" aria-hidden>—</div>
         </CardContent>
       </Card>
@@ -182,7 +182,7 @@ export const GaugeChartCard = React.memo(function GaugeChartCard({
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="h-48 flex flex-col items-center justify-center relative pt-0 pb-10">
+        <CardContent className="h-48 flex flex-col items-center justify-center relative pt-0 pb-12">
           {isEmpty ? (
             <div className="flex flex-col justify-center items-center w-full h-full">
               <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">No trades found</div>
