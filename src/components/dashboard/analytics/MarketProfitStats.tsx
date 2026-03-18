@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Crown } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -25,6 +25,7 @@ import { Trade } from '@/types/trade';
 import { calculateMarketStats as calculateMarketStatsUtil } from '@/utils/calculateCategoryStats';
 import type { MarketStats } from '@/types/dashboard';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { buildPreviewTrade } from '@/utils/previewTrades';
 
 export interface MarketStat {
   market: string;
@@ -128,8 +129,98 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
   isLoading: externalLoading,
   isPro,
 }) => {
-  const marketStats = isPro ? rawMarketStats : [];
-  const trades = isPro ? rawTrades : [];
+  const isLocked = !isPro;
+
+  const previewMarketStats = useMemo<MarketStat[]>(
+    () => [
+      {
+        market: 'Forex',
+        profit: 1200,
+        pnlPercentage: 18.5,
+        wins: 2,
+        losses: 1,
+        breakEven: 0,
+        profitTaken: true,
+      },
+      {
+        market: 'Indices',
+        profit: 800,
+        pnlPercentage: 10.2,
+        wins: 2,
+        losses: 1,
+        breakEven: 1,
+        profitTaken: true,
+      },
+      {
+        market: 'Cryptos',
+        profit: -350,
+        pnlPercentage: -4.4,
+        wins: 1,
+        losses: 1,
+        breakEven: 0,
+        profitTaken: true,
+      },
+    ],
+    []
+  );
+
+  const previewTrades = useMemo<Trade[]>(
+    () => [
+      buildPreviewTrade({
+        id: 'preview-mps-forex-win-1',
+        market: 'Forex',
+        trade_outcome: 'Win',
+        calculated_profit: 500,
+      }),
+      buildPreviewTrade({
+        id: 'preview-mps-forex-loss',
+        market: 'Forex',
+        trade_outcome: 'Lose',
+        calculated_profit: -200,
+      }),
+      buildPreviewTrade({
+        id: 'preview-mps-forex-win-2',
+        market: 'Forex',
+        trade_outcome: 'Win',
+        calculated_profit: 300,
+      }),
+      buildPreviewTrade({
+        id: 'preview-mps-indices-win',
+        market: 'Indices',
+        trade_outcome: 'Win',
+        calculated_profit: 250,
+      }),
+      buildPreviewTrade({
+        id: 'preview-mps-indices-loss',
+        market: 'Indices',
+        trade_outcome: 'Lose',
+        calculated_profit: -150,
+      }),
+      buildPreviewTrade({
+        id: 'preview-mps-indices-be',
+        market: 'Indices',
+        trade_outcome: 'Lose',
+        break_even: true,
+        calculated_profit: 0,
+      }),
+      buildPreviewTrade({
+        id: 'preview-mps-cryptos-win',
+        market: 'Cryptos',
+        trade_outcome: 'Win',
+        calculated_profit: 120,
+      }),
+      buildPreviewTrade({
+        id: 'preview-mps-cryptos-loss',
+        market: 'Cryptos',
+        trade_outcome: 'Lose',
+        calculated_profit: -240,
+      }),
+    ],
+    []
+  );
+
+  const marketStats = isLocked ? previewMarketStats : rawMarketStats;
+  const trades = isLocked ? previewTrades : rawTrades;
   const { mounted, isDark } = useDarkMode();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -294,21 +385,38 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
 
   return (
     <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[420px] flex flex-col">
-      <CardHeader className="pb-2 flex-shrink-0">
-        <div className="flex items-center justify-between mb-1">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-            Market Profit Stats
-          </CardTitle>
-          <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
-            <Crown className="w-3 h-3" /> PRO
-          </span>
-        </div>
-        <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-          Profit and P&amp;L percentage by market
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col items-center justify-center relative pt-2 pb-4">
-        <div className="flex-1 w-full flex items-center justify-center min-h-0 relative px-4">
+      {isLocked && (
+        <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+          <Crown className="w-3 h-3" /> PRO
+        </span>
+      )}
+
+      {isLocked && (
+        <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+      )}
+
+      <div
+        className={`relative z-0 flex flex-col h-full ${
+          isLocked ? 'blur-[3px] opacity-70 pointer-events-none select-none' : ''
+        }`}
+      >
+        <CardHeader className="pb-2 flex-shrink-0">
+          <div className="flex items-center justify-between mb-1">
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+              Market Profit Stats
+            </CardTitle>
+            {!isLocked && (
+              <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                <Crown className="w-3 h-3" /> PRO
+              </span>
+            )}
+          </div>
+          <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
+            Profit and P&amp;L percentage by market
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col items-center justify-center relative pt-2 pb-4">
+          <div className="flex-1 w-full flex items-center justify-center min-h-0 relative px-4">
           <div className="w-full h-full relative">
             <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
@@ -420,7 +528,8 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
             </div>
           </div>
         </div>
-      </CardContent>
+        </CardContent>
+      </div>
     </Card>
   );
 };

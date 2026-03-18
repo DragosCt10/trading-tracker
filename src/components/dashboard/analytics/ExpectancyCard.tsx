@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import {
   Card,
@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { calculateExpectancy } from '@/utils/analyticsCalculations';
 import { Trade } from '@/types/trade';
+import { buildPreviewTrade } from '@/utils/previewTrades';
 
 interface ExpectancyCardProps {
   trades: Trade[];
@@ -48,13 +49,31 @@ export function ExpectancyCard({ trades: rawTrades, currencySymbol = '$', isLoad
   const [showTooltip, setShowTooltip] = useState(false);
   const tooltipActiveRef = useRef(false);
   const prevActiveRef = useRef(false);
-  const trades = isPro ? rawTrades : [];
+  const isLocked = !isPro;
+
+  const previewTrades = useMemo<Trade[]>(
+    () => [
+      buildPreviewTrade({
+        id: 'preview-expectancy-win',
+        trade_outcome: 'Win',
+        calculated_profit: 200,
+      }),
+      buildPreviewTrade({
+        id: 'preview-expectancy-loss',
+        trade_outcome: 'Lose',
+        calculated_profit: -100,
+      }),
+    ],
+    []
+  );
+
+  const trades = isPro ? rawTrades : previewTrades;
 
   const { expectancy, normalized, avgWin, avgLoss } = calculateExpectancy(trades);
   const hasData = trades.some(t => t.trade_outcome === 'Win' || t.trade_outcome === 'Lose');
 
-  // Normalize: 0–100 where 50 = breakeven; force 0 when not pro (empty teaser)
-  const percentage = !isPro ? 0 : normalized;
+  // Normalize: 0–100 where 50 = breakeven
+  const percentage = normalized;
   const remainingPercentage = 100 - percentage;
 
   const data = [
@@ -133,61 +152,79 @@ export function ExpectancyCard({ trades: rawTrades, currencySymbol = '$', isLoad
 
   return (
     <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
-      <CardHeader className="pb-2 flex-shrink-0">
-        <div className="flex items-center justify-between mb-1">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Expectancy
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
-              <Crown className="w-3 h-3" /> PRO
-            </span>
-          <TooltipProvider>
-            <UITooltip delayDuration={150}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  tabIndex={0}
-                  className="inline-flex h-4 w-4 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none shrink-0"
-                  aria-label="More info"
-                >
-                  <Info className="h-3 w-3" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent
-                side="top"
-                align="center"
-                className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
-                sideOffset={6}
-              >
-                {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-                <div className="relative">{infoTooltipContent}</div>
-              </TooltipContent>
-            </UITooltip>
-          </TooltipProvider>
-          </div>
-        </div>
-        <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-          Expected return per trade
-        </CardDescription>
-      </CardHeader>
+      {isLocked && (
+        <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+          <Crown className="w-3 h-3" /> PRO
+        </span>
+      )}
 
-      <CardContent className="h-48 flex flex-col items-center justify-center relative pt-0 pb-2">
-        {isLoading ? (
-          <div className="flex flex-col justify-center items-center w-full h-full">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Loading…</div>
+      {isLocked && (
+        <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+      )}
+
+      <div
+        className={cn(
+          'relative z-0',
+          isLocked && 'blur-[3px] opacity-70 pointer-events-none select-none'
+        )}
+      >
+        <CardHeader className="pb-2 flex-shrink-0">
+          <div className="flex items-center justify-between mb-1">
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+              Expectancy
+            </CardTitle>
+            {!isLocked && (
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                  <Crown className="w-3 h-3" /> PRO
+                </span>
+                <TooltipProvider>
+                  <UITooltip delayDuration={150}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        tabIndex={0}
+                        className="inline-flex h-4 w-4 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none shrink-0"
+                        aria-label="More info"
+                      >
+                        <Info className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      align="center"
+                      className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
+                      sideOffset={6}
+                    >
+                      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+                      <div className="relative">{infoTooltipContent}</div>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
+              </div>
+            )}
           </div>
-        ) : isPro && !hasData ? (
-          <div className="flex flex-col justify-center items-center w-full h-full">
-            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
-              No trades found
+          <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
+            Expected return per trade
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="h-48 flex flex-col items-center justify-center relative pt-0 pb-2">
+          {isLoading ? (
+            <div className="flex flex-col justify-center items-center w-full h-full">
+              <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Loading…</div>
             </div>
-            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
-              There are no trades to display for this category yet. Start trading to see your statistics here!
+          ) : isPro && !hasData ? (
+            <div className="flex flex-col justify-center items-center w-full h-full">
+              <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
+                No trades found
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
+                There are no trades to display for this category yet. Start trading to see your statistics here!
+              </div>
             </div>
-          </div>
-        ) : (
-          <>
+          ) : (
+            <>
             {/* Hover tooltip */}
             {showTooltip && (
               <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -279,9 +316,10 @@ export function ExpectancyCard({ trades: rawTrades, currencySymbol = '$', isLoad
                 Target: &gt; 0
               </div>
             </div>
-          </>
-        )}
-      </CardContent>
+            </>
+          )}
+        </CardContent>
+      </div>
     </Card>
   );
 }

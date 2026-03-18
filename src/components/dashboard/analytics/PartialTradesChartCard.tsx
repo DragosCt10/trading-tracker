@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import {
   Card,
@@ -13,6 +13,8 @@ import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { cn, formatPercent } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { Crown } from 'lucide-react';
+import { buildPreviewTrade } from '@/utils/previewTrades';
+import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
 
 export interface PartialTradesChartCardProps {
   totalPartials: number;
@@ -68,6 +70,25 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
     const [isLoading, setIsLoading] = useState(true);
     const isLocked = !isPro;
 
+    const previewStats = useMemo(() => {
+      const previewTrades = [
+        buildPreviewTrade({
+          id: 'preview-partial-win',
+          partials_taken: true,
+          break_even: false,
+          trade_outcome: 'Win',
+        }),
+        buildPreviewTrade({
+          id: 'preview-partial-loss',
+          partials_taken: true,
+          break_even: false,
+          trade_outcome: 'Lose',
+        }),
+      ];
+
+      return calculatePartialTradesStats(previewTrades);
+    }, []);
+
     useEffect(() => {
       if (mounted) {
         if (externalLoading !== undefined) {
@@ -89,11 +110,11 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
       }
     }, [mounted, externalLoading]);
 
-    // Shadow data when not PRO
-    const totalPartials = isPro ? rawTotalPartials : 0;
-    const wins = isPro ? rawWins : 0;
-    const losses = isPro ? rawLosses : 0;
-    const be = isPro ? rawBE : 0;
+    // Preview data when not PRO so the locked card still looks "filled"
+    const totalPartials = isPro ? rawTotalPartials : previewStats.totalPartialTradesCount;
+    const wins = isPro ? rawWins : previewStats.partialWinningTrades;
+    const losses = isPro ? rawLosses : previewStats.partialLosingTrades;
+    const be = isPro ? rawBE : previewStats.partialBETrades;
 
     const pieData = [
       { name: 'Wins', value: wins, color: 'emerald', gradientId: 'partialWins', pct: totalPartials > 0 ? (wins / totalPartials) * 100 : 0 },
@@ -241,7 +262,7 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
                       isLocked ? 'text-3xl' : totalPartials >= 1000 ? 'text-2xl' : totalPartials >= 100 ? 'text-2xl' : 'text-3xl'
                     }`}
                   >
-                    {isLocked ? '–' : totalPartials}
+                    {totalPartials}
                   </span>
                   <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1.5">
                     Total Trades
@@ -257,7 +278,7 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
                     Win rate
                   </div>
                   <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                    {isLocked ? '–' : totalPartials > 0 ? `${formatPercent((wins / totalPartials) * 100)}%` : '0%'}
+                    {totalPartials > 0 ? `${formatPercent((wins / totalPartials) * 100)}%` : '0%'}
                   </div>
                 </div>
                 <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
@@ -266,7 +287,7 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
                     Win rate w/BE
                   </div>
                   <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                    {isLocked ? '–' : totalPartials > 0 ? `${formatPercent(((wins + be) / totalPartials) * 100)}%` : '0%'}
+                    {totalPartials > 0 ? `${formatPercent(((wins + be) / totalPartials) * 100)}%` : '0%'}
                   </div>
                 </div>
               </div>

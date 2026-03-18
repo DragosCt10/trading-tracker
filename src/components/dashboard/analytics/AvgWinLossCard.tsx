@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   AreaChart,
   Area,
@@ -28,6 +28,7 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 import { calculateAvgWinLoss } from '@/utils/analyticsCalculations';
 import { Trade } from '@/types/trade';
 import { cn } from '@/lib/utils';
+import { buildPreviewTrade } from '@/utils/previewTrades';
 
 interface AvgWinLossCardProps {
   trades: Trade[];
@@ -59,7 +60,25 @@ const CustomBarTooltip = ({ active, payload, currencySymbol }: any) => {
 
 export function AvgWinLossCard({ trades: rawTrades, currencySymbol = '$', isLoading, isPro }: AvgWinLossCardProps) {
   const { mounted, isDark } = useDarkMode();
-  const trades = isPro ? rawTrades : [];
+  const isLocked = !isPro;
+
+  const previewTrades = useMemo<Trade[]>(
+    () => [
+      buildPreviewTrade({
+        id: 'preview-avg-win',
+        trade_outcome: 'Win',
+        calculated_profit: 200,
+      }),
+      buildPreviewTrade({
+        id: 'preview-avg-loss',
+        trade_outcome: 'Lose',
+        calculated_profit: -100,
+      }),
+    ],
+    []
+  );
+
+  const trades = isPro ? rawTrades : previewTrades;
 
   const { avgWin, avgLoss, winLossRatio } = calculateAvgWinLoss(trades);
   const hasData = trades.some(t => t.trade_outcome === 'Win' || t.trade_outcome === 'Lose');
@@ -125,121 +144,138 @@ export function AvgWinLossCard({ trades: rawTrades, currencySymbol = '$', isLoad
 
   return (
     <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
-      <CardHeader className="pb-2 flex-shrink-0">
-        <div className="flex items-center justify-between mb-1">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Avg Win / Avg Loss
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
-              <Crown className="w-3 h-3" /> PRO
-            </span>
-          <TooltipProvider>
-            <Tooltip delayDuration={150}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  tabIndex={0}
-                  className="inline-flex h-4 w-4 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none shrink-0"
-                  aria-label="More info"
-                >
-                  <Info className="h-3 w-3" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent
-                side="top"
-                align="center"
-                className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
-                sideOffset={6}
-              >
-                {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-                <div className="relative">{tooltipContent}</div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          </div>
-        </div>
-        <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-          Win size vs loss size
-        </CardDescription>
-      </CardHeader>
+      {isLocked && (
+        <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+          <Crown className="w-3 h-3" /> PRO
+        </span>
+      )}
 
-      <CardContent className="pt-0 pb-4">
-        {isLoading ? (
-          <div className="flex flex-col justify-center items-center w-full min-h-[160px]">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Loading…</div>
-          </div>
-        ) : isPro && !hasData ? (
-          <div className="flex flex-col justify-center items-center w-full min-h-[160px]">
-            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
-              No trades found
-            </div>
-            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
-              There are no trades to display for this category yet. Start trading to see your statistics here!
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* W/L Ratio headline */}
-            <div className="flex items-baseline gap-2 mb-4">
-              <span className={cn('text-2xl font-bold tabular-nums', ratioColor)}>{ratioLabel}</span>
-              <span className="text-xs text-slate-500 dark:text-slate-400">W/L Ratio</span>
-            </div>
+      {isLocked && (
+        <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+      )}
 
-            {/* Smooth comparison chart */}
-            <div className="h-32 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={chartData}
-                  margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="avgWinLossGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--tc-primary, #8b5cf6)" stopOpacity={0.55} />
-                      <stop offset="100%" stopColor="var(--tc-primary, #8b5cf6)" stopOpacity={0.1} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    stroke={isDark ? 'rgba(30,41,59,0.7)' : 'rgba(226,232,240,0.7)'}
-                    vertical={false}
-                    strokeDasharray="3 3"
-                  />
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }}
-                  />
-                  <YAxis hide />
-                  <RechartsTooltip
-                    content={<CustomBarTooltip currencySymbol={currencySymbol} />}
-                    cursor={{ fill: isDark ? 'rgba(51,65,85,0.3)' : 'rgba(226,232,240,0.4)' }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke="var(--tc-primary, #8b5cf6)"
-                    strokeWidth={2.5}
-                    fill="url(#avgWinLossGrad)"
-                    dot={{ r: 4, strokeWidth: 0 }}
-                    activeDot={{ r: 5 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Win / Loss amount labels */}
-            <div className="flex justify-between mt-2 text-xs text-slate-500 dark:text-slate-400">
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                {hasData ? formatCurrency(avgWin, currencySymbol) : '–'} avg win
-              </span>
-              <span className="text-rose-600 dark:text-rose-400 font-semibold">
-                {hasData ? formatCurrency(avgLoss, currencySymbol) : '–'} avg loss
-              </span>
-            </div>
-          </>
+      <div
+        className={cn(
+          'relative z-0',
+          isLocked && 'blur-[3px] opacity-70 pointer-events-none select-none'
         )}
-      </CardContent>
+      >
+        <CardHeader className="pb-2 flex-shrink-0">
+          <div className="flex items-center justify-between mb-1">
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+              Avg Win / Avg Loss
+            </CardTitle>
+
+            {!isLocked && (
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                  <Crown className="w-3 h-3" /> PRO
+                </span>
+                <TooltipProvider>
+                  <Tooltip delayDuration={150}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        tabIndex={0}
+                        className="inline-flex h-4 w-4 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none shrink-0"
+                        aria-label="More info"
+                      >
+                        <Info className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      align="center"
+                      className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
+                      sideOffset={6}
+                    >
+                      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+                      <div className="relative">{tooltipContent}</div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            )}
+          </div>
+          <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
+            Win size vs loss size
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="pt-0 pb-4">
+          {isLoading ? (
+            <div className="flex flex-col justify-center items-center w-full min-h-[160px]">
+              <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Loading…</div>
+            </div>
+          ) : isPro && !hasData ? (
+            <div className="flex flex-col justify-center items-center w-full min-h-[160px]">
+              <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
+                No trades found
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
+                There are no trades to display for this category yet. Start trading to see your statistics here!
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-baseline gap-2 mb-4">
+                <span className={cn('text-2xl font-bold tabular-nums', ratioColor)}>{ratioLabel}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">W/L Ratio</span>
+              </div>
+
+              <div className="h-32 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={chartData}
+                    margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="avgWinLossGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--tc-primary, #8b5cf6)" stopOpacity={0.55} />
+                        <stop offset="100%" stopColor="var(--tc-primary, #8b5cf6)" stopOpacity={0.1} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      stroke={isDark ? 'rgba(30,41,59,0.7)' : 'rgba(226,232,240,0.7)'}
+                      vertical={false}
+                      strokeDasharray="3 3"
+                    />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }}
+                    />
+                    <YAxis hide />
+                    <RechartsTooltip
+                      content={<CustomBarTooltip currencySymbol={currencySymbol} />}
+                      cursor={{ fill: isDark ? 'rgba(51,65,85,0.3)' : 'rgba(226,232,240,0.4)' }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="var(--tc-primary, #8b5cf6)"
+                      strokeWidth={2.5}
+                      fill="url(#avgWinLossGrad)"
+                      dot={{ r: 4, strokeWidth: 0 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="flex justify-between mt-2 text-xs text-slate-500 dark:text-slate-400">
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                  {hasData ? formatCurrency(avgWin, currencySymbol) : '–'} avg win
+                </span>
+                <span className="text-rose-600 dark:text-rose-400 font-semibold">
+                  {hasData ? formatCurrency(avgLoss, currencySymbol) : '–'} avg loss
+                </span>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </div>
     </Card>
   );
 }

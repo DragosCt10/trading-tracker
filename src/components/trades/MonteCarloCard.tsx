@@ -37,13 +37,13 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
   const { isDark } = useDarkMode();
   const isLocked = !isPro;
 
+  const simulationData = useMemo(() => {
+    if (isLocked) return [];
+    return runMonteCarloSimulation(trades, 500, futureTrades);
+  }, [isLocked, trades, futureTrades]);
+
   const tradesToUse = isLocked ? [] : trades;
   const tradesCount = tradesToUse.length;
-
-  const simulationData = useMemo(
-    () => (isLocked ? [] : runMonteCarloSimulation(tradesToUse, 500, futureTrades)),
-    [isLocked, tradesToUse, futureTrades]
-  );
 
   const hasSufficientData = tradesCount >= MONTE_CARLO_MIN_TRADES;
 

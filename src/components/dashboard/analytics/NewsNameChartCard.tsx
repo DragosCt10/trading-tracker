@@ -25,6 +25,7 @@ import { Trade } from '@/types/trade';
 import { calculateNewsNameStats, NEWS_NO_EVENT_LABEL } from '@/utils/calculateCategoryStats';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
+import { buildPreviewTrade } from '@/utils/previewTrades';
 
 export interface NewsNameChartCardProps {
   trades: Trade[];
@@ -68,12 +69,13 @@ function CustomTooltip({
   beCalcEnabled,
 }: {
   active?: boolean;
-  payload?: readonly { payload: ChartDatum }[];
+  payload?: readonly { payload?: ChartDatum }[];
   isDark?: boolean;
   beCalcEnabled: boolean;
 }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
+  if (!d) return null;
   return (
     <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
       {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
@@ -111,12 +113,74 @@ function CustomTooltip({
 
 export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
   function NewsNameChartCard({ trades: rawTrades, isLoading: externalLoading, isPro }) {
-    const trades = isPro ? rawTrades : [];
     const { mounted, isDark } = useDarkMode();
     const { beCalcEnabled } = useBECalc();
     const [isLoading, setIsLoading]         = useState(true);
     const [intensityFilter, setIntensityFilter] = useState<IntensityFilter>(null);
     const [unnamedOnly, setUnnamedOnly]     = useState(false);
+    const isLocked = !isPro;
+
+    const previewTrades = useMemo<Trade[]>(
+      () => [
+        buildPreviewTrade({
+          id: 'preview-news-cpi-win',
+          news_related: true,
+          news_name: 'CPI',
+          news_intensity: 1,
+          break_even: false,
+          trade_outcome: 'Win',
+        }),
+        buildPreviewTrade({
+          id: 'preview-news-cpi-loss',
+          news_related: true,
+          news_name: 'CPI',
+          news_intensity: 1,
+          break_even: false,
+          trade_outcome: 'Lose',
+        }),
+        buildPreviewTrade({
+          id: 'preview-news-gdp-win',
+          news_related: true,
+          news_name: 'GDP',
+          news_intensity: 2,
+          break_even: false,
+          trade_outcome: 'Win',
+        }),
+        buildPreviewTrade({
+          id: 'preview-news-gdp-be',
+          news_related: true,
+          news_name: 'GDP',
+          news_intensity: 2,
+          break_even: true,
+          trade_outcome: 'Lose',
+        }),
+        buildPreviewTrade({
+          id: 'preview-news-nfp-loss',
+          news_related: true,
+          news_name: 'NFP',
+          news_intensity: 3,
+          break_even: false,
+          trade_outcome: 'Lose',
+        }),
+        buildPreviewTrade({
+          id: 'preview-news-nfp-win',
+          news_related: true,
+          news_name: 'NFP',
+          news_intensity: 3,
+          break_even: false,
+          trade_outcome: 'Win',
+        }),
+        buildPreviewTrade({
+          id: 'preview-news-unnamed-win',
+          news_related: true,
+          news_name: '',
+          news_intensity: 2,
+          break_even: false,
+          trade_outcome: 'Win',
+        }),
+      ],
+      []
+    );
 
     useEffect(() => {
       if (externalLoading !== undefined) {
@@ -134,10 +198,11 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     }, [externalLoading]);
 
     const filteredTrades = useMemo(() => {
+      const trades = isLocked ? previewTrades : rawTrades;
       if (unnamedOnly) return trades;
       if (intensityFilter === null) return trades;
       return trades.filter((t) => t.news_intensity === intensityFilter);
-    }, [trades, intensityFilter, unnamedOnly]);
+    }, [isLocked, previewTrades, rawTrades, intensityFilter, unnamedOnly]);
 
     const stats     = useMemo(
       () => calculateNewsNameStats(filteredTrades, { includeUnnamed: true }),
@@ -181,9 +246,11 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
             <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
               News Stats
             </CardTitle>
-            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
-              <Crown className="w-3 h-3" /> PRO
-            </span>
+            {!isLocked && (
+              <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                <Crown className="w-3 h-3" /> PRO
+              </span>
+            )}
           </div>
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Wins, losses and BE per news event
@@ -267,11 +334,28 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     /* ------------------------------------------------------------------ */
     if (!mounted || isLoading) {
       return (
-<Card className={CARD_CLASS}>
-          {header}
-          <CardContent className="flex-1 flex justify-center items-center">
-            <BouncePulse size="md" />
-          </CardContent>
+        <Card className={CARD_CLASS}>
+          {isLocked && (
+            <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
+          )}
+
+          {isLocked && (
+            <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+          )}
+
+          <div
+            className={cn(
+              'relative z-0 flex flex-col h-full',
+              isLocked && 'blur-[3px] opacity-70 pointer-events-none select-none'
+            )}
+          >
+            {header}
+            <CardContent className="flex-1 flex justify-center items-center">
+              <BouncePulse size="md" />
+            </CardContent>
+          </div>
         </Card>
       );
     }
@@ -283,8 +367,24 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
       const activeLabel = INTENSITY_OPTIONS.find((o) => o.value === intensityFilter)?.label;
       return (
         <Card className={CARD_CLASS}>
-          {header}
-          <CardContent className="flex-1 flex flex-col items-center justify-center">
+          {isLocked && (
+            <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
+          )}
+
+          {isLocked && (
+            <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+          )}
+
+          <div
+            className={cn(
+              'relative z-0 flex flex-col h-full',
+              isLocked && 'blur-[3px] opacity-70 pointer-events-none select-none'
+            )}
+          >
+            {header}
+            <CardContent className="flex-1 flex flex-col items-center justify-center">
             <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-1">
               {unnamedOnly
                 ? 'No trades marked as news without an event name.'
@@ -299,7 +399,8 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
                   ? 'Try selecting a different intensity filter.'
                   : 'Mark trades as News and set the event name (e.g. CPI, NFP) to see the chart here.'}
             </p>
-          </CardContent>
+            </CardContent>
+          </div>
         </Card>
       );
     }
@@ -309,14 +410,30 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     /* ------------------------------------------------------------------ */
     return (
       <Card className={CARD_CLASS}>
-        {header}
-        <CardContent className="flex-1 flex items-end mt-1 min-h-0 p-4 pt-4 sm:p-6 sm:pt-0 border-t border-slate-200/60 dark:border-slate-700/50 sm:border-t-0">
-          <div className="w-full min-w-0 h-[280px] sm:h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={chartData}
-                margin={{ top: 30, right: 56, left: 56, bottom: 10 }}
-              >
+        {isLocked && (
+          <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+            <Crown className="w-3 h-3" /> PRO
+          </span>
+        )}
+
+        {isLocked && (
+          <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+        )}
+
+        <div
+          className={cn(
+            'relative z-0 flex flex-col h-full',
+            isLocked && 'blur-[3px] opacity-70 pointer-events-none select-none'
+          )}
+        >
+          {header}
+          <CardContent className="flex-1 flex items-end mt-1 min-h-0 p-4 pt-4 sm:p-6 sm:pt-0 border-t border-slate-200/60 dark:border-slate-700/50 sm:border-t-0">
+            <div className="w-full min-w-0 h-[280px] sm:h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart
+                  data={chartData}
+                  margin={{ top: 30, right: 56, left: 56, bottom: 10 }}
+                >
                 <defs>
                   <linearGradient id="newsNameWinsBar" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%"   stopColor="#10b981" stopOpacity={1}    />
@@ -409,10 +526,11 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
                   dot={false}
                   activeDot={false}
                 />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
+                </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+          </CardContent>
+        </div>
       </Card>
     );
   }

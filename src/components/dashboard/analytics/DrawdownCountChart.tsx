@@ -40,7 +40,9 @@ export const DrawdownCountChart = React.memo(function DrawdownCountChart({
   drawdownCount: rawCount,
   isPro,
 }: DrawdownCountChartProps) {
-  const drawdownCount = isPro ? rawCount : 0;
+  const isLocked = !isPro;
+  const PREVIEW_DRAWDOWN_COUNT = 7;
+  const drawdownCount = isLocked ? PREVIEW_DRAWDOWN_COUNT : rawCount;
   const { mounted, isDark } = useDarkMode();
   const [showTooltip, setShowTooltip] = useState(false);
   const tooltipActiveRef = useRef(false);
@@ -134,46 +136,54 @@ export const DrawdownCountChart = React.memo(function DrawdownCountChart({
 
   return (
     <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
-      <CardHeader className="pb-2 flex-shrink-0">
-        <div className="flex items-center justify-between mb-1">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Drawdown Periods
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
-              <Crown className="w-3 h-3" /> PRO
-            </span>
-            <TooltipProvider>
-            <UITooltip delayDuration={150}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  tabIndex={0}
-                  className="inline-flex h-4 w-4 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none shrink-0"
-                  aria-label="More info"
-                >
-                  <Info className="h-3 w-3" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent
-                side="top"
-                align="center"
-                className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
-                sideOffset={6}
-              >
-                {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-                <div className="relative">{tooltipContent}</div>
-              </TooltipContent>
-            </UITooltip>
-          </TooltipProvider>
-          </div>
-        </div>
-        <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-          Number of equity dips below peak
-        </CardDescription>
-      </CardHeader>
+      {isLocked && (
+        <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+          <Crown className="w-3 h-3" /> PRO
+        </span>
+      )}
 
-      <CardContent className="h-48 flex flex-col items-center justify-center relative pt-0 pb-2">
+      {isLocked && (
+        <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+      )}
+
+      <div className={cn('relative z-0', isLocked && 'blur-[3px] opacity-70 pointer-events-none select-none')}>
+        <CardHeader className="pb-2 flex-shrink-0">
+          <div className="flex items-center justify-between mb-1">
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+              Drawdown Periods
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+              <UITooltip delayDuration={150}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    tabIndex={0}
+                    className="inline-flex h-4 w-4 items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 focus:outline-none shrink-0"
+                    aria-label="More info"
+                  >
+                    <Info className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  align="center"
+                  className="w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100"
+                  sideOffset={6}
+                >
+                  {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+                  <div className="relative">{tooltipContent}</div>
+                </TooltipContent>
+              </UITooltip>
+            </TooltipProvider>
+            </div>
+          </div>
+          <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
+            Number of equity dips below peak
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="h-48 flex flex-col items-center justify-center relative pt-0 pb-2">
         {isPro && rawCount === 0 ? (
           <div className="flex flex-col justify-center items-center w-full h-full">
             <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">No trades found</div>
@@ -270,14 +280,15 @@ export const DrawdownCountChart = React.memo(function DrawdownCountChart({
         {/* Center value */}
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
           <div className={cn('text-2xl font-bold tabular-nums', getTextColor())}>
-            {!isPro ? '–' : displayValue}
+            {displayValue}
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Target: &lt; 5
           </div>
         </div>
         </>)}
-      </CardContent>
+        </CardContent>
+      </div>
     </Card>
   );
 });

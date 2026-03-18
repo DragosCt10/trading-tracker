@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { Trade } from '@/types/trade';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { calculateProfitFactor } from '@/utils/analyticsCalculations';
+import { buildPreviewTrade } from '@/utils/previewTrades';
 
 /* ---------------------------------------------------------
  * Props
@@ -39,10 +40,28 @@ function CustomTooltip({ active, payload, tooltipActiveRef, prevActiveRef, setSh
 }
 
 export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesToUse: rawTrades, totalWins, totalLosses, isPro }: ProfitFactorChartProps) {
-  const tradesToUse = useMemo(() => isPro ? rawTrades : [], [isPro, rawTrades]);
+  const isLocked = !isPro;
+
+  const previewTrades = useMemo<Trade[]>(
+    () => [
+      buildPreviewTrade({
+        id: 'preview-profit-factor-win',
+        trade_outcome: 'Win',
+        calculated_profit: 200,
+      }),
+      buildPreviewTrade({
+        id: 'preview-profit-factor-loss',
+        trade_outcome: 'Lose',
+        calculated_profit: -100,
+      }),
+    ],
+    []
+  );
+
+  const tradesToUse = useMemo(() => (isLocked ? previewTrades : rawTrades), [isLocked, previewTrades, rawTrades]);
   // Calculate profit factor from trades
-  const wins = !isPro ? 0 : (totalWins ?? tradesToUse.filter(t => t.trade_outcome === 'Win').length);
-  const losses = !isPro ? 0 : (totalLosses ?? tradesToUse.filter(t => t.trade_outcome === 'Lose').length);
+  const wins = useMemo(() => tradesToUse.filter(t => t.trade_outcome === 'Win').length, [tradesToUse]);
+  const losses = useMemo(() => tradesToUse.filter(t => t.trade_outcome === 'Lose').length, [tradesToUse]);
   const profitFactor = useMemo(
     () => calculateProfitFactor(tradesToUse, wins, losses),
     [tradesToUse, wins, losses]
@@ -140,15 +159,23 @@ export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesT
 
   return (
     <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+      {isLocked && (
+        <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+          <Crown className="w-3 h-3" /> PRO
+        </span>
+      )}
+
+      {isLocked && (
+        <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+      )}
+
+      <div className={cn('relative z-0', isLocked && 'blur-[3px] opacity-70 pointer-events-none select-none')}>
       <CardHeader className="pb-2 flex-shrink-0">
         <div className="flex items-center justify-between mb-1">
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Profit Factor
           </CardTitle>
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
-              <Crown className="w-3 h-3" /> PRO
-            </span>
             <TooltipProvider>
             <UITooltip delayDuration={150}>
               <TooltipTrigger asChild>
@@ -285,7 +312,7 @@ export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesT
         </div>
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
           <div className={cn('text-2xl font-bold', getTextColor())}>
-            {!isPro ? '–' : isFiniteProfitFactor ? (
+            {isFiniteProfitFactor ? (
               displayValue % 1 === 0 ? displayValue.toFixed(0) : displayValue.toFixed(1)
             ) : isInfiniteProfitFactor ? (
               <InfinityIcon className="inline-block h-6 w-6 align-middle" aria-label="Infinite profit factor" />
@@ -299,6 +326,7 @@ export const ProfitFactorChart = React.memo(function ProfitFactorChart({ tradesT
         </div>
         </>)}
       </CardContent>
+      </div>
     </Card>
   );
 });
