@@ -726,7 +726,7 @@ export default function ShareStrategyClient({
           />
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-4 mt-14">
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Trades calendar</h2>
             <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -747,7 +747,7 @@ export default function ShareStrategyClient({
         </section>
 
         {isPro && (
-        <section className="space-y-4">
+        <section className="space-y-4 mt-14">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Core statistics</h2>
@@ -776,7 +776,7 @@ export default function ShareStrategyClient({
         )}
 
         {isPro && (hasConfidenceData || hasMindStateData) && (
-          <section className="space-y-4">
+          <section className="space-y-4 mt-14">
             <div>
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Psychological Factors</h2>
               <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -796,7 +796,7 @@ export default function ShareStrategyClient({
           </section>
         )}
 
-        <section className="space-y-4 mt-6">
+        <section className="space-y-4 mt-14">
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Equity curve</h2>
             <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -807,7 +807,7 @@ export default function ShareStrategyClient({
         </section>
 
         {isPro && (
-        <section className="space-y-4">
+        <section className="space-y-4 mt-14">
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Consistency &amp; drawdown</h2>
             <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -823,7 +823,7 @@ export default function ShareStrategyClient({
         )}
 
         {isPro && (
-        <section className="space-y-4">
+        <section className="space-y-4 mt-14">
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Performance ratios</h2>
             <p className="text-sm text-slate-600 dark:text-slate-400">
