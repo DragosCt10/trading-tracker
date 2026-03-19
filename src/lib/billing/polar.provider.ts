@@ -16,9 +16,20 @@ function mapBillingPeriod(sub: { recurringInterval?: string | null }): BillingPe
 }
 
 function mapTierFromProductId(productId: string): TierId | null {
-  const entry = Object.values(TIER_DEFINITIONS).find(
-    (t) => t.polarProductId && t.polarProductId === productId
-  );
+  const legacyProProductIds = [
+    process.env.POLAR_PRO_LEGACY_PRODUCT_ID,
+    process.env.POLAR_SANDBOX_PRO_LEGACY_PRODUCT_ID,
+  ].filter((value): value is string => Boolean(value));
+
+  if (legacyProProductIds.includes(productId)) {
+    return 'pro';
+  }
+
+  const entry = Object.values(TIER_DEFINITIONS).find((tier) => {
+    const monthlyProductId = tier.pricing.monthly?.polarProductId;
+    const annualProductId = tier.pricing.annual?.polarProductId;
+    return monthlyProductId === productId || annualProductId === productId;
+  });
   return entry ? entry.id : null;
 }
 
@@ -103,10 +114,9 @@ export class PolarProvider implements IPaymentProvider {
     this.client = new Polar({ accessToken, server });
   }
 
-  async createCheckoutSession({ priceId, userId, successUrl }: CheckoutParams): Promise<{ checkoutUrl: string }> {
-    // priceId is used as the product ID for Polar checkout
+  async createCheckoutSession({ productId, userId, successUrl }: CheckoutParams): Promise<{ checkoutUrl: string }> {
     const checkout = await this.client.checkouts.create({
-      products: [priceId],
+      products: [productId],
       successUrl,
       metadata: { userId },
     });
@@ -127,6 +137,30 @@ export class PolarProvider implements IPaymentProvider {
     });
 
     return { portalUrl: session.customerPortalUrl };
+  }
+
+  async getCustomerEmail(customerId: string): Promise<string | null> {
+    try {
+      const customersApi = (this.client as any).customers;
+      if (!customersApi) return null;
+
+      const customer =
+        (typeof customersApi.get === 'function' && await customersApi.get({ id: customerId })) ||
+        (typeof customersApi.retrieve === 'function' && await customersApi.retrieve({ id: customerId })) ||
+        (typeof customersApi.fetch === 'function' && await customersApi.fetch({ id: customerId })) ||
+        null;
+
+      if (!customer || typeof customer !== 'object') return null;
+      const email =
+        (typeof customer.email === 'string' && customer.email) ||
+        (typeof customer.emailAddress === 'string' && customer.emailAddress) ||
+        (typeof customer.email_address === 'string' && customer.email_address) ||
+        null;
+      return email;
+    } catch (error) {
+      console.error(`[billing/polar] getCustomerEmail failed customerId=${customerId}`, error);
+      return null;
+    }
   }
 
   async parseWebhookEvent({
@@ -158,7 +192,6 @@ export class PolarProvider implements IPaymentProvider {
     ) {
       const sub = (event as any).data;
       const userId = getUserId(sub.metadata);
-      if (!userId) return { type: 'ignore' };
 
       const mapped = mapSubData({
         id: sub.id,
@@ -172,7 +205,7 @@ export class PolarProvider implements IPaymentProvider {
       });
       if (!mapped) return { type: 'ignore' };
 
-      console.log(`[billing/webhook] action=subscription.upsert userId=${userId}`);
+      console.log(`[billing/webhook] action=subscription.upsert userId=${userId ?? '—'}`);
       return { type: 'subscription.upsert', data: mapped, userId };
     }
 

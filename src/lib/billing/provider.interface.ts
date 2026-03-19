@@ -17,7 +17,7 @@ export type WebhookAction =
   | {
       type: 'subscription.upsert';
       data: ProviderSubscriptionData;
-      userId: string;
+      userId: string | null;
     }
   | {
       type: 'subscription.cancel_at_period_end';
@@ -41,7 +41,7 @@ export type WebhookAction =
 // ── Provider interface ────────────────────────────────────────────────────────
 
 export interface CheckoutParams {
-  priceId: string;
+  productId: string;
   userId: string;
   billingPeriod: BillingPeriod;
   successUrl: string;
@@ -51,6 +51,7 @@ export interface IPaymentProvider {
   readonly name: 'polar' | 'stripe' | 'paddle';
   createCheckoutSession(params: CheckoutParams): Promise<{ checkoutUrl: string }>;
   createCustomerPortalSession(params: { customerId: string; returnUrl: string }): Promise<{ portalUrl: string }>;
+  getCustomerEmail(customerId: string): Promise<string | null>;
   parseWebhookEvent(params: {
     rawBody: string;
     headers: Record<string, string>;

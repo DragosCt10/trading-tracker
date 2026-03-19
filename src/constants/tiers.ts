@@ -17,7 +17,6 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       monthly: null, // Free
       annual: null,  // Free
     },
-    polarProductId: null,
     limits: {
       maxStrategies: 1,
       maxExtraCards: 3,
@@ -47,21 +46,18 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
     pricing: {
       monthly: {
         usd: 19,
-        polarPriceId: isSandbox
-          ? process.env.POLAR_SANDBOX_PRO_PRICE_ID_MONTHLY ?? ''
-          : process.env.POLAR_PRO_PRICE_ID_MONTHLY ?? '',
+        polarProductId: isSandbox
+          ? process.env.POLAR_SANDBOX_PRO_PRODUCT_ID_MONTHLY ?? ''
+          : process.env.POLAR_PRO_PRODUCT_ID_MONTHLY ?? '',
       },
       annual: {
         usd: 182,
-        polarPriceId: isSandbox
-          ? process.env.POLAR_SANDBOX_PRO_PRICE_ID_ANNUAL ?? ''
-          : process.env.POLAR_PRO_PRICE_ID_ANNUAL ?? '',
+        polarProductId: isSandbox
+          ? process.env.POLAR_SANDBOX_PRO_PRODUCT_ID_ANNUAL ?? ''
+          : process.env.POLAR_PRO_PRODUCT_ID_ANNUAL ?? '',
         savingsPct: 20,
       },
     },
-    polarProductId: isSandbox
-      ? process.env.POLAR_SANDBOX_PRO_PRODUCT_ID ?? null
-      : process.env.POLAR_PRO_PRODUCT_ID ?? null,
     limits: {
       maxStrategies: null,  // unlimited
       maxExtraCards: null,  // all
@@ -92,7 +88,6 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       monthly: null, // TBD — not launched yet
       annual: null,
     },
-    polarProductId: null,
     limits: {
       maxStrategies: null,
       maxExtraCards: null,

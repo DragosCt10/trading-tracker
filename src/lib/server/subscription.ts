@@ -20,6 +20,10 @@ const STARTER_SUBSCRIPTION: ResolvedSubscription = {
   provider: 'admin',
 };
 
+function getAppUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+}
+
 // ── Read ──────────────────────────────────────────────────────────────────────
 
 /**
@@ -125,16 +129,22 @@ export async function revokeSubscription(userId: string): Promise<void> {
  * Returns the URL; client then does router.push(url).
  */
 export async function createCheckoutUrl(
-  priceId: string,
   billingPeriod: BillingPeriod
 ): Promise<string> {
   const session = await getCachedUserSession();
   if (!session.user) throw new Error('Not authenticated');
+  const productId =
+    billingPeriod === 'monthly'
+      ? (TIER_DEFINITIONS.pro.pricing.monthly?.polarProductId ?? '')
+      : (TIER_DEFINITIONS.pro.pricing.annual?.polarProductId ?? '');
+  if (!productId) {
+    throw new Error(`[billing] Missing Polar product ID for ${billingPeriod} checkout.`);
+  }
 
   const provider = getPaymentProvider();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+  const appUrl = getAppUrl();
   const { checkoutUrl } = await provider.createCheckoutSession({
-    priceId,
+    productId,
     userId: session.user.id,
     billingPeriod,
     successUrl: `${appUrl}/billing?success=1`,
@@ -159,7 +169,7 @@ export async function createPortalUrl(): Promise<string | null> {
   }
 
   const provider = getPaymentProvider();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+  const appUrl = getAppUrl();
   const { portalUrl } = await provider.createCustomerPortalSession({
     customerId: subscription.providerCustomerId,
     returnUrl: `${appUrl}/billing`,

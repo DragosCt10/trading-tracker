@@ -52,15 +52,10 @@ export function PaywallModal({
       ? `$${monthlyPrice}/month`
       : `$${annualPrice}/year`;
 
-  const priceId =
-    billingPeriod === 'monthly'
-      ? (proDef.pricing.monthly?.polarPriceId ?? '')
-      : (proDef.pricing.annual?.polarPriceId ?? '');
-
   function handleUpgrade() {
     startTransition(async () => {
       try {
-        const url = await createCheckoutUrl(priceId, billingPeriod);
+        const url = await createCheckoutUrl(billingPeriod);
         router.push(url);
       } catch (err) {
         console.error('Checkout error:', err);
@@ -121,7 +116,7 @@ export function PaywallModal({
           {/* CTA */}
           <Button
             onClick={handleUpgrade}
-            disabled={isPending || !priceId}
+            disabled={isPending}
             className="w-full bg-amber-500 text-zinc-950 hover:bg-amber-400 disabled:opacity-60"
           >
             {isPending ? (

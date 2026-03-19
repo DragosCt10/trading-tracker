@@ -36,7 +36,7 @@ export interface TierFeatureFlags {
 
 export interface TierPricingOption {
   usd: number;
-  polarPriceId: string;
+  polarProductId: string;
 }
 
 export interface TierDefinition {
@@ -46,7 +46,6 @@ export interface TierDefinition {
     monthly: TierPricingOption | null;
     annual: (TierPricingOption & { savingsPct: number }) | null;
   };
-  polarProductId: string | null;
   limits: TierLimits;
   features: TierFeatureFlags;
   badge: { label: string; colorClass: string };

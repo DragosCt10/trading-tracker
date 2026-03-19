@@ -36,12 +36,29 @@ export default function BillingClient({ subscription: initialSubscription, justP
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('annual');
   const [isCheckoutPending, startCheckoutTransition] = useTransition();
   const [isPortalPending, startPortalTransition] = useTransition();
-  const [processingBanner, setProcessingBanner] = useState(justPaid && (subscription?.tier ?? initialSubscription.tier) === 'starter');
+  const [showProcessingBanner, setShowProcessingBanner] = useState(
+    justPaid && (subscription?.tier ?? initialSubscription.tier) === 'starter'
+  );
+
+  // Clean checkout return params so server action POSTs don't keep using success URL forever.
+  useEffect(() => {
+    if (!justPaid || typeof window === 'undefined') return;
+
+    const url = new URL(window.location.href);
+    const hadSuccess = url.searchParams.has('success');
+    const hadCustomerSessionToken = url.searchParams.has('customer_session_token');
+    if (!hadSuccess && !hadCustomerSessionToken) return;
+
+    url.searchParams.delete('success');
+    url.searchParams.delete('customer_session_token');
+    const query = url.searchParams.toString();
+    const nextUrl = `${url.pathname}${query ? `?${query}` : ''}${url.hash}`;
+    window.history.replaceState(null, '', nextUrl);
+  }, [justPaid]);
 
   // Poll for PRO upgrade after payment (up to 30s)
   useEffect(() => {
     if (!justPaid || tier !== 'starter') return;
-    setProcessingBanner(true);
 
     const interval = setInterval(() => {
       refetchSubscription();
@@ -49,19 +66,14 @@ export default function BillingClient({ subscription: initialSubscription, justP
 
     const timeout = setTimeout(() => {
       clearInterval(interval);
+      setShowProcessingBanner(false);
     }, 30_000);
 
     return () => {
       clearInterval(interval);
       clearTimeout(timeout);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [justPaid]);
-
-  // Dismiss banner once tier upgrades
-  useEffect(() => {
-    if (tier !== 'starter') setProcessingBanner(false);
-  }, [tier]);
+  }, [justPaid, tier, refetchSubscription]);
 
   const resolvedSub = subscription ?? initialSubscription;
   const isPro = resolvedSub.tier !== 'starter';
@@ -77,13 +89,8 @@ export default function BillingClient({ subscription: initialSubscription, justP
   } as const;
 
   function handleUpgrade() {
-    const priceId =
-      billingPeriod === 'monthly'
-        ? (proDef.pricing.monthly?.polarPriceId ?? '')
-        : (proDef.pricing.annual?.polarPriceId ?? '');
-
     startCheckoutTransition(async () => {
-      const url = await createCheckoutUrl(priceId, billingPeriod);
+      const url = await createCheckoutUrl(billingPeriod);
       router.push(url);
     });
   }
@@ -118,7 +125,7 @@ export default function BillingClient({ subscription: initialSubscription, justP
       </div>
 
       {/* Processing banner (post-checkout race condition) */}
-      {processingBanner && (
+      {showProcessingBanner && tier === 'starter' && (
         <div className="mb-6 flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-300 backdrop-blur-sm">
           <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
           <span>

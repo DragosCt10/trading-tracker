@@ -4,6 +4,21 @@ import { getPaymentProvider } from '@/lib/billing';
 
 export const runtime = 'nodejs';
 
+async function findUserIdByEmail(email: string): Promise<string | null> {
+  const supabase = createServiceRoleClient();
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) return null;
+
+  const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (error) {
+    console.error(`[billing/webhook] auth lookup failed email=${normalizedEmail}`, error);
+    return null;
+  }
+
+  const user = data?.users?.find((candidate) => candidate.email?.toLowerCase() === normalizedEmail);
+  return user?.id ?? null;
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const rawBody = await req.text();
   const secret = process.env.POLAR_SANDBOX === 'true'
@@ -43,21 +58,45 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   switch (action.type) {
     case 'subscription.upsert': {
+      let resolvedUserId = action.userId;
+
+      if (!resolvedUserId) {
+        const email = await provider.getCustomerEmail(action.data.providerCustomerId);
+        if (!email) {
+          console.log(
+            `[billing/webhook] action=subscription.upsert ignored reason=missing_email customerId=${action.data.providerCustomerId}`
+          );
+          break;
+        }
+
+        console.log(`[billing/webhook] action=subscription.upsert customer_email=${email}`);
+        resolvedUserId = await findUserIdByEmail(email);
+      }
+
+      if (!resolvedUserId) {
+        console.log(
+          `[billing/webhook] action=subscription.upsert ignored reason=no_matching_user customerId=${action.data.providerCustomerId}`
+        );
+        break;
+      }
+
+      console.log(`[billing/webhook] action=subscription.upsert resolved_userId=${resolvedUserId}`);
+
       // Guard: never overwrite admin-granted subscriptions with webhook data
       const { data: existing } = await supabase
         .from('subscriptions')
         .select('provider')
-        .eq('user_id', action.userId)
+        .eq('user_id', resolvedUserId)
         .maybeSingle();
 
       if (existing?.provider === 'admin') {
-        console.log(`[billing/webhook] Skipping upsert — admin grant protected for userId=${action.userId}`);
+        console.log(`[billing/webhook] Skipping upsert — admin grant protected for userId=${resolvedUserId}`);
         break;
       }
 
       const { error } = await supabase.from('subscriptions').upsert(
         {
-          user_id: action.userId,
+          user_id: resolvedUserId,
           tier: action.data.tierId,
           status: action.data.status,
           billing_period: action.data.billingPeriod,
