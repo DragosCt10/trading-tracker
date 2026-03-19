@@ -240,6 +240,7 @@ function ModalFormContent({ editing, extraCards, setupOptions, liquidityOptions,
             <MarketCombobox
               value={filters.market ?? ''}
               onChange={(v) => setFilter('market', v || undefined)}
+              className={INPUT_CLASS}
             />
           </FieldRow>
 
