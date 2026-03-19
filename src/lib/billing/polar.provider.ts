@@ -54,6 +54,47 @@ function mapSubData(data: {
   };
 }
 
+/**
+ * Full subscription refund → revoke our row. Only call after refund.status is `succeeded`
+ * (refund.created may be pending).
+ *
+ * Matches Polar payloads with optional nested `order`, camelCase or snake_case keys.
+ */
+function trySubscriptionRevokeFromSucceededRefund(
+  refund: Record<string, unknown>,
+  userId: string
+): WebhookAction | null {
+  const subscriptionId =
+    (typeof refund.subscriptionId === 'string' && refund.subscriptionId) ||
+    (typeof refund.subscription_id === 'string' && refund.subscription_id) ||
+    null;
+  if (!subscriptionId) return null;
+
+  if (refund.reason !== 'subscription') return null;
+
+  const amount = typeof refund.amount === 'number' ? refund.amount : null;
+  const order =
+    (refund.order && typeof refund.order === 'object'
+      ? (refund.order as Record<string, unknown>)
+      : null) ?? null;
+  const orderAmount =
+    order && typeof order.amount === 'number' ? order.amount : null;
+
+  const revokeBenefits =
+    refund.revokeBenefits === true || refund.revoke_benefits === true;
+
+  // Full refund vs order total (when webhook expands `order`), or Polar marks benefit revocation
+  const isFullOrderRefund =
+    amount != null && orderAmount != null && amount === orderAmount;
+  if (!isFullOrderRefund && !revokeBenefits) return null;
+
+  return {
+    type: 'subscription.revoke',
+    providerSubscriptionId: subscriptionId,
+    userId,
+  };
+}
+
 export class PolarProvider implements IPaymentProvider {
   readonly name = 'polar' as const;
   private client: Polar;
@@ -162,26 +203,35 @@ export class PolarProvider implements IPaymentProvider {
       };
     }
 
+    // refund.created is emitted regardless of status — do not revoke until refund.updated succeeds.
     if (type === 'refund.created') {
-      const refund = (event as any).data;
-      const userId = getUserId(refund.metadata);
+      const refund = (event as { data: Record<string, unknown> }).data;
+      const userId = getUserId(refund.metadata as Record<string, unknown> | undefined);
+      const status = typeof refund.status === 'string' ? refund.status : '?';
+      console.log(
+        `[billing/webhook] refund.created id=${refund.id} status=${status} userId=${userId ?? '—'} (no revoke until succeeded)`
+      );
+      return { type: 'ignore' };
+    }
+
+    if (type === 'refund.updated') {
+      const refund = (event as { data: Record<string, unknown> }).data;
+      const userId = getUserId(refund.metadata as Record<string, unknown> | undefined);
       if (!userId) return { type: 'ignore' };
 
-      // Only revoke on full subscription refund
-      if (
-        refund.reason === 'subscription' &&
-        refund.amount != null &&
-        refund.order?.amount != null &&
-        refund.amount === refund.order.amount
-      ) {
-        console.log(`[billing/webhook] action=subscription.revoke (refund) userId=${userId}`);
-        return {
-          type: 'subscription.revoke',
-          providerSubscriptionId: refund.subscriptionId,
-          userId,
-        };
+      if (refund.status !== 'succeeded') {
+        console.log(
+          `[billing/webhook] refund.updated id=${refund.id} status=${refund.status} userId=${userId} (no revoke)`
+        );
+        return { type: 'ignore' };
       }
-      console.log(`[billing/webhook] action=ignore (partial refund) userId=${userId}`);
+
+      const revoke = trySubscriptionRevokeFromSucceededRefund(refund, userId);
+      if (revoke) {
+        console.log(`[billing/webhook] action=subscription.revoke (refund.updated succeeded) userId=${userId}`);
+        return revoke;
+      }
+      console.log(`[billing/webhook] action=ignore (refund.updated not full subscription refund) userId=${userId}`);
       return { type: 'ignore' };
     }
 
