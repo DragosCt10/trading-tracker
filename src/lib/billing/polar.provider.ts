@@ -15,6 +15,22 @@ function mapBillingPeriod(sub: { recurringInterval?: string | null }): BillingPe
   return null;
 }
 
+function readString(source: Record<string, unknown>, camelKey: string, snakeKey: string): string | null {
+  const camel = source[camelKey];
+  if (typeof camel === 'string' && camel.length > 0) return camel;
+  const snake = source[snakeKey];
+  if (typeof snake === 'string' && snake.length > 0) return snake;
+  return null;
+}
+
+function readBoolean(source: Record<string, unknown>, camelKey: string, snakeKey: string, fallback = false): boolean {
+  const camel = source[camelKey];
+  if (typeof camel === 'boolean') return camel;
+  const snake = source[snakeKey];
+  if (typeof snake === 'boolean') return snake;
+  return fallback;
+}
+
 function mapTierFromProductId(productId: string): TierId | null {
   const legacyProProductIds = [
     process.env.POLAR_PRO_LEGACY_PRODUCT_ID,
@@ -102,6 +118,7 @@ function trySubscriptionRevokeFromSucceededRefund(
   return {
     type: 'subscription.revoke',
     providerSubscriptionId: subscriptionId,
+    providerCustomerId: null,
     userId,
   };
 }
@@ -191,7 +208,7 @@ export class PolarProvider implements IPaymentProvider {
       type === 'subscription.active'
     ) {
       const sub = (event as any).data;
-      const userId = getUserId(sub.metadata);
+      const userId = getUserId(sub.metadata as Record<string, unknown> | undefined);
 
       const mapped = mapSubData({
         id: sub.id,
@@ -205,20 +222,30 @@ export class PolarProvider implements IPaymentProvider {
       });
       if (!mapped) return { type: 'ignore' };
 
-      console.log(`[billing/webhook] action=subscription.upsert userId=${userId ?? '—'}`);
-      return { type: 'subscription.upsert', data: mapped, userId };
+      console.log(`[billing/webhook] action=subscription.updated userId=${userId ?? '—'}`);
+      return { type: 'subscription.updated', data: mapped, userId };
     }
 
     if (type === 'subscription.canceled') {
-      const sub = (event as any).data;
-      const userId = getUserId(sub.metadata);
-      if (!userId) return { type: 'ignore' };
-
-      console.log(`[billing/webhook] action=subscription.cancel_at_period_end userId=${userId}`);
+      const sub = (event as { data: Record<string, unknown> }).data;
+      const providerSubscriptionId = readString(sub, 'id', 'id');
+      if (!providerSubscriptionId) return { type: 'ignore' };
+      const userId = getUserId(sub.metadata as Record<string, unknown> | undefined);
+      const providerCustomerId = readString(sub, 'customerId', 'customer_id');
+      const cancelAtPeriodEnd = readBoolean(sub, 'cancelAtPeriodEnd', 'cancel_at_period_end', false);
+      const periodEndRaw = cancelAtPeriodEnd
+        ? readString(sub, 'currentPeriodEnd', 'current_period_end')
+        : (readString(sub, 'endedAt', 'ended_at') ?? readString(sub, 'currentPeriodEnd', 'current_period_end'));
+      const periodEnd = periodEndRaw ? new Date(periodEndRaw) : new Date();
+      console.log(
+        `[billing/webhook] action=subscription.canceled userId=${userId ?? '—'} customerId=${providerCustomerId ?? '—'} cancelAtPeriodEnd=${cancelAtPeriodEnd}`
+      );
       return {
-        type: 'subscription.cancel_at_period_end',
-        providerSubscriptionId: sub.id,
-        periodEnd: new Date(sub.currentPeriodEnd),
+        type: 'subscription.canceled',
+        providerSubscriptionId,
+        providerCustomerId,
+        periodEnd,
+        cancelAtPeriodEnd,
         userId,
       };
     }
@@ -226,12 +253,14 @@ export class PolarProvider implements IPaymentProvider {
     if (type === 'subscription.revoked') {
       const sub = (event as any).data;
       const userId = getUserId(sub.metadata);
-      if (!userId) return { type: 'ignore' };
-
-      console.log(`[billing/webhook] action=subscription.revoke userId=${userId}`);
+      const providerCustomerId = typeof sub.customerId === 'string' ? sub.customerId : null;
+      console.log(
+        `[billing/webhook] action=subscription.revoke userId=${userId ?? '—'} customerId=${providerCustomerId ?? '—'}`
+      );
       return {
         type: 'subscription.revoke',
         providerSubscriptionId: sub.id,
+        providerCustomerId,
         userId,
       };
     }
@@ -282,6 +311,7 @@ export class PolarProvider implements IPaymentProvider {
       };
     }
 
+    console.log(`[billing/webhook] action=ignore reason=unhandled_event_type type=${type}`);
     return { type: 'ignore' };
   }
 

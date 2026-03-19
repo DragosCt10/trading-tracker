@@ -91,9 +91,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   let provider;
   try {
     provider = getPaymentProvider();
-  } catch {
-    // Billing env not fully configured (e.g. development without Polar)
-    return NextResponse.json({ received: true });
+  } catch (error) {
+    console.error('[billing/webhook] provider init failed', error);
+    return NextResponse.json({ error: 'Billing provider unavailable' }, { status: 503 });
   }
 
   let action;
@@ -108,20 +108,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const supabase = createServiceRoleClient();
 
   switch (action.type) {
-    case 'subscription.upsert': {
+    case 'subscription.updated': {
       const email = await provider.getCustomerEmail(action.data.providerCustomerId);
       if (!email) {
         console.log(
-          `[billing/webhook] action=subscription.upsert missing_customer_email customerId=${action.data.providerCustomerId}`
+          `[billing/webhook] action=subscription.updated missing_customer_email customerId=${action.data.providerCustomerId}`
         );
       } else {
-        console.log(`[billing/webhook] action=subscription.upsert customer_email=${email}`);
+        console.log(`[billing/webhook] action=subscription.updated customer_email=${email}`);
       }
 
       const emailMatchedUserId = email ? await ensureUserForPolarEmail(email) : null;
       if (email && !emailMatchedUserId) {
         console.log(
-          `[billing/webhook] action=subscription.upsert ignored reason=failed_to_create_or_match_user email=${email} customerId=${action.data.providerCustomerId}`
+          `[billing/webhook] action=subscription.updated ignored reason=failed_to_create_or_match_user email=${email} customerId=${action.data.providerCustomerId}`
         );
         break;
       }
@@ -129,12 +129,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const resolvedUserId = emailMatchedUserId ?? action.userId;
       if (!resolvedUserId) {
         console.log(
-          `[billing/webhook] action=subscription.upsert ignored reason=no_user_resolution customerId=${action.data.providerCustomerId}`
+          `[billing/webhook] action=subscription.updated ignored reason=no_user_resolution customerId=${action.data.providerCustomerId}`
         );
         break;
       }
 
-      console.log(`[billing/webhook] action=subscription.upsert resolved_userId=${resolvedUserId}`);
+      console.log(`[billing/webhook] action=subscription.updated resolved_userId=${resolvedUserId}`);
 
       // Guard: never overwrite admin-granted subscriptions with webhook data
       const { data: existing } = await supabase
@@ -168,25 +168,64 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       break;
     }
 
-    case 'subscription.cancel_at_period_end': {
-      const { error } = await supabase
+    case 'subscription.canceled': {
+      const updatePayload = {
+        cancel_at_period_end: action.cancelAtPeriodEnd,
+        current_period_end: action.periodEnd.toISOString(),
+        updated_at: new Date().toISOString(),
+        ...(!action.cancelAtPeriodEnd ? { status: 'canceled' as const } : {}),
+      };
+      const { data, error } = await supabase
         .from('subscriptions')
-        .update({
-          cancel_at_period_end: true,
-          current_period_end: action.periodEnd.toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('provider_subscription_id', action.providerSubscriptionId);
-      if (error) console.error('[billing/webhook] cancel_at_period_end error:', error.message);
+        .update(updatePayload)
+        .eq('provider_subscription_id', action.providerSubscriptionId)
+        .select('user_id')
+        .limit(1);
+      if (error) {
+        console.error('[billing/webhook] subscription.canceled error:', error.message);
+        break;
+      }
+      if ((data?.length ?? 0) === 0 && action.providerCustomerId) {
+        const { error: fallbackError } = await supabase
+          .from('subscriptions')
+          .update(updatePayload)
+          .eq('provider_customer_id', action.providerCustomerId);
+        if (fallbackError) {
+          console.error('[billing/webhook] subscription.canceled fallback error:', fallbackError.message);
+        } else {
+          console.log(
+            `[billing/webhook] subscription.canceled matched by provider_customer_id customerId=${action.providerCustomerId}`
+          );
+        }
+      }
       break;
     }
 
     case 'subscription.revoke': {
-      const { error } = await supabase
+      const updatePayload = { status: 'canceled' as const, updated_at: new Date().toISOString() };
+      const { data, error } = await supabase
         .from('subscriptions')
-        .update({ status: 'canceled', updated_at: new Date().toISOString() })
-        .eq('provider_subscription_id', action.providerSubscriptionId);
-      if (error) console.error('[billing/webhook] revoke error:', error.message);
+        .update(updatePayload)
+        .eq('provider_subscription_id', action.providerSubscriptionId)
+        .select('user_id')
+        .limit(1);
+      if (error) {
+        console.error('[billing/webhook] revoke error:', error.message);
+        break;
+      }
+      if ((data?.length ?? 0) === 0 && action.providerCustomerId) {
+        const { error: fallbackError } = await supabase
+          .from('subscriptions')
+          .update(updatePayload)
+          .eq('provider_customer_id', action.providerCustomerId);
+        if (fallbackError) {
+          console.error('[billing/webhook] revoke fallback error:', fallbackError.message);
+        } else {
+          console.log(
+            `[billing/webhook] revoke matched by provider_customer_id customerId=${action.providerCustomerId}`
+          );
+        }
+      }
       break;
     }
 

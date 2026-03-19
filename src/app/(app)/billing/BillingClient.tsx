@@ -32,7 +32,8 @@ export default function BillingClient({ subscription: initialSubscription, justP
   const { data: userDetails } = useUserDetails();
   const userId = userDetails?.user?.id;
   const { tier, subscription, refetchSubscription } = useSubscription({ userId });
-  const effectiveSubscription = userId ? (subscription ?? initialSubscription) : initialSubscription;
+  const [hasHydrated, setHasHydrated] = useState(false);
+  const effectiveSubscription = hasHydrated && userId ? (subscription ?? initialSubscription) : initialSubscription;
   const effectiveTier = effectiveSubscription.tier;
   const isPro = effectiveTier !== 'starter';
 
@@ -58,6 +59,12 @@ export default function BillingClient({ subscription: initialSubscription, justP
     const nextUrl = `${url.pathname}${query ? `?${query}` : ''}${url.hash}`;
     window.history.replaceState(null, '', nextUrl);
   }, [justPaid]);
+
+  // Ensure the first client render matches SSR output exactly to avoid hydration
+  // mismatch when React Query cache still holds stale pre-payment subscription data.
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
 
   // Poll for PRO upgrade after payment (up to 30s)
   useEffect(() => {

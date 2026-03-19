@@ -43,6 +43,17 @@ export async function getStrategiesOverview(
   if (!user) throw new Error('Unauthorized');
 
   const supabase = await createClient();
+  const normalizedMode = mode.trim().toLowerCase();
+  const isValidMode =
+    normalizedMode === 'live' ||
+    normalizedMode === 'demo' ||
+    normalizedMode === 'backtesting';
+  if (!isValidMode) {
+    console.error(
+      `[strategiesOverview] invalid mode for stats RPC accountId=${accountId} userId=${user.id} mode=${JSON.stringify(mode)}`
+    );
+    return {};
+  }
 
   // ── 1. Try the snapshot cache (Phase 3) ───────────────────────────────────
   const { data: cached, error: cacheError } = await supabase
@@ -50,7 +61,7 @@ export async function getStrategiesOverview(
     .select('strategy_id, total_trades, win_rate, avg_rr, total_rr, total_profit, equity_curve')
     .eq('user_id', user.id)
     .eq('account_id', accountId)
-    .eq('mode', mode);
+    .eq('mode', normalizedMode);
 
   if (!cacheError && cached && cached.length > 0) {
     return Object.fromEntries(
@@ -68,13 +79,27 @@ export async function getStrategiesOverview(
     );
   }
 
+  if (cacheError) {
+    console.error(
+      `[strategiesOverview] cache read failed accountId=${accountId} userId=${user.id} mode=${normalizedMode}`,
+      cacheError
+    );
+  }
+
   // ── 2. Fallback: call the RPC (Phase 1) ───────────────────────────────────
   const { data, error } = await supabase.rpc('get_strategies_overview', {
     p_user_id:    user.id,
     p_account_id: accountId,
-    p_mode:       mode,
+    p_mode:       normalizedMode,
   });
 
-  if (error) throw error;
+  if (error) {
+    console.error(
+      `[strategiesOverview] RPC get_strategies_overview failed accountId=${accountId} userId=${user.id} mode=${normalizedMode} code=${error.code ?? 'unknown'}`,
+      error
+    );
+    // Never 500 the /stats page because of a DB-side RPC issue.
+    return {};
+  }
   return (data ?? {}) as StrategiesOverviewResult;
 }

@@ -15,20 +15,23 @@ export interface ProviderSubscriptionData {
 
 export type WebhookAction =
   | {
-      type: 'subscription.upsert';
+      type: 'subscription.updated';
       data: ProviderSubscriptionData;
       userId: string | null;
     }
   | {
-      type: 'subscription.cancel_at_period_end';
+      type: 'subscription.canceled';
       providerSubscriptionId: string;
+      providerCustomerId: string | null;
       periodEnd: Date;
-      userId: string;
+      cancelAtPeriodEnd: boolean;
+      userId: string | null;
     }
   | {
       type: 'subscription.revoke';
       providerSubscriptionId: string;
-      userId: string;
+      providerCustomerId: string | null;
+      userId: string | null;
     }
   | {
       type: 'order.created';
