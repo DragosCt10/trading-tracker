@@ -38,7 +38,7 @@ import { buildPreviewTrade } from '@/utils/previewTrades';
 import { updateStrategyCustomStats } from '@/lib/server/strategies';
 import { CustomStatModal } from '@/components/CustomStatModal';
 import { CustomStatDetailView } from '@/components/CustomStatDetailView';
-import { CustomStatsSkeleton } from './CustomStatsSkeleton';
+import { CustomStatsCardsSkeleton } from './CustomStatsSkeleton';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -239,14 +239,6 @@ export default function CustomStatsClient({
     [detailConfig, filteredTrades]
   );
 
-  if (activeAccount && tradesLoading && !isInitialContext) {
-    return (
-      <TooltipProvider>
-        <CustomStatsSkeleton />
-      </TooltipProvider>
-    );
-  }
-
   if (detailStatId !== null && detailConfig) {
     return (
       <TooltipProvider>
@@ -273,28 +265,24 @@ export default function CustomStatsClient({
           </p>
         </div>
 
-        {activeAccount && (
-          <div className="mb-6">
-            <TradeFiltersBar
-              dateRange={dateRange}
-              onDateRangeChange={handleDateRangeChange}
-              activeFilter={activeFilter}
-              onFilterChange={handleFilterChange}
-              isCustomRange={isCustomRange}
-              selectedMarket="all"
-              onSelectedMarketChange={() => {}}
-              markets={[]}
-              selectedExecution="all"
-              onSelectedExecutionChange={() => {}}
-              showAllTradesOption={true}
-              displayStartDate={earliestTradeDate}
-              hideMarket
-              hideExecution
-            />
-          </div>
-        )}
+        <TradeFiltersBar
+          dateRange={dateRange}
+          onDateRangeChange={handleDateRangeChange}
+          activeFilter={activeFilter}
+          onFilterChange={handleFilterChange}
+          isCustomRange={isCustomRange}
+          selectedMarket="all"
+          onSelectedMarketChange={() => {}}
+          markets={[]}
+          selectedExecution="all"
+          onSelectedExecutionChange={() => {}}
+          showAllTradesOption={true}
+          displayStartDate={earliestTradeDate}
+          hideMarket
+          hideExecution
+        />
 
-        <div className="space-y-4 mt-4">
+        <div className="space-y-6 mt-6">
           {!activeAccount && (
             <Card className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm py-10 px-6 flex items-center justify-center text-center">
               <div className="space-y-2">
@@ -309,7 +297,10 @@ export default function CustomStatsClient({
           )}
 
           {/* Small card grid — 3 per row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {activeAccount && tradesLoading && !isInitialContext ? (
+            <CustomStatsCardsSkeleton />
+          ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {(isPro ? savedStats : previewStats).map((config) => {
               const cardTrades = isPro
                 ? applyCustomStatFilter(filteredTrades, config.filters)
@@ -497,18 +488,21 @@ export default function CustomStatsClient({
               type="button"
               onClick={isPro ? handleAdd : undefined}
               className={cn(
-                'rounded-2xl border-2 border-dashed py-8 flex flex-col items-center justify-center gap-2 transition-all duration-200 min-h-[200px]',
+                'relative overflow-hidden rounded-2xl border-2 border-dashed transition-all duration-200 p-6 flex flex-col items-center justify-center',
                 isPro
-                  ? 'border-slate-300/70 dark:border-slate-600/60 hover:border-slate-400/80 dark:hover:border-slate-500/70 hover:bg-slate-100/40 dark:hover:bg-slate-800/30 cursor-pointer'
+                  ? 'border-slate-300 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm cursor-pointer hover:border-slate-400 dark:hover:border-slate-500 hover:bg-slate-100/50 dark:hover:bg-slate-800/50'
                   : 'border-slate-200/50 dark:border-slate-700/40 opacity-60 cursor-not-allowed'
               )}
             >
-              <Plus className="h-5 w-5 text-slate-500 dark:text-slate-400" />
-              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 themed-header-icon-box">
+                <Plus className="w-8 h-8" />
+              </div>
+              <span className="text-base font-medium text-slate-500 dark:text-slate-400">
                 {isPro ? 'Add Custom Combination' : 'PRO feature — upgrade to create custom stats'}
               </span>
             </button>
           </div>
+          )}
         </div>
 
         <CustomStatModal
