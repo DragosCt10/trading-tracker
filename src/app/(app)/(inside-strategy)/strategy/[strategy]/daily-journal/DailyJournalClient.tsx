@@ -6,7 +6,7 @@ import { ChevronRight, Crown, Infinity as InfinityIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatPercent } from '@/lib/utils';
 import { useBECalc } from '@/contexts/BECalcContext';
 import type { Trade } from '@/types/trade';
@@ -463,9 +463,8 @@ export default function DailyJournalClient({
             realTrades.length > 0 ? (profitableTrades.length / realTrades.length) * 100 : 0;
           const formattedDate = format(new Date(group.date), 'EEE, MMM d, yyyy');
 
-          return (
+          const cardContent = (
             <Card
-              key={group.date}
               className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden"
             >
               {!isPro && (
@@ -772,6 +771,30 @@ export default function DailyJournalClient({
                 </div>
               </div>
             </Card>
+          );
+
+          if (!isPro) {
+            return (
+              <Tooltip key={group.date} delayDuration={120}>
+                <TooltipTrigger asChild>
+                  {cardContent}
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  align="start"
+                  sideOffset={8}
+                  className="max-w-sm text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50"
+                >
+                  The data shown under the blur card is fictive and for demo purposes only.
+                </TooltipContent>
+              </Tooltip>
+            );
+          }
+
+          return (
+            <div key={group.date}>
+              {cardContent}
+            </div>
           );
         })}
 
