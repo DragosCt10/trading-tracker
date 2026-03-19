@@ -141,6 +141,12 @@ export default function CustomStatsClient({
       filters: { direction: 'Long', market: 'DAX', trade_time: '06:00' },
       created_at: '2026-01-01T00:00:00Z',
     },
+    {
+      id: 'preview-2',
+      name: 'Long DAX Morning (Preview)',
+      filters: { direction: 'Long', market: 'DAX', trade_time: '06:00' },
+      created_at: '2026-01-01T00:00:00Z',
+    },
   ], []);
 
   const previewTradesMap = useMemo<Record<string, Trade[]>>(() => ({
@@ -150,6 +156,13 @@ export default function CustomStatsClient({
       buildPreviewTrade({ id: 'p1-3', trade_outcome: 'Lose', calculated_profit: -100, direction: 'Long' }),
       buildPreviewTrade({ id: 'p1-4', trade_outcome: 'Win', calculated_profit: 180, direction: 'Long' }),
       buildPreviewTrade({ id: 'p1-5', trade_outcome: 'Lose', calculated_profit: -90, direction: 'Long' }),
+    ],
+    'preview-2': [
+      buildPreviewTrade({ id: 'p2-1', trade_outcome: 'Win', calculated_profit: 120, direction: 'Long' }),
+      buildPreviewTrade({ id: 'p2-2', trade_outcome: 'Win', calculated_profit: 100, direction: 'Long' }),
+      buildPreviewTrade({ id: 'p2-3', trade_outcome: 'Lose', calculated_profit: -200, direction: 'Long' }),
+      buildPreviewTrade({ id: 'p2-4', trade_outcome: 'Win', calculated_profit: 120, direction: 'Long' }),
+      buildPreviewTrade({ id: 'p2-5', trade_outcome: 'Lose', calculated_profit: -60, direction: 'Long' }),
     ],
   }), []);
 
@@ -497,8 +510,8 @@ export default function CustomStatsClient({
               <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 themed-header-icon-box">
                 <Plus className="w-8 h-8" />
               </div>
-              <span className="text-base font-medium text-slate-500 dark:text-slate-400">
-                {isPro ? 'Add Custom Combination' : 'PRO feature — upgrade to create custom stats'}
+              <span className={cn(isPro ? "text-base" : "text-sm", "font-medium text-slate-500 dark:text-slate-400")}>
+                {isPro ? 'Add Custom Combination' : 'PRO feature - Upgrade to create custom stats'}
               </span>
             </button>
           </div>
