@@ -1,22 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getPaymentProvider } from '@/lib/billing';
+import { ensureDefaultAccountForUserId } from '@/lib/server/accounts';
 
 export const runtime = 'nodejs';
+
+function getAppUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+}
 
 async function findUserIdByEmail(email: string): Promise<string | null> {
   const supabase = createServiceRoleClient();
   const normalizedEmail = email.trim().toLowerCase();
   if (!normalizedEmail) return null;
+  const perPage = 1000;
+  let page = 1;
 
-  const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  while (true) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      console.error(`[billing/webhook] auth lookup failed email=${normalizedEmail} page=${page}`, error);
+      return null;
+    }
+
+    const users = data?.users ?? [];
+    const user = users.find((candidate) => candidate.email?.toLowerCase() === normalizedEmail);
+    if (user) return user.id;
+
+    if (!users.length || users.length < perPage) return null;
+    page += 1;
+  }
+}
+
+async function ensureUserForPolarEmail(email: string): Promise<string | null> {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) return null;
+
+  const existingUserId = await findUserIdByEmail(normalizedEmail);
+  if (existingUserId) return existingUserId;
+
+  const supabase = createServiceRoleClient();
+  const temporaryPassword = crypto.randomUUID();
+  const { data, error } = await supabase.auth.admin.createUser({
+    email: normalizedEmail,
+    password: temporaryPassword,
+    email_confirm: true,
+    user_metadata: { source: 'polar_checkout' },
+  });
+
   if (error) {
-    console.error(`[billing/webhook] auth lookup failed email=${normalizedEmail}`, error);
-    return null;
+    console.error(`[billing/webhook] createUser failed email=${normalizedEmail}`, error);
+    // Handle possible race where user was created concurrently.
+    return findUserIdByEmail(normalizedEmail);
   }
 
-  const user = data?.users?.find((candidate) => candidate.email?.toLowerCase() === normalizedEmail);
-  return user?.id ?? null;
+  const newUserId = data.user?.id ?? null;
+  if (!newUserId) return null;
+
+  await ensureDefaultAccountForUserId(newUserId);
+
+  const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+    redirectTo: `${getAppUrl()}/update-password`,
+  });
+  if (resetError) {
+    console.error(`[billing/webhook] resetPasswordForEmail failed email=${normalizedEmail}`, resetError);
+  }
+
+  console.log(`[billing/webhook] created_user_from_polar email=${normalizedEmail} userId=${newUserId}`);
+  return newUserId;
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -58,24 +109,27 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   switch (action.type) {
     case 'subscription.upsert': {
-      let resolvedUserId = action.userId;
-
-      if (!resolvedUserId) {
-        const email = await provider.getCustomerEmail(action.data.providerCustomerId);
-        if (!email) {
-          console.log(
-            `[billing/webhook] action=subscription.upsert ignored reason=missing_email customerId=${action.data.providerCustomerId}`
-          );
-          break;
-        }
-
+      const email = await provider.getCustomerEmail(action.data.providerCustomerId);
+      if (!email) {
+        console.log(
+          `[billing/webhook] action=subscription.upsert missing_customer_email customerId=${action.data.providerCustomerId}`
+        );
+      } else {
         console.log(`[billing/webhook] action=subscription.upsert customer_email=${email}`);
-        resolvedUserId = await findUserIdByEmail(email);
       }
 
+      const emailMatchedUserId = email ? await ensureUserForPolarEmail(email) : null;
+      if (email && !emailMatchedUserId) {
+        console.log(
+          `[billing/webhook] action=subscription.upsert ignored reason=failed_to_create_or_match_user email=${email} customerId=${action.data.providerCustomerId}`
+        );
+        break;
+      }
+
+      const resolvedUserId = emailMatchedUserId ?? action.userId;
       if (!resolvedUserId) {
         console.log(
-          `[billing/webhook] action=subscription.upsert ignored reason=no_matching_user customerId=${action.data.providerCustomerId}`
+          `[billing/webhook] action=subscription.upsert ignored reason=no_user_resolution customerId=${action.data.providerCustomerId}`
         );
         break;
       }
