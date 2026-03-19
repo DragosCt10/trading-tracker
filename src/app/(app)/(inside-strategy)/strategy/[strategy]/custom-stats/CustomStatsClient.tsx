@@ -5,7 +5,7 @@ import { ChevronRight, Crown, Infinity as InfinityIcon, Pencil, Plus, Trash2 } f
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatPercent } from '@/lib/utils';
 import { useBECalc } from '@/contexts/BECalcContext';
 import type { Trade } from '@/types/trade';
@@ -409,9 +409,8 @@ export default function CustomStatsClient({
             const totalPnL = cardTrades.reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0);
             const cardChartData = buildCardChartData(cardTrades);
 
-            return (
+            const cardContent = (
               <Card
-                key={config.id}
                 className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden relative"
               >
                 {!isPro && (
@@ -712,6 +711,30 @@ export default function CustomStatsClient({
                   </div>
                 </div>
               </Card>
+            );
+
+            if (!isPro) {
+              return (
+                <Tooltip key={config.id} delayDuration={120}>
+                  <TooltipTrigger asChild>
+                    {cardContent}
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="top"
+                    align="start"
+                    sideOffset={8}
+                    className="max-w-sm text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50"
+                  >
+                    The data shown under the blur card is fictive and for demo purposes only.
+                  </TooltipContent>
+                </Tooltip>
+              );
+            }
+
+            return (
+              <div key={config.id}>
+                {cardContent}
+              </div>
             );
           })}
 
