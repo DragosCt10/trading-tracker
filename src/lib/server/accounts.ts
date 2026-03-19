@@ -3,6 +3,7 @@
 import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
+import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getCachedUserSession } from '@/lib/server/session';
 import { canAddAccount } from '@/lib/server/subscription';
 import type { Database } from '@/types/supabase';
@@ -220,6 +221,31 @@ export async function ensureDefaultAccount(): Promise<void> {
 
   await supabase.from('account_settings').insert({
     user_id: user.id,
+    name: 'Account Name',
+    account_balance: 10000,
+    currency: 'USD',
+    mode: 'demo',
+    description: null,
+    is_active: true,
+  });
+}
+
+/**
+ * Ensures a specific user has at least one account across all modes.
+ * If they have none, creates a default "Account Name" demo account.
+ */
+export async function ensureDefaultAccountForUserId(userId: string): Promise<void> {
+  const supabase = createServiceRoleClient();
+
+  const { count, error } = await supabase
+    .from('account_settings')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  if (error || (count ?? 0) > 0) return;
+
+  await supabase.from('account_settings').insert({
+    user_id: userId,
     name: 'Account Name',
     account_balance: 10000,
     currency: 'USD',
