@@ -43,6 +43,8 @@ export interface ComposedBarWinRateChartProps {
   barCategoryGap?: string | number;
   /** activeDot prop for the win-rate Line. Default: false */
   lineActiveDot?: boolean | Record<string, unknown>;
+  /** XAxis interval strategy. Use 0 to force all ticks. */
+  xAxisInterval?: number | 'preserveStart' | 'preserveEnd' | 'preserveStartEnd';
 }
 
 function ChartTooltip({
@@ -121,6 +123,7 @@ export const ComposedBarWinRateChart = React.memo(function ComposedBarWinRateCha
   margins,
   barCategoryGap,
   lineActiveDot = false,
+  xAxisInterval,
 }: ComposedBarWinRateChartProps) {
   const axisTextColor = isDark ? '#cbd5e1' : '#64748b';
 
@@ -194,6 +197,7 @@ export const ComposedBarWinRateChart = React.memo(function ComposedBarWinRateCha
           tick={{ fill: axisTextColor, fontSize: 11 }}
           tickFormatter={xAxisTickFormatter}
           height={38}
+          interval={xAxisInterval}
         />
         <YAxis
           yAxisId="left"
