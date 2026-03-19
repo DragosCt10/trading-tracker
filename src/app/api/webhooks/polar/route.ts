@@ -6,7 +6,9 @@ export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const rawBody = await req.text();
-  const secret = process.env.POLAR_WEBHOOK_SECRET ?? '';
+  const secret = process.env.POLAR_SANDBOX === 'true'
+    ? process.env.POLAR_SANDBOX_WEBHOOK_SECRET ?? ''
+    : process.env.POLAR_WEBHOOK_SECRET ?? '';
 
   if (!secret) {
     console.error('[billing/webhook] POLAR_WEBHOOK_SECRET is not set');

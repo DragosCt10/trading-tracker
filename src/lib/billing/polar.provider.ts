@@ -58,8 +58,8 @@ export class PolarProvider implements IPaymentProvider {
   readonly name = 'polar' as const;
   private client: Polar;
 
-  constructor(accessToken: string) {
-    this.client = new Polar({ accessToken });
+  constructor(accessToken: string, server: 'sandbox' | 'production' = 'production') {
+    this.client = new Polar({ accessToken, server });
   }
 
   async createCheckoutSession({ priceId, userId, successUrl }: CheckoutParams): Promise<{ checkoutUrl: string }> {

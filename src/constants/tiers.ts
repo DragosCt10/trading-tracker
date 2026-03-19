@@ -7,6 +7,8 @@
 
 import type { TierDefinition, TierId } from '@/types/subscription';
 
+const isSandbox = process.env.POLAR_SANDBOX === 'true';
+
 export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
   starter: {
     id: 'starter',
@@ -45,15 +47,21 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
     pricing: {
       monthly: {
         usd: 19,
-        polarPriceId: process.env.POLAR_PRO_PRICE_ID_MONTHLY ?? '',
+        polarPriceId: isSandbox
+          ? process.env.POLAR_SANDBOX_PRO_PRICE_ID_MONTHLY ?? ''
+          : process.env.POLAR_PRO_PRICE_ID_MONTHLY ?? '',
       },
       annual: {
         usd: 182,
-        polarPriceId: process.env.POLAR_PRO_PRICE_ID_ANNUAL ?? '',
+        polarPriceId: isSandbox
+          ? process.env.POLAR_SANDBOX_PRO_PRICE_ID_ANNUAL ?? ''
+          : process.env.POLAR_PRO_PRICE_ID_ANNUAL ?? '',
         savingsPct: 20,
       },
     },
-    polarProductId: process.env.POLAR_PRO_PRODUCT_ID ?? null,
+    polarProductId: isSandbox
+      ? process.env.POLAR_SANDBOX_PRO_PRODUCT_ID ?? null
+      : process.env.POLAR_PRO_PRODUCT_ID ?? null,
     limits: {
       maxStrategies: null,  // unlimited
       maxExtraCards: null,  // all
