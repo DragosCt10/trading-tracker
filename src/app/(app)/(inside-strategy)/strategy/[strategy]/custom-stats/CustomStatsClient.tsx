@@ -176,11 +176,9 @@ export default function CustomStatsClient({
     : initialCurrencySymbol;
   const accountBalance = activeAccount?.account_balance ?? initialAccountBalance;
 
-  // Filters
+  // Filters (date range only — market and execution are per-card via CustomStatFilter)
   const [dateRange, setDateRange] = useState<DateRangeState>(() => buildPresetRange('year').dateRange);
   const [activeFilter, setActiveFilter] = useState<FilterType>('year');
-  const [selectedMarket, setSelectedMarket] = useState<string>('all');
-  const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'nonExecuted'>('all');
 
   const [mounted] = useState(() => typeof window !== 'undefined');
 
@@ -198,11 +196,6 @@ export default function CustomStatsClient({
 
   const isCustomRange = isCustomDateRange(dateRange);
 
-  const markets = useMemo(
-    () => Array.from(new Set(allTradesData.map((t: Trade) => t.market).filter(Boolean))),
-    [allTradesData]
-  );
-
   const earliestTradeDate = useMemo(() => {
     if (activeFilter !== 'all') return undefined;
     if (allTradesData.length === 0) return undefined;
@@ -212,21 +205,13 @@ export default function CustomStatsClient({
     );
   }, [activeFilter, allTradesData]);
 
-  const filteredTrades = useMemo(() => {
-    let list = allTradesData;
-    list = list.filter(
+  // Only filter by date range — market/execution are handled per-card by applyCustomStatFilter
+  const filteredTrades = useMemo(
+    () => allTradesData.filter(
       (t: Trade) => t.trade_date >= dateRange.startDate && t.trade_date <= dateRange.endDate
-    );
-    if (executionFilter === 'executed') {
-      list = list.filter((t: Trade) => t.executed === true);
-    } else if (executionFilter === 'nonExecuted') {
-      list = list.filter((t: Trade) => !t.executed);
-    }
-    if (selectedMarket !== 'all') {
-      list = list.filter((t: Trade) => t.market === selectedMarket);
-    }
-    return list;
-  }, [allTradesData, dateRange, executionFilter, selectedMarket]);
+    ),
+    [allTradesData, dateRange]
+  );
 
   const handleFilterChange = useCallback((type: FilterType) => {
     setActiveFilter(type);
@@ -237,13 +222,6 @@ export default function CustomStatsClient({
   const handleDateRangeChange = useCallback((range: DateRangeValue) => {
     setDateRange(range);
   }, []);
-
-  const handleExecutionChange = useCallback(
-    (execution: 'all' | 'executed' | 'nonExecuted') => {
-      setExecutionFilter(execution);
-    },
-    []
-  );
 
   const openTradeDetails = useCallback((trade: Trade) => {
     setSelectedTrade(trade);
@@ -355,13 +333,15 @@ export default function CustomStatsClient({
               activeFilter={activeFilter}
               onFilterChange={handleFilterChange}
               isCustomRange={isCustomRange}
-              selectedMarket={selectedMarket}
-              onSelectedMarketChange={setSelectedMarket}
-              markets={markets}
-              selectedExecution={executionFilter}
-              onSelectedExecutionChange={handleExecutionChange}
+              selectedMarket="all"
+              onSelectedMarketChange={() => {}}
+              markets={[]}
+              selectedExecution="all"
+              onSelectedExecutionChange={() => {}}
               showAllTradesOption={true}
               displayStartDate={earliestTradeDate}
+              hideMarket
+              hideExecution
             />
           </div>
         )}
@@ -723,7 +703,7 @@ export default function CustomStatsClient({
           >
             <Plus className="h-5 w-5 text-slate-500 dark:text-slate-400" />
             <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-              {isPro ? 'Add Custom Stat' : 'PRO feature — upgrade to create custom stats'}
+              {isPro ? 'Add Custom Combination' : 'PRO feature — upgrade to create custom stats'}
             </span>
           </button>
         </div>
