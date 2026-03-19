@@ -21,7 +21,8 @@ import { EvaluationStats } from './EvaluationStats';
 import { ReentryTradesChartCard } from './ReentryTradesChartCard';
 import type { ReentryTradesChartCardProps } from './ReentryTradesChartCard';
 import { TrendStatisticsCard } from './TrendStatisticsCard';
-import type { TradeTypeStats } from '@/types/dashboard';
+import { SessionStatisticsCard } from './SessionStatisticsCard';
+import type { TradeTypeStats, SessionStats } from '@/types/dashboard';
 import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
 import RiskPerTrade, { type RiskAnalysis } from './RiskPerTrade';
 import { AvgWinLossCard } from './AvgWinLossCard';
@@ -78,10 +79,13 @@ interface TradingOverviewStatsProps {
     reentryStats: ReentryTradesChartCardProps['reentryStats'];
     breakEvenStats: ReentryTradesChartCardProps['breakEvenStats'];
     trendStats: TradeTypeStats[];
+    sessionStats?: SessionStats[];
     chartsLoadingState?: boolean;
     includeTotalTrades: boolean;
     /** When false, Evaluation card is hidden (extra card not enabled for strategy). Default true. */
     showEvaluationCard?: boolean;
+    /** When true, Session Stats card is shown in this row. Default false. */
+    showSessionCard?: boolean;
     /** When false, Trend card is hidden (extra card not enabled for strategy). Default true. */
     showTrendCard?: boolean;
   } | null;
@@ -289,11 +293,13 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
         const showEval = showEvaluationCard && (!hideEmptyChartCards || evalTotal > 0);
         const showReentry = !hideEmptyChartCards || reentryTotal > 0;
         const showTrend = showTrendCard && (!hideEmptyChartCards || trendTotal > 0);
-        const hasAny = showEval || showReentry || showTrend;
+        const showSession = aboveRiskPerTradeRow.showSessionCard === true;
+        const hasAny = showEval || showReentry || showTrend || showSession;
         if (!hasAny) return null;
+        const visibleCount = [showEval, showReentry, showTrend, showSession].filter(Boolean).length;
         const gridClass = hideEmptyChartCards
-          ? 'col-span-full grid grid-cols-1 lg:grid-cols-3 gap-6 w-full [&>*]:min-h-[340px] [&>*]:min-w-0'
-          : 'col-span-full grid grid-cols-1 md:grid-cols-3 gap-6 w-full [&>*]:min-w-0';
+          ? `col-span-full grid grid-cols-1 ${visibleCount >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6 w-full [&>*]:min-h-[340px] [&>*]:min-w-0`
+          : `col-span-full grid grid-cols-1 ${visibleCount >= 4 ? 'md:grid-cols-2 xl:grid-cols-4' : 'md:grid-cols-3'} gap-6 w-full [&>*]:min-w-0`;
         return (
           <>
             <div className={gridClass}>
@@ -315,6 +321,13 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
                   trendStats={aboveRiskPerTradeRow.trendStats}
                   isLoading={aboveRiskPerTradeRow.chartsLoadingState}
                   includeTotalTrades={aboveRiskPerTradeRow.includeTotalTrades}
+                />
+              )}
+              {showSession && (
+                <SessionStatisticsCard
+                  sessionStats={aboveRiskPerTradeRow.sessionStats ?? []}
+                  isLoading={aboveRiskPerTradeRow.chartsLoadingState}
+                  isPro={isPro}
                 />
               )}
             </div>

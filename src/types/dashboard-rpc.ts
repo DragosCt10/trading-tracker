@@ -108,6 +108,7 @@ export interface RpcRiskStats {
 
 export interface RpcSetupStat extends RpcBaseStats { setup: string; }
 export interface RpcLiquidityStat extends RpcBaseStats { liquidity: string; }
+export interface RpcSessionStat extends RpcBaseStats { session: string; }
 export interface RpcDirectionStat extends RpcBaseStats { direction: string; }
 export interface RpcMssStat extends RpcBaseStats { mss: string; }
 export interface RpcNewsStat extends RpcBaseStats { news: string; }
@@ -188,6 +189,7 @@ export interface CompactTrade {
   setup_type: string;
   liquidity: string;
   direction: string;
+  session?: string | null;
   calculated_profit: number;
   risk_per_trade: number;
   risk_reward_ratio: number;
@@ -225,6 +227,7 @@ export interface DashboardRpcResult {
   worst_month: RpcBestWorstMonth | null;
   setup_stats: RpcSetupStat[];
   liquidity_stats: RpcLiquidityStat[];
+  session_stats?: RpcSessionStat[];
   direction_stats: RpcDirectionStat[];
   mss_stats: RpcMssStat[];
   news_stats: RpcNewsStat[];

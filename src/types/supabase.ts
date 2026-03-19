@@ -75,6 +75,7 @@ export interface Database {
           sl_size: number; // numeric(10,2)
           direction: string; // 'Long' | 'Short';
           trade_outcome: string; // 'Win' | 'Lose';
+          session: string | null; // 'Sydney' | 'Tokyo' | 'London' | 'New York'
           break_even: boolean | null;
           reentry: boolean | null;
           news_related: boolean | null;
@@ -135,6 +136,7 @@ export interface Database {
           sl_size: number; // numeric(10,2)
           direction: string; // 'Long' | 'Short';
           trade_outcome: string; // 'Win' | 'Lose';
+          session: string | null; // 'Sydney' | 'Tokyo' | 'London' | 'New York'
           break_even: boolean | null;
           reentry: boolean | null;
           news_related: boolean | null;
@@ -195,6 +197,7 @@ export interface Database {
           sl_size: number; // numeric(10,2)
           direction: string; // 'Long' | 'Short';
           trade_outcome: string; // 'Win' | 'Lose';
+          session: string | null; // 'Sydney' | 'Tokyo' | 'London' | 'New York'
           break_even: boolean | null;
           reentry: boolean | null;
           news_related: boolean | null;

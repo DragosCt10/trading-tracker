@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
+import { SESSION_PALETTE } from '@/constants/sessionPalette';
 import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useParams } from 'next/navigation';
 import { Trade } from '@/types/trade';
@@ -34,6 +35,7 @@ const MSS_OPTIONS = ['Normal', 'Aggressive', 'Wick', 'Internal'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const TREND_OPTIONS = ['Trend-following', 'Counter-trend', 'Consolidation'];
+const SESSION_OPTIONS = ['Sydney', 'Tokyo', 'London', 'New York'] as const;
 
 // shadcn UI components
 import { Button } from "@/components/ui/button";
@@ -321,6 +323,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         displacement_size: editedTrade.displacement_size,
         risk_per_trade: editedTrade.risk_per_trade,
         trade_outcome: editedTrade.trade_outcome,
+        session: editedTrade.session ?? '',
         risk_reward_ratio: editedTrade.risk_reward_ratio,
         risk_reward_ratio_long: (editedTrade.trade_outcome === 'Lose' || editedTrade.trade_outcome === 'BE') ? 0 : editedTrade.risk_reward_ratio_long,
         trade_screens: editedTrade.trade_screens,
@@ -1157,7 +1160,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--tc-primary)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                Risk Management
+                Trade Metrics
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-3">
@@ -1227,6 +1230,11 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 <div>
                   <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Context</h4>
                   <div className="flex flex-wrap gap-2">
+                    {hasCard('session_stats') && (editedTrade?.session ?? '').trim() !== '' && (
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${SESSION_PALETTE[editedTrade!.session]?.chipClass ?? 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
+                        Session: {editedTrade?.session}
+                      </span>
+                    )}
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.news_related ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-transparent' : 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
                       {editedTrade?.news_related && <Check className="w-3 h-3" />}
                       News Related
@@ -1280,6 +1288,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 <div>
                   <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Context</h4>
                   <div className="space-y-3">
+                    {hasCard('session_stats') && renderField('Session', 'session', 'select', Array.from(SESSION_OPTIONS))}
                     {renderField('News Related', 'news_related', 'boolean')}
                     {editedTrade?.news_related && (
                       <div className="space-y-2">

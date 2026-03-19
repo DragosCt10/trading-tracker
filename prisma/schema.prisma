@@ -507,6 +507,7 @@ model backtesting_trades {
   sl_size                Decimal           @default(0) @db.Decimal(10, 2)
   direction              String
   trade_outcome          String
+  session                String?
   break_even             Boolean?          @default(false)
   reentry                Boolean?          @default(false)
   news_related           Boolean?          @default(false)
@@ -563,6 +564,7 @@ model demo_trades {
   sl_size                Decimal           @default(0) @db.Decimal(10, 2)
   direction              String
   trade_outcome          String
+  session                String?
   break_even             Boolean?          @default(false)
   reentry                Boolean?          @default(false)
   news_related           Boolean?          @default(false)
@@ -619,6 +621,7 @@ model live_trades {
   sl_size                Decimal           @default(0) @db.Decimal(10, 2)
   direction              String
   trade_outcome          String
+  session                String?
   break_even             Boolean?          @default(false)
   reentry                Boolean?          @default(false)
   news_related           Boolean?          @default(false)

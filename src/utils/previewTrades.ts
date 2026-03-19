@@ -16,6 +16,7 @@ export function buildPreviewTrade(overrides: Partial<Trade> = {}): Trade {
     sl_size: 0,
     direction: 'Long',
     trade_outcome: 'Win',
+    session: 'London',
     break_even: false,
     reentry: false,
     news_related: false,

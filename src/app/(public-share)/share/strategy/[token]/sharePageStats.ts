@@ -114,6 +114,7 @@ export function mapCompactTradesToTrade(compactTrades: CompactTrade[], mode: str
     sl_size: ct.sl_size,
     direction: ct.direction,
     trade_outcome: ct.trade_outcome,
+    session: (ct.session ?? '').trim(),
     be_final_result: ct.be_final_result ?? null,
     break_even: ct.break_even,
     reentry: ct.reentry,

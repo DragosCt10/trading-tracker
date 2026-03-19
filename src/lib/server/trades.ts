@@ -37,6 +37,7 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
     sl_size: trade.sl_size,
     direction: trade.direction,
     trade_outcome: trade.trade_outcome,
+    session: trade.session ?? '',
     break_even: trade.break_even,
     reentry: trade.reentry,
     news_related: trade.news_related,

@@ -65,6 +65,7 @@ import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
 
 const MSS_OPTIONS = ['Normal', 'Aggressive', 'Wick', 'Internal'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
+const SESSION_OPTIONS = ['Sydney', 'Tokyo', 'London', 'New York'] as const;
 
 // FVG Size: preset list 0.5, 1, 1.5, 2, 2.5, 3 (0.5 steps). Custom (3+) for 3.5, 4, 4.5, ...
 const FVG_SIZE_OPTIONS: { value: number; label: string }[] = [
@@ -174,6 +175,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     sl_size: undefined as any,
     direction: '' as 'Long' | 'Short',
     trade_outcome: '' as 'Win' | 'Lose',
+    session: '',
     be_final_result: null as string | null,
     break_even: false,
     reentry: false,
@@ -522,6 +524,10 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     }
     if (!currentTrade.direction || !currentTrade.trade_outcome) {
       setError('Please select Direction and Trade Outcome.');
+      return;
+    }
+    if (!currentTrade.session || currentTrade.session.trim() === '') {
+      setError('Please select Session.');
       return;
     }
     if (!currentTrade.trade_time || currentTrade.trade_time.trim() === '') {
@@ -896,6 +902,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               market={trade.market}
               direction={trade.direction}
               tradeOutcome={trade.trade_outcome}
+              session={trade.session}
               beFinalResult={trade.be_final_result}
               setupType={trade.setup_type}
               mss={trade.mss}
@@ -1201,6 +1208,7 @@ interface MarketAndSetupSectionProps {
   market: Trade['market'];
   direction: Trade['direction'];
   tradeOutcome: Trade['trade_outcome'];
+  session: Trade['session'];
   beFinalResult: Trade['be_final_result'];
   setupType: Trade['setup_type'];
   mss: Trade['mss'];
@@ -1234,6 +1242,7 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
   market,
   direction,
   tradeOutcome,
+  session,
   beFinalResult,
   setupType,
   mss,
@@ -1357,6 +1366,28 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
               </p>
             </div>
           )}
+        </div>
+
+        {/* Session (manual tag) */}
+        <div className="space-y-2">
+          <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+            Session *
+          </Label>
+          <Select
+            value={session ?? ''}
+            onValueChange={(v) => updateTrade('session', v as any)}
+          >
+            <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+              <SelectValue placeholder="Select session" />
+            </SelectTrigger>
+            <SelectContent>
+              {SESSION_OPTIONS.map((opt) => (
+                <SelectItem key={opt} value={opt}>
+                  {opt}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* All hasCard-conditioned fields now share this same parent grid so rows realign automatically when cards are enabled/disabled. */}

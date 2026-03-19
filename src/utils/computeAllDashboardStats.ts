@@ -291,6 +291,7 @@ export function computeAllDashboardStats(
     monthly_data, best_month, worst_month,
     setup_stats:     cat.setupStats,
     liquidity_stats: cat.liquidityStats,
+    session_stats:   cat.sessionStats,
     direction_stats: cat.directionStats,
     mss_stats:       cat.mssStats,
     news_stats:      cat.newsStats,

@@ -414,6 +414,7 @@ export default function StrategyClient(
     directionStats,
     intervalStats,
     mssStats,
+    sessionStats,
     newsStats,
     dayStats,
     marketStats,
@@ -1028,10 +1029,12 @@ export default function StrategyClient(
               reentryStats: statsToUseForCharts.reentryStats as ReentryTradesChartCardProps['reentryStats'],
               breakEvenStats: statsToUseForCharts.breakEvenStats as ReentryTradesChartCardProps['breakEvenStats'],
               trendStats: statsToUseForCharts.trendStats ?? [],
+              sessionStats: sessionStats,
               chartsLoadingState: chartsLoadingState,
               includeTotalTrades: filteredChartStats !== null,
               showEvaluationCard: hasCard('evaluation_stats'),
               showTrendCard: hasCard('trend_stats'),
+              showSessionCard: hasCard('session_stats'),
             }}
             beforeRiskPerTradeRow={{
               trades: tradesToUse,

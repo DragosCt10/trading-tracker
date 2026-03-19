@@ -13,6 +13,8 @@ export interface Trade {
   sl_size: number;
   direction: string;
   trade_outcome: string;
+  /** Manual market session tag (Sydney/Tokyo/London/New York). */
+  session: string;
   /** When trade_outcome is BE, optional final result: did it end as Win or Lose. */
   be_final_result?: string | null;
   break_even: boolean;
