@@ -327,7 +327,6 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
                 <SessionStatisticsCard
                   sessionStats={aboveRiskPerTradeRow.sessionStats ?? []}
                   isLoading={aboveRiskPerTradeRow.chartsLoadingState}
-                  isPro={isPro}
                 />
               )}
             </div>
