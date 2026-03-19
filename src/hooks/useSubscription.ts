@@ -20,9 +20,6 @@ export function useSubscription({ userId }: UseSubscriptionOptions = {}) {
     queryKey: key,
     enabled: shouldAutoFetch,
     initialData: cached,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
     ...SUBSCRIPTION_DATA,
     queryFn: async (): Promise<ResolvedSubscription> => {
       if (!userId) {

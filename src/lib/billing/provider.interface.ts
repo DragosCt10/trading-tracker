@@ -5,6 +5,7 @@ import type { TierId, BillingPeriod } from '@/types/subscription';
 export interface ProviderSubscriptionData {
   providerSubscriptionId: string;
   providerCustomerId: string;
+  customerEmail: string | null;
   tierId: TierId;
   status: 'active' | 'trialing' | 'past_due' | 'canceled';
   billingPeriod: BillingPeriod | null;
@@ -55,10 +56,15 @@ export interface IPaymentProvider {
   createCheckoutSession(params: CheckoutParams): Promise<{ checkoutUrl: string }>;
   createCustomerPortalSession(params: { customerId: string; returnUrl: string }): Promise<{ portalUrl: string }>;
   getCustomerEmail(customerId: string): Promise<string | null>;
+  getLatestOrderInvoice(params: {
+    customerId: string;
+  }): Promise<{ status: 'ready'; invoiceUrl: string } | { status: 'scheduled' } | { status: 'missing_order' }>;
   parseWebhookEvent(params: {
     rawBody: string;
     headers: Record<string, string>;
     secret: string;
   }): Promise<WebhookAction>;
   cancelSubscription(providerSubscriptionId: string): Promise<void>;
+  /** Fetch the active subscription for a userId directly from the provider (bypasses webhook lag). */
+  getActiveSubscriptionForUser(userId: string): Promise<ProviderSubscriptionData | null>;
 }

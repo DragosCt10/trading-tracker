@@ -2,14 +2,16 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, CreditCard, ExternalLink, Loader2, Lock, AlertCircle } from 'lucide-react';
-import { createCheckoutUrl, createPortalUrl } from '@/lib/server/subscription';
+import { Check, CreditCard, ExternalLink, Loader2, Lock, AlertCircle, Ban, FileText } from 'lucide-react';
+import { createCheckoutUrl, createPortalUrl, cancelCurrentSubscription, getLatestInvoiceUrl, verifyAndActivateSubscription } from '@/lib/server/subscription';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { TIER_DEFINITIONS } from '@/constants/tiers';
 import type { ResolvedSubscription, BillingPeriod } from '@/types/subscription';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 
 const PRO_HIGHLIGHTS = [
   'Unlimited strategies',
@@ -29,9 +31,10 @@ interface BillingClientProps {
 
 export default function BillingClient({ subscription: initialSubscription, justPaid, featureContext }: BillingClientProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: userDetails } = useUserDetails();
   const userId = userDetails?.user?.id;
-  const { tier, subscription, refetchSubscription } = useSubscription({ userId });
+  const { tier, subscription, refetchSubscription, isFetching: isSubscriptionFetching } = useSubscription({ userId });
   const [hasHydrated, setHasHydrated] = useState(false);
   const effectiveSubscription = hasHydrated && userId ? (subscription ?? initialSubscription) : initialSubscription;
   const effectiveTier = effectiveSubscription.tier;
@@ -40,6 +43,8 @@ export default function BillingClient({ subscription: initialSubscription, justP
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('annual');
   const [isCheckoutPending, startCheckoutTransition] = useTransition();
   const [isPortalPending, startPortalTransition] = useTransition();
+  const [isCancelPending, startCancelTransition] = useTransition();
+  const [isInvoicePending, startInvoiceTransition] = useTransition();
   const [showProcessingBanner, setShowProcessingBanner] = useState(
     justPaid && initialSubscription.tier === 'starter'
   );
@@ -63,27 +68,48 @@ export default function BillingClient({ subscription: initialSubscription, justP
   // Ensure the first client render matches SSR output exactly to avoid hydration
   // mismatch when React Query cache still holds stale pre-payment subscription data.
   useEffect(() => {
-    setHasHydrated(true);
+    const frame = window.requestAnimationFrame(() => {
+      setHasHydrated(true);
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
   }, []);
 
-  // Poll for PRO upgrade after payment (up to 30s)
+  // Poll for upgrade after payment. Uses direct Polar API verification to bypass webhook latency.
+  // Stops automatically once tier is no longer starter. Max 40 attempts (~80s).
   useEffect(() => {
-    if (!justPaid || !userId || tier !== 'starter') return;
+    if (!justPaid || !userId) return;
+    if (tier !== 'starter') return;
 
-    const interval = setInterval(() => {
-      refetchSubscription();
-    }, 3000);
+    let attempts = 0;
+    const MAX_ATTEMPTS = 40;
 
-    const timeout = setTimeout(() => {
-      clearInterval(interval);
-      setShowProcessingBanner(false);
-    }, 30_000);
+    const interval = setInterval(async () => {
+      if (isSubscriptionFetching) return;
+      attempts += 1;
+      if (attempts > MAX_ATTEMPTS) {
+        clearInterval(interval);
+        return;
+      }
+
+      try {
+        // verifyAndActivateSubscription checks Polar API directly, bypassing webhook lag.
+        const updated = await verifyAndActivateSubscription(userId);
+        if (updated.tier !== 'starter') {
+          queryClient.setQueryData(queryKeys.subscription(userId), updated);
+          setShowProcessingBanner(false);
+          clearInterval(interval);
+        }
+      } catch {
+        // Silently retry on error
+      }
+    }, 2000);
 
     return () => {
       clearInterval(interval);
-      clearTimeout(timeout);
     };
-  }, [justPaid, userId, tier, refetchSubscription]);
+  }, [justPaid, userId, tier, isSubscriptionFetching, queryClient]);
 
   const resolvedSub = effectiveSubscription;
   const proDef = TIER_DEFINITIONS.pro;
@@ -112,6 +138,43 @@ export default function BillingClient({ subscription: initialSubscription, justP
       } else {
         alert('You have an admin-granted plan — contact support to make billing changes.');
       }
+    });
+  }
+
+  function handleCancelSubscription() {
+    const shouldCancelNow = window.confirm(
+      'Cancel subscription immediately? Access is revoked right away and this cannot be undone.'
+    );
+    if (!shouldCancelNow) return;
+
+    startCancelTransition(async () => {
+      const result = await cancelCurrentSubscription();
+      if (!result.ok) {
+        alert(result.message ?? 'Unable to cancel subscription right now.');
+        return;
+      }
+
+      if (result.userId && result.subscription) {
+        // Synchronously update cache with server-calculated post-cancel state before navigating.
+        queryClient.setQueryData(queryKeys.subscription(result.userId), result.subscription);
+      }
+
+      router.push('/stats');
+    });
+  }
+
+  function handleInvoice() {
+    startInvoiceTransition(async () => {
+      const invoice = await getLatestInvoiceUrl();
+      if (invoice.status === 'ready' && invoice.invoiceUrl) {
+        window.open(invoice.invoiceUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      if (invoice.status === 'scheduled') {
+        alert('Invoice generation is queued. Please click again in a few seconds.');
+        return;
+      }
+      alert('No recent order found for invoice generation.');
     });
   }
 
@@ -181,16 +244,40 @@ export default function BillingClient({ subscription: initialSubscription, justP
 
         {isPro && (
           <div className="mt-4 pt-4 border-t border-slate-200/60 dark:border-slate-800/60">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePortal}
-              disabled={isPortalPending}
-              className="gap-2 h-10 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-            >
-              {isPortalPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
-              Manage subscription
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePortal}
+                disabled={isPortalPending || isCancelPending || isInvoicePending}
+                className="gap-2 h-10 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              >
+                {isPortalPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ExternalLink className="h-3.5 w-3.5" />}
+                Manage subscription
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleInvoice}
+                disabled={isInvoicePending || isCancelPending || isPortalPending}
+                className="gap-2 h-10 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              >
+                {isInvoicePending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                Invoice
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancelSubscription}
+                disabled={isCancelPending || isPortalPending || isInvoicePending}
+                className="gap-2 h-10 rounded-2xl border border-rose-300/70 dark:border-rose-700/50 bg-rose-50/70 dark:bg-rose-950/20 backdrop-blur-xl text-rose-700 dark:text-rose-300 hover:bg-rose-100/80 dark:hover:bg-rose-900/30 transition-all duration-300"
+              >
+                {isCancelPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Ban className="h-3.5 w-3.5" />}
+                Cancel now
+              </Button>
+            </div>
           </div>
         )}
       </div>

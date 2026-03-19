@@ -52,6 +52,7 @@ function mapTierFromProductId(productId: string): TierId | null {
 function mapSubData(data: {
   id: string;
   customerId: string;
+  customerEmail: string | null;
   productId: string;
   status: string;
   currentPeriodStart: string | null;
@@ -72,6 +73,7 @@ function mapSubData(data: {
   return {
     providerSubscriptionId: data.id,
     providerCustomerId: data.customerId,
+    customerEmail: data.customerEmail,
     tierId,
     status: statusMap[data.status] ?? 'active',
     billingPeriod: mapBillingPeriod(data),
@@ -126,9 +128,13 @@ function trySubscriptionRevokeFromSucceededRefund(
 export class PolarProvider implements IPaymentProvider {
   readonly name = 'polar' as const;
   private client: Polar;
+  private readonly accessToken: string;
+  private readonly apiBaseUrl: string;
 
   constructor(accessToken: string, server: 'sandbox' | 'production' = 'production') {
     this.client = new Polar({ accessToken, server });
+    this.accessToken = accessToken;
+    this.apiBaseUrl = server === 'sandbox' ? 'https://sandbox-api.polar.sh' : 'https://api.polar.sh';
   }
 
   async createCheckoutSession({ productId, userId, successUrl }: CheckoutParams): Promise<{ checkoutUrl: string }> {
@@ -211,16 +217,23 @@ export class PolarProvider implements IPaymentProvider {
       const userId = getUserId(sub.metadata as Record<string, unknown> | undefined);
 
       const mapped = mapSubData({
-        id: sub.id,
-        customerId: sub.customerId,
-        productId: sub.productId,
+        id: readString(sub, 'id', 'id') ?? '',
+        customerId: readString(sub, 'customerId', 'customer_id') ?? '',
+        customerEmail:
+          (sub.customer && typeof sub.customer === 'object'
+            ? readString(sub.customer as Record<string, unknown>, 'email', 'email')
+            : null) ??
+          readString(sub, 'customerEmail', 'customer_email'),
+        productId: readString(sub, 'productId', 'product_id') ?? '',
         status: sub.status,
-        currentPeriodStart: sub.currentPeriodStart,
-        currentPeriodEnd: sub.currentPeriodEnd,
-        cancelAtPeriodEnd: sub.cancelAtPeriodEnd ?? false,
-        recurringInterval: sub.recurringInterval,
+        currentPeriodStart: readString(sub, 'currentPeriodStart', 'current_period_start'),
+        currentPeriodEnd: readString(sub, 'currentPeriodEnd', 'current_period_end'),
+        cancelAtPeriodEnd: readBoolean(sub, 'cancelAtPeriodEnd', 'cancel_at_period_end', false),
+        recurringInterval: readString(sub, 'recurringInterval', 'recurring_interval'),
       });
-      if (!mapped) return { type: 'ignore' };
+      if (!mapped || !mapped.providerSubscriptionId || !mapped.providerCustomerId) {
+        return { type: 'ignore' };
+      }
 
       console.log(`[billing/webhook] action=subscription.updated userId=${userId ?? '—'}`);
       return { type: 'subscription.updated', data: mapped, userId };
@@ -311,11 +324,145 @@ export class PolarProvider implements IPaymentProvider {
       };
     }
 
+    if (type === 'order.updated') {
+      return { type: 'ignore' };
+    }
+
     console.log(`[billing/webhook] action=ignore reason=unhandled_event_type type=${type}`);
     return { type: 'ignore' };
   }
 
   async cancelSubscription(providerSubscriptionId: string): Promise<void> {
     await this.client.subscriptions.revoke({ id: providerSubscriptionId });
+  }
+
+  /**
+   * Fetch the active subscription for a user directly from Polar by querying
+   * subscriptions with matching metadata.userId. Used post-checkout to bypass
+   * webhook latency — the subscription may exist in Polar before the webhook arrives.
+   */
+  async getActiveSubscriptionForUser(userId: string): Promise<ProviderSubscriptionData | null> {
+    try {
+      const result = await this.client.subscriptions.list({
+        active: true,
+        limit: 10,
+      });
+
+      // The SDK returns a PageIterator — collect the first page of items.
+      const items: Record<string, unknown>[] = [];
+      for await (const sub of result) {
+        items.push(sub as unknown as Record<string, unknown>);
+        if (items.length >= 10) break;
+      }
+      for (const sub of items) {
+        const meta = (sub as any).metadata as Record<string, unknown> | undefined;
+        if (typeof meta?.userId !== 'string' || meta.userId !== userId) continue;
+
+        const productId = readString(sub as unknown as Record<string, unknown>, 'productId', 'product_id') ?? '';
+        const mapped = mapSubData({
+          id: readString(sub as unknown as Record<string, unknown>, 'id', 'id') ?? '',
+          customerId: readString(sub as unknown as Record<string, unknown>, 'customerId', 'customer_id') ?? '',
+          customerEmail: null,
+          productId,
+          status: (sub as any).status ?? 'active',
+          currentPeriodStart: readString(sub as unknown as Record<string, unknown>, 'currentPeriodStart', 'current_period_start'),
+          currentPeriodEnd: readString(sub as unknown as Record<string, unknown>, 'currentPeriodEnd', 'current_period_end'),
+          cancelAtPeriodEnd: readBoolean(sub as unknown as Record<string, unknown>, 'cancelAtPeriodEnd', 'cancel_at_period_end', false),
+          recurringInterval: readString(sub as unknown as Record<string, unknown>, 'recurringInterval', 'recurring_interval'),
+        });
+        if (mapped) return mapped;
+      }
+
+      return null;
+    } catch (err) {
+      console.error(`[billing/polar] getActiveSubscriptionForUser failed userId=${userId}`, err);
+      return null;
+    }
+  }
+
+  private async polarFetch(path: string, init?: RequestInit): Promise<Response> {
+    return fetch(`${this.apiBaseUrl}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+        ...(init?.headers ?? {}),
+      },
+      cache: 'no-store',
+    });
+  }
+
+  private extractOrderList(payload: unknown): Record<string, unknown>[] {
+    if (!payload || typeof payload !== 'object') return [];
+    const root = payload as Record<string, unknown>;
+    const options = [
+      root.items,
+      root.data,
+      root.result && typeof root.result === 'object' ? (root.result as Record<string, unknown>).items : undefined,
+    ];
+    for (const candidate of options) {
+      if (Array.isArray(candidate)) {
+        return candidate.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object');
+      }
+    }
+    return [];
+  }
+
+  private readDate(order: Record<string, unknown>): Date {
+    const candidates = [order.created_at, order.createdAt, order.modified_at, order.modifiedAt];
+    for (const value of candidates) {
+      if (typeof value === 'string') {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) return parsed;
+      }
+    }
+    return new Date(0);
+  }
+
+  async getLatestOrderInvoice({
+    customerId,
+  }: {
+    customerId: string;
+  }): Promise<{ status: 'ready'; invoiceUrl: string } | { status: 'scheduled' } | { status: 'missing_order' }> {
+    const listUrl = `/v1/orders?customer_id=${encodeURIComponent(customerId)}&limit=20`;
+    const listResponse = await this.polarFetch(listUrl, { method: 'GET' });
+    if (!listResponse.ok) {
+      console.error(`[billing/polar] failed listing orders for customer=${customerId} status=${listResponse.status}`);
+      return { status: 'missing_order' };
+    }
+
+    const listPayload = await listResponse.json();
+    const orders = this.extractOrderList(listPayload);
+    if (orders.length === 0) return { status: 'missing_order' };
+
+    const latestOrder = orders.toSorted((a, b) => this.readDate(b).getTime() - this.readDate(a).getTime())[0];
+    if (!latestOrder) return { status: 'missing_order' };
+
+    const orderId =
+      (typeof latestOrder.id === 'string' && latestOrder.id) ||
+      (typeof latestOrder.order_id === 'string' && latestOrder.order_id) ||
+      null;
+    if (!orderId) return { status: 'missing_order' };
+
+    const generateResponse = await this.polarFetch(`/v1/orders/${orderId}/invoice`, { method: 'POST' });
+    if (![200, 202, 409].includes(generateResponse.status)) {
+      console.error(
+        `[billing/polar] failed generating invoice orderId=${orderId} status=${generateResponse.status}`
+      );
+      return { status: 'scheduled' };
+    }
+
+    const getResponse = await this.polarFetch(`/v1/orders/${orderId}/invoice`, { method: 'GET' });
+    if (!getResponse.ok) {
+      return { status: 'scheduled' };
+    }
+    const invoicePayload = await getResponse.json();
+    const invoiceUrl =
+      (typeof invoicePayload.url === 'string' && invoicePayload.url) ||
+      (typeof invoicePayload.invoice_url === 'string' && invoicePayload.invoice_url) ||
+      (typeof invoicePayload.download_url === 'string' && invoicePayload.download_url) ||
+      null;
+
+    return invoiceUrl ? { status: 'ready', invoiceUrl } : { status: 'scheduled' };
   }
 }
