@@ -219,9 +219,9 @@ export async function getShareStatsCache(shareId: string): Promise<DashboardRpcR
 export async function getShareByToken(
   token: string
 ): Promise<StrategyShareRow | null> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createServiceRoleClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('strategy_shares')
     .select('*')
     .eq('share_token', token)
