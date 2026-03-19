@@ -31,60 +31,18 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
 
     const previewData = useMemo<TradeStatDatum[]>(
       () => [
-        {
-          category: '00:00 – 03:59',
-          wins: 3,
-          losses: 1,
-          breakEven: 1,
-          totalTrades: 5,
-          winRate: (3 / (3 + 1)) * 100,
-          winRateWithBE: (3 / 5) * 100,
-        },
-        {
-          category: '04:00 – 07:59',
-          wins: 2,
-          losses: 2,
-          breakEven: 1,
-          totalTrades: 5,
-          winRate: (2 / (2 + 2)) * 100,
-          winRateWithBE: (2 / 5) * 100,
-        },
-        {
-          category: '08:00 – 11:59',
-          wins: 4,
-          losses: 1,
-          breakEven: 0,
-          totalTrades: 5,
-          winRate: (4 / (4 + 1)) * 100,
-          winRateWithBE: (4 / 5) * 100,
-        },
-        {
-          category: '12:00 – 15:59',
-          wins: 1,
-          losses: 3,
-          breakEven: 1,
-          totalTrades: 5,
-          winRate: (1 / (1 + 3)) * 100,
-          winRateWithBE: (1 / 5) * 100,
-        },
-        {
-          category: '16:00 – 19:59',
-          wins: 2,
-          losses: 1,
-          breakEven: 2,
-          totalTrades: 5,
-          winRate: (2 / (2 + 1)) * 100,
-          winRateWithBE: (2 / 5) * 100,
-        },
-        {
-          category: '20:00 – 23:59',
-          wins: 0,
-          losses: 2,
-          breakEven: 1,
-          totalTrades: 3,
-          winRate: 0,
-          winRateWithBE: 0,
-        },
+        { category: '00:00 – 01:59', wins: 1, losses: 1, breakEven: 0, totalTrades: 2, winRate: 50, winRateWithBE: 50 },
+        { category: '02:00 – 03:59', wins: 0, losses: 1, breakEven: 1, totalTrades: 2, winRate: 0, winRateWithBE: 0 },
+        { category: '04:00 – 05:59', wins: 2, losses: 1, breakEven: 0, totalTrades: 3, winRate: (2 / 3) * 100, winRateWithBE: (2 / 3) * 100 },
+        { category: '06:00 – 07:59', wins: 1, losses: 2, breakEven: 0, totalTrades: 3, winRate: (1 / 3) * 100, winRateWithBE: (1 / 3) * 100 },
+        { category: '08:00 – 09:59', wins: 4, losses: 1, breakEven: 0, totalTrades: 5, winRate: 80, winRateWithBE: 80 },
+        { category: '10:00 – 11:59', wins: 3, losses: 1, breakEven: 1, totalTrades: 5, winRate: 75, winRateWithBE: 60 },
+        { category: '12:00 – 13:59', wins: 2, losses: 2, breakEven: 1, totalTrades: 5, winRate: 50, winRateWithBE: 40 },
+        { category: '14:00 – 15:59', wins: 1, losses: 3, breakEven: 0, totalTrades: 4, winRate: 25, winRateWithBE: 25 },
+        { category: '16:00 – 17:59', wins: 3, losses: 1, breakEven: 0, totalTrades: 4, winRate: 75, winRateWithBE: 75 },
+        { category: '18:00 – 19:59', wins: 1, losses: 1, breakEven: 1, totalTrades: 3, winRate: 50, winRateWithBE: (1 / 3) * 100 },
+        { category: '20:00 – 21:59', wins: 0, losses: 2, breakEven: 0, totalTrades: 2, winRate: 0, winRateWithBE: 0 },
+        { category: '22:00 – 23:59', wins: 1, losses: 0, breakEven: 1, totalTrades: 2, winRate: 100, winRateWithBE: 50 },
       ],
       []
     );
@@ -213,13 +171,19 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
                 xAxisDataKey="category"
                 xAxisTickFormatter={(_: string, i: number) => {
                   const d = withTotals[i];
-                  return d ? `${d.category} (${d.totalTrades ?? 0})` : '';
+                  if (!d) return '';
+                  const [start, end] = String(d.category).split(' – ');
+                  const totalTrades = d.totalTrades ?? 0;
+                  return end
+                    ? `${start}-${end} (${totalTrades})`
+                    : `${String(d.category)} (${totalTrades})`;
                 }}
                 tooltipHeaderGetter={(d) => String(d.category ?? '')}
                 isDark={isDark}
                 beCalcEnabled={beCalcEnabled}
                 idPrefix="timeInterval"
                 barCategoryGap="20%"
+                xAxisInterval={0}
                 lineActiveDot={{ r: 4, fill: '#f59e0b', strokeWidth: 0 }}
               />
             </div>
