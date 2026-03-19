@@ -98,6 +98,7 @@ type ShareStrategyClientProps = {
   shareData: StrategyShareRow;
   currencySymbol: string;
   accountBalance: number | null;
+  isPro: boolean;
 };
 
 function SharedMyTradesView({
@@ -106,12 +107,14 @@ function SharedMyTradesView({
   currencySymbol,
   accountBalance,
   extraCards,
+  isPro,
 }: {
   trades: Trade[];
   strategyName: string;
   currencySymbol: string;
   accountBalance: number | null;
   extraCards: string[];
+  isPro: boolean;
 }) {
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
   const { isDark } = useDarkMode();
@@ -408,8 +411,8 @@ function SharedMyTradesView({
         </Card>
       </div>
 
-      {/* Future Equity (Monte Carlo) card — only when enough trades for simulation */}
-      {filteredTrades.length >= MONTE_CARLO_MIN_TRADES && (
+      {/* Future Equity (Monte Carlo) card — PRO only, only when enough trades for simulation */}
+      {isPro && filteredTrades.length >= MONTE_CARLO_MIN_TRADES && (
         <div>
           <MonteCarloCard trades={filteredTrades} currencySymbol={currencySymbol} />
         </div>
@@ -439,6 +442,7 @@ export default function ShareStrategyClient({
   shareData,
   currencySymbol,
   accountBalance,
+  isPro,
 }: ShareStrategyClientProps) {
   const [hydrated, setHydrated] = useState(false);
   const [activeView, setActiveView] = useState<'trades' | 'analytics'>('trades');
@@ -691,6 +695,7 @@ export default function ShareStrategyClient({
             currencySymbol={currencySymbol}
             accountBalance={accountBalance}
             extraCards={strategy.extra_cards}
+            isPro={isPro}
           />
         )}
 
@@ -741,6 +746,7 @@ export default function ShareStrategyClient({
           />
         </section>
 
+        {isPro && (
         <section className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -767,8 +773,9 @@ export default function ShareStrategyClient({
             />
           </div>
         </section>
+        )}
 
-        {(hasConfidenceData || hasMindStateData) && (
+        {isPro && (hasConfidenceData || hasMindStateData) && (
           <section className="space-y-4">
             <div>
               <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Psychological Factors</h2>
@@ -789,7 +796,7 @@ export default function ShareStrategyClient({
           </section>
         )}
 
-        <section className="space-y-4">
+        <section className="space-y-4 mt-6">
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Equity curve</h2>
             <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -799,6 +806,7 @@ export default function ShareStrategyClient({
           <EquityCurveCard trades={trades} currencySymbol={currencySymbol} />
         </section>
 
+        {isPro && (
         <section className="space-y-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Consistency &amp; drawdown</h2>
@@ -812,7 +820,9 @@ export default function ShareStrategyClient({
             <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} />
           </div>
         </section>
+        )}
 
+        {isPro && (
         <section className="space-y-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Performance ratios</h2>
@@ -830,7 +840,9 @@ export default function ShareStrategyClient({
             <TQIChart tradesToUse={trades} />
           </div>
         </section>
+        )}
 
+        {isPro && (
         <section className="my-8">
           <div>
             <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-2">
@@ -845,8 +857,9 @@ export default function ShareStrategyClient({
             months={MONTHS}
           />
         </section>
+        )}
 
-        {hasMarketData && (
+        {isPro && hasMarketData && (
           <div className="my-8">
             <MarketStatisticsCard
               marketStats={marketStats}
@@ -856,7 +869,7 @@ export default function ShareStrategyClient({
           </div>
         )}
 
-        {hasMarketData && (
+        {isPro && hasMarketData && (
           <div className="my-8">
             <MarketProfitStatisticsCard
               trades={trades}
@@ -867,7 +880,7 @@ export default function ShareStrategyClient({
           </div>
         )}
 
-        {hasTimeIntervalData && (
+        {isPro && hasTimeIntervalData && (
           <div className="my-8">
             <TimeIntervalStatisticsCard
               data={timeIntervalChartData}
