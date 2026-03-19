@@ -37,7 +37,7 @@ import { applyCustomStatFilter } from '@/utils/applyCustomStatFilter';
 import { buildPreviewTrade } from '@/utils/previewTrades';
 import { updateStrategyCustomStats } from '@/lib/server/strategies';
 import { CustomStatModal } from '@/components/CustomStatModal';
-import { CustomStatDetailModal } from '@/components/CustomStatDetailModal';
+import { CustomStatDetailView } from '@/components/CustomStatDetailView';
 import { CustomStatsSkeleton } from './CustomStatsSkeleton';
 import { TIME_INTERVALS } from '@/constants/analytics';
 
@@ -277,6 +277,22 @@ export default function CustomStatsClient({
     );
   }
 
+  if (detailStatId !== null && detailConfig) {
+    return (
+      <TooltipProvider>
+        <CustomStatDetailView
+          config={detailConfig}
+          trades={detailTrades}
+          currencySymbol={currencySymbol}
+          accountBalance={accountBalance}
+          onBack={() => setDetailStatId(null)}
+          onEdit={(cfg) => { setDetailStatId(null); handleEdit(cfg); }}
+          onDelete={(id) => { setDetailStatId(null); handleDelete(id); }}
+        />
+      </TooltipProvider>
+    );
+  }
+
   return (
     <TooltipProvider>
       <div className="max-w-7xl mx-auto">
@@ -385,43 +401,45 @@ export default function CustomStatsClient({
                         <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 line-clamp-1 min-w-0">
                           {config.name}
                         </p>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <div className="flex flex-col items-end gap-1">
-                            <div className="inline-flex items-center gap-1">
-                              {totalPnL >= 0 ? (
-                                <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                              ) : (
-                                <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
-                              )}
-                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-bold ${
-                                totalPnL >= 0
-                                  ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
-                                  : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
-                              }`}>
-                                {totalPnL >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
-                              </span>
-                            </div>
-                            <span className="text-xs text-white dark:text-white">
-                              <span className="font-semibold uppercase tracking-wide">NET P&amp;L </span>
-                              <span className={`text-sm font-bold leading-none ${totalPnL >= 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
-                                {totalPnL >= 0 ? '+' : ''}{currencySymbol}{roundToCents(totalPnL).toFixed(2)}
-                              </span>
+                        <div className="flex items-start shrink-0">
+                          <div className="inline-flex items-center gap-1.5">
+                            {totalPnL >= 0 ? (
+                              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+                            ) : (
+                              <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
+                            )}
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-bold ${
+                              totalPnL >= 0
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                                : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                            }`}>
+                              {totalPnL >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
                             </span>
                           </div>
                         </div>
                       </div>
 
                       {/* Stats row */}
-                      <div className="flex items-center gap-4 mt-2">
-                        <div>
-                          <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Win Rate</p>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                            {formatPercent(effectiveWinRate)}%
-                          </p>
+                      <div className="flex items-end justify-between gap-4 mt-2">
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Win Rate</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                              {formatPercent(effectiveWinRate)}%
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Trades</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{totalTrades}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Trades</p>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{totalTrades}</p>
+                        <div className="text-right">
+                          <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Net P&amp;L</p>
+                          <p className={`text-sm font-semibold ${
+                            totalPnL >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                          }`}>
+                            {totalPnL >= 0 ? '+' : ''}{currencySymbol}{roundToCents(totalPnL).toFixed(2)}
+                          </p>
                         </div>
                       </div>
 
@@ -533,18 +551,7 @@ export default function CustomStatsClient({
           liquidityOptions={savedLiquidityTypes}
         />
 
-        {detailConfig && (
-          <CustomStatDetailModal
-            isOpen={detailStatId !== null}
-            onClose={() => setDetailStatId(null)}
-            config={detailConfig}
-            trades={detailTrades}
-            currencySymbol={currencySymbol}
-            accountBalance={accountBalance}
-            onEdit={(cfg) => { setDetailStatId(null); handleEdit(cfg); }}
-            onDelete={(id) => { setDetailStatId(null); handleDelete(id); }}
-          />
-        )}
+
       </div>
     </TooltipProvider>
   );
