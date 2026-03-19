@@ -32,12 +32,15 @@ export default function BillingClient({ subscription: initialSubscription, justP
   const { data: userDetails } = useUserDetails();
   const userId = userDetails?.user?.id;
   const { tier, subscription, refetchSubscription } = useSubscription({ userId });
+  const effectiveSubscription = userId ? (subscription ?? initialSubscription) : initialSubscription;
+  const effectiveTier = effectiveSubscription.tier;
+  const isPro = effectiveTier !== 'starter';
 
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('annual');
   const [isCheckoutPending, startCheckoutTransition] = useTransition();
   const [isPortalPending, startPortalTransition] = useTransition();
   const [showProcessingBanner, setShowProcessingBanner] = useState(
-    justPaid && (subscription?.tier ?? initialSubscription.tier) === 'starter'
+    justPaid && initialSubscription.tier === 'starter'
   );
 
   // Clean checkout return params so server action POSTs don't keep using success URL forever.
@@ -58,7 +61,7 @@ export default function BillingClient({ subscription: initialSubscription, justP
 
   // Poll for PRO upgrade after payment (up to 30s)
   useEffect(() => {
-    if (!justPaid || tier !== 'starter') return;
+    if (!justPaid || !userId || tier !== 'starter') return;
 
     const interval = setInterval(() => {
       refetchSubscription();
@@ -73,10 +76,9 @@ export default function BillingClient({ subscription: initialSubscription, justP
       clearInterval(interval);
       clearTimeout(timeout);
     };
-  }, [justPaid, tier, refetchSubscription]);
+  }, [justPaid, userId, tier, refetchSubscription]);
 
-  const resolvedSub = subscription ?? initialSubscription;
-  const isPro = resolvedSub.tier !== 'starter';
+  const resolvedSub = effectiveSubscription;
   const proDef = TIER_DEFINITIONS.pro;
   const monthlyPrice = proDef.pricing.monthly?.usd ?? 0;
   const annualPrice = proDef.pricing.annual?.usd ?? 0;
@@ -125,7 +127,7 @@ export default function BillingClient({ subscription: initialSubscription, justP
       </div>
 
       {/* Processing banner (post-checkout race condition) */}
-      {showProcessingBanner && tier === 'starter' && (
+      {showProcessingBanner && effectiveTier === 'starter' && (
         <div className="mb-6 flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-300 backdrop-blur-sm">
           <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
           <span>
