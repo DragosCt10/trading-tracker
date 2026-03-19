@@ -1,12 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Crown, Infinity as InfinityIcon, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Crown, Pencil, Plus, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn, formatPercent } from '@/lib/utils';
+import { cn, formatPercent, roundToCents } from '@/lib/utils';
 import { useBECalc } from '@/contexts/BECalcContext';
 import type { Trade } from '@/types/trade';
 import type { Database } from '@/types/supabase';
@@ -23,12 +23,7 @@ import {
   TradeFiltersBar,
   type DateRangeValue,
 } from '@/components/dashboard/analytics/TradeFiltersBar';
-import { calculateProfitFactor, calculateAveragePnLPercentage } from '@/utils/analyticsCalculations';
 import { calculateWinRates } from '@/utils/calculateWinRates';
-import { getIntervalForTime } from '@/constants/analytics';
-import TradeDetailsModal from '@/components/TradeDetailsModal';
-import NotesModal from '@/components/NotesModal';
-import { ScreensCarouselCell } from '@/components/trades/ScreensCarouselCell';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { getFilteredTrades } from '@/lib/server/trades';
@@ -36,12 +31,13 @@ import { queryKeys } from '@/lib/queryKeys';
 import { TRADES_DATA } from '@/constants/queryConfig';
 import { getCurrencySymbolFromAccount } from '@/components/dashboard/analytics/AccountOverviewCard';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
-import { OutcomeChips } from '@/components/trades/OutcomeChips';
+import { buildEquityPointsFromTrades } from '@/components/dashboard/analytics/EquityCurveCard';
 import { useSubscription } from '@/hooks/useSubscription';
 import { applyCustomStatFilter } from '@/utils/applyCustomStatFilter';
 import { buildPreviewTrade } from '@/utils/previewTrades';
 import { updateStrategyCustomStats } from '@/lib/server/strategies';
 import { CustomStatModal } from '@/components/CustomStatModal';
+import { CustomStatDetailModal } from '@/components/CustomStatDetailModal';
 import { CustomStatsSkeleton } from './CustomStatsSkeleton';
 import { TIME_INTERVALS } from '@/constants/analytics';
 
@@ -60,22 +56,6 @@ interface CustomStatsClientProps {
   initialUserId: string;
   currencySymbol: string;
   accountBalance: number | null;
-}
-
-function formatTradeTimeForDisplay(value: string | Date | unknown): string {
-  if (value == null) return '';
-  if (typeof value === 'string') {
-    if (value.includes('T') || value.includes('Z')) {
-      const d = new Date(value);
-      return d.toISOString().slice(11, 19);
-    }
-    const interval = getIntervalForTime(value);
-    return interval?.label ?? value;
-  }
-  if (value instanceof Date) {
-    return value.toISOString().slice(11, 19);
-  }
-  return String(value);
 }
 
 function buildFilterPills(filters: CustomStatConfig['filters']): string[] {
@@ -205,15 +185,9 @@ export default function CustomStatsClient({
 
   // Custom stats state
   const [savedStats, setSavedStats] = useState<CustomStatConfig[]>(savedCustomStats);
-  const [openById, setOpenById] = useState<Record<string, boolean>>({});
+  const [detailStatId, setDetailStatId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<CustomStatConfig | null>(null);
-
-  // Trade detail/notes modals
-  const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [selectedNotes, setSelectedNotes] = useState<string>('');
-  const [isNotesOpen, setIsNotesOpen] = useState(false);
 
   const isCustomRange = isCustomDateRange(dateRange);
 
@@ -242,25 +216,6 @@ export default function CustomStatsClient({
 
   const handleDateRangeChange = useCallback((range: DateRangeValue) => {
     setDateRange(range);
-  }, []);
-
-  const openTradeDetails = useCallback((trade: Trade) => {
-    setSelectedTrade(trade);
-    setIsDetailsOpen(true);
-  }, []);
-
-  const closeTradeDetails = useCallback(() => {
-    setIsDetailsOpen(false);
-    setSelectedTrade(null);
-  }, []);
-
-  const openNotesModal = useCallback((notes: string) => {
-    setSelectedNotes(notes);
-    setIsNotesOpen(true);
-  }, []);
-
-  const closeNotesModal = useCallback(() => {
-    setIsNotesOpen(false);
   }, []);
 
   const persistStats = useCallback(
@@ -304,27 +259,15 @@ export default function CustomStatsClient({
     setIsModalOpen(true);
   }, []);
 
-  const toggleCard = useCallback((id: string) => {
-    setOpenById((prev) => ({ ...prev, [id]: !prev[id] }));
-  }, []);
-
-  const buildCardChartData = (trades: Trade[]) => {
-    if (!trades.length) return [];
-    const sorted = trades
-      .slice()
-      .sort((a, b) =>
-        a.trade_date !== b.trade_date
-          ? a.trade_date.localeCompare(b.trade_date)
-          : a.trade_time.localeCompare(b.trade_time)
-      );
-    let cumulative = 0;
-    const points: { date: string | Date; profit: number }[] = [{ date: sorted[0].trade_date, profit: 0 }];
-    for (const trade of sorted) {
-      cumulative += trade.calculated_profit ?? 0;
-      points.push({ date: trade.trade_date, profit: cumulative });
-    }
-    return points;
-  };
+  // Detail modal data
+  const detailConfig = useMemo(
+    () => (isPro ? savedStats : previewStats).find((s) => s.id === detailStatId) ?? null,
+    [isPro, savedStats, previewStats, detailStatId]
+  );
+  const detailTrades = useMemo(
+    () => (detailConfig ? applyCustomStatFilter(filteredTrades, detailConfig.filters) : []),
+    [detailConfig, filteredTrades]
+  );
 
   if (activeAccount && tradesLoading && !isInitialContext) {
     return (
@@ -381,379 +324,203 @@ export default function CustomStatsClient({
             </Card>
           )}
 
-          {(isPro ? savedStats : previewStats).map((config, index) => {
-            const isOpen = openById[config.id] ?? index === 0;
-            const cardTrades = isPro
-              ? applyCustomStatFilter(filteredTrades, config.filters)
-              : (previewTradesMap[config.id] ?? []);
-            const totalTrades = cardTrades.length;
-            const winners = cardTrades.filter((t) => !t.break_even && t.trade_outcome === 'Win').length;
-            const losers = cardTrades.filter((t) => !t.break_even && t.trade_outcome === 'Lose').length;
-            const breakEven = cardTrades.filter((t) => t.break_even).length;
-            const { winRate, winRateWithBE } = calculateWinRates(cardTrades);
-            const totalPnLPct = calculateAveragePnLPercentage(cardTrades, accountBalance);
-            const profitFactor = calculateProfitFactor(cardTrades, winners, losers);
-            const isValidProfitFactor = Number.isFinite(profitFactor) && !Number.isNaN(profitFactor);
-            const realTrades = cardTrades.filter(
-              (t) => !t.break_even || (t.break_even && t.partials_taken)
-            );
-            const profitableTrades = realTrades.filter(
-              (t) =>
-                (!t.break_even && t.trade_outcome === 'Win') ||
-                (t.break_even && t.partials_taken)
-            );
-            const consistency =
-              realTrades.length > 0 ? (profitableTrades.length / realTrades.length) * 100 : 0;
+          {/* Small card grid — 3 per row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {(isPro ? savedStats : previewStats).map((config) => {
+              const cardTrades = isPro
+                ? applyCustomStatFilter(filteredTrades, config.filters)
+                : (previewTradesMap[config.id] ?? []);
+              const totalTrades = cardTrades.length;
+              const { winRate, winRateWithBE } = calculateWinRates(cardTrades);
+              const effectiveWinRate = beCalcEnabled ? winRateWithBE : winRate;
+              const filterPills = buildFilterPills(config.filters);
+              const visiblePills = filterPills.slice(0, 3);
+              const extraPillCount = filterPills.length - visiblePills.length;
+              const chartData = buildEquityPointsFromTrades(cardTrades);
+              const totalPnL = cardTrades.reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0);
+              const pnlPercent = (totalPnL / (accountBalance || 1)) * 100;
 
-            const filterPills = buildFilterPills(config.filters);
-            const totalPnL = cardTrades.reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0);
-            const cardChartData = buildCardChartData(cardTrades);
+              const cardContent = (
+                <Card
+                  key={config.id}
+                  role="button"
+                  tabIndex={isPro ? 0 : -1}
+                  onClick={() => isPro && setDetailStatId(config.id)}
+                  onKeyDown={(e) => {
+                    if (isPro && (e.key === 'Enter' || e.key === ' ')) {
+                      e.preventDefault();
+                      setDetailStatId(config.id);
+                    }
+                  }}
+                  className={cn(
+                    'rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden relative transition-all duration-200',
+                    isPro && 'hover:border-slate-400/60 dark:hover:border-slate-600/60 hover:shadow-lg cursor-pointer'
+                  )}
+                >
+                  {!isPro && (
+                    <>
+                      <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px] rounded-2xl" />
+                      <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                        <Crown className="w-3 h-3" /> PRO
+                      </span>
+                    </>
+                  )}
 
-            const cardContent = (
-              <Card
-                className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden relative"
-              >
-                {!isPro && (
-                  <>
-                    <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px] rounded-2xl" />
-                    <span className="absolute right-4 top-4 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
-                      <Crown className="w-3 h-3" /> PRO
-                    </span>
-                  </>
-                )}
-
-                <div className={cn(!isPro && 'blur-[3px] opacity-70 pointer-events-none select-none')}>
-                  {/* Card header */}
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => toggleCard(config.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        toggleCard(config.id);
-                      }
-                    }}
-                    className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <ChevronRight
-                        className={cn(
-                          'h-4 w-4 text-slate-500 dark:text-slate-400 transition-transform duration-200 shrink-0',
-                          isOpen ? 'rotate-90' : 'rotate-0'
-                        )}
+                  <div className={cn(!isPro && 'blur-[3px] opacity-70 pointer-events-none select-none')}>
+                    {/* Equity chart */}
+                    <div className="h-24 w-full px-3 pt-3">
+                      <EquityCurveChart
+                        data={chartData}
+                        currencySymbol={currencySymbol}
+                        hasTrades={cardTrades.length > 0}
+                        isLoading={!mounted}
+                        variant="card"
+                        hideAxisLabels
                       />
-                      <div className="min-w-0">
-                        <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                    </div>
+
+                    {/* Card info */}
+                    <div className="px-4 pt-3 pb-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 line-clamp-1 min-w-0">
                           {config.name}
                         </p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                          {totalTrades} trade{totalTrades !== 1 ? 's' : ''} • P&L:{' '}
-                          <span className={totalPnL >= 0 ? 'text-emerald-500' : 'text-rose-500'}>
-                            <strong>
-                              {currencySymbol}
-                              {formatPercent(totalPnL)}
-                            </strong>
-                          </span>
-                        </p>
-                        {filterPills.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-4">
-                            {filterPills.map((pill) => (
-                              <span
-                                key={pill}
-                                className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-200/70 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300"
-                              >
-                                {pill}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {isPro && (
-                      <div className="flex items-center gap-2 shrink-0 ml-3">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(config);
-                          }}
-                          className="h-8 rounded-xl px-3 text-xs cursor-pointer transition-colors duration-200 border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium"
-                        >
-                          <Pencil className="h-3 w-3 mr-1" />
-                          Edit
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(config.id);
-                          }}
-                          className="h-8 rounded-xl px-3 text-xs cursor-pointer transition-colors duration-200 border border-rose-200/80 bg-rose-50/60 text-rose-600 hover:bg-rose-100/80 hover:text-rose-700 hover:border-rose-300/80 dark:border-rose-800/80 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/40 dark:hover:text-rose-300 dark:hover:border-rose-700/80 font-medium"
-                        >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Delete
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Stats row — always visible */}
-                  <div className="border-t border-slate-200/70 dark:border-slate-700/60 px-5 py-4">
-                    <div className="flex flex-col gap-10 md:flex-row md:items-center">
-                      <div className="md:w-1/3 h-32 flex items-center">
-                        <EquityCurveChart
-                          data={cardChartData}
-                          currencySymbol={currencySymbol}
-                          hasTrades={cardTrades.length > 0}
-                          isLoading={!mounted}
-                          variant="card"
-                          hideAxisLabels
-                        />
-                      </div>
-                      <div className="flex-1 md:flex md:items-center">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-20 gap-y-6 text-xs sm:text-sm w-full">
-                          <div>
-                            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                              Total Trades
-                            </p>
-                            <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                              {totalTrades}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                              Wins
-                            </p>
-                            <p className="text-base font-semibold text-emerald-500">{winners}</p>
-                          </div>
-                          <div>
-                            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                              Losses
-                            </p>
-                            <p className="text-base font-semibold text-rose-500">{losers}</p>
-                          </div>
-                          <div>
-                            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                              BE
-                            </p>
-                            <p className="text-base font-semibold text-slate-600 dark:text-slate-300">
-                              {breakEven}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                              P&L %
-                            </p>
-                            <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                              {formatPercent(totalPnLPct)}%
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                              Win Rate
-                            </p>
-                            <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                              {formatPercent(beCalcEnabled ? winRateWithBE : winRate)}%
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                              Profit Factor
-                            </p>
-                            <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                              {isValidProfitFactor ? (
-                                profitFactor.toFixed(2)
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex flex-col items-end gap-1">
+                            <div className="inline-flex items-center gap-1">
+                              {totalPnL >= 0 ? (
+                                <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
                               ) : (
-                                <span className="inline-flex items-center gap-1">
-                                  <InfinityIcon className="h-4 w-4" aria-label="Infinite profit factor" />
-                                </span>
+                                <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
                               )}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                              Consistency
-                            </p>
-                            <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                              {formatPercent(consistency)}%
-                            </p>
+                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                totalPnL >= 0
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                                  : 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                              }`}>
+                                {totalPnL >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%
+                              </span>
+                            </div>
+                            <span className="text-xs text-white dark:text-white">
+                              <span className="font-semibold uppercase tracking-wide">NET P&amp;L </span>
+                              <span className={`text-sm font-bold leading-none ${totalPnL >= 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
+                                {totalPnL >= 0 ? '+' : ''}{currencySymbol}{roundToCents(totalPnL).toFixed(2)}
+                              </span>
+                            </span>
                           </div>
                         </div>
                       </div>
+
+                      {/* Stats row */}
+                      <div className="flex items-center gap-4 mt-2">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Win Rate</p>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            {formatPercent(effectiveWinRate)}%
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Trades</p>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{totalTrades}</p>
+                        </div>
+                      </div>
+
+                      {/* Filter pills */}
+                      {filterPills.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1 mt-3">
+                          {visiblePills.map((pill) => (
+                            <span
+                              key={pill}
+                              className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-200/70 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300"
+                            >
+                              {pill}
+                            </span>
+                          ))}
+                          {extraPillCount > 0 && (
+                            <span className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-200/70 dark:bg-slate-700/60 text-slate-500 dark:text-slate-400">
+                              +{extraPillCount} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Bottom action row */}
+                      {isPro && (
+                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-700/50">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => { e.stopPropagation(); handleEdit(config); }}
+                              className="h-8 rounded-xl px-3 text-xs cursor-pointer transition-colors duration-200 border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium"
+                            >
+                              <Pencil className="h-3 w-3 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => { e.stopPropagation(); handleDelete(config.id); }}
+                              className="h-8 rounded-xl px-3 text-xs cursor-pointer transition-colors duration-200 border border-rose-200/80 bg-rose-50/60 text-rose-600 hover:bg-rose-100/80 hover:text-rose-700 hover:border-rose-300/80 dark:border-rose-800/80 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/40 dark:hover:text-rose-300 dark:hover:border-rose-700/80 font-medium"
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Delete
+                            </Button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setDetailStatId(config.id); }}
+                            className="text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 underline underline-offset-2 transition-colors cursor-pointer"
+                          >
+                            View Details
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  {/* Collapsible trade table */}
-                  <div
-                    className={cn(
-                      'border-t border-slate-200/70 dark:border-slate-700/60 px-5 overflow-hidden transition-all duration-300 ease-in-out',
-                      isOpen ? 'max-h-[1200px] py-4 opacity-100' : 'max-h-0 py-0 opacity-0'
-                    )}
-                  >
-                    {cardTrades.length === 0 ? (
-                      <p className="text-sm text-slate-500 dark:text-slate-400 py-2">
-                        No trades match these filters in the selected date range.
-                      </p>
-                    ) : (
-                      <div className="relative overflow-x-auto">
-                        <table className="min-w-full divide-y divide-slate-200/30 dark:divide-slate-700/30">
-                          <thead className="bg-transparent border-b border-slate-200/70 dark:border-slate-700/70">
-                            <tr>
-                              {['Screens', 'Date', 'Time', 'Market', 'P&L', 'Direction', 'RR', 'Outcome', 'Risk', 'Notes', 'Actions'].map((col) => (
-                                <th
-                                  key={col}
-                                  className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider"
-                                >
-                                  {col}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="bg-transparent divide-y divide-slate-200/30 dark:divide-slate-700/30">
-                            {cardTrades.map((trade, idx) => (
-                              <tr
-                                key={
-                                  trade.id
-                                    ? `${trade.id}-${idx}`
-                                    : `${trade.trade_date}-${trade.trade_time}-${trade.market}-${idx}`
-                                }
-                              >
-                                <td className="px-3 py-3 whitespace-nowrap align-middle">
-                                  <ScreensCarouselCell trade={trade} />
-                                </td>
-                                <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-700 dark:text-slate-300">
-                                  {trade.trade_date}
-                                </td>
-                                <td
-                                  className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-700 dark:text-slate-300"
-                                  suppressHydrationWarning
-                                >
-                                  {formatTradeTimeForDisplay(trade.trade_time)}
-                                </td>
-                                <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100">
-                                  {trade.market}
-                                </td>
-                                <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm">
-                                  {(() => {
-                                    const profit = trade.calculated_profit ?? 0;
-                                    return (
-                                      <span className={profit >= 0 ? 'text-emerald-500 font-semibold' : 'text-rose-500 font-semibold'}>
-                                        {currencySymbol}
-                                        {profit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                      </span>
-                                    );
-                                  })()}
-                                </td>
-                                <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-700 dark:text-slate-300">
-                                  {trade.direction === 'Long' ? (
-                                    <span className="inline-flex items-center gap-1">
-                                      <span className="text-emerald-500 dark:text-emerald-400 text-[11px]">↑</span>
-                                      <span>Long</span>
-                                    </span>
-                                  ) : trade.direction === 'Short' ? (
-                                    <span className="inline-flex items-center gap-1">
-                                      <span className="text-rose-500 dark:text-rose-400 text-[11px]">↓</span>
-                                      <span>Short</span>
-                                    </span>
-                                  ) : (
-                                    <span>{trade.direction ?? '—'}</span>
-                                  )}
-                                </td>
-                                <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-700 dark:text-slate-300">
-                                  {typeof trade.risk_reward_ratio === 'number' && !Number.isNaN(trade.risk_reward_ratio) ? (
-                                    <span>
-                                      {trade.risk_reward_ratio.toFixed(2)}
-                                      <span className="ml-0.5 text-[10px] text-slate-400 dark:text-slate-500">R</span>
-                                    </span>
-                                  ) : (
-                                    <span className="text-slate-400 dark:text-slate-600">—</span>
-                                  )}
-                                </td>
-                                <td className="px-3 py-3 whitespace-nowrap">
-                                  <OutcomeChips trade={trade} />
-                                </td>
-                                <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100">
-                                  {trade.risk_per_trade}%
-                                </td>
-                                <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm">
-                                  {trade.notes ? (
-                                    <a
-                                      href="#"
-                                      onClick={(e) => { e.preventDefault(); openNotesModal(trade.notes || ''); }}
-                                      className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline font-medium transition-colors"
-                                    >
-                                      View Notes
-                                    </a>
-                                  ) : (
-                                    <span className="text-slate-400 dark:text-slate-500">No notes</span>
-                                  )}
-                                </td>
-                                <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm">
-                                  <a
-                                    href="#"
-                                    onClick={(e) => { e.preventDefault(); openTradeDetails(trade); }}
-                                    className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline font-medium transition-colors"
-                                  >
-                                    Trade Details
-                                  </a>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            );
-
-            if (!isPro) {
-              return (
-                <Tooltip key={config.id} delayDuration={120}>
-                  <TooltipTrigger asChild>
-                    {cardContent}
-                  </TooltipTrigger>
-                  <TooltipContent
-                    side="top"
-                    align="start"
-                    sideOffset={8}
-                    className="max-w-sm text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50"
-                  >
-                    The data shown under the blur card is fictive and for demo purposes only.
-                  </TooltipContent>
-                </Tooltip>
+                </Card>
               );
-            }
 
-            return (
-              <div key={config.id}>
-                {cardContent}
-              </div>
-            );
-          })}
+              if (!isPro) {
+                return (
+                  <Tooltip key={config.id} delayDuration={120}>
+                    <TooltipTrigger asChild>
+                      {cardContent}
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      align="start"
+                      sideOffset={8}
+                      className="max-w-sm text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50"
+                    >
+                      The data shown under the blur card is fictive and for demo purposes only.
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
 
-          {/* Add Card */}
-          <button
-            type="button"
-            onClick={isPro ? handleAdd : undefined}
-            className={cn(
-              'w-full rounded-2xl border-2 border-dashed py-8 flex flex-col items-center justify-center gap-2 transition-all duration-200',
-              isPro
-                ? 'border-slate-300/70 dark:border-slate-600/60 hover:border-slate-400/80 dark:hover:border-slate-500/70 hover:bg-slate-100/40 dark:hover:bg-slate-800/30 cursor-pointer'
-                : 'border-slate-200/50 dark:border-slate-700/40 opacity-60 cursor-not-allowed'
-            )}
-          >
-            <Plus className="h-5 w-5 text-slate-500 dark:text-slate-400" />
-            <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
-              {isPro ? 'Add Custom Combination' : 'PRO feature — upgrade to create custom stats'}
-            </span>
-          </button>
+              return cardContent;
+            })}
+
+            {/* Add Card */}
+            <button
+              type="button"
+              onClick={isPro ? handleAdd : undefined}
+              className={cn(
+                'rounded-2xl border-2 border-dashed py-8 flex flex-col items-center justify-center gap-2 transition-all duration-200 min-h-[200px]',
+                isPro
+                  ? 'border-slate-300/70 dark:border-slate-600/60 hover:border-slate-400/80 dark:hover:border-slate-500/70 hover:bg-slate-100/40 dark:hover:bg-slate-800/30 cursor-pointer'
+                  : 'border-slate-200/50 dark:border-slate-700/40 opacity-60 cursor-not-allowed'
+              )}
+            >
+              <Plus className="h-5 w-5 text-slate-500 dark:text-slate-400" />
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                {isPro ? 'Add Custom Combination' : 'PRO feature — upgrade to create custom stats'}
+              </span>
+            </button>
+          </div>
         </div>
 
         <CustomStatModal
@@ -766,15 +533,18 @@ export default function CustomStatsClient({
           liquidityOptions={savedLiquidityTypes}
         />
 
-        {selectedTrade && (
-          <TradeDetailsModal
-            trade={selectedTrade}
-            isOpen={isDetailsOpen}
-            onClose={closeTradeDetails}
-            strategyName={strategyName}
+        {detailConfig && (
+          <CustomStatDetailModal
+            isOpen={detailStatId !== null}
+            onClose={() => setDetailStatId(null)}
+            config={detailConfig}
+            trades={detailTrades}
+            currencySymbol={currencySymbol}
+            accountBalance={accountBalance}
+            onEdit={(cfg) => { setDetailStatId(null); handleEdit(cfg); }}
+            onDelete={(id) => { setDetailStatId(null); handleDelete(id); }}
           />
         )}
-        <NotesModal isOpen={isNotesOpen} onClose={closeNotesModal} notes={selectedNotes} />
       </div>
     </TooltipProvider>
   );
