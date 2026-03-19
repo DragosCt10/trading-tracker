@@ -1,6 +1,36 @@
-import { getIntervalForTime } from '@/constants/analytics';
+import { getIntervalForTime, TIME_INTERVALS } from '@/constants/analytics';
 import type { Trade } from '@/types/trade';
 import type { CustomStatFilter } from '@/types/customStats';
+
+/** Returns human-readable pill labels for a CustomStatFilter. */
+export function buildFilterPills(filters: CustomStatFilter): string[] {
+  const pills: string[] = [];
+  if (filters.direction) pills.push(filters.direction);
+  if (filters.market) pills.push(filters.market);
+  if (filters.trade_time) {
+    const interval = TIME_INTERVALS.find((i) => i.start === filters.trade_time);
+    pills.push(interval ? interval.label : filters.trade_time);
+  }
+  if (filters.trade_outcome) pills.push(filters.trade_outcome);
+  if (filters.day_of_week) pills.push(filters.day_of_week);
+  if (filters.quarter) pills.push(filters.quarter);
+  if (filters.news_related !== undefined) pills.push(filters.news_related ? 'News' : 'No News');
+  if (filters.reentry !== undefined) pills.push(filters.reentry ? 'Re-entry' : 'No Re-entry');
+  if (filters.partials_taken !== undefined) pills.push(filters.partials_taken ? 'Partials' : 'No Partials');
+  if (filters.executed !== undefined) pills.push(filters.executed ? 'Executed' : 'Not Executed');
+  if (filters.confidence_at_entry !== undefined) pills.push(`Conf: ${filters.confidence_at_entry}`);
+  if (filters.mind_state_at_entry !== undefined) pills.push(`Mind: ${filters.mind_state_at_entry}`);
+  if (filters.setup_type) pills.push(filters.setup_type);
+  if (filters.liquidity) pills.push(filters.liquidity);
+  if (filters.mss) pills.push(`MSS: ${filters.mss}`);
+  if (filters.session) pills.push(filters.session);
+  if (filters.evaluation) pills.push(filters.evaluation);
+  if (filters.trend) pills.push(filters.trend);
+  if (filters.local_high_low !== undefined) pills.push(filters.local_high_low ? 'Local H/L' : 'No Local H/L');
+  if (filters.launch_hour !== undefined) pills.push(filters.launch_hour ? 'Launch Hour' : 'No Launch Hour');
+  if (filters.fvg_size !== undefined) pills.push(`FVG: ${filters.fvg_size}`);
+  return pills;
+}
 
 /**
  * Filters a list of trades by a CustomStatFilter.

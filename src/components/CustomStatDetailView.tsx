@@ -4,8 +4,6 @@ import { useState, useMemo } from 'react';
 import {
   ArrowLeft,
   LayoutGrid,
-  Pencil,
-  Trash2,
   TrendingDown,
   TrendingUp,
   Columns2,
@@ -38,38 +36,9 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 import { cn, formatPercent, roundToCents } from '@/lib/utils';
 import type { Trade } from '@/types/trade';
 import type { CustomStatConfig } from '@/types/customStats';
-import { TIME_INTERVALS } from '@/constants/analytics';
+import { buildFilterPills } from '@/utils/applyCustomStatFilter';
 
 type CardViewMode = 'grid-4' | 'grid-2' | 'split' | 'table';
-
-function buildFilterPills(filters: CustomStatConfig['filters']): string[] {
-  const pills: string[] = [];
-  if (filters.direction) pills.push(filters.direction);
-  if (filters.market) pills.push(filters.market);
-  if (filters.trade_time) {
-    const interval = TIME_INTERVALS.find((i) => i.start === filters.trade_time);
-    pills.push(interval ? interval.label : filters.trade_time);
-  }
-  if (filters.trade_outcome) pills.push(filters.trade_outcome);
-  if (filters.day_of_week) pills.push(filters.day_of_week);
-  if (filters.quarter) pills.push(filters.quarter);
-  if (filters.news_related !== undefined) pills.push(filters.news_related ? 'News' : 'No News');
-  if (filters.reentry !== undefined) pills.push(filters.reentry ? 'Re-entry' : 'No Re-entry');
-  if (filters.partials_taken !== undefined) pills.push(filters.partials_taken ? 'Partials' : 'No Partials');
-  if (filters.executed !== undefined) pills.push(filters.executed ? 'Executed' : 'Not Executed');
-  if (filters.confidence_at_entry !== undefined) pills.push(`Conf: ${filters.confidence_at_entry}`);
-  if (filters.mind_state_at_entry !== undefined) pills.push(`Mind: ${filters.mind_state_at_entry}`);
-  if (filters.setup_type) pills.push(filters.setup_type);
-  if (filters.liquidity) pills.push(filters.liquidity);
-  if (filters.mss) pills.push(`MSS: ${filters.mss}`);
-  if (filters.session) pills.push(filters.session);
-  if (filters.evaluation) pills.push(filters.evaluation);
-  if (filters.trend) pills.push(filters.trend);
-  if (filters.local_high_low !== undefined) pills.push(filters.local_high_low ? 'Local H/L' : 'No Local H/L');
-  if (filters.launch_hour !== undefined) pills.push(filters.launch_hour ? 'Launch Hour' : 'No Launch Hour');
-  if (filters.fvg_size !== undefined) pills.push(`FVG: ${filters.fvg_size}`);
-  return pills;
-}
 
 interface CustomStatDetailViewProps {
   config: CustomStatConfig;
@@ -77,8 +46,6 @@ interface CustomStatDetailViewProps {
   currencySymbol: string;
   accountBalance: number | null;
   onBack: () => void;
-  onEdit: (config: CustomStatConfig) => void;
-  onDelete: (id: string) => void;
 }
 
 export function CustomStatDetailView({
@@ -87,8 +54,6 @@ export function CustomStatDetailView({
   currencySymbol,
   accountBalance,
   onBack,
-  onEdit,
-  onDelete,
 }: CustomStatDetailViewProps) {
   const { beCalcEnabled } = useBECalc();
   const { mounted } = useDarkMode();
@@ -154,14 +119,6 @@ export function CustomStatDetailView({
       {/* Page header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3 min-w-0">
-          <button
-            type="button"
-            onClick={onBack}
-            className="mt-0.5 flex items-center justify-center h-8 w-8 rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-400 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 transition-colors cursor-pointer shrink-0"
-            aria-label="Back to Custom Stats"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">
               <div className="p-1.5 rounded-lg themed-header-icon-box shrink-0">
@@ -188,26 +145,15 @@ export function CustomStatDetailView({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 sm:mt-0.5">
-          <Button
+          <button
             type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => onEdit(config)}
-            className="h-8 rounded-xl px-3 text-xs cursor-pointer border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium"
+            onClick={onBack}
+            className="mt-0.5 inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-400 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 transition-colors cursor-pointer shrink-0 text-xs font-medium"
+            aria-label="Back to Custom Stats"
           >
-            <Pencil className="h-3 w-3 mr-1" />
-            Edit
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => onDelete(config.id)}
-            className="h-8 rounded-xl px-3 text-xs cursor-pointer border border-rose-200/80 bg-rose-50/60 text-rose-600 hover:bg-rose-100/80 hover:text-rose-700 hover:border-rose-300/80 dark:border-rose-800/80 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/40 dark:hover:text-rose-300 dark:hover:border-rose-700/80 font-medium"
-          >
-            <Trash2 className="h-3 w-3 mr-1" />
-            Delete
-          </Button>
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back to Custom Stats</span>
+          </button>
         </div>
       </div>
 

@@ -99,11 +99,19 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
               variant="ghost"
               asChild
               size="sm"
-              className={cn(navButtonClass(isActive('/custom-stats')), 'w-full h-auto min-h-[64px] !p-0')}
+              className={cn(
+                'w-full h-auto min-h-[64px] !p-0',
+                isActive('/custom-stats')
+                  ? 'group/customstats cursor-pointer transition-all duration-300 relative overflow-hidden rounded-xl themed-btn-primary text-white font-semibold border-0 hover:text-white [&_svg]:text-white [&_span]:text-white'
+                  : navButtonClass(false)
+              )}
             >
               <Link href={customStatsUrl} className="block w-full h-full relative min-h-[40px]">
                 <LayoutGrid className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Custom Stats</span>
+                {isActive('/custom-stats') && (
+                  <div className="absolute inset-0 -translate-x-full group-hover/customstats:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                )}
               </Link>
             </Button>
             <Button

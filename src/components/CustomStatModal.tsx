@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { LayoutGrid, X } from 'lucide-react';
+import { AlertCircle, LayoutGrid, X } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
   AlertDialogDescription,
 } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -134,10 +135,13 @@ function ModalFormContent({ editing, extraCards, setupOptions, liquidityOptions,
   const [name, setName] = useState(editing?.name ?? '');
   const [filters, setFilters] = useState<CustomStatFilter>(editing?.filters ?? EMPTY_FILTER);
   const [nameError, setNameError] = useState('');
+  const [filtersError, setFiltersError] = useState('');
+  const error = nameError || filtersError;
 
   const hasCard = (key: ExtraCardKey) => extraCards.includes(key);
 
   const setFilter = <K extends keyof CustomStatFilter>(key: K, value: CustomStatFilter[K]) => {
+    setFiltersError('');
     setFilters((prev) => {
       if (value === undefined) {
         const next = { ...prev };
@@ -151,6 +155,13 @@ function ModalFormContent({ editing, extraCards, setupOptions, liquidityOptions,
   const handleSave = () => {
     if (!name.trim()) {
       setNameError('Name is required.');
+      return;
+    }
+    const hasAtLeastOneFilter = Object.values(filters).some(
+      (value) => value !== undefined && value !== null && value !== ''
+    );
+    if (!editing && !hasAtLeastOneFilter) {
+      setFiltersError('Select at least one filter to create a custom stat.');
       return;
     }
     onSave({
@@ -183,7 +194,7 @@ function ModalFormContent({ editing, extraCards, setupOptions, liquidityOptions,
             </button>
           </div>
           <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
-            Define a filter combination. Leave fields empty to match any value.
+            Define a filter combination. You must select at least one filter to create a custom stat.
           </AlertDialogDescription>
         </AlertDialogHeader>
       </div>
@@ -200,7 +211,6 @@ function ModalFormContent({ editing, extraCards, setupOptions, liquidityOptions,
               placeholder="e.g. Long DAX Morning"
               className={INPUT_CLASS}
             />
-            {nameError && <p className="text-xs text-rose-500 mt-1">{nameError}</p>}
           </FieldRow>
 
           <Separator />
@@ -479,6 +489,13 @@ function ModalFormContent({ editing, extraCards, setupOptions, liquidityOptions,
           )}
 
           {/* Action buttons (same pattern as NewTradeModal — inside scrollable area) */}
+          {error && (
+            <Alert variant="destructive" className="mb-2 bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 backdrop-blur-sm">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
           <div className="flex justify-end gap-3 pt-5">
             <Button
               type="button"

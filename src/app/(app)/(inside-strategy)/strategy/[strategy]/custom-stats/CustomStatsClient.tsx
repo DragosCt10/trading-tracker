@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Crown, Pencil, Plus, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
+import { Crown, Eye, Pencil, Plus, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,13 +33,12 @@ import { getCurrencySymbolFromAccount } from '@/components/dashboard/analytics/A
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
 import { buildEquityPointsFromTrades } from '@/components/dashboard/analytics/EquityCurveCard';
 import { useSubscription } from '@/hooks/useSubscription';
-import { applyCustomStatFilter } from '@/utils/applyCustomStatFilter';
+import { applyCustomStatFilter, buildFilterPills } from '@/utils/applyCustomStatFilter';
 import { buildPreviewTrade } from '@/utils/previewTrades';
 import { updateStrategyCustomStats } from '@/lib/server/strategies';
 import { CustomStatModal } from '@/components/CustomStatModal';
 import { CustomStatDetailView } from '@/components/CustomStatDetailView';
 import { CustomStatsSkeleton } from './CustomStatsSkeleton';
-import { TIME_INTERVALS } from '@/constants/analytics';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -56,35 +55,6 @@ interface CustomStatsClientProps {
   initialUserId: string;
   currencySymbol: string;
   accountBalance: number | null;
-}
-
-function buildFilterPills(filters: CustomStatConfig['filters']): string[] {
-  const pills: string[] = [];
-  if (filters.direction) pills.push(filters.direction);
-  if (filters.market) pills.push(filters.market);
-  if (filters.trade_time) {
-    const interval = TIME_INTERVALS.find((i) => i.start === filters.trade_time);
-    pills.push(interval ? interval.label : filters.trade_time);
-  }
-  if (filters.trade_outcome) pills.push(filters.trade_outcome);
-  if (filters.day_of_week) pills.push(filters.day_of_week);
-  if (filters.quarter) pills.push(filters.quarter);
-  if (filters.news_related !== undefined) pills.push(filters.news_related ? 'News' : 'No News');
-  if (filters.reentry !== undefined) pills.push(filters.reentry ? 'Re-entry' : 'No Re-entry');
-  if (filters.partials_taken !== undefined) pills.push(filters.partials_taken ? 'Partials' : 'No Partials');
-  if (filters.executed !== undefined) pills.push(filters.executed ? 'Executed' : 'Not Executed');
-  if (filters.confidence_at_entry !== undefined) pills.push(`Conf: ${filters.confidence_at_entry}`);
-  if (filters.mind_state_at_entry !== undefined) pills.push(`Mind: ${filters.mind_state_at_entry}`);
-  if (filters.setup_type) pills.push(filters.setup_type);
-  if (filters.liquidity) pills.push(filters.liquidity);
-  if (filters.mss) pills.push(`MSS: ${filters.mss}`);
-  if (filters.session) pills.push(filters.session);
-  if (filters.evaluation) pills.push(filters.evaluation);
-  if (filters.trend) pills.push(filters.trend);
-  if (filters.local_high_low !== undefined) pills.push(filters.local_high_low ? 'Local H/L' : 'No Local H/L');
-  if (filters.launch_hour !== undefined) pills.push(filters.launch_hour ? 'Launch Hour' : 'No Launch Hour');
-  if (filters.fvg_size !== undefined) pills.push(`FVG: ${filters.fvg_size}`);
-  return pills;
 }
 
 export default function CustomStatsClient({
@@ -286,8 +256,6 @@ export default function CustomStatsClient({
           currencySymbol={currencySymbol}
           accountBalance={accountBalance}
           onBack={() => setDetailStatId(null)}
-          onEdit={(cfg) => { setDetailStatId(null); handleEdit(cfg); }}
-          onDelete={(id) => { setDetailStatId(null); handleDelete(id); }}
         />
       </TooltipProvider>
     );
@@ -435,9 +403,7 @@ export default function CustomStatsClient({
                         </div>
                         <div className="text-right">
                           <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Net P&amp;L</p>
-                          <p className={`text-sm font-semibold ${
-                            totalPnL >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                          }`}>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">
                             {totalPnL >= 0 ? '+' : ''}{currencySymbol}{roundToCents(totalPnL).toFixed(2)}
                           </p>
                         </div>
@@ -481,17 +447,21 @@ export default function CustomStatsClient({
                               size="sm"
                               variant="outline"
                               onClick={(e) => { e.stopPropagation(); handleDelete(config.id); }}
-                              className="h-8 rounded-xl px-3 text-xs cursor-pointer transition-colors duration-200 border border-rose-200/80 bg-rose-50/60 text-rose-600 hover:bg-rose-100/80 hover:text-rose-700 hover:border-rose-300/80 dark:border-rose-800/80 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/40 dark:hover:text-rose-300 dark:hover:border-rose-700/80 font-medium"
+                              className="relative h-8 w-8 p-0 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 border-0 disabled:opacity-60 transition-all duration-300 group cursor-pointer"
+                              aria-label="Delete custom stat"
                             >
-                              <Trash2 className="h-3 w-3 mr-1" />
-                              Delete
+                              <span className="relative z-10 flex h-full w-full items-center justify-center">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </span>
+                              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                             </Button>
                           </div>
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setDetailStatId(config.id); }}
-                            className="text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 underline underline-offset-2 transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 text-xs font-medium text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 underline underline-offset-2 transition-colors cursor-pointer"
                           >
+                            <Eye className="h-3 w-3" />
                             View Details
                           </button>
                         </div>
