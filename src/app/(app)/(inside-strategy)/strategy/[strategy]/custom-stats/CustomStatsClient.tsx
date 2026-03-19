@@ -39,6 +39,7 @@ import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveCh
 import { OutcomeChips } from '@/components/trades/OutcomeChips';
 import { useSubscription } from '@/hooks/useSubscription';
 import { applyCustomStatFilter } from '@/utils/applyCustomStatFilter';
+import { buildPreviewTrade } from '@/utils/previewTrades';
 import { updateStrategyCustomStats } from '@/lib/server/strategies';
 import { CustomStatModal } from '@/components/CustomStatModal';
 import { CustomStatsSkeleton } from './CustomStatsSkeleton';
@@ -181,6 +182,26 @@ export default function CustomStatsClient({
   const [activeFilter, setActiveFilter] = useState<FilterType>('year');
 
   const [mounted] = useState(() => typeof window !== 'undefined');
+
+  // Preview data for non-Pro users
+  const previewStats: CustomStatConfig[] = useMemo(() => [
+    {
+      id: 'preview-1',
+      name: 'Long DAX Morning',
+      filters: { direction: 'Long', market: 'DAX', trade_time: '06:00' },
+      created_at: '2026-01-01T00:00:00Z',
+    },
+  ], []);
+
+  const previewTradesMap = useMemo<Record<string, Trade[]>>(() => ({
+    'preview-1': [
+      buildPreviewTrade({ id: 'p1-1', trade_outcome: 'Win', calculated_profit: 150, direction: 'Long' }),
+      buildPreviewTrade({ id: 'p1-2', trade_outcome: 'Win', calculated_profit: 200, direction: 'Long' }),
+      buildPreviewTrade({ id: 'p1-3', trade_outcome: 'Lose', calculated_profit: -100, direction: 'Long' }),
+      buildPreviewTrade({ id: 'p1-4', trade_outcome: 'Win', calculated_profit: 180, direction: 'Long' }),
+      buildPreviewTrade({ id: 'p1-5', trade_outcome: 'Lose', calculated_profit: -90, direction: 'Long' }),
+    ],
+  }), []);
 
   // Custom stats state
   const [savedStats, setSavedStats] = useState<CustomStatConfig[]>(savedCustomStats);
@@ -360,9 +381,11 @@ export default function CustomStatsClient({
             </Card>
           )}
 
-          {savedStats.map((config, index) => {
+          {(isPro ? savedStats : previewStats).map((config, index) => {
             const isOpen = openById[config.id] ?? index === 0;
-            const cardTrades = applyCustomStatFilter(filteredTrades, config.filters);
+            const cardTrades = isPro
+              ? applyCustomStatFilter(filteredTrades, config.filters)
+              : (previewTradesMap[config.id] ?? []);
             const totalTrades = cardTrades.length;
             const winners = cardTrades.filter((t) => !t.break_even && t.trade_outcome === 'Win').length;
             const losers = cardTrades.filter((t) => !t.break_even && t.trade_outcome === 'Lose').length;
@@ -393,10 +416,10 @@ export default function CustomStatsClient({
               >
                 {!isPro && (
                   <>
+                    <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px] rounded-2xl" />
                     <span className="absolute right-4 top-4 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
                       <Crown className="w-3 h-3" /> PRO
                     </span>
-                    <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
                   </>
                 )}
 
@@ -448,34 +471,36 @@ export default function CustomStatsClient({
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-3">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(config);
-                        }}
-                        className="h-8 rounded-xl px-3 text-xs cursor-pointer transition-colors duration-200 border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium"
-                      >
-                        <Pencil className="h-3 w-3 mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(config.id);
-                        }}
-                        className="h-8 rounded-xl px-3 text-xs cursor-pointer transition-colors duration-200 border border-rose-200/80 bg-rose-50/60 text-rose-600 hover:bg-rose-100/80 hover:text-rose-700 hover:border-rose-300/80 dark:border-rose-800/80 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/40 dark:hover:text-rose-300 dark:hover:border-rose-700/80 font-medium"
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Delete
-                      </Button>
-                    </div>
+                    {isPro && (
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(config);
+                          }}
+                          className="h-8 rounded-xl px-3 text-xs cursor-pointer transition-colors duration-200 border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium"
+                        >
+                          <Pencil className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(config.id);
+                          }}
+                          className="h-8 rounded-xl px-3 text-xs cursor-pointer transition-colors duration-200 border border-rose-200/80 bg-rose-50/60 text-rose-600 hover:bg-rose-100/80 hover:text-rose-700 hover:border-rose-300/80 dark:border-rose-800/80 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/40 dark:hover:text-rose-300 dark:hover:border-rose-700/80 font-medium"
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Stats row — always visible */}
