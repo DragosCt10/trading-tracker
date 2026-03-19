@@ -1,4 +1,5 @@
 import type { ExtraCardKey } from '@/constants/extraCards';
+import type { CustomStatConfig } from '@/types/customStats';
 
 /** Favourite/pinned combobox items per kind. Max 10 per kind. */
 export type SavedFavouritesKind = 'setup' | 'liquidity' | 'market' | 'news';
@@ -18,4 +19,6 @@ export interface Strategy {
   saved_liquidity_types: string[];
   /** Pinned items for combobox suggestions (setup, liquidity, market, news). */
   saved_favourites?: SavedFavourites | null;
+  /** User-defined custom stat filter combinations. */
+  saved_custom_stats?: CustomStatConfig[] | null;
 }

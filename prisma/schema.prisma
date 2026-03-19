@@ -711,6 +711,7 @@ model strategies {
   saved_liquidity_types String[]               @default([])
   account_id            String?                @db.Uuid
   saved_favourites      Json?                  @default("{}")
+  saved_custom_stats    Json?                  @default("[]")
   backtesting_trades    backtesting_trades[]
   demo_trades           demo_trades[]
   live_trades           live_trades[]

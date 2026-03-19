@@ -6,6 +6,7 @@ import { getCachedUserSession } from '@/lib/server/session';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import type { Database } from '@/types/supabase';
 import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
+import type { CustomStatConfig } from '@/types/customStats';
 import { EXTRA_CARDS } from '@/constants/extraCards';
 import { canAddStrategy } from './subscription';
 
@@ -481,6 +482,28 @@ export async function deleteArchivedStrategiesOlderThan30Days(
     if (result.error) return result;
   }
 
+  return { error: null };
+}
+
+/**
+ * Updates the saved custom stat configurations for a specific strategy.
+ */
+export async function updateStrategyCustomStats(
+  strategyId: string,
+  userId: string,
+  stats: CustomStatConfig[]
+): Promise<{ error: Error | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('strategies')
+    .update({ saved_custom_stats: stats, updated_at: new Date().toISOString() })
+    .eq('id', strategyId)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error updating strategy custom stats:', error);
+    return { error: new Error(error.message) };
+  }
   return { error: null };
 }
 
