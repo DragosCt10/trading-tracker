@@ -170,6 +170,8 @@ export async function verifyAndActivateSubscription(userId: string): Promise<Res
       current_period_start: providerSub.periodStart.toISOString(),
       current_period_end: providerSub.periodEnd.toISOString(),
       cancel_at_period_end: providerSub.cancelAtPeriodEnd,
+      ...(providerSub.priceAmount != null && { price_amount: providerSub.priceAmount }),
+      ...(providerSub.currency != null && { currency: providerSub.currency }),
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id' }

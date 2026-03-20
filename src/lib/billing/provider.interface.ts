@@ -12,6 +12,10 @@ export interface ProviderSubscriptionData {
   periodStart: Date;
   periodEnd: Date;
   cancelAtPeriodEnd: boolean;
+  /** Recurring price in smallest currency unit (cents). Null if not provided by webhook. */
+  priceAmount: number | null;
+  /** ISO currency code, lowercase. Null if not provided by webhook. */
+  currency: string | null;
 }
 
 export type WebhookAction =

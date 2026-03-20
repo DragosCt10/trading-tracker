@@ -59,6 +59,8 @@ function mapSubData(data: {
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
   recurringInterval?: string | null;
+  priceAmount?: number | null;
+  currency?: string | null;
 }): ProviderSubscriptionData | null {
   const tierId = mapTierFromProductId(data.productId);
   if (!tierId) return null;
@@ -80,6 +82,8 @@ function mapSubData(data: {
     periodStart: new Date(data.currentPeriodStart ?? Date.now()),
     periodEnd: new Date(data.currentPeriodEnd ?? Date.now()),
     cancelAtPeriodEnd: data.cancelAtPeriodEnd,
+    priceAmount: data.priceAmount ?? null,
+    currency: data.currency ? data.currency.toLowerCase() : null,
   };
 }
 
@@ -230,6 +234,8 @@ export class PolarProvider implements IPaymentProvider {
         currentPeriodEnd: readString(sub, 'currentPeriodEnd', 'current_period_end'),
         cancelAtPeriodEnd: readBoolean(sub, 'cancelAtPeriodEnd', 'cancel_at_period_end', false),
         recurringInterval: readString(sub, 'recurringInterval', 'recurring_interval'),
+        priceAmount: typeof sub.amount === 'number' ? sub.amount : null,
+        currency: readString(sub, 'currency', 'currency'),
       });
       if (!mapped || !mapped.providerSubscriptionId || !mapped.providerCustomerId) {
         return { type: 'ignore' };
@@ -376,6 +382,8 @@ export class PolarProvider implements IPaymentProvider {
           currentPeriodEnd: readString(sub as unknown as Record<string, unknown>, 'currentPeriodEnd', 'current_period_end'),
           cancelAtPeriodEnd: readBoolean(sub as unknown as Record<string, unknown>, 'cancelAtPeriodEnd', 'cancel_at_period_end', false),
           recurringInterval: readString(sub as unknown as Record<string, unknown>, 'recurringInterval', 'recurring_interval'),
+          priceAmount: typeof (sub as any).amount === 'number' ? (sub as any).amount : null,
+          currency: readString(sub as unknown as Record<string, unknown>, 'currency', 'currency'),
         });
         if (mapped) return mapped;
       }
