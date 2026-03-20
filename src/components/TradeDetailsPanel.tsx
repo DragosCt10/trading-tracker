@@ -11,6 +11,16 @@ import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
 import { Loader2, Info, Check } from 'lucide-react';
+import { AfterBreakEvenSelect } from '@/components/trade/AfterBreakEvenSelect';
+import { TradeDirectionChips } from '@/components/trade/TradeDirectionChips';
+import { TradeOutcomeChips } from '@/components/trade/TradeOutcomeChips';
+import { TradeScreenSlotEditor } from '@/components/trade/TradeScreenSlotEditor';
+import {
+  EVALUATION_OPTIONS,
+  MSS_OPTIONS,
+  POTENTIAL_RR_OPTIONS,
+  SESSION_OPTIONS,
+} from '@/constants/tradeFormOptions';
 
 // Shared input/select styles to match NewTradeModal (themed, rounded-2xl)
 const inputClass =
@@ -22,40 +32,8 @@ const selectContentClass =
   'z-[100] max-h-56 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm';
 const labelClass = 'block text-sm font-semibold text-slate-700 dark:text-slate-300';
 
-// Static options for Potential RR (1 – 10 or 10+)
-const POTENTIAL_RR_OPTIONS: { value: number; label: string }[] = [
-  ...Array.from({ length: 19 }, (_, i) => {
-    const v = 1 + i * 0.5;
-    return { value: v, label: String(v) };
-  }),
-  { value: 10.5, label: '10+' },
-];
-
-const MSS_OPTIONS = ['Normal', 'Aggressive', 'Wick', 'Internal'];
-const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const TREND_OPTIONS = ['Trend-following', 'Counter-trend', 'Consolidation'];
-const SESSION_OPTIONS = ['Sydney', 'Tokyo', 'London', 'New York'] as const;
-const SCREEN_TIMEFRAME_OPTIONS = ['4H', '1H', '15m', '5m', '3m', '1m', 'Custom'] as const;
-const SCREEN_TIMEFRAME_PRESET_OPTIONS = ['4H', '1H', '15m', '5m', '3m', '1m'] as const;
-
-/**
- * Validates custom screenshot TF strings:
- * - number + suffix required
- * - suffix can only be `m`, `H`, or `s`
- * - normalizes to: `H` uppercase, `m/s` lowercase
- */
-function normalizeCustomTradeScreenTimeframe(raw: string): string | null {
-  const v = raw.trim();
-  if (!v) return '';
-  const match = v.match(/^(\d+(?:\.\d+)?)([mHs])$/i);
-  if (!match) return null;
-  const numberPart = match[1];
-  const suffixRaw = match[2];
-  const suffixNormalized = suffixRaw.toLowerCase() === 'h' ? 'H' : suffixRaw.toLowerCase();
-  if (suffixNormalized !== 'H' && suffixNormalized !== 'm' && suffixNormalized !== 's') return null;
-  return `${numberPart}${suffixNormalized}`;
-}
 
 // shadcn UI components
 import { Button } from "@/components/ui/button";
@@ -100,6 +78,8 @@ import {
   mergeSetupTypeIntoSaved,
   normalizeNewsName,
 } from '@/utils/savedFeatures';
+import { formatPotentialRR, snapToHalfStep } from '@/utils/tradeFormHelpers';
+import { invalidateAndRefetchTradeQueries as invalidateTradeQueries } from '@/lib/tradeQueryInvalidation';
 import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
@@ -181,67 +161,17 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
 
   // Helper: invalidate trade queries — scoped to the affected strategy only
   const invalidateAndRefetchTradeQueries = useCallback(async () => {
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
-    }
-    // Capture both original and possibly-edited strategy IDs (handles trade reassignment)
     const affectedStrategyIds = new Set([
       trade?.strategy_id ?? null,
       editedTradeRef.current?.strategy_id ?? null,
     ]);
-    const affectedStrategyIdsArray = Array.from(affectedStrategyIds);
-
-    await queryClient.invalidateQueries({
-      predicate: (query) => {
-        const key = query.queryKey;
-        if (!Array.isArray(key)) return false;
-        const firstKey = key[0];
-        // Global caches span all strategies — always invalidate
-        if (firstKey === 'all-strategy-trades' || firstKey === 'all-strategy-stats' || firstKey === 'strategies-overview') return true;
-        // Per-strategy queries — only invalidate the affected strategy/ies
-        if (firstKey === 'allTrades') return affectedStrategyIds.has((key[5] ?? null) as string | null);
-        if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return affectedStrategyIds.has((key[7] ?? null) as string | null);
-        // Dashboard stats API route — strategyId is at index 4
-        if (firstKey === 'dashboardStats') return affectedStrategyIds.has((key[4] ?? null) as string | null);
-        // Calendar trades — strategyId is at index 4
-        if (firstKey === 'calendarTrades') return affectedStrategyIds.has((key[4] ?? null) as string | null);
-        return false;
-      },
-    });
-
-    // Refetch strategies-overview (and legacy all-strategy-trades) for ALL observers.
-    // This ensures StrategiesClient shows updated stats immediately after a trade is edited,
-    // even if StrategiesClient wasn't mounted at the time of the mutation.
-    const accountId = selection.activeAccount?.id;
-    const mode = selection.mode;
-    if (accountId && userId) {
-      await Promise.all([
-        queryClient.refetchQueries({
-          queryKey: queryKeys.allStrategyTrades(userId, accountId, mode),
-        }),
-        queryClient.refetchQueries({
-          queryKey: ['strategies-overview', userId, accountId, mode],
-        }),
-      ]);
-    }
-
-    // Refetch all matching queries (not only "active") so cache is updated even when modal/portal
-    // has focus and dashboard queries might not be considered active. Ensures AccountOverviewCard
-    // and calendar show fresh data when the panel closes.
-    // dashboardStats  → AccountOverviewCard (monthly P&L), aggregate stats cards
-    // filteredTrades  → tradesToUse array (Phase 1: trade arrays come from a separate query)
-    // calendarTrades  → calendar view
-    await queryClient.refetchQueries({
-      predicate: (query) => {
-        const key = query.queryKey;
-        if (!Array.isArray(key)) return false;
-        const firstKey = key[0];
-        if (firstKey === 'dashboardStats') return affectedStrategyIdsArray.includes((key[4] ?? null) as string | null);
-        if (firstKey === 'calendarTrades') return affectedStrategyIdsArray.includes((key[4] ?? null) as string | null);
-        // filteredTrades key: ['filteredTrades', mode, accountId, userId, viewMode, start, end, strategyId]
-        if (firstKey === 'filteredTrades') return affectedStrategyIdsArray.includes((key[7] ?? null) as string | null);
-        return false;
-      },
+    await invalidateTradeQueries({
+      queryClient,
+      strategyIds: Array.from(affectedStrategyIds),
+      mode: selection.mode,
+      accountId: selection.activeAccount?.id,
+      userId,
+      refetchType: 'all',
     });
   }, [queryClient, trade?.strategy_id, selection.activeAccount?.id, selection.mode, userId]);
 
@@ -258,14 +188,6 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const strategyName = readOnly && strategyNameProp != null ? strategyNameProp : strategyNameFromStrategies;
 
   const effectiveIsEditing = readOnly ? false : isEditing;
-
-  const snapToHalfStep = (num: number) => Math.round(num * 2) / 2;
-
-  const formatPotentialRR = (val: number | undefined | null): string => {
-    if (val == null || Number.isNaN(Number(val))) return '—';
-    const n = Number(val);
-    return n === 10.5 ? '10+' : n.toFixed(2);
-  };
 
   const handleInputChange = (field: keyof Trade, value: any) => {
     setEditedTrade((prev) => {
@@ -698,38 +620,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       return (
         <div>
           <label className={`${labelClass} mb-2`}>{label}</label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => handleInputChange('direction', 'Long')}
-              className={`h-12 rounded-2xl border transition-all duration-200 text-sm font-semibold cursor-pointer ${
-                currentDirection === 'Long'
-                  ? 'border-emerald-400/70 bg-emerald-500/20 text-slate-50 ring-2 ring-emerald-400/40'
-                  : 'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200 hover:border-slate-300/80 dark:hover:border-slate-600/80'
-              }`}
-              aria-pressed={currentDirection === 'Long'}
-            >
-              <span className="inline-flex items-center gap-2">
-                <span className="text-emerald-500 dark:text-emerald-400 text-xs">↑</span>
-                <span>Long</span>
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleInputChange('direction', 'Short')}
-              className={`h-12 rounded-2xl border transition-all duration-200 text-sm font-semibold cursor-pointer ${
-                currentDirection === 'Short'
-                  ? 'border-rose-400/70 bg-rose-500/25 text-slate-50 ring-2 ring-rose-400/40'
-                  : 'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200 hover:border-slate-300/80 dark:hover:border-slate-600/80'
-              }`}
-              aria-pressed={currentDirection === 'Short'}
-            >
-              <span className="inline-flex items-center gap-2">
-                <span className="text-rose-500 dark:text-rose-400 text-xs">↓</span>
-                <span>Short</span>
-              </span>
-            </button>
-          </div>
+          <TradeDirectionChips
+            value={currentDirection}
+            onChange={(direction) => handleInputChange('direction', direction)}
+          />
         </div>
       );
     }
@@ -1099,44 +993,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                       ? renderOutcomeBadge(editedTrade.trade_outcome)
                       : renderOutcomeBadges(editedTrade?.trade_outcome as string, editedTrade?.be_final_result)
                   ) : (
-                    <div className="grid grid-cols-3 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => handleInputChange('trade_outcome', 'Win')}
-                        className={`h-12 rounded-2xl border transition-all duration-200 text-sm font-semibold cursor-pointer ${
-                          editedTrade?.trade_outcome === 'Win'
-                            ? 'border-emerald-400/70 bg-emerald-500/20 text-slate-50 ring-2 ring-emerald-400/40'
-                            : 'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200 hover:border-slate-300/80 dark:hover:border-slate-600/80'
-                        }`}
-                        aria-pressed={editedTrade?.trade_outcome === 'Win'}
-                      >
-                        Win
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleInputChange('trade_outcome', 'Lose')}
-                        className={`h-12 rounded-2xl border transition-all duration-200 text-sm font-semibold cursor-pointer ${
-                          editedTrade?.trade_outcome === 'Lose'
-                            ? 'border-rose-400/70 bg-rose-500/25 text-slate-50 ring-2 ring-rose-400/40'
-                            : 'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200 hover:border-slate-300/80 dark:hover:border-slate-600/80'
-                        }`}
-                        aria-pressed={editedTrade?.trade_outcome === 'Lose'}
-                      >
-                        Lose
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleInputChange('trade_outcome', 'BE')}
-                        className={`h-12 rounded-2xl border transition-all duration-200 text-sm font-semibold cursor-pointer ${
-                          editedTrade?.trade_outcome === 'BE'
-                            ? 'border-orange-400/70 bg-orange-500/20 text-slate-50 ring-2 ring-orange-400/40'
-                            : 'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200 hover:border-slate-300/80 dark:hover:border-slate-600/80'
-                        }`}
-                        aria-pressed={editedTrade?.trade_outcome === 'BE'}
-                      >
-                        BE
-                      </button>
-                    </div>
+                    <TradeOutcomeChips
+                      value={editedTrade?.trade_outcome}
+                      onChange={(outcome) => handleInputChange('trade_outcome', outcome)}
+                    />
                   )}
                 </div>
               </div>
@@ -1149,19 +1009,12 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                         ? renderOutcomeBadge(editedTrade.be_final_result)
                         : <span className="text-sm text-slate-400 dark:text-slate-500">—</span>
                     ) : (
-                      <Select
-                        value={editedTrade?.be_final_result ?? '__none__'}
-                        onValueChange={(val) => handleInputChange('be_final_result', val === '__none__' ? null : val)}
-                      >
-                        <SelectTrigger className={selectTriggerClass}>
-                          <SelectValue placeholder="Win or Lose at close" />
-                        </SelectTrigger>
-                        <SelectContent className={selectContentClass}>
-                          <SelectItem value="__none__">—</SelectItem>
-                          <SelectItem value="Win">Win</SelectItem>
-                          <SelectItem value="Lose">Lose</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <AfterBreakEvenSelect
+                        value={editedTrade?.be_final_result}
+                        onChange={(result) => handleInputChange('be_final_result', result)}
+                        triggerClassName={selectTriggerClass}
+                        contentClassName={selectContentClass}
+                      />
                     )}
                   </div>
                 </div>
@@ -1490,114 +1343,33 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {[0, 1].map((i) => {
-                    const url = editedTrade?.trade_screens?.[i] ?? '';
-                    const currentTf = (editedTrade?.trade_screen_timeframes?.[i] ?? '').trim();
-                    const isCustomTf =
-                      currentTf !== '' &&
-                      !SCREEN_TIMEFRAME_PRESET_OPTIONS.includes(
-                        currentTf as (typeof SCREEN_TIMEFRAME_PRESET_OPTIONS)[number]
-                      );
                     return (
-                      <div
+                      <TradeScreenSlotEditor
                         key={i}
-                        onBlurCapture={(e) => {
-                          const nextFocused = e.relatedTarget as Node | null;
-                          if (nextFocused && e.currentTarget.contains(nextFocused)) return;
-                          const screenUrl = (editedTrade?.trade_screens?.[i] ?? '').trim();
-                          if (screenUrl !== '') return;
-                          const currentTf = (editedTrade?.trade_screen_timeframes?.[i] ?? '').trim();
-                          if (currentTf === '') return;
-                          const isPresetTf = SCREEN_TIMEFRAME_PRESET_OPTIONS.includes(
-                            currentTf as (typeof SCREEN_TIMEFRAME_PRESET_OPTIONS)[number]
-                          );
-                          // Keep custom values (e.g. 10s, 2H) even when focus leaves the block.
-                          if (currentTf !== 'Custom' && !isPresetTf) return;
+                        index={i}
+                        label={`Trade Screen ${i + 1}`}
+                        timeframe={editedTrade?.trade_screen_timeframes?.[i] ?? ''}
+                        screenUrl={editedTrade?.trade_screens?.[i] ?? ''}
+                        onTimeframeChange={(nextTf) => {
                           const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
-                          next[i] = '';
+                          next[i] = nextTf;
                           handleInputChange('trade_screen_timeframes', next);
                         }}
-                      >
-                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                          <label className={labelClass}>Trade Screen {i + 1}</label>
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            {SCREEN_TIMEFRAME_OPTIONS.map((tf) => (
-                              <button
-                                key={tf}
-                                type="button"
-                                onClick={() => {
-                                  const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
-                                  if (tf === 'Custom') {
-                                    next[i] = isCustomTf ? currentTf : 'Custom';
-                                  } else {
-                                    next[i] = tf;
-                                  }
-                                  handleInputChange('trade_screen_timeframes', next);
-                                }}
-                                className={`h-7 px-2 rounded-md border text-[11px] font-semibold transition-colors cursor-pointer ${
-                                  (tf === 'Custom' && (currentTf === 'Custom' || isCustomTf)) ||
-                                  currentTf === tf
-                                    ? 'themed-rating-active border-transparent'
-                                    : 'border-slate-300/60 dark:border-slate-700/70 bg-slate-100/40 dark:bg-slate-800/40 text-slate-600 dark:text-slate-300 hover:border-slate-400/70 dark:hover:border-slate-600/70'
-                                }`}
-                              >
-                                {tf}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        {(currentTf === 'Custom' || isCustomTf) && (
-                          <Input
-                            ref={(el) => {
-                              customTfInputRefs.current[i] = el;
-                            }}
-                            type="text"
-                            value={currentTf === 'Custom' ? '' : currentTf}
-                            onChange={(e) => {
-                              const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
-                              next[i] = e.target.value;
-                              handleInputChange('trade_screen_timeframes', next);
-                            }}
-                            onBlur={(e) => {
-                              const normalized = normalizeCustomTradeScreenTimeframe(e.target.value);
-                              if (normalized === '') {
-                                const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
-                                next[i] = '';
-                                handleInputChange('trade_screen_timeframes', next);
-                                return;
-                              }
-                              if (normalized === null) {
-                                const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
-                                next[i] = '';
-                                handleInputChange('trade_screen_timeframes', next);
-                                return;
-                              }
-                              const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
-                              next[i] = normalized;
-                              handleInputChange('trade_screen_timeframes', next);
-                            }}
-                            className={`${inputClass} h-9`}
-                            placeholder="Custom TF (e.g. 2H)"
-                          />
-                        )}
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="url"
-                            value={url}
-                            onChange={(e) => {
-                              const screens = [...(editedTrade?.trade_screens ?? ['', '', '', ''])];
-                              screens[i] = e.target.value;
-                              handleInputChange('trade_screens', screens);
-                            }}
-                            className={`${inputClass} flex-1 placeholder:text-slate-400 dark:placeholder:text-slate-600`}
-                            placeholder="https://..."
-                          />
-                          {url && (url.startsWith('http://') || url.startsWith('https://')) && (
-                            <a href={url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-sm font-medium text-slate-900 dark:text-slate-100 underline">
-                              Open
-                            </a>
-                          )}
-                        </div>
-                      </div>
+                        onScreenUrlChange={(nextUrl) => {
+                          const next = [...(editedTrade?.trade_screens ?? ['', '', '', ''])];
+                          next[i] = nextUrl;
+                          handleInputChange('trade_screens', next);
+                        }}
+                        labelClassName={labelClass}
+                        labelRowClassName="mb-2 flex flex-wrap items-center justify-between gap-2"
+                        chipActiveClassName="themed-rating-active border-transparent"
+                        customInputClassName={`${inputClass} h-9`}
+                        customInputRef={(el) => {
+                          customTfInputRefs.current[i] = el;
+                        }}
+                        urlInputClassName={`${inputClass} flex-1 placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+                        showOpenLink
+                      />
                     );
                   })}
                 </div>
@@ -1605,114 +1377,33 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 {showExtraScreens && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     {[2, 3].map((i) => {
-                      const url = editedTrade?.trade_screens?.[i] ?? '';
-                      const currentTf = (editedTrade?.trade_screen_timeframes?.[i] ?? '').trim();
-                      const isCustomTf =
-                        currentTf !== '' &&
-                        !SCREEN_TIMEFRAME_PRESET_OPTIONS.includes(
-                          currentTf as (typeof SCREEN_TIMEFRAME_PRESET_OPTIONS)[number]
-                        );
                       return (
-                        <div
+                        <TradeScreenSlotEditor
                           key={i}
-                          onBlurCapture={(e) => {
-                            const nextFocused = e.relatedTarget as Node | null;
-                            if (nextFocused && e.currentTarget.contains(nextFocused)) return;
-                            const screenUrl = (editedTrade?.trade_screens?.[i] ?? '').trim();
-                            if (screenUrl !== '') return;
-                            const currentTf = (editedTrade?.trade_screen_timeframes?.[i] ?? '').trim();
-                            if (currentTf === '') return;
-                            const isPresetTf = SCREEN_TIMEFRAME_PRESET_OPTIONS.includes(
-                              currentTf as (typeof SCREEN_TIMEFRAME_PRESET_OPTIONS)[number]
-                            );
-                            // Keep custom values (e.g. 10s, 2H) even when focus leaves the block.
-                            if (currentTf !== 'Custom' && !isPresetTf) return;
+                          index={i}
+                          label={`Trade Screen ${i + 1}`}
+                          timeframe={editedTrade?.trade_screen_timeframes?.[i] ?? ''}
+                          screenUrl={editedTrade?.trade_screens?.[i] ?? ''}
+                          onTimeframeChange={(nextTf) => {
                             const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
-                            next[i] = '';
+                            next[i] = nextTf;
                             handleInputChange('trade_screen_timeframes', next);
                           }}
-                        >
-                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                            <label className={labelClass}>Trade Screen {i + 1}</label>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              {SCREEN_TIMEFRAME_OPTIONS.map((tf) => (
-                                <button
-                                  key={tf}
-                                  type="button"
-                                  onClick={() => {
-                                    const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
-                                    if (tf === 'Custom') {
-                                      next[i] = isCustomTf ? currentTf : 'Custom';
-                                    } else {
-                                      next[i] = tf;
-                                    }
-                                    handleInputChange('trade_screen_timeframes', next);
-                                  }}
-                                  className={`h-7 px-2 rounded-md border text-[11px] font-semibold transition-colors cursor-pointer ${
-                                    (tf === 'Custom' && (currentTf === 'Custom' || isCustomTf)) ||
-                                    currentTf === tf
-                                      ? 'themed-rating-active border-transparent'
-                                      : 'border-slate-300/60 dark:border-slate-700/70 bg-slate-100/40 dark:bg-slate-800/40 text-slate-600 dark:text-slate-300 hover:border-slate-400/70 dark:hover:border-slate-600/70'
-                                  }`}
-                                >
-                                  {tf}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          {(currentTf === 'Custom' || isCustomTf) && (
-                            <Input
-                              ref={(el) => {
-                                customTfInputRefs.current[i] = el;
-                              }}
-                              type="text"
-                              value={currentTf === 'Custom' ? '' : currentTf}
-                              onChange={(e) => {
-                                const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
-                                next[i] = e.target.value;
-                                handleInputChange('trade_screen_timeframes', next);
-                              }}
-                              onBlur={(e) => {
-                              const normalized = normalizeCustomTradeScreenTimeframe(e.target.value);
-                              if (normalized === '') {
-                                const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
-                                next[i] = '';
-                                handleInputChange('trade_screen_timeframes', next);
-                                return;
-                              }
-                              if (normalized === null) {
-                                const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
-                                next[i] = '';
-                                handleInputChange('trade_screen_timeframes', next);
-                                return;
-                              }
-                              const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
-                              next[i] = normalized;
-                              handleInputChange('trade_screen_timeframes', next);
-                              }}
-                              className={`${inputClass} h-9`}
-                              placeholder="Custom TF (e.g. 2H)"
-                            />
-                          )}
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="url"
-                              value={url}
-                              onChange={(e) => {
-                                const screens = [...(editedTrade?.trade_screens ?? ['', '', '', ''])];
-                                screens[i] = e.target.value;
-                                handleInputChange('trade_screens', screens);
-                              }}
-                              className={`${inputClass} flex-1 placeholder:text-slate-400 dark:placeholder:text-slate-600`}
-                              placeholder="https://..."
-                            />
-                            {url && (url.startsWith('http://') || url.startsWith('https://')) && (
-                              <a href={url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-sm font-medium text-slate-900 dark:text-slate-100 underline">
-                                Open
-                              </a>
-                            )}
-                          </div>
-                        </div>
+                          onScreenUrlChange={(nextUrl) => {
+                            const next = [...(editedTrade?.trade_screens ?? ['', '', '', ''])];
+                            next[i] = nextUrl;
+                            handleInputChange('trade_screens', next);
+                          }}
+                          labelClassName={labelClass}
+                          labelRowClassName="mb-2 flex flex-wrap items-center justify-between gap-2"
+                          chipActiveClassName="themed-rating-active border-transparent"
+                          customInputClassName={`${inputClass} h-9`}
+                          customInputRef={(el) => {
+                            customTfInputRefs.current[i] = el;
+                          }}
+                          urlInputClassName={`${inputClass} flex-1 placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+                          showOpenLink
+                        />
                       );
                     })}
                   </div>
