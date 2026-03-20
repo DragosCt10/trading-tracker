@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { BillingUpgradeCard } from '@/components/settings/BillingUpgradeCard';
 import { TIER_DEFINITIONS } from '@/constants/tiers';
 import type { BillingPeriod } from '@/types/subscription';
+import { createPublicCheckoutUrl } from '@/lib/server/subscription';
 
 const PRO_HIGHLIGHTS = [
   'Unlimited strategies',
@@ -19,6 +20,17 @@ const PRO_HIGHLIGHTS = [
 export function LandingPricing() {
   const router = useRouter();
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('annual');
+  const [isCheckoutPending, setIsCheckoutPending] = useState(false);
+
+  async function handleUpgrade() {
+    setIsCheckoutPending(true);
+    try {
+      const url = await createPublicCheckoutUrl(billingPeriod);
+      router.push(url);
+    } catch {
+      setIsCheckoutPending(false);
+    }
+  }
 
   const proDef = TIER_DEFINITIONS.pro;
   const monthlyPrice = proDef.pricing.monthly?.usd ?? 0;
@@ -40,8 +52,8 @@ export function LandingPricing() {
         monthlyPrice={monthlyPrice}
         annualPrice={annualPrice}
         savings={savings}
-        isCheckoutPending={false}
-        onUpgrade={() => router.push('/signup')}
+        isCheckoutPending={isCheckoutPending}
+        onUpgrade={handleUpgrade}
         highlights={PRO_HIGHLIGHTS}
         themedGradientStyle={themedGradientStyle}
       />
