@@ -99,8 +99,7 @@ export default function AppLayout({
     <>
       <div className={clsx("max-w-(--breakpoint-xl) mx-auto flex min-h-screen flex-col", isPastDue ? "pt-38 sm:pt-52" : "pt-30 sm:pt-44")}>
         {isPastDue && (
-          <div className="flex items-center justify-between px-4 py-2 text-sm dark:text-rose-300 text-rose-500 gap-3 mb-10 rounded-xl border-b border-red-200/70 dark:border-red-900/60 bg-red-50/95 dark:bg-[#1a0808]/90 backdrop-blur-md shadow-sm
-            rounded-xl border mb-4 z-1 relative border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+          <div className="flex items-center justify-between px-4 py-2 text-sm dark:text-rose-300 text-rose-500 gap-3 rounded-xl border mb-4 z-1 relative border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>
