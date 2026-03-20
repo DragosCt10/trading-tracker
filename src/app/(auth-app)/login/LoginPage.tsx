@@ -10,6 +10,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { loginAction } from '@/lib/server/auth';
 import { ThemePickerModal } from '@/components/shared/ThemePickerModal';
 import GoogleButton from '@/components/auth/GoogleButton';
+import { createClient } from '@/utils/supabase/client';
 
 /** Only allow relative path for post-login redirect (prevent open redirect). */
 function safeRedirectPath(path: string | null): string | null {
@@ -48,6 +49,22 @@ export default function LoginPage() {
       router.push(to ?? '/stats');
     }
   }, [userData, router, searchParams]);
+
+  // Handle implicit-flow magic link: parse access_token/refresh_token from URL hash
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+    const params = new URLSearchParams(hash.slice(1));
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    if (!accessToken || !refreshToken) return;
+
+    const supabase = createClient();
+    supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+      .then(({ error }) => {
+        if (!error) window.location.href = '/stats';
+      });
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
