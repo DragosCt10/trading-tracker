@@ -76,7 +76,7 @@ async function ensureUserForPolarEmail(email: string): Promise<string | null> {
   );
   const { error: otpError } = await anonClient.auth.signInWithOtp({
     email: normalizedEmail,
-    options: { shouldCreateUser: false, emailRedirectTo: getAppUrl() },
+    options: { shouldCreateUser: false, emailRedirectTo: `${getAppUrl()}/api/auth/callback?next=/stats` },
   });
   if (otpError) {
     console.error(`[billing/webhook] signInWithOtp failed email=${normalizedEmail}`, otpError);
