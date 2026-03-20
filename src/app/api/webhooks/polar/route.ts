@@ -82,7 +82,7 @@ async function ensureUserForPolarEmail(email: string): Promise<string | null> {
     console.error(`[billing/webhook] signInWithOtp failed email=${normalizedEmail}`, otpError);
   }
 
-  console.log(`[billing/webhook] created_user_from_polar email=${normalizedEmail} userId=${newUserId}`);
+  console.log(`[billing/webhook] created_user_from_polar userId=${newUserId}`);
   return newUserId;
 }
 
@@ -120,13 +120,13 @@ async function processWebhookAction(action: Awaited<ReturnType<ReturnType<typeof
             `[billing/webhook] action=subscription.updated missing_customer_email customerId=${action.data.providerCustomerId}`
           );
         } else {
-          console.log(`[billing/webhook] action=subscription.updated customer_email=${email}`);
+          console.log(`[billing/webhook] action=subscription.updated resolving_customer customerId=${action.data.providerCustomerId}`);
         }
 
         const emailMatchedUserId = email ? await ensureUserForPolarEmail(email) : null;
         if (email && !emailMatchedUserId) {
           console.log(
-            `[billing/webhook] action=subscription.updated ignored reason=failed_to_create_or_match_user email=${email} customerId=${action.data.providerCustomerId}`
+            `[billing/webhook] action=subscription.updated ignored reason=failed_to_create_or_match_user customerId=${action.data.providerCustomerId}`
           );
           break;
         }
@@ -318,11 +318,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
   }
 
-  const webhookId = req.headers.get('webhook-id') ?? '';
+  const webhookId = req.headers.get('webhook-id');
+  const webhookTimestamp = req.headers.get('webhook-timestamp');
+  const webhookSignature = req.headers.get('webhook-signature');
+
+  if (!webhookId || !webhookTimestamp || !webhookSignature) {
+    return NextResponse.json({ error: 'Missing webhook headers' }, { status: 400 });
+  }
+
   const webhookHeaders: Record<string, string> = {
     'webhook-id': webhookId,
-    'webhook-timestamp': req.headers.get('webhook-timestamp') ?? '',
-    'webhook-signature': req.headers.get('webhook-signature') ?? '',
+    'webhook-timestamp': webhookTimestamp,
+    'webhook-signature': webhookSignature,
   };
 
   let provider;

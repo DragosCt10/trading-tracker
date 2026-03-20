@@ -28,6 +28,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required params' }, { status: 400 });
   }
 
+  const VALID_MODES = ['live', 'demo', 'backtesting'];
+  if (!VALID_MODES.includes(mode)) {
+    return NextResponse.json({ error: 'Invalid mode' }, { status: 400 });
+  }
+
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  if (!DATE_RE.test(startDate) || !DATE_RE.test(endDate)) {
+    return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
+  }
+
+  if (isNaN(accountBalance) || accountBalance < 0) {
+    return NextResponse.json({ error: 'Invalid accountBalance' }, { status: 400 });
+  }
+
   const response = await getDashboardApiResponse({
     userId: user.id,
     accountId,
