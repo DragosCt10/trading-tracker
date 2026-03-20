@@ -2,16 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  ResponsiveContainer,
-  ComposedChart,
-  Bar as ReBar,
-  Line,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip as ReTooltip,
-} from 'recharts';
-import {
   Card,
   CardHeader,
   CardTitle,
@@ -19,12 +9,12 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
-import { formatPercent } from '@/lib/utils';
 import { Trade } from '@/types/trade';
 import { calculateDayStats as calculateDayStatsUtil } from '@/utils/calculateCategoryStats';
 import type { DayStats, BaseStats } from '@/types/dashboard';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
+import { ComposedBarWinRateChart, type BarWinRateChartDatum } from './ComposedBarWinRateChart';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -84,11 +74,6 @@ export interface DayStatisticsCardProps {
   includeTotalTrades?: boolean;
 }
 
-/**
- * Calculate Days Stats from trades array
- * @param trades - Array of trades to compute stats from
- * @returns Array of Days Stats
- */
 export function calculateDayStats(trades: Trade[]): DayStats[] {
   return calculateDayStatsUtil(trades);
 }
@@ -131,7 +116,8 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
     useEffect(() => {
       if (mounted) {
         if (externalLoading) {
-          setIsLoading(true);
+          const timer = setTimeout(() => setIsLoading(true), 0);
+          return () => clearTimeout(timer);
         } else {
           const timer = setTimeout(() => setIsLoading(false), 600);
           return () => clearTimeout(timer);
@@ -193,72 +179,6 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
         (s) =>
           ((s.wins ?? 0) + (s.losses ?? 0) + (s.breakEven ?? 0)) > 0
       ) || chartData.some((d) => d.totalTrades > 0);
-    const axisTextColor = isDark ? '#cbd5e1' : '#64748b';
-
-    const CustomTooltip = ({
-      active,
-      payload,
-    }: {
-      active?: boolean;
-      payload?: { payload: (typeof chartData)[number] }[];
-    }) => {
-      if (!active || !payload?.length) return null;
-      const d = payload[0].payload;
-      return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-          {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-          <div className="relative flex flex-col gap-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-              {d.day} ({d.totalTrades} trades)
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
-                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{d.wins}</span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
-                <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{d.losses}</span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
-                <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{d.breakEven ?? 0}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
-                <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {formatPercent(beCalcEnabled ? (d.winRateWithBE ?? 0) : (d.winRate ?? 0))}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-    const yAxisTickFormatter = (value: number) =>
-      Number(value ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
-
-    const leftAxisLabel = (props: { viewBox?: { x?: number; y?: number; width?: number; height?: number } }) => {
-      const vb = props.viewBox ?? {};
-      const x = (vb.x ?? 0) + 6;
-      const y = (vb.y ?? 0) + (vb.height ?? 0) / 2;
-      return (
-        <text x={x} y={y} textAnchor="middle" fill={axisTextColor} fontSize={12} fontWeight={500} transform={`rotate(-90, ${x}, ${y})`}>
-          Wins / Losses
-        </text>
-      );
-    };
-    const rightAxisLabel = (props: { viewBox?: { x?: number; y?: number; width?: number; height?: number } }) => {
-      const vb = props.viewBox ?? {};
-      const x = (vb.x ?? 0) + (vb.width ?? 0) + 8;
-      const y = (vb.y ?? 0) + (vb.height ?? 0) / 2;
-      return (
-        <text x={x} y={y} textAnchor="middle" fill={axisTextColor} fontSize={12} fontWeight={500} transform={`rotate(90, ${x}, ${y})`}>
-          Win Rate
-        </text>
-      );
-    };
 
     if (!mounted || isLoading) {
       return (
@@ -303,12 +223,6 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
       );
     }
 
-    const maxTotal = Math.max(
-      ...chartData.map((d) => d.wins + d.losses + (d.breakEven ?? 0)),
-      ...chartData.map((d) => d.totalTrades),
-      1
-    );
-
     return (
       <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
@@ -322,101 +236,18 @@ export const DayStatisticsCard: React.FC<DayStatisticsCardProps> = React.memo(
 
         <CardContent className="flex-1 flex items-end mt-1">
           <div className="w-full h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={chartData}
-                margin={{ top: 30, right: 56, left: 56, bottom: 10 }}
-              >
-                <defs>
-                  <linearGradient id="dayComposedTotalArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={isDark ? '#64748b' : '#94a3b8'} stopOpacity={0.2} />
-                    <stop offset="100%" stopColor={isDark ? '#64748b' : '#94a3b8'} stopOpacity={0.02} />
-                  </linearGradient>
-                  <linearGradient id="dayComposedWinsBar" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
-                  </linearGradient>
-                  <linearGradient id="dayComposedLossesBar" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
-                  </linearGradient>
-                  <linearGradient id="dayComposedBreakEvenBar" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor="#64748b" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#475569" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#334155" stopOpacity={0.9} />
-                  </linearGradient>
-                </defs>
-
-                <XAxis
-                  dataKey="day"
-                  type="category"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: axisTextColor, fontSize: 11 }}
-                  tickFormatter={(value: string) => {
-                    const d = chartData.find((x) => x.day === value);
-                    return d ? `${getDayDisplayLabel(d.day)} (${d.totalTrades})` : getDayDisplayLabel(value ?? '');
-                  }}
-                  height={38}
-                />
-                <YAxis
-                  yAxisId="left"
-                  type="number"
-                  tick={{ fill: axisTextColor, fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={yAxisTickFormatter}
-                  domain={[0, Math.ceil(maxTotal * 1.15)]}
-                  width={56}
-                  tickMargin={8}
-                  label={leftAxisLabel}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  type="number"
-                  tick={{ fill: axisTextColor, fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `${v}%`}
-                  domain={[0, 100]}
-                  width={56}
-                  tickMargin={8}
-                  label={rightAxisLabel}
-                />
-
-                <ReTooltip
-                  contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none', minWidth: '160px' }}
-                  wrapperStyle={{ outline: 'none', zIndex: 1000 }}
-                  cursor={{ stroke: isDark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.4)', strokeWidth: 1 }}
-                  content={<CustomTooltip />}
-                />
-
-                <Area
-                  type="monotone"
-                  dataKey="totalTrades"
-                  name="Total"
-                  yAxisId="left"
-                  fill="url(#dayComposedTotalArea)"
-                  stroke="none"
-                />
-                <ReBar dataKey="wins" name="Wins" fill="url(#dayComposedWinsBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" />
-                <ReBar dataKey="losses" name="Losses" fill="url(#dayComposedLossesBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" />
-                <ReBar dataKey="breakEven" name="Break Even" fill="url(#dayComposedBreakEvenBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" />
-                <Line
-                  type="monotone"
-                  dataKey="winRate"
-                  name="Win Rate"
-                  yAxisId="right"
-                  stroke="#f59e0b"
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={false}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
+            <ComposedBarWinRateChart
+              data={chartData as BarWinRateChartDatum[]}
+              xAxisDataKey="day"
+              xAxisTickFormatter={(value: string) => {
+                const d = chartData.find((x) => x.day === value);
+                return d ? `${getDayDisplayLabel(d.day)} (${d.totalTrades})` : getDayDisplayLabel(value ?? '');
+              }}
+              tooltipHeaderGetter={(d) => String(d.day ?? '')}
+              isDark={isDark}
+              beCalcEnabled={beCalcEnabled}
+              idPrefix="dayComposed"
+            />
           </div>
         </CardContent>
       </Card>

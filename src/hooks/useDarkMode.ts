@@ -10,7 +10,7 @@ export function useDarkMode(): { mounted: boolean; isDark: boolean } {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const mountTimer = setTimeout(() => setMounted(true), 0);
     const checkDarkMode = () => setIsDark(document.documentElement.classList.contains('dark'));
     checkDarkMode();
 
@@ -25,6 +25,7 @@ export function useDarkMode(): { mounted: boolean; isDark: boolean } {
     window.addEventListener('theme-change', handleThemeChange);
 
     return () => {
+      clearTimeout(mountTimer);
       observer.disconnect();
       window.removeEventListener('theme-change', handleThemeChange);
     };

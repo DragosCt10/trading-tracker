@@ -16,8 +16,8 @@ export async function GET(request: Request) {
   }
 
   // Validate next — must be a relative path to prevent open redirects
-  let next = searchParams.get('next') ?? '/strategies';
-  if (!next.startsWith('/')) next = '/strategies';
+  let next = searchParams.get('next') ?? '/stats';
+  if (!next.startsWith('/')) next = '/stats';
 
   if (code) {
     const supabase = await createClient();

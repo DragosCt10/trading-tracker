@@ -47,6 +47,10 @@ export interface SetupStats extends BaseStats {
   setup: string;
 }
 
+export interface SessionStats extends BaseStats {
+  session: string;
+}
+
 export interface DirectionStats extends BaseStats {
   direction: string;
 }

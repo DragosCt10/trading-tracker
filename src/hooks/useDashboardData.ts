@@ -21,6 +21,7 @@ import type {
   LocalHLStats,
   SetupStats,
   LiquidityStats,
+  SessionStats,
   DirectionStats,
   IntervalStats,
   DayStats,
@@ -323,6 +324,7 @@ export function useDashboardData({
   const macroStats = apiData ? mapApiToMacro(apiData) : null;
   const setupStats = (apiData?.setup_stats ?? []) as SetupStats[];
   const liquidityStats = (apiData?.liquidity_stats ?? []) as LiquidityStats[];
+  const sessionStats = (apiData?.session_stats ?? []) as SessionStats[];
   const directionStats = (apiData?.direction_stats ?? []) as DirectionStats[];
   const intervalStats = (apiData?.interval_stats ?? []) as IntervalStats[];
   const mssStats = (apiData?.mss_stats ?? []) as MssStats[];
@@ -351,6 +353,7 @@ export function useDashboardData({
     nonExecutedSetupStats,
     liquidityStats,
     nonExecutedLiquidityStats,
+    sessionStats,
     directionStats,
     intervalStats,
     mssStats,

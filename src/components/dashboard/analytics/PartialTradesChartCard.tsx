@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import {
   Card,
@@ -12,6 +12,9 @@ import {
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { cn, formatPercent } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { Crown } from 'lucide-react';
+import { buildPreviewTrade } from '@/utils/previewTrades';
+import { calculatePartialTradesStats } from '@/utils/calculatePartialTradesStats';
 
 export interface PartialTradesChartCardProps {
   totalPartials: number;
@@ -22,24 +25,76 @@ export interface PartialTradesChartCardProps {
   /** Break-even (all partial trades that are BE, one bucket). */
   partialBETrades: number;
   isLoading?: boolean;
+  isPro?: boolean;
+}
+
+function CustomTooltip({ active, payload, totalPartials, isDark }: { active?: boolean; payload?: ReadonlyArray<{ payload?: { name: string; value: number; color: string; pct?: number } }>; totalPartials: number; isDark?: boolean }) {
+  if (!active || !payload?.length) return null;
+  const data = payload[0].payload;
+  if (!data) return null;
+  const colorMap: Record<string, { text: string; dot: string }> = {
+    emerald: { text: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500 dark:bg-emerald-400 ring-emerald-200/50 dark:ring-emerald-500/30' },
+    rose: { text: 'text-rose-600 dark:text-rose-400', dot: 'bg-rose-500 dark:bg-rose-400 ring-rose-200/50 dark:ring-rose-500/30' },
+    slate: { text: 'text-slate-600 dark:text-slate-300', dot: 'bg-slate-500 dark:bg-slate-400 ring-slate-200/50 dark:ring-slate-500/30' },
+  };
+  const colors = colorMap[data.color] || colorMap.emerald;
+  const percentage = data.pct ?? (totalPartials > 0 ? (data.value / totalPartials) * 100 : 0);
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-3 text-slate-900 dark:text-slate-100">
+      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+      <div className="relative flex flex-col">
+        <div className="flex items-center gap-2">
+          <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
+          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {data.name}: <span className={cn('font-bold', colors.text)}>{data.value}</span>
+          </div>
+        </div>
+        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 ml-4 font-medium">
+          {percentage.toFixed(1)}% of total
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = React.memo(
   function PartialTradesChartCard({
-    totalPartials,
-    partialWinningTrades,
-    partialLosingTrades,
-    partialBETrades,
+    totalPartials: rawTotalPartials,
+    partialWinningTrades: rawWins,
+    partialLosingTrades: rawLosses,
+    partialBETrades: rawBE,
     isLoading: externalLoading,
+    isPro,
   }) {
     const { mounted, isDark } = useDarkMode();
     const [isLoading, setIsLoading] = useState(true);
+    const isLocked = !isPro;
+
+    const previewStats = useMemo(() => {
+      const previewTrades = [
+        buildPreviewTrade({
+          id: 'preview-partial-win',
+          partials_taken: true,
+          break_even: false,
+          trade_outcome: 'Win',
+        }),
+        buildPreviewTrade({
+          id: 'preview-partial-loss',
+          partials_taken: true,
+          break_even: false,
+          trade_outcome: 'Lose',
+        }),
+      ];
+
+      return calculatePartialTradesStats(previewTrades);
+    }, []);
 
     useEffect(() => {
       if (mounted) {
         if (externalLoading !== undefined) {
           if (externalLoading) {
-            setIsLoading(true);
+            const timer = setTimeout(() => setIsLoading(true), 0);
+            return () => clearTimeout(timer);
           } else {
             const timer = setTimeout(() => {
               setIsLoading(false);
@@ -55,10 +110,11 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
       }
     }, [mounted, externalLoading]);
 
-    // Three buckets: Wins, Losses, Break-even. Total = totalPartials.
-    const wins = partialWinningTrades;
-    const losses = partialLosingTrades;
-    const be = partialBETrades;
+    // Preview data when not PRO so the locked card still looks "filled"
+    const totalPartials = isPro ? rawTotalPartials : previewStats.totalPartialTradesCount;
+    const wins = isPro ? rawWins : previewStats.partialWinningTrades;
+    const losses = isPro ? rawLosses : previewStats.partialLosingTrades;
+    const be = isPro ? rawBE : previewStats.partialBETrades;
 
     const pieData = [
       { name: 'Wins', value: wins, color: 'emerald', gradientId: 'partialWins', pct: totalPartials > 0 ? (wins / totalPartials) * 100 : 0 },
@@ -66,34 +122,6 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
       { name: 'BE', value: be, color: 'slate', gradientId: 'partialBE', pct: totalPartials > 0 ? (be / totalPartials) * 100 : 0 },
     ].filter((d) => d.value > 0);
 
-    const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload?: { name: string; value: number; color: string; pct?: number } }> }) => {
-      if (!active || !payload?.length) return null;
-      const data = payload[0].payload;
-      if (!data) return null;
-      const colorMap: Record<string, { text: string; dot: string }> = {
-        emerald: { text: 'text-emerald-600 dark:text-emerald-400', dot: 'bg-emerald-500 dark:bg-emerald-400 ring-emerald-200/50 dark:ring-emerald-500/30' },
-        rose: { text: 'text-rose-600 dark:text-rose-400', dot: 'bg-rose-500 dark:bg-rose-400 ring-rose-200/50 dark:ring-rose-500/30' },
-        slate: { text: 'text-slate-600 dark:text-slate-300', dot: 'bg-slate-500 dark:bg-slate-400 ring-slate-200/50 dark:ring-slate-500/30' },
-      };
-      const colors = colorMap[data.color] || colorMap.emerald;
-      const percentage = data.pct ?? (totalPartials > 0 ? (data.value / totalPartials) * 100 : 0);
-      return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-3 text-slate-900 dark:text-slate-100">
-          {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-          <div className="relative flex flex-col">
-            <div className="flex items-center gap-2">
-              <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
-              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                {data.name}: <span className={cn('font-bold', colors.text)}>{data.value}</span>
-              </div>
-            </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 ml-4 font-medium">
-              {percentage.toFixed(1)}% of total
-            </div>
-          </div>
-        </div>
-      );
-    };
 
     if (!mounted || isLoading) {
       return (
@@ -113,7 +141,7 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
       );
     }
 
-    if (totalPartials === 0) {
+    if (isPro && rawTotalPartials === 0) {
       return (
         <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
@@ -140,108 +168,132 @@ export const PartialTradesChartCard: React.FC<PartialTradesChartCardProps> = Rea
 
     return (
       <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
-        <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Partial Trades
-          </CardTitle>
-          <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-            Distribution of partial trades by outcome
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex-1 flex flex-col items-center justify-center relative pt-2 pb-4">
-          <div className="flex-1 w-full flex items-center justify-center min-h-0 relative">
-            <div className="w-full h-full max-h-[200px] relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <defs>
-                    {/* Wins gradient - emerald (same as TotalTradesChartCard) */}
-                    <linearGradient id="partialWins" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
-                      <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
+        {isLocked && (
+          <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+            <Crown className="w-3 h-3" /> PRO
+          </span>
+        )}
+
+        {isLocked && (
+          <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+        )}
+
+        <div
+          className={cn(
+            'relative z-0 flex h-full flex-col',
+            isLocked && 'blur-[3px] opacity-70 pointer-events-none select-none'
+          )}
+        >
+          <CardHeader className="pb-2 flex-shrink-0">
+            <div className="flex items-center justify-between mb-1">
+              <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                Partial Trades
+              </CardTitle>
+              {!isLocked && (
+                <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                  <Crown className="w-3 h-3" /> PRO
+                </span>
+              )}
+            </div>
+            <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
+              Distribution of partial trades by outcome
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 flex flex-col items-center justify-center relative pt-2 pb-4">
+            <div className="flex-1 w-full flex items-center justify-center min-h-0 relative">
+              <div className="w-full h-full max-h-[200px] relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <defs>
+                      {/* Wins gradient - emerald (same as TotalTradesChartCard) */}
+                      <linearGradient id="partialWins" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+                        <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
+                        <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
+                      </linearGradient>
+                      {/* Losses gradient - rose */}
+                      <linearGradient id="partialLosses" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
+                        <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
+                        <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
+                      </linearGradient>
+                    {/* Break Even gradient - slate */}
+                    <linearGradient id="partialBE" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#64748b" stopOpacity={1} />
+                        <stop offset="50%" stopColor="#475569" stopOpacity={0.95} />
+                        <stop offset="100%" stopColor="#334155" stopOpacity={0.9} />
                     </linearGradient>
-                    {/* Losses gradient - rose */}
-                    <linearGradient id="partialLosses" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
-                      <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
-                    </linearGradient>
-                  {/* Break Even gradient - slate */}
-                  <linearGradient id="partialBE" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#64748b" stopOpacity={1} />
-                      <stop offset="50%" stopColor="#475569" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#334155" stopOpacity={0.9} />
-                  </linearGradient>
-                  </defs>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={65}
-                    outerRadius={85}
-                    paddingAngle={5}
-                    cornerRadius={5}
-                    dataKey="value"
+                    </defs>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={65}
+                      outerRadius={85}
+                      paddingAngle={5}
+                      cornerRadius={5}
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={`url(#${entry.gradientId})`}
+                          stroke="none"
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        background: 'transparent',
+                        border: 'none',
+                        padding: 0,
+                        boxShadow: 'none',
+                        minWidth: '160px',
+                      }}
+                      wrapperStyle={{ outline: 'none', zIndex: 1000 }}
+                      cursor={{ fill: 'transparent', radius: 8 }}
+                      content={(props) => <CustomTooltip {...props} isDark={isDark} totalPartials={totalPartials} />}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span
+                    className={`font-bold text-slate-900 dark:text-slate-100 ${
+                      isLocked ? 'text-3xl' : totalPartials >= 1000 ? 'text-2xl' : totalPartials >= 100 ? 'text-2xl' : 'text-3xl'
+                    }`}
                   >
-                    {pieData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={`url(#${entry.gradientId})`}
-                        stroke="none"
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: 'transparent',
-                      border: 'none',
-                      padding: 0,
-                      boxShadow: 'none',
-                      minWidth: '160px',
-                    }}
-                    wrapperStyle={{ outline: 'none', zIndex: 1000 }}
-                    cursor={{ fill: 'transparent', radius: 8 }}
-                    content={<CustomTooltip />}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span
-                  className={`font-bold text-slate-900 dark:text-slate-100 ${
-                    totalPartials >= 1000 ? 'text-2xl' : totalPartials >= 100 ? 'text-2xl' : 'text-3xl'
-                  }`}
-                >
-                  {totalPartials}
-                </span>
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1.5">
-                  Total Trades
-                </span>
-              </div>
-            </div>
-          </div>
-          {/* Win rate | Win rate w/BE - same as ReentryTradesChartCard */}
-          <div className="w-full px-4 pt-4 mt-2">
-            <div className="flex items-center justify-center gap-8">
-              <div className="flex flex-col items-center">
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  Win rate
-                </div>
-                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {totalPartials > 0 ? formatPercent((wins / totalPartials) * 100) : '0'}%
-                </div>
-              </div>
-              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
-              <div className="flex flex-col items-center">
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                  Win rate w/BE
-                </div>
-                <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                  {totalPartials > 0 ? formatPercent(((wins + be) / totalPartials) * 100) : '0'}%
+                    {totalPartials}
+                  </span>
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1.5">
+                    Total Trades
+                  </span>
                 </div>
               </div>
             </div>
-          </div>
-        </CardContent>
+            {/* Win rate | Win rate w/BE - same as ReentryTradesChartCard */}
+            <div className="w-full px-4 pt-4 mt-2">
+              <div className="flex items-center justify-center gap-8">
+                <div className="flex flex-col items-center">
+                  <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                    Win rate
+                  </div>
+                  <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                    {totalPartials > 0 ? `${formatPercent((wins / totalPartials) * 100)}%` : '0%'}
+                  </div>
+                </div>
+                <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+                <div className="flex flex-col items-center">
+                  <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                    Win rate w/BE
+                  </div>
+                  <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                    {totalPartials > 0 ? `${formatPercent(((wins + be) / totalPartials) * 100)}%` : '0%'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </div>
       </Card>
     );
   }

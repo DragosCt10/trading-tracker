@@ -1,16 +1,7 @@
 'use client';
 
-import React from 'react';
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Bar as ReBar,
-  Area,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip as ReTooltip,
-} from 'recharts';
+import React, { useMemo } from 'react';
+import { Crown } from 'lucide-react';
 import {
   Card,
   CardHeader,
@@ -19,10 +10,10 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
-import { formatPercent } from '@/lib/utils';
 import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
+import { ComposedBarWinRateChart, type BarWinRateChartDatum } from './ComposedBarWinRateChart';
 
 export interface TimeIntervalStatisticsCardProps {
   /** Stats per time interval (same buckets as TIME_INTERVALS). */
@@ -30,17 +21,40 @@ export interface TimeIntervalStatisticsCardProps {
   isLoading?: boolean;
   /** Optional: show only this interval (e.g. "08:00 – 11:59"). Legacy trades with simple time are still counted in the correct bucket via data. */
   selectedIntervalLabel?: string | null;
+  isPro?: boolean;
 }
 
+
 export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProps> = React.memo(
-  function TimeIntervalStatisticsCard({ data, isLoading, selectedIntervalLabel }) {
+  function TimeIntervalStatisticsCard({ data: rawData, isLoading, selectedIntervalLabel, isPro }) {
+    const isLocked = !isPro;
+
+    const previewData = useMemo<TradeStatDatum[]>(
+      () => [
+        { category: '00:00 – 01:59', wins: 1, losses: 1, breakEven: 0, totalTrades: 2, winRate: 50, winRateWithBE: 50 },
+        { category: '02:00 – 03:59', wins: 0, losses: 1, breakEven: 1, totalTrades: 2, winRate: 0, winRateWithBE: 0 },
+        { category: '04:00 – 05:59', wins: 2, losses: 1, breakEven: 0, totalTrades: 3, winRate: (2 / 3) * 100, winRateWithBE: (2 / 3) * 100 },
+        { category: '06:00 – 07:59', wins: 1, losses: 2, breakEven: 0, totalTrades: 3, winRate: (1 / 3) * 100, winRateWithBE: (1 / 3) * 100 },
+        { category: '08:00 – 09:59', wins: 4, losses: 1, breakEven: 0, totalTrades: 5, winRate: 80, winRateWithBE: 80 },
+        { category: '10:00 – 11:59', wins: 3, losses: 1, breakEven: 1, totalTrades: 5, winRate: 75, winRateWithBE: 60 },
+        { category: '12:00 – 13:59', wins: 2, losses: 2, breakEven: 1, totalTrades: 5, winRate: 50, winRateWithBE: 40 },
+        { category: '14:00 – 15:59', wins: 1, losses: 3, breakEven: 0, totalTrades: 4, winRate: 25, winRateWithBE: 25 },
+        { category: '16:00 – 17:59', wins: 3, losses: 1, breakEven: 0, totalTrades: 4, winRate: 75, winRateWithBE: 75 },
+        { category: '18:00 – 19:59', wins: 1, losses: 1, breakEven: 1, totalTrades: 3, winRate: 50, winRateWithBE: (1 / 3) * 100 },
+        { category: '20:00 – 21:59', wins: 0, losses: 2, breakEven: 0, totalTrades: 2, winRate: 0, winRateWithBE: 0 },
+        { category: '22:00 – 23:59', wins: 1, losses: 0, breakEven: 1, totalTrades: 2, winRate: 100, winRateWithBE: 50 },
+      ],
+      []
+    );
+
+    const effectiveData = isLocked ? previewData : rawData;
     const { mounted, isDark } = useDarkMode();
     const { beCalcEnabled } = useBECalc();
 
     // When a specific interval is selected, show only that row (data already includes legacy trades bucketed by trade_time)
     const dataToShow = selectedIntervalLabel
-      ? data.filter((d) => d.category === selectedIntervalLabel)
-      : data;
+      ? effectiveData.filter((d) => d.category === selectedIntervalLabel)
+      : effectiveData;
 
     // BE new flow: wins, losses, breakEven separate; totalTrades = wins + losses + breakEven
     const withTotals: TradeStatDatum[] = dataToShow.map((d) => {
@@ -65,104 +79,15 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
         (d.losses ?? 0) > 0 ||
         (d.breakEven ?? 0) > 0
     );
-    const axisTextColor = isDark ? '#cbd5e1' : '#64748b';
-    const maxTotal = Math.max(
-      ...withTotals.map((d) => (d.wins ?? 0) + (d.losses ?? 0) + (d.breakEven ?? 0)),
-      ...withTotals.map((d) => d.totalTrades ?? 0),
-      1
-    );
-
-    const CustomTooltip = ({
-      active,
-      payload,
-    }: {
-      active?: boolean;
-      payload?: { payload: TradeStatDatum }[];
-    }) => {
-      if (!active || !payload?.length) return null;
-      const d = payload[0].payload;
-      const wins = d.wins ?? 0;
-      const losses = d.losses ?? 0;
-      const breakEven = d.breakEven ?? 0;
-      const winRate = d.winRate ?? 0;
-      const winRateWithBE = d.winRateWithBE ?? d.winRate ?? 0;
-      const totalTrades = d.totalTrades ?? wins + losses + breakEven;
-      return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-          {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-          <div className="relative flex flex-col gap-3">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-3">
-            {d.category} {typeof totalTrades === 'number' ? `(${totalTrades} trade${totalTrades === 1 ? '' : 's'})` : ''}
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
-              <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{wins}</span>
-            </div>
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
-              <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{losses}</span>
-            </div>
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
-              <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{breakEven}</span>
-            </div>
-            <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
-              <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                {formatPercent(beCalcEnabled ? winRateWithBE : winRate)}%
-              </span>
-            </div>
-          </div>
-          </div>
-        </div>
-      );
-    };
-
-    const yAxisTickFormatter = (value: number) =>
-      Number(value ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
-
-    const leftAxisLabel = (props: { viewBox?: { x?: number; y?: number; width?: number; height?: number } }) => {
-      const vb = props.viewBox ?? {};
-      const x = (vb.x ?? 0) + 6;
-      const y = (vb.y ?? 0) + (vb.height ?? 0) / 2;
-      return (
-        <text
-          x={x}
-          y={y}
-          textAnchor="middle"
-          fill={axisTextColor}
-          fontSize={12}
-          fontWeight={500}
-          transform={`rotate(-90, ${x}, ${y})`}
-        >
-          Wins / Losses
-        </text>
-      );
-    };
-
-    const rightAxisLabel = (props: { viewBox?: { x?: number; y?: number; width?: number; height?: number } }) => {
-      const vb = props.viewBox ?? {};
-      const x = (vb.x ?? 0) + (vb.width ?? 0) + 8;
-      const y = (vb.y ?? 0) + (vb.height ?? 0) / 2;
-      return (
-        <text
-          x={x}
-          y={y}
-          textAnchor="middle"
-          fill={axisTextColor}
-          fontSize={12}
-          fontWeight={500}
-          transform={`rotate(90, ${x}, ${y})`}
-        >
-          Win Rate
-        </text>
-      );
-    };
 
     if (!mounted || isLoading) {
       return (
         <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+          {isLocked && (
+            <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
+          )}
           <CardHeader className="pb-2 flex-shrink-0">
             <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
               Time Interval Stats
@@ -182,9 +107,20 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
       return (
         <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
-            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-              Time Interval Stats
-            </CardTitle>
+            {!isPro ? (
+              <div className="flex items-center justify-between mb-1">
+                <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                  Time Interval Stats
+                </CardTitle>
+                <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                  <Crown className="w-3 h-3" /> PRO
+                </span>
+              </div>
+            ) : (
+              <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+                Time Interval Stats
+              </CardTitle>
+            )}
             <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
               Distribution of trades based on time interval
             </CardDescription>
@@ -203,111 +139,56 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
 
     return (
       <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
-        <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Time Interval Stats
-          </CardTitle>
-          <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-            Distribution of trades based on time interval
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex-1 flex items-end mt-1">
-          <div className="w-full h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={withTotals}
-                margin={{ top: 30, right: 56, left: 56, bottom: 10 }}
+        {isLocked && (
+          <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+            <Crown className="w-3 h-3" /> PRO
+          </span>
+        )}
+
+        {isLocked && (
+          <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+        )}
+
+        <div
+          className={`relative z-0 flex flex-col h-full ${
+            isLocked ? 'blur-[3px] opacity-70 pointer-events-none select-none' : ''
+          }`}
+        >
+          <CardHeader className="pb-2 flex-shrink-0">
+            <div className="flex items-center justify-between mb-1">
+              <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                Time Interval Stats
+              </CardTitle>
+            </div>
+            <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
+              Distribution of trades based on time interval
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 flex items-end mt-1">
+            <div className="w-full h-[250px]">
+              <ComposedBarWinRateChart
+                data={withTotals as BarWinRateChartDatum[]}
+                xAxisDataKey="category"
+                xAxisTickFormatter={(_: string, i: number) => {
+                  const d = withTotals[i];
+                  if (!d) return '';
+                  const [start, end] = String(d.category).split(' – ');
+                  const totalTrades = d.totalTrades ?? 0;
+                  return end
+                    ? `${start}-${end} (${totalTrades})`
+                    : `${String(d.category)} (${totalTrades})`;
+                }}
+                tooltipHeaderGetter={(d) => String(d.category ?? '')}
+                isDark={isDark}
+                beCalcEnabled={beCalcEnabled}
+                idPrefix="timeInterval"
                 barCategoryGap="20%"
-              >
-                <defs>
-                  <linearGradient id="timeIntervalTotalArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={isDark ? '#64748b' : '#94a3b8'} stopOpacity={0.2} />
-                    <stop offset="100%" stopColor={isDark ? '#64748b' : '#94a3b8'} stopOpacity={0.02} />
-                  </linearGradient>
-                  <linearGradient id="timeIntervalWinsBar" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
-                  </linearGradient>
-                  <linearGradient id="timeIntervalLossesBar" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
-                  </linearGradient>
-                  <linearGradient id="timeIntervalBreakEvenBar" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor="#64748b" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#475569" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#334155" stopOpacity={0.9} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="category"
-                  type="category"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: axisTextColor, fontSize: 11 }}
-                  tickFormatter={(_: string, i: number) => {
-                    const d = withTotals[i];
-                    return d ? `${d.category} (${d.totalTrades ?? 0})` : '';
-                  }}
-                  height={38}
-                />
-                <YAxis
-                  yAxisId="left"
-                  type="number"
-                  tick={{ fill: axisTextColor, fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={yAxisTickFormatter}
-                  domain={[0, Math.ceil(maxTotal * 1.15)]}
-                  width={56}
-                  tickMargin={8}
-                  label={leftAxisLabel}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  type="number"
-                  tick={{ fill: axisTextColor, fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `${v}%`}
-                  domain={[0, 100]}
-                  width={56}
-                  tickMargin={8}
-                  label={rightAxisLabel}
-                />
-                <ReTooltip
-                  contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none', minWidth: '160px' }}
-                  wrapperStyle={{ outline: 'none', zIndex: 1000 }}
-                  cursor={{ stroke: isDark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.4)', strokeWidth: 1 }}
-                  content={<CustomTooltip />}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="totalTrades"
-                  name="Total"
-                  yAxisId="left"
-                  fill="url(#timeIntervalTotalArea)"
-                  stroke="none"
-                />
-                <ReBar dataKey="wins" name="Wins" fill="url(#timeIntervalWinsBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" stackId="wins" />
-                <ReBar dataKey="losses" name="Losses" fill="url(#timeIntervalLossesBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" stackId="losses" />
-                <ReBar dataKey="breakEven" name="Break Even" fill="url(#timeIntervalBreakEvenBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" stackId="breakEven" />
-                <Line
-                  type="monotone"
-                  dataKey="winRate"
-                  name="Win Rate"
-                  yAxisId="right"
-                  stroke="#f59e0b"
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4, fill: '#f59e0b', strokeWidth: 0 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
+                xAxisInterval={0}
+                lineActiveDot={{ r: 4, fill: '#f59e0b', strokeWidth: 0 }}
+              />
+            </div>
+          </CardContent>
+        </div>
       </Card>
     );
   }

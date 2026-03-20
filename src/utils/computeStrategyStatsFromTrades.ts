@@ -19,6 +19,33 @@ export interface TimeIntervalChartResult {
 export function convertIntervalStatsToChartData(
   intervalStats: IntervalStats[]
 ): TradeStatDatum[] {
+  const hasExactLabelMatch = TIME_INTERVALS.some((interval) =>
+    intervalStats.some((s) => s.label === interval.label)
+  );
+
+  if (!hasExactLabelMatch && intervalStats.length > 0) {
+    // Fallback for mixed/stale payloads where labels no longer match TIME_INTERVALS exactly.
+    // Prefer rendering available interval rows over showing an empty chart.
+    return intervalStats.map((stat) => {
+      const wins = stat.wins ?? 0;
+      const losses = stat.losses ?? 0;
+      const breakEven = stat.breakEven ?? 0;
+      const totalFromPayload = (stat as IntervalStats & { total?: number }).total;
+      const totalTrades = typeof totalFromPayload === 'number'
+        ? totalFromPayload
+        : wins + losses + breakEven;
+      return {
+        category: `${stat.label}`,
+        wins,
+        losses,
+        breakEven,
+        winRate: stat.winRate ?? 0,
+        winRateWithBE: stat.winRateWithBE ?? 0,
+        totalTrades,
+      };
+    });
+  }
+
   return TIME_INTERVALS.map((interval) => {
     const stat =
       intervalStats.find((s) => s.label === interval.label) ?? {
@@ -28,7 +55,10 @@ export function convertIntervalStatsToChartData(
         winRate: 0,
         winRateWithBE: 0,
       };
-    const totalTrades = stat.wins + stat.losses + (stat.breakEven ?? 0);
+    const totalFromPayload = (stat as IntervalStats & { total?: number }).total;
+    const totalTrades = typeof totalFromPayload === 'number'
+      ? totalFromPayload
+      : stat.wins + stat.losses + (stat.breakEven ?? 0);
     return {
       category: `${interval.label}`,
       wins: stat.wins,

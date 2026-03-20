@@ -26,6 +26,8 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { TRADES_DATA } from '@/constants/queryConfig';
+import { Crown } from 'lucide-react';
+import { useSubscription } from '@/hooks/useSubscription';
 
 import {
   Chart as ChartJS,
@@ -170,6 +172,7 @@ export type StrategyClientInitialProps = {
   initialMode: 'live' | 'backtesting' | 'demo';
   initialActiveAccount: { id: string; [key: string]: unknown } | null;
   initialStrategyId: string | null;
+  initialStrategyName: string | null;
   initialExtraCards: ExtraCardKey[];
   /** Server-fetched dashboard stats (API shape) for initial hydration — avoids client /api/dashboard-stats call (audit 2.1). */
   initialDashboardStats?: DashboardApiResponse | null;
@@ -261,6 +264,7 @@ export default function StrategyClient(
   const strategyId = props?.initialStrategyId ?? null;
 
   const userId = userData?.user?.id;
+  const { isPro } = useSubscription({ userId: props?.initialUserId });
 
   // Per-strategy extra cards configuration
   const extraCards = props?.initialExtraCards ?? [];
@@ -410,6 +414,7 @@ export default function StrategyClient(
     directionStats,
     intervalStats,
     mssStats,
+    sessionStats,
     newsStats,
     dayStats,
     marketStats,
@@ -944,7 +949,7 @@ export default function StrategyClient(
 
       {/* Account Overview Card - use resolved account (props first) so server and client match; card defers display until mount to avoid hydration when e.g. no subaccounts */}
       <AccountOverviewCard
-        accountName={resolvedAccountDisplayName}
+        accountName={props?.initialStrategyName ?? null}
         currencySymbol={currencySymbol}
         updatedBalance={updatedBalance}
         totalYearProfit={totalYearProfit}
@@ -1024,10 +1029,12 @@ export default function StrategyClient(
               reentryStats: statsToUseForCharts.reentryStats as ReentryTradesChartCardProps['reentryStats'],
               breakEvenStats: statsToUseForCharts.breakEvenStats as ReentryTradesChartCardProps['breakEvenStats'],
               trendStats: statsToUseForCharts.trendStats ?? [],
+              sessionStats: sessionStats,
               chartsLoadingState: chartsLoadingState,
               includeTotalTrades: filteredChartStats !== null,
               showEvaluationCard: hasCard('evaluation_stats'),
               showTrendCard: hasCard('trend_stats'),
+              showSessionCard: hasCard('session_stats'),
             }}
             beforeRiskPerTradeRow={{
               trades: tradesToUse,
@@ -1040,26 +1047,29 @@ export default function StrategyClient(
                 : (filteredRiskStats || riskStats)
               ) as RiskAnalysis | null ?? null
             }
+            isPro={isPro}
           />
         </div>
       )}
 
-      {/* Confidence & Mind State */}
+      {/* Confidence & Mind State — PRO */}
       {(viewMode === 'dateRange' || viewMode === 'yearly') && (
         <>
           <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Psychological Factors</h2>
           <p className="text-slate-500 dark:text-slate-400 mt-1 mb-6">Confidence and mind state at entry across your trades.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-6">
-            <ConfidenceStatsCard trades={tradesToUse} isLoading={chartsLoadingState} />
-            <MindStateStatsCard trades={tradesToUse} isLoading={chartsLoadingState} />
+            <ConfidenceStatsCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
+            <MindStateStatsCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
           </div>
         </>
       )}
 
-      {/* Equity Curve - title and description outside card, then full-row card */}
+      {/* Equity Curve */}
       {(viewMode === 'dateRange' || viewMode === 'yearly') && (
         <>
-          <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Equity Curve</h2>
+          <div className="flex items-center justify-between mt-14 mb-2">
+            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Equity Curve</h2>
+          </div>
           <p className="text-slate-500 dark:text-slate-400 mb-6">Cumulative P&L over time.</p>
           <div className="w-full mb-6">
             <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
@@ -1067,26 +1077,30 @@ export default function StrategyClient(
         </>
       )}
 
-      {/* Consistency & drawdown */}
-      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Consistency & drawdown</h2>
+      {/* Consistency & drawdown — PRO */}
+      <div className="flex items-center justify-between mt-14 mb-2">
+        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Consistency & drawdown</h2>
+      </div>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Consistency and capital preservation metrics.</p>
       <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
-        <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} />
-        <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} />
-        <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} />
+        <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} isPro={isPro} />
+        <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} isPro={isPro} />
+        <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} isPro={isPro} />
       </div>
 
-      {/* Performance ratios */}
-      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Performance ratios</h2>
+      {/* Performance ratios — PRO */}
+      <div className="flex items-center justify-between mt-14 mb-2">
+        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Performance ratios</h2>
+      </div>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Return and risk-adjusted metrics.</p>
       <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
-        <ProfitFactorChart tradesToUse={tradesToUse} totalWins={statsToUse.totalWins} totalLosses={statsToUse.totalLosses} />
-        <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} />
-        <TQIChart tradesToUse={tradesToUse} />
+        <ProfitFactorChart tradesToUse={tradesToUse} totalWins={statsToUse.totalWins} totalLosses={statsToUse.totalLosses} isPro={isPro} />
+        <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} isPro={isPro} />
+        <TQIChart tradesToUse={tradesToUse} isPro={isPro} />
       </div>
       <div className="flex flex-col md:grid md:grid-cols-2 gap-6 w-full mt-6">
-        <RecoveryFactorChart recoveryFactor={recoveryFactor} />
-        <DrawdownCountChart drawdownCount={drawdownCount} />
+        <RecoveryFactorChart recoveryFactor={recoveryFactor} isPro={isPro} />
+        <DrawdownCountChart drawdownCount={drawdownCount} isPro={isPro} />
       </div>
 
       <AnalysisModal
@@ -1126,6 +1140,7 @@ export default function StrategyClient(
           }
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
+          isPro={isPro}
         />
       </div>
 
@@ -1140,6 +1155,7 @@ export default function StrategyClient(
           }
           chartOptions={chartOptions}
           getCurrencySymbol={getCurrencySymbol}
+          isPro={isPro}
         />
       </div>
 
@@ -1149,6 +1165,7 @@ export default function StrategyClient(
         <TimeIntervalStatisticsCard
           data={timeIntervalChartDataToUse}
           isLoading={chartsLoadingState}
+          isPro={isPro}
         />
       </div>
 
@@ -1162,7 +1179,7 @@ export default function StrategyClient(
       </div>
       {/* News by event - full width */}
       <div className="my-8">
-        <NewsNameChartCard trades={tradesToUse} isLoading={chartsLoadingState} />
+        <NewsNameChartCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
       </div>
 
       {/* Potential Risk/Reward Ratio Stats & Stop Loss Size Stats — extra cards */}

@@ -7,5 +7,5 @@ export const dynamic = 'force-dynamic';
  * All strategies are now accessed via the /strategies route.
  */
 export default function StrategyPage() {
-  redirect('/strategies');
+  redirect('/stats');
 }

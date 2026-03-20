@@ -39,6 +39,68 @@ const TREND_SHORT_LABELS: Record<string, string> = {
   Consolidation: 'Consol',
 };
 
+function CustomTooltip({
+  active,
+  payload,
+  isDark,
+  beCalcEnabled,
+}: {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload?: PieDatum }>;
+  isDark?: boolean;
+  beCalcEnabled: boolean;
+}) {
+  if (!active || !payload?.length) return null;
+
+  const data = payload[0]?.payload;
+  if (!data) return null;
+  const colorMap: Record<string, { dot: string }> = {
+    teal: { dot: 'bg-teal-500 dark:bg-teal-400 ring-teal-200/50 dark:ring-teal-500/30' },
+    orange: { dot: 'bg-orange-500 dark:bg-orange-400 ring-orange-200/50 dark:ring-orange-500/30' },
+    violet: { dot: 'bg-violet-500 dark:bg-violet-400 ring-violet-200/50 dark:ring-violet-500/30' },
+  };
+  const colors = colorMap[data.color] ?? colorMap.teal;
+  const wins = data.wins ?? 0;
+  const losses = data.losses ?? 0;
+  const breakEven = data.breakEven ?? 0;
+  const winRate = data.winRate ?? 0;
+  const winRateWithBE = data.winRateWithBE ?? 0;
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
+      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+      <div className="relative flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+            {TREND_SHORT_LABELS[data.name] ?? data.name} — {data.percentage.toFixed(1)}% ({data.value} {data.value === 1 ? 'trade' : 'trades'})
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
+            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{wins}</span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
+            <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{losses}</span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
+            <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{breakEven}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
+            <span className="text-base font-bold text-slate-900 dark:text-slate-100">
+              {(beCalcEnabled ? winRateWithBE : winRate).toFixed(2)}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.memo(
   function TrendStatisticsCard({ trendStats, isLoading: externalLoading, includeTotalTrades = false }) {
     const { mounted, isDark } = useDarkMode();
@@ -49,7 +111,8 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
       if (mounted) {
         if (externalLoading !== undefined) {
           if (externalLoading) {
-            setIsLoading(true);
+            const timer = setTimeout(() => setIsLoading(true), 0);
+            return () => clearTimeout(timer);
           } else {
             const timer = setTimeout(() => setIsLoading(false), 600);
             return () => clearTimeout(timer);
@@ -98,56 +161,6 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
     const counterTrendCount = pieData.find((d) => d.name === 'Counter-trend')?.value ?? 0;
     const consolidationCount = pieData.find((d) => d.name === 'Consolidation')?.value ?? 0;
 
-    const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: { payload: PieDatum }[] }) => {
-      if (!active || !payload?.length) return null;
-
-      const data = payload[0].payload;
-      const colorMap: Record<string, { dot: string }> = {
-        teal: { dot: 'bg-teal-500 dark:bg-teal-400 ring-teal-200/50 dark:ring-teal-500/30' },
-        orange: { dot: 'bg-orange-500 dark:bg-orange-400 ring-orange-200/50 dark:ring-orange-500/30' },
-        violet: { dot: 'bg-violet-500 dark:bg-violet-400 ring-violet-200/50 dark:ring-violet-500/30' },
-      };
-      const colors = colorMap[data.color] ?? colorMap.teal;
-      const wins = data.wins ?? 0;
-      const losses = data.losses ?? 0;
-      const breakEven = data.breakEven ?? 0;
-      const winRate = data.winRate ?? 0;
-      const winRateWithBE = data.winRateWithBE ?? 0;
-
-      return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-          {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-          <div className="relative flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-                {TREND_SHORT_LABELS[data.name] ?? data.name} — {data.percentage.toFixed(1)}% ({data.value} {data.value === 1 ? 'trade' : 'trades'})
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
-                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{wins}</span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
-                <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{losses}</span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
-                <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{breakEven}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
-                <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {(beCalcEnabled ? winRateWithBE : winRate).toFixed(2)}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    };
 
     if (!mounted || isLoading) {
       return (
@@ -254,7 +267,7 @@ export const TrendStatisticsCard: React.FC<TrendStatisticsCardProps> = React.mem
                     }}
                     wrapperStyle={{ outline: 'none', zIndex: 1000 }}
                     cursor={{ fill: 'transparent', radius: 8 }}
-                    content={<CustomTooltip />}
+                    content={(props) => <CustomTooltip {...props} isDark={isDark} beCalcEnabled={beCalcEnabled} />}
                   />
                 </PieChart>
               </ResponsiveContainer>

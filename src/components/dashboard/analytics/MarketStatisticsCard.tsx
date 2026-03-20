@@ -1,16 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
+import { Crown } from 'lucide-react';
 import { Trade } from '@/types/trade';
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  Bar as ReBar,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip as ReTooltip,
-} from 'recharts';
 import {
   Card,
   CardHeader,
@@ -19,12 +11,13 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
-import { formatPercent } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { TradeStatDatum } from '@/components/dashboard/analytics/TradesStatsBarCard';
 import { calculateMarketStats as calculateMarketStatsUtil } from '@/utils/calculateCategoryStats';
 import type { MarketStats, BaseStats } from '@/types/dashboard';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
+import { ComposedBarWinRateChart, type BarWinRateChartDatum } from './ComposedBarWinRateChart';
 
 type MarketStatsLike = BaseStats & {
   market?: string;
@@ -35,7 +28,9 @@ export interface MarketStatisticsCardProps {
   marketStats: MarketStatsLike[];
   isLoading?: boolean;
   includeTotalTrades?: boolean;
+  isPro?: boolean;
 }
+
 
 export function calculateMarketStats(trades: Trade[], accountBalance: number): MarketStats[] {
   return calculateMarketStatsUtil(trades, accountBalance);
@@ -68,10 +63,55 @@ export function convertFilteredMarketStatsToChartData(marketStats: MarketStatsLi
 }
 
 export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.memo(
-  function MarketStatisticsCard({ marketStats, isLoading, includeTotalTrades = false }) {
+  function MarketStatisticsCard({ marketStats: rawMarketStats, isLoading, includeTotalTrades = false, isPro }) {
     const { mounted, isDark } = useDarkMode();
     const { beCalcEnabled } = useBECalc();
 
+    const isLocked = !isPro;
+
+    const previewMarketStats = useMemo<MarketStatsLike[]>(
+      () => [
+        {
+          market: 'Forex',
+          total: 3,
+          wins: 2,
+          losses: 1,
+          breakEven: 0,
+          winRate: (2 / 3) * 100,
+          winRateWithBE: (2 / 3) * 100,
+          profit: 0,
+          pnlPercentage: 0,
+          profitTaken: false,
+        },
+        {
+          market: 'Indices',
+          total: 4,
+          wins: 2,
+          losses: 1,
+          breakEven: 1,
+          winRate: (2 / 3) * 100,
+          winRateWithBE: (2 / 4) * 100,
+          profit: 0,
+          pnlPercentage: 0,
+          profitTaken: false,
+        },
+        {
+          market: 'Cryptos',
+          total: 2,
+          wins: 1,
+          losses: 1,
+          breakEven: 0,
+          winRate: (1 / 2) * 100,
+          winRateWithBE: (1 / 2) * 100,
+          profit: 0,
+          pnlPercentage: 0,
+          profitTaken: false,
+        },
+      ],
+      []
+    );
+
+    const marketStats = isLocked ? previewMarketStats : rawMarketStats;
     const chartDataRaw = convertMarketStatsToChartData(marketStats, includeTotalTrades);
     // Keep wins/losses as in source (same as Market Profit Stats); total = stat.total (actual trade count)
     const withTotals: TradeStatDatum[] = chartDataRaw.map((d) => {
@@ -89,66 +129,15 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
     const hasContent = withTotals.some(
       (d) => (d.totalTrades ?? 0) > 0 || (d.wins ?? 0) > 0 || (d.losses ?? 0) > 0 || (d.breakEven ?? 0) > 0
     );
-    const axisTextColor = isDark ? '#cbd5e1' : '#64748b';
-    const maxTotal = Math.max(
-      ...withTotals.map((d) => (d.wins ?? 0) + (d.losses ?? 0) + (d.breakEven ?? 0)),
-      ...withTotals.map((d) => d.totalTrades ?? 0),
-      1
-    );
-
-    const CustomTooltip = ({
-      active,
-      payload,
-    }: {
-      active?: boolean;
-      payload?: { payload: TradeStatDatum }[];
-    }) => {
-      if (!active || !payload?.length) return null;
-      const d = payload[0].payload;
-      const wins = d.wins ?? 0;
-      const losses = d.losses ?? 0;
-      const breakEven = d.breakEven ?? 0;
-      const winRate = d.winRate ?? 0;
-      const winRateWithBE = d.winRateWithBE ?? d.winRate ?? 0;
-      const totalTrades = d.totalTrades ?? wins + losses + breakEven;
-      return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-          {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-          <div className="relative flex flex-col gap-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-              {d.category} {typeof totalTrades === 'number' ? `(${totalTrades} trade${totalTrades === 1 ? '' : 's'})` : ''}
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
-                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{wins}</span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
-                <span className="text-lg font-bold text-rose-600 dark:text-rose-400">{losses}</span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
-                <span className="text-lg font-bold text-slate-600 dark:text-slate-300">{breakEven}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
-                <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {formatPercent(beCalcEnabled ? winRateWithBE : winRate)}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-    const yAxisTickFormatter = (value: number) =>
-      Number(value ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
     if (!mounted || isLoading) {
       return (
         <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+          {isLocked && (
+            <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+              <Crown className="w-3 h-3" /> PRO
+            </span>
+          )}
           <CardHeader className="pb-2 flex-shrink-0">
             <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
               Market Stats
@@ -168,9 +157,20 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
       return (
         <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
-            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-              Market Stats
-            </CardTitle>
+            {!isPro ? (
+              <div className="flex items-center justify-between mb-1">
+                <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                  Market Stats
+                </CardTitle>
+                <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                  <Crown className="w-3 h-3" /> PRO
+                </span>
+              </div>
+            ) : (
+              <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+                Market Stats
+              </CardTitle>
+            )}
             <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
               Distribution of trades based on market
             </CardDescription>
@@ -189,86 +189,50 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
 
     return (
       <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
-        <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Market Stats
-          </CardTitle>
-          <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-            Distribution of trades based on market
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex-1 flex items-end mt-1">
-          <div className="w-full h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={withTotals}
-                margin={{ top: 30, right: 20, left: 56, bottom: 10 }}
-              >
-                <defs>
-                  <linearGradient id="marketStatsTotalArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={isDark ? '#64748b' : '#94a3b8'} stopOpacity={0.2} />
-                    <stop offset="100%" stopColor={isDark ? '#64748b' : '#94a3b8'} stopOpacity={0.02} />
-                  </linearGradient>
-                  <linearGradient id="marketStatsWinsBar" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
-                  </linearGradient>
-                  <linearGradient id="marketStatsLossesBar" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
-                  </linearGradient>
-                  <linearGradient id="marketStatsBreakEvenBar" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor="#64748b" stopOpacity={1} />
-                    <stop offset="50%" stopColor="#475569" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#334155" stopOpacity={0.9} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="category"
-                  type="category"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: axisTextColor, fontSize: 11 }}
-                  tickFormatter={(_: string, i: number) => {
-                    const d = withTotals[i];
-                    return d ? `${d.category} (${d.totalTrades ?? 0})` : '';
-                  }}
-                  height={38}
-                />
-                <YAxis
-                  yAxisId="left"
-                  type="number"
-                  tick={{ fill: axisTextColor, fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={yAxisTickFormatter}
-                  domain={[0, Math.ceil(maxTotal * 1.15)]}
-                  width={56}
-                  tickMargin={8}
-                />
-                <ReTooltip
-                  contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none', minWidth: '160px' }}
-                  wrapperStyle={{ outline: 'none', zIndex: 1000 }}
-                  cursor={{ stroke: isDark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.4)', strokeWidth: 1 }}
-                  content={<CustomTooltip />}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="totalTrades"
-                  name="Total"
-                  yAxisId="left"
-                  fill="url(#marketStatsTotalArea)"
-                  stroke="none"
-                />
-                <ReBar dataKey="wins" name="Wins" fill="url(#marketStatsWinsBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" />
-                <ReBar dataKey="losses" name="Losses" fill="url(#marketStatsLossesBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" />
-                <ReBar dataKey="breakEven" name="Break Even" fill="url(#marketStatsBreakEvenBar)" radius={[7, 7, 7, 7]} barSize={18} yAxisId="left" />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
+        {isLocked && (
+          <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+            <Crown className="w-3 h-3" /> PRO
+          </span>
+        )}
+        {isLocked && (
+          <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+        )}
+
+        <div
+          className={cn(
+            'relative z-0 flex flex-col h-full',
+            isLocked && 'blur-[3px] opacity-70 pointer-events-none select-none'
+          )}
+        >
+          <CardHeader className="pb-2 flex-shrink-0">
+            <div className="flex items-center justify-between mb-1">
+              <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                Market Stats
+              </CardTitle>
+            </div>
+            <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
+              Distribution of trades based on market
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 flex items-end mt-1">
+            <div className="w-full h-[250px]">
+              <ComposedBarWinRateChart
+                data={withTotals as BarWinRateChartDatum[]}
+                xAxisDataKey="category"
+                xAxisTickFormatter={(_: string, i: number) => {
+                  const d = withTotals[i];
+                  return d ? `${d.category} (${d.totalTrades ?? 0})` : '';
+                }}
+                tooltipHeaderGetter={(d) => String(d.category ?? '')}
+                isDark={isDark}
+                beCalcEnabled={beCalcEnabled}
+                idPrefix="marketStats"
+                showWinRateLine={false}
+                margins={{ right: 20 }}
+              />
+            </div>
+          </CardContent>
+        </div>
       </Card>
     );
   }

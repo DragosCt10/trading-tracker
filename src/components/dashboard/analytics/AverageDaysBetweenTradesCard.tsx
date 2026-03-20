@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { StatCard } from '@/components/dashboard/analytics/StatCard';
+import { Crown } from 'lucide-react';
 
 /* ---------------------------------------------------------
  * Types
@@ -24,6 +25,7 @@ interface AverageDaysBetweenTradesCardProps {
   averageDaysBetweenTrades: number;
   viewMode?: 'yearly' | 'dateRange';
   monthlyStats?: MonthlyStatsForCard;
+  isPro?: boolean;
 }
 
 /**
@@ -37,10 +39,26 @@ function formatAverageDays(value: number): string {
 }
 
 export const AverageDaysBetweenTradesCard: React.FC<AverageDaysBetweenTradesCardProps> = React.memo(
-  function AverageDaysBetweenTradesCard({ averageDaysBetweenTrades }) {
+  function AverageDaysBetweenTradesCard({ averageDaysBetweenTrades, isPro }) {
+    const isLocked = !isPro;
+    const PREVIEW_AVG_DAYS = 12.7;
+    const effectiveValue = isLocked ? PREVIEW_AVG_DAYS : averageDaysBetweenTrades;
+
+    const lockedChip = (
+      <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+        <Crown className="w-3 h-3" /> PRO
+      </span>
+    );
+
     return (
       <StatCard
-        title="Avg days between trades"
+        locked={isLocked}
+        lockedChip={lockedChip}
+        title={
+          <span className="flex items-center gap-2">
+            Avg days between trades
+          </span>
+        }
         tooltipVariant="default"
         tooltipContent={
           <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-300">
@@ -49,7 +67,7 @@ export const AverageDaysBetweenTradesCard: React.FC<AverageDaysBetweenTradesCard
         }
         value={
           <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-            {formatAverageDays(averageDaysBetweenTrades)}
+            {formatAverageDays(effectiveValue)}
           </p>
         }
       />

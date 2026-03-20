@@ -6,6 +6,11 @@ import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { createAccount, setActiveAccount } from '@/lib/server/accounts';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useQuery } from '@tanstack/react-query';
+import { getAllAccountsForUser } from '@/lib/server/accounts';
+import { queryKeys } from '@/lib/queryKeys';
+import { STATIC_DATA } from '@/constants/queryConfig';
 import { Loader2, UserPlus } from 'lucide-react';
 
 // shadcn/ui
@@ -55,6 +60,17 @@ interface CreateAccountAlertDialogProps {
 export function CreateAccountAlertDialog({ onCreated, triggerClassName }: CreateAccountAlertDialogProps) {
   const queryClient = useQueryClient();
   const { data: userId } = useUserDetails();
+  const { isPro, subscription } = useSubscription({ userId: userId?.user?.id });
+
+  const { data: allAccounts } = useQuery({
+    queryKey: queryKeys.accounts(userId?.user?.id, 'all' as never),
+    queryFn: () => getAllAccountsForUser(userId!.user!.id),
+    enabled: !!userId?.user?.id && !isPro,
+    ...STATIC_DATA,
+  });
+
+  const maxAccounts = subscription?.definition.limits.maxAccounts ?? null;
+  const isAtAccountLimit = !isPro && maxAccounts !== null && (allAccounts?.length ?? 0) >= maxAccounts;
 
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -69,7 +85,8 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
 
   // Prevent hydration mismatch
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const isNameValid = name.trim().length > 0;
@@ -326,6 +343,17 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
                 </div>
               )}
 
+              {isAtAccountLimit && (
+                <div className="rounded-lg bg-amber-500/10 backdrop-blur-sm p-3 border border-amber-500/20">
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">Account limit reached</p>
+                  <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5">
+                    Starter plan includes 1 account.{' '}
+                    <a href="/settings?tab=billing" className="underline font-medium hover:text-amber-700 dark:hover:text-amber-300">Upgrade to PRO</a>{' '}
+                    for unlimited accounts.
+                  </p>
+                </div>
+              )}
+
               <AlertDialogFooter className="mt-4 flex items-center justify-between">
                 <AlertDialogCancel
                   type="button"
@@ -338,7 +366,7 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
                 {/* Just a submit button – form + handleSubmit control closing */}
                 <Button
                   type="submit"
-                  disabled={!canSubmit}
+                  disabled={!canSubmit || isAtAccountLimit}
                   className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60"
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2 text-sm">

@@ -48,7 +48,17 @@ import { getDayOfWeekFromTradeDate } from '@/utils/dateRangeHelpers';
 import { MarketCombobox } from '@/components/MarketCombobox';
 import { NewsCombobox } from '@/components/NewsCombobox';
 import { CommonCombobox } from '@/components/CommonCombobox';
-import { TIME_INTERVALS, getIntervalForTime } from '@/constants/analytics';
+import { AfterBreakEvenSelect } from '@/components/trade/AfterBreakEvenSelect';
+import { TradeDirectionChips } from '@/components/trade/TradeDirectionChips';
+import { TradeOutcomeChips } from '@/components/trade/TradeOutcomeChips';
+import { TradeScreenSlotEditor } from '@/components/trade/TradeScreenSlotEditor';
+import { TIME_INTERVALS } from '@/constants/analytics';
+import {
+  EVALUATION_OPTIONS,
+  MSS_OPTIONS,
+  POTENTIAL_RR_OPTIONS,
+  SESSION_OPTIONS,
+} from '@/constants/tradeFormOptions';
 import {
   mergeLiquidityTypeIntoSaved,
   mergeMarketIntoSaved,
@@ -57,14 +67,13 @@ import {
   normalizeNewsName,
 } from '@/utils/savedFeatures';
 import { queryKeys } from '@/lib/queryKeys';
+import { invalidateAndRefetchTradeQueries as invalidateTradeQueries } from '@/lib/tradeQueryInvalidation';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
 import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyFavourites } from '@/lib/server/strategies';
 import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
-
-const MSS_OPTIONS = ['Normal', 'Aggressive', 'Wick', 'Internal'];
-const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
+import { snapToHalfStep } from '@/utils/tradeFormHelpers';
 
 // FVG Size: preset list 0.5, 1, 1.5, 2, 2.5, 3 (0.5 steps). Custom (3+) for 3.5, 4, 4.5, ...
 const FVG_SIZE_OPTIONS: { value: number; label: string }[] = [
@@ -77,18 +86,6 @@ const FVG_SIZE_OPTIONS: { value: number; label: string }[] = [
 ];
 const FVG_SIZE_PRESET_VALUES = [0.5, 1, 1.5, 2, 2.5, 3];
 const FVG_SIZE_CUSTOM_MIN = 3.5; // Custom (3+) values: 3.5, 4, 4.5, ...
-function snapToHalfStep(num: number): number {
-  return Math.round(num * 2) / 2;
-}
-
-// Potential Risk:Reward Ratio: 1 to 10 in 0.5 steps, plus 10+
-const POTENTIAL_RR_OPTIONS: { value: number; label: string }[] = [
-  ...Array.from({ length: 19 }, (_, i) => {
-    const v = 1 + i * 0.5;
-    return { value: v, label: String(v) };
-  }),
-  { value: 10.5, label: '10+' },
-];
 
 const WEEKDAY_MAP: Record<string, string> = {
   Monday: 'Monday', Tuesday: 'Tuesday', Wednesday: 'Wednesday', Thursday: 'Thursday',
@@ -115,18 +112,6 @@ const NOTES_TEMPLATE = `📈 Setup:
 🎯 Lessons learned:
 (What can you improve? What will you do differently next time?)`;
 
-/** Old Romanian template – used to migrate saved drafts to the new English template */
-const NOTES_TEMPLATE_LEGACY_RO = `📈 Setup:
-(Descrie setup-ul tehnic sau fundamental – de ce ai intrat în trade? Ce pattern, indicator sau logică ai urmat?)
-
-✅ Plusuri:
-(Ce ai făcut bine? Ce a mers conform planului? A existat disciplină, răbdare, timing bun?)
-
-❌ Minusuri:
-(Ce nu a mers? Ai intrat prea devreme/târziu? Ai ignorat ceva? Overtrading? FOMO?)
-
-🎯 Lecții învățate:
-(Ce poți îmbunătăți? Ce vei face diferit data viitoare?)`;
 
 interface NewTradeModalProps {
   isOpen: boolean;
@@ -147,7 +132,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   // Get strategy slug from URL params and derive extra_cards from the strategy object
   const strategySlug = params?.strategy as string | undefined;
   const currentStrategy = strategies.find((s) => s.slug === strategySlug);
-  const strategyExtraCards = currentStrategy?.extra_cards ?? [];
+  const strategyExtraCards = useMemo(() => currentStrategy?.extra_cards ?? [], [currentStrategy?.extra_cards]);
   const hasCard = useCallback(
     (key: string) => strategyExtraCards.includes(key as any),
     [strategyExtraCards],
@@ -165,6 +150,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
   const initialTradeState: Trade = useMemo(() => ({
     trade_screens: ['', '', '', ''],
+    trade_screen_timeframes: ['', '', '', ''],
     trade_time: '',
     trade_date: new Date().toISOString().split('T')[0],
     day_of_week: WEEKDAY_MAP[new Date().toLocaleDateString('en-US', { weekday: 'long' })],
@@ -174,6 +160,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     sl_size: undefined as any,
     direction: '' as 'Long' | 'Short',
     trade_outcome: '' as 'Win' | 'Lose',
+    session: '',
     be_final_result: null as string | null,
     break_even: false,
     reentry: false,
@@ -226,6 +213,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   }, [isOpen, strategySlug, strategies]);
 
   const notesRef = useRef<HTMLTextAreaElement | null>(null);
+  const customTfInputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const tradeRef = useRef<Trade>(initialTradeState);
 
   useEffect(() => {
@@ -252,67 +240,15 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     userId?: string | undefined;
     strategyId?: string | null;
   }) => {
-    // Signal strategy page to skip re-hydrating from stale initialData (so calendar/list show new trade).
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
-    }
-    
-    // Get current context for explicit refetch
-    const mode = params?.mode ?? selection.mode;
-    const accountId = params?.accountId ?? selection.activeAccount?.id;
-    const strategyId = params?.strategyId ?? null;
-    const effectiveUserId = params?.userId ?? userId;
-    
-    // Invalidate trade-related queries — scoped to the affected strategy
-    await queryClient.invalidateQueries({ predicate: (query) => {
-      const key = query.queryKey;
-      if (!Array.isArray(key)) return false;
-      const firstKey = key[0];
-      // Global caches span all strategies — always invalidate
-      if (firstKey === 'all-strategy-trades' || firstKey === 'all-strategy-stats' || firstKey === 'strategies-overview') return true;
-      // Per-strategy queries — only invalidate the affected strategy
-      if (firstKey === 'allTrades') return (key[5] ?? null) === strategyId;
-      if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return (key[7] ?? null) === strategyId;
-      // Dashboard stats API route — strategyId is at index 4
-      if (firstKey === 'dashboardStats') return (key[4] ?? null) === strategyId;
-      // Calendar trades — strategyId is at index 4
-      if (firstKey === 'calendarTrades') return (key[4] ?? null) === strategyId;
-      return false;
-    }});
-
-    // Refetch strategies-overview (and the legacy all-strategy-trades) for ALL observers.
-    // This ensures StrategiesClient shows updated stats immediately after a trade is added,
-    // even if StrategiesClient wasn't mounted at the time of the mutation.
-    if (accountId && effectiveUserId) {
-      await Promise.all([
-        queryClient.refetchQueries({
-          queryKey: queryKeys.allStrategyTrades(effectiveUserId, accountId, mode),
-        }),
-        queryClient.refetchQueries({
-          queryKey: ['strategies-overview', effectiveUserId, accountId, mode],
-        }),
-      ]);
-    }
-
-    // Explicitly refetch active queries for the affected strategy so the UI updates immediately.
-    // dashboardStats  → AccountOverviewCard (monthly P&L), aggregate stats cards (win rate, P&L, etc.)
-    // filteredTrades  → tradesToUse array used by equity curve, confidence cards, etc.
-    //                   (Phase 1: trade arrays come from a separate query, not from series[])
-    // calendarTrades  → calendar view
-    await queryClient.refetchQueries({
-      predicate: (query) => {
-        const key = query.queryKey;
-        if (!Array.isArray(key)) return false;
-        const firstKey = key[0];
-        if (firstKey === 'dashboardStats') return (key[4] ?? null) === strategyId;
-        if (firstKey === 'calendarTrades') return (key[4] ?? null) === strategyId;
-        // filteredTrades key: ['filteredTrades', mode, accountId, userId, viewMode, start, end, strategyId]
-        if (firstKey === 'filteredTrades') return (key[7] ?? null) === strategyId;
-        return false;
-      },
-      type: 'active',
+    await invalidateTradeQueries({
+      queryClient,
+      strategyIds: [params?.strategyId ?? null],
+      mode: params?.mode ?? selection.mode,
+      accountId: params?.accountId ?? selection.activeAccount?.id,
+      userId: params?.userId ?? userId,
+      refetchType: 'active',
     });
-  }, [selection.mode, selection.activeAccount?.id, userId, queryClient]);
+  }, [selection, userId, queryClient]);
 
   // keep weekday + quarter in sync when the committed date changes (use local date to avoid timezone shifting day)
   useEffect(() => {
@@ -343,7 +279,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     ) {
       setTrade((prev) => ({ ...prev, risk_reward_ratio_long: undefined as any }));
     }
-  }, [trade.risk_reward_ratio, trade.trade_outcome]);
+  }, [trade.risk_reward_ratio, trade.trade_outcome, trade.risk_reward_ratio_long]);
 
   // -------- Derived calculations --------
   const accountBalance = selection.activeAccount?.account_balance ?? 0;
@@ -358,7 +294,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
   const { pnl_percentage: pnlPercentage, calculated_profit: signedProfit } = useMemo(
     () => calculateTradePnl(trade, accountBalance),
-    [accountBalance, trade.break_even, trade.trade_outcome, trade.risk_per_trade, trade.risk_reward_ratio]
+    [accountBalance, trade]
   );
 
   const handleEditSavedMarket = useCallback(async (oldName: string, newName: string) => {
@@ -424,7 +360,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         );
       }
     );
-  }, [userId, currentStrategy, queryClient]);
+  }, [userId, accountId, currentStrategy, queryClient]);
 
   const handleEditSavedLiquidity = useCallback(async (oldName: string, newName: string) => {
     if (!userId || !currentStrategy) return;
@@ -458,7 +394,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         );
       }
     );
-  }, [userId, currentStrategy, queryClient]);
+  }, [userId, accountId, currentStrategy, queryClient]);
 
   const handleEditSavedNews = useCallback(async (item: SavedNewsItem, newName: string) => {
     if (!userId) return;
@@ -522,6 +458,10 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     }
     if (!currentTrade.direction || !currentTrade.trade_outcome) {
       setError('Please select Direction and Trade Outcome.');
+      return;
+    }
+    if (!currentTrade.session || currentTrade.session.trim() === '') {
+      setError('Please select Session.');
       return;
     }
     if (!currentTrade.trade_time || currentTrade.trade_time.trim() === '') {
@@ -714,7 +654,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       setError(err?.message ?? 'Failed to create trade. Please check your data and try again.');
       setIsSubmitting(false);
     }
-  }, [hasCard, hasAnyExtraCard, selection, userId, settings, currentStrategy, queryClient, invalidateAndRefetchTradeQueries, initialTradeState, onTradeCreated, onClose]);
+  }, [hasCard, selection, userId, accountId, settings, currentStrategy, queryClient, invalidateAndRefetchTradeQueries, initialTradeState, onTradeCreated, onClose, setError]);
 
   if (!mounted || !isOpen) return null;
 
@@ -786,48 +726,68 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             {/* Trade Screens Section */}
             <div className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {[0, 1].map((i) => (
-                  <div key={i} className="space-y-2">
-                    <Label htmlFor={`trade-screen-${i + 1}`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      Trade Screen {i + 1}
-                    </Label>
-                    <Input
-                      id={`trade-screen-${i + 1}`}
-                      type="url"
-                      value={trade.trade_screens?.[i] ?? ''}
-                      onChange={(e) => {
-                        const screens = [...(trade.trade_screens ?? ['', '', '', ''])];
-                        screens[i] = e.target.value;
-                        updateTrade('trade_screens', screens);
+                {[0, 1].map((i) => {
+                  return (
+                    <TradeScreenSlotEditor
+                      key={i}
+                      index={i}
+                      label={`Trade Screen ${i + 1}`}
+                      timeframe={trade.trade_screen_timeframes?.[i] ?? ''}
+                      screenUrl={trade.trade_screens?.[i] ?? ''}
+                      onTimeframeChange={(nextTf) => {
+                        const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
+                        next[i] = nextTf;
+                        updateTrade('trade_screen_timeframes', next);
                       }}
-                      className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                      placeholder="https://..."
+                      onScreenUrlChange={(nextUrl) => {
+                        const next = [...(trade.trade_screens ?? ['', '', '', ''])];
+                        next[i] = nextUrl;
+                        updateTrade('trade_screens', next);
+                      }}
+                      urlInputId={`trade-screen-${i + 1}`}
+                      wrapperClassName="space-y-2"
+                      labelClassName="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                      chipActiveClassName="themed-header-icon-box shadow-sm border-transparent text-slate-50"
+                      customInputClassName="h-9 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 themed-focus text-slate-900 dark:text-slate-50"
+                      customInputRef={(el) => {
+                        customTfInputRefs.current[i] = el;
+                      }}
+                      urlInputClassName="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
                     />
-                  </div>
-                ))}
+                )})}
               </div>
 
               {showExtraScreens && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {[2, 3].map((i) => (
-                    <div key={i} className="space-y-2">
-                      <Label htmlFor={`trade-screen-${i + 1}`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                        Trade Screen {i + 1}
-                      </Label>
-                      <Input
-                        id={`trade-screen-${i + 1}`}
-                        type="url"
-                        value={trade.trade_screens?.[i] ?? ''}
-                        onChange={(e) => {
-                          const screens = [...(trade.trade_screens ?? ['', '', '', ''])];
-                          screens[i] = e.target.value;
-                          updateTrade('trade_screens', screens);
+                  {[2, 3].map((i) => {
+                    return (
+                      <TradeScreenSlotEditor
+                        key={i}
+                        index={i}
+                        label={`Trade Screen ${i + 1}`}
+                        timeframe={trade.trade_screen_timeframes?.[i] ?? ''}
+                        screenUrl={trade.trade_screens?.[i] ?? ''}
+                        onTimeframeChange={(nextTf) => {
+                          const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
+                          next[i] = nextTf;
+                          updateTrade('trade_screen_timeframes', next);
                         }}
-                        className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
-                        placeholder="https://..."
+                        onScreenUrlChange={(nextUrl) => {
+                          const next = [...(trade.trade_screens ?? ['', '', '', ''])];
+                          next[i] = nextUrl;
+                          updateTrade('trade_screens', next);
+                        }}
+                        urlInputId={`trade-screen-${i + 1}`}
+                        wrapperClassName="space-y-2"
+                        labelClassName="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                        chipActiveClassName="themed-header-icon-box shadow-sm border-transparent text-slate-50"
+                        customInputClassName="h-9 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 themed-focus text-slate-900 dark:text-slate-50"
+                        customInputRef={(el) => {
+                          customTfInputRefs.current[i] = el;
+                        }}
+                        urlInputClassName="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
                       />
-                    </div>
-                  ))}
+                  )})}
                 </div>
               )}
 
@@ -896,6 +856,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               market={trade.market}
               direction={trade.direction}
               tradeOutcome={trade.trade_outcome}
+              session={trade.session}
               beFinalResult={trade.be_final_result}
               setupType={trade.setup_type}
               mss={trade.mss}
@@ -1201,6 +1162,7 @@ interface MarketAndSetupSectionProps {
   market: Trade['market'];
   direction: Trade['direction'];
   tradeOutcome: Trade['trade_outcome'];
+  session: Trade['session'];
   beFinalResult: Trade['be_final_result'];
   setupType: Trade['setup_type'];
   mss: Trade['mss'];
@@ -1234,6 +1196,7 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
   market,
   direction,
   tradeOutcome,
+  session,
   beFinalResult,
   setupType,
   mss,
@@ -1267,7 +1230,8 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
 
   useEffect(() => {
     // Sync local state when fvgSize prop changes (e.g., from blur validation)
-    setFvgInputValue(String(fvgSize ?? ''));
+    const timer = setTimeout(() => setFvgInputValue(String(fvgSize ?? '')), 0);
+    return () => clearTimeout(timer);
   }, [fvgSize]);
 
   return (
@@ -1275,7 +1239,43 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
       {/* Market & Direction */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div className="space-y-2">
-          <Label htmlFor="market" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+          <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+            Trade Outcome *
+          </Label>
+          <TradeOutcomeChips value={tradeOutcome} onChange={onTradeOutcomeChange} />
+
+          {tradeOutcome === 'BE' && (
+            <div className="space-y-2">
+              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                After BE
+              </Label>
+              <AfterBreakEvenSelect
+                value={beFinalResult}
+                onChange={(value) => updateTrade('be_final_result', value)}
+                triggerClassName="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+              />
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                How did this trade end after moving to break even? (e.g. closed in profit = Win, stopped out = Lose)
+              </p>
+            </div>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Direction *</Label>
+          <TradeDirectionChips
+            value={direction}
+            onChange={(value) => updateTrade('direction', value)}
+          />
+        </div>
+      </div>
+
+      {/* Outcome + conditioned fields from extra cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="space-y-2">
+          <Label
+            htmlFor="market"
+            className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+          >
             Market *
           </Label>
           <MarketCombobox
@@ -1295,67 +1295,27 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
             onTogglePin={onTogglePinMarket}
           />
         </div>
-        <div className="space-y-2">
-          <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Direction *</Label>
-          <Select value={direction} onValueChange={(v) => updateTrade('direction', v as 'Long' | 'Short')}>
-            <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-              <SelectValue placeholder="Select Direction" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Long">Long</SelectItem>
-              <SelectItem value="Short">Short</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
 
-      {/* Outcome + conditioned fields from extra cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        {/* Trade Outcome (now one item in the shared grid) */}
+        {/* Session (manual tag) */}
         <div className="space-y-2">
           <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Trade Outcome *
+            Session *
           </Label>
           <Select
-            value={tradeOutcome}
-            onValueChange={(v) => onTradeOutcomeChange(v as Trade['trade_outcome'])}
+            value={session ?? ''}
+            onValueChange={(v) => updateTrade('session', v as any)}
           >
             <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-              <SelectValue placeholder="Select Trade Outcome" />
+              <SelectValue placeholder="Select session" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Win">Win</SelectItem>
-              <SelectItem value="Lose">Lose</SelectItem>
-              <SelectItem value="BE">BE</SelectItem>
+              {SESSION_OPTIONS.map((opt) => (
+                <SelectItem key={opt} value={opt}>
+                  {opt}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-
-          {tradeOutcome === 'BE' && (
-            <div className="space-y-2">
-              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                After BE
-              </Label>
-              <Select
-                value={beFinalResult ?? '__none__'}
-                onValueChange={(v) =>
-                  updateTrade('be_final_result', v === '__none__' ? null : v)
-                }
-              >
-                <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                  <SelectValue placeholder="Win or Lose at close" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">—</SelectItem>
-                  <SelectItem value="Win">Win</SelectItem>
-                  <SelectItem value="Lose">Lose</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                How did this trade end after moving to break even? (e.g. closed in profit =
-                Win, stopped out = Lose)
-              </p>
-            </div>
-          )}
         </div>
 
         {/* All hasCard-conditioned fields now share this same parent grid so rows realign automatically when cards are enabled/disabled. */}

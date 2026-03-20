@@ -6,7 +6,9 @@ import { getCachedUserSession } from '@/lib/server/session';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import type { Database } from '@/types/supabase';
 import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
+import type { CustomStatConfig } from '@/types/customStats';
 import { EXTRA_CARDS } from '@/constants/extraCards';
+import { canAddStrategy } from './subscription';
 
 export type StrategyRow = Database['public']['Tables']['strategies']['Row'];
 
@@ -116,7 +118,7 @@ export async function ensureDefaultStrategy(userId: string, accountId: string): 
       name: 'Institutional Strategy',
       slug: 'institutional-strategy',
       is_active: true,
-      extra_cards: EXTRA_CARDS.map(c => c.key),
+      extra_cards: [],
     })
     .select()
     .single();
@@ -208,6 +210,18 @@ export async function createStrategy(
   }
 
   const supabase = await createClient();
+
+  // Enforce maxStrategies limit (Starter = 2)
+  const { count: strategyCount } = await supabase
+    .from('strategies')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('is_active', true);
+
+  const allowed = await canAddStrategy(userId, strategyCount ?? 0);
+  if (!allowed) {
+    return { data: null, error: { message: 'Upgrade to PRO to create more than 2 strategies' } };
+  }
   const slug = generateSlug(name);
 
   const { data: existing, error: checkError } = await supabase
@@ -468,6 +482,28 @@ export async function deleteArchivedStrategiesOlderThan30Days(
     if (result.error) return result;
   }
 
+  return { error: null };
+}
+
+/**
+ * Updates the saved custom stat configurations for a specific strategy.
+ */
+export async function updateStrategyCustomStats(
+  strategyId: string,
+  userId: string,
+  stats: CustomStatConfig[]
+): Promise<{ error: Error | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('strategies')
+    .update({ saved_custom_stats: stats, updated_at: new Date().toISOString() })
+    .eq('id', strategyId)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error updating strategy custom stats:', error);
+    return { error: new Error(error.message) };
+  }
   return { error: null };
 }
 

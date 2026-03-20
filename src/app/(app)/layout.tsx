@@ -2,6 +2,7 @@ import AppLayout from '@/components/shared/layout/AppLayout';
 import { getCachedAllAccountsForUser, ensureDefaultAccount } from '@/lib/server/accounts';
 import type { AccountRow, AccountMode } from '@/lib/server/accounts';
 import { getCachedUserSession } from '@/lib/server/session';
+import { resolveSubscription } from '@/lib/server/subscription';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { ReactNode } from 'react';
@@ -26,7 +27,11 @@ export default async function AppLayoutComponent({ children }: AppLayoutProps) {
   // Ensure user always has at least one demo account (no-op if accounts already exist)
   await ensureDefaultAccount();
 
-  const initialAllAccounts = await getCachedAllAccountsForUser(userId);
+  // Parallel fetches — subscription resolves independently of accounts
+  const [initialAllAccounts, initialSubscription] = await Promise.all([
+    getCachedAllAccountsForUser(userId),
+    resolveSubscription(userId),
+  ]);
 
   let initialActiveAccount: AccountRow | null = null;
   let initialActiveAccountMode: AccountMode = 'live';
@@ -65,6 +70,7 @@ export default async function AppLayoutComponent({ children }: AppLayoutProps) {
       initialAllAccounts={initialAllAccounts}
       initialActiveAccount={initialActiveAccount}
       initialActiveAccountMode={initialActiveAccountMode}
+      initialSubscription={initialSubscription}
     >
       {children}
     </AppLayout>

@@ -123,6 +123,9 @@ export const queryKeys = {
     selectedExecution,
   ] as const,
 
+  /** Active subscription for a user (tier, features, limits). */
+  subscription: (userId?: string) => ['subscription', userId] as const,
+
   /** Full Trade[] for a single calendar month (for calendar display). */
   calendarTrades: (
     mode: string,

@@ -45,6 +45,7 @@ import { cn, formatPercent, roundToCents } from '@/lib/utils';
 import { Info } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { MonteCarloCard } from '@/components/trades/MonteCarloCard';
+import { useSubscription } from '@/hooks/useSubscription';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -89,6 +90,7 @@ export default function MyTradesClient({
   const todayStr = useMemo(() => createAllTimeRange().endDate, []);
   const { mounted, isDark } = useDarkMode();
   const { beCalcEnabled } = useBECalc();
+  const { isPro } = useSubscription({ userId });
 
   // Initialize selection from server props if not already set
   useEffect(() => {
@@ -163,7 +165,10 @@ export default function MyTradesClient({
     ...TRADES_DATA,
   });
 
-  const baseList = allTrades ?? initialFilteredTrades ?? [];
+  const baseList = useMemo(
+    () => allTrades ?? initialFilteredTrades ?? [],
+    [allTrades, initialFilteredTrades]
+  );
 
   // Markets are derived from the full unfiltered dataset so the dropdown stays stable
   const markets = useMemo(
@@ -461,7 +466,7 @@ export default function MyTradesClient({
       // Flush Next.js router cache so navigating back to the strategy dashboard re-fetches
       router.refresh();
     },
-    [mode, activeAccount?.id, userId, todayStr, initialStrategyId, queryClient, router]
+    [mode, queryClient, router]
   );
 
   const handleBulkDelete = useCallback(
@@ -722,7 +727,7 @@ export default function MyTradesClient({
 
       {/* Future Equity (Monte Carlo) card, using the same filtered trades */}
       <div className="mt-6">
-        <MonteCarloCard trades={trades} currencySymbol={currencySymbol} />
+        <MonteCarloCard trades={trades} currencySymbol={currencySymbol} isPro={isPro} />
       </div>
 
       <div className="mt-6 flex flex-col">

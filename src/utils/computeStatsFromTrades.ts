@@ -10,6 +10,7 @@ export function computeStatsFromTrades(trades: Trade[]) {
   const setupMap = new Map<string, Bucket>();
   const liquidityMap = new Map<string, Bucket>();
   const directionMap = new Map<string, Bucket>();
+  const sessionMap = new Map<string, Bucket>();
   const localHLStats = { liquidated: { wins: 0, losses: 0, breakEven: 0 }, notLiquidated: { wins: 0, losses: 0, breakEven: 0 } };
   const slSizeMap = new Map<string, { total: number; sum: number }>();
   const reentryStats: Bucket = { wins: 0, losses: 0, breakEven: 0 };
@@ -139,6 +140,15 @@ export function computeStatsFromTrades(trades: Trade[]) {
       if (isBE) trendStat.breakEven++;
       else if (isWin) trendStat.wins++;
       else if (isLoss) trendStat.losses++;
+    }
+
+    const session = (trade.session ?? '').trim();
+    if (session !== '') {
+      if (!sessionMap.has(session)) sessionMap.set(session, empty());
+      const sessionStat = sessionMap.get(session)!;
+      if (isBE) sessionStat.breakEven++;
+      else if (isWin) sessionStat.wins++;
+      else if (isLoss) sessionStat.losses++;
     }
   });
 
@@ -278,10 +288,23 @@ export function computeStatsFromTrades(trades: Trade[]) {
     }))
     .sort((a, b) => b.total - a.total);
 
+  const sessionStatsArray = Array.from(sessionMap.entries())
+    .map(([session, stat]) => ({
+      session,
+      total: totalBucket(stat),
+      wins: stat.wins,
+      losses: stat.losses,
+      breakEven: stat.breakEven,
+      winRate: winRate(stat.wins, stat.losses),
+      winRateWithBE: winRateWithBE(stat.wins, stat.losses, stat.breakEven),
+    }))
+    .sort((a, b) => b.total - a.total);
+
   return {
     setupStats: setupStatsArray,
     liquidityStats: liquidityStatsArray,
     directionStats: directionStatsArray,
+    sessionStats: sessionStatsArray,
     localHLStats: localHLStatsComputed,
     slSizeStats: slSizeStatsArray,
     reentryStats: [reentryStatsComputed],

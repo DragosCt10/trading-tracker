@@ -31,7 +31,7 @@ export default function SignupClient() {
   useEffect(() => {
     // If user is already logged in, redirect to strategies
     if (userData?.user && userData?.session) {
-      router.push('/strategies');
+      router.push('/stats');
     }
   }, [userData, router]);
 
@@ -54,7 +54,7 @@ export default function SignupClient() {
         setIsSubmitting(false);
       } else {
         // Full page nav so the next request sends the session cookies set by the action
-        window.location.href = '/strategies';
+        window.location.href = '/stats';
         return;
       }
     } catch (err) {

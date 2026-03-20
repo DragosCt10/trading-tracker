@@ -81,7 +81,7 @@ export function EditAccountAlertDialog({
   const [description, setDescription] = useState('');
 
   // Helper: reset form from the current account
-  const resetFormFromAccount = React.useCallback(() => {
+  const resetFormFromAccount = () => {
     if (!account) return;
 
     setName(account.name ?? '');
@@ -105,14 +105,16 @@ export function EditAccountAlertDialog({
 
     setDescription(account.description ?? '');
     setError(null);
-  }, [account]);
+  };
 
   // Seed the form whenever the dialog OPENS with an account
   useEffect(() => {
     if (open && account) {
-      resetFormFromAccount();
+      const timer = setTimeout(() => resetFormFromAccount(), 0);
+      return () => clearTimeout(timer);
     }
-  }, [open, account, resetFormFromAccount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, account]);
 
   // Lock balance when account has trades (Variant B: allow edit only when no trades)
   const { data: tradeCount } = useQuery({

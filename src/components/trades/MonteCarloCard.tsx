@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Info } from 'lucide-react';
+import { Crown, Info } from 'lucide-react';
 import { MonteCarloChart } from './MonteCarloChart';
 import { runMonteCarloSimulation } from '@/utils/monteCarloSimulation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { cn } from '@/lib/utils';
 import {
   Card,
   CardHeader,
@@ -23,188 +24,233 @@ type DisplayMode = 'r' | 'dollar';
 interface MonteCarloCardProps {
   trades: Trade[];
   currencySymbol?: string;
+  isPro?: boolean;
 }
 
 export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
   trades,
   currencySymbol = '$',
+  isPro,
 }) => {
   const [futureTrades, setFutureTrades] = useState<number>(50);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('r');
   const { isDark } = useDarkMode();
+  const isLocked = !isPro;
 
-  const simulationData = useMemo(
-    () => runMonteCarloSimulation(trades, 500, futureTrades),
-    [trades, futureTrades]
-  );
+  const simulationData = useMemo(() => {
+    if (isLocked) return [];
+    return runMonteCarloSimulation(trades, 500, futureTrades);
+  }, [isLocked, trades, futureTrades]);
 
-  const hasSufficientData = trades.length >= MONTE_CARLO_MIN_TRADES;
+  const tradesToUse = isLocked ? [] : trades;
+  const tradesCount = tradesToUse.length;
 
-  return (
+  const hasSufficientData = tradesCount >= MONTE_CARLO_MIN_TRADES;
+
+  const cardContent = (
     <Card className="mb-4 relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm w-full flex flex-col">
-      <CardHeader className="pb-2 flex-shrink-0">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-                Future Equity
-              </CardTitle>
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="rounded p-0.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 cursor-help focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-500"
-                      aria-label="How to read this chart"
+      {isLocked && (
+        <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+          <Crown className="w-3 h-3" /> PRO
+        </span>
+      )}
+
+      {isLocked && (
+        <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+      )}
+
+      <div
+        className={cn(
+          'relative z-0 flex h-full flex-col',
+          isLocked && 'blur-[3px] opacity-70 pointer-events-none select-none'
+        )}
+      >
+        <CardHeader className="pb-2 flex-shrink-0">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+                  Future Equity
+                </CardTitle>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="rounded p-0.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 cursor-help focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-500"
+                        aria-label="How to read this chart"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      align="start"
+                      sideOffset={8}
+                      className="w-[320px] text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-700/80 bg-slate-900/90 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.7)] text-slate-50 z-[100]"
                     >
-                      <Info className="h-3.5 w-3.5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent
-                    side="top"
-                    align="start"
-                    sideOffset={8}
-                    className="w-[320px] text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-700/80 bg-slate-900/90 backdrop-blur-xl shadow-[0_18px_45px_rgba(15,23,42,0.7)] text-slate-50 z-[100]"
-                  >
-                    {isDark && (
-                      <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />
-                    )}
-                    <div className="relative text-left">
-                      <div className="text-[11px] font-extrabold tracking-[0.18em] text-slate-300 mb-2">
-                        HOW TO READ THIS CHART
-                      </div>
-                      <p className="text-xs text-slate-200/90 mb-3">
-                        500 random sequences are simulated by drawing from your real trade history.
-                        Each band shows how many of those sequences landed in that range at each future trade.
-                      </p>
-                      <div className="flex flex-col gap-2">
-                      <TooltipBandRow
-                        color="var(--tc-primary, #8b5cf6)"
-                        label="75th – 90th pct"
-                        description="Top 25% of runs — your best realistic scenarios."
-                      />
-                      <TooltipBandRow
-                        color="var(--tc-primary, #8b5cf6)"
-                        label="50th – 75th pct"
-                        description="Above-average outcomes. More likely than not if your edge holds."
-                        opacity={0.5}
-                      />
-                      <TooltipBandRow
-                        isLine
-                        color="var(--tc-primary, #8b5cf6)"
-                        label="Median (50th pct)"
-                        description="Half of all simulations finished above this, half below."
-                      />
-                      <TooltipBandRow
-                        color="#f43f5e"
-                        label="25th – 50th pct"
-                        description="Below-average outcomes. Still within normal variance."
-                        opacity={0.5}
-                      />
+                      {isDark && (
+                        <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />
+                      )}
+                      <div className="relative text-left">
+                        <div className="text-[11px] font-extrabold tracking-[0.18em] text-slate-300 mb-2">
+                          HOW TO READ THIS CHART
+                        </div>
+                        <p className="text-xs text-slate-200/90 mb-3">
+                          500 random sequences are simulated by drawing from your real trade history.
+                          Each band shows how many of those sequences landed in that range at each future trade.
+                        </p>
+                        <div className="flex flex-col gap-2">
+                        <TooltipBandRow
+                          color="var(--tc-primary, #8b5cf6)"
+                          label="75th – 90th pct"
+                          description="Top 25% of runs — your best realistic scenarios."
+                        />
+                        <TooltipBandRow
+                          color="var(--tc-primary, #8b5cf6)"
+                          label="50th – 75th pct"
+                          description="Above-average outcomes. More likely than not if your edge holds."
+                          opacity={0.5}
+                        />
+                        <TooltipBandRow
+                          isLine
+                          color="var(--tc-primary, #8b5cf6)"
+                          label="Median (50th pct)"
+                          description="Half of all simulations finished above this, half below."
+                        />
                         <TooltipBandRow
                           color="#f43f5e"
-                          label="10th – 25th pct"
-                          description="Bottom 25% of runs — worst realistic scenarios."
+                          label="25th – 50th pct"
+                          description="Below-average outcomes. Still within normal variance."
+                          opacity={0.5}
                         />
+                          <TooltipBandRow
+                            color="#f43f5e"
+                            label="10th – 25th pct"
+                            description="Bottom 25% of runs — worst realistic scenarios."
+                          />
+                        </div>
                       </div>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <CardDescription className="text-base text-slate-500 dark:text-slate-400">
+                {hasSufficientData
+                  ? `Based on ${tradesCount} trade${tradesCount !== 1 ? 's' : ''} · ${futureTrades} future trades projected`
+                  : `${tradesCount} trade${tradesCount !== 1 ? 's' : ''} available · need at least ${MONTE_CARLO_MIN_TRADES} for simulation`}
+              </CardDescription>
             </div>
-            <CardDescription className="text-base text-slate-500 dark:text-slate-400">
-              {hasSufficientData
-                ? `Based on ${trades.length} trade${trades.length !== 1 ? 's' : ''} · ${futureTrades} future trades projected`
-                : `${trades.length} trade${trades.length !== 1 ? 's' : ''} available · need at least ${MONTE_CARLO_MIN_TRADES} for simulation`}
-            </CardDescription>
+
+            {hasSufficientData ? (
+              <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+                {/* R / $ toggle */}
+                <div className="flex items-center rounded-xl border border-slate-200/70 dark:border-slate-700/50 overflow-hidden h-8 text-xs bg-slate-100/60 dark:bg-slate-800/40">
+                  <button
+                    onClick={() => setDisplayMode('r')}
+                    className={`px-3 h-full font-semibold transition-colors duration-150 cursor-pointer ${
+                      displayMode === 'r'
+                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                    }`}
+                  >
+                    R
+                  </button>
+                  <button
+                    onClick={() => setDisplayMode('dollar')}
+                    className={`px-3 h-full font-semibold transition-colors duration-150 cursor-pointer ${
+                      displayMode === 'dollar'
+                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+                    }`}
+                  >
+                    {currencySymbol}
+                  </button>
+                </div>
+
+                {/* Future trades selector */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                    Future trades:
+                  </span>
+                  <Select
+                    value={String(futureTrades)}
+                    onValueChange={(v) => setFutureTrades(Number(v))}
+                  >
+                    <SelectTrigger className="w-20 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 !bg-slate-50/50 dark:!bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
+                      {FUTURE_TRADE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt} value={String(opt)}>
+                          {opt}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            ) : null}
           </div>
-
+        </CardHeader>
+        <CardContent className="flex-1 pt-2 pb-4">
+          <div className="relative">
+          {/* Chart or empty state */}
           {hasSufficientData ? (
-            <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
-              {/* R / $ toggle */}
-              <div className="flex items-center rounded-xl border border-slate-200/70 dark:border-slate-700/50 overflow-hidden h-8 text-xs bg-slate-100/60 dark:bg-slate-800/40">
-                <button
-                  onClick={() => setDisplayMode('r')}
-                  className={`px-3 h-full font-semibold transition-colors duration-150 cursor-pointer ${
-                    displayMode === 'r'
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                  }`}
-                >
-                  R
-                </button>
-                <button
-                  onClick={() => setDisplayMode('dollar')}
-                  className={`px-3 h-full font-semibold transition-colors duration-150 cursor-pointer ${
-                    displayMode === 'dollar'
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                  }`}
-                >
-                  {currencySymbol}
-                </button>
-              </div>
-
-              {/* Future trades selector */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                  Future trades:
-                </span>
-                <Select
-                  value={String(futureTrades)}
-                  onValueChange={(v) => setFutureTrades(Number(v))}
-                >
-                  <SelectTrigger className="w-20 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 !bg-slate-50/50 dark:!bg-slate-800/30 backdrop-blur-xl shadow-none themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
-                    {FUTURE_TRADE_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={String(opt)}>
-                        {opt}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </CardHeader>
-      <CardContent className="flex-1 pt-2 pb-4">
-        <div className="relative">
-        {/* Chart or empty state */}
-        {hasSufficientData ? (
-          <>
-            <div className="h-72">
-              <MonteCarloChart
-                data={simulationData}
-                mode={displayMode}
-                currencySymbol={currencySymbol}
-              />
-            </div>
-
-            {/* Legend */}
-            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-4">
-              <LegendDot color="var(--tc-primary, #8b5cf6)" label="75th–90th" />
-              <LegendDot color="var(--tc-primary, #8b5cf6)" label="50th–75th" opacity={0.5} />
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="block w-6 h-0.5 rounded-full"
-                  style={{ background: 'var(--tc-primary, #8b5cf6)' }}
+            <>
+              <div className="h-72">
+                <MonteCarloChart
+                  data={simulationData}
+                  mode={displayMode}
+                  currencySymbol={currencySymbol}
                 />
-                <span className="text-xs text-slate-500 dark:text-slate-400">Median</span>
               </div>
-              <LegendDot color="#f43f5e" label="25th–50th" opacity={0.5} />
-              <LegendDot color="#f43f5e" label="10th–25th" />
-            </div>
-          </>
-        ) : (
-          <EmptyState tradeCount={trades.length} minTrades={MONTE_CARLO_MIN_TRADES} />
-        )}
+
+              {/* Legend */}
+              <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-4">
+                <LegendDot color="var(--tc-primary, #8b5cf6)" label="75th–90th" />
+                <LegendDot color="var(--tc-primary, #8b5cf6)" label="50th–75th" opacity={0.5} />
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="block w-6 h-0.5 rounded-full"
+                    style={{ background: 'var(--tc-primary, #8b5cf6)' }}
+                  />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Median</span>
+                </div>
+                <LegendDot color="#f43f5e" label="25th–50th" opacity={0.5} />
+                <LegendDot color="#f43f5e" label="10th–25th" />
+              </div>
+            </>
+          ) : (
+            <EmptyState tradeCount={tradesCount} minTrades={MONTE_CARLO_MIN_TRADES} />
+          )}
+        </div>
+        </CardContent>
       </div>
-      </CardContent>
     </Card>
   );
+
+  if (isLocked) {
+    return (
+      <TooltipProvider delayDuration={120}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {cardContent}
+          </TooltipTrigger>
+          <TooltipContent
+            side="top"
+            align="start"
+            sideOffset={8}
+            className="max-w-sm text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50"
+          >
+            The data shown under the blur card is fictive and for demo purposes only.
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return cardContent;
 };
 
 // ─── Small helpers ─────────────────────────────────────────────────────────────

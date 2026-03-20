@@ -10,11 +10,16 @@ import {
   Target,
   Lightbulb,
   Palette,
+  Settings,
+  Crown,
+  Sparkles,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { useSubscription } from '@/hooks/useSubscription';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '@/hooks/useTheme';
+import { TIER_DEFINITIONS } from '@/constants/tiers';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -40,6 +45,8 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
   const pathname = usePathname();
   const router = useRouter();
   const { data: userData } = useUserDetails();
+  const userId = userData?.user?.id;
+  const { tier } = useSubscription({ userId });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
@@ -47,7 +54,10 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
   const { theme, toggleTheme, mounted } = useTheme();
 
   useEffect(() => {
-    if (userData?.user) setIsSigningOut(false);
+    if (userData?.user) {
+      const timer = setTimeout(() => setIsSigningOut(false), 0);
+      return () => clearTimeout(timer);
+    }
   }, [userData?.user]);
 
   const handleSignOut = useCallback(async () => {
@@ -80,7 +90,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
   }, [queryClient, router]);
 
   const isActive = useCallback((path: string) => {
-    if (path === '/strategies') return pathname.startsWith('/strategies');
+    if (path === '/stats') return pathname.startsWith('/stats');
     if (path === '/insight-vault') return pathname.startsWith('/insight-vault');
     return pathname === path;
   }, [pathname]);
@@ -105,8 +115,28 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
     await handleSignOut();
   }, [handleSignOut]);
 
-  const isStrategiesActive = useMemo(() => isActive('/strategies'), [isActive]);
+  const isStrategiesActive = useMemo(() => isActive('/stats'), [isActive]);
   const isInsightVaultActive = useMemo(() => isActive('/insight-vault'), [isActive]);
+  const isSettingsActive = useMemo(
+    () => pathname.startsWith('/settings') || pathname.startsWith('/billing'),
+    [pathname]
+  );
+
+  const tierDef = TIER_DEFINITIONS[tier ?? 'starter'];
+  const isPro = tier === 'pro' || tier === 'elite';
+
+  // Pro badge colors: solid deep gold in light mode, gradient in dark mode
+  const isLightMode = mounted && theme === 'light';
+  const proIconColor = isLightMode ? '#b45309' : '#fbbf24';
+  const proBorderColor = isLightMode ? 'rgba(180,83,9,0.45)' : 'rgba(251,191,36,0.45)';
+  const proTextStyle: React.CSSProperties = isLightMode
+    ? { color: '#b45309' }
+    : {
+        backgroundImage: 'linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #b45309 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
+      };
 
   return (
     <>
@@ -118,13 +148,18 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               href="/"
               className="flex items-center font-semibold text-slate-900 dark:text-slate-50"
             >
-              <Logo className="absolute top-2.5 lg:w-9 lg:h-9 w-12 h-12" />
-              <span className="hidden lg:inline text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-50 ml-9">
-                AlphaStats
-              </span>
-              <span className="hidden lg:inline-block themed-pro-text ml-1.5 text-[11px] font-bold uppercase">
-                PRO
-              </span>
+              <Logo className="absolute top-2.5 lg:w-8.5 lg:h-8.5 w-12 h-12" />
+              <div className="hidden lg:flex flex-col ml-9 leading-none">
+                <span className="text-sm font-semibold tracking-widest text-slate-900 dark:text-slate-50">
+                  AlphaStats
+                </span>
+                {/* <span
+                  className="text-[9px] font-bold uppercase tracking-widest bg-clip-text text-transparent"
+                  style={{ backgroundImage: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent))' }}
+                >
+                  {mounted ? tierDef.badge.label : starterBadgeLabel}
+                </span> */}
+              </div>
             </Link>
 
           <Separator orientation="vertical" className="mx-3 hidden h-6 lg:flex" />
@@ -139,9 +174,9 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   size="sm"
                   className={navButtonClass(isStrategiesActive)}
                 >
-                  <Link href="/strategies">
+                  <Link href="/stats">
                     <Target className="h-4 w-4" />
-                    <span>My Strategies</span>
+                    <span>Stats Center</span>
                   </Link>
                 </Button>
               </li>
@@ -170,15 +205,44 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
 
           {/* Right actions — same style as Edit btn (EditAccountAlertDialog), icon only */}
           <div className="ml-auto hidden items-center gap-2 lg:flex">
+            {/* Tier badge */}
+            {mounted && (
+              <span
+                className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 select-none"
+                style={isPro ? { border: `1px solid ${proBorderColor}` } : { border: '1px solid var(--tc-border)' }}
+              >
+                {isPro
+                  ? <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
+                  : <Sparkles className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
+                }
+                <span
+                  className="text-[10px] font-bold uppercase tracking-widest"
+                  style={
+                    isPro
+                      ? proTextStyle
+                      : {
+                          backgroundImage: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                        }
+                  }
+                >
+                  {tierDef.badge.label}
+                </span>
+              </span>
+            )}
+
+            <Separator orientation="vertical" className="mx-1.5 h-6" />
             <Button
               type="button"
               size="sm"
               variant="ghost"
               onClick={openThemePicker}
-              className="cursor-pointer h-8 w-8 rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 p-0 flex items-center justify-center transition-colors duration-200"
+              className="cursor-pointer h-8 w-8 rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 p-0 flex items-center justify-center transition-colors duration-200 group"
               aria-label="Color theme"
             >
-              <Palette className="h-4 w-4" />
+              <Palette className="h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
             </Button>
             <Button
               type="button"
@@ -219,14 +283,28 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               )}
             </Button>
 
+            <Separator orientation="vertical" className="mx-1.5 h-6" />
+            <Button
+              variant="ghost"
+              asChild
+              size="icon"
+              className={cn(navButtonClass(isSettingsActive), 'h-8 w-8 p-0')}
+              aria-label="Settings"
+            >
+              <Link href="/settings?tab=billing" className="group flex items-center justify-center">
+                <Settings className="h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
+              </Link>
+            </Button>
+
             <Button
               variant="destructive"
-              size="sm"
-              className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 transition-all duration-300"
+              size="icon"
+              className="relative cursor-pointer h-8 w-8 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 transition-all duration-300 p-0 flex items-center justify-center"
               onClick={handleSignOut}
               disabled={isSigningOut}
+              aria-label={isSigningOut ? 'Signing out' : 'Sign Out'}
             >
-              <span className="relative z-10 flex items-center gap-2">
+              <span className="relative z-10 flex items-center justify-center">
                 {isSigningOut ? (
                   <svg
                     className="h-4 w-4 animate-spin"
@@ -249,9 +327,8 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                     />
                   </svg>
                 ) : (
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-4 w-4 group-hover:scale-110 transition-transform duration-300" />
                 )}
-                <span>{isSigningOut ? 'Signing out...' : 'Sign Out'}</span>
               </span>
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
             </Button>
@@ -284,9 +361,9 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   asChild
                   className={cn('w-full justify-start', navButtonClass(isStrategiesActive))}
                 >
-                  <Link href="/strategies" onClick={closeMobileMenu}>
+                  <Link href="/stats" onClick={closeMobileMenu}>
                     <Target className="h-4 w-4" />
-                    My Strategies
+                    Stats Center
                   </Link>
                 </Button>
 
@@ -300,8 +377,6 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                     Insight Vault
                   </Link>
                 </Button>
-
-                <Separator className="my-2" />
 
                 {mobileMenuExtra ? (
                   <div className="w-full">{mobileMenuExtra}</div>
@@ -358,13 +433,60 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   )}
                 </Button>
 
+                {/* Mobile tier badge */}
+                {mounted && (
+                  <div className="w-full flex items-center justify-center py-0.5">
+                    <span
+                      className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 select-none"
+                      style={isPro ? { border: `1px solid ${proBorderColor}` } : { border: '1px solid var(--tc-border)' }}
+                    >
+                      {isPro
+                        ? <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
+                        : <Sparkles className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
+                      }
+                      <span
+                        className="text-[10px] font-bold uppercase tracking-widest"
+                        style={
+                          isPro
+                            ? proTextStyle
+                            : {
+                                backgroundImage: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                backgroundClip: 'text',
+                              }
+                        }
+                      >
+                        {tierDef.badge.label}
+                      </span>
+                    </span>
+                  </div>
+                )}
+
+                <Separator className="my-2" />
+
+                <Button
+                  variant="ghost"
+                  asChild
+                  className={cn('w-full justify-center', navButtonClass(isSettingsActive))}
+                  aria-label="Settings"
+                >
+                  <Link href="/settings?tab=billing" onClick={closeMobileMenu} className="flex items-center justify-center">
+                    <Settings className="h-4 w-4" />
+                  </Link>
+                </Button>
+
+                <Separator className="my-2" />
+
                 <Button
                   variant="destructive"
-                  className="relative h-9 px-4 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
+                  size="icon"
+                  className="relative h-9 w-9 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
                   onClick={handleSignOutMobile}
                   disabled={isSigningOut}
+                  aria-label={isSigningOut ? 'Signing out' : 'Sign Out'}
                 >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
+                  <span className="relative z-10 flex items-center justify-center">
                     {isSigningOut ? (
                       <svg
                         className="h-4 w-4 animate-spin"
@@ -389,7 +511,6 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                     ) : (
                       <LogOut className="h-4 w-4" />
                     )}
-                    <span>{isSigningOut ? 'Signing out…' : 'Sign Out'}</span>
                   </span>
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 </Button>

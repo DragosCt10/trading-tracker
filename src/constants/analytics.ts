@@ -1,14 +1,20 @@
 /** Single time-interval entry for Time Interval Stats. */
 export type TimeIntervalEntry = { label: string; start: string; end: string };
 
-/** Full-day 4-hour buckets for Time Interval Stats (includes night sessions). */
+/** Full-day 2-hour buckets for Time Interval Stats (includes night sessions). */
 export const TIME_INTERVALS: readonly TimeIntervalEntry[] = [
-  { label: '00:00 – 03:59', start: '00:00', end: '03:59' },
-  { label: '04:00 – 07:59', start: '04:00', end: '07:59' },
-  { label: '08:00 – 11:59', start: '08:00', end: '11:59' },
-  { label: '12:00 – 15:59', start: '12:00', end: '15:59' },
-  { label: '16:00 – 19:59', start: '16:00', end: '19:59' },
-  { label: '20:00 – 23:59', start: '20:00', end: '23:59' },
+  { label: '00:00 – 01:59', start: '00:00', end: '01:59' },
+  { label: '02:00 – 03:59', start: '02:00', end: '03:59' },
+  { label: '04:00 – 05:59', start: '04:00', end: '05:59' },
+  { label: '06:00 – 07:59', start: '06:00', end: '07:59' },
+  { label: '08:00 – 09:59', start: '08:00', end: '09:59' },
+  { label: '10:00 – 11:59', start: '10:00', end: '11:59' },
+  { label: '12:00 – 13:59', start: '12:00', end: '13:59' },
+  { label: '14:00 – 15:59', start: '14:00', end: '15:59' },
+  { label: '16:00 – 17:59', start: '16:00', end: '17:59' },
+  { label: '18:00 – 19:59', start: '18:00', end: '19:59' },
+  { label: '20:00 – 21:59', start: '20:00', end: '21:59' },
+  { label: '22:00 – 23:59', start: '22:00', end: '23:59' },
 ];
 
 /**

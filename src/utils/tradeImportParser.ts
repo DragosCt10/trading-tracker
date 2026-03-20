@@ -401,6 +401,9 @@ export function parseCsvTradesWithNorm(
       direction,
       setup_type: normalizeTrim(fieldValues['setup_type'] ?? ''),
       trade_outcome: tradeOutcome,
+      // CSV import: default session so imported rows remain valid when session is required.
+      // Users can edit per-trade later in Trade Details.
+      session: normalizeTrim(fieldValues['session'] ?? '') || 'London',
       be_final_result: beFinalResult ?? undefined,
       risk_per_trade: riskPerTrade,
       risk_reward_ratio: rrRatio,

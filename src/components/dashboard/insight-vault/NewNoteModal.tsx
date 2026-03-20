@@ -81,7 +81,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
       setIsPreview(false);
       setIsSubmitting(false);
     }
-  }, [isOpen]);
+  }, [isOpen, setError]);
 
   // Trades for linking with infinite scroll (filtered by account + strategies)
   const {

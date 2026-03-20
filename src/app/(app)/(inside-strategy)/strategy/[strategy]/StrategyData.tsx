@@ -40,6 +40,7 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
         initialMode={mode}
         initialActiveAccount={null}
         initialStrategyId={null}
+        initialStrategyName={null}
         initialExtraCards={[]}
       />
     );
@@ -54,6 +55,7 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
         initialMode={mode}
         initialActiveAccount={null}
         initialStrategyId={strategyId}
+        initialStrategyName={strategy?.name ?? null}
         initialExtraCards={initialExtraCards}
       />
     );
@@ -96,6 +98,7 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
       initialMode={mode}
       initialActiveAccount={activeAccount}
       initialStrategyId={strategyId}
+      initialStrategyName={strategy?.name ?? null}
       initialExtraCards={initialExtraCards}
     />
   );

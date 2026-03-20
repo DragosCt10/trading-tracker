@@ -92,3 +92,20 @@ export async function updatePasswordAction(
   if (error) return { error: error.message };
   return {};
 }
+
+export async function updateEmailAction(
+  _prev: AuthResult | null,
+  formData: FormData
+): Promise<AuthResult> {
+  const email = formData.get('email') as string;
+
+  if (!email) {
+    return { error: 'Email is required' };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ email });
+
+  if (error) return { error: error.message };
+  return {};
+}

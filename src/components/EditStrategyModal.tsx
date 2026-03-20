@@ -18,6 +18,8 @@ import { Target } from 'lucide-react';
 import { updateStrategy } from '@/lib/server/strategies';
 import { Strategy } from '@/types/strategy';
 import { ExtraCardsSelector } from '@/components/ExtraCardsSelector';
+import { useUserDetails } from '@/hooks/useUserDetails';
+import { useSubscription } from '@/hooks/useSubscription';
 import type { ExtraCardKey } from '@/constants/extraCards';
 
 interface EditStrategyModalProps {
@@ -37,6 +39,8 @@ export function EditStrategyModal({
   const [extraCards, setExtraCards] = useState<ExtraCardKey[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { data: userDetails } = useUserDetails();
+  const { isPro } = useSubscription({ userId: userDetails?.user?.id });
 
   useEffect(() => {
     if (strategy) {
@@ -53,7 +57,7 @@ export function EditStrategyModal({
     if (!strategy) return;
 
     if (!name.trim()) {
-      setError('Please enter a strategy name.');
+      setError('Please enter a Stats Board name.');
       return;
     }
 
@@ -133,10 +137,10 @@ export function EditStrategyModal({
               <div className="p-2 rounded-lg" style={{ background: 'var(--tc-subtle)', border: '1px solid var(--tc-border)' }}>
                 <Target className="h-5 w-5" style={{ color: 'var(--tc-primary)' }} />
               </div>
-              <span>Edit strategy</span>
+              <span>Edit Stats Board</span>
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
-              Update your strategy name. The URL slug will be updated automatically.
+              Update your Stats Board name. The URL slug will be updated automatically.
             </AlertDialogDescription>
           </AlertDialogHeader>
         </div>
@@ -149,7 +153,7 @@ export function EditStrategyModal({
                 htmlFor="edit-strategy-name"
                 className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
               >
-                Strategy name
+                Stats Board name
               </Label>
               <Input
                 id="edit-strategy-name"
@@ -166,6 +170,7 @@ export function EditStrategyModal({
               selected={extraCards}
               onChange={setExtraCards}
               disabled={submitting}
+              isPro={isPro}
             />
 
             {error && (
@@ -193,7 +198,7 @@ export function EditStrategyModal({
             className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60 text-sm"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
-              {submitting ? 'Updating...' : 'Update Strategy'}
+              {submitting ? 'Updating...' : 'Update Stats Board'}
             </span>
             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
           </Button>

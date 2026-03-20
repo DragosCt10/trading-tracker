@@ -3,6 +3,9 @@ import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getShareByToken, getShareStatsCache, getPublicTradesForShare } from '@/lib/server/publicShares';
 import { getStrategyById } from '@/lib/server/strategies';
 import { getDashboardAggregatesServiceRole } from '@/lib/server/dashboardAggregates';
+import { resolveSubscription } from '@/lib/server/subscription';
+import { PRO_ONLY_EXTRA_CARD_KEYS, type ExtraCardKey } from '@/constants/extraCards';
+import { tierAtLeast } from '@/constants/tiers';
 import ShareStrategyClient from './ShareStrategyClient';
 import type { StrategyShareRow } from '@/lib/server/publicShares';
 import {
@@ -85,7 +88,7 @@ export default async function ShareStrategyPage({ params }: PageProps) {
   // Always fetch full trades for MY TRADES tab (images, notes, all fields).
   // For analytics: use cache if available; on cache miss call the RPC via service role,
   // store the result, and use it — so subsequent visits are served from cache.
-  const [trades, cachedStats] = await Promise.all([
+  const [trades, cachedStats, ownerSubscription] = await Promise.all([
     getPublicTradesForShare({
       accountId: share.account_id,
       mode: share.mode as 'live' | 'backtesting' | 'demo',
@@ -94,6 +97,7 @@ export default async function ShareStrategyPage({ params }: PageProps) {
       endDate: share.end_date,
     }),
     getShareStatsCache(share.id),
+    resolveSubscription(share.created_by),
   ]);
 
   let rpcResult = cachedStats;
@@ -136,6 +140,8 @@ export default async function ShareStrategyPage({ params }: PageProps) {
       )
     : buildEmptySharePageStats();
 
+  const isPro = tierAtLeast(ownerSubscription.tier, 'pro');
+
   return (
     <main className="min-h-screen max-w-(--breakpoint-xl) mx-auto w-full">
       <ShareStrategyClient
@@ -143,11 +149,16 @@ export default async function ShareStrategyPage({ params }: PageProps) {
         precomputedStats={precomputedStats}
         strategy={{
           name: strategy.name,
-          extra_cards: strategy.extra_cards,
+          extra_cards: isPro
+            ? strategy.extra_cards
+            : strategy.extra_cards.filter(
+                (card) => !PRO_ONLY_EXTRA_CARD_KEYS.includes(card as ExtraCardKey)
+              ),
         }}
         shareData={share as StrategyShareRow}
         currencySymbol={currencySymbol}
         accountBalance={accountBalance}
+        isPro={isPro}
       />
     </main>
   );

@@ -93,7 +93,7 @@ export default function UpdatePasswordClient() {
       } else {
         setMessage('Password updated successfully. Redirecting to your strategies...');
         setTimeout(() => {
-          router.push('/strategies');
+          router.push('/stats');
         }, 2000);
       }
     } finally {

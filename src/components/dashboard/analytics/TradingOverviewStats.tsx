@@ -21,7 +21,8 @@ import { EvaluationStats } from './EvaluationStats';
 import { ReentryTradesChartCard } from './ReentryTradesChartCard';
 import type { ReentryTradesChartCardProps } from './ReentryTradesChartCard';
 import { TrendStatisticsCard } from './TrendStatisticsCard';
-import type { TradeTypeStats } from '@/types/dashboard';
+import { SessionStatisticsCard } from './SessionStatisticsCard';
+import type { TradeTypeStats, SessionStats } from '@/types/dashboard';
 import type { EvaluationStat } from '@/utils/calculateEvaluationStats';
 import RiskPerTrade, { type RiskAnalysis } from './RiskPerTrade';
 import { AvgWinLossCard } from './AvgWinLossCard';
@@ -78,10 +79,13 @@ interface TradingOverviewStatsProps {
     reentryStats: ReentryTradesChartCardProps['reentryStats'];
     breakEvenStats: ReentryTradesChartCardProps['breakEvenStats'];
     trendStats: TradeTypeStats[];
+    sessionStats?: SessionStats[];
     chartsLoadingState?: boolean;
     includeTotalTrades: boolean;
     /** When false, Evaluation card is hidden (extra card not enabled for strategy). Default true. */
     showEvaluationCard?: boolean;
+    /** When true, Session Stats card is shown in this row. Default false. */
+    showSessionCard?: boolean;
     /** When false, Trend card is hidden (extra card not enabled for strategy). Default true. */
     showTrendCard?: boolean;
   } | null;
@@ -93,9 +97,10 @@ interface TradingOverviewStatsProps {
   } | null;
   /** When true, only render chart cards that have data and use a single auto-arranging grid (e.g. share view). */
   hideEmptyChartCards?: boolean;
+  isPro?: boolean;
 }
 
-export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, totalProfitFromOverview, pnlPercentFromOverview, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps, allTradesRiskStats, aboveRiskPerTradeRow, beforeRiskPerTradeRow, hideEmptyChartCards = false }: TradingOverviewStatsProps) {
+export function TradingOverviewStats({ trades, currencySymbol, hydrated, accountBalance, totalProfitFromOverview, pnlPercentFromOverview, viewMode = 'yearly', monthlyStats, showTitle = true, partialRowProps, allTradesRiskStats, aboveRiskPerTradeRow, beforeRiskPerTradeRow, hideEmptyChartCards = false, isPro }: TradingOverviewStatsProps) {
   const stats = useMemo(
     () => calculateTradingOverviewStats(trades, totalProfitFromOverview),
     [trades, totalProfitFromOverview]
@@ -155,6 +160,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
           partialLosingTrades={partialRowProps.partialStats.partialLosingTrades}
           partialBETrades={partialRowProps.partialStats.partialBETrades}
           isLoading={partialRowProps.chartsLoadingState}
+          isPro={isPro}
         />
       );
     }
@@ -190,6 +196,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
     totalExecutedTrades,
     nonExecutedTotalTradesCount,
     trades,
+    isPro,
   ]);
 
   return (
@@ -215,7 +222,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
         hydrated={hydrated}
       />
 
-      <BestRRStatCard tradesToUse={trades} />
+      <BestRRStatCard tradesToUse={trades} isPro={isPro} />
 
       {/* Key metrics: RR Multiple, P&L %, Average Days Between Trades; in year mode also Average Monthly Trades */}
       <div className={`col-span-full grid grid-cols-1 gap-6 w-full [&>*]:min-w-0 ${viewMode === 'yearly' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
@@ -225,6 +232,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
           averageDaysBetweenTrades={stats.averageDaysBetweenTrades}
           viewMode={viewMode}
           monthlyStats={monthlyStats ?? undefined}
+          isPro={isPro}
         />
         {viewMode === 'yearly' && monthlyStats?.monthlyData && (
           <AverageMonthlyTradesCard monthlyStats={monthlyStats} />
@@ -263,6 +271,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
                 partialLosingTrades={partialRowProps.partialStats.partialLosingTrades}
                 partialBETrades={partialRowProps.partialStats.partialBETrades}
                 isLoading={partialRowProps.chartsLoadingState}
+                isPro={isPro}
               />
               <ExecutedNonExecutedTradesCard
                 totalExecutedTrades={totalExecutedTrades}
@@ -284,11 +293,13 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
         const showEval = showEvaluationCard && (!hideEmptyChartCards || evalTotal > 0);
         const showReentry = !hideEmptyChartCards || reentryTotal > 0;
         const showTrend = showTrendCard && (!hideEmptyChartCards || trendTotal > 0);
-        const hasAny = showEval || showReentry || showTrend;
+        const showSession = aboveRiskPerTradeRow.showSessionCard === true;
+        const hasAny = showEval || showReentry || showTrend || showSession;
         if (!hasAny) return null;
+        const visibleCount = [showEval, showReentry, showTrend, showSession].filter(Boolean).length;
         const gridClass = hideEmptyChartCards
-          ? 'col-span-full grid grid-cols-1 lg:grid-cols-3 gap-6 w-full [&>*]:min-h-[340px] [&>*]:min-w-0'
-          : 'col-span-full grid grid-cols-1 md:grid-cols-3 gap-6 w-full [&>*]:min-w-0';
+          ? `col-span-full grid grid-cols-1 ${visibleCount >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6 w-full [&>*]:min-h-[340px] [&>*]:min-w-0`
+          : `col-span-full grid grid-cols-1 ${visibleCount >= 4 ? 'md:grid-cols-2 xl:grid-cols-4' : 'md:grid-cols-3'} gap-6 w-full [&>*]:min-w-0`;
         return (
           <>
             <div className={gridClass}>
@@ -312,6 +323,12 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
                   includeTotalTrades={aboveRiskPerTradeRow.includeTotalTrades}
                 />
               )}
+              {showSession && (
+                <SessionStatisticsCard
+                  sessionStats={aboveRiskPerTradeRow.sessionStats ?? []}
+                  isLoading={aboveRiskPerTradeRow.chartsLoadingState}
+                />
+              )}
             </div>
           </>
         );
@@ -325,11 +342,13 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
               trades={beforeRiskPerTradeRow.trades}
               currencySymbol={beforeRiskPerTradeRow.currencySymbol}
               isLoading={beforeRiskPerTradeRow.isLoading}
+              isPro={isPro}
             />
             <ExpectancyCard
               trades={beforeRiskPerTradeRow.trades}
               currencySymbol={beforeRiskPerTradeRow.currencySymbol}
               isLoading={beforeRiskPerTradeRow.isLoading}
+              isPro={isPro}
             />
           </div>
           <hr className="col-span-full my-8 border-t border-slate-300/40 dark:border-slate-700" />
@@ -339,7 +358,7 @@ export function TradingOverviewStats({ trades, currencySymbol, hydrated, account
       {allTradesRiskStats !== undefined && (
         <>
           <div className="col-span-full">
-            <RiskPerTrade className="mt-2" allTradesRiskStats={allTradesRiskStats} />
+            <RiskPerTrade className="mt-2" allTradesRiskStats={allTradesRiskStats} isPro={isPro} />
           </div>
         </>
       )}

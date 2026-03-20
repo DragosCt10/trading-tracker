@@ -244,7 +244,7 @@ export function MarketCombobox({
           <div className={listScrollClass} onWheel={onListWheel} role="presentation">
             <ul>
               {suggestions.map((market) => (
-                <li key={market} role="option">
+                <li key={market} role="option" aria-selected={market === value}>
                   {editingMarket === market ? (
                     <div className="flex items-center gap-2 px-3 py-2.5">
                       <Input
@@ -375,7 +375,7 @@ export function MarketCombobox({
               <div className={listScrollClass} onWheel={onListWheel} role="presentation">
                 <ul>
                   {suggestions.map((market) => (
-                    <li key={market} role="option">
+                    <li key={market} role="option" aria-selected={market === value}>
                       {editingMarket === market ? (
                         <div className="flex items-center gap-2 px-3 py-2.5">
                           <Input

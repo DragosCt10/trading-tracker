@@ -28,6 +28,13 @@ function normalizeTradeScreens(
   return [fallbackLink ?? '', fallbackLiq ?? '', '', ''];
 }
 
+function normalizeTradeScreenTimeframes(raw: unknown): string[] {
+  if (Array.isArray(raw) && raw.length > 0) {
+    return [raw[0] ?? '', raw[1] ?? '', raw[2] ?? '', raw[3] ?? ''];
+  }
+  return ['', '', '', ''];
+}
+
 /**
  * Maps Supabase trade data to Trade type.
  * This mirrors the mapping used in lib/server/trades.ts but uses
@@ -44,6 +51,7 @@ function mapSupabaseTradeToTrade(trade: any, mode: ShareMode): Trade {
       trade.trade_link,
       trade.liquidity_taken
     ),
+    trade_screen_timeframes: normalizeTradeScreenTimeframes(trade.trade_screen_timeframes),
     trade_time: trade.trade_time,
     trade_date: trade.trade_date,
     day_of_week: trade.day_of_week,
@@ -53,6 +61,7 @@ function mapSupabaseTradeToTrade(trade: any, mode: ShareMode): Trade {
     sl_size: trade.sl_size,
     direction: trade.direction,
     trade_outcome: trade.trade_outcome,
+    session: trade.session ?? '',
     break_even: trade.break_even,
     reentry: trade.reentry,
     news_related: trade.news_related,
@@ -218,9 +227,9 @@ export async function getShareStatsCache(shareId: string): Promise<DashboardRpcR
 export async function getShareByToken(
   token: string
 ): Promise<StrategyShareRow | null> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createServiceRoleClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('strategy_shares')
     .select('*')
     .eq('share_token', token)

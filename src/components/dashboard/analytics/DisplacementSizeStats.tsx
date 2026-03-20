@@ -27,6 +27,102 @@ export interface DisplacementSizeStatsProps {
   isLoading?: boolean;
 }
 
+function CustomTooltip({
+  active,
+  payload,
+  isDark,
+  chartData,
+}: {
+  active?: boolean;
+  payload?: readonly any[];
+  isDark?: boolean;
+  chartData: Array<{
+    range: string;
+    rangeKey: string;
+    percentage: number;
+    totalTradesInBucket: number;
+    totalTrades: number;
+    marketDetails: Array<{
+      market: string;
+      percentage: number;
+      tradesWithBucket: number;
+      totalTrades: number;
+      wins: number;
+      losses: number;
+      breakEven: number;
+      winRate: number;
+    }>;
+  }>;
+}) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  const rowData = chartData.find((r) => r.range === d.range);
+  if (!rowData?.marketDetails?.length) return null;
+
+  const activeMarkets = rowData.marketDetails.filter((md) => md.tradesWithBucket > 0);
+  if (activeMarkets.length === 0) return null;
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
+      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+      <div className="relative text-xs">
+        <div className="font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-3">
+          Displacement Size {d.range}
+        </div>
+        <div className="text-xs text-slate-600 dark:text-slate-300 mb-2">
+          Overall:{' '}
+          <span className="font-semibold text-slate-900 dark:text-slate-100">
+            {formatPercent(rowData.percentage)}%
+          </span>{' '}
+          ({rowData.totalTradesInBucket}/{rowData.totalTrades} trades)
+        </div>
+        <div className="overflow-x-auto mt-1.5">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-slate-200/60 dark:border-slate-700/60">
+                <th className="text-left py-2 pr-4 font-semibold text-slate-600 dark:text-slate-400">Market</th>
+                <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">Wins</th>
+                <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">Losses</th>
+                <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">BE</th>
+                <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">Win Rate</th>
+                <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">%</th>
+                <th className="text-right py-2 pl-2 font-semibold text-slate-600 dark:text-slate-400">Trades</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeMarkets.map((marketData) => (
+                <tr key={marketData.market} className="border-b border-slate-100/60 dark:border-slate-800/60 last:border-0">
+                  <td className="py-2 pr-4 font-medium text-slate-700 dark:text-slate-300">
+                    {marketData.market}
+                  </td>
+                  <td className="py-2 px-2 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                    {marketData.wins}
+                  </td>
+                  <td className="py-2 px-2 text-right font-bold text-rose-600 dark:text-rose-400">
+                    {marketData.losses}
+                  </td>
+                  <td className="py-2 px-2 text-right font-bold text-slate-600 dark:text-slate-300">
+                    {marketData.breakEven}
+                  </td>
+                  <td className="py-2 px-2 text-right font-bold text-slate-600 dark:text-slate-300">
+                    {formatPercent(marketData.winRate)}%
+                  </td>
+                  <td className="py-2 px-2 text-right font-bold text-slate-900 dark:text-slate-100">
+                    {formatPercent(marketData.percentage)}%
+                  </td>
+                  <td className="py-2 pl-2 text-right text-slate-600 dark:text-slate-400">
+                    {marketData.tradesWithBucket}/{marketData.totalTrades}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const DISPLACEMENT_BUCKETS = [
   { key: '0-10', label: '0–10', min: 0, max: 10 },
   { key: '10-20', label: '10–20', min: 10, max: 20 },
@@ -66,7 +162,8 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
       if (mounted) {
         if (externalLoading !== undefined) {
           if (externalLoading) {
-            setIsLoading(true);
+            const timer = setTimeout(() => setIsLoading(true), 0);
+            return () => clearTimeout(timer);
           } else {
             const timer = setTimeout(() => setIsLoading(false), 600);
             return () => clearTimeout(timer);
@@ -159,81 +256,6 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
       end: '#0ea5e9',
     };
 
-    const CustomTooltip = ({
-      active,
-      payload,
-    }: {
-      active?: boolean;
-      payload?: { payload: (typeof chartBarsData)[number] }[];
-    }) => {
-      if (!active || !payload?.length) return null;
-      const d = payload[0].payload;
-      const rowData = chartData.find((r) => r.range === d.range);
-      if (!rowData?.marketDetails?.length) return null;
-
-      const activeMarkets = rowData.marketDetails.filter((md) => md.tradesWithBucket > 0);
-      if (activeMarkets.length === 0) return null;
-
-      return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-          {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-          <div className="relative text-xs">
-            <div className="font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-3">
-              Displacement Size {d.range}
-            </div>
-            <div className="text-xs text-slate-600 dark:text-slate-300 mb-2">
-              Overall:{' '}
-              <span className="font-semibold text-slate-900 dark:text-slate-100">
-                {formatPercent(rowData.percentage)}%
-              </span>{' '}
-              ({rowData.totalTradesInBucket}/{rowData.totalTrades} trades)
-            </div>
-            <div className="overflow-x-auto mt-1.5">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-slate-200/60 dark:border-slate-700/60">
-                    <th className="text-left py-2 pr-4 font-semibold text-slate-600 dark:text-slate-400">Market</th>
-                    <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">Wins</th>
-                    <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">Losses</th>
-                    <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">BE</th>
-                    <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">Win Rate</th>
-                    <th className="text-right py-2 px-2 font-semibold text-slate-600 dark:text-slate-400">%</th>
-                    <th className="text-right py-2 pl-2 font-semibold text-slate-600 dark:text-slate-400">Trades</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeMarkets.map((marketData) => (
-                    <tr key={marketData.market} className="border-b border-slate-100/60 dark:border-slate-800/60 last:border-0">
-                      <td className="py-2 pr-4 font-medium text-slate-700 dark:text-slate-300">
-                        {marketData.market}
-                      </td>
-                      <td className="py-2 px-2 text-right font-bold text-emerald-600 dark:text-emerald-400">
-                        {marketData.wins}
-                      </td>
-                      <td className="py-2 px-2 text-right font-bold text-rose-600 dark:text-rose-400">
-                        {marketData.losses}
-                      </td>
-                      <td className="py-2 px-2 text-right font-bold text-slate-600 dark:text-slate-300">
-                        {marketData.breakEven}
-                      </td>
-                      <td className="py-2 px-2 text-right font-bold text-slate-600 dark:text-slate-300">
-                        {formatPercent(marketData.winRate)}%
-                      </td>
-                      <td className="py-2 px-2 text-right font-bold text-slate-900 dark:text-slate-100">
-                        {formatPercent(marketData.percentage)}%
-                      </td>
-                      <td className="py-2 pl-2 text-right text-slate-600 dark:text-slate-400">
-                        {marketData.tradesWithBucket}/{marketData.totalTrades}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      );
-    };
 
     if (!mounted || isLoading) {
       return (
@@ -327,7 +349,7 @@ export const DisplacementSizeStats: React.FC<DisplacementSizeStatsProps> = React
                     contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none', minWidth: '160px' }}
                     wrapperStyle={{ outline: 'none', zIndex: 1000 }}
                     cursor={{ fill: 'transparent', radius: 8 }}
-                    content={<CustomTooltip />}
+                    content={(props) => <CustomTooltip {...props} isDark={isDark} chartData={chartData} />}
                   />
 
                   <ReBar

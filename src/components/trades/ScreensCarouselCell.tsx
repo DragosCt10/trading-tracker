@@ -29,6 +29,7 @@ export function ScreensCarouselCell({ trade }: { trade: Trade }) {
         rel="noopener noreferrer"
         className="block w-full h-full rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800/60 group"
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={activeScreen}
           alt={`${trade.market} trade screen ${activeIdx + 1}`}

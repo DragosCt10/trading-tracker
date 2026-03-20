@@ -21,6 +21,45 @@ export interface ExecutedNonExecutedTradesCardProps {
   isLoading?: boolean;
 }
 
+function CustomTooltip({ active, payload, isDark, totalTrades,
+}: { active?: boolean; payload?: readonly any[]; isDark?: boolean; totalTrades: number }) {
+  if (!active || !payload || payload.length === 0) return null;
+
+  const data = payload[0].payload;
+  const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
+    blue: {
+      bg: 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-200/50 dark:border-blue-800/30',
+      text: 'text-blue-600 dark:text-blue-400',
+      dot: 'bg-blue-500 dark:bg-blue-400 ring-blue-200/50 dark:ring-blue-500/30',
+    },
+    slate: {
+      bg: 'bg-slate-50/80 dark:bg-slate-950/30 border-slate-200/50 dark:border-slate-800/30',
+      text: 'text-slate-600 dark:text-slate-400',
+      dot: 'bg-slate-500 dark:bg-slate-400 ring-slate-200/50 dark:ring-slate-500/30',
+    },
+  };
+
+  const colors = colorMap[data.color] || colorMap.blue;
+  const percentage = totalTrades > 0 ? (data.value / totalTrades) * 100 : 0;
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-3 text-slate-900 dark:text-slate-100">
+      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+      <div className="relative flex flex-col">
+        <div className="flex items-center gap-2">
+          <div className={cn("h-2 w-2 rounded-full shadow-sm ring-2", colors.dot)}></div>
+          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {data.name}: <span className={cn("font-bold", colors.text)}>{data.value}</span>
+          </div>
+        </div>
+        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 ml-4 font-medium">
+          {percentage.toFixed(1)}% of total
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const ExecutedNonExecutedTradesCard: React.FC<ExecutedNonExecutedTradesCardProps> = React.memo(
   function ExecutedNonExecutedTradesCard({ 
     totalExecutedTrades,
@@ -36,7 +75,8 @@ export const ExecutedNonExecutedTradesCard: React.FC<ExecutedNonExecutedTradesCa
       if (mounted) {
         if (externalLoading !== undefined) {
           if (externalLoading) {
-            setIsLoading(true);
+            const timer = setTimeout(() => setIsLoading(true), 0);
+            return () => clearTimeout(timer);
           } else {
             const timer = setTimeout(() => {
               setIsLoading(false);
@@ -67,43 +107,6 @@ export const ExecutedNonExecutedTradesCard: React.FC<ExecutedNonExecutedTradesCa
       { name: 'Non-Executed', value: nonExecutedCount, color: 'slate', percentage: totalTrades > 0 ? (nonExecutedCount / totalTrades) * 100 : 0 },
     ].filter((item) => item.value > 0); // Only show segments with values
 
-    const CustomTooltip = ({ active, payload }: any) => {
-      if (!active || !payload || payload.length === 0) return null;
-
-      const data = payload[0].payload;
-      const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
-        blue: {
-          bg: 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-200/50 dark:border-blue-800/30',
-          text: 'text-blue-600 dark:text-blue-400',
-          dot: 'bg-blue-500 dark:bg-blue-400 ring-blue-200/50 dark:ring-blue-500/30',
-        },
-        slate: {
-          bg: 'bg-slate-50/80 dark:bg-slate-950/30 border-slate-200/50 dark:border-slate-800/30',
-          text: 'text-slate-600 dark:text-slate-400',
-          dot: 'bg-slate-500 dark:bg-slate-400 ring-slate-200/50 dark:ring-slate-500/30',
-        },
-      };
-
-      const colors = colorMap[data.color] || colorMap.blue;
-      const percentage = totalTrades > 0 ? (data.value / totalTrades) * 100 : 0;
-
-      return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-3 text-slate-900 dark:text-slate-100">
-          {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-          <div className="relative flex flex-col">
-            <div className="flex items-center gap-2">
-              <div className={cn("h-2 w-2 rounded-full shadow-sm ring-2", colors.dot)}></div>
-              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                {data.name}: <span className={cn("font-bold", colors.text)}>{data.value}</span>
-              </div>
-            </div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 ml-4 font-medium">
-              {percentage.toFixed(1)}% of total
-            </div>
-          </div>
-        </div>
-      );
-    };
 
     if (!mounted || isLoading) {
       return (
@@ -212,7 +215,7 @@ export const ExecutedNonExecutedTradesCard: React.FC<ExecutedNonExecutedTradesCa
                       zIndex: 1000,
                     }}
                     cursor={{ fill: 'transparent', radius: 8 }}
-                    content={<CustomTooltip />}
+                    content={(props) => <CustomTooltip {...props} isDark={isDark} totalTrades={totalTrades} />}
                   />
                 </PieChart>
               </ResponsiveContainer>

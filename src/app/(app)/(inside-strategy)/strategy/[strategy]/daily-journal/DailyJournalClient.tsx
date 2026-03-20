@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
-import { ChevronRight, Infinity as InfinityIcon } from 'lucide-react';
+import { ChevronRight, Crown, Infinity as InfinityIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, formatPercent } from '@/lib/utils';
 import { useBECalc } from '@/contexts/BECalcContext';
 import type { Trade } from '@/types/trade';
@@ -37,6 +37,8 @@ import { TRADES_DATA } from '@/constants/queryConfig';
 import { getCurrencySymbolFromAccount } from '@/components/dashboard/analytics/AccountOverviewCard';
 import { DailyJournalSkeleton } from './DailyJournalSkeleton';
 import { OutcomeChips } from '@/components/trades/OutcomeChips';
+import { useSubscription } from '@/hooks/useSubscription';
+import { buildPreviewTrade } from '@/utils/previewTrades';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -89,6 +91,7 @@ export default function DailyJournalClient({
   const { beCalcEnabled } = useBECalc();
   const { selection, setSelection } = useActionBarSelection();
   const userId = userDetails?.user?.id ?? initialUserId;
+  const { isPro } = useSubscription({ userId });
   const activeAccount = selection.activeAccount ?? initialActiveAccount;
 
   useEffect(() => {
@@ -115,6 +118,7 @@ export default function DailyJournalClient({
       strategyId,
     ),
     queryFn: async () => {
+      if (!isPro) return [];
       if (!userId || !activeAccount?.id) return [];
       return getFilteredTrades({
         userId,
@@ -129,12 +133,15 @@ export default function DailyJournalClient({
     // Only use initialTrades as initialData when they're actually populated.
     // An empty array (server timeout fired) must NOT be treated as loaded data
     // or TanStack Query will never refetch within the staleTime window.
-    initialData: (isInitialContext && initialTrades.length > 0) ? initialTrades : undefined,
-    enabled: !!userId && !!activeAccount?.id,
+    initialData: (isPro && isInitialContext && initialTrades.length > 0) ? initialTrades : undefined,
+    enabled: isPro && !!userId && !!activeAccount?.id,
     ...TRADES_DATA,
   });
 
-  const allTradesData = rawTrades ?? (isInitialContext && initialTrades.length > 0 ? initialTrades : []);
+  const allTradesData = useMemo(
+    () => (isPro ? (rawTrades ?? (isInitialContext && initialTrades.length > 0 ? initialTrades : [])) : []),
+    [isPro, rawTrades, isInitialContext, initialTrades]
+  );
 
   const currencySymbol = activeAccount
     ? getCurrencySymbolFromAccount(activeAccount)
@@ -166,11 +173,39 @@ export default function DailyJournalClient({
 
   // Markets from full dataset
   const markets = useMemo(
-    () => Array.from(new Set(allTradesData.map((t) => t.market).filter(Boolean))),
+    () => Array.from(new Set(allTradesData.map((t: Trade) => t.market).filter(Boolean))),
     [allTradesData]
   );
 
   const isCustomRange = isCustomDateRange(dateRange);
+
+  const lockedPreviewDayGroups: DayGroup[] = useMemo(() => {
+    const today = new Date();
+    const date = format(today, 'yyyy-MM-dd');
+    const previewTrades: Trade[] = [
+      buildPreviewTrade({
+        id: 'preview-1',
+        trade_date: date,
+        trade_outcome: 'Lose',
+        calculated_profit: -100,
+        direction: 'Long',
+      }),
+      buildPreviewTrade({
+        id: 'preview-2',
+        trade_date: date,
+        trade_outcome: 'Win',
+        calculated_profit: 200,
+        direction: 'Long',
+      }),
+    ];
+    return [
+      {
+        date,
+        trades: previewTrades,
+        totalProfit: 100,
+      },
+    ];
+  }, []);
 
   const handleFilterChange = useCallback((type: FilterType) => {
     setActiveFilter(type);
@@ -191,12 +226,14 @@ export default function DailyJournalClient({
 
   // Earliest trade date for "All Trades" display
   const earliestTradeDate = useMemo(() => {
-    if (activeFilter !== 'all' || allTradesData.length === 0) return undefined;
-    return allTradesData.reduce(
-      (min, t) => (t.trade_date < min ? t.trade_date : min),
-      allTradesData[0].trade_date
+    if (activeFilter !== 'all') return undefined;
+    const source = isPro ? allTradesData : lockedPreviewDayGroups.flatMap((g) => g.trades);
+    if (source.length === 0) return undefined;
+    return source.reduce(
+      (min: string, t: Trade) => (t.trade_date < min ? t.trade_date : min),
+      source[0].trade_date
     );
-  }, [activeFilter, allTradesData]);
+  }, [activeFilter, isPro, allTradesData, lockedPreviewDayGroups]);
 
   // Apply filters client-side
   const filteredTrades = useMemo(() => {
@@ -204,19 +241,19 @@ export default function DailyJournalClient({
 
     // Date range
     list = list.filter(
-      (t) => t.trade_date >= dateRange.startDate && t.trade_date <= dateRange.endDate
+      (t: Trade) => t.trade_date >= dateRange.startDate && t.trade_date <= dateRange.endDate
     );
 
     // Execution
     if (executionFilter === 'executed') {
-      list = list.filter((t) => t.executed === true);
+      list = list.filter((t: Trade) => t.executed === true);
     } else if (executionFilter === 'nonExecuted') {
-      list = list.filter((t) => !t.executed);
+      list = list.filter((t: Trade) => !t.executed);
     }
 
     // Market
     if (selectedMarket !== 'all') {
-      list = list.filter((t) => t.market === selectedMarket);
+      list = list.filter((t: Trade) => t.market === selectedMarket);
     }
 
     return list;
@@ -234,8 +271,8 @@ export default function DailyJournalClient({
       .sort(([d1], [d2]) => (d1 < d2 ? 1 : -1)) // newest first
       .map(([date, trades]) => ({
         date,
-        trades: trades.slice().sort((a, b) => a.trade_time.localeCompare(b.trade_time)),
-        totalProfit: trades.reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0),
+        trades: trades.slice().sort((a: Trade, b: Trade) => a.trade_time.localeCompare(b.trade_time)),
+        totalProfit: trades.reduce((sum: number, t: Trade) => sum + (t.calculated_profit ?? 0), 0),
       }));
   }, [filteredTrades]);
 
@@ -273,8 +310,10 @@ export default function DailyJournalClient({
     [dayGroups, displayedCount]
   );
 
+  const displayedDayGroups = isPro ? visibleDayGroups : lockedPreviewDayGroups;
+
   const toggleDay = (date: string, currentlyOpen: boolean) => {
-    setOpenByDate((prev) => ({
+    setOpenByDate((prev: Record<string, boolean>) => ({
       ...prev,
       [date]: !currentlyOpen,
     }));
@@ -384,7 +423,7 @@ export default function DailyJournalClient({
             </div>
           </Card>
         )}
-        {activeAccount && !tradesLoading && visibleDayGroups.length === 0 && (
+        {activeAccount && isPro && !tradesLoading && visibleDayGroups.length === 0 && (
           <Card className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm py-10 px-6 flex items-center justify-center text-center">
             <div className="space-y-2">
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -396,7 +435,7 @@ export default function DailyJournalClient({
             </div>
           </Card>
         )}
-        {visibleDayGroups.map((group, index) => {
+        {displayedDayGroups.map((group, index) => {
           const isOpen = openByDate[group.date] ?? index === 0;
           const dayChartData = buildDayChartData(group.trades);
           const hasTrades = group.trades.length > 0;
@@ -424,11 +463,25 @@ export default function DailyJournalClient({
             realTrades.length > 0 ? (profitableTrades.length / realTrades.length) * 100 : 0;
           const formattedDate = format(new Date(group.date), 'EEE, MMM d, yyyy');
 
-          return (
+          const cardContent = (
             <Card
-              key={group.date}
               className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden"
             >
+              {!isPro && (
+                <>
+                  <span className="absolute right-4 top-4 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                    <Crown className="w-3 h-3" /> PRO
+                  </span>
+                  <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+                </>
+              )}
+
+              <div
+                className={cn(
+                  'relative',
+                  !isPro && 'blur-[3px] opacity-70 pointer-events-none select-none'
+                )}
+              >
               <div
                 role="button"
                 tabIndex={0}
@@ -716,7 +769,32 @@ export default function DailyJournalClient({
                     </table>
                   </div>
                 </div>
+              </div>
             </Card>
+          );
+
+          if (!isPro) {
+            return (
+              <Tooltip key={group.date} delayDuration={120}>
+                <TooltipTrigger asChild>
+                  {cardContent}
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  align="start"
+                  sideOffset={8}
+                  className="max-w-sm text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50"
+                >
+                  The data shown under the blur card is fictive and for demo purposes only.
+                </TooltipContent>
+              </Tooltip>
+            );
+          }
+
+          return (
+            <div key={group.date}>
+              {cardContent}
+            </div>
           );
         })}
 

@@ -29,6 +29,74 @@ export interface DirectionStatisticsCardProps {
  * @param includeTotalTrades - If true, includes totalTrades and calculates percentage from total (for filtered stats)
  * @returns Array of TradeStatDatum for chart display
  */
+function CustomTooltip({ active, payload, isDark, beCalcEnabled,
+}: { active?: boolean; payload?: readonly any[]; isDark?: boolean; beCalcEnabled: boolean }) {
+  if (!active || !payload || payload.length === 0) return null;
+
+  const data = payload[0].payload;
+  const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
+    blue: {
+      bg: 'bg-blue-100 dark:bg-blue-900 border-blue-200 dark:border-blue-700',
+      text: 'text-blue-600 dark:text-blue-400',
+      dot: 'bg-blue-500 dark:bg-blue-400 ring-blue-200/50 dark:ring-blue-500/30',
+    },
+    purple: {
+      bg: 'bg-purple-100 dark:bg-purple-900 border-purple-200 dark:border-purple-700',
+      text: 'text-purple-600 dark:text-purple-400',
+      dot: 'bg-purple-500 dark:bg-purple-400 ring-purple-200/50 dark:ring-purple-500/30',
+    },
+  };
+
+  const colors = colorMap[data.color] || colorMap.blue;
+  const totalTrades = data.totalTrades ?? 0;
+  const percentage = totalTrades > 0 ? (data.value / totalTrades) * 100 : 0;
+  const wins = data.wins ?? 0;
+  const losses = data.losses ?? 0;
+  const breakEven = data.breakEven ?? 0;
+  const winRate = data.winRate ?? 0;
+  const winRateWithBE = data.winRateWithBE ?? 0;
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
+      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+      <div className="relative flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <div className={cn("h-2 w-2 rounded-full shadow-sm ring-2", colors.dot)}></div>
+          <div className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
+            {data.name} - {percentage.toFixed(1)}% - {data.value} {data.value === 1 ? 'trade' : 'trades'}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
+            <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+              {wins}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
+            <span className="text-base font-bold text-rose-600 dark:text-rose-400">
+              {losses}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
+            <span className="text-base font-bold text-slate-600 dark:text-slate-300">
+              {breakEven}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
+            <span className="text-base font-bold text-slate-900 dark:text-slate-100">
+              {formatPercent(beCalcEnabled ? winRateWithBE : winRate)}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function convertDirectionStatsToChartData(
   directionStats: DirectionStats[],
   includeTotalTrades: boolean = false
@@ -89,7 +157,8 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
       if (mounted) {
         if (externalLoading !== undefined) {
           if (externalLoading) {
-            setIsLoading(true);
+            const timer = setTimeout(() => setIsLoading(true), 0);
+            return () => clearTimeout(timer);
           } else {
             const timer = setTimeout(() => {
               setIsLoading(false);
@@ -148,71 +217,6 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
       })
       .filter((item) => item.value > 0);
 
-    const CustomTooltip = ({ active, payload }: any) => {
-      if (!active || !payload || payload.length === 0) return null;
-
-      const data = payload[0].payload;
-      const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
-        blue: {
-          bg: 'bg-blue-100 dark:bg-blue-900 border-blue-200 dark:border-blue-700',
-          text: 'text-blue-600 dark:text-blue-400',
-          dot: 'bg-blue-500 dark:bg-blue-400 ring-blue-200/50 dark:ring-blue-500/30',
-        },
-        purple: {
-          bg: 'bg-purple-100 dark:bg-purple-900 border-purple-200 dark:border-purple-700',
-          text: 'text-purple-600 dark:text-purple-400',
-          dot: 'bg-purple-500 dark:bg-purple-400 ring-purple-200/50 dark:ring-purple-500/30',
-        },
-      };
-
-      const colors = colorMap[data.color] || colorMap.blue;
-      const percentage = totalTrades > 0 ? (data.value / totalTrades) * 100 : 0;
-      const wins = data.wins ?? 0;
-      const losses = data.losses ?? 0;
-      const breakEven = data.breakEven ?? 0;
-      const winRate = data.winRate ?? 0;
-      const winRateWithBE = data.winRateWithBE ?? 0;
-
-      return (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-          {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-          <div className="relative flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <div className={cn("h-2 w-2 rounded-full shadow-sm ring-2", colors.dot)}></div>
-              <div className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                {data.name} - {percentage.toFixed(1)}% - {data.value} {data.value === 1 ? 'trade' : 'trades'}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Wins</span>
-                <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-                  {wins}
-                </span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Losses</span>
-                <span className="text-base font-bold text-rose-600 dark:text-rose-400">
-                  {losses}
-                </span>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Break Even</span>
-                <span className="text-base font-bold text-slate-600 dark:text-slate-300">
-                  {breakEven}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Win Rate</span>
-                <span className="text-base font-bold text-slate-900 dark:text-slate-100">
-                  {formatPercent(beCalcEnabled ? winRateWithBE : winRate)}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    };
 
     if (!mounted || isLoading) {
       return (
@@ -321,7 +325,7 @@ export const DirectionStatisticsCard: React.FC<DirectionStatisticsCardProps> = R
                       zIndex: 1000,
                     }}
                     cursor={{ fill: 'transparent', radius: 8 }}
-                    content={<CustomTooltip />}
+                    content={(props) => <CustomTooltip {...props} isDark={isDark} beCalcEnabled={beCalcEnabled} />}
                   />
                 </PieChart>
               </ResponsiveContainer>

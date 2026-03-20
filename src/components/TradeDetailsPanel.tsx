@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
+import { SESSION_PALETTE } from '@/constants/sessionPalette';
 import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useParams } from 'next/navigation';
 import { Trade } from '@/types/trade';
@@ -10,6 +11,16 @@ import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
 import { Loader2, Info, Check } from 'lucide-react';
+import { AfterBreakEvenSelect } from '@/components/trade/AfterBreakEvenSelect';
+import { TradeDirectionChips } from '@/components/trade/TradeDirectionChips';
+import { TradeOutcomeChips } from '@/components/trade/TradeOutcomeChips';
+import { TradeScreenSlotEditor } from '@/components/trade/TradeScreenSlotEditor';
+import {
+  EVALUATION_OPTIONS,
+  MSS_OPTIONS,
+  POTENTIAL_RR_OPTIONS,
+  SESSION_OPTIONS,
+} from '@/constants/tradeFormOptions';
 
 // Shared input/select styles to match NewTradeModal (themed, rounded-2xl)
 const inputClass =
@@ -21,17 +32,6 @@ const selectContentClass =
   'z-[100] max-h-56 overflow-auto rounded-xl border border-slate-200/60 dark:border-slate-800/70 bg-white dark:bg-gradient-to-br dark:from-[#0d0a12] dark:via-[#120d16] dark:to-[#0f0a14] text-slate-900 dark:text-slate-50 shadow-lg backdrop-blur-sm';
 const labelClass = 'block text-sm font-semibold text-slate-700 dark:text-slate-300';
 
-// Static options for Potential RR (1 – 10 or 10+)
-const POTENTIAL_RR_OPTIONS: { value: number; label: string }[] = [
-  ...Array.from({ length: 19 }, (_, i) => {
-    const v = 1 + i * 0.5;
-    return { value: v, label: String(v) };
-  }),
-  { value: 10.5, label: '10+' },
-];
-
-const MSS_OPTIONS = ['Normal', 'Aggressive', 'Wick', 'Internal'];
-const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const TREND_OPTIONS = ['Trend-following', 'Counter-trend', 'Consolidation'];
 
@@ -78,6 +78,8 @@ import {
   mergeSetupTypeIntoSaved,
   normalizeNewsName,
 } from '@/utils/savedFeatures';
+import { formatPotentialRR, snapToHalfStep } from '@/utils/tradeFormHelpers';
+import { invalidateAndRefetchTradeQueries as invalidateTradeQueries } from '@/lib/tradeQueryInvalidation';
 import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
@@ -114,7 +116,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   );
   // In read-only mode (e.g. public share page), there's no auth session so useStrategies
   // returns empty — use the extraCards prop directly when provided.
-  const strategyExtraCards = (readOnly && extraCardsProp != null) ? extraCardsProp : (currentStrategy?.extra_cards ?? []);
+  const strategyExtraCards = useMemo(
+    () => (readOnly && extraCardsProp != null) ? extraCardsProp : (currentStrategy?.extra_cards ?? []),
+    [readOnly, extraCardsProp, currentStrategy?.extra_cards]
+  );
   const hasCard = useCallback(
     (key: string) => strategyExtraCards.includes(key as any),
     [strategyExtraCards]
@@ -130,88 +135,43 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
   const queryClient = useQueryClient();
 
   const accountBalanceRef = useRef(selection.activeAccount?.account_balance || 0);
-  accountBalanceRef.current = selection.activeAccount?.account_balance || 0;
-
   const editedTradeRef = useRef(editedTrade);
-  editedTradeRef.current = editedTrade;
+  const customTfInputRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+  useLayoutEffect(() => {
+    accountBalanceRef.current = selection.activeAccount?.account_balance || 0;
+    editedTradeRef.current = editedTrade;
+  });
 
   // Auto-reveal extra screens if trade has slots 3 or 4 filled
   useEffect(() => {
     if (editedTrade?.trade_screens?.[2] || editedTrade?.trade_screens?.[3]) {
-      setShowExtraScreens(true);
+      const timer = setTimeout(() => setShowExtraScreens(true), 0);
+      return () => clearTimeout(timer);
     }
-  }, [editedTrade?.id]);
+  }, [editedTrade?.id, editedTrade?.trade_screens]);
 
   // Sync editedTrade when trade prop changes (when not editing)
   useEffect(() => {
     if (trade && !isEditing && trade !== editedTrade) {
-      setEditedTrade(trade);
+      const timer = setTimeout(() => setEditedTrade(trade), 0);
+      return () => clearTimeout(timer);
     }
-  }, [trade, isEditing]);
+  }, [trade, isEditing, editedTrade]);
 
   // Helper: invalidate trade queries — scoped to the affected strategy only
   const invalidateAndRefetchTradeQueries = useCallback(async () => {
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
-    }
-    // Capture both original and possibly-edited strategy IDs (handles trade reassignment)
     const affectedStrategyIds = new Set([
       trade?.strategy_id ?? null,
       editedTradeRef.current?.strategy_id ?? null,
     ]);
-    const affectedStrategyIdsArray = Array.from(affectedStrategyIds);
-
-    await queryClient.invalidateQueries({
-      predicate: (query) => {
-        const key = query.queryKey;
-        if (!Array.isArray(key)) return false;
-        const firstKey = key[0];
-        // Global caches span all strategies — always invalidate
-        if (firstKey === 'all-strategy-trades' || firstKey === 'all-strategy-stats' || firstKey === 'strategies-overview') return true;
-        // Per-strategy queries — only invalidate the affected strategy/ies
-        if (firstKey === 'allTrades') return affectedStrategyIds.has((key[5] ?? null) as string | null);
-        if (firstKey === 'filteredTrades' || firstKey === 'nonExecutedTrades') return affectedStrategyIds.has((key[7] ?? null) as string | null);
-        // Dashboard stats API route — strategyId is at index 4
-        if (firstKey === 'dashboardStats') return affectedStrategyIds.has((key[4] ?? null) as string | null);
-        // Calendar trades — strategyId is at index 4
-        if (firstKey === 'calendarTrades') return affectedStrategyIds.has((key[4] ?? null) as string | null);
-        return false;
-      },
-    });
-
-    // Refetch strategies-overview (and legacy all-strategy-trades) for ALL observers.
-    // This ensures StrategiesClient shows updated stats immediately after a trade is edited,
-    // even if StrategiesClient wasn't mounted at the time of the mutation.
-    const accountId = selection.activeAccount?.id;
-    const mode = selection.mode;
-    if (accountId && userId) {
-      await Promise.all([
-        queryClient.refetchQueries({
-          queryKey: queryKeys.allStrategyTrades(userId, accountId, mode),
-        }),
-        queryClient.refetchQueries({
-          queryKey: ['strategies-overview', userId, accountId, mode],
-        }),
-      ]);
-    }
-
-    // Refetch all matching queries (not only "active") so cache is updated even when modal/portal
-    // has focus and dashboard queries might not be considered active. Ensures AccountOverviewCard
-    // and calendar show fresh data when the panel closes.
-    // dashboardStats  → AccountOverviewCard (monthly P&L), aggregate stats cards
-    // filteredTrades  → tradesToUse array (Phase 1: trade arrays come from a separate query)
-    // calendarTrades  → calendar view
-    await queryClient.refetchQueries({
-      predicate: (query) => {
-        const key = query.queryKey;
-        if (!Array.isArray(key)) return false;
-        const firstKey = key[0];
-        if (firstKey === 'dashboardStats') return affectedStrategyIdsArray.includes((key[4] ?? null) as string | null);
-        if (firstKey === 'calendarTrades') return affectedStrategyIdsArray.includes((key[4] ?? null) as string | null);
-        // filteredTrades key: ['filteredTrades', mode, accountId, userId, viewMode, start, end, strategyId]
-        if (firstKey === 'filteredTrades') return affectedStrategyIdsArray.includes((key[7] ?? null) as string | null);
-        return false;
-      },
+    await invalidateTradeQueries({
+      queryClient,
+      strategyIds: Array.from(affectedStrategyIds),
+      mode: selection.mode,
+      accountId: selection.activeAccount?.id,
+      userId,
+      refetchType: 'all',
     });
   }, [queryClient, trade?.strategy_id, selection.activeAccount?.id, selection.mode, userId]);
 
@@ -229,17 +189,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
 
   const effectiveIsEditing = readOnly ? false : isEditing;
 
-  const snapToHalfStep = (num: number) => Math.round(num * 2) / 2;
-
-  const formatPotentialRR = (val: number | undefined | null): string => {
-    if (val == null || Number.isNaN(Number(val))) return '—';
-    const n = Number(val);
-    return n === 10.5 ? '10+' : n.toFixed(2);
-  };
-
-  if (!trade) return null;
-
-  const handleInputChange = useCallback((field: keyof Trade, value: any) => {
+  const handleInputChange = (field: keyof Trade, value: any) => {
     setEditedTrade((prev) => {
       if (!prev) return prev;
 
@@ -284,9 +234,9 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         return { ...prev, [field]: value };
       }
     });
-  }, []); // stable: no deps needed
+  };
 
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     const editedTrade = editedTradeRef.current;
     if (!editedTrade || !editedTrade.id) return;
     setError(null);
@@ -316,9 +266,11 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         displacement_size: editedTrade.displacement_size,
         risk_per_trade: editedTrade.risk_per_trade,
         trade_outcome: editedTrade.trade_outcome,
+        session: editedTrade.session ?? '',
         risk_reward_ratio: editedTrade.risk_reward_ratio,
         risk_reward_ratio_long: (editedTrade.trade_outcome === 'Lose' || editedTrade.trade_outcome === 'BE') ? 0 : editedTrade.risk_reward_ratio_long,
         trade_screens: editedTrade.trade_screens,
+        trade_screen_timeframes: editedTrade.trade_screen_timeframes,
         mss: editedTrade.mss,
         break_even: editedTrade.break_even,
         be_final_result: editedTrade.be_final_result,
@@ -429,37 +381,23 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       setError(message);
       setIsSaving(false);
     }
-  }, [
-    selection.mode,
-    currentStrategy,
-    settings.saved_news,
-    settings.saved_markets,
-    userId,
-    queryClient,
-    invalidateAndRefetchTradeQueries,
-    onTradeUpdated,
-    onClose,
-    inlineMode,
-  ]);
+  };
 
-  const handleToggleFavourite = useCallback(
-    (kind: SavedFavouritesKind) => (itemId: string) => {
-      if (!currentStrategy || !userId || !accountId) return;
-      const strategyId = currentStrategy.id;
-      void updateStrategyFavourites(strategyId, userId, kind, itemId).then((nextSavedFavourites) => {
-        if (nextSavedFavourites == null) return;
-        const key = queryKeys.strategies(userId, accountId);
-        queryClient.setQueryData(key, (prev: Strategy[] | undefined) =>
-          prev?.map((s) =>
-            s.id === strategyId ? { ...s, saved_favourites: nextSavedFavourites } : s
-          )
-        );
-      });
-    },
-    [currentStrategy, userId, accountId, queryClient]
-  );
+  const handleToggleFavourite = (kind: SavedFavouritesKind) => (itemId: string) => {
+    if (!currentStrategy || !userId || !accountId) return;
+    const strategyId = currentStrategy.id;
+    void updateStrategyFavourites(strategyId, userId, kind, itemId).then((nextSavedFavourites) => {
+      if (nextSavedFavourites == null) return;
+      const key = queryKeys.strategies(userId, accountId);
+      queryClient.setQueryData(key, (prev: Strategy[] | undefined) =>
+        prev?.map((s) =>
+          s.id === strategyId ? { ...s, saved_favourites: nextSavedFavourites } : s
+        )
+      );
+    });
+  };
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = async () => {
     if (!trade || !trade.id) return;
     setShowDeleteConfirm(false);
     setError(null);
@@ -487,7 +425,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       setError(message);
       setIsDeleting(false);
     }
-  }, [trade, selection.mode, invalidateAndRefetchTradeQueries, onTradeUpdated, onClose]);
+  };
 
   const renderStatusBadge = (value: boolean | string) => {
     const isActive = typeof value === 'boolean' ? value : value === 'Yes';
@@ -530,7 +468,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     return renderOutcomeBadge(outcome);
   };
 
-  const renderField = useCallback((
+  const renderField = (
     label: string,
     field: keyof Trade,
     type: 'text' | 'number' | 'select' | 'boolean' | 'outcome' | 'market' = 'text',
@@ -673,6 +611,19 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               ))}
             </SelectContent>
           </Select>
+        </div>
+      );
+    }
+
+    if (field === 'direction') {
+      const currentDirection = (value as string) ?? '';
+      return (
+        <div>
+          <label className={`${labelClass} mb-2`}>{label}</label>
+          <TradeDirectionChips
+            value={currentDirection}
+            onChange={(direction) => handleInputChange('direction', direction)}
+          />
         </div>
       );
     }
@@ -985,7 +936,9 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
           </div>
         );
     }
-  }, [effectiveIsEditing, editedTrade, handleInputChange, settings.saved_markets, setupOptions, liquidityOptions]);
+  };
+
+  if (!trade) return null;
 
   return (
     <>
@@ -1040,19 +993,10 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                       ? renderOutcomeBadge(editedTrade.trade_outcome)
                       : renderOutcomeBadges(editedTrade?.trade_outcome as string, editedTrade?.be_final_result)
                   ) : (
-                    <Select
-                      value={editedTrade?.trade_outcome ?? ''}
-                      onValueChange={(val) => handleInputChange('trade_outcome', val)}
-                    >
-                      <SelectTrigger className={selectTriggerClass}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className={selectContentClass}>
-                        <SelectItem value="Win">Win</SelectItem>
-                        <SelectItem value="Lose">Lose</SelectItem>
-                        <SelectItem value="BE">BE</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <TradeOutcomeChips
+                      value={editedTrade?.trade_outcome}
+                      onChange={(outcome) => handleInputChange('trade_outcome', outcome)}
+                    />
                   )}
                 </div>
               </div>
@@ -1065,19 +1009,12 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                         ? renderOutcomeBadge(editedTrade.be_final_result)
                         : <span className="text-sm text-slate-400 dark:text-slate-500">—</span>
                     ) : (
-                      <Select
-                        value={editedTrade?.be_final_result ?? '__none__'}
-                        onValueChange={(val) => handleInputChange('be_final_result', val === '__none__' ? null : val)}
-                      >
-                        <SelectTrigger className={selectTriggerClass}>
-                          <SelectValue placeholder="Win or Lose at close" />
-                        </SelectTrigger>
-                        <SelectContent className={selectContentClass}>
-                          <SelectItem value="__none__">—</SelectItem>
-                          <SelectItem value="Win">Win</SelectItem>
-                          <SelectItem value="Lose">Lose</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <AfterBreakEvenSelect
+                        value={editedTrade?.be_final_result}
+                        onChange={(result) => handleInputChange('be_final_result', result)}
+                        triggerClassName={selectTriggerClass}
+                        contentClassName={selectContentClass}
+                      />
                     )}
                   </div>
                 </div>
@@ -1152,7 +1089,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                   {renderField('Market', 'market', 'market')}
                 </div>
                 <div className="space-y-3">
-                  {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
+                  {renderField('Direction', 'direction')}
                   {hasCard('setup_stats') && (effectiveIsEditing || (editedTrade?.setup_type != null && editedTrade.setup_type !== '')) && renderField('Pattern / Setup', 'setup_type', 'select', setupOptions)}
                 </div>
               </div>
@@ -1164,7 +1101,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 <svg className="w-4 h-4 shrink-0" style={{ color: 'var(--tc-primary)' }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                Risk Management
+                Trade Metrics
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-3">
@@ -1234,6 +1171,11 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 <div>
                   <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Context</h4>
                   <div className="flex flex-wrap gap-2">
+                    {hasCard('session_stats') && (editedTrade?.session ?? '').trim() !== '' && (
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${SESSION_PALETTE[editedTrade!.session]?.chipClass ?? 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
+                        Session: {editedTrade?.session}
+                      </span>
+                    )}
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${editedTrade?.news_related ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-transparent' : 'bg-transparent text-slate-500 dark:text-slate-500 border-slate-200 dark:border-slate-700'}`}>
                       {editedTrade?.news_related && <Check className="w-3 h-3" />}
                       News Related
@@ -1287,6 +1229,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 <div>
                   <h4 className="themed-heading-accent text-xs font-semibold uppercase tracking-wider mb-3">Context</h4>
                   <div className="space-y-3">
+                    {hasCard('session_stats') && renderField('Session', 'session', 'select', Array.from(SESSION_OPTIONS))}
                     {renderField('News Related', 'news_related', 'boolean')}
                     {editedTrade?.news_related && (
                       <div className="space-y-2">
@@ -1363,11 +1306,19 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 {(editedTrade?.trade_screens ?? []).map((url, i) =>
                   url ? (
                     <div key={i} className="flex flex-col min-h-0">
-                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block shrink-0">
-                        Trade Screen {i + 1}
-                      </label>
+                      <div className="flex items-center justify-between mb-2 block shrink-0">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                          Trade Screen {i + 1}
+                        </label>
+                        {(editedTrade?.trade_screen_timeframes?.[i] ?? '').trim() !== '' && (
+                          <span className="inline-flex items-center rounded-md border border-slate-300/70 dark:border-slate-700/70 bg-slate-200/50 dark:bg-slate-800/60 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-slate-700 dark:text-slate-200">
+                            {editedTrade?.trade_screen_timeframes?.[i]}
+                          </span>
+                        )}
+                      </div>
                       <a href={url} target="_blank" rel="noopener noreferrer" className="flex flex-col group flex-1 min-h-0">
                         <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300 flex-1 min-h-64">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={url}
                             alt={`Trade Screen ${i + 1}`}
@@ -1392,29 +1343,33 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {[0, 1].map((i) => {
-                    const url = editedTrade?.trade_screens?.[i] ?? '';
                     return (
-                      <div key={i}>
-                        <label className={`${labelClass} mb-2`}>Trade Screen {i + 1}</label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="url"
-                            value={url}
-                            onChange={(e) => {
-                              const screens = [...(editedTrade?.trade_screens ?? ['', '', '', ''])];
-                              screens[i] = e.target.value;
-                              handleInputChange('trade_screens', screens);
-                            }}
-                            className={`${inputClass} flex-1 placeholder:text-slate-400 dark:placeholder:text-slate-600`}
-                            placeholder="https://..."
-                          />
-                          {url && (url.startsWith('http://') || url.startsWith('https://')) && (
-                            <a href={url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-sm font-medium text-slate-900 dark:text-slate-100 underline">
-                              Open
-                            </a>
-                          )}
-                        </div>
-                      </div>
+                      <TradeScreenSlotEditor
+                        key={i}
+                        index={i}
+                        label={`Trade Screen ${i + 1}`}
+                        timeframe={editedTrade?.trade_screen_timeframes?.[i] ?? ''}
+                        screenUrl={editedTrade?.trade_screens?.[i] ?? ''}
+                        onTimeframeChange={(nextTf) => {
+                          const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
+                          next[i] = nextTf;
+                          handleInputChange('trade_screen_timeframes', next);
+                        }}
+                        onScreenUrlChange={(nextUrl) => {
+                          const next = [...(editedTrade?.trade_screens ?? ['', '', '', ''])];
+                          next[i] = nextUrl;
+                          handleInputChange('trade_screens', next);
+                        }}
+                        labelClassName={labelClass}
+                        labelRowClassName="mb-2 flex flex-wrap items-center justify-between gap-2"
+                        chipActiveClassName="themed-rating-active border-transparent"
+                        customInputClassName={`${inputClass} h-9`}
+                        customInputRef={(el) => {
+                          customTfInputRefs.current[i] = el;
+                        }}
+                        urlInputClassName={`${inputClass} flex-1 placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+                        showOpenLink
+                      />
                     );
                   })}
                 </div>
@@ -1422,29 +1377,33 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 {showExtraScreens && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     {[2, 3].map((i) => {
-                      const url = editedTrade?.trade_screens?.[i] ?? '';
                       return (
-                        <div key={i}>
-                          <label className={`${labelClass} mb-2`}>Trade Screen {i + 1}</label>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="url"
-                              value={url}
-                              onChange={(e) => {
-                                const screens = [...(editedTrade?.trade_screens ?? ['', '', '', ''])];
-                                screens[i] = e.target.value;
-                                handleInputChange('trade_screens', screens);
-                              }}
-                              className={`${inputClass} flex-1 placeholder:text-slate-400 dark:placeholder:text-slate-600`}
-                              placeholder="https://..."
-                            />
-                            {url && (url.startsWith('http://') || url.startsWith('https://')) && (
-                              <a href={url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-sm font-medium text-slate-900 dark:text-slate-100 underline">
-                                Open
-                              </a>
-                            )}
-                          </div>
-                        </div>
+                        <TradeScreenSlotEditor
+                          key={i}
+                          index={i}
+                          label={`Trade Screen ${i + 1}`}
+                          timeframe={editedTrade?.trade_screen_timeframes?.[i] ?? ''}
+                          screenUrl={editedTrade?.trade_screens?.[i] ?? ''}
+                          onTimeframeChange={(nextTf) => {
+                            const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
+                            next[i] = nextTf;
+                            handleInputChange('trade_screen_timeframes', next);
+                          }}
+                          onScreenUrlChange={(nextUrl) => {
+                            const next = [...(editedTrade?.trade_screens ?? ['', '', '', ''])];
+                            next[i] = nextUrl;
+                            handleInputChange('trade_screens', next);
+                          }}
+                          labelClassName={labelClass}
+                          labelRowClassName="mb-2 flex flex-wrap items-center justify-between gap-2"
+                          chipActiveClassName="themed-rating-active border-transparent"
+                          customInputClassName={`${inputClass} h-9`}
+                          customInputRef={(el) => {
+                            customTfInputRefs.current[i] = el;
+                          }}
+                          urlInputClassName={`${inputClass} flex-1 placeholder:text-slate-400 dark:placeholder:text-slate-600`}
+                          showOpenLink
+                        />
                       );
                     })}
                   </div>

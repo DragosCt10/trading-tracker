@@ -3,7 +3,9 @@
 import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
+import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getCachedUserSession } from '@/lib/server/session';
+import { canAddAccount } from '@/lib/server/subscription';
 import type { Database } from '@/types/supabase';
 import type { SavedNewsItem } from '@/types/account-settings';
 import {
@@ -86,6 +88,17 @@ export async function createAccount(params: {
   if (!user) return { data: null, error: { message: 'Unauthorized' } };
 
   const supabase = await createClient();
+
+  const { count: currentCount } = await supabase
+    .from('account_settings')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+
+  const allowed = await canAddAccount(user.id, currentCount ?? 0);
+  if (!allowed) {
+    return { data: null, error: { message: 'Account limit reached. Upgrade to PRO to create more accounts.' } };
+  }
+
   const { data, error } = await supabase
     .from('account_settings')
     .insert({
@@ -191,7 +204,7 @@ export async function deleteAccount(
 
 /**
  * Ensures the user has at least one account across all modes.
- * If they have none, creates a default "Account1" demo account.
+ * If they have none, creates a default "Account Name" demo account.
  * Safe to call on every login/signup — no-ops when accounts already exist.
  */
 export async function ensureDefaultAccount(): Promise<void> {
@@ -208,7 +221,32 @@ export async function ensureDefaultAccount(): Promise<void> {
 
   await supabase.from('account_settings').insert({
     user_id: user.id,
-    name: 'Account1',
+    name: 'Account Name',
+    account_balance: 10000,
+    currency: 'USD',
+    mode: 'demo',
+    description: null,
+    is_active: true,
+  });
+}
+
+/**
+ * Ensures a specific user has at least one account across all modes.
+ * If they have none, creates a default "Account Name" demo account.
+ */
+export async function ensureDefaultAccountForUserId(userId: string): Promise<void> {
+  const supabase = createServiceRoleClient();
+
+  const { count, error } = await supabase
+    .from('account_settings')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  if (error || (count ?? 0) > 0) return;
+
+  await supabase.from('account_settings').insert({
+    user_id: userId,
+    name: 'Account Name',
     account_balance: 10000,
     currency: 'USD',
     mode: 'demo',

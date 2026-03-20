@@ -3,7 +3,7 @@
 import { ReactNode, useState, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { PlusCircle, TrendingUp, BarChart3, NotebookPen } from 'lucide-react';
+import { PlusCircle, TrendingUp, BarChart3, NotebookPen, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { NewTradeModal } from '@/components/dynamicComponents';
@@ -25,15 +25,19 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
 
   // Get URLs with the strategy slug
   const analyticsUrl = useMemo(() => {
-    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}` : '/strategies';
+    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}` : '/stats';
   }, [currentStrategySlug]);
 
   const myTradesUrl = useMemo(() => {
-    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}/my-trades` : '/strategies';
+    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}/my-trades` : '/stats';
   }, [currentStrategySlug]);
 
   const dailyJournalUrl = useMemo(() => {
-    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}/daily-journal` : '/strategies';
+    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}/daily-journal` : '/stats';
+  }, [currentStrategySlug]);
+
+  const customStatsUrl = useMemo(() => {
+    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}/custom-stats` : '/stats';
   }, [currentStrategySlug]);
 
   const isActive = (path: string) => {
@@ -41,10 +45,13 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
       return pathname.includes('/my-trades') && (pathname.startsWith('/strategy') || pathname.startsWith('/analytics'));
     }
     if (path === '/analytics') {
-      return pathname.startsWith('/strategy') && !pathname.includes('/my-trades') && !pathname.includes('/daily-journal');
+      return pathname.startsWith('/strategy') && !pathname.includes('/my-trades') && !pathname.includes('/daily-journal') && !pathname.includes('/custom-stats');
     }
     if (path === '/daily-journal') {
       return pathname.includes('/daily-journal') && (pathname.startsWith('/strategy') || pathname.startsWith('/analytics'));
+    }
+    if (path === '/custom-stats') {
+      return pathname.includes('/custom-stats') && (pathname.startsWith('/strategy') || pathname.startsWith('/analytics'));
     }
     return pathname === path;
   };
@@ -86,6 +93,25 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
               <Link href={dailyJournalUrl} className="block w-full h-full relative min-h-[40px]">
                 <NotebookPen className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Daily Journal</span>
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              asChild
+              size="sm"
+              className={cn(
+                'w-full h-auto min-h-[64px] !p-0',
+                isActive('/custom-stats')
+                  ? 'group/customstats cursor-pointer transition-all duration-300 relative overflow-hidden rounded-xl themed-btn-primary text-white font-semibold border-0 hover:text-white [&_svg]:text-white [&_span]:text-white'
+                  : navButtonClass(false)
+              )}
+            >
+              <Link href={customStatsUrl} className="block w-full h-full relative min-h-[40px]">
+                <LayoutGrid className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Custom Stats</span>
+                {isActive('/custom-stats') && (
+                  <div className="absolute inset-0 -translate-x-full group-hover/customstats:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                )}
               </Link>
             </Button>
             <Button

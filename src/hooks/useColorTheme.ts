@@ -19,8 +19,9 @@ export function useColorTheme() {
 
   useEffect(() => {
     const stored = localStorage.getItem('color-theme') as ColorThemeId | null;
-    setColorTheme(stored);
     applyColorTheme(stored);
+    const timer = setTimeout(() => setColorTheme(stored), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const changeColorTheme = (id: ColorThemeId) => {

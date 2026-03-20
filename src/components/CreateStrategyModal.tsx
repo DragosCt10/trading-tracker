@@ -19,6 +19,8 @@ import { Target } from 'lucide-react';
 import { createStrategy } from '@/lib/server/strategies';
 import type { Strategy } from '@/types/strategy';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useStrategies } from '@/hooks/useStrategies';
 import { ExtraCardsSelector } from '@/components/ExtraCardsSelector';
 import type { ExtraCardKey } from '@/constants/extraCards';
 
@@ -39,13 +41,16 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
   const { error, setError } = useProgressDialog();
   const [submitting, setSubmitting] = useState(false);
   const { data: userId } = useUserDetails();
+  const { isPro, withinLimit } = useSubscription({ userId: userId?.user?.id });
+  const { strategies } = useStrategies({ userId: userId?.user?.id, accountId });
+  const isAtStrategyLimit = !isPro && !withinLimit('maxStrategies', strategies.length);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setError(null);
 
     if (!name.trim()) {
-      setError('Please enter a strategy name.');
+      setError('Please enter a Stats Board name.');
       return;
     }
 
@@ -109,7 +114,7 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
               <div className="p-2 rounded-lg themed-header-icon-box">
                 <Target className="h-5 w-5" />
               </div>
-              <span>Create new strategy</span>
+              <span>Create new Stats Board</span>
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
               Add a new trading strategy to track your performance separately.
@@ -125,7 +130,7 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
                 htmlFor="strategy-name"
                 className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
               >
-                Strategy name
+                Stats Board name
               </Label>
               <Input
                 id="strategy-name"
@@ -142,7 +147,19 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
               selected={extraCards}
               onChange={setExtraCards}
               disabled={submitting}
+              isPro={isPro}
             />
+
+            {isAtStrategyLimit && (
+              <div className="rounded-lg bg-amber-500/10 backdrop-blur-sm p-3 border border-amber-500/20">
+                <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">Strategy limit reached</p>
+                <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5">
+                  Starter plan includes 1 strategy.{' '}
+                  <a href="/settings?tab=billing" className="underline font-medium hover:text-amber-700 dark:hover:text-amber-300">Upgrade to PRO</a>{' '}
+                  for unlimited strategies.
+                </p>
+              </div>
+            )}
 
             {error && (
               <div className="rounded-lg bg-red-500/10 backdrop-blur-sm p-4 border border-red-500/20">
@@ -166,11 +183,11 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
           <Button
             type="submit"
             form="create-strategy-form"
-            disabled={submitting || !name.trim()}
+            disabled={submitting || !name.trim() || isAtStrategyLimit}
             className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60 text-sm"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
-              {submitting ? 'Creating...' : 'Create Strategy'}
+              {submitting ? 'Creating...' : 'Create Stats Board'}
             </span>
             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
           </Button>

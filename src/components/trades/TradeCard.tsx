@@ -25,13 +25,21 @@ export function TradeCard({
   onSelect,
   hideImage,
 }: TradeCardProps) {
-  const screens = useMemo(
-    () => (trade.trade_screens ?? []).filter(Boolean),
-    [trade.trade_screens]
+  const screenItems = useMemo(
+    () =>
+      (trade.trade_screens ?? [])
+        .map((url, idx) => ({
+          url,
+          timeframe: trade.trade_screen_timeframes?.[idx] ?? '',
+        }))
+        .filter((item) => Boolean(item.url)),
+    [trade.trade_screens, trade.trade_screen_timeframes]
   );
   const [activeIdx, setActiveIdx] = useState(0);
-  const hasMultiple = screens.length > 1;
-  const activeScreen = screens[activeIdx] ?? null;
+  const hasMultiple = screenItems.length > 1;
+  const activeItem = screenItems[activeIdx] ?? null;
+  const activeScreen = activeItem?.url ?? null;
+  const activeTimeframe = activeItem?.timeframe?.trim() ?? '';
   const timeDisplay = useMemo(() => {
     const raw = trade.trade_time ?? '';
     if (!raw) return '';
@@ -59,6 +67,7 @@ export function TradeCard({
                 rel="noopener noreferrer"
                 className="block aspect-video bg-slate-100 dark:bg-slate-700/50 rounded-lg relative overflow-hidden cursor-pointer hover:opacity-95 transition-opacity group"
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={activeScreen}
                   alt={`${trade.market} trade screen ${activeIdx + 1}`}
@@ -83,7 +92,12 @@ export function TradeCard({
                         clipRule="evenodd"
                       />
                     </svg>
-                    {activeIdx + 1}/{screens.length}
+                    {activeIdx + 1}/{screenItems.length}
+                  </div>
+                )}
+                {activeTimeframe !== '' && (
+                  <div className="absolute top-2 left-2 bg-black/55 backdrop-blur-sm text-white text-[11px] font-semibold px-2 py-0.5 rounded-full pointer-events-none select-none">
+                    {activeTimeframe}
                   </div>
                 )}
                 {hasMultiple && (
@@ -91,7 +105,7 @@ export function TradeCard({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      setActiveIdx((i) => (i - 1 + screens.length) % screens.length);
+                      setActiveIdx((i) => (i - 1 + screenItems.length) % screenItems.length);
                     }}
                     className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/45 hover:bg-black/65 backdrop-blur-sm text-white rounded-full w-7 h-7 flex items-center justify-center"
                     aria-label="Previous screen"
@@ -114,7 +128,7 @@ export function TradeCard({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      setActiveIdx((i) => (i + 1) % screens.length);
+                      setActiveIdx((i) => (i + 1) % screenItems.length);
                     }}
                     className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/45 hover:bg-black/65 backdrop-blur-sm text-white rounded-full w-7 h-7 flex items-center justify-center"
                     aria-label="Next screen"
@@ -136,7 +150,7 @@ export function TradeCard({
 
               {hasMultiple && (
                 <div className="flex items-center justify-center gap-1.5 mt-2">
-                  {screens.map((_, i) => (
+                  {screenItems.map((_, i) => (
                     <button
                       key={i}
                       onClick={() => setActiveIdx(i)}

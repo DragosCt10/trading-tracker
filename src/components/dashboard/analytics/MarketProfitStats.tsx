@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Crown } from 'lucide-react';
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -24,6 +25,7 @@ import { Trade } from '@/types/trade';
 import { calculateMarketStats as calculateMarketStatsUtil } from '@/utils/calculateCategoryStats';
 import type { MarketStats } from '@/types/dashboard';
 import { useDarkMode } from '@/hooks/useDarkMode';
+import { buildPreviewTrade } from '@/utils/previewTrades';
 
 export interface MarketStat {
   market: string;
@@ -41,6 +43,72 @@ export interface MarketStat {
  * @param accountBalance - Account balance for P&L percentage calculation
  * @returns Array of Market Stats
  */
+function CustomTooltip({
+  active,
+  payload,
+  isDark,
+  getCurrencySymbol,
+}: {
+  active?: boolean;
+  payload?: readonly any[];
+  isDark?: boolean;
+  getCurrencySymbol: () => string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const stat: MarketStat & { tradeCount: number } = payload[0].payload;
+  const beCount = stat.breakEven ?? 0;
+  const currencySymbol = getCurrencySymbol();
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
+      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+      <div className="relative flex flex-col gap-3">
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+          {stat.market} ({stat.tradeCount} trade{stat.tradeCount === 1 ? '' : 's'})
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Profit</span>
+            <span
+              className={`text-lg font-bold ${
+                stat.profit >= 0
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-rose-600 dark:text-rose-400'
+              }`}
+            >
+              {currencySymbol}
+              {stat.profit.toFixed(2)}
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">P&amp;L</span>
+            <span
+              className={`text-base font-bold ${
+                stat.pnlPercentage >= 0
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-rose-600 dark:text-rose-400'
+              }`}
+            >
+              {stat.pnlPercentage >= 0 ? '+' : ''}
+              {stat.pnlPercentage.toFixed(2)}%
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Results</span>
+            <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+              <span className="text-emerald-600 dark:text-emerald-400">{stat.wins}W</span>
+              <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
+              <span className="text-rose-600 dark:text-rose-400">{stat.losses}L</span>
+              <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
+              <span className="text-slate-600 dark:text-slate-300">{beCount}BE</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function calculateMarketStats(trades: Trade[], accountBalance: number): MarketStats[] {
   return calculateMarketStatsUtil(trades, accountBalance);
 }
@@ -51,14 +119,108 @@ interface MarketProfitStatisticsCardProps {
   getCurrencySymbol: () => string;
   trades: Trade[];
   isLoading?: boolean;
+  isPro?: boolean;
 }
 
 const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
-  marketStats,
+  marketStats: rawMarketStats,
   getCurrencySymbol,
-  trades,
+  trades: rawTrades,
   isLoading: externalLoading,
+  isPro,
 }) => {
+  const isLocked = !isPro;
+
+  const previewMarketStats = useMemo<MarketStat[]>(
+    () => [
+      {
+        market: 'Forex',
+        profit: 1200,
+        pnlPercentage: 18.5,
+        wins: 2,
+        losses: 1,
+        breakEven: 0,
+        profitTaken: true,
+      },
+      {
+        market: 'Indices',
+        profit: 800,
+        pnlPercentage: 10.2,
+        wins: 2,
+        losses: 1,
+        breakEven: 1,
+        profitTaken: true,
+      },
+      {
+        market: 'Cryptos',
+        profit: -350,
+        pnlPercentage: -4.4,
+        wins: 1,
+        losses: 1,
+        breakEven: 0,
+        profitTaken: true,
+      },
+    ],
+    []
+  );
+
+  const previewTrades = useMemo<Trade[]>(
+    () => [
+      buildPreviewTrade({
+        id: 'preview-mps-forex-win-1',
+        market: 'Forex',
+        trade_outcome: 'Win',
+        calculated_profit: 500,
+      }),
+      buildPreviewTrade({
+        id: 'preview-mps-forex-loss',
+        market: 'Forex',
+        trade_outcome: 'Lose',
+        calculated_profit: -200,
+      }),
+      buildPreviewTrade({
+        id: 'preview-mps-forex-win-2',
+        market: 'Forex',
+        trade_outcome: 'Win',
+        calculated_profit: 300,
+      }),
+      buildPreviewTrade({
+        id: 'preview-mps-indices-win',
+        market: 'Indices',
+        trade_outcome: 'Win',
+        calculated_profit: 250,
+      }),
+      buildPreviewTrade({
+        id: 'preview-mps-indices-loss',
+        market: 'Indices',
+        trade_outcome: 'Lose',
+        calculated_profit: -150,
+      }),
+      buildPreviewTrade({
+        id: 'preview-mps-indices-be',
+        market: 'Indices',
+        trade_outcome: 'Lose',
+        break_even: true,
+        calculated_profit: 0,
+      }),
+      buildPreviewTrade({
+        id: 'preview-mps-cryptos-win',
+        market: 'Cryptos',
+        trade_outcome: 'Win',
+        calculated_profit: 120,
+      }),
+      buildPreviewTrade({
+        id: 'preview-mps-cryptos-loss',
+        market: 'Cryptos',
+        trade_outcome: 'Lose',
+        calculated_profit: -240,
+      }),
+    ],
+    []
+  );
+
+  const marketStats = isLocked ? previewMarketStats : rawMarketStats;
+  const trades = isLocked ? previewTrades : rawTrades;
   const { mounted, isDark } = useDarkMode();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -67,7 +229,8 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
     if (mounted) {
       if (externalLoading !== undefined) {
         if (externalLoading) {
-          setIsLoading(true);
+          const timer = setTimeout(() => setIsLoading(true), 0);
+          return () => clearTimeout(timer);
         } else {
           const timer = setTimeout(() => setIsLoading(false), 600);
           return () => clearTimeout(timer);
@@ -116,9 +279,20 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
     return (
       <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         <CardHeader className="pb-2 flex-shrink-0">
-          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-            Market Profit Stats
-          </CardTitle>
+          {!isPro ? (
+            <div className="flex items-center justify-between mb-1">
+              <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                Market Profit Stats
+              </CardTitle>
+              <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                <Crown className="w-3 h-3" /> PRO
+              </span>
+            </div>
+          ) : (
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+              Market Profit Stats
+            </CardTitle>
+          )}
           <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
             Profit and P&amp;L percentage by market
           </CardDescription>
@@ -141,67 +315,6 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
   const getBarColor = (profit: number) =>
     profit >= 0 ? 'url(#profitGradient)' : 'url(#lossGradient)';
 
-  const CustomTooltip = ({
-    active,
-    payload,
-  }: {
-    active?: boolean;
-    payload?: any[];
-  }) => {
-    if (!active || !payload || payload.length === 0) return null;
-    const stat: MarketStat & { tradeCount: number } = payload[0].payload;
-    const beCount = stat.breakEven ?? 0;
-    const currencySymbol = getCurrencySymbol();
-
-    return (
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 p-4 text-slate-900 dark:text-slate-100">
-        {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
-        <div className="relative flex flex-col gap-3">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-            {stat.market} ({stat.tradeCount} trade{stat.tradeCount === 1 ? '' : 's'})
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Profit</span>
-              <span
-                className={`text-lg font-bold ${
-                  stat.profit >= 0
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-rose-600 dark:text-rose-400'
-                }`}
-              >
-                {currencySymbol}
-                {stat.profit.toFixed(2)}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">P&amp;L</span>
-              <span
-                className={`text-base font-bold ${
-                  stat.pnlPercentage >= 0
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-rose-600 dark:text-rose-400'
-                }`}
-              >
-                {stat.pnlPercentage >= 0 ? '+' : ''}
-                {stat.pnlPercentage.toFixed(2)}%
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Results</span>
-              <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                <span className="text-emerald-600 dark:text-emerald-400">{stat.wins}W</span>
-                <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
-                <span className="text-rose-600 dark:text-rose-400">{stat.losses}L</span>
-                <span className="mx-1.5 text-slate-400 dark:text-slate-600">·</span>
-                <span className="text-slate-600 dark:text-slate-300">{beCount}BE</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   // X-Axis: custom tick (market + tradeCount + pnl%)
   const renderXAxisTick = (props: any) => {
@@ -272,16 +385,33 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
 
   return (
     <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[420px] flex flex-col">
-      <CardHeader className="pb-2 flex-shrink-0">
-        <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
-          Market Profit Stats
-        </CardTitle>
-        <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
-          Profit and P&amp;L percentage by market
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col items-center justify-center relative pt-2 pb-4">
-        <div className="flex-1 w-full flex items-center justify-center min-h-0 relative px-4">
+      {isLocked && (
+        <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+          <Crown className="w-3 h-3" /> PRO
+        </span>
+      )}
+
+      {isLocked && (
+        <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
+      )}
+
+      <div
+        className={`relative z-0 flex flex-col h-full ${
+          isLocked ? 'blur-[3px] opacity-70 pointer-events-none select-none' : ''
+        }`}
+      >
+        <CardHeader className="pb-2 flex-shrink-0">
+          <div className="flex items-center justify-between mb-1">
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+              Market Profit Stats
+            </CardTitle>
+          </div>
+          <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
+            Profit and P&amp;L percentage by market
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col items-center justify-center relative pt-2 pb-4">
+          <div className="flex-1 w-full flex items-center justify-center min-h-0 relative px-4">
           <div className="w-full h-full relative">
             <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
@@ -334,7 +464,7 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
                   zIndex: 1000
                 }}
                 cursor={{ stroke: isDark ? 'rgba(148, 163, 184, 0.3)' : 'rgba(148, 163, 184, 0.4)', strokeWidth: 1 }}
-                content={<CustomTooltip />}
+                content={(props) => <CustomTooltip {...props} isDark={isDark} getCurrencySymbol={getCurrencySymbol} />}
               />
               <Area
                 type="monotone"
@@ -393,7 +523,8 @@ const MarketProfitStatisticsCard: React.FC<MarketProfitStatisticsCardProps> = ({
             </div>
           </div>
         </div>
-      </CardContent>
+        </CardContent>
+      </div>
     </Card>
   );
 };

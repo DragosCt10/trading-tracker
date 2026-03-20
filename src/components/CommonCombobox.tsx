@@ -249,7 +249,7 @@ export function CommonCombobox({
           <div className={listScrollClass} onWheel={onListWheel} role="presentation">
             <ul>
               {suggestions.map((item) => (
-                <li key={item} role="option">
+                <li key={item} role="option" aria-selected={item === value}>
                   {editingOption === item ? (
                     <div className="flex items-center gap-2 px-3 py-2">
                       <Input
@@ -390,7 +390,7 @@ export function CommonCombobox({
               <div className={listScrollClass} onWheel={onListWheel} role="presentation">
                 <ul>
                   {suggestions.map((item) => (
-                    <li key={item} role="option">
+                    <li key={item} role="option" aria-selected={item === value}>
                       {editingOption === item ? (
                         <div className="flex items-center gap-2 px-3 py-2">
                           <Input
