@@ -7,6 +7,8 @@ import type { ResolvedSubscription } from '@/types/subscription';
 interface BillingCurrentPlanCardProps {
   isPro: boolean;
   resolvedSub: ResolvedSubscription;
+  monthlyPrice: number;
+  annualPrice: number;
   isPortalPending: boolean;
   isCancelPending: boolean;
   isInvoicePending: boolean;
@@ -15,9 +17,19 @@ interface BillingCurrentPlanCardProps {
   onCancelSubscription: () => void;
 }
 
+function formatPrice(cents: number, currency: string): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency.toUpperCase(),
+    minimumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
 export function BillingCurrentPlanCard({
   isPro,
   resolvedSub,
+  monthlyPrice,
+  annualPrice,
   isPortalPending,
   isCancelPending,
   isInvoicePending,
@@ -25,6 +37,18 @@ export function BillingCurrentPlanCard({
   onInvoice,
   onCancelSubscription,
 }: BillingCurrentPlanCardProps) {
+  const hasPriceData = resolvedSub.priceAmount != null;
+  const periodLabel = resolvedSub.billingPeriod === 'annual' ? 'annually' : 'monthly';
+  const currentPrice = hasPriceData
+    ? `${formatPrice(resolvedSub.priceAmount!, resolvedSub.currency ?? 'usd')} /${periodLabel}`
+    : resolvedSub.billingPeriod === 'annual'
+      ? `$${annualPrice.toLocaleString('en-US')} /annually`
+      : `$${monthlyPrice.toLocaleString('en-US')} /monthly`;
+  const taxLine =
+    hasPriceData && resolvedSub.taxAmount != null && resolvedSub.taxAmount > 0
+      ? `incl. ${formatPrice(resolvedSub.taxAmount, resolvedSub.currency ?? 'usd')} tax`
+      : null;
+
   return (
     <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-6 mb-6">
       <div className="flex items-start justify-between gap-4">
@@ -35,6 +59,20 @@ export function BillingCurrentPlanCard({
           <p className="text-xl font-bold text-slate-900 dark:text-slate-50">
             {isPro ? 'PRO' : 'Starter (Free)'}
           </p>
+          {isPro && resolvedSub.billingPeriod && (
+            <p className="mt-1 text-base font-semibold text-slate-900 dark:text-slate-100">
+              {currentPrice}
+              {taxLine ? (
+                <span className="ml-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  {taxLine}
+                </span>
+              ) : hasPriceData ? null : (
+                <span className="ml-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  VAT included
+                </span>
+              )}
+            </p>
+          )}
           {isPro && resolvedSub.billingPeriod && (
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
               {resolvedSub.billingPeriod === 'monthly' ? 'Monthly billing' : 'Annual billing'}
@@ -94,18 +132,21 @@ export function BillingCurrentPlanCard({
             </Button>
 
             <Button
-              variant="outline"
+              variant="destructive"
               size="sm"
               onClick={onCancelSubscription}
               disabled={isCancelPending || isPortalPending || isInvoicePending}
-              className="gap-2 h-10 rounded-2xl border border-rose-300/70 dark:border-rose-700/50 bg-rose-50/70 dark:bg-rose-950/20 backdrop-blur-xl text-rose-700 dark:text-rose-300 hover:bg-rose-100/80 dark:hover:bg-rose-900/30 transition-all duration-300"
+              className="relative cursor-pointer h-10 overflow-hidden rounded-2xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 transition-all duration-300 gap-2"
             >
-              {isCancelPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Ban className="h-3.5 w-3.5" />
-              )}
-              Cancel now
+              <span className="relative z-10 flex items-center gap-2">
+                {isCancelPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Ban className="h-3.5 w-3.5" />
+                )}
+                Cancel now
+              </span>
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
             </Button>
           </div>
         </div>

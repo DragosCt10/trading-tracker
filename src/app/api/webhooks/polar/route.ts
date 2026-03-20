@@ -231,6 +231,16 @@ async function processWebhookAction(action: Awaited<ReturnType<ReturnType<typeof
 
     case 'order.created': {
       console.log(`[billing/webhook] order.created orderId=${action.orderId} amount=$${action.amountUsd} userId=${action.userId}`);
+      const supabaseOrder = createServiceRoleClient();
+      await supabaseOrder
+        .from('subscriptions')
+        .update({
+          price_amount: action.amountCents,
+          tax_amount: action.taxCents,
+          currency: action.currency,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', action.userId);
       break;
     }
 

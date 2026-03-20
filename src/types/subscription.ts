@@ -63,6 +63,9 @@ export interface SubscriptionRow {
   current_period_start: string | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean;
+  price_amount: number | null;
+  tax_amount: number | null;
+  currency: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -77,4 +80,10 @@ export interface ResolvedSubscription {
   cancelAtPeriodEnd: boolean;
   providerCustomerId: string | null;
   provider: string;
+  /** Total charged in cents, tax inclusive. Null for admin-granted or before first payment. */
+  priceAmount: number | null;
+  /** Tax portion in cents. */
+  taxAmount: number | null;
+  /** ISO currency code, lowercase (e.g. 'usd'). */
+  currency: string | null;
 }

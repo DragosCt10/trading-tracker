@@ -315,12 +315,19 @@ export class PolarProvider implements IPaymentProvider {
       const userId = getUserId(order.metadata);
       if (!userId) return { type: 'ignore' };
 
+      const amountCents = (order.amount ?? 0) as number;
+      const taxCents = (order.tax_amount ?? order['taxAmount'] ?? 0) as number;
+      const currency = ((order.currency ?? 'usd') as string).toLowerCase();
+
       console.log(`[billing/webhook] action=order.created userId=${userId}`);
       return {
         type: 'order.created',
         orderId: order.id,
         userId,
-        amountUsd: (order.amount ?? 0) / 100,
+        amountUsd: amountCents / 100,
+        amountCents,
+        taxCents,
+        currency,
       };
     }
 

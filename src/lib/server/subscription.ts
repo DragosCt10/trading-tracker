@@ -18,6 +18,9 @@ const STARTER_SUBSCRIPTION: ResolvedSubscription = {
   cancelAtPeriodEnd: false,
   providerCustomerId: null,
   provider: 'admin',
+  priceAmount: null,
+  taxAmount: null,
+  currency: null,
 };
 
 function getAppUrl(): string {
@@ -87,6 +90,9 @@ function resolveFromRow(row: SubscriptionRow): ResolvedSubscription {
     cancelAtPeriodEnd: row.cancel_at_period_end,
     providerCustomerId: row.provider_customer_id,
     provider: row.provider,
+    priceAmount: row.price_amount ?? null,
+    taxAmount: row.tax_amount ?? null,
+    currency: row.currency ?? null,
   };
 }
 

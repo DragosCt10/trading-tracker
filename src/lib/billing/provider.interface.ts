@@ -39,6 +39,9 @@ export type WebhookAction =
       orderId: string;
       userId: string;
       amountUsd: number;
+      amountCents: number;
+      taxCents: number;
+      currency: string;
     }
   | { type: 'ignore' };
 

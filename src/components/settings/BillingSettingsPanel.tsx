@@ -18,6 +18,17 @@ import { queryKeys } from '@/lib/queryKeys';
 import type { BillingPeriod, ResolvedSubscription } from '@/types/subscription';
 import { BillingCurrentPlanCard } from '@/components/settings/BillingCurrentPlanCard';
 import { BillingUpgradeCard } from '@/components/settings/BillingUpgradeCard';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const PRO_HIGHLIGHTS = [
   'Unlimited strategies',
@@ -58,6 +69,7 @@ export function BillingSettingsPanel({
   const [isPortalPending, startPortalTransition] = useTransition();
   const [isCancelPending, startCancelTransition] = useTransition();
   const [isInvoicePending, startInvoiceTransition] = useTransition();
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showProcessingBanner, setShowProcessingBanner] = useState(
     justPaid && initialSubscription.tier === 'starter'
   );
@@ -149,11 +161,10 @@ export function BillingSettingsPanel({
   }
 
   function handleCancelSubscription() {
-    const shouldCancelNow = window.confirm(
-      'Cancel subscription immediately? Access is revoked right away and this cannot be undone.'
-    );
-    if (!shouldCancelNow) return;
+    setShowCancelConfirm(true);
+  }
 
+  function confirmCancelSubscription() {
     startCancelTransition(async () => {
       const result = await cancelCurrentSubscription();
       if (!result.ok) {
@@ -165,6 +176,7 @@ export function BillingSettingsPanel({
         queryClient.setQueryData(queryKeys.subscription(result.userId), result.subscription);
       }
 
+      setShowCancelConfirm(false);
       router.push('/stats');
     });
   }
@@ -221,6 +233,8 @@ export function BillingSettingsPanel({
       <BillingCurrentPlanCard
         isPro={isPro}
         resolvedSub={resolvedSub}
+        monthlyPrice={monthlyPrice}
+        annualPrice={annualPrice}
         isPortalPending={isPortalPending}
         isCancelPending={isCancelPending}
         isInvoicePending={isInvoicePending}
@@ -241,6 +255,46 @@ export function BillingSettingsPanel({
         highlights={PRO_HIGHLIGHTS}
         themedGradientStyle={themedGradientStyle}
       />
+
+      <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient !rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              <span className="text-red-500 dark:text-red-400 font-semibold text-lg">
+                Cancel subscription?
+              </span>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="text-slate-600 dark:text-slate-400">
+                Are you sure you want to cancel immediately? Access to PRO features will be revoked
+                right away and this action cannot be undone.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3">
+            <AlertDialogCancel asChild>
+              <Button
+                variant="outline"
+                disabled={isCancelPending}
+                className="rounded-xl cursor-pointer border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300"
+              >
+                Keep subscription
+              </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                variant="destructive"
+                onClick={confirmCancelSubscription}
+                disabled={isCancelPending}
+                className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 flex items-center gap-2"
+              >
+                {isCancelPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {isCancelPending ? 'Cancelling...' : 'Yes, cancel now'}
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
