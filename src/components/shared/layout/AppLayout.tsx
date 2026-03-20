@@ -1,17 +1,20 @@
 "use client";
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useTransition } from 'react';
 import clsx from 'clsx';
 import type { AccountRow, AccountMode } from '@/lib/server/accounts';
 import type { ResolvedSubscription } from '@/types/subscription';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode } from 'react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
+import { createPortalUrl } from '@/lib/server/subscription';
 import Navbar from '@/components/shared/Navbar';
 import { Footer } from '@/components/shared/Footer';
 import ActionBar from '@/components/shared/ActionBar';
 import { CreateAccountAlertDialog } from '@/components/CreateAccountModal';
+import { useSubscription } from '@/hooks/useSubscription';
 
 export type InitialUserDetails = { user: { id: string } | null; session: object | null };
 
@@ -35,11 +38,22 @@ export default function AppLayout({
 }: AppLayoutProps) {
   const queryClient = useQueryClient();
   const pathname = usePathname();
+  const router = useRouter();
   const userId = initialUserDetails?.user?.id;
+  const { subscription } = useSubscription({ userId });
   const showActionBar = pathname === '/stats' || (pathname?.startsWith('/strategy/') ?? false);
 
   const [actionBarVisible, setActionBarVisible] = useState(true);
   const lastScrollY = useRef(0);
+  const [isPortalPending, startPortalTransition] = useTransition();
+
+  function handleUpdatePayment() {
+    startPortalTransition(async () => {
+      const url = await createPortalUrl();
+      if (url) router.push(url);
+      else router.push('/settings?tab=billing');
+    });
+  }
 
   useEffect(() => {
     if (!showActionBar) return;
@@ -79,9 +93,30 @@ export default function AppLayout({
     queryClient.setQueryData(['actionBar:selection'], { mode: initialActiveAccountMode, activeAccount: initialActiveAccount ?? null });
   }
 
+  const isPastDue = subscription?.status === 'past_due';
+
   return (
     <>
-      <div className="pt-30 sm:pt-44 max-w-(--breakpoint-xl) mx-auto flex min-h-screen flex-col">
+      <div className={clsx("max-w-(--breakpoint-xl) mx-auto flex min-h-screen flex-col", isPastDue ? "pt-38 sm:pt-52" : "pt-30 sm:pt-44")}>
+        {isPastDue && (
+          <div className="flex items-center justify-between px-4 py-2 text-sm dark:text-rose-300 text-rose-500 gap-3 mb-10 rounded-xl border-b border-red-200/70 dark:border-red-900/60 bg-red-50/95 dark:bg-[#1a0808]/90 backdrop-blur-md shadow-sm
+            rounded-xl border mb-4 z-1 relative border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>
+                <span className="font-semibold">Payment failed.</span> Your Pro access is active during the grace period — please update your payment method to avoid interruption.
+              </span>
+            </div>
+            <button
+              onClick={handleUpdatePayment}
+              disabled={isPortalPending}
+              className="shrink-0 themed-btn-primary rounded-lg px-3 py-1 font-medium text-white cursor-pointer border-0 overflow-hidden flex items-center gap-1.5 disabled:opacity-70"
+            >
+              {isPortalPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Update payment
+            </button>
+          </div>
+        )}
         <Navbar
           centerContent={
             showActionBar ? (
