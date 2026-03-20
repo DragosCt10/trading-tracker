@@ -93,7 +93,7 @@ export default function AppLayout({
     queryClient.setQueryData(['actionBar:selection'], { mode: initialActiveAccountMode, activeAccount: initialActiveAccount ?? null });
   }
 
-  const isPastDue = subscription?.status === 'past_due';
+  const isPastDue = (subscription ?? initialSubscription)?.status === 'past_due';
 
   return (
     <>
