@@ -70,6 +70,7 @@ export function ShareStrategyModal({
     startDate: format(initialFrom, 'yyyy-MM-dd'),
     endDate: format(initialTo, 'yyyy-MM-dd'),
   });
+  const [hasSearchedTrades, setHasSearchedTrades] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copyLabel, setCopyLabel] = useState<'Copy' | 'Copied!'>('Copy');
   const [isPending, startTransition] = useTransition();
@@ -91,7 +92,7 @@ export function ShareStrategyModal({
   });
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const hasAppliedRange = Boolean(appliedDateRange.startDate && appliedDateRange.endDate);
+  const hasAppliedRange = hasSearchedTrades && Boolean(appliedDateRange.startDate && appliedDateRange.endDate);
 
   const filteredTrades = useMemo(() => {
     if (!hasAppliedRange || !appliedDateRange.startDate || !appliedDateRange.endDate) return [];
@@ -130,6 +131,9 @@ export function ShareStrategyModal({
 
   const handleSearchTrades = () => {
     setAppliedDateRange(dateRange);
+    setHasSearchedTrades(true);
+    setShareUrl(null);
+    setCopyLabel('Copy');
   };
 
   const handleGenerate = () => {
@@ -176,7 +180,7 @@ export function ShareStrategyModal({
   };
 
   const tradeSummary = (() => {
-    if (!hasAppliedRange) return 'Select a date range and click "Search trades" to preview.';
+    if (!hasAppliedRange) return '';
     if (executedTradesCount === 0) {
       return 'No executed trades in this period. Select a different range and search again.';
     }
@@ -189,6 +193,7 @@ export function ShareStrategyModal({
     if (!next) {
       setShareUrl(null);
       setCopyLabel('Copy');
+      setHasSearchedTrades(false);
     }
     onOpenChange(next);
   };
@@ -328,6 +333,9 @@ export function ShareStrategyModal({
                         startDate: format(safeStart, 'yyyy-MM-dd'),
                         endDate: format(safeEnd, 'yyyy-MM-dd'),
                       });
+                      setHasSearchedTrades(false);
+                      setShareUrl(null);
+                      setCopyLabel('Copy');
                     }}
                     moveRangeOnFirstSelection={false}
                     editableDateInputs={false}
@@ -339,37 +347,44 @@ export function ShareStrategyModal({
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 w-full">
-                <span className="text-xs text-slate-500 dark:text-slate-400">
-                  Selected: {format(new Date(dateRange.startDate), 'MMM d, yyyy')}
-                  {dateRange.startDate !== dateRange.endDate &&
-                    ` – ${format(new Date(dateRange.endDate), 'MMM d, yyyy')}`}
-                </span>
+              <div className="flex flex-col items-start gap-2 w-full">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-800 dark:text-slate-400">
+                  Step 2 · Look for the trades
+                </p>
                 <Button
                   type="button"
                   onClick={handleSearchTrades}
                   size="sm"
-                  variant="outline"
-                  className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium h-8"
+                  className="themed-btn-primary cursor-pointer w-full sm:w-auto relative overflow-hidden rounded-xl text-white font-semibold border-0 px-4 py-2 group [&_svg]:text-white"
                 >
                   <Search className="h-3.5 w-3.5" />
-                  Search trades
+                  Find trades
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 </Button>
               </div>
 
-              <p
-                className={cn(
-                  'text-base font-semibold tracking-tight text-slate-900 dark:text-slate-50',
-                )}
-              >
-                {tradeSummary}
-              </p>
+              {hasAppliedRange && (
+                <>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Selected: {format(new Date(appliedDateRange.startDate), 'MMM d, yyyy')}
+                    {appliedDateRange.startDate !== appliedDateRange.endDate &&
+                      ` – ${format(new Date(appliedDateRange.endDate), 'MMM d, yyyy')}`}
+                  </p>
+                  <p
+                    className={cn(
+                      'text-base font-semibold tracking-tight text-slate-900 dark:text-slate-50',
+                    )}
+                  >
+                    {tradeSummary}
+                  </p>
+                </>
+              )}
             </div>
 
-            {/* Step 2: Generate link */}
+            {/* Step 3: Generate link */}
             <div className="space-y-3 ">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-800 dark:text-slate-400">
-                Step 2 · Generate share link
+                Step 3 · Generate share link
               </p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
