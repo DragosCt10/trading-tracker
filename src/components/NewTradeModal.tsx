@@ -66,6 +66,8 @@ import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
 const MSS_OPTIONS = ['Normal', 'Aggressive', 'Wick', 'Internal'];
 const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 const SESSION_OPTIONS = ['Sydney', 'Tokyo', 'London', 'New York'] as const;
+const SCREEN_TIMEFRAME_OPTIONS = ['4H', '1H', '15m', '5m', '3m', '1m', 'Custom'] as const;
+const SCREEN_TIMEFRAME_PRESET_OPTIONS = ['4H', '1H', '15m', '5m', '3m', '1m'] as const;
 
 // FVG Size: preset list 0.5, 1, 1.5, 2, 2.5, 3 (0.5 steps). Custom (3+) for 3.5, 4, 4.5, ...
 const FVG_SIZE_OPTIONS: { value: number; label: string }[] = [
@@ -166,6 +168,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
 
   const initialTradeState: Trade = useMemo(() => ({
     trade_screens: ['', '', '', ''],
+    trade_screen_timeframes: ['', '', '', ''],
     trade_time: '',
     trade_date: new Date().toISOString().split('T')[0],
     day_of_week: WEEKDAY_MAP[new Date().toLocaleDateString('en-US', { weekday: 'long' })],
@@ -228,6 +231,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   }, [isOpen, strategySlug, strategies]);
 
   const notesRef = useRef<HTMLTextAreaElement | null>(null);
+  const customTfInputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const tradeRef = useRef<Trade>(initialTradeState);
 
   useEffect(() => {
@@ -792,11 +796,84 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             {/* Trade Screens Section */}
             <div className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {[0, 1].map((i) => (
-                  <div key={i} className="space-y-2">
-                    <Label htmlFor={`trade-screen-${i + 1}`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      Trade Screen {i + 1}
-                    </Label>
+                {[0, 1].map((i) => {
+                  const currentTf = (trade.trade_screen_timeframes?.[i] ?? '').trim();
+                  const isCustomTf =
+                    currentTf !== '' &&
+                    !SCREEN_TIMEFRAME_PRESET_OPTIONS.includes(
+                      currentTf as (typeof SCREEN_TIMEFRAME_PRESET_OPTIONS)[number]
+                    );
+                  return (
+                  <div
+                    key={i}
+                    className="space-y-2"
+                    onBlurCapture={(e) => {
+                      const nextFocused = e.relatedTarget as Node | null;
+                      if (nextFocused && e.currentTarget.contains(nextFocused)) return;
+                      const screenUrl = (trade.trade_screens?.[i] ?? '').trim();
+                      if (screenUrl !== '') return;
+                      const currentTf = (trade.trade_screen_timeframes?.[i] ?? '').trim();
+                      if (currentTf === '') return;
+                      const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
+                      next[i] = '';
+                      updateTrade('trade_screen_timeframes', next);
+                    }}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Label htmlFor={`trade-screen-${i + 1}`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        Trade Screen {i + 1}
+                      </Label>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {SCREEN_TIMEFRAME_OPTIONS.map((tf) => (
+                          <button
+                            key={tf}
+                            type="button"
+                            onClick={() => {
+                              const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
+                              if (tf === 'Custom') {
+                                next[i] = isCustomTf ? currentTf : 'Custom';
+                              } else {
+                                next[i] = tf;
+                              }
+                              updateTrade('trade_screen_timeframes', next);
+                              if (tf === 'Custom') {
+                                setTimeout(() => customTfInputRefs.current[i]?.focus(), 0);
+                              }
+                            }}
+                            className={`h-7 px-2 rounded-md border text-[11px] font-semibold transition-colors cursor-pointer ${
+                              (tf === 'Custom' && (currentTf === 'Custom' || isCustomTf)) ||
+                              currentTf === tf
+                                ? 'themed-header-icon-box shadow-sm border-transparent text-slate-50'
+                                : 'border-slate-300/60 dark:border-slate-700/70 bg-slate-100/40 dark:bg-slate-800/40 text-slate-600 dark:text-slate-300 hover:border-slate-400/70 dark:hover:border-slate-600/70'
+                            }`}
+                          >
+                            {tf}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {(currentTf === 'Custom' || isCustomTf) && (
+                      <Input
+                        ref={(el) => {
+                          customTfInputRefs.current[i] = el;
+                        }}
+                        type="text"
+                        value={currentTf === 'Custom' ? '' : currentTf}
+                        onChange={(e) => {
+                          const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
+                          next[i] = e.target.value;
+                          updateTrade('trade_screen_timeframes', next);
+                        }}
+                        onBlur={(e) => {
+                          if (e.target.value.trim() !== '') return;
+                          const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
+                          next[i] = '';
+                          updateTrade('trade_screen_timeframes', next);
+                        }}
+                        className="h-9 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 themed-focus text-slate-900 dark:text-slate-50"
+                        placeholder="Custom TF (e.g. 2H)"
+                      />
+                    )}
                     <Input
                       id={`trade-screen-${i + 1}`}
                       type="url"
@@ -810,16 +887,89 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                       placeholder="https://..."
                     />
                   </div>
-                ))}
+                )})}
               </div>
 
               {showExtraScreens && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {[2, 3].map((i) => (
-                    <div key={i} className="space-y-2">
-                      <Label htmlFor={`trade-screen-${i + 1}`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                        Trade Screen {i + 1}
-                      </Label>
+                  {[2, 3].map((i) => {
+                    const currentTf = (trade.trade_screen_timeframes?.[i] ?? '').trim();
+                    const isCustomTf =
+                      currentTf !== '' &&
+                      !SCREEN_TIMEFRAME_PRESET_OPTIONS.includes(
+                        currentTf as (typeof SCREEN_TIMEFRAME_PRESET_OPTIONS)[number]
+                      );
+                    return (
+                    <div
+                      key={i}
+                      className="space-y-2"
+                      onBlurCapture={(e) => {
+                        const nextFocused = e.relatedTarget as Node | null;
+                        if (nextFocused && e.currentTarget.contains(nextFocused)) return;
+                        const screenUrl = (trade.trade_screens?.[i] ?? '').trim();
+                        if (screenUrl !== '') return;
+                        const currentTf = (trade.trade_screen_timeframes?.[i] ?? '').trim();
+                        if (currentTf === '') return;
+                        const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
+                        next[i] = '';
+                        updateTrade('trade_screen_timeframes', next);
+                      }}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <Label htmlFor={`trade-screen-${i + 1}`} className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                          Trade Screen {i + 1}
+                        </Label>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {SCREEN_TIMEFRAME_OPTIONS.map((tf) => (
+                            <button
+                              key={tf}
+                              type="button"
+                              onClick={() => {
+                                const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
+                                if (tf === 'Custom') {
+                                  next[i] = isCustomTf ? currentTf : 'Custom';
+                                } else {
+                                  next[i] = tf;
+                                }
+                                updateTrade('trade_screen_timeframes', next);
+                                if (tf === 'Custom') {
+                                  setTimeout(() => customTfInputRefs.current[i]?.focus(), 0);
+                                }
+                              }}
+                              className={`h-7 px-2 rounded-md border text-[11px] font-semibold transition-colors cursor-pointer ${
+                                (tf === 'Custom' && (currentTf === 'Custom' || isCustomTf)) ||
+                                currentTf === tf
+                                  ? 'themed-header-icon-box shadow-sm border-transparent text-slate-50'
+                                  : 'border-slate-300/60 dark:border-slate-700/70 bg-slate-100/40 dark:bg-slate-800/40 text-slate-600 dark:text-slate-300 hover:border-slate-400/70 dark:hover:border-slate-600/70'
+                              }`}
+                            >
+                              {tf}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {(currentTf === 'Custom' || isCustomTf) && (
+                        <Input
+                          ref={(el) => {
+                            customTfInputRefs.current[i] = el;
+                          }}
+                          type="text"
+                          value={currentTf === 'Custom' ? '' : currentTf}
+                          onChange={(e) => {
+                            const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
+                            next[i] = e.target.value;
+                            updateTrade('trade_screen_timeframes', next);
+                          }}
+                          onBlur={(e) => {
+                            if (e.target.value.trim() !== '') return;
+                            const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
+                            next[i] = '';
+                            updateTrade('trade_screen_timeframes', next);
+                          }}
+                          className="h-9 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 themed-focus text-slate-900 dark:text-slate-50"
+                          placeholder="Custom TF (e.g. 2H)"
+                        />
+                      )}
                       <Input
                         id={`trade-screen-${i + 1}`}
                         type="url"
@@ -833,7 +983,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                         placeholder="https://..."
                       />
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
 
@@ -1285,7 +1435,116 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
       {/* Market & Direction */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div className="space-y-2">
-          <Label htmlFor="market" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+          <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+            Trade Outcome *
+          </Label>
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={() => onTradeOutcomeChange('Win')}
+              className={`h-12 rounded-2xl border transition-all duration-200 text-sm font-semibold cursor-pointer ${
+                tradeOutcome === 'Win'
+                  ? 'border-emerald-400/70 bg-emerald-500/20 text-slate-50 ring-2 ring-emerald-400/40'
+                  : 'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200 hover:border-slate-300/80 dark:hover:border-slate-600/80'
+              }`}
+              aria-pressed={tradeOutcome === 'Win'}
+            >
+              Win
+            </button>
+            <button
+              type="button"
+              onClick={() => onTradeOutcomeChange('Lose')}
+              className={`h-12 rounded-2xl border transition-all duration-200 text-sm font-semibold cursor-pointer ${
+                tradeOutcome === 'Lose'
+                  ? 'border-rose-400/70 bg-rose-500/25 text-slate-50 ring-2 ring-rose-400/40'
+                  : 'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200 hover:border-slate-300/80 dark:hover:border-slate-600/80'
+              }`}
+              aria-pressed={tradeOutcome === 'Lose'}
+            >
+              Lose
+            </button>
+            <button
+              type="button"
+              onClick={() => onTradeOutcomeChange('BE')}
+              className={`h-12 rounded-2xl border transition-all duration-200 text-sm font-semibold cursor-pointer ${
+                tradeOutcome === 'BE'
+                  ? 'border-orange-400/70 bg-orange-500/20 text-slate-50 ring-2 ring-orange-400/40'
+                  : 'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200 hover:border-slate-300/80 dark:hover:border-slate-600/80'
+              }`}
+              aria-pressed={tradeOutcome === 'BE'}
+            >
+              BE
+            </button>
+          </div>
+
+          {tradeOutcome === 'BE' && (
+            <div className="space-y-2">
+              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                After BE
+              </Label>
+              <Select
+                value={beFinalResult ?? '__none__'}
+                onValueChange={(v) => updateTrade('be_final_result', v === '__none__' ? null : v)}
+              >
+                <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
+                  <SelectValue placeholder="Win or Lose at close" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">—</SelectItem>
+                  <SelectItem value="Win">Win</SelectItem>
+                  <SelectItem value="Lose">Lose</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                How did this trade end after moving to break even? (e.g. closed in profit = Win, stopped out = Lose)
+              </p>
+            </div>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Direction *</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => updateTrade('direction', 'Long')}
+              className={`h-12 rounded-2xl border transition-all duration-200 text-sm font-semibold cursor-pointer ${
+                direction === 'Long'
+                  ? 'border-emerald-400/70 bg-emerald-500/20 text-slate-50 ring-2 ring-emerald-400/40'
+                  : 'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200 hover:border-slate-300/80 dark:hover:border-slate-600/80'
+              }`}
+              aria-pressed={direction === 'Long'}
+            >
+              <span className="inline-flex items-center gap-2">
+                <span className="text-emerald-500 dark:text-emerald-400 text-xs">↑</span>
+                <span>Long</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => updateTrade('direction', 'Short')}
+              className={`h-12 rounded-2xl border transition-all duration-200 text-sm font-semibold cursor-pointer ${
+                direction === 'Short'
+                  ? 'border-rose-400/70 bg-rose-500/25 text-slate-50 ring-2 ring-rose-400/40'
+                  : 'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200 hover:border-slate-300/80 dark:hover:border-slate-600/80'
+              }`}
+              aria-pressed={direction === 'Short'}
+            >
+              <span className="inline-flex items-center gap-2">
+                <span className="text-rose-500 dark:text-rose-400 text-xs">↓</span>
+                <span>Short</span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Outcome + conditioned fields from extra cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="space-y-2">
+          <Label
+            htmlFor="market"
+            className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+          >
             Market *
           </Label>
           <MarketCombobox
@@ -1304,68 +1563,6 @@ const MarketAndSetupSection = React.memo(function MarketAndSetupSection({
             pinnedIds={pinnedIdsMarket}
             onTogglePin={onTogglePinMarket}
           />
-        </div>
-        <div className="space-y-2">
-          <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Direction *</Label>
-          <Select value={direction} onValueChange={(v) => updateTrade('direction', v as 'Long' | 'Short')}>
-            <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-              <SelectValue placeholder="Select Direction" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Long">Long</SelectItem>
-              <SelectItem value="Short">Short</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Outcome + conditioned fields from extra cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        {/* Trade Outcome (now one item in the shared grid) */}
-        <div className="space-y-2">
-          <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Trade Outcome *
-          </Label>
-          <Select
-            value={tradeOutcome}
-            onValueChange={(v) => onTradeOutcomeChange(v as Trade['trade_outcome'])}
-          >
-            <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-              <SelectValue placeholder="Select Trade Outcome" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Win">Win</SelectItem>
-              <SelectItem value="Lose">Lose</SelectItem>
-              <SelectItem value="BE">BE</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {tradeOutcome === 'BE' && (
-            <div className="space-y-2">
-              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                After BE
-              </Label>
-              <Select
-                value={beFinalResult ?? '__none__'}
-                onValueChange={(v) =>
-                  updateTrade('be_final_result', v === '__none__' ? null : v)
-                }
-              >
-                <SelectTrigger className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300">
-                  <SelectValue placeholder="Win or Lose at close" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">—</SelectItem>
-                  <SelectItem value="Win">Win</SelectItem>
-                  <SelectItem value="Lose">Lose</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                How did this trade end after moving to break even? (e.g. closed in profit =
-                Win, stopped out = Lose)
-              </p>
-            </div>
-          )}
         </div>
 
         {/* Session (manual tag) */}

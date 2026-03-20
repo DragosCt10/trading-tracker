@@ -36,6 +36,8 @@ const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
 const DAY_OF_WEEK_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const TREND_OPTIONS = ['Trend-following', 'Counter-trend', 'Consolidation'];
 const SESSION_OPTIONS = ['Sydney', 'Tokyo', 'London', 'New York'] as const;
+const SCREEN_TIMEFRAME_OPTIONS = ['4H', '1H', '15m', '5m', '3m', '1m', 'Custom'] as const;
+const SCREEN_TIMEFRAME_PRESET_OPTIONS = ['4H', '1H', '15m', '5m', '3m', '1m'] as const;
 
 // shadcn UI components
 import { Button } from "@/components/ui/button";
@@ -136,6 +138,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
 
   const accountBalanceRef = useRef(selection.activeAccount?.account_balance || 0);
   const editedTradeRef = useRef(editedTrade);
+  const customTfInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   useLayoutEffect(() => {
     accountBalanceRef.current = selection.activeAccount?.account_balance || 0;
@@ -327,6 +330,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         risk_reward_ratio: editedTrade.risk_reward_ratio,
         risk_reward_ratio_long: (editedTrade.trade_outcome === 'Lose' || editedTrade.trade_outcome === 'BE') ? 0 : editedTrade.risk_reward_ratio_long,
         trade_screens: editedTrade.trade_screens,
+        trade_screen_timeframes: editedTrade.trade_screen_timeframes,
         mss: editedTrade.mss,
         break_even: editedTrade.break_even,
         be_final_result: editedTrade.be_final_result,
@@ -667,6 +671,47 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               ))}
             </SelectContent>
           </Select>
+        </div>
+      );
+    }
+
+    if (field === 'direction') {
+      const currentDirection = (value as string) ?? '';
+      return (
+        <div>
+          <label className={`${labelClass} mb-2`}>{label}</label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => handleInputChange('direction', 'Long')}
+              className={`h-12 rounded-2xl border transition-all duration-200 text-sm font-semibold cursor-pointer ${
+                currentDirection === 'Long'
+                  ? 'border-emerald-400/70 bg-emerald-500/20 text-slate-50 ring-2 ring-emerald-400/40'
+                  : 'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200 hover:border-slate-300/80 dark:hover:border-slate-600/80'
+              }`}
+              aria-pressed={currentDirection === 'Long'}
+            >
+              <span className="inline-flex items-center gap-2">
+                <span className="text-emerald-500 dark:text-emerald-400 text-xs">↑</span>
+                <span>Long</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleInputChange('direction', 'Short')}
+              className={`h-12 rounded-2xl border transition-all duration-200 text-sm font-semibold cursor-pointer ${
+                currentDirection === 'Short'
+                  ? 'border-rose-400/70 bg-rose-500/25 text-slate-50 ring-2 ring-rose-400/40'
+                  : 'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200 hover:border-slate-300/80 dark:hover:border-slate-600/80'
+              }`}
+              aria-pressed={currentDirection === 'Short'}
+            >
+              <span className="inline-flex items-center gap-2">
+                <span className="text-rose-500 dark:text-rose-400 text-xs">↓</span>
+                <span>Short</span>
+              </span>
+            </button>
+          </div>
         </div>
       );
     }
@@ -1036,19 +1081,44 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                       ? renderOutcomeBadge(editedTrade.trade_outcome)
                       : renderOutcomeBadges(editedTrade?.trade_outcome as string, editedTrade?.be_final_result)
                   ) : (
-                    <Select
-                      value={editedTrade?.trade_outcome ?? ''}
-                      onValueChange={(val) => handleInputChange('trade_outcome', val)}
-                    >
-                      <SelectTrigger className={selectTriggerClass}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className={selectContentClass}>
-                        <SelectItem value="Win">Win</SelectItem>
-                        <SelectItem value="Lose">Lose</SelectItem>
-                        <SelectItem value="BE">BE</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="grid grid-cols-3 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('trade_outcome', 'Win')}
+                        className={`h-12 rounded-2xl border transition-all duration-200 text-sm font-semibold cursor-pointer ${
+                          editedTrade?.trade_outcome === 'Win'
+                            ? 'border-emerald-400/70 bg-emerald-500/20 text-slate-50 ring-2 ring-emerald-400/40'
+                            : 'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200 hover:border-slate-300/80 dark:hover:border-slate-600/80'
+                        }`}
+                        aria-pressed={editedTrade?.trade_outcome === 'Win'}
+                      >
+                        Win
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('trade_outcome', 'Lose')}
+                        className={`h-12 rounded-2xl border transition-all duration-200 text-sm font-semibold cursor-pointer ${
+                          editedTrade?.trade_outcome === 'Lose'
+                            ? 'border-rose-400/70 bg-rose-500/25 text-slate-50 ring-2 ring-rose-400/40'
+                            : 'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200 hover:border-slate-300/80 dark:hover:border-slate-600/80'
+                        }`}
+                        aria-pressed={editedTrade?.trade_outcome === 'Lose'}
+                      >
+                        Lose
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('trade_outcome', 'BE')}
+                        className={`h-12 rounded-2xl border transition-all duration-200 text-sm font-semibold cursor-pointer ${
+                          editedTrade?.trade_outcome === 'BE'
+                            ? 'border-orange-400/70 bg-orange-500/20 text-slate-50 ring-2 ring-orange-400/40'
+                            : 'border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200 hover:border-slate-300/80 dark:hover:border-slate-600/80'
+                        }`}
+                        aria-pressed={editedTrade?.trade_outcome === 'BE'}
+                      >
+                        BE
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1148,7 +1218,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                   {renderField('Market', 'market', 'market')}
                 </div>
                 <div className="space-y-3">
-                  {renderField('Direction', 'direction', 'select', ['Long', 'Short'])}
+                  {renderField('Direction', 'direction')}
                   {hasCard('setup_stats') && (effectiveIsEditing || (editedTrade?.setup_type != null && editedTrade.setup_type !== '')) && renderField('Pattern / Setup', 'setup_type', 'select', setupOptions)}
                 </div>
               </div>
@@ -1365,9 +1435,16 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 {(editedTrade?.trade_screens ?? []).map((url, i) =>
                   url ? (
                     <div key={i} className="flex flex-col min-h-0">
-                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block shrink-0">
-                        Trade Screen {i + 1}
-                      </label>
+                      <div className="flex items-center justify-between mb-2 block shrink-0">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                          Trade Screen {i + 1}
+                        </label>
+                        {(editedTrade?.trade_screen_timeframes?.[i] ?? '').trim() !== '' && (
+                          <span className="inline-flex items-center rounded-md border border-slate-300/70 dark:border-slate-700/70 bg-slate-200/50 dark:bg-slate-800/60 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-slate-700 dark:text-slate-200">
+                            {editedTrade?.trade_screen_timeframes?.[i]}
+                          </span>
+                        )}
+                      </div>
                       <a href={url} target="_blank" rel="noopener noreferrer" className="flex flex-col group flex-1 min-h-0">
                         <div className="relative overflow-hidden rounded-lg border-2 border-slate-200 dark:border-slate-700 themed-hover-border transition-all duration-300 flex-1 min-h-64">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1396,9 +1473,80 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {[0, 1].map((i) => {
                     const url = editedTrade?.trade_screens?.[i] ?? '';
+                    const currentTf = (editedTrade?.trade_screen_timeframes?.[i] ?? '').trim();
+                    const isCustomTf =
+                      currentTf !== '' &&
+                      !SCREEN_TIMEFRAME_PRESET_OPTIONS.includes(
+                        currentTf as (typeof SCREEN_TIMEFRAME_PRESET_OPTIONS)[number]
+                      );
                     return (
-                      <div key={i}>
-                        <label className={`${labelClass} mb-2`}>Trade Screen {i + 1}</label>
+                      <div
+                        key={i}
+                        onBlurCapture={(e) => {
+                          const nextFocused = e.relatedTarget as Node | null;
+                          if (nextFocused && e.currentTarget.contains(nextFocused)) return;
+                          const screenUrl = (editedTrade?.trade_screens?.[i] ?? '').trim();
+                          if (screenUrl !== '') return;
+                          const currentTf = (editedTrade?.trade_screen_timeframes?.[i] ?? '').trim();
+                          if (currentTf === '') return;
+                          const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
+                          next[i] = '';
+                          handleInputChange('trade_screen_timeframes', next);
+                        }}
+                      >
+                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                          <label className={labelClass}>Trade Screen {i + 1}</label>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {SCREEN_TIMEFRAME_OPTIONS.map((tf) => (
+                              <button
+                                key={tf}
+                                type="button"
+                                onClick={() => {
+                                  const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
+                                  if (tf === 'Custom') {
+                                    next[i] = isCustomTf ? currentTf : 'Custom';
+                                  } else {
+                                    next[i] = tf;
+                                  }
+                                  handleInputChange('trade_screen_timeframes', next);
+                                  if (tf === 'Custom') {
+                                    setTimeout(() => customTfInputRefs.current[i]?.focus(), 0);
+                                  }
+                                }}
+                                className={`h-7 px-2 rounded-md border text-[11px] font-semibold transition-colors cursor-pointer ${
+                                  (tf === 'Custom' && (currentTf === 'Custom' || isCustomTf)) ||
+                                  currentTf === tf
+                                    ? 'themed-rating-active border-transparent'
+                                    : 'border-slate-300/60 dark:border-slate-700/70 bg-slate-100/40 dark:bg-slate-800/40 text-slate-600 dark:text-slate-300 hover:border-slate-400/70 dark:hover:border-slate-600/70'
+                                }`}
+                              >
+                                {tf}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        {(currentTf === 'Custom' || isCustomTf) && (
+                          <Input
+                            ref={(el) => {
+                              customTfInputRefs.current[i] = el;
+                            }}
+                            type="text"
+                            value={currentTf === 'Custom' ? '' : currentTf}
+                            onChange={(e) => {
+                              const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
+                              next[i] = e.target.value;
+                              handleInputChange('trade_screen_timeframes', next);
+                            }}
+                            onBlur={(e) => {
+                              if (e.target.value.trim() !== '') return;
+                              const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
+                              next[i] = '';
+                              handleInputChange('trade_screen_timeframes', next);
+                            }}
+                            className={`${inputClass} h-9`}
+                            placeholder="Custom TF (e.g. 2H)"
+                          />
+                        )}
                         <div className="flex items-center gap-2">
                           <Input
                             type="url"
@@ -1426,9 +1574,80 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     {[2, 3].map((i) => {
                       const url = editedTrade?.trade_screens?.[i] ?? '';
+                      const currentTf = (editedTrade?.trade_screen_timeframes?.[i] ?? '').trim();
+                      const isCustomTf =
+                        currentTf !== '' &&
+                        !SCREEN_TIMEFRAME_PRESET_OPTIONS.includes(
+                          currentTf as (typeof SCREEN_TIMEFRAME_PRESET_OPTIONS)[number]
+                        );
                       return (
-                        <div key={i}>
-                          <label className={`${labelClass} mb-2`}>Trade Screen {i + 1}</label>
+                        <div
+                          key={i}
+                          onBlurCapture={(e) => {
+                            const nextFocused = e.relatedTarget as Node | null;
+                            if (nextFocused && e.currentTarget.contains(nextFocused)) return;
+                            const screenUrl = (editedTrade?.trade_screens?.[i] ?? '').trim();
+                            if (screenUrl !== '') return;
+                            const currentTf = (editedTrade?.trade_screen_timeframes?.[i] ?? '').trim();
+                            if (currentTf === '') return;
+                            const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
+                            next[i] = '';
+                            handleInputChange('trade_screen_timeframes', next);
+                          }}
+                        >
+                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                            <label className={labelClass}>Trade Screen {i + 1}</label>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {SCREEN_TIMEFRAME_OPTIONS.map((tf) => (
+                                <button
+                                  key={tf}
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
+                                    if (tf === 'Custom') {
+                                      next[i] = isCustomTf ? currentTf : 'Custom';
+                                    } else {
+                                      next[i] = tf;
+                                    }
+                                    handleInputChange('trade_screen_timeframes', next);
+                                    if (tf === 'Custom') {
+                                      setTimeout(() => customTfInputRefs.current[i]?.focus(), 0);
+                                    }
+                                  }}
+                                  className={`h-7 px-2 rounded-md border text-[11px] font-semibold transition-colors cursor-pointer ${
+                                    (tf === 'Custom' && (currentTf === 'Custom' || isCustomTf)) ||
+                                    currentTf === tf
+                                      ? 'themed-rating-active border-transparent'
+                                      : 'border-slate-300/60 dark:border-slate-700/70 bg-slate-100/40 dark:bg-slate-800/40 text-slate-600 dark:text-slate-300 hover:border-slate-400/70 dark:hover:border-slate-600/70'
+                                  }`}
+                                >
+                                  {tf}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          {(currentTf === 'Custom' || isCustomTf) && (
+                            <Input
+                              ref={(el) => {
+                                customTfInputRefs.current[i] = el;
+                              }}
+                              type="text"
+                              value={currentTf === 'Custom' ? '' : currentTf}
+                              onChange={(e) => {
+                                const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
+                                next[i] = e.target.value;
+                                handleInputChange('trade_screen_timeframes', next);
+                              }}
+                              onBlur={(e) => {
+                                if (e.target.value.trim() !== '') return;
+                                const next = [...(editedTrade?.trade_screen_timeframes ?? ['', '', '', ''])];
+                                next[i] = '';
+                                handleInputChange('trade_screen_timeframes', next);
+                              }}
+                              className={`${inputClass} h-9`}
+                              placeholder="Custom TF (e.g. 2H)"
+                            />
+                          )}
                           <div className="flex items-center gap-2">
                             <Input
                               type="url"

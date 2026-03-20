@@ -4,6 +4,8 @@ export interface Trade {
   account_id?: string;  // UUID of the associated account
   mode?: string;  // The trading mode (demo, live, backtesting)
   trade_screens: string[];
+  /** Optional timeframe label per screen slot (same index as trade_screens). */
+  trade_screen_timeframes?: string[];
   trade_time: string;
   trade_date: string;
   day_of_week: string;

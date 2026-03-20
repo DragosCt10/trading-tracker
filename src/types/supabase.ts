@@ -66,6 +66,7 @@ export interface Database {
           user_id: string;
           account_id: string | null;
           trade_screens: string[] | null;
+          trade_screen_timeframes: string[] | null;
           trade_time: string; // time
           trade_date: string; // date
           day_of_week: string;
@@ -127,6 +128,7 @@ export interface Database {
           user_id: string;
           account_id: string | null;
           trade_screens: string[] | null;
+          trade_screen_timeframes: string[] | null;
           trade_time: string; // time
           trade_date: string; // date
           day_of_week: string;
@@ -188,6 +190,7 @@ export interface Database {
           user_id: string;
           account_id: string | null;
           trade_screens: string[] | null;
+          trade_screen_timeframes: string[] | null;
           trade_time: string; // time
           trade_date: string; // date
           day_of_week: string;
