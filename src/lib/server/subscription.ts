@@ -17,7 +17,7 @@ const STARTER_SUBSCRIPTION: ResolvedSubscription = {
   periodEnd: null,
   cancelAtPeriodEnd: false,
   providerCustomerId: null,
-  provider: 'admin',
+  provider: 'admin', 
 };
 
 function getAppUrl(): string {
