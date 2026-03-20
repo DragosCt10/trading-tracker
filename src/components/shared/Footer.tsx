@@ -82,7 +82,7 @@ export function Footer() {
             <div className="lg:max-w-xs">
               <Link
                 href="/"
-                className="inline-flex items-center text-lg font-semibold text-slate-900 dark:text-slate-50 tracking-tight hover:opacity-90 transition-opacity cursor-pointer"
+                className="inline-flex items-center text-lg font-semibold text-slate-900 dark:text-slate-50 tracking-widest hover:opacity-90 transition-opacity cursor-pointer"
                 aria-label="AlphaStats Home"
               >
                 <Logo className="flex-shrink-0 mt-1 w-10 h-10" />
