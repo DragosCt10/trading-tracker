@@ -35,6 +35,9 @@ export function useSubscription({ userId }: UseSubscriptionOptions = {}) {
           cancelAtPeriodEnd: false,
           providerCustomerId: null,
           provider: 'admin',
+          priceAmount: null,
+          taxAmount: null,
+          currency: null,
         };
       }
       return resolveSubscription(userId);

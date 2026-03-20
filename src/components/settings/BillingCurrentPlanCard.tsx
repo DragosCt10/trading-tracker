@@ -60,39 +60,39 @@ export function BillingCurrentPlanCard({
             {isPro ? 'PRO' : 'Starter (Free)'}
           </p>
           {isPro && resolvedSub.billingPeriod && (
-            <p className="mt-1 text-base font-semibold text-slate-900 dark:text-slate-100">
-              {currentPrice}
-              {taxLine ? (
-                <span className="ml-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {taxLine}
-                </span>
-              ) : hasPriceData ? null : (
-                <span className="ml-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                  VAT included
-                </span>
-              )}
-            </p>
+            <div className="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-800/60">
+              <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                {currentPrice}
+                {taxLine ? (
+                  <span className="ml-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    {taxLine}
+                  </span>
+                ) : hasPriceData ? null : (
+                  <span className="ml-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    VAT included
+                  </span>
+                )}
+              </p>
+            </div>
           )}
           {isPro && resolvedSub.billingPeriod && (
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              {resolvedSub.billingPeriod === 'monthly' ? 'Monthly billing' : 'Annual billing'}
+            <div className="mt-2">
               {resolvedSub.periodEnd && (
-                <>
-                  {' '}
-                  · {resolvedSub.cancelAtPeriodEnd ? 'Ends' : 'Renews'}{' '}
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {resolvedSub.cancelAtPeriodEnd ? 'Ends' : 'Renews'}{' '}
                   {resolvedSub.periodEnd.toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                     year: 'numeric',
                   })}
-                </>
+                </p>
               )}
-            </p>
-          )}
-          {isPro && resolvedSub.cancelAtPeriodEnd && (
-            <p className="mt-1 text-xs text-amber-500 flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" /> Your plan will not renew.
-            </p>
+              {resolvedSub.cancelAtPeriodEnd && (
+                <p className="mt-1 text-xs text-amber-500 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" /> Your plan will not renew.
+                </p>
+              )}
+            </div>
           )}
         </div>
         <CreditCard className="h-5 w-5 shrink-0 text-slate-400 dark:text-slate-500 mt-1" />

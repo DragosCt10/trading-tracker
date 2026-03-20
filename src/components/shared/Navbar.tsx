@@ -125,6 +125,19 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
   const tierDef = TIER_DEFINITIONS[tier ?? 'starter'];
   const isPro = tier === 'pro' || tier === 'elite';
 
+  // Pro badge colors: solid deep gold in light mode, gradient in dark mode
+  const isLightMode = mounted && theme === 'light';
+  const proIconColor = isLightMode ? '#b45309' : '#fbbf24';
+  const proBorderColor = isLightMode ? 'rgba(180,83,9,0.45)' : 'rgba(251,191,36,0.45)';
+  const proTextStyle: React.CSSProperties = isLightMode
+    ? { color: '#b45309' }
+    : {
+        backgroundImage: 'linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #b45309 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
+      };
+
   return (
     <>
       <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-(--breakpoint-xl) px-4 sm:px-0">
@@ -196,22 +209,17 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
             {mounted && (
               <span
                 className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 select-none"
-                style={isPro ? { border: '1px solid rgba(251,191,36,0.45)' } : { border: '1px solid var(--tc-border)' }}
+                style={isPro ? { border: `1px solid ${proBorderColor}` } : { border: '1px solid var(--tc-border)' }}
               >
                 {isPro
-                  ? <Crown className="h-3 w-3 shrink-0" style={{ color: '#fbbf24' }} />
+                  ? <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
                   : <Sparkles className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
                 }
                 <span
                   className="text-[10px] font-bold uppercase tracking-widest"
                   style={
                     isPro
-                      ? {
-                          backgroundImage: 'linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #b45309 100%)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          backgroundClip: 'text',
-                        }
+                      ? proTextStyle
                       : {
                           backgroundImage: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
                           WebkitBackgroundClip: 'text',
@@ -430,22 +438,17 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   <div className="w-full flex items-center justify-center py-0.5">
                     <span
                       className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 select-none"
-                      style={isPro ? { border: '1px solid rgba(251,191,36,0.45)' } : { border: '1px solid var(--tc-border)' }}
+                      style={isPro ? { border: `1px solid ${proBorderColor}` } : { border: '1px solid var(--tc-border)' }}
                     >
                       {isPro
-                        ? <Crown className="h-3 w-3 shrink-0" style={{ color: '#fbbf24' }} />
+                        ? <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
                         : <Sparkles className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
                       }
                       <span
                         className="text-[10px] font-bold uppercase tracking-widest"
                         style={
                           isPro
-                            ? {
-                                backgroundImage: 'linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #b45309 100%)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                backgroundClip: 'text',
-                              }
+                            ? proTextStyle
                             : {
                                 backgroundImage: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
                                 WebkitBackgroundClip: 'text',
