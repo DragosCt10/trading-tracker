@@ -47,6 +47,8 @@ export type WebhookAction =
       amountCents: number;
       taxCents: number;
       currency: string;
+      /** Full subscription data extracted from the embedded subscription object, when available. */
+      subscription: ProviderSubscriptionData | null;
     }
   | { type: 'ignore' };
 
