@@ -53,7 +53,8 @@ export type WebhookAction =
 
 export interface CheckoutParams {
   productId: string;
-  userId: string;
+  /** Omit for anonymous (landing page) checkouts — webhook resolves user by email. */
+  userId?: string;
   billingPeriod: BillingPeriod;
   successUrl: string;
 }

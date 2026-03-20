@@ -79,7 +79,7 @@ export function BillingCurrentPlanCard({
             <div className="mt-2">
               {resolvedSub.periodEnd && (
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {resolvedSub.cancelAtPeriodEnd ? 'Ends' : 'Renews'}{' '}
+                  {resolvedSub.cancelAtPeriodEnd ? 'Ends' : 'Renews'} {periodLabel} on{' '}
                   {resolvedSub.periodEnd.toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',

@@ -145,7 +145,7 @@ export class PolarProvider implements IPaymentProvider {
     const checkout = await this.client.checkouts.create({
       products: [productId],
       successUrl,
-      metadata: { userId },
+      ...(userId ? { metadata: { userId } } : {}),
     });
 
     return { checkoutUrl: checkout.url };

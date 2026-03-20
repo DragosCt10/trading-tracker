@@ -215,6 +215,32 @@ export async function createCheckoutUrl(
 }
 
 /**
+ * Server action: create a Polar checkout URL for anonymous (unauthenticated) users.
+ * No session required — user is resolved from email by the webhook after purchase.
+ */
+export async function createPublicCheckoutUrl(
+  billingPeriod: BillingPeriod
+): Promise<string> {
+  const productId =
+    billingPeriod === 'monthly'
+      ? (TIER_DEFINITIONS.pro.pricing.monthly?.polarProductId ?? '')
+      : (TIER_DEFINITIONS.pro.pricing.annual?.polarProductId ?? '');
+  if (!productId) {
+    throw new Error(`[billing] Missing Polar product ID for ${billingPeriod} checkout.`);
+  }
+
+  const provider = getPaymentProvider();
+  const appUrl = getAppUrl();
+  const { checkoutUrl } = await provider.createCheckoutSession({
+    productId,
+    billingPeriod,
+    successUrl: `${appUrl}/login?checkout=success`,
+  });
+
+  return checkoutUrl;
+}
+
+/**
  * Server action: create a Polar customer portal URL.
  * Admin-granted users have no Polar customer ID — return null so the UI can show a message.
  */
