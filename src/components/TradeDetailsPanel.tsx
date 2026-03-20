@@ -472,7 +472,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
     label: string,
     field: keyof Trade,
     type: 'text' | 'number' | 'select' | 'boolean' | 'outcome' | 'market' = 'text',
-    options?: string[]
+    options?: readonly string[]
   ) => {
     if (!editedTrade) return null;
     const value = editedTrade[field];
