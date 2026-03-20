@@ -166,8 +166,6 @@ async function processWebhookAction(action: Awaited<ReturnType<ReturnType<typeof
           current_period_start: action.data.periodStart.toISOString(),
           current_period_end: action.data.periodEnd.toISOString(),
           cancel_at_period_end: action.data.cancelAtPeriodEnd,
-          ...(action.data.priceAmount != null && { price_amount: action.data.priceAmount }),
-          ...(action.data.currency != null && { currency: action.data.currency }),
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id' }
