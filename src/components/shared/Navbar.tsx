@@ -473,6 +473,8 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   </Link>
                 </Button>
 
+                <Separator className="my-2" />
+
                 <Button
                   variant="destructive"
                   size="icon"
