@@ -200,7 +200,7 @@ export async function createCheckoutUrl(
     productId,
     userId: session.user.id,
     billingPeriod,
-    successUrl: `${appUrl}/billing?success=1`,
+    successUrl: `${appUrl}/settings?tab=billing&success=1`,
   });
 
   return checkoutUrl;
@@ -225,7 +225,7 @@ export async function createPortalUrl(): Promise<string | null> {
   const appUrl = getAppUrl();
   const { portalUrl } = await provider.createCustomerPortalSession({
     customerId: subscription.providerCustomerId,
-    returnUrl: `${appUrl}/billing`,
+    returnUrl: `${appUrl}/settings?tab=billing`,
   });
 
   return portalUrl;
@@ -267,8 +267,9 @@ export async function cancelCurrentSubscription(): Promise<{
   const provider = getPaymentProvider();
   await provider.cancelSubscription(cancelTarget.provider_subscription_id);
 
-  // Optimistically reflect immediate revocation for the canceled provider subscription only.
-  const { error: updateError } = await supabase
+  // Use service role to bypass RLS — subscriptions table has no UPDATE policy for users.
+  const serviceClient = createServiceRoleClient();
+  const { error: updateError } = await serviceClient
     .from('subscriptions')
     .update({
       status: 'canceled' as const,

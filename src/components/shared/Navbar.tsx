@@ -10,12 +10,11 @@ import {
   Target,
   Lightbulb,
   Palette,
-  CreditCard,
+  Settings,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useSubscription } from '@/hooks/useSubscription';
-import { TierBadge } from '@/components/subscription/TierBadge';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '@/hooks/useTheme';
 import { TIER_DEFINITIONS } from '@/constants/tiers';
@@ -116,9 +115,14 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
 
   const isStrategiesActive = useMemo(() => isActive('/stats'), [isActive]);
   const isInsightVaultActive = useMemo(() => isActive('/insight-vault'), [isActive]);
+  const isSettingsActive = useMemo(
+    () => pathname.startsWith('/settings') || pathname.startsWith('/billing'),
+    [pathname]
+  );
 
   const tierDef = TIER_DEFINITIONS[tier ?? 'starter'];
   const starterBadgeLabel = TIER_DEFINITIONS.starter.badge.label;
+  const isPro = tier === 'pro' || tier === 'elite';
 
   return (
     <>
@@ -188,20 +192,6 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
 
           {/* Right actions — same style as Edit btn (EditAccountAlertDialog), icon only */}
           <div className="ml-auto hidden items-center gap-2 lg:flex">
-            {/* Billing link + tier badge */}
-            <Button
-              variant="ghost"
-              asChild
-              size="sm"
-              className={navButtonClass(isActive('/billing'))}
-            >
-              <Link href="/billing" className="flex items-center gap-1.5">
-                <CreditCard className="h-4 w-4" />
-                <span>Billing</span>
-                {/* Avoid hydration mismatch: subscription tier is loaded async. */}
-                <TierBadge tier={mounted ? (tier as any) : 'starter'} />
-              </Link>
-            </Button>
             <Button
               type="button"
               size="sm"
@@ -251,14 +241,49 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               )}
             </Button>
 
+            {/* Tier badge */}
+            {mounted && (
+              <span
+                className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white select-none"
+                style={
+                  isPro
+                    ? {
+                        background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #b45309 100%)',
+                        border: '1px solid rgba(251,191,36,0.45)',
+                        boxShadow: '0 1px 8px rgba(251,191,36,0.35)',
+                      }
+                    : {
+                        background: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
+                        border: '1px solid var(--tc-border)',
+                      }
+                }
+              >
+                {tierDef.badge.label}
+              </span>
+            )}
+
+            <Separator orientation="vertical" className="mx-1.5 h-6" />
+            <Button
+              variant="ghost"
+              asChild
+              size="icon"
+              className={cn(navButtonClass(isSettingsActive), 'h-8 w-8 p-0')}
+              aria-label="Settings"
+            >
+              <Link href="/settings?tab=billing" className="flex items-center justify-center">
+                <Settings className="h-4 w-4" />
+              </Link>
+            </Button>
+
             <Button
               variant="destructive"
-              size="sm"
-              className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 transition-all duration-300"
+              size="icon"
+              className="relative cursor-pointer h-8 w-8 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60 transition-all duration-300 p-0 flex items-center justify-center"
               onClick={handleSignOut}
               disabled={isSigningOut}
+              aria-label={isSigningOut ? 'Signing out' : 'Sign Out'}
             >
-              <span className="relative z-10 flex items-center gap-2">
+              <span className="relative z-10 flex items-center justify-center">
                 {isSigningOut ? (
                   <svg
                     className="h-4 w-4 animate-spin"
@@ -283,7 +308,6 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                 ) : (
                   <LogOut className="h-4 w-4" />
                 )}
-                <span>{isSigningOut ? 'Signing out...' : 'Sign Out'}</span>
               </span>
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
             </Button>
@@ -332,20 +356,6 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                     Insight Vault
                   </Link>
                 </Button>
-
-                <Button
-                  variant="ghost"
-                  asChild
-                  className={cn('w-full justify-start', navButtonClass(isActive('/billing')))}
-                >
-                  <Link href="/billing" onClick={closeMobileMenu} className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4" />
-                    <span>Billing</span>
-                    <TierBadge tier={tier} />
-                  </Link>
-                </Button>
-
-                <Separator className="my-2" />
 
                 {mobileMenuExtra ? (
                   <div className="w-full">{mobileMenuExtra}</div>
@@ -402,13 +412,51 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   )}
                 </Button>
 
+                {/* Mobile tier badge */}
+                {mounted && (
+                  <div className="w-full flex items-center justify-center py-0.5">
+                    <span
+                      className="inline-flex items-center rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white select-none"
+                      style={
+                        isPro
+                          ? {
+                              background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #b45309 100%)',
+                              border: '1px solid rgba(251,191,36,0.45)',
+                              boxShadow: '0 1px 8px rgba(251,191,36,0.35)',
+                            }
+                          : {
+                              background: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
+                              border: '1px solid var(--tc-border)',
+                            }
+                      }
+                    >
+                      {tierDef.badge.label}
+                    </span>
+                  </div>
+                )}
+
+                <Separator className="my-2" />
+
+                <Button
+                  variant="ghost"
+                  asChild
+                  className={cn('w-full justify-center', navButtonClass(isSettingsActive))}
+                  aria-label="Settings"
+                >
+                  <Link href="/settings?tab=billing" onClick={closeMobileMenu} className="flex items-center justify-center">
+                    <Settings className="h-4 w-4" />
+                  </Link>
+                </Button>
+
                 <Button
                   variant="destructive"
-                  className="relative h-9 px-4 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
+                  size="icon"
+                  className="relative h-9 w-9 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 disabled:opacity-60"
                   onClick={handleSignOutMobile}
                   disabled={isSigningOut}
+                  aria-label={isSigningOut ? 'Signing out' : 'Sign Out'}
                 >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
+                  <span className="relative z-10 flex items-center justify-center">
                     {isSigningOut ? (
                       <svg
                         className="h-4 w-4 animate-spin"
@@ -433,7 +481,6 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                     ) : (
                       <LogOut className="h-4 w-4" />
                     )}
-                    <span>{isSigningOut ? 'Signing out…' : 'Sign Out'}</span>
                   </span>
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 </Button>

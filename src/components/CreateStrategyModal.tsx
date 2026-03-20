@@ -155,7 +155,7 @@ export function CreateStrategyModal({ accountId, open: controlledOpen, onOpenCha
                 <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">Strategy limit reached</p>
                 <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5">
                   Starter plan includes 1 strategy.{' '}
-                  <a href="/billing" className="underline font-medium hover:text-amber-700 dark:hover:text-amber-300">Upgrade to PRO</a>{' '}
+                  <a href="/settings?tab=billing" className="underline font-medium hover:text-amber-700 dark:hover:text-amber-300">Upgrade to PRO</a>{' '}
                   for unlimited strategies.
                 </p>
               </div>
