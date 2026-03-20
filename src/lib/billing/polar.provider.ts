@@ -323,11 +323,36 @@ export class PolarProvider implements IPaymentProvider {
         : typeof order.customer_id === 'string' ? order.customer_id
         : null;
 
-      const amountCents = (order.amount ?? 0) as number;
-      const taxCents = (order.tax_amount ?? order['taxAmount'] ?? 0) as number;
+      const amountCents = (order.netAmount ?? order.net_amount ?? order.amount ?? 0) as number;
+      const taxCents = (order.taxAmount ?? order.tax_amount ?? 0) as number;
       const currency = ((order.currency ?? 'usd') as string).toLowerCase();
 
-      console.log(`[billing/webhook] action=order.created userId=${userId ?? '—'} customerId=${providerCustomerId ?? '—'}`);
+      // Extract embedded subscription data so the handler can upsert without relying on
+      // subscription.updated arriving first (race condition).
+      const embeddedSub = order.subscription ?? null;
+      let subscription: import('./provider.interface').ProviderSubscriptionData | null = null;
+      if (embeddedSub && typeof embeddedSub === 'object') {
+        const customerEmail =
+          (order.customer && typeof order.customer === 'object'
+            ? readString(order.customer as Record<string, unknown>, 'email', 'email')
+            : null) ??
+          readString(embeddedSub as Record<string, unknown>, 'customerEmail', 'customer_email');
+        subscription = mapSubData({
+          id: readString(embeddedSub, 'id', 'id') ?? '',
+          customerId: readString(embeddedSub, 'customerId', 'customer_id') ?? '',
+          customerEmail,
+          productId: readString(embeddedSub, 'productId', 'product_id') ?? '',
+          status: embeddedSub.status ?? 'active',
+          currentPeriodStart: readString(embeddedSub, 'currentPeriodStart', 'current_period_start'),
+          currentPeriodEnd: readString(embeddedSub, 'currentPeriodEnd', 'current_period_end'),
+          cancelAtPeriodEnd: readBoolean(embeddedSub, 'cancelAtPeriodEnd', 'cancel_at_period_end', false),
+          recurringInterval: readString(embeddedSub, 'recurringInterval', 'recurring_interval'),
+          priceAmount: amountCents,
+          currency,
+        });
+      }
+
+      console.log(`[billing/webhook] action=order.created userId=${userId ?? '—'} customerId=${providerCustomerId ?? '—'} subscription=${subscription ? subscription.providerSubscriptionId : '—'}`);
       return {
         type: 'order.created',
         orderId: order.id,
@@ -337,6 +362,7 @@ export class PolarProvider implements IPaymentProvider {
         amountCents,
         taxCents,
         currency,
+        subscription,
       };
     }
 
