@@ -1,5 +1,6 @@
 'use server';
 
+import { cache } from 'react';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getCachedUserSession } from './session';
 import { grantSubscription, revokeSubscription } from './subscription';
@@ -24,6 +25,9 @@ export async function isAdmin(): Promise<boolean> {
 
   return !error && data !== null;
 }
+
+/** Request-level memoized version of `isAdmin`. */
+export const getCachedIsAdmin = cache(isAdmin);
 
 /**
  * Returns true if the currently logged-in user is a super admin.

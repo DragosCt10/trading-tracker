@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/utils/supabase/middleware';
+import { safeRedirectTo } from '@/lib/safeRedirect';
 
 /** Paths that do not require an authenticated user (auth pages). */
 const AUTH_PATHS = ['/login', '/signup', '/reset-password', '/update-password', '/api/auth'];
@@ -15,20 +16,13 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
-/** Only allow relative path for redirectTo to prevent open redirects. */
-function safeRedirectTo(pathname: string): string | null {
-  if (!pathname || !pathname.startsWith('/')) return null;
-  if (pathname.startsWith('//') || pathname.includes(':')) return null;
-  return pathname;
-}
-
 /** Apply security headers to a response. */
 function applySecurityHeaders(response: NextResponse): NextResponse {
   const headers = new Headers(response.headers);
   headers.set('X-Frame-Options', 'DENY');
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()');
   return new NextResponse(response.body, {
     status: response.status,
     statusText: response.statusText,

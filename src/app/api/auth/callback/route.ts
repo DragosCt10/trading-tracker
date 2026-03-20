@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { ensureDefaultAccount } from '@/lib/server/accounts';
+import { safeRedirectTo } from '@/lib/safeRedirect';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -15,9 +16,8 @@ export async function GET(request: Request) {
     return NextResponse.redirect(url);
   }
 
-  // Validate next — must be a relative path to prevent open redirects
-  let next = searchParams.get('next') ?? '/stats';
-  if (!next.startsWith('/')) next = '/stats';
+  // Validate next — must be a safe relative path to prevent open redirects
+  const next = safeRedirectTo(searchParams.get('next') ?? '') ?? '/stats';
 
   if (code) {
     const supabase = await createClient();
