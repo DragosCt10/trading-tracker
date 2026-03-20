@@ -78,7 +78,8 @@ function resolveFromRow(row: SubscriptionRow): ResolvedSubscription {
   const isActive =
     row.status === 'active' ||
     row.status === 'trialing' ||
-    row.status === 'admin_granted';
+    row.status === 'admin_granted' ||
+    row.status === 'past_due';
 
   return {
     tier: isActive ? row.tier : 'starter',
