@@ -11,6 +11,8 @@ import {
   Lightbulb,
   Palette,
   Settings,
+  Crown,
+  Sparkles,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -121,7 +123,6 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
   );
 
   const tierDef = TIER_DEFINITIONS[tier ?? 'starter'];
-  const starterBadgeLabel = TIER_DEFINITIONS.starter.badge.label;
   const isPro = tier === 'pro' || tier === 'elite';
 
   return (
@@ -134,18 +135,17 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               href="/"
               className="flex items-center font-semibold text-slate-900 dark:text-slate-50"
             >
-              <Logo className="absolute top-2.5 lg:w-10 lg:h-10 w-12 h-12" />
+              <Logo className="absolute top-2.5 lg:w-8.5 lg:h-8.5 w-12 h-12" />
               <div className="hidden lg:flex flex-col ml-9 leading-none">
-                <span className="text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                <span className="text-sm font-semibold tracking-widest text-slate-900 dark:text-slate-50">
                   AlphaStats
                 </span>
-                <span
+                {/* <span
                   className="text-[9px] font-bold uppercase tracking-widest bg-clip-text text-transparent"
                   style={{ backgroundImage: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent))' }}
                 >
-                  {/* Avoid hydration mismatch: tier comes from async query; SSR and client initial paint can differ. */}
                   {mounted ? tierDef.badge.label : starterBadgeLabel}
-                </span>
+                </span> */}
               </div>
             </Link>
 
@@ -192,6 +192,40 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
 
           {/* Right actions — same style as Edit btn (EditAccountAlertDialog), icon only */}
           <div className="ml-auto hidden items-center gap-2 lg:flex">
+            {/* Tier badge */}
+            {mounted && (
+              <span
+                className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 select-none"
+                style={isPro ? { border: '1px solid rgba(251,191,36,0.45)' } : { border: '1px solid var(--tc-border)' }}
+              >
+                {isPro
+                  ? <Crown className="h-3 w-3 shrink-0" style={{ color: '#fbbf24' }} />
+                  : <Sparkles className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
+                }
+                <span
+                  className="text-[10px] font-bold uppercase tracking-widest"
+                  style={
+                    isPro
+                      ? {
+                          backgroundImage: 'linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #b45309 100%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                        }
+                      : {
+                          backgroundImage: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                        }
+                  }
+                >
+                  {tierDef.badge.label}
+                </span>
+              </span>
+            )}
+
+            <Separator orientation="vertical" className="mx-1.5 h-6" />
             <Button
               type="button"
               size="sm"
@@ -240,27 +274,6 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                 </svg>
               )}
             </Button>
-
-            {/* Tier badge */}
-            {mounted && (
-              <span
-                className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white select-none"
-                style={
-                  isPro
-                    ? {
-                        background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #b45309 100%)',
-                        border: '1px solid rgba(251,191,36,0.45)',
-                        boxShadow: '0 1px 8px rgba(251,191,36,0.35)',
-                      }
-                    : {
-                        background: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
-                        border: '1px solid var(--tc-border)',
-                      }
-                }
-              >
-                {tierDef.badge.label}
-              </span>
-            )}
 
             <Separator orientation="vertical" className="mx-1.5 h-6" />
             <Button
@@ -416,21 +429,33 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                 {mounted && (
                   <div className="w-full flex items-center justify-center py-0.5">
                     <span
-                      className="inline-flex items-center rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white select-none"
-                      style={
-                        isPro
-                          ? {
-                              background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #b45309 100%)',
-                              border: '1px solid rgba(251,191,36,0.45)',
-                              boxShadow: '0 1px 8px rgba(251,191,36,0.35)',
-                            }
-                          : {
-                              background: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
-                              border: '1px solid var(--tc-border)',
-                            }
-                      }
+                      className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 select-none"
+                      style={isPro ? { border: '1px solid rgba(251,191,36,0.45)' } : { border: '1px solid var(--tc-border)' }}
                     >
-                      {tierDef.badge.label}
+                      {isPro
+                        ? <Crown className="h-3 w-3 shrink-0" style={{ color: '#fbbf24' }} />
+                        : <Sparkles className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
+                      }
+                      <span
+                        className="text-[10px] font-bold uppercase tracking-widest"
+                        style={
+                          isPro
+                            ? {
+                                backgroundImage: 'linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #b45309 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                backgroundClip: 'text',
+                              }
+                            : {
+                                backgroundImage: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                backgroundClip: 'text',
+                              }
+                        }
+                      >
+                        {tierDef.badge.label}
+                      </span>
                     </span>
                   </div>
                 )}
