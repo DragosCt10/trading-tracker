@@ -69,6 +69,25 @@ const SESSION_OPTIONS = ['Sydney', 'Tokyo', 'London', 'New York'] as const;
 const SCREEN_TIMEFRAME_OPTIONS = ['4H', '1H', '15m', '5m', '3m', '1m', 'Custom'] as const;
 const SCREEN_TIMEFRAME_PRESET_OPTIONS = ['4H', '1H', '15m', '5m', '3m', '1m'] as const;
 
+/**
+ * Validates custom screenshot TF strings:
+ * - must be a number + suffix
+ * - suffix can only be: `m`, `H`, `s` (example: `10s`, `2H`, `15m`)
+ * - returns normalized value (H uppercase, m/s lowercase) or null when invalid.
+ */
+function normalizeCustomTradeScreenTimeframe(raw: string): string | null {
+  const v = raw.trim();
+  if (!v) return '';
+  const match = v.match(/^(\d+(?:\.\d+)?)([mHs])$/i);
+  if (!match) return null;
+  const numberPart = match[1];
+  const suffixRaw = match[2];
+  const suffixNormalized = suffixRaw.toLowerCase() === 'h' ? 'H' : suffixRaw.toLowerCase();
+  // Ensure only m, H, s are allowed
+  if (suffixNormalized !== 'H' && suffixNormalized !== 'm' && suffixNormalized !== 's') return null;
+  return `${numberPart}${suffixNormalized}`;
+}
+
 // FVG Size: preset list 0.5, 1, 1.5, 2, 2.5, 3 (0.5 steps). Custom (3+) for 3.5, 4, 4.5, ...
 const FVG_SIZE_OPTIONS: { value: number; label: string }[] = [
   { value: 0.5, label: '0.5' },
@@ -814,6 +833,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                       if (screenUrl !== '') return;
                       const currentTf = (trade.trade_screen_timeframes?.[i] ?? '').trim();
                       if (currentTf === '') return;
+                    const isPresetTf = SCREEN_TIMEFRAME_PRESET_OPTIONS.includes(
+                      currentTf as (typeof SCREEN_TIMEFRAME_PRESET_OPTIONS)[number]
+                    );
+                    // Keep custom values (e.g. 10s, 2H) even when focus leaves the block.
+                    if (currentTf !== 'Custom' && !isPresetTf) return;
                       const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
                       next[i] = '';
                       updateTrade('trade_screen_timeframes', next);
@@ -836,9 +860,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                                 next[i] = tf;
                               }
                               updateTrade('trade_screen_timeframes', next);
-                              if (tf === 'Custom') {
-                                setTimeout(() => customTfInputRefs.current[i]?.focus(), 0);
-                              }
                             }}
                             className={`h-7 px-2 rounded-md border text-[11px] font-semibold transition-colors cursor-pointer ${
                               (tf === 'Custom' && (currentTf === 'Custom' || isCustomTf)) ||
@@ -865,9 +886,22 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                           updateTrade('trade_screen_timeframes', next);
                         }}
                         onBlur={(e) => {
-                          if (e.target.value.trim() !== '') return;
+                          const normalized = normalizeCustomTradeScreenTimeframe(e.target.value);
+                          if (normalized === '') {
+                            const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
+                            next[i] = '';
+                            updateTrade('trade_screen_timeframes', next);
+                            return;
+                          }
+                          if (normalized === null) {
+                            const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
+                            next[i] = '';
+                            updateTrade('trade_screen_timeframes', next);
+                            return;
+                          }
+                          // If valid, normalize casing and persist
                           const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
-                          next[i] = '';
+                          next[i] = normalized;
                           updateTrade('trade_screen_timeframes', next);
                         }}
                         className="h-9 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 themed-focus text-slate-900 dark:text-slate-50"
@@ -910,6 +944,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                         if (screenUrl !== '') return;
                         const currentTf = (trade.trade_screen_timeframes?.[i] ?? '').trim();
                         if (currentTf === '') return;
+                        const isPresetTf = SCREEN_TIMEFRAME_PRESET_OPTIONS.includes(
+                          currentTf as (typeof SCREEN_TIMEFRAME_PRESET_OPTIONS)[number]
+                        );
+                        // Keep custom values (e.g. 10s, 2H) even when focus leaves the block.
+                        if (currentTf !== 'Custom' && !isPresetTf) return;
                         const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
                         next[i] = '';
                         updateTrade('trade_screen_timeframes', next);
@@ -932,9 +971,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                                   next[i] = tf;
                                 }
                                 updateTrade('trade_screen_timeframes', next);
-                                if (tf === 'Custom') {
-                                  setTimeout(() => customTfInputRefs.current[i]?.focus(), 0);
-                                }
                               }}
                               className={`h-7 px-2 rounded-md border text-[11px] font-semibold transition-colors cursor-pointer ${
                                 (tf === 'Custom' && (currentTf === 'Custom' || isCustomTf)) ||
@@ -961,9 +997,21 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                             updateTrade('trade_screen_timeframes', next);
                           }}
                           onBlur={(e) => {
-                            if (e.target.value.trim() !== '') return;
+                            const normalized = normalizeCustomTradeScreenTimeframe(e.target.value);
+                            if (normalized === '') {
+                              const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
+                              next[i] = '';
+                              updateTrade('trade_screen_timeframes', next);
+                              return;
+                            }
+                            if (normalized === null) {
+                              const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
+                              next[i] = '';
+                              updateTrade('trade_screen_timeframes', next);
+                              return;
+                            }
                             const next = [...(trade.trade_screen_timeframes ?? ['', '', '', ''])];
-                            next[i] = '';
+                            next[i] = normalized;
                             updateTrade('trade_screen_timeframes', next);
                           }}
                           className="h-9 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 themed-focus text-slate-900 dark:text-slate-50"
