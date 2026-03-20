@@ -50,13 +50,14 @@ async function ensureUserForPolarEmail(email: string): Promise<string | null> {
   if (existingUserId) return existingUserId;
 
   const supabase = createServiceRoleClient();
-  const { data, error } = await supabase.auth.admin.inviteUserByEmail(normalizedEmail, {
-    redirectTo: `${getAppUrl()}/update-password`,
-    data: { source: 'polar_checkout' },
+  const { data, error } = await supabase.auth.admin.createUser({
+    email: normalizedEmail,
+    email_confirm: true,
+    user_metadata: { source: 'polar_checkout' },
   });
 
   if (error) {
-    console.error(`[billing/webhook] inviteUserByEmail failed email=${normalizedEmail}`, error);
+    console.error(`[billing/webhook] createUser failed email=${normalizedEmail}`, error);
     // Handle possible race where user was created concurrently.
     return findUserIdByEmail(normalizedEmail);
   }
@@ -65,6 +66,15 @@ async function ensureUserForPolarEmail(email: string): Promise<string | null> {
   if (!newUserId) return null;
 
   await ensureDefaultAccountForUserId(newUserId);
+
+  // Send a magic link so the user can log in immediately — no password setup required.
+  const { error: otpError } = await supabase.auth.signInWithOtp({
+    email: normalizedEmail,
+    options: { shouldCreateUser: false, emailRedirectTo: getAppUrl() },
+  });
+  if (otpError) {
+    console.error(`[billing/webhook] signInWithOtp failed email=${normalizedEmail}`, otpError);
+  }
 
   console.log(`[billing/webhook] created_user_from_polar email=${normalizedEmail} userId=${newUserId}`);
   return newUserId;
