@@ -238,16 +238,66 @@ async function processWebhookAction(action: Awaited<ReturnType<ReturnType<typeof
     case 'order.created': {
       console.log(`[billing/webhook] order.created orderId=${action.orderId} amount=$${action.amountUsd} userId=${action.userId ?? '—'} customerId=${action.providerCustomerId ?? '—'}`);
       const supabaseOrder = createServiceRoleClient();
-      const pricePayload = {
-        price_amount: action.amountCents,
-        tax_amount: action.taxCents,
-        currency: action.currency,
-        updated_at: new Date().toISOString(),
-      };
-      if (action.userId) {
-        await supabaseOrder.from('subscriptions').update(pricePayload).eq('user_id', action.userId);
-      } else if (action.providerCustomerId) {
-        await supabaseOrder.from('subscriptions').update(pricePayload).eq('provider_customer_id', action.providerCustomerId);
+
+      if (action.subscription) {
+        // Upsert the full subscription row — handles the race where order.created arrives
+        // before subscription.updated and there is no row to UPDATE yet.
+        const sub = action.subscription;
+
+        let resolvedUserId = action.userId;
+        if (!resolvedUserId) {
+          const email = sub.customerEmail;
+          resolvedUserId = email ? await findUserIdByEmail(email) : null;
+        }
+        if (!resolvedUserId) {
+          console.log(`[billing/webhook] order.created ignored reason=no_user_resolution orderId=${action.orderId}`);
+          break;
+        }
+
+        const { data: existing } = await supabaseOrder
+          .from('subscriptions')
+          .select('provider')
+          .eq('user_id', resolvedUserId)
+          .maybeSingle();
+
+        if (existing?.provider === 'admin') {
+          console.log(`[billing/webhook] order.created skipping upsert — admin grant protected userId=${resolvedUserId}`);
+          break;
+        }
+
+        const { error } = await supabaseOrder.from('subscriptions').upsert(
+          {
+            user_id: resolvedUserId,
+            tier: sub.tierId,
+            status: sub.status,
+            billing_period: sub.billingPeriod,
+            provider: 'polar',
+            provider_subscription_id: sub.providerSubscriptionId,
+            provider_customer_id: sub.providerCustomerId,
+            current_period_start: sub.periodStart.toISOString(),
+            current_period_end: sub.periodEnd.toISOString(),
+            cancel_at_period_end: sub.cancelAtPeriodEnd,
+            price_amount: action.amountCents,
+            tax_amount: action.taxCents,
+            currency: action.currency,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id' }
+        );
+        if (error) console.error('[billing/webhook] order.created upsert error:', error.message);
+      } else {
+        // No embedded subscription — fall back to a plain UPDATE on existing row.
+        const pricePayload = {
+          price_amount: action.amountCents,
+          tax_amount: action.taxCents,
+          currency: action.currency,
+          updated_at: new Date().toISOString(),
+        };
+        if (action.userId) {
+          await supabaseOrder.from('subscriptions').update(pricePayload).eq('user_id', action.userId);
+        } else if (action.providerCustomerId) {
+          await supabaseOrder.from('subscriptions').update(pricePayload).eq('provider_customer_id', action.providerCustomerId);
+        }
       }
       break;
     }
