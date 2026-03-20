@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
+import { createClient as createAnonClient } from '@supabase/supabase-js';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getPaymentProvider } from '@/lib/billing';
 import { ensureDefaultAccountForUserId } from '@/lib/server/accounts';
@@ -68,7 +69,12 @@ async function ensureUserForPolarEmail(email: string): Promise<string | null> {
   await ensureDefaultAccountForUserId(newUserId);
 
   // Send a magic link so the user can log in immediately — no password setup required.
-  const { error: otpError } = await supabase.auth.signInWithOtp({
+  // Must use anon key client; service role bypasses Supabase's email sending for OTP.
+  const anonClient = createAnonClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+  const { error: otpError } = await anonClient.auth.signInWithOtp({
     email: normalizedEmail,
     options: { shouldCreateUser: false, emailRedirectTo: getAppUrl() },
   });
@@ -232,17 +238,19 @@ async function processWebhookAction(action: Awaited<ReturnType<ReturnType<typeof
     }
 
     case 'order.created': {
-      console.log(`[billing/webhook] order.created orderId=${action.orderId} amount=$${action.amountUsd} userId=${action.userId}`);
+      console.log(`[billing/webhook] order.created orderId=${action.orderId} amount=$${action.amountUsd} userId=${action.userId ?? '—'} customerId=${action.providerCustomerId ?? '—'}`);
       const supabaseOrder = createServiceRoleClient();
-      await supabaseOrder
-        .from('subscriptions')
-        .update({
-          price_amount: action.amountCents,
-          tax_amount: action.taxCents,
-          currency: action.currency,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', action.userId);
+      const pricePayload = {
+        price_amount: action.amountCents,
+        tax_amount: action.taxCents,
+        currency: action.currency,
+        updated_at: new Date().toISOString(),
+      };
+      if (action.userId) {
+        await supabaseOrder.from('subscriptions').update(pricePayload).eq('user_id', action.userId);
+      } else if (action.providerCustomerId) {
+        await supabaseOrder.from('subscriptions').update(pricePayload).eq('provider_customer_id', action.providerCustomerId);
+      }
       break;
     }
 

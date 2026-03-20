@@ -41,7 +41,8 @@ export type WebhookAction =
   | {
       type: 'order.created';
       orderId: string;
-      userId: string;
+      userId: string | null;
+      providerCustomerId: string | null;
       amountUsd: number;
       amountCents: number;
       taxCents: number;

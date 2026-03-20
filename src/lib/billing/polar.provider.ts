@@ -319,17 +319,20 @@ export class PolarProvider implements IPaymentProvider {
     if (type === 'order.created') {
       const order = (event as any).data;
       const userId = getUserId(order.metadata);
-      if (!userId) return { type: 'ignore' };
+      const providerCustomerId = typeof order.customerId === 'string' ? order.customerId
+        : typeof order.customer_id === 'string' ? order.customer_id
+        : null;
 
       const amountCents = (order.amount ?? 0) as number;
       const taxCents = (order.tax_amount ?? order['taxAmount'] ?? 0) as number;
       const currency = ((order.currency ?? 'usd') as string).toLowerCase();
 
-      console.log(`[billing/webhook] action=order.created userId=${userId}`);
+      console.log(`[billing/webhook] action=order.created userId=${userId ?? '—'} customerId=${providerCustomerId ?? '—'}`);
       return {
         type: 'order.created',
         orderId: order.id,
         userId,
+        providerCustomerId,
         amountUsd: amountCents / 100,
         amountCents,
         taxCents,
