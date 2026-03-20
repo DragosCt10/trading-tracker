@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { CreditCard, Loader2, Lock } from 'lucide-react';
+import { AlertTriangle, CreditCard, Loader2, Lock } from 'lucide-react';
 import {
   cancelCurrentSubscription,
   createCheckoutUrl,
@@ -218,6 +218,26 @@ export function BillingSettingsPanel({
         <div className="mb-6 flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-300 backdrop-blur-sm">
           <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
           <span>Payment processing... your plan will update in a few seconds.</span>
+        </div>
+      )}
+
+      {resolvedSub.status === 'past_due' && (
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-300 backdrop-blur-sm">
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <span className="font-medium">Payment failed.</span>{' '}
+            Your Pro access is active during the grace period, but may be interrupted soon if payment
+            isn&apos;t resolved.
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isPortalPending}
+            onClick={handlePortal}
+            className="shrink-0 rounded-xl border-red-500/40 text-red-600 dark:text-red-300 hover:bg-red-500/10 dark:hover:bg-red-500/20"
+          >
+            {isPortalPending ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Update payment method'}
+          </Button>
         </div>
       )}
 
