@@ -10,7 +10,6 @@ import { useTheme } from '@/hooks/useTheme';
 import { loginAction } from '@/lib/server/auth';
 import { ThemePickerModal } from '@/components/shared/ThemePickerModal';
 import GoogleButton from '@/components/auth/GoogleButton';
-import { createClient } from '@/utils/supabase/client';
 
 /** Only allow relative path for post-login redirect (prevent open redirect). */
 function safeRedirectPath(path: string | null): string | null {
@@ -49,17 +48,6 @@ export default function LoginPage() {
       router.push(to ?? '/stats');
     }
   }, [userData, router, searchParams]);
-
-  // Handle magic link hash tokens (implicit flow) — e.g. from Polar checkout email
-  useEffect(() => {
-    const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        window.location.href = safeRedirectPath(searchParams.get('redirectTo')) ?? '/stats';
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
