@@ -104,9 +104,10 @@ export function CustomStatDetailView({
         const bVal = new Date(b.trade_date).getTime();
         cmp = bVal - aVal;
       } else {
-        const aValue = (a as Record<string, unknown>)[sortField];
-        const bValue = (b as Record<string, unknown>)[sortField];
-        cmp = aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+        // Remaining case: sortField === 'market'
+        const aValue = a.market ?? '';
+        const bValue = b.market ?? '';
+        cmp = aValue.localeCompare(bValue);
       }
       if (cmp !== 0) return cmp;
       return (a.id ?? '').localeCompare(b.id ?? '');
