@@ -231,10 +231,10 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               size="sm"
               variant="ghost"
               onClick={openThemePicker}
-              className="cursor-pointer h-8 w-8 rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 p-0 flex items-center justify-center transition-colors duration-200"
+              className="cursor-pointer h-8 w-8 rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 p-0 flex items-center justify-center transition-colors duration-200 group"
               aria-label="Color theme"
             >
-              <Palette className="h-4 w-4" />
+              <Palette className="h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
             </Button>
             <Button
               type="button"
@@ -283,8 +283,8 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               className={cn(navButtonClass(isSettingsActive), 'h-8 w-8 p-0')}
               aria-label="Settings"
             >
-              <Link href="/settings?tab=billing" className="flex items-center justify-center">
-                <Settings className="h-4 w-4" />
+              <Link href="/settings?tab=billing" className="group flex items-center justify-center">
+                <Settings className="h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
               </Link>
             </Button>
 
@@ -319,7 +319,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                     />
                   </svg>
                 ) : (
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-4 w-4 group-hover:scale-110 transition-transform duration-300" />
                 )}
               </span>
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
