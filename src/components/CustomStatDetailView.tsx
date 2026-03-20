@@ -149,11 +149,12 @@ export function CustomStatDetailView({
           <button
             type="button"
             onClick={onBack}
-            className="mt-0.5 inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-400 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 transition-colors cursor-pointer shrink-0 text-xs font-medium"
+            className="mt-0.5 inline-flex items-center gap-1.5 h-8 px-3 rounded-xl themed-btn-primary cursor-pointer relative overflow-hidden text-white font-semibold border-0 text-xs group [&_svg]:text-white"
             aria-label="Back to Custom Stats"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Back to Custom Stats</span>
+            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
           </button>
         </div>
       </div>
