@@ -26,7 +26,7 @@ export default function SocialNavActions({ userId }: SocialNavActionsProps) {
   const [themePickerOpen, setThemePickerOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
-  const { tier } = useSubscription({ userId: userId ?? undefined });
+  const { tier, isLoading } = useSubscription({ userId: userId ?? undefined });
   const tierDef = TIER_DEFINITIONS[tier ?? 'starter'];
   const isPro = tier === 'pro' || tier === 'elite';
 
@@ -73,30 +73,37 @@ export default function SocialNavActions({ userId }: SocialNavActionsProps) {
       <div className="flex items-center gap-2">
         {/* Tier badge — auth only */}
         {userId && mounted && (
-          <span
-            className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 select-none"
-            style={isPro ? { border: `1px solid ${proBorderColor}` } : { border: '1px solid var(--tc-border)' }}
-          >
-            {isPro
-              ? <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
-              : <Sparkles className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
-            }
+          isLoading ? (
             <span
-              className="text-[10px] font-bold uppercase tracking-widest"
-              style={
-                isPro
-                  ? proTextStyle
-                  : {
-                      backgroundImage: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text',
-                    }
-              }
+              className="h-5 w-16 rounded-md border border-slate-200/70 bg-slate-200/70 dark:border-slate-700/60 dark:bg-slate-700/50 animate-pulse"
+              aria-label="Loading subscription tier"
+            />
+          ) : (
+            <span
+              className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 select-none"
+              style={isPro ? { border: `1px solid ${proBorderColor}` } : { border: '1px solid var(--tc-border)' }}
             >
-              {tierDef.badge.label}
+              {isPro
+                ? <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
+                : <Sparkles className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
+              }
+              <span
+                className="text-[10px] font-bold uppercase tracking-widest"
+                style={
+                  isPro
+                    ? proTextStyle
+                    : {
+                        backgroundImage: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                      }
+                }
+              >
+                {tierDef.badge.label}
+              </span>
             </span>
-          </span>
+          )
         )}
 
         {userId && <Separator orientation="vertical" className="mx-1 h-6" />}
