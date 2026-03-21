@@ -19,15 +19,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
-import { buildEquityPointsFromTrades } from '@/components/dashboard/analytics/EquityCurveCard';
+import { buildEquityPointsFromTrades } from '@/utils/equityPoints';
 import { TotalTradesDonut } from '@/components/dashboard/analytics/TotalTradesChartCard';
 import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';
 import { TradeCardsView } from '@/components/trades/TradeCardsView';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import {
-  computeMonthlyStatsFromTrades,
   calculateTotalYearProfit,
-} from '@/components/dashboard/analytics/AccountOverviewCard';
+  computeMonthlyStatsFromTrades,
+} from '@/utils/accountOverviewHelpers';
 import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
 import { calculateWinRates } from '@/utils/calculateWinRates';
 import { calculateAverageDrawdown } from '@/utils/analyticsCalculations';
