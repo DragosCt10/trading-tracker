@@ -20,8 +20,6 @@ import { useBECalc } from '@/contexts/BECalcContext';
 import { buildPreviewTrade } from '@/utils/previewTrades';
 import { ComposedBarWinRateChart, type BarWinRateChartDatum } from './ComposedBarWinRateChart';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { DashboardCardHeaderAction } from './DashboardCardHeaderAction';
-
 export interface NewsNameChartCardProps {
   trades: Trade[];
   isLoading?: boolean;
@@ -295,6 +293,16 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
               );
             })}
           </div>
+          {/* PRO hide/expand — inline after filters so it does not overlap Intensity buttons */}
+          {headerAction != null ? (
+            <>
+              <div
+                className="h-5 w-px shrink-0 self-center bg-slate-200/90 dark:bg-slate-600/80"
+                aria-hidden
+              />
+              <div className="flex items-center shrink-0">{headerAction}</div>
+            </>
+          ) : null}
         </div>
       </CardHeader>
     );
@@ -305,7 +313,6 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     if (!mounted || isLoading) {
       return wrapLockedCard(
         <Card className={cn(CARD_CLASS, !bodyVisible && '!h-auto min-h-0')}>
-          <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
           {isLocked && (
             <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
               <Crown className="w-3 h-3" /> PRO
@@ -340,7 +347,6 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
       const activeLabel = INTENSITY_OPTIONS.find((o) => o.value === intensityFilter)?.label;
       return wrapLockedCard(
         <Card className={cn(CARD_CLASS, !bodyVisible && '!h-auto min-h-0')}>
-          <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
           {isLocked && (
             <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
               <Crown className="w-3 h-3" /> PRO
@@ -386,7 +392,6 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     /* ------------------------------------------------------------------ */
     return wrapLockedCard(
       <Card className={cn(CARD_CLASS, !bodyVisible && '!h-auto min-h-0')}>
-        <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
         {isLocked && (
           <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
             <Crown className="w-3 h-3" /> PRO
