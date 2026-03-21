@@ -70,16 +70,6 @@ export async function getNotes(
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false });
 
-    // Filter by strategy if provided
-    if (options?.strategyId !== undefined) {
-      if (options.strategyId === null) {
-        // Get notes without strategy
-        query = query.is('strategy_id', null);
-      } else {
-        query = query.eq('strategy_id', options.strategyId);
-      }
-    }
-
     const { data, error } = await query;
 
     if (error) {
@@ -87,9 +77,24 @@ export async function getNotes(
       return [];
     }
 
+    const filteredNotes = (data || []).filter((note: any) => {
+      if (options?.strategyId === undefined) return true;
+
+      const strategyIds = Array.isArray(note.strategy_ids)
+        ? note.strategy_ids.filter(Boolean)
+        : [];
+
+      if (options.strategyId === null) {
+        // "No strategy" means neither legacy strategy_id nor any value in strategy_ids.
+        return !note.strategy_id && strategyIds.length === 0;
+      }
+
+      return note.strategy_id === options.strategyId || strategyIds.includes(options.strategyId);
+    });
+
     // Fetch strategies for all notes that have strategy_ids
     const allStrategyIds = new Set<string>();
-    (data || []).forEach((note: any) => {
+    filteredNotes.forEach((note: any) => {
       if (note.strategy_ids && Array.isArray(note.strategy_ids)) {
         note.strategy_ids.forEach((id: string) => allStrategyIds.add(id));
       }
@@ -112,7 +117,7 @@ export async function getNotes(
 
     // Resolve full linked trades in one batch (for list hover + modal, no extra fetch on click)
     const allRefs: TradeRef[] = [];
-    (data || []).forEach((note: any) => {
+    filteredNotes.forEach((note: any) => {
       if (Array.isArray(note.trade_refs) && note.trade_refs.length > 0) {
         note.trade_refs.forEach((r: TradeRef) => allRefs.push(r));
       }
@@ -127,7 +132,7 @@ export async function getNotes(
       });
     }
 
-    return (data || []).map((note: any) => {
+    return filteredNotes.map((note: any) => {
       const strategy = note.strategy ? {
         id: note.strategy.id,
         name: note.strategy.name,

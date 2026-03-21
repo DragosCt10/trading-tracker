@@ -36,6 +36,9 @@ interface AvgWinLossCardProps {
   isLoading?: boolean;
   isPro?: boolean;
 }
+const LOCKED_CARD_TOOLTIP_TEXT = 'The data shown under the blur card is fictive and for demo purposes only.';
+const LOCKED_CARD_TOOLTIP_CLASS =
+  'max-w-sm text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50';
 
 function formatCurrency(value: number, symbol = '$'): string {
   if (!isFinite(value)) return '–';
@@ -142,7 +145,7 @@ export function AvgWinLossCard({ trades: rawTrades, currencySymbol = '$', isLoad
     );
   }
 
-  return (
+  const card = (
     <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
       {isLocked && (
         <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
@@ -246,5 +249,25 @@ export function AvgWinLossCard({ trades: rawTrades, currencySymbol = '$', isLoad
         </CardContent>
       </div>
     </Card>
+  );
+
+  if (!isLocked) {
+    return card;
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip delayDuration={120}>
+        <TooltipTrigger asChild>{card}</TooltipTrigger>
+        <TooltipContent
+          side="top"
+          align="start"
+          sideOffset={8}
+          className={LOCKED_CARD_TOOLTIP_CLASS}
+        >
+          {LOCKED_CARD_TOOLTIP_TEXT}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

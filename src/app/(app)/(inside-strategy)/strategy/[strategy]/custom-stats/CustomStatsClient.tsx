@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Crown, Eye, Pencil, Plus, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -12,26 +12,15 @@ import type { Trade } from '@/types/trade';
 import type { Database } from '@/types/supabase';
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { CustomStatConfig } from '@/types/customStats';
-import {
-  buildPresetRange,
-  isCustomDateRange,
-  createAllTimeRange,
-  type DateRangeState,
-  type FilterType,
-} from '@/utils/dateRangeHelpers';
-import {
-  TradeFiltersBar,
-  type DateRangeValue,
-} from '@/components/dashboard/analytics/TradeFiltersBar';
+import { TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { calculateWinRates } from '@/utils/calculateWinRates';
-import { useActionBarSelection } from '@/hooks/useActionBarSelection';
-import { useUserDetails } from '@/hooks/useUserDetails';
-import { getFilteredTrades } from '@/lib/server/trades';
 import { queryKeys } from '@/lib/queryKeys';
-import { TRADES_DATA } from '@/constants/queryConfig';
-import { getCurrencySymbolFromAccount } from '@/components/dashboard/analytics/AccountOverviewCard';
+import { useStrategyClientContext } from '@/hooks/useStrategyClientContext';
+import { useStrategyAllTimeTrades } from '@/hooks/useStrategyAllTimeTrades';
+import { useTradeFilters } from '@/hooks/useTradeFilters';
+import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
-import { buildEquityPointsFromTrades } from '@/components/dashboard/analytics/EquityCurveCard';
+import { buildEquityPointsFromTrades } from '@/utils/equityPoints';
 import { useSubscription } from '@/hooks/useSubscription';
 import { applyCustomStatFilter, buildFilterPills } from '@/utils/applyCustomStatFilter';
 import { buildPreviewTrade } from '@/utils/previewTrades';
@@ -71,65 +60,28 @@ export default function CustomStatsClient({
   currencySymbol: initialCurrencySymbol,
   accountBalance: initialAccountBalance,
 }: CustomStatsClientProps) {
-  const { data: userDetails } = useUserDetails();
   const { beCalcEnabled } = useBECalc();
-  const { selection, setSelection } = useActionBarSelection();
   const queryClient = useQueryClient();
-  const userId = userDetails?.user?.id ?? initialUserId;
-  const { isPro } = useSubscription({ userId });
-  const activeAccount = selection.activeAccount ?? initialActiveAccount;
-
-  useEffect(() => {
-    if (initialActiveAccount && !selection.activeAccount && initialMode) {
-      setSelection({ mode: initialMode, activeAccount: initialActiveAccount });
-    }
-  }, [initialActiveAccount, initialMode, selection.activeAccount, setSelection]);
-
-  const allTime = useMemo(() => createAllTimeRange(), []);
-  const isInitialContext =
-    selection.mode === initialMode && activeAccount?.id === initialActiveAccount?.id;
-
-  const { data: rawTrades, isLoading: tradesLoading } = useQuery<Trade[]>({
-    queryKey: queryKeys.trades.filtered(
-      selection.mode,
-      activeAccount?.id,
-      userId,
-      'all',
-      allTime.startDate,
-      allTime.endDate,
-      strategyId,
-    ),
-    queryFn: async () => {
-      if (!isPro) return [];
-      if (!userId || !activeAccount?.id) return [];
-      return getFilteredTrades({
-        userId,
-        accountId: activeAccount.id,
-        mode: selection.mode,
-        startDate: allTime.startDate,
-        endDate: allTime.endDate,
-        includeNonExecuted: true,
-        strategyId,
-      });
-    },
-    initialData: (isPro && isInitialContext && initialTrades.length > 0) ? initialTrades : undefined,
-    enabled: isPro && !!userId && !!activeAccount?.id,
-    ...TRADES_DATA,
+  const { userId, mode, activeAccount, isInitialContext } = useStrategyClientContext({
+    initialUserId,
+    initialMode,
+    initialActiveAccount,
   });
-
-  const allTradesData = useMemo(
-    () => (isPro ? (rawTrades ?? (isInitialContext && initialTrades.length > 0 ? initialTrades : [])) : []),
-    [isPro, rawTrades, isInitialContext, initialTrades]
-  );
+  const { isPro } = useSubscription({ userId });
+  const { allTradesData, tradesLoading } = useStrategyAllTimeTrades({
+    userId,
+    activeAccountId: activeAccount?.id,
+    mode,
+    strategyId,
+    isPro,
+    initialTrades,
+    isInitialContext,
+  });
 
   const currencySymbol = activeAccount
     ? getCurrencySymbolFromAccount(activeAccount)
     : initialCurrencySymbol;
   const accountBalance = activeAccount?.account_balance ?? initialAccountBalance;
-
-  // Filters (date range only — market and execution are per-card via CustomStatFilter)
-  const [dateRange, setDateRange] = useState<DateRangeState>(() => buildPresetRange('year').dateRange);
-  const [activeFilter, setActiveFilter] = useState<FilterType>('year');
 
   const [mounted] = useState(() => typeof window !== 'undefined');
 
@@ -172,16 +124,17 @@ export default function CustomStatsClient({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<CustomStatConfig | null>(null);
 
-  const isCustomRange = isCustomDateRange(dateRange);
-
-  const earliestTradeDate = useMemo(() => {
-    if (activeFilter !== 'all') return undefined;
-    if (allTradesData.length === 0) return undefined;
-    return allTradesData.reduce(
-      (min: string, t: Trade) => (t.trade_date < min ? t.trade_date : min),
-      allTradesData[0].trade_date
-    );
-  }, [activeFilter, allTradesData]);
+  const {
+    dateRange,
+    activeFilter,
+    isCustomRange,
+    earliestTradeDate,
+    handleFilterChange,
+    handleDateRangeChange,
+  } = useTradeFilters({
+    initialExecution: 'all',
+    tradesForMarkets: allTradesData,
+  });
 
   // Only filter by date range — market/execution are handled per-card by applyCustomStatFilter
   const filteredTrades = useMemo(
@@ -191,23 +144,19 @@ export default function CustomStatsClient({
     [allTradesData, dateRange]
   );
 
-  const handleFilterChange = useCallback((type: FilterType) => {
-    setActiveFilter(type);
-    const { dateRange: nextRange } = buildPresetRange(type);
-    setDateRange(nextRange);
-  }, []);
-
-  const handleDateRangeChange = useCallback((range: DateRangeValue) => {
-    setDateRange(range);
-  }, []);
-
   const persistStats = useCallback(
     async (nextStats: CustomStatConfig[]) => {
+      const previousStats = savedStats;
       setSavedStats(nextStats);
-      await updateStrategyCustomStats(strategyId, userId, nextStats);
-      queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userId) });
+      try {
+        await updateStrategyCustomStats(strategyId, userId, nextStats);
+        queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userId) });
+      } catch (error) {
+        console.error('Failed to persist custom stats:', error);
+        setSavedStats(previousStats);
+      }
     },
-    [strategyId, userId, queryClient]
+    [savedStats, strategyId, userId, queryClient]
   );
 
   const handleSave = useCallback(
@@ -251,6 +200,48 @@ export default function CustomStatsClient({
     () => (detailConfig ? applyCustomStatFilter(filteredTrades, detailConfig.filters) : []),
     [detailConfig, filteredTrades]
   );
+
+  const displayedStats = isPro ? savedStats : previewStats;
+
+  const cardMetricsById = useMemo(() => {
+    return Object.fromEntries(
+      displayedStats.map((config) => {
+        const cardTrades = isPro
+          ? applyCustomStatFilter(filteredTrades, config.filters)
+          : (previewTradesMap[config.id] ?? []);
+        const { winRate, winRateWithBE } = calculateWinRates(cardTrades);
+        const effectiveWinRate = beCalcEnabled ? winRateWithBE : winRate;
+        const filterPills = buildFilterPills(config.filters);
+        const visiblePills = filterPills.slice(0, 3);
+        const extraPillCount = filterPills.length - visiblePills.length;
+        const chartData = buildEquityPointsFromTrades(cardTrades);
+        const totalPnL = cardTrades.reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0);
+        const pnlPercent = (totalPnL / (accountBalance || 1)) * 100;
+
+        return [config.id, {
+          cardTrades,
+          totalTrades: cardTrades.length,
+          effectiveWinRate,
+          filterPills,
+          visiblePills,
+          extraPillCount,
+          chartData,
+          totalPnL,
+          pnlPercent,
+        }];
+      })
+    ) as Record<string, {
+      cardTrades: Trade[];
+      totalTrades: number;
+      effectiveWinRate: number;
+      filterPills: string[];
+      visiblePills: string[];
+      extraPillCount: number;
+      chartData: ReturnType<typeof buildEquityPointsFromTrades>;
+      totalPnL: number;
+      pnlPercent: number;
+    }>;
+  }, [displayedStats, isPro, filteredTrades, previewTradesMap, beCalcEnabled, accountBalance]);
 
   if (detailStatId !== null && detailConfig) {
     return (
@@ -314,19 +305,20 @@ export default function CustomStatsClient({
             <CustomStatsCardsSkeleton />
           ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(isPro ? savedStats : previewStats).map((config) => {
-              const cardTrades = isPro
-                ? applyCustomStatFilter(filteredTrades, config.filters)
-                : (previewTradesMap[config.id] ?? []);
-              const totalTrades = cardTrades.length;
-              const { winRate, winRateWithBE } = calculateWinRates(cardTrades);
-              const effectiveWinRate = beCalcEnabled ? winRateWithBE : winRate;
-              const filterPills = buildFilterPills(config.filters);
-              const visiblePills = filterPills.slice(0, 3);
-              const extraPillCount = filterPills.length - visiblePills.length;
-              const chartData = buildEquityPointsFromTrades(cardTrades);
-              const totalPnL = cardTrades.reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0);
-              const pnlPercent = (totalPnL / (accountBalance || 1)) * 100;
+            {displayedStats.map((config) => {
+              const metrics = cardMetricsById[config.id];
+              if (!metrics) return null;
+              const {
+                cardTrades,
+                totalTrades,
+                effectiveWinRate,
+                filterPills,
+                visiblePills,
+                extraPillCount,
+                chartData,
+                totalPnL,
+                pnlPercent,
+              } = metrics;
 
               const cardContent = (
                 <Card

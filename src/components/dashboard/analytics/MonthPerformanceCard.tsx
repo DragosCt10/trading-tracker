@@ -6,7 +6,7 @@ import { Card, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Trade } from '@/types/trade';
-import { computeMonthlyStatsFromTrades } from '@/components/dashboard/analytics/AccountOverviewCard';
+import { computeMonthlyStatsFromTrades } from '@/utils/accountOverviewHelpers';
 import { computeFullMonthlyStatsFromTrades } from '@/components/dashboard/analytics/MonthlyPerformanceChart';
 
 interface MonthPerformanceCardProps {

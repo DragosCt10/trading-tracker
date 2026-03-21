@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import type { ReactNode } from 'react';
 import { Trade } from '@/types/trade';
 import {
   Card,
@@ -16,11 +17,15 @@ import type { SetupStats } from '@/types/dashboard';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
 import { ComposedBarWinRateChart, type BarWinRateChartDatum } from './ComposedBarWinRateChart';
+import { cn } from '@/lib/utils';
+import { DashboardCardHeaderAction } from './DashboardCardHeaderAction';
 
 export interface SetupStatisticsCardProps {
   setupStats: SetupStats[];
   isLoading?: boolean;
   includeTotalTrades?: boolean;
+  headerAction?: ReactNode;
+  bodyVisible?: boolean;
 }
 
 export function calculateSetupStats(trades: Trade[]): SetupStats[] {
@@ -55,7 +60,13 @@ export function convertFilteredSetupStatsToChartData(setupStats: SetupStats[]): 
 }
 
 export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.memo(
-  function SetupStatisticsCard({ setupStats, isLoading, includeTotalTrades = false }) {
+  function SetupStatisticsCard({
+    setupStats,
+    isLoading,
+    includeTotalTrades = false,
+    headerAction,
+    bodyVisible = true,
+  }) {
     const { mounted, isDark } = useDarkMode();
     const { beCalcEnabled } = useBECalc();
 
@@ -87,7 +98,13 @@ export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.mem
 
     if (!mounted || isLoading) {
       return (
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+        <Card
+          className={cn(
+            'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
+            bodyVisible ? 'h-96' : 'h-auto'
+          )}
+        >
+          <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
           <CardHeader className="pb-2 flex-shrink-0">
             <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
               Pattern / Setup Stats
@@ -96,16 +113,24 @@ export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.mem
               Distribution of trades by trade pattern / setup
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 flex justify-center items-center">
-            <BouncePulse size="md" />
-          </CardContent>
+          {bodyVisible ? (
+            <CardContent className="flex-1 flex justify-center items-center">
+              <BouncePulse size="md" />
+            </CardContent>
+          ) : null}
         </Card>
       );
     }
 
     if (!hasContent) {
       return (
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+        <Card
+          className={cn(
+            'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
+            bodyVisible ? 'h-96' : 'h-auto'
+          )}
+        >
+          <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
           <CardHeader className="pb-2 flex-shrink-0">
             <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
               Pattern / Setup Stats
@@ -114,20 +139,28 @@ export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.mem
               Distribution of trades by trade pattern / setup
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col items-center justify-center">
-            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
-              No trades found
-            </div>
-            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
-              There are no trades to display for this category yet. Start trading to see your statistics here!
-            </div>
-          </CardContent>
+          {bodyVisible ? (
+            <CardContent className="flex-1 flex flex-col items-center justify-center">
+              <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
+                No trades found
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
+                There are no trades to display for this category yet. Start trading to see your statistics here!
+              </div>
+            </CardContent>
+          ) : null}
         </Card>
       );
     }
 
     return (
-      <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+      <Card
+        className={cn(
+          'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
+          bodyVisible ? 'h-96' : 'h-auto'
+        )}
+      >
+        <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
         <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Pattern / Setup Stats
@@ -136,23 +169,25 @@ export const SetupStatisticsCard: React.FC<SetupStatisticsCardProps> = React.mem
             Distribution of trades by trade pattern / setup
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 flex items-end mt-1">
-          <div className="w-full h-[250px]">
-            <ComposedBarWinRateChart
-              data={withTotals as BarWinRateChartDatum[]}
-              xAxisDataKey="category"
-              xAxisTickFormatter={(_: string, i: number) => {
-                const d = withTotals[i];
-                return d ? `${d.category} (${d.totalTrades ?? 0})` : '';
-              }}
-              tooltipHeaderGetter={(d) => String(d.category ?? '')}
-              isDark={isDark}
-              beCalcEnabled={beCalcEnabled}
-              idPrefix="setupStats"
-              lineActiveDot={{ r: 4, fill: '#f59e0b', strokeWidth: 0 }}
-            />
-          </div>
-        </CardContent>
+        {bodyVisible ? (
+          <CardContent className="flex-1 flex items-end mt-1">
+            <div className="w-full h-[250px]">
+              <ComposedBarWinRateChart
+                data={withTotals as BarWinRateChartDatum[]}
+                xAxisDataKey="category"
+                xAxisTickFormatter={(_: string, i: number) => {
+                  const d = withTotals[i];
+                  return d ? `${d.category} (${d.totalTrades ?? 0})` : '';
+                }}
+                tooltipHeaderGetter={(d) => String(d.category ?? '')}
+                isDark={isDark}
+                beCalcEnabled={beCalcEnabled}
+                idPrefix="setupStats"
+                lineActiveDot={{ r: 4, fill: '#f59e0b', strokeWidth: 0 }}
+              />
+            </div>
+          </CardContent>
+        ) : null}
       </Card>
     );
   }

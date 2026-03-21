@@ -23,6 +23,8 @@ interface StatCardProps {
 
 const tooltipClassCalendar = 'w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-300/80 dark:border-slate-700/50 bg-white dark:bg-slate-800/90 backdrop-blur-xl shadow-lg shadow-slate-900/10 dark:shadow-black/40 text-slate-900 dark:text-slate-100';
 const tooltipClassDefault = 'w-72 text-xs sm:text-sm rounded-2xl p-4 relative overflow-hidden border border-slate-300/40 dark:border-slate-800/70 bg-slate-50/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-100';
+const lockedTooltipClass = 'max-w-sm text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50';
+const lockedTooltipText = 'The data shown under the blur card is fictive and for demo purposes only.';
 
 export const StatCard: React.FC<StatCardProps> = React.memo(({
   title,
@@ -36,7 +38,7 @@ export const StatCard: React.FC<StatCardProps> = React.memo(({
 }) => {
   const { isDark } = useDarkMode();
   const useCalendarTooltip = tooltipVariant === 'calendar';
-  return (
+  const card = (
     <Card
       className={cn(
         'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex-1 flex flex-col',
@@ -129,6 +131,26 @@ export const StatCard: React.FC<StatCardProps> = React.memo(({
         )}
       </div>
     </Card>
+  );
+
+  if (!locked) {
+    return card;
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip delayDuration={120}>
+        <TooltipTrigger asChild>{card}</TooltipTrigger>
+        <TooltipContent
+          side="top"
+          align="start"
+          sideOffset={8}
+          className={lockedTooltipClass}
+        >
+          {lockedTooltipText}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 });
 StatCard.displayName = 'StatCard';

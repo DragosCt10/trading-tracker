@@ -19,11 +19,13 @@ import { SetupStatisticsCard } from '@/components/dashboard/analytics/SetupStati
 import { LiquidityStatisticsCard } from '@/components/dashboard/analytics/LiquidityStatisticsCard';
 import {
   AccountOverviewCard,
-  MONTHS,
-  computeMonthlyStatsFromTrades,
-  calculateTotalYearProfit,
-  calculatePnlPercentFromOverview,
 } from '@/components/dashboard/analytics/AccountOverviewCard';
+import {
+  MONTHS,
+  calculatePnlPercentFromOverview,
+  calculateTotalYearProfit,
+  computeMonthlyStatsFromTrades,
+} from '@/utils/accountOverviewHelpers';
 import {
   TradesCalendarCard,
   getDaysInMonthForDate,
@@ -79,7 +81,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { buildEquityPointsFromTrades } from '@/components/dashboard/analytics/EquityCurveCard';
+import { buildEquityPointsFromTrades } from '@/utils/equityPoints';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
 import { TotalTradesDonut } from '@/components/dashboard/analytics/TotalTradesChartCard';
 import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';

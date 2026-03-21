@@ -165,20 +165,23 @@ export default function NotesClient({
     setSelectedNote(null);
     setIsModalOpen(false);
   };
+  const invalidateNotesForUser = () => {
+    queryClient.invalidateQueries({ queryKey: ['notes', userId] });
+  };
 
   const handleNoteCreated = () => {
     setIsNewNoteModalOpen(false);
-    queryClient.invalidateQueries({ queryKey: ['notes'] });
+    invalidateNotesForUser();
   };
 
   const handleNoteUpdated = () => {
     setIsModalOpen(false);
-    queryClient.invalidateQueries({ queryKey: ['notes'] });
+    invalidateNotesForUser();
   };
 
   const handleNoteDeleted = () => {
     setIsModalOpen(false);
-    queryClient.invalidateQueries({ queryKey: ['notes'] });
+    invalidateNotesForUser();
   };
 
   return (

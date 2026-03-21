@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { Crown } from 'lucide-react';
 import { Trade } from '@/types/trade';
 import {
@@ -18,17 +19,24 @@ import type { MarketStats, BaseStats } from '@/types/dashboard';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
 import { ComposedBarWinRateChart, type BarWinRateChartDatum } from './ComposedBarWinRateChart';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DashboardCardHeaderAction } from './DashboardCardHeaderAction';
 
 type MarketStatsLike = BaseStats & {
   market?: string;
   total?: number;
 };
+const LOCKED_CARD_TOOLTIP_TEXT = 'The data shown under the blur card is fictive and for demo purposes only.';
+const LOCKED_CARD_TOOLTIP_CLASS =
+  'max-w-sm text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50';
 
 export interface MarketStatisticsCardProps {
   marketStats: MarketStatsLike[];
   isLoading?: boolean;
   includeTotalTrades?: boolean;
   isPro?: boolean;
+  headerAction?: ReactNode;
+  bodyVisible?: boolean;
 }
 
 
@@ -63,11 +71,39 @@ export function convertFilteredMarketStatsToChartData(marketStats: MarketStatsLi
 }
 
 export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.memo(
-  function MarketStatisticsCard({ marketStats: rawMarketStats, isLoading, includeTotalTrades = false, isPro }) {
+  function MarketStatisticsCard({
+    marketStats: rawMarketStats,
+    isLoading,
+    includeTotalTrades = false,
+    isPro,
+    headerAction,
+    bodyVisible = true,
+  }) {
     const { mounted, isDark } = useDarkMode();
     const { beCalcEnabled } = useBECalc();
 
     const isLocked = !isPro;
+    const wrapLockedCard = (card: React.ReactElement) => {
+      if (!isLocked) {
+        return card;
+      }
+
+      return (
+        <TooltipProvider>
+          <Tooltip delayDuration={120}>
+            <TooltipTrigger asChild>{card}</TooltipTrigger>
+            <TooltipContent
+              side="top"
+              align="start"
+              sideOffset={8}
+              className={LOCKED_CARD_TOOLTIP_CLASS}
+            >
+              {LOCKED_CARD_TOOLTIP_TEXT}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    };
 
     const previewMarketStats = useMemo<MarketStatsLike[]>(
       () => [
@@ -131,8 +167,14 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
     );
 
     if (!mounted || isLoading) {
-      return (
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+      return wrapLockedCard(
+        <Card
+          className={cn(
+            'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
+            bodyVisible ? 'h-96' : 'h-auto'
+          )}
+        >
+          <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
           {isLocked && (
             <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
               <Crown className="w-3 h-3" /> PRO
@@ -146,16 +188,24 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
               Distribution of trades based on market
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 flex justify-center items-center">
-            <BouncePulse size="md" />
-          </CardContent>
+          {bodyVisible ? (
+            <CardContent className="flex-1 flex justify-center items-center">
+              <BouncePulse size="md" />
+            </CardContent>
+          ) : null}
         </Card>
       );
     }
 
     if (!hasContent) {
-      return (
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+      return wrapLockedCard(
+        <Card
+          className={cn(
+            'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
+            bodyVisible ? 'h-96' : 'h-auto'
+          )}
+        >
+          <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
           <CardHeader className="pb-2 flex-shrink-0">
             {!isPro ? (
               <div className="flex items-center justify-between mb-1">
@@ -175,20 +225,28 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
               Distribution of trades based on market
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col items-center justify-center">
-            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
-              No trades found
-            </div>
-            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
-              There are no trades to display for this category yet. Start trading to see your statistics here!
-            </div>
-          </CardContent>
+          {bodyVisible ? (
+            <CardContent className="flex-1 flex flex-col items-center justify-center">
+              <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
+                No trades found
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
+                There are no trades to display for this category yet. Start trading to see your statistics here!
+              </div>
+            </CardContent>
+          ) : null}
         </Card>
       );
     }
 
-    return (
-      <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+    return wrapLockedCard(
+      <Card
+        className={cn(
+          'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
+          bodyVisible ? 'h-96' : 'h-auto'
+        )}
+      >
+        <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
         {isLocked && (
           <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
             <Crown className="w-3 h-3" /> PRO
@@ -214,24 +272,26 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
               Distribution of trades based on market
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 flex items-end mt-1">
-            <div className="w-full h-[250px]">
-              <ComposedBarWinRateChart
-                data={withTotals as BarWinRateChartDatum[]}
-                xAxisDataKey="category"
-                xAxisTickFormatter={(_: string, i: number) => {
-                  const d = withTotals[i];
-                  return d ? `${d.category} (${d.totalTrades ?? 0})` : '';
-                }}
-                tooltipHeaderGetter={(d) => String(d.category ?? '')}
-                isDark={isDark}
-                beCalcEnabled={beCalcEnabled}
-                idPrefix="marketStats"
-                showWinRateLine={false}
-                margins={{ right: 20 }}
-              />
-            </div>
-          </CardContent>
+          {bodyVisible ? (
+            <CardContent className="flex-1 flex items-end mt-1">
+              <div className="w-full h-[250px]">
+                <ComposedBarWinRateChart
+                  data={withTotals as BarWinRateChartDatum[]}
+                  xAxisDataKey="category"
+                  xAxisTickFormatter={(_: string, i: number) => {
+                    const d = withTotals[i];
+                    return d ? `${d.category} (${d.totalTrades ?? 0})` : '';
+                  }}
+                  tooltipHeaderGetter={(d) => String(d.category ?? '')}
+                  isDark={isDark}
+                  beCalcEnabled={beCalcEnabled}
+                  idPrefix="marketStats"
+                  showWinRateLine={false}
+                  margins={{ right: 20 }}
+                />
+              </div>
+            </CardContent>
+          ) : null}
         </div>
       </Card>
     );

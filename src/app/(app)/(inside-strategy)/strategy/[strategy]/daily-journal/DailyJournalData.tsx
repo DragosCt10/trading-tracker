@@ -6,29 +6,11 @@ import { resolveActiveAccountFromCookies } from '@/lib/server/accounts';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import { queryKeys } from '@/lib/queryKeys';
+import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
 import DailyJournalClient from './DailyJournalClient';
 import { DailyJournalSkeleton } from './DailyJournalSkeleton';
 import type { User } from '@supabase/supabase-js';
 import type { Trade } from '@/types/trade';
-
-/** Server-safe currency symbol lookup (do not import from client components). */
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  USD: '$',
-  EUR: '€',
-  GBP: '£',
-  JPY: '¥',
-  AUD: 'A$',
-  CAD: 'C$',
-  CHF: 'CHF',
-  CNY: '¥',
-  HKD: 'HK$',
-  NZD: 'NZ$',
-};
-
-function getCurrencySymbol(account: { currency?: string | null }): string {
-  if (!account?.currency) return '$';
-  return CURRENCY_SYMBOLS[account.currency] ?? account.currency;
-}
 
 async function DailyJournalDataFetcher({
   user,
@@ -67,7 +49,7 @@ async function DailyJournalDataFetcher({
       initialTrades = tradesResult;
     }
     accountBalance = activeAccount.account_balance ?? null;
-    currencySymbol = getCurrencySymbol(activeAccount);
+    currencySymbol = getCurrencySymbolFromAccount(activeAccount);
   }
 
   const queryClient = new QueryClient();

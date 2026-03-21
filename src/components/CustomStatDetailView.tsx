@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   ArrowLeft,
   LayoutGrid,
@@ -19,16 +19,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
-import { buildEquityPointsFromTrades } from '@/components/dashboard/analytics/EquityCurveCard';
+import { buildEquityPointsFromTrades } from '@/utils/equityPoints';
 import { TotalTradesDonut } from '@/components/dashboard/analytics/TotalTradesChartCard';
 import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';
 import { TradeCardsView } from '@/components/trades/TradeCardsView';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
-import {
-  computeMonthlyStatsFromTrades,
-  calculateTotalYearProfit,
-} from '@/components/dashboard/analytics/AccountOverviewCard';
-import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
 import { calculateWinRates } from '@/utils/calculateWinRates';
 import { calculateAverageDrawdown } from '@/utils/analyticsCalculations';
 import { useBECalc } from '@/contexts/BECalcContext';
@@ -62,8 +57,10 @@ export function CustomStatDetailView({
 
   const filterPills = useMemo(() => buildFilterPills(config.filters), [config.filters]);
 
-  const monthlyStats = useMemo(() => computeMonthlyStatsFromTrades(trades), [trades]);
-  const netCumulativePnl = useMemo(() => calculateTotalYearProfit(monthlyStats), [monthlyStats]);
+  const netCumulativePnl = useMemo(
+    () => trades.reduce((sum, trade) => sum + (trade.calculated_profit ?? 0), 0),
+    [trades]
+  );
   const pnlPercent = useMemo(() => {
     const base = accountBalance || 1;
     return (netCumulativePnl / base) * 100;
@@ -72,14 +69,31 @@ export function CustomStatDetailView({
   const equityChartData = useMemo(() => buildEquityPointsFromTrades(trades), [trades]);
   const hasEquityData = equityChartData.length > 0;
 
-  const totalTrades = trades.length;
-  const wins = useMemo(() => trades.filter((t) => !t.break_even && t.trade_outcome === 'Win').length, [trades]);
-  const losses = useMemo(() => trades.filter((t) => !t.break_even && t.trade_outcome === 'Lose').length, [trades]);
-  const beTrades = useMemo(() => trades.filter((t) => t.break_even || t.trade_outcome === 'BE').length, [trades]);
+  const { totalTrades, wins, losses, beTrades } = useMemo(() => {
+    let winsCount = 0;
+    let lossesCount = 0;
+    let beCount = 0;
 
-  const overviewStats = useMemo(() => calculateTradingOverviewStats(trades), [trades]);
-  const { winRateWithBE } = useMemo(() => calculateWinRates(trades), [trades]);
-  const effectiveWinRate = beCalcEnabled ? winRateWithBE : overviewStats.winRate;
+    for (const trade of trades) {
+      if (trade.break_even || trade.trade_outcome === 'BE') {
+        beCount += 1;
+      } else if (trade.trade_outcome === 'Win') {
+        winsCount += 1;
+      } else if (trade.trade_outcome === 'Lose') {
+        lossesCount += 1;
+      }
+    }
+
+    return {
+      totalTrades: trades.length,
+      wins: winsCount,
+      losses: lossesCount,
+      beTrades: beCount,
+    };
+  }, [trades]);
+
+  const { winRate, winRateWithBE } = useMemo(() => calculateWinRates(trades), [trades]);
+  const effectiveWinRate = beCalcEnabled ? winRateWithBE : winRate;
 
   const tradesForDrawdown = useMemo(() => trades.filter((t) => t.executed === true), [trades]);
   const averageDrawdown = useMemo(
@@ -96,13 +110,11 @@ export function CustomStatDetailView({
     list.sort((a, b) => {
       let cmp = 0;
       if (sortField === 'outcome') {
-        const aV = a.break_even ? 'BE' : (a.trade_outcome ?? '');
-        const bV = b.break_even ? 'BE' : (b.trade_outcome ?? '');
+        const aV = (a.break_even || a.trade_outcome === 'BE') ? 'BE' : (a.trade_outcome ?? '');
+        const bV = (b.break_even || b.trade_outcome === 'BE') ? 'BE' : (b.trade_outcome ?? '');
         cmp = aV.localeCompare(bV);
       } else if (sortField === 'trade_date') {
-        const aVal = new Date(a.trade_date).getTime();
-        const bVal = new Date(b.trade_date).getTime();
-        cmp = bVal - aVal;
+        cmp = b.trade_date.localeCompare(a.trade_date);
       } else {
         // Remaining case: sortField === 'market'
         const aValue = a.market ?? '';
@@ -114,6 +126,8 @@ export function CustomStatDetailView({
     });
     return list;
   }, [trades, sortField]);
+
+  const handleTradeUpdated = useCallback(() => {}, []);
 
   return (
     <div>
@@ -397,7 +411,7 @@ export function CustomStatDetailView({
         <TradeCardsView
           trades={sortedTrades}
           resetKey={sortField}
-          onTradeUpdated={() => {}}
+          onTradeUpdated={handleTradeUpdated}
           totalFilteredCount={trades.length}
           cardViewMode={cardViewMode}
           onCardViewModeChange={setCardViewMode}
