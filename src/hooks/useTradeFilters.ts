@@ -21,7 +21,7 @@ type UseTradeFiltersParams = {
 };
 
 function deriveInitialFilter(range: DateRangeState): FilterType {
-  if (isCustomDateRange(range)) return 'custom';
+  if (isCustomDateRange(range)) return 'all';
   const yearRange = buildPresetRange('year').dateRange;
   return yearRange.startDate === range.startDate && yearRange.endDate === range.endDate
     ? 'year'
