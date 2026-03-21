@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import type { ReactNode } from 'react';
 import {
   Card,
   CardHeader,
@@ -8,6 +9,8 @@ import {
   CardDescription,
   CardContent,
 } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import { DashboardCardHeaderAction } from './DashboardCardHeaderAction';
 import { Trade } from '@/types/trade';
 import { MONTHS } from '@/components/dashboard/analytics/AccountOverviewCard';
 import { useDarkMode } from '@/hooks/useDarkMode';
@@ -70,11 +73,17 @@ interface MonthlyPerformanceChartProps {
   months: string[];
   // kept for API compatibility, not used by Recharts
   chartOptions?: any;
+  /** PRO: Hide/Expand control rendered inside the card (top-right) */
+  headerAction?: ReactNode;
+  /** When false, card header stays visible but chart body is hidden */
+  bodyVisible?: boolean;
 }
 
 export function MonthlyPerformanceChart({
   monthlyStatsAllTrades,
   months,
+  headerAction,
+  bodyVisible = true,
 }: MonthlyPerformanceChartProps) {
   const { mounted, isDark } = useDarkMode();
   const { beCalcEnabled } = useBECalc();
@@ -102,9 +111,17 @@ export function MonthlyPerformanceChart({
   // Check if there are any trades across all months
   const hasTrades = chartData.some((d) => d.totalTrades > 0);
 
+  const cardHeight = bodyVisible ? 'h-[360px]' : 'h-auto';
+
   if (!mounted) {
     return (
-      <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[360px] flex flex-col">
+      <Card
+        className={cn(
+          'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
+          cardHeight
+        )}
+      >
+        <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
         <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Monthly Performance
@@ -113,16 +130,24 @@ export function MonthlyPerformanceChart({
             Month-over-month results for your trades
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 flex justify-center items-center">
-          <div className="w-full h-full min-h-[180px]" aria-hidden>—</div>
-        </CardContent>
+        {bodyVisible ? (
+          <CardContent className="flex-1 flex justify-center items-center">
+            <div className="w-full h-full min-h-[180px]" aria-hidden>—</div>
+          </CardContent>
+        ) : null}
       </Card>
     );
   }
 
   if (!hasTrades) {
     return (
-      <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[360px] flex flex-col">
+      <Card
+        className={cn(
+          'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
+          cardHeight
+        )}
+      >
+        <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
         <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
             Monthly Performance
@@ -131,22 +156,30 @@ export function MonthlyPerformanceChart({
             Monthly performance of trades
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 flex justify-center items-center">
-          <div className="flex flex-col justify-center items-center w-full h-full">
-            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
-              No trades found
+        {bodyVisible ? (
+          <CardContent className="flex-1 flex justify-center items-center">
+            <div className="flex flex-col justify-center items-center w-full h-full">
+              <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
+                No trades found
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
+                There are no trades to display for this category yet. Start trading to see your statistics here!
+              </div>
             </div>
-            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
-              There are no trades to display for this category yet. Start trading to see your statistics here!
-            </div>
-          </div>
-        </CardContent>
+          </CardContent>
+        ) : null}
       </Card>
     );
   }
 
   return (
-    <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[360px] flex flex-col">
+    <Card
+      className={cn(
+        'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
+        cardHeight
+      )}
+    >
+      <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
       <CardHeader className="pb-2 flex-shrink-0">
         <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
           Monthly Performance
@@ -156,22 +189,24 @@ export function MonthlyPerformanceChart({
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="flex-1 flex items-end mt-1">
-        <div className="w-full h-[250px]">
-          <ComposedBarWinRateChart
-            data={chartData as BarWinRateChartDatum[]}
-            xAxisDataKey="month"
-            xAxisTickFormatter={(_: string, i: number) => {
-              const d = chartData[i];
-              return d ? `${d.month} (${d.totalTrades})` : '';
-            }}
-            tooltipHeaderGetter={(d) => String(d.month ?? '')}
-            isDark={isDark}
-            beCalcEnabled={beCalcEnabled}
-            idPrefix="composed"
-          />
-        </div>
-      </CardContent>
+      {bodyVisible ? (
+        <CardContent className="flex-1 flex items-end mt-1">
+          <div className="w-full h-[250px]">
+            <ComposedBarWinRateChart
+              data={chartData as BarWinRateChartDatum[]}
+              xAxisDataKey="month"
+              xAxisTickFormatter={(_: string, i: number) => {
+                const d = chartData[i];
+                return d ? `${d.month} (${d.totalTrades})` : '';
+              }}
+              tooltipHeaderGetter={(d) => String(d.month ?? '')}
+              isDark={isDark}
+              beCalcEnabled={beCalcEnabled}
+              idPrefix="composed"
+            />
+          </div>
+        </CardContent>
+      ) : null}
     </Card>
   );
 }

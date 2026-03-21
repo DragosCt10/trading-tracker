@@ -27,6 +27,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { TRADES_DATA } from '@/constants/queryConfig';
 import { useSubscription } from '@/hooks/useSubscription';
+import { ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 import {
   Chart as ChartJS,
@@ -179,6 +181,40 @@ export type StrategyClientInitialProps = {
 
 const defaultInitialRange = createInitialDateRange();
 const defaultSelectedYear = new Date().getFullYear();
+type FullWidthSectionKey =
+  | 'overview'
+  | 'calendar'
+  | 'coreStatistics'
+  | 'psychologicalFactors'
+  | 'equityCurve'
+  | 'consistencyDrawdown'
+  | 'performanceRatios'
+  | 'monthlyPerformanceChart'
+  | 'marketStats'
+  | 'marketProfitStats'
+  | 'timeIntervalStats'
+  | 'dayStats'
+  | 'newsByEvent'
+  | 'setupStats'
+  | 'liquidityStats';
+
+const DEFAULT_SECTION_EXPANDED: Record<FullWidthSectionKey, boolean> = {
+  overview: true,
+  calendar: true,
+  coreStatistics: true,
+  psychologicalFactors: true,
+  equityCurve: true,
+  consistencyDrawdown: true,
+  performanceRatios: true,
+  monthlyPerformanceChart: true,
+  marketStats: true,
+  marketProfitStats: true,
+  timeIntervalStats: true,
+  dayStats: true,
+  newsByEvent: true,
+  setupStats: true,
+  liquidityStats: true,
+};
 
 /* ---------------------------------------------------------
  * Dashboard component
@@ -200,6 +236,9 @@ export default function StrategyClient(
   // view mode: 'yearly' or 'dateRange'
   const [viewMode, setViewMode] = useState<'yearly' | 'dateRange'>('dateRange');
   const [showProCards, setShowProCards] = useState(true);
+  const [expandedSections, setExpandedSections] = useState<Record<FullWidthSectionKey, boolean>>(
+    () => DEFAULT_SECTION_EXPANDED
+  );
   // startTransition marks filter/view-mode changes as non-urgent so React can yield to
   // user input before re-running the heavy useMemo chains — fixes INP > 200 ms.
   const [, startFilterTransition] = useTransition();
@@ -267,6 +306,41 @@ export default function StrategyClient(
   const { isPro } = useSubscription({ userId: props?.initialUserId });
   /** PRO subscribers always see PRO sections; toggle only applies to Starter. */
   const showProContent = isPro || showProCards;
+  const toggleSection = useCallback((key: FullWidthSectionKey) => {
+    setExpandedSections((current) => ({ ...current, [key]: !current[key] }));
+  }, []);
+  const isSectionExpanded = useCallback(
+    (key: FullWidthSectionKey) => !isPro || expandedSections[key],
+    [expandedSections, isPro]
+  );
+  const renderSectionCollapseButton = useCallback(
+    (key: FullWidthSectionKey) => {
+      if (!isPro) {
+        return null;
+      }
+      const expanded = isSectionExpanded(key);
+      return (
+        <button
+          type="button"
+          onClick={() => toggleSection(key)}
+          aria-expanded={expanded}
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 px-3 py-1 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors [&_svg]:text-slate-700 dark:[&_svg]:text-slate-200"
+        >
+          <ChevronDown
+            size={16}
+            strokeWidth={2}
+            className={cn(
+              'shrink-0 transition-transform duration-200 ease-out',
+              expanded ? '-rotate-180' : 'rotate-0'
+            )}
+            aria-hidden
+          />
+          {expanded ? 'Hide' : 'Expand'}
+        </button>
+      );
+    },
+    [isPro, isSectionExpanded, toggleSection]
+  );
 
   // Per-strategy extra cards configuration
   const extraCards = props?.initialExtraCards ?? [];
@@ -944,72 +1018,89 @@ export default function StrategyClient(
         <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
           Overview &amp; Monthly highlights
         </h2>
-        {/* Year Selection - Only show when in yearly mode */}
-        {viewMode === 'yearly' && (
-          <YearSelector
-            selectedYear={selectedYear}
-            onYearChange={setSelectedYear}
-          />
-        )}
+        <div className="flex items-center gap-3">
+          {/* Year Selection - Only show when in yearly mode */}
+          {viewMode === 'yearly' && (
+            <YearSelector
+              selectedYear={selectedYear}
+              onYearChange={setSelectedYear}
+            />
+          )}
+          {renderSectionCollapseButton('overview')}
+        </div>
       </div>
       <p className="text-slate-500 dark:text-slate-400 mb-6">
         Account balance, yearly P&amp;L, and best and worst month for the selected period.
       </p>
 
-      {/* Account Overview Card - use resolved account (props first) so server and client match; card defers display until mount to avoid hydration when e.g. no subaccounts */}
-      <AccountOverviewCard
-        accountName={props?.initialStrategyName ?? null}
-        currencySymbol={currencySymbol}
-        updatedBalance={updatedBalance}
-        totalYearProfit={totalYearProfit}
-        accountBalance={((selection.activeAccount ?? props?.initialActiveAccount) as { account_balance?: number } | null)?.account_balance || 1}
-        months={MONTHS}
-        monthlyStatsAllTrades={monthlyStatsToUse}
-        isYearDataLoading={accountOverviewLoadingState}
-        isFetching={isLoadingStats}
-        tradesCount={stats?.totalTrades ?? tradesToUse.length}
-      />
+      {isSectionExpanded('overview') && (
+        <>
+          {/* Account Overview Card - use resolved account (props first) so server and client match; card defers display until mount to avoid hydration when e.g. no subaccounts */}
+          <AccountOverviewCard
+            accountName={props?.initialStrategyName ?? null}
+            currencySymbol={currencySymbol}
+            updatedBalance={updatedBalance}
+            totalYearProfit={totalYearProfit}
+            accountBalance={((selection.activeAccount ?? props?.initialActiveAccount) as { account_balance?: number } | null)?.account_balance || 1}
+            months={MONTHS}
+            monthlyStatsAllTrades={monthlyStatsToUse}
+            isYearDataLoading={accountOverviewLoadingState}
+            isFetching={isLoadingStats}
+            tradesCount={stats?.totalTrades ?? tradesToUse.length}
+          />
 
-      {/* Month Stats Cards - Only show in yearly mode */}
-      {viewMode === 'yearly' && (
-        <MonthPerformanceCards
-          trades={tradesToUse}
-          selectedYear={selectedYear}
-          currencySymbol={getCurrencySymbol()}
-          accountBalance={(resolvedAccount as { account_balance?: number } | null)?.account_balance}
-          isLoading={accountOverviewLoadingState}
-        />
+          {/* Month Stats Cards - Only show in yearly mode */}
+          {viewMode === 'yearly' && (
+            <MonthPerformanceCards
+              trades={tradesToUse}
+              selectedYear={selectedYear}
+              currencySymbol={getCurrencySymbol()}
+              accountBalance={(resolvedAccount as { account_balance?: number } | null)?.account_balance}
+              isLoading={accountOverviewLoadingState}
+            />
+          )}
+        </>
       )}
 
       {/* Calendar View - Show in both modes */}
-      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Trades Calendar</h2>
+      <div className="flex items-center justify-between mt-14 mb-2">
+        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Trades Calendar</h2>
+        {renderSectionCollapseButton('calendar')}
+      </div>
       <p className="text-slate-500 dark:text-slate-400 mb-6">
         See your trades and activity by calendar day and week.
       </p>
-      <TradesCalendarCard
-        key={`${viewMode}-${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${selectedExecution}`}
-        currentDate={currentDate}
-        onMonthNavigate={handleMonthNavigation}
-        canNavigateMonth={canNavigateMonth}
-        weeklyStats={weeklyStats}
-        calendarMonthTrades={calendarMonthTradesToUse}
-        selectedMarket={selectedMarket}
-        currencySymbol={currencySymbol}
-        accountBalance={selection.activeAccount?.account_balance}
-        getDaysInMonth={() => getDaysInMonth}
-        onTradeClick={setCalendarTradeDetails}
-      />
-      <TradeDetailsModal
-        trade={calendarTradeDetails}
-        isOpen={!!calendarTradeDetails}
-        onClose={() => setCalendarTradeDetails(null)}
-      />
+      {isSectionExpanded('calendar') && (
+        <>
+          <TradesCalendarCard
+            key={`${viewMode}-${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${selectedExecution}`}
+            currentDate={currentDate}
+            onMonthNavigate={handleMonthNavigation}
+            canNavigateMonth={canNavigateMonth}
+            weeklyStats={weeklyStats}
+            calendarMonthTrades={calendarMonthTradesToUse}
+            selectedMarket={selectedMarket}
+            currencySymbol={currencySymbol}
+            accountBalance={selection.activeAccount?.account_balance}
+            getDaysInMonth={() => getDaysInMonth}
+            onTradeClick={setCalendarTradeDetails}
+          />
+          <TradeDetailsModal
+            trade={calendarTradeDetails}
+            isOpen={!!calendarTradeDetails}
+            onClose={() => setCalendarTradeDetails(null)}
+          />
+        </>
+      )}
 
       {/* Core statistics: title + description, then core stats, then Partial/Executed/Direction cards, then Evaluation + Re-entry Trades above RiskPerTrade */}
-      <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Core statistics</h2>
+      <div className="flex items-center justify-between mt-14 mb-2">
+        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Core statistics</h2>
+        {renderSectionCollapseButton('coreStatistics')}
+      </div>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Trading statistics and performance metrics.</p>
 
-      {(viewMode === 'dateRange' || viewMode === 'yearly') && (
+      {(viewMode === 'dateRange' || viewMode === 'yearly') && isSectionExpanded('coreStatistics') && (
         <div className="flex flex-col md:grid md:grid-cols-4 gap-6 w-full">
           <TradingOverviewStats
             trades={tradesToUse}
@@ -1065,12 +1156,17 @@ export default function StrategyClient(
       {/* Confidence & Mind State — PRO */}
       {(viewMode === 'dateRange' || viewMode === 'yearly') && showProContent && (
         <>
-          <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Psychological Factors</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1 mb-6">Confidence and mind state at entry across your trades.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-6">
-            <ConfidenceStatsCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
-            <MindStateStatsCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
+          <div className="flex items-center justify-between mt-14 mb-2">
+            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Psychological Factors</h2>
+            {renderSectionCollapseButton('psychologicalFactors')}
           </div>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 mb-6">Confidence and mind state at entry across your trades.</p>
+          {isSectionExpanded('psychologicalFactors') && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-6">
+              <ConfidenceStatsCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
+              <MindStateStatsCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
+            </div>
+          )}
         </>
       )}
 
@@ -1079,11 +1175,14 @@ export default function StrategyClient(
         <>
           <div className="flex items-center justify-between mt-14 mb-2">
             <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Equity Curve</h2>
+            {renderSectionCollapseButton('equityCurve')}
           </div>
           <p className="text-slate-500 dark:text-slate-400 mb-6">Cumulative P&L over time.</p>
-          <div className="w-full mb-6">
-            <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
-          </div>
+          {isSectionExpanded('equityCurve') && (
+            <div className="w-full mb-6">
+              <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
+            </div>
+          )}
         </>
       )}
 
@@ -1092,28 +1191,36 @@ export default function StrategyClient(
         <>
           <div className="flex items-center justify-between mt-14 mb-2">
             <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Consistency & drawdown</h2>
+            {renderSectionCollapseButton('consistencyDrawdown')}
           </div>
           <p className="text-slate-500 dark:text-slate-400 mb-6">Consistency and capital preservation metrics.</p>
-          <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
-            <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} isPro={isPro} />
-            <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} isPro={isPro} />
-            <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} isPro={isPro} />
-          </div>
+          {isSectionExpanded('consistencyDrawdown') && (
+            <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
+              <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} isPro={isPro} />
+              <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} isPro={isPro} />
+              <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} isPro={isPro} />
+            </div>
+          )}
 
           {/* Performance ratios — PRO */}
           <div className="flex items-center justify-between mt-14 mb-2">
             <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Performance ratios</h2>
+            {renderSectionCollapseButton('performanceRatios')}
           </div>
           <p className="text-slate-500 dark:text-slate-400 mb-6">Return and risk-adjusted metrics.</p>
-          <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
-            <ProfitFactorChart tradesToUse={tradesToUse} totalWins={statsToUse.totalWins} totalLosses={statsToUse.totalLosses} isPro={isPro} />
-            <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} isPro={isPro} />
-            <TQIChart tradesToUse={tradesToUse} isPro={isPro} />
-          </div>
-          <div className="flex flex-col md:grid md:grid-cols-2 gap-6 w-full mt-6">
-            <RecoveryFactorChart recoveryFactor={recoveryFactor} isPro={isPro} />
-            <DrawdownCountChart drawdownCount={drawdownCount} isPro={isPro} />
-          </div>
+          {isSectionExpanded('performanceRatios') && (
+            <>
+              <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
+                <ProfitFactorChart tradesToUse={tradesToUse} totalWins={statsToUse.totalWins} totalLosses={statsToUse.totalLosses} isPro={isPro} />
+                <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} isPro={isPro} />
+                <TQIChart tradesToUse={tradesToUse} isPro={isPro} />
+              </div>
+              <div className="flex flex-col md:grid md:grid-cols-2 gap-6 w-full mt-6">
+                <RecoveryFactorChart recoveryFactor={recoveryFactor} isPro={isPro} />
+                <DrawdownCountChart drawdownCount={drawdownCount} isPro={isPro} />
+              </div>
+            </>
+          )}
         </>
       )}
 
@@ -1135,19 +1242,20 @@ export default function StrategyClient(
         </p>
       </div>
 
-      {/* Monthly Performance Chart - Show in both modes */}
+      {/* Monthly Performance Chart - Hide/Expand control lives inside the card (PRO) */}
       <div className="w-full mb-8">
         <MonthlyPerformanceChart
           monthlyStatsAllTrades={monthlyPerformanceStatsToUse}
           months={MONTHS}
           chartOptions={chartOptions}
+          headerAction={isPro ? renderSectionCollapseButton('monthlyPerformanceChart') : undefined}
+          bodyVisible={!isPro || isSectionExpanded('monthlyPerformanceChart')}
         />
       </div>
 
       {showProContent && (
         <>
           <div className="my-8">
-            {/* Market Stats Card */}
             <MarketStatisticsCard
               marketStats={
                 filteredChartStats
@@ -1157,11 +1265,12 @@ export default function StrategyClient(
               isLoading={chartsLoadingState}
               includeTotalTrades={filteredChartStats !== null}
               isPro={isPro}
+              headerAction={isPro ? renderSectionCollapseButton('marketStats') : undefined}
+              bodyVisible={!isPro || isSectionExpanded('marketStats')}
             />
           </div>
 
           <div className="my-8">
-            {/* Market Profit Stats Card */}
             <MarketProfitStatisticsCard
               trades={tradesToUse}
               marketStats={
@@ -1172,6 +1281,8 @@ export default function StrategyClient(
               chartOptions={chartOptions}
               getCurrencySymbol={getCurrencySymbol}
               isPro={isPro}
+              headerAction={isPro ? renderSectionCollapseButton('marketProfitStats') : undefined}
+              bodyVisible={!isPro || isSectionExpanded('marketProfitStats')}
             />
           </div>
         </>
@@ -1185,6 +1296,8 @@ export default function StrategyClient(
             data={timeIntervalChartDataToUse}
             isLoading={chartsLoadingState}
             isPro={isPro}
+            headerAction={isPro ? renderSectionCollapseButton('timeIntervalStats') : undefined}
+            bodyVisible={!isPro || isSectionExpanded('timeIntervalStats')}
           />
         </div>
       )}
@@ -1195,12 +1308,20 @@ export default function StrategyClient(
           dayStats={filteredChartStats ? (statsToUseForCharts.dayStats as DayStatisticsCardProps['dayStats']) : dayStats}
           isLoading={chartsLoadingState}
           includeTotalTrades={filteredChartStats !== null}
+          headerAction={isPro ? renderSectionCollapseButton('dayStats') : undefined}
+          bodyVisible={!isPro || isSectionExpanded('dayStats')}
         />
       </div>
       {/* News by event - full width */}
       {showProContent && (
         <div className="my-8">
-          <NewsNameChartCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
+          <NewsNameChartCard
+            trades={tradesToUse}
+            isLoading={chartsLoadingState}
+            isPro={isPro}
+            headerAction={isPro ? renderSectionCollapseButton('newsByEvent') : undefined}
+            bodyVisible={!isPro || isSectionExpanded('newsByEvent')}
+          />
         </div>
       )}
 
@@ -1227,6 +1348,8 @@ export default function StrategyClient(
             setupStats={statsToUseForCharts.setupStats}
             isLoading={chartsLoadingState}
             includeTotalTrades={filteredChartStats !== null}
+            headerAction={isPro ? renderSectionCollapseButton('setupStats') : undefined}
+            bodyVisible={!isPro || isSectionExpanded('setupStats')}
           />
         </div>
       )}
@@ -1237,6 +1360,8 @@ export default function StrategyClient(
             liquidityStats={statsToUseForCharts.liquidityStats}
             isLoading={chartsLoadingState}
             includeTotalTrades={filteredChartStats !== null}
+            headerAction={isPro ? renderSectionCollapseButton('liquidityStats') : undefined}
+            bodyVisible={!isPro || isSectionExpanded('liquidityStats')}
           />
         </div>
       )}

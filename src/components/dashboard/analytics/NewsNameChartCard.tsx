@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import {
   Card,
   CardHeader,
@@ -19,11 +20,14 @@ import { useBECalc } from '@/contexts/BECalcContext';
 import { buildPreviewTrade } from '@/utils/previewTrades';
 import { ComposedBarWinRateChart, type BarWinRateChartDatum } from './ComposedBarWinRateChart';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DashboardCardHeaderAction } from './DashboardCardHeaderAction';
 
 export interface NewsNameChartCardProps {
   trades: Trade[];
   isLoading?: boolean;
   isPro?: boolean;
+  headerAction?: ReactNode;
+  bodyVisible?: boolean;
 }
 
 type IntensityFilter = null | 1 | 2 | 3;
@@ -60,7 +64,13 @@ const LOCKED_CARD_TOOLTIP_CLASS =
 
 
 export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
-  function NewsNameChartCard({ trades: rawTrades, isLoading: externalLoading, isPro }) {
+  function NewsNameChartCard({
+    trades: rawTrades,
+    isLoading: externalLoading,
+    isPro,
+    headerAction,
+    bodyVisible = true,
+  }) {
     const { mounted, isDark } = useDarkMode();
     const { beCalcEnabled } = useBECalc();
     const [isLoading, setIsLoading]         = useState(true);
@@ -294,7 +304,8 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     /* ------------------------------------------------------------------ */
     if (!mounted || isLoading) {
       return wrapLockedCard(
-        <Card className={CARD_CLASS}>
+        <Card className={cn(CARD_CLASS, !bodyVisible && '!h-auto min-h-0')}>
+          <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
           {isLocked && (
             <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
               <Crown className="w-3 h-3" /> PRO
@@ -312,9 +323,11 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
             )}
           >
             {header}
-            <CardContent className="flex-1 flex justify-center items-center">
-              <BouncePulse size="md" />
-            </CardContent>
+            {bodyVisible ? (
+              <CardContent className="flex-1 flex justify-center items-center">
+                <BouncePulse size="md" />
+              </CardContent>
+            ) : null}
           </div>
         </Card>
       );
@@ -326,7 +339,8 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     if (!hasData) {
       const activeLabel = INTENSITY_OPTIONS.find((o) => o.value === intensityFilter)?.label;
       return wrapLockedCard(
-        <Card className={CARD_CLASS}>
+        <Card className={cn(CARD_CLASS, !bodyVisible && '!h-auto min-h-0')}>
+          <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
           {isLocked && (
             <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
               <Crown className="w-3 h-3" /> PRO
@@ -344,22 +358,24 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
             )}
           >
             {header}
-            <CardContent className="flex-1 flex flex-col items-center justify-center">
-            <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-1">
-              {unnamedOnly
-                ? 'No trades marked as news without an event name.'
-                : intensityFilter !== null
-                  ? `No trades with ${activeLabel} intensity.`
-                  : 'No news-related trades with a news name yet.'}
-            </p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 text-center max-w-xs">
-              {unnamedOnly
-                ? 'Mark trades as News and leave the event name empty to see them here.'
-                : intensityFilter !== null
-                  ? 'Try selecting a different intensity filter.'
-                  : 'Mark trades as News and set the event name (e.g. CPI, NFP) to see the chart here.'}
-            </p>
-            </CardContent>
+            {bodyVisible ? (
+              <CardContent className="flex-1 flex flex-col items-center justify-center">
+                <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-1">
+                  {unnamedOnly
+                    ? 'No trades marked as news without an event name.'
+                    : intensityFilter !== null
+                      ? `No trades with ${activeLabel} intensity.`
+                      : 'No news-related trades with a news name yet.'}
+                </p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 text-center max-w-xs">
+                  {unnamedOnly
+                    ? 'Mark trades as News and leave the event name empty to see them here.'
+                    : intensityFilter !== null
+                      ? 'Try selecting a different intensity filter.'
+                      : 'Mark trades as News and set the event name (e.g. CPI, NFP) to see the chart here.'}
+                </p>
+              </CardContent>
+            ) : null}
           </div>
         </Card>
       );
@@ -369,7 +385,8 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     /* Chart                                                                */
     /* ------------------------------------------------------------------ */
     return wrapLockedCard(
-      <Card className={CARD_CLASS}>
+      <Card className={cn(CARD_CLASS, !bodyVisible && '!h-auto min-h-0')}>
+        <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
         {isLocked && (
           <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
             <Crown className="w-3 h-3" /> PRO
@@ -387,23 +404,25 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
           )}
         >
           {header}
-          <CardContent className="flex-1 flex items-end mt-1 min-h-0 p-4 pt-4 sm:p-6 sm:pt-0 border-t border-slate-200/60 dark:border-slate-700/50 sm:border-t-0">
-            <div className="w-full min-w-0 h-[280px] sm:h-[250px]">
-              <ComposedBarWinRateChart
-                data={chartData as BarWinRateChartDatum[]}
-                xAxisDataKey="category"
-                xAxisTickFormatter={(value: string) => {
-                  const item = chartData.find((d) => d.category === value);
-                  return item ? `${value} (${item.totalTrades})` : value;
-                }}
-                tooltipHeaderGetter={(d) => String(d.newsName ?? '')}
-                isDark={isDark}
-                beCalcEnabled={beCalcEnabled}
-                idPrefix="newsName"
-                showArea={false}
-              />
+          {bodyVisible ? (
+            <CardContent className="flex-1 flex items-end mt-1 min-h-0 p-4 pt-4 sm:p-6 sm:pt-0 border-t border-slate-200/60 dark:border-slate-700/50 sm:border-t-0">
+              <div className="w-full min-w-0 h-[280px] sm:h-[250px]">
+                <ComposedBarWinRateChart
+                  data={chartData as BarWinRateChartDatum[]}
+                  xAxisDataKey="category"
+                  xAxisTickFormatter={(value: string) => {
+                    const item = chartData.find((d) => d.category === value);
+                    return item ? `${value} (${item.totalTrades})` : value;
+                  }}
+                  tooltipHeaderGetter={(d) => String(d.newsName ?? '')}
+                  isDark={isDark}
+                  beCalcEnabled={beCalcEnabled}
+                  idPrefix="newsName"
+                  showArea={false}
+                />
               </div>
-          </CardContent>
+            </CardContent>
+          ) : null}
         </div>
       </Card>
     );

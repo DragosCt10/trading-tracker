@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { Crown } from 'lucide-react';
 import {
   Card,
@@ -15,6 +16,8 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
 import { ComposedBarWinRateChart, type BarWinRateChartDatum } from './ComposedBarWinRateChart';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+import { DashboardCardHeaderAction } from './DashboardCardHeaderAction';
 
 const LOCKED_CARD_TOOLTIP_TEXT = 'The data shown under the blur card is fictive and for demo purposes only.';
 const LOCKED_CARD_TOOLTIP_CLASS =
@@ -27,11 +30,20 @@ export interface TimeIntervalStatisticsCardProps {
   /** Optional: show only this interval (e.g. "08:00 – 11:59"). Legacy trades with simple time are still counted in the correct bucket via data. */
   selectedIntervalLabel?: string | null;
   isPro?: boolean;
+  headerAction?: ReactNode;
+  bodyVisible?: boolean;
 }
 
 
 export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProps> = React.memo(
-  function TimeIntervalStatisticsCard({ data: rawData, isLoading, selectedIntervalLabel, isPro }) {
+  function TimeIntervalStatisticsCard({
+    data: rawData,
+    isLoading,
+    selectedIntervalLabel,
+    isPro,
+    headerAction,
+    bodyVisible = true,
+  }) {
     const isLocked = !isPro;
     const wrapLockedCard = (card: React.ReactElement) => {
       if (!isLocked) {
@@ -108,7 +120,13 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
 
     if (!mounted || isLoading) {
       return wrapLockedCard(
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+        <Card
+          className={cn(
+            'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
+            bodyVisible ? 'h-96' : 'h-auto'
+          )}
+        >
+          <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
           {isLocked && (
             <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
               <Crown className="w-3 h-3" /> PRO
@@ -122,16 +140,24 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
               Distribution of trades based on time interval
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 flex justify-center items-center">
-            <BouncePulse size="md" />
-          </CardContent>
+          {bodyVisible ? (
+            <CardContent className="flex-1 flex justify-center items-center">
+              <BouncePulse size="md" />
+            </CardContent>
+          ) : null}
         </Card>
       );
     }
 
     if (!hasContent) {
       return wrapLockedCard(
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+        <Card
+          className={cn(
+            'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
+            bodyVisible ? 'h-96' : 'h-auto'
+          )}
+        >
+          <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
           <CardHeader className="pb-2 flex-shrink-0">
             {!isPro ? (
               <div className="flex items-center justify-between mb-1">
@@ -151,20 +177,28 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
               Distribution of trades based on time interval
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col items-center justify-center">
-            <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
-              No trades found
-            </div>
-            <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
-              There are no trades to display for this category yet. Start trading to see your statistics here!
-            </div>
-          </CardContent>
+          {bodyVisible ? (
+            <CardContent className="flex-1 flex flex-col items-center justify-center">
+              <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
+                No trades found
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
+                There are no trades to display for this category yet. Start trading to see your statistics here!
+              </div>
+            </CardContent>
+          ) : null}
         </Card>
       );
     }
 
     return wrapLockedCard(
-      <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
+      <Card
+        className={cn(
+          'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm flex flex-col',
+          bodyVisible ? 'h-96' : 'h-auto'
+        )}
+      >
+        <DashboardCardHeaderAction>{headerAction}</DashboardCardHeaderAction>
         {isLocked && (
           <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
             <Crown className="w-3 h-3" /> PRO
@@ -190,30 +224,32 @@ export const TimeIntervalStatisticsCard: React.FC<TimeIntervalStatisticsCardProp
               Distribution of trades based on time interval
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 flex items-end mt-1">
-            <div className="w-full h-[250px]">
-              <ComposedBarWinRateChart
-                data={withTotals as BarWinRateChartDatum[]}
-                xAxisDataKey="category"
-                xAxisTickFormatter={(_: string, i: number) => {
-                  const d = withTotals[i];
-                  if (!d) return '';
-                  const [start, end] = String(d.category).split(' – ');
-                  const totalTrades = d.totalTrades ?? 0;
-                  return end
-                    ? `${start}-${end} (${totalTrades})`
-                    : `${String(d.category)} (${totalTrades})`;
-                }}
-                tooltipHeaderGetter={(d) => String(d.category ?? '')}
-                isDark={isDark}
-                beCalcEnabled={beCalcEnabled}
-                idPrefix="timeInterval"
-                barCategoryGap="20%"
-                xAxisInterval={0}
-                lineActiveDot={{ r: 4, fill: '#f59e0b', strokeWidth: 0 }}
-              />
-            </div>
-          </CardContent>
+          {bodyVisible ? (
+            <CardContent className="flex-1 flex items-end mt-1">
+              <div className="w-full h-[250px]">
+                <ComposedBarWinRateChart
+                  data={withTotals as BarWinRateChartDatum[]}
+                  xAxisDataKey="category"
+                  xAxisTickFormatter={(_: string, i: number) => {
+                    const d = withTotals[i];
+                    if (!d) return '';
+                    const [start, end] = String(d.category).split(' – ');
+                    const totalTrades = d.totalTrades ?? 0;
+                    return end
+                      ? `${start}-${end} (${totalTrades})`
+                      : `${String(d.category)} (${totalTrades})`;
+                  }}
+                  tooltipHeaderGetter={(d) => String(d.category ?? '')}
+                  isDark={isDark}
+                  beCalcEnabled={beCalcEnabled}
+                  idPrefix="timeInterval"
+                  barCategoryGap="20%"
+                  xAxisInterval={0}
+                  lineActiveDot={{ r: 4, fill: '#f59e0b', strokeWidth: 0 }}
+                />
+              </div>
+            </CardContent>
+          ) : null}
         </div>
       </Card>
     );
