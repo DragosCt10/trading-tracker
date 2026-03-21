@@ -339,6 +339,142 @@ function StrategyControls(props: StrategyControlsProps) {
   );
 }
 
+type StrategyOverviewAndCalendarSectionsProps = {
+  viewMode: 'yearly' | 'dateRange';
+  selectedYear: number;
+  onSelectedYearChange: (year: number) => void;
+  renderSectionCollapseButton: (key: FullWidthSectionKey) => ReactNode;
+  isSectionExpanded: (key: FullWidthSectionKey) => boolean;
+  initialStrategyName?: string | null;
+  currencySymbol: string;
+  updatedBalance: number;
+  totalYearProfit: number;
+  activeAccountBalance?: number | null;
+  monthlyStatsToUse: ReturnType<typeof computeMonthlyStatsFromTrades>;
+  accountOverviewLoadingState: boolean;
+  isLoadingStats: boolean;
+  statsTotalTrades?: number;
+  tradesToUse: Trade[];
+  resolvedAccountBalance?: number | null;
+  dateRange: DateRangeState;
+  selectedMarket: string;
+  selectedExecution: ExecutionFilter;
+  currentDate: Date;
+  handleMonthNavigation: (direction: 'prev' | 'next') => void;
+  canNavigateMonth: (direction: 'prev' | 'next') => boolean;
+  weeklyStats: ReturnType<typeof buildWeeklyStats>;
+  calendarMonthTradesToUse: Trade[];
+  selectionActiveAccountBalance?: number | null;
+  getDaysInMonth: ReturnType<typeof getDaysInMonthForDate>;
+};
+
+function StrategyOverviewAndCalendarSections({
+  viewMode,
+  selectedYear,
+  onSelectedYearChange,
+  renderSectionCollapseButton,
+  isSectionExpanded,
+  initialStrategyName,
+  currencySymbol,
+  updatedBalance,
+  totalYearProfit,
+  activeAccountBalance,
+  monthlyStatsToUse,
+  accountOverviewLoadingState,
+  isLoadingStats,
+  statsTotalTrades,
+  tradesToUse,
+  resolvedAccountBalance,
+  dateRange,
+  selectedMarket,
+  selectedExecution,
+  currentDate,
+  handleMonthNavigation,
+  canNavigateMonth,
+  weeklyStats,
+  calendarMonthTradesToUse,
+  selectionActiveAccountBalance,
+  getDaysInMonth,
+}: StrategyOverviewAndCalendarSectionsProps) {
+  const [calendarTradeDetails, setCalendarTradeDetails] = useState<Trade | null>(null);
+
+  return (
+    <>
+      <SectionHeading
+        title="Overview & Monthly highlights"
+        description="Account balance, yearly P&L, and best and worst month for the selected period."
+        containerClassName="mt-8"
+        action={(
+          <div className="flex items-center gap-3">
+            {viewMode === 'yearly' && (
+              <YearSelector
+                selectedYear={selectedYear}
+                onYearChange={onSelectedYearChange}
+              />
+            )}
+            {renderSectionCollapseButton('overview')}
+          </div>
+        )}
+      />
+
+      {isSectionExpanded('overview') && (
+        <>
+          <AccountOverviewCard
+            accountName={initialStrategyName ?? null}
+            currencySymbol={currencySymbol}
+            updatedBalance={updatedBalance}
+            totalYearProfit={totalYearProfit}
+            accountBalance={activeAccountBalance || 1}
+            months={MONTHS}
+            monthlyStatsAllTrades={monthlyStatsToUse}
+            isYearDataLoading={accountOverviewLoadingState}
+            isFetching={isLoadingStats}
+            tradesCount={statsTotalTrades ?? tradesToUse.length}
+          />
+
+          {viewMode === 'yearly' && (
+            <MonthPerformanceCards
+              trades={tradesToUse}
+              selectedYear={selectedYear}
+              currencySymbol={currencySymbol}
+              accountBalance={resolvedAccountBalance}
+              isLoading={accountOverviewLoadingState}
+            />
+          )}
+        </>
+      )}
+
+      <SectionHeading
+        title="Trades Calendar"
+        description="See your trades and activity by calendar day and week."
+        action={renderSectionCollapseButton('calendar')}
+      />
+      {isSectionExpanded('calendar') && (
+        <>
+          <TradesCalendarCard
+            key={`${viewMode}-${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${selectedExecution}`}
+            currentDate={currentDate}
+            onMonthNavigate={handleMonthNavigation}
+            canNavigateMonth={canNavigateMonth}
+            weeklyStats={weeklyStats}
+            calendarMonthTrades={calendarMonthTradesToUse}
+            selectedMarket={selectedMarket}
+            currencySymbol={currencySymbol}
+            accountBalance={selectionActiveAccountBalance}
+            getDaysInMonth={() => getDaysInMonth}
+            onTradeClick={setCalendarTradeDetails}
+          />
+          <TradeDetailsModal
+            trade={calendarTradeDetails}
+            isOpen={!!calendarTradeDetails}
+            onClose={() => setCalendarTradeDetails(null)}
+          />
+        </>
+      )}
+    </>
+  );
+}
+
 type UseAllTimePrefetchParams = {
   isLoadingStats: boolean;
   resolvedAccountId?: string;
@@ -502,7 +638,6 @@ export default function StrategyClient(
 
   const [analysisResults, setAnalysisResults] = useState<string | null>(null);
   const [openAnalyzeModal, setOpenAnalyzeModal] = useState(false);
-  const [calendarTradeDetails, setCalendarTradeDetails] = useState<Trade | null>(null);
 
   // view mode: 'yearly' or 'dateRange'
   const [viewMode, setViewMode] = useState<'yearly' | 'dateRange'>('dateRange');
@@ -1093,82 +1228,34 @@ export default function StrategyClient(
         displayStartDate={earliestTradeDate}
       />
 
-      {/* Overview & monthly highlights */}
-      <SectionHeading
-        title="Overview & Monthly highlights"
-        description="Account balance, yearly P&L, and best and worst month for the selected period."
-        containerClassName="mt-8"
-        action={(
-          <div className="flex items-center gap-3">
-            {/* Year Selection - Only show when in yearly mode */}
-            {viewMode === 'yearly' && (
-              <YearSelector
-                selectedYear={selectedYear}
-                onYearChange={setSelectedYear}
-              />
-            )}
-            {renderSectionCollapseButton('overview')}
-          </div>
-        )}
+      <StrategyOverviewAndCalendarSections
+        viewMode={viewMode}
+        selectedYear={selectedYear}
+        onSelectedYearChange={setSelectedYear}
+        renderSectionCollapseButton={renderSectionCollapseButton}
+        isSectionExpanded={isSectionExpanded}
+        initialStrategyName={props?.initialStrategyName}
+        currencySymbol={currencySymbol}
+        updatedBalance={updatedBalance}
+        totalYearProfit={totalYearProfit}
+        activeAccountBalance={(activeAccount as { account_balance?: number } | null)?.account_balance}
+        monthlyStatsToUse={monthlyStatsToUse}
+        accountOverviewLoadingState={accountOverviewLoadingState}
+        isLoadingStats={isLoadingStats}
+        statsTotalTrades={stats?.totalTrades}
+        tradesToUse={tradesToUse}
+        resolvedAccountBalance={(resolvedAccount as { account_balance?: number } | null)?.account_balance}
+        dateRange={dateRange}
+        selectedMarket={selectedMarket}
+        selectedExecution={selectedExecution}
+        currentDate={currentDate}
+        handleMonthNavigation={handleMonthNavigation}
+        canNavigateMonth={canNavigateMonth}
+        weeklyStats={weeklyStats}
+        calendarMonthTradesToUse={calendarMonthTradesToUse}
+        selectionActiveAccountBalance={selection.activeAccount?.account_balance}
+        getDaysInMonth={getDaysInMonth}
       />
-
-      {isSectionExpanded('overview') && (
-        <>
-          {/* Account Overview Card - use resolved account (props first) so server and client match; card defers display until mount to avoid hydration when e.g. no subaccounts */}
-          <AccountOverviewCard
-            accountName={props?.initialStrategyName ?? null}
-            currencySymbol={currencySymbol}
-            updatedBalance={updatedBalance}
-            totalYearProfit={totalYearProfit}
-            accountBalance={(activeAccount as { account_balance?: number } | null)?.account_balance || 1}
-            months={MONTHS}
-            monthlyStatsAllTrades={monthlyStatsToUse}
-            isYearDataLoading={accountOverviewLoadingState}
-            isFetching={isLoadingStats}
-            tradesCount={stats?.totalTrades ?? tradesToUse.length}
-          />
-
-          {/* Month Stats Cards - Only show in yearly mode */}
-          {viewMode === 'yearly' && (
-            <MonthPerformanceCards
-              trades={tradesToUse}
-              selectedYear={selectedYear}
-              currencySymbol={getCurrencySymbol()}
-              accountBalance={(resolvedAccount as { account_balance?: number } | null)?.account_balance}
-              isLoading={accountOverviewLoadingState}
-            />
-          )}
-        </>
-      )}
-
-      {/* Calendar View - Show in both modes */}
-      <SectionHeading
-        title="Trades Calendar"
-        description="See your trades and activity by calendar day and week."
-        action={renderSectionCollapseButton('calendar')}
-      />
-      {isSectionExpanded('calendar') && (
-        <>
-          <TradesCalendarCard
-            key={`${viewMode}-${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${selectedExecution}`}
-            currentDate={currentDate}
-            onMonthNavigate={handleMonthNavigation}
-            canNavigateMonth={canNavigateMonth}
-            weeklyStats={weeklyStats}
-            calendarMonthTrades={calendarMonthTradesToUse}
-            selectedMarket={selectedMarket}
-            currencySymbol={currencySymbol}
-            accountBalance={selection.activeAccount?.account_balance}
-            getDaysInMonth={() => getDaysInMonth}
-            onTradeClick={setCalendarTradeDetails}
-          />
-          <TradeDetailsModal
-            trade={calendarTradeDetails}
-            isOpen={!!calendarTradeDetails}
-            onClose={() => setCalendarTradeDetails(null)}
-          />
-        </>
-      )}
 
       {/* Core statistics: title + description, then core stats, then Partial/Executed/Direction cards, then Evaluation + Re-entry Trades above RiskPerTrade */}
       <SectionHeading
