@@ -1,24 +1,22 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
-import { useSettings } from '@/hooks/useSettings';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useAccounts } from '@/hooks/useAccounts';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TRADES_DATA } from '@/constants/queryConfig';
 import { queryKeys } from '@/lib/queryKeys';
 import { getStrategiesOverview, type StrategiesOverviewResult } from '@/lib/server/strategiesOverview';
 import { StrategyCard } from '@/components/dashboard/strategy/StrategyCard';
 import { AddStrategyCard } from '@/components/dashboard/strategy/AddStrategyCard';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { CreateStrategyModal } from '@/components/CreateStrategyModal';
 import { EditStrategyModal } from '@/components/EditStrategyModal';
 import { deleteStrategy, permanentlyDeleteStrategy, getInactiveStrategies, reactivateStrategy } from '@/lib/server/strategies';
 
 import { Strategy } from '@/types/strategy';
-import { useQueryClient } from '@tanstack/react-query';
 import { Target, Archive, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,13 +39,42 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
+type SortByOption = 'default' | 'winRate' | 'totalRR' | 'totalTrades';
+
+const DEFAULT_DESCRIPTION =
+  'Track your Stats Boards, each with its own metrics, and monitor your overall performance.';
+
+const SORT_BY_OPTIONS: Array<{ value: SortByOption; label: string }> = [
+  { value: 'default', label: 'Default order' },
+  { value: 'winRate', label: 'Win rate (high → low)' },
+  { value: 'totalRR', label: 'RR total (high → low)' },
+  { value: 'totalTrades', label: 'Total trades (high → low)' },
+];
+
+function getStrategySortMetric(
+  overview: StrategiesOverviewResult[string] | undefined,
+  sortBy: Exclude<SortByOption, 'default'>
+): number {
+  if (!overview) return Number.NEGATIVE_INFINITY;
+  if (sortBy === 'winRate') return overview.winRate;
+  if (sortBy === 'totalRR') return overview.totalRR;
+  return overview.totalTrades;
+}
+
 export function StrategiesClient() {
   const { data: userDetails } = useUserDetails();
   const userId = userDetails?.user?.id;
   const { selection } = useActionBarSelection();
   const mode = selection.mode;
   const { accounts } = useAccounts({ userId, pendingMode: mode });
-  const activeAccount = selection.activeAccount ?? accounts.find((a) => a.is_active) ?? accounts[0] ?? null;
+  const activeAccount = useMemo(
+    () =>
+      selection.activeAccount ??
+      accounts.find((account) => account.is_active) ??
+      accounts[0] ??
+      null,
+    [accounts, selection.activeAccount]
+  );
   const { strategies, strategiesLoading, refetchStrategies } = useStrategies({ userId, accountId: activeAccount?.id });
   const queryClient = useQueryClient();
   const [editingStrategy, setEditingStrategy] = useState<Strategy | null>(null);
@@ -57,15 +84,15 @@ export function StrategiesClient() {
   const [reactivatingStrategyId, setReactivatingStrategyId] = useState<string | null>(null);
   const [deletingStrategyId, setDeletingStrategyId] = useState<string | null>(null);
 
-  // Sort strategies by metric (default = original order)
-  type SortByOption = 'default' | 'winRate' | 'totalRR' | 'totalTrades';
   const [sortBy, setSortBy] = useState<SortByOption>('default');
 
   // Get currency symbol from active account
-  const currencySymbol = activeAccount?.currency === 'USD' ? '$' : activeAccount?.currency === 'EUR' ? '€' : '£';
+  const currencySymbol = useMemo(() => {
+    if (activeAccount?.currency === 'USD') return '$';
+    if (activeAccount?.currency === 'EUR') return '€';
+    return '£';
+  }, [activeAccount?.currency]);
 
-  const DEFAULT_DESCRIPTION = 'Track your Stats Boards, each with its own metrics, and monitor your overall performance.';
-  // const accountDescription = activeAccount?.description?.trim() || DEFAULT_DESCRIPTION;
   const accountDescription = DEFAULT_DESCRIPTION;
 
   // Fetch per-strategy aggregated stats + equity curves via a single RPC call.
@@ -87,14 +114,12 @@ export function StrategiesClient() {
   // Sort strategies by selected metric (highest first)
   const sortedStrategies = useMemo(() => {
     if (sortBy === 'default') return [...strategies];
-    const sorted = [...strategies].sort((a, b) => {
-      const statsA = strategiesOverview?.[a.id];
-      const statsB = strategiesOverview?.[b.id];
-      const valA = statsA ? (sortBy === 'winRate' ? statsA.winRate : sortBy === 'totalRR' ? statsA.totalRR : statsA.totalTrades) : -Infinity;
-      const valB = statsB ? (sortBy === 'winRate' ? statsB.winRate : sortBy === 'totalRR' ? statsB.totalRR : statsB.totalTrades) : -Infinity;
-      return valB - valA; // descending (highest first)
+    const metric = sortBy as Exclude<SortByOption, 'default'>;
+    return [...strategies].sort((a, b) => {
+      const valueA = getStrategySortMetric(strategiesOverview?.[a.id], metric);
+      const valueB = getStrategySortMetric(strategiesOverview?.[b.id], metric);
+      return valueB - valueA; // descending (highest first)
     });
-    return sorted;
   }, [strategies, strategiesOverview, sortBy]);
 
   // Fetch archived (inactive) strategies
@@ -115,48 +140,67 @@ export function StrategiesClient() {
   // Archived strategies are automatically deleted by Supabase pg_cron trigger
   // after 30 days. No client-side cleanup needed.
 
-  const handleCreateSuccess = () => {
-    setIsCreateModalOpen(false);
-    refetchStrategies();
-    queryClient.invalidateQueries({ queryKey: ['strategies-overview'] });
-  };
+  const invalidateStrategiesOverview = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['strategies-overview'] });
+  }, [queryClient]);
 
-  const handleEdit = (strategy: Strategy) => {
+  const refreshStrategiesData = useCallback(() => {
+    void refetchStrategies();
+    void refetchArchived();
+    invalidateStrategiesOverview();
+  }, [invalidateStrategiesOverview, refetchArchived, refetchStrategies]);
+
+  const handleCreateSuccess = useCallback(() => {
+    setIsCreateModalOpen(false);
+    void refetchStrategies();
+    invalidateStrategiesOverview();
+  }, [invalidateStrategiesOverview, refetchStrategies]);
+
+  const handleEdit = useCallback((strategy: Strategy) => {
     setEditingStrategy(strategy);
     setIsEditModalOpen(true);
-  };
+  }, []);
 
-  const handleEditSuccess = () => {
+  const handleEditSuccess = useCallback(() => {
     setIsEditModalOpen(false);
     setEditingStrategy(null);
-    refetchStrategies();
-    queryClient.invalidateQueries({ queryKey: ['strategies-overview'] });
-  };
+    void refetchStrategies();
+    invalidateStrategiesOverview();
+  }, [invalidateStrategiesOverview, refetchStrategies]);
 
-  const handleDelete = async (strategyId: string): Promise<void> => {
+  const handleDelete = useCallback(async (strategyId: string): Promise<void> => {
     if (!userId) return;
     const result = await deleteStrategy(strategyId, userId);
     if (!result.error) {
-      refetchStrategies();
-      refetchArchived();
-      queryClient.invalidateQueries({ queryKey: ['strategies-overview'] });
+      refreshStrategiesData();
     }
-  };
+  }, [refreshStrategiesData, userId]);
 
-  const handleReactivate = async (strategyId: string): Promise<void> => {
+  const handleReactivate = useCallback(async (strategyId: string): Promise<void> => {
     if (!userId) return;
     setReactivatingStrategyId(strategyId);
     try {
       const result = await reactivateStrategy(strategyId, userId);
       if (!result.error) {
-        refetchStrategies();
-        refetchArchived();
-        queryClient.invalidateQueries({ queryKey: ['strategies-overview'] });
+        refreshStrategiesData();
       }
     } finally {
       setReactivatingStrategyId(null);
     }
-  };
+  }, [refreshStrategiesData, userId]);
+
+  const handlePermanentDelete = useCallback(async (strategyId: string): Promise<void> => {
+    if (!userId) return;
+    setDeletingStrategyId(strategyId);
+    try {
+      const result = await permanentlyDeleteStrategy(strategyId, userId);
+      if (!result.error) {
+        refreshStrategiesData();
+      }
+    } finally {
+      setDeletingStrategyId(null);
+    }
+  }, [refreshStrategiesData, userId]);
 
 
   return (
@@ -380,17 +424,7 @@ export function StrategiesClient() {
                                     <Button
                                       variant="destructive"
                                       disabled={deletingStrategyId === strategy.id}
-                                      onClick={async () => {
-                                        if (!userId) return;
-                                        setDeletingStrategyId(strategy.id);
-                                        const result = await permanentlyDeleteStrategy(strategy.id, userId);
-                                        setDeletingStrategyId(null);
-                                        if (!result.error) {
-                                          refetchStrategies();
-                                          refetchArchived();
-                                          queryClient.invalidateQueries({ queryKey: ['strategies-overview'] });
-                                        }
-                                      }}
+                                      onClick={() => handlePermanentDelete(strategy.id)}
                                       className="relative cursor-pointer px-4 py-2 overflow-hidden rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-orange-500 hover:from-rose-600 hover:via-red-600 hover:to-orange-600 text-white font-semibold shadow-md shadow-rose-500/30 dark:shadow-rose-500/20 group border-0 flex items-center gap-2"
                                     >
                                       Yes, Delete
@@ -421,7 +455,7 @@ export function StrategiesClient() {
       {/* Sort strategies: above the cards */}
       <div className="flex items-center gap-2" aria-label="Sort strategies">
         <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Order by:</span>
-        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>
+        <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortByOption)}>
           <SelectTrigger
             className="h-8 w-[10rem] rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 text-xs font-medium cursor-pointer transition-colors duration-200"
             aria-label="Sort by"
@@ -429,10 +463,11 @@ export function StrategiesClient() {
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
-            <SelectItem value="default">Default order</SelectItem>
-            <SelectItem value="winRate">Win rate (high → low)</SelectItem>
-            <SelectItem value="totalRR">RR total (high → low)</SelectItem>
-            <SelectItem value="totalTrades">Total trades (high → low)</SelectItem>
+            {SORT_BY_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
