@@ -609,6 +609,190 @@ function StrategyPerformanceSections({
   );
 }
 
+type StrategyAdditionalAnalyticsSectionsProps = {
+  isPro: boolean;
+  showProContent: boolean;
+  renderSectionCollapseButton: (key: FullWidthSectionKey) => ReactNode;
+  isSectionExpanded: (key: FullWidthSectionKey) => boolean;
+  monthlyPerformanceStatsToUse: ReturnType<typeof computeFullMonthlyStatsFromTrades>;
+  filteredChartStats: ReturnType<typeof useFilteredStats>['filteredChartStats'];
+  statsToUseForCharts: ReturnType<typeof useFilteredStats>['statsToUseForCharts'];
+  marketStatsToUse: ReturnType<typeof useDashboardData>['marketStats'];
+  chartsLoadingState: boolean;
+  tradesToUse: Trade[];
+  viewMode: 'yearly' | 'dateRange';
+  filteredMarketStats: ReturnType<typeof useFilteredStats>['filteredMarketStats'];
+  marketAllTradesStats: ReturnType<typeof useDashboardData>['marketAllTradesStats'];
+  marketStats: ReturnType<typeof useDashboardData>['marketStats'];
+  getCurrencySymbol: () => string;
+  timeIntervalChartDataToUse: TradeStatDatum[];
+  dayStats: DayStatisticsCardProps['dayStats'];
+  hasCard: (key: ExtraCardKey) => boolean;
+  selectedHalfWidthCards: { key: ExtraCardKey; element: ReactNode }[];
+};
+
+function StrategyAdditionalAnalyticsSections({
+  isPro,
+  showProContent,
+  renderSectionCollapseButton,
+  isSectionExpanded,
+  monthlyPerformanceStatsToUse,
+  filteredChartStats,
+  statsToUseForCharts,
+  marketStatsToUse,
+  chartsLoadingState,
+  tradesToUse,
+  viewMode,
+  filteredMarketStats,
+  marketAllTradesStats,
+  marketStats,
+  getCurrencySymbol,
+  timeIntervalChartDataToUse,
+  dayStats,
+  hasCard,
+  selectedHalfWidthCards,
+}: StrategyAdditionalAnalyticsSectionsProps) {
+  return (
+    <>
+      <div className="my-8 mt-12">
+        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-2">
+          Trade Performance Analysis
+        </h2>
+        <p className="text-slate-500 dark:text-slate-400 mb-6">
+          See your trading performance metrics and statistics.
+        </p>
+      </div>
+
+      <div className="w-full mb-8">
+        <MonthlyPerformanceChart
+          monthlyStatsAllTrades={monthlyPerformanceStatsToUse}
+          months={MONTHS}
+          chartOptions={chartOptions}
+          headerAction={isPro ? renderSectionCollapseButton('monthlyPerformanceChart') : undefined}
+          bodyVisible={!isPro || isSectionExpanded('monthlyPerformanceChart')}
+        />
+      </div>
+
+      {showProContent && (
+        <>
+          <div className="my-8">
+            <MarketStatisticsCard
+              marketStats={
+                filteredChartStats
+                  ? (statsToUseForCharts.marketStats as MarketStatisticsCardProps['marketStats'])
+                  : marketStatsToUse
+              }
+              isLoading={chartsLoadingState}
+              includeTotalTrades={filteredChartStats !== null}
+              isPro={isPro}
+              headerAction={isPro ? renderSectionCollapseButton('marketStats') : undefined}
+              bodyVisible={!isPro || isSectionExpanded('marketStats')}
+            />
+          </div>
+
+          <div className="my-8">
+            <MarketProfitStatisticsCard
+              trades={tradesToUse}
+              marketStats={
+                viewMode === 'yearly'
+                  ? (filteredMarketStats || marketAllTradesStats) as any
+                  : (filteredMarketStats || marketStats) as any
+              }
+              chartOptions={chartOptions}
+              getCurrencySymbol={getCurrencySymbol}
+              isPro={isPro}
+              headerAction={isPro ? renderSectionCollapseButton('marketProfitStats') : undefined}
+              bodyVisible={!isPro || isSectionExpanded('marketProfitStats')}
+            />
+          </div>
+        </>
+      )}
+
+      <hr className="col-span-full my-10 border-t border-slate-200 dark:border-slate-700" />
+
+      {showProContent && (
+        <div className="my-8">
+          <TimeIntervalStatisticsCard
+            data={timeIntervalChartDataToUse}
+            isLoading={chartsLoadingState}
+            isPro={isPro}
+            headerAction={isPro ? renderSectionCollapseButton('timeIntervalStats') : undefined}
+            bodyVisible={!isPro || isSectionExpanded('timeIntervalStats')}
+          />
+        </div>
+      )}
+
+      <div className="my-8">
+        <DayStatisticsCard
+          dayStats={filteredChartStats ? (statsToUseForCharts.dayStats as DayStatisticsCardProps['dayStats']) : dayStats}
+          isLoading={chartsLoadingState}
+          includeTotalTrades={filteredChartStats !== null}
+          headerAction={isPro ? renderSectionCollapseButton('dayStats') : undefined}
+          bodyVisible={!isPro || isSectionExpanded('dayStats')}
+        />
+      </div>
+      {showProContent && (
+        <div className="my-8">
+          <NewsNameChartCard
+            trades={tradesToUse}
+            isLoading={chartsLoadingState}
+            isPro={isPro}
+            headerAction={isPro ? renderSectionCollapseButton('newsByEvent') : undefined}
+            bodyVisible={!isPro || isSectionExpanded('newsByEvent')}
+          />
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8 w-full [&>*]:min-w-0">
+        {showProContent && hasCard('potential_rr') && (
+          <RiskRewardStats
+            trades={tradesToUse}
+            isLoading={chartsLoadingState}
+          />
+        )}
+        {hasCard('sl_size_stats') && (
+          <SLSizeStatisticsCard
+            slSizeStats={statsToUseForCharts.slSizeStats}
+            isLoading={chartsLoadingState}
+          />
+        )}
+      </div>
+
+      {hasCard('setup_stats') && (
+        <div className="my-8">
+          <SetupStatisticsCard
+            setupStats={statsToUseForCharts.setupStats}
+            isLoading={chartsLoadingState}
+            includeTotalTrades={filteredChartStats !== null}
+            headerAction={isPro ? renderSectionCollapseButton('setupStats') : undefined}
+            bodyVisible={!isPro || isSectionExpanded('setupStats')}
+          />
+        </div>
+      )}
+
+      {hasCard('liquidity_stats') && (
+        <div className="my-8">
+          <LiquidityStatisticsCard
+            liquidityStats={statsToUseForCharts.liquidityStats}
+            isLoading={chartsLoadingState}
+            includeTotalTrades={filteredChartStats !== null}
+            headerAction={isPro ? renderSectionCollapseButton('liquidityStats') : undefined}
+            bodyVisible={!isPro || isSectionExpanded('liquidityStats')}
+          />
+        </div>
+      )}
+
+      {selectedHalfWidthCards.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8 w-full [&>*]:min-w-0">
+          {selectedHalfWidthCards.map(({ key, element }) => (
+            <div key={key}>{element}</div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 type UseAllTimePrefetchParams = {
   isLoadingStats: boolean;
   resolvedAccountId?: string;
@@ -1471,147 +1655,27 @@ export default function StrategyClient(
         }}
       />
 
-      <div className="my-8 mt-12">
-        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-2">
-          Trade Performance Analysis
-        </h2>
-        <p className="text-slate-500 dark:text-slate-400 mb-6">
-          See your trading performance metrics and statistics.
-        </p>
-      </div>
-
-      {/* Monthly Performance Chart - Hide/Expand control lives inside the card (PRO) */}
-      <div className="w-full mb-8">
-        <MonthlyPerformanceChart
-          monthlyStatsAllTrades={monthlyPerformanceStatsToUse}
-          months={MONTHS}
-          chartOptions={chartOptions}
-          headerAction={isPro ? renderSectionCollapseButton('monthlyPerformanceChart') : undefined}
-          bodyVisible={!isPro || isSectionExpanded('monthlyPerformanceChart')}
-        />
-      </div>
-
-      {showProContent && (
-        <>
-          <div className="my-8">
-            <MarketStatisticsCard
-              marketStats={
-                filteredChartStats
-                  ? (statsToUseForCharts.marketStats as MarketStatisticsCardProps['marketStats'])
-                  : marketStatsToUse
-              }
-              isLoading={chartsLoadingState}
-              includeTotalTrades={filteredChartStats !== null}
-              isPro={isPro}
-              headerAction={isPro ? renderSectionCollapseButton('marketStats') : undefined}
-              bodyVisible={!isPro || isSectionExpanded('marketStats')}
-            />
-          </div>
-
-          <div className="my-8">
-            <MarketProfitStatisticsCard
-              trades={tradesToUse}
-              marketStats={
-                viewMode === 'yearly'
-                  ? (filteredMarketStats || marketAllTradesStats) as any
-                  : (filteredMarketStats || marketStats) as any
-              }
-              chartOptions={chartOptions}
-              getCurrencySymbol={getCurrencySymbol}
-              isPro={isPro}
-              headerAction={isPro ? renderSectionCollapseButton('marketProfitStats') : undefined}
-              bodyVisible={!isPro || isSectionExpanded('marketProfitStats')}
-            />
-          </div>
-        </>
-      )}
-
-      <hr className="col-span-full my-10 border-t border-slate-200 dark:border-slate-700" />
-
-      {showProContent && (
-        <div className="my-8">
-          <TimeIntervalStatisticsCard
-            data={timeIntervalChartDataToUse}
-            isLoading={chartsLoadingState}
-            isPro={isPro}
-            headerAction={isPro ? renderSectionCollapseButton('timeIntervalStats') : undefined}
-            bodyVisible={!isPro || isSectionExpanded('timeIntervalStats')}
-          />
-        </div>
-      )}
-
-      {/* Day Stats - full width */}
-      <div className="my-8">
-        <DayStatisticsCard
-          dayStats={filteredChartStats ? (statsToUseForCharts.dayStats as DayStatisticsCardProps['dayStats']) : dayStats}
-          isLoading={chartsLoadingState}
-          includeTotalTrades={filteredChartStats !== null}
-          headerAction={isPro ? renderSectionCollapseButton('dayStats') : undefined}
-          bodyVisible={!isPro || isSectionExpanded('dayStats')}
-        />
-      </div>
-      {/* News by event - full width */}
-      {showProContent && (
-        <div className="my-8">
-          <NewsNameChartCard
-            trades={tradesToUse}
-            isLoading={chartsLoadingState}
-            isPro={isPro}
-            headerAction={isPro ? renderSectionCollapseButton('newsByEvent') : undefined}
-            bodyVisible={!isPro || isSectionExpanded('newsByEvent')}
-          />
-        </div>
-      )}
-
-      {/* Potential Risk/Reward Ratio Stats & Stop Loss Size Stats — extra cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8 w-full [&>*]:min-w-0">
-        {showProContent && hasCard('potential_rr') && (
-          <RiskRewardStats
-            trades={tradesToUse}
-            isLoading={chartsLoadingState}
-          />
-        )}
-        {hasCard('sl_size_stats') && (
-          <SLSizeStatisticsCard
-            slSizeStats={statsToUseForCharts.slSizeStats}
-            isLoading={chartsLoadingState}
-          />
-        )}
-      </div>
-
-      {/* Extra Stats Cards — rendered per strategy configuration */}
-      {hasCard('setup_stats') && (
-        <div className="my-8">
-          <SetupStatisticsCard
-            setupStats={statsToUseForCharts.setupStats}
-            isLoading={chartsLoadingState}
-            includeTotalTrades={filteredChartStats !== null}
-            headerAction={isPro ? renderSectionCollapseButton('setupStats') : undefined}
-            bodyVisible={!isPro || isSectionExpanded('setupStats')}
-          />
-        </div>
-      )}
-
-      {hasCard('liquidity_stats') && (
-        <div className="my-8">
-          <LiquidityStatisticsCard
-            liquidityStats={statsToUseForCharts.liquidityStats}
-            isLoading={chartsLoadingState}
-            includeTotalTrades={filteredChartStats !== null}
-            headerAction={isPro ? renderSectionCollapseButton('liquidityStats') : undefined}
-            bodyVisible={!isPro || isSectionExpanded('liquidityStats')}
-          />
-        </div>
-      )}
-
-      {/* Half-width extra cards — dynamic grid */}
-      {selectedHalfWidthCards.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8 w-full [&>*]:min-w-0">
-          {selectedHalfWidthCards.map(({ key, element }) => (
-            <div key={key}>{element}</div>
-          ))}
-        </div>
-      )}
+      <StrategyAdditionalAnalyticsSections
+        isPro={isPro}
+        showProContent={showProContent}
+        renderSectionCollapseButton={renderSectionCollapseButton}
+        isSectionExpanded={isSectionExpanded}
+        monthlyPerformanceStatsToUse={monthlyPerformanceStatsToUse}
+        filteredChartStats={filteredChartStats}
+        statsToUseForCharts={statsToUseForCharts}
+        marketStatsToUse={marketStatsToUse}
+        chartsLoadingState={chartsLoadingState}
+        tradesToUse={tradesToUse}
+        viewMode={viewMode}
+        filteredMarketStats={filteredMarketStats}
+        marketAllTradesStats={marketAllTradesStats}
+        marketStats={marketStats}
+        getCurrencySymbol={getCurrencySymbol}
+        timeIntervalChartDataToUse={timeIntervalChartDataToUse}
+        dayStats={dayStats}
+        hasCard={hasCard}
+        selectedHalfWidthCards={selectedHalfWidthCards}
+      />
     </>
   );
 }
