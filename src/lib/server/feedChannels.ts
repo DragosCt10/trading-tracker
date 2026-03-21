@@ -3,9 +3,8 @@
 import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
-import { TIER_DEFINITIONS } from '@/constants/tiers';
+import { getCachedSubscription } from './subscription';
 import type { FeedChannel, PaginatedResult } from '@/types/social';
-import type { TierId } from '@/types/subscription';
 
 type ChannelResult<T> =
   | { data: T }
@@ -34,13 +33,51 @@ export async function getMyChannels(): Promise<FeedChannel[]> {
   if (!profile) return [];
 
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data: ownedRows, error: ownedError } = await supabase
     .from('feed_channels')
     .select('*')
-    .or(`owner_id.eq.${profile.id},id.in.(select channel_id from channel_members where user_id = '${profile.id}')`)
+    .eq('owner_id', profile.id)
     .order('updated_at', { ascending: false });
+  if (ownedError) {
+    console.error('[getMyChannels:owned]', ownedError);
+    return [];
+  }
 
-  return (data ?? []).map((r) => mapRow(r as Record<string, unknown>));
+  const { data: memberships, error: membershipsError } = await supabase
+    .from('channel_members')
+    .select('channel_id')
+    .eq('user_id', profile.id);
+  if (membershipsError) {
+    console.error('[getMyChannels:memberships]', membershipsError);
+    return (ownedRows ?? []).map((r) => mapRow(r as Record<string, unknown>));
+  }
+
+  const memberChannelIds = (memberships ?? [])
+    .map((m: { channel_id: string }) => m.channel_id)
+    .filter((id) => id !== '');
+
+  let memberRows: Record<string, unknown>[] = [];
+  if (memberChannelIds.length > 0) {
+    const { data: rows, error: membersError } = await supabase
+      .from('feed_channels')
+      .select('*')
+      .in('id', memberChannelIds);
+    if (membersError) {
+      console.error('[getMyChannels:memberRows]', membersError);
+    } else {
+      memberRows = (rows ?? []) as Record<string, unknown>[];
+    }
+  }
+
+  const merged = [...((ownedRows ?? []) as Record<string, unknown>[]), ...memberRows];
+  const deduped = Array.from(
+    new Map(merged.map((row) => [row.id as string, row])).values()
+  );
+  deduped.sort(
+    (a, b) => new Date(b.updated_at as string).getTime() - new Date(a.updated_at as string).getTime()
+  );
+
+  return deduped.map((r) => mapRow(r));
 }
 
 export async function getPublicChannels(
@@ -96,8 +133,8 @@ export async function createChannel(input: {
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
 
-  const tier = profile.tier as TierId;
-  if (!TIER_DEFINITIONS[tier].features.socialFeedChannels) {
+  const subscription = await getCachedSubscription(session.user.id);
+  if (!subscription.definition.features.socialFeedChannels) {
     return { error: 'Creating channels requires PRO', code: 'UNAUTHORIZED' };
   }
 

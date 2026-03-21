@@ -59,6 +59,7 @@ export default function SocialNavActions({ userId }: SocialNavActionsProps) {
       }
       const supabase = createClient();
       await supabase.auth.signOut();
+      router.refresh();
       router.replace('/feed');
     } catch {
       setIsSigningOut(false);

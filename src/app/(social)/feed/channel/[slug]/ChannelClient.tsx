@@ -2,25 +2,24 @@
 
 import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Hash, Lock, Globe, PlusCircle, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Hash, Lock, Globe, ArrowLeft } from 'lucide-react';
 import { useFeed } from '@/hooks/useFeed';
 import { usePostActions } from '@/hooks/usePostActions';
 import PostCard from '@/components/feed/PostCard';
 import PostCardSkeleton from '@/components/feed/PostCardSkeleton';
-import CreatePostModal from '@/components/feed/CreatePostModal';
+import EditPostModal from '@/components/feed/EditPostModal';
+import InlineCreatePostCard from '@/components/feed/InlineCreatePostCard';
 import { useSubscription } from '@/hooks/useSubscription';
-import type { FeedChannel, FeedPost, PaginatedResult } from '@/types/social';
+import type { FeedChannel, FeedPost, PaginatedResult, SocialProfile } from '@/types/social';
 
 interface ChannelClientProps {
   channel: FeedChannel;
   initialFeed: PaginatedResult<FeedPost>;
   userId: string;
-  currentProfileId?: string;
+  currentProfile: SocialProfile | null;
 }
 
-export default function ChannelClient({ channel, initialFeed, userId, currentProfileId }: ChannelClientProps) {
-  const [createOpen, setCreateOpen] = useState(false);
+export default function ChannelClient({ channel, initialFeed, userId, currentProfile }: ChannelClientProps) {
   const [createError, setCreateError] = useState('');
   const [editPost, setEditPost] = useState<FeedPost | null>(null);
 
@@ -47,6 +46,19 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
   );
 
   const posts = data?.pages.flatMap((p) => p.items) ?? [];
+  const currentProfileId = currentProfile?.id;
+
+  async function handleCreate(input: { content: string; tradeId?: string; tradeMode?: 'live' | 'demo' | 'backtesting' }) {
+    setCreateError('');
+    const result = await create.mutateAsync({
+      ...input,
+      channelId: channel.id,
+    });
+    if ('error' in result) {
+      setCreateError(result.error);
+      return;
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-0 py-6 space-y-4">
@@ -72,16 +84,18 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
           {channel.description && <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{channel.description}</p>}
           <p className="text-xs text-slate-500 dark:text-slate-600 mt-1">#{channel.slug}</p>
         </div>
-        {currentProfileId && subscription && (
-          <Button
-            onClick={() => { setCreateError(''); setCreateOpen(true); }}
-            className="themed-btn-primary relative overflow-hidden rounded-xl text-white font-semibold border-0 group gap-2 shrink-0"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span className="relative z-10 text-sm">Post</span>
-          </Button>
-        )}
       </div>
+
+      {subscription && currentProfile && (
+        <InlineCreatePostCard
+          userId={userId}
+          profile={currentProfile}
+          subscription={subscription}
+          onSubmit={handleCreate}
+          isSubmitting={create.isPending}
+          submitError={createError}
+        />
+      )}
 
       {/* Posts */}
       {isLoading ? (
@@ -113,34 +127,17 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
         </div>
       )}
 
-      {/* Modals */}
-      {subscription && (
-        <CreatePostModal
-          open={createOpen}
-          onClose={() => setCreateOpen(false)}
-          onSubmit={async (input) => {
-            setCreateError('');
-            const result = await create.mutateAsync({ ...input, channelId: channel.id });
-            if ('error' in result) { setCreateError(result.error); return; }
-            setCreateOpen(false);
-          }}
-          subscription={subscription}
-          userId={userId}
-          isSubmitting={create.isPending}
-          submitError={createError}
-        />
-      )}
       {editPost && subscription && (
-        <CreatePostModal
+        <EditPostModal
           open={!!editPost}
           onClose={() => setEditPost(null)}
-          onSubmit={async ({ content }) => {
+          onSubmit={async (content) => {
             const result = await edit.mutateAsync({ postId: editPost.id, content });
             if ('error' in result) { setCreateError(result.error); return; }
             setEditPost(null);
           }}
-          subscription={subscription}
-          userId={userId}
+          initialContent={editPost.content}
+          maxLen={subscription.definition.limits.maxPostContentLength}
           isSubmitting={edit.isPending}
           submitError={createError}
         />

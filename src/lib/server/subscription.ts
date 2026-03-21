@@ -189,6 +189,15 @@ export async function verifyAndActivateSubscription(userId: string): Promise<Res
     return existing;
   }
 
+  // Keep social feed badge tier in sync even before webhook delivery.
+  const syncedTier = ['active', 'trialing', 'admin_granted', 'past_due'].includes(providerSub.status)
+    ? providerSub.tierId
+    : 'starter';
+  await (supabase as ReturnType<typeof createServiceRoleClient> & { from: (table: string) => any })
+    .from('social_profiles')
+    .update({ tier: syncedTier, updated_at: new Date().toISOString() })
+    .eq('user_id', userId);
+
   return _getSubscription(userId);
 }
 

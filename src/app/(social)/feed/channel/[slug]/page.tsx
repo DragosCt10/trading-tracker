@@ -27,7 +27,7 @@ export default async function ChannelPage({ params }: Props) {
       channel={channel}
       initialFeed={initialFeed}
       userId={session.user.id}
-      currentProfileId={profile?.id}
+      currentProfile={profile}
     />
   );
 }

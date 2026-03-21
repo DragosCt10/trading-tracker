@@ -1,8 +1,9 @@
 import { resolveSubscription } from '@/lib/server/subscription';
 import type { ResolvedSubscription, TierFeatureFlags } from '@/types/subscription';
 import type { TierLimits } from '@/types/subscription';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { SUBSCRIPTION_DATA } from '@/constants/queryConfig';
+import { TIER_DEFINITIONS } from '@/constants/tiers';
 import { queryKeys } from '@/lib/queryKeys';
 
 interface UseSubscriptionOptions {
@@ -10,41 +11,36 @@ interface UseSubscriptionOptions {
 }
 
 export function useSubscription({ userId }: UseSubscriptionOptions = {}) {
-  const queryClient = useQueryClient();
   const key = queryKeys.subscription(userId);
-
-  const cached = queryClient.getQueryData<ResolvedSubscription>(key);
-  const shouldAutoFetch = !!userId && !cached;
 
   const query = useQuery<ResolvedSubscription>({
     queryKey: key,
-    enabled: shouldAutoFetch,
-    initialData: cached,
+    enabled: !!userId,
+    // Subscription gates feature access, so always revalidate when mounted.
+    refetchOnMount: 'always',
     ...SUBSCRIPTION_DATA,
     queryFn: async (): Promise<ResolvedSubscription> => {
-      if (!userId) {
-        // Return starter tier when no userId
-        const { TIER_DEFINITIONS } = await import('@/constants/tiers');
-        return {
-          tier: 'starter',
-          definition: TIER_DEFINITIONS.starter,
-          status: 'active',
-          isActive: true,
-          billingPeriod: null,
-          periodEnd: null,
-          cancelAtPeriodEnd: false,
-          providerCustomerId: null,
-          provider: 'admin',
-          priceAmount: null,
-          taxAmount: null,
-          currency: null,
-        };
-      }
+      if (!userId) throw new Error('Cannot fetch subscription without userId');
       return resolveSubscription(userId);
     },
   });
 
-  const subscription = query.data;
+  const starterSubscription: ResolvedSubscription = {
+    tier: 'starter',
+    definition: TIER_DEFINITIONS.starter,
+    status: 'active',
+    isActive: true,
+    billingPeriod: null,
+    periodEnd: null,
+    cancelAtPeriodEnd: false,
+    providerCustomerId: null,
+    provider: 'admin',
+    priceAmount: null,
+    taxAmount: null,
+    currency: null,
+  };
+
+  const subscription = userId ? query.data : starterSubscription;
   const tier = subscription?.tier ?? 'starter';
   const isPro = tier === 'pro' || tier === 'elite';
   const isElite = tier === 'elite';
