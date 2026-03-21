@@ -88,6 +88,14 @@ export default function NoteDetailsModal({
           strategy_name: undefined as string | undefined,
         })) ?? []),
   [displayNote.trades, displayNote.linkedTradesFull]);
+  const selectedStrategyCount = useMemo(() => {
+    const uniqueStrategyIds = new Set<string>();
+    (editedNote.strategy_ids ?? []).forEach((id) => {
+      if (id) uniqueStrategyIds.add(id);
+    });
+    if (editedNote.strategy_id) uniqueStrategyIds.add(editedNote.strategy_id);
+    return uniqueStrategyIds.size;
+  }, [editedNote.strategy_ids, editedNote.strategy_id]);
 
   // Update editedNote when note prop changes (e.g. list refetched)
   useEffect(() => {
@@ -428,9 +436,9 @@ export default function NoteDetailsModal({
                       </div>
                     )}
                   </div>
-                  {((editedNote.strategy_ids && editedNote.strategy_ids.length > 0) || editedNote.strategy_id) && (
+                  {selectedStrategyCount > 0 && (
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {((editedNote.strategy_ids?.length || 0) + (editedNote.strategy_id ? 1 : 0))} strateg{((editedNote.strategy_ids?.length || 0) + (editedNote.strategy_id ? 1 : 0)) === 1 ? 'y' : 'ies'} selected
+                      {selectedStrategyCount} strateg{selectedStrategyCount === 1 ? 'y' : 'ies'} selected
                     </p>
                   )}
                 </div>
