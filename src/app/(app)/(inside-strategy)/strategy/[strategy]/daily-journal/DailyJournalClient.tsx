@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { ChevronRight, Crown, Infinity as InfinityIcon } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -12,28 +11,17 @@ import { useBECalc } from '@/contexts/BECalcContext';
 import type { Trade } from '@/types/trade';
 import type { Database } from '@/types/supabase';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
-import {
-  buildPresetRange,
-  isCustomDateRange,
-  createAllTimeRange,
-  type DateRangeState,
-  type FilterType,
-} from '@/utils/dateRangeHelpers';
-import {
-  TradeFiltersBar,
-  type DateRangeValue,
-} from '@/components/dashboard/analytics/TradeFiltersBar';
+import { TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { calculateProfitFactor, calculateAveragePnLPercentage } from '@/utils/analyticsCalculations';
 import { calculateWinRates } from '@/utils/calculateWinRates';
 import { getIntervalForTime } from '@/constants/analytics';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import NotesModal from '@/components/NotesModal';
 import { ScreensCarouselCell } from '@/components/trades/ScreensCarouselCell';
-import { useActionBarSelection } from '@/hooks/useActionBarSelection';
-import { useUserDetails } from '@/hooks/useUserDetails';
-import { getFilteredTrades } from '@/lib/server/trades';
-import { queryKeys } from '@/lib/queryKeys';
-import { TRADES_DATA } from '@/constants/queryConfig';
+import { useStrategyClientContext } from '@/hooks/useStrategyClientContext';
+import { useStrategyAllTimeTrades } from '@/hooks/useStrategyAllTimeTrades';
+import { useTradeFilters } from '@/hooks/useTradeFilters';
+import { applyTradeClientFilters } from '@/utils/applyTradeClientFilters';
 import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
 import { DailyJournalSkeleton } from './DailyJournalSkeleton';
 import { OutcomeChips } from '@/components/trades/OutcomeChips';
@@ -167,73 +155,27 @@ export default function DailyJournalClient({
   currencySymbol: initialCurrencySymbol,
   accountBalance: initialAccountBalance,
 }: DailyJournalClientProps) {
-  const { data: userDetails } = useUserDetails();
   const { beCalcEnabled } = useBECalc();
-  const { selection, setSelection } = useActionBarSelection();
-  const userId = userDetails?.user?.id ?? initialUserId;
-  const mode = selection.mode ?? initialMode;
-  const { isPro } = useSubscription({ userId });
-  const activeAccount = selection.activeAccount ?? initialActiveAccount;
-
-  useEffect(() => {
-    if (initialActiveAccount && !selection.activeAccount && initialMode) {
-      setSelection({ mode: initialMode, activeAccount: initialActiveAccount });
-    }
-  }, [initialActiveAccount, initialMode, selection.activeAccount, setSelection]);
-
-  const allTime = useMemo(() => createAllTimeRange(), []);
-  const isInitialContext =
-    mode === initialMode && activeAccount?.id === initialActiveAccount?.id;
-
-  const {
-    data: rawTrades,
-    isLoading: tradesLoading,
-  } = useQuery<Trade[]>({
-    queryKey: queryKeys.trades.filtered(
-      mode,
-      activeAccount?.id,
-      userId,
-      'all',
-      allTime.startDate,
-      allTime.endDate,
-      strategyId,
-    ),
-    queryFn: async () => {
-      if (!isPro) return [];
-      if (!userId || !activeAccount?.id) return [];
-      return getFilteredTrades({
-        userId,
-        accountId: activeAccount.id,
-        mode,
-        startDate: allTime.startDate,
-        endDate: allTime.endDate,
-        includeNonExecuted: true,
-        strategyId,
-      });
-    },
-    // Only use initialTrades as initialData when they're actually populated.
-    // An empty array (server timeout fired) must NOT be treated as loaded data
-    // or TanStack Query will never refetch within the staleTime window.
-    initialData: (isPro && isInitialContext && initialTrades.length > 0) ? initialTrades : undefined,
-    enabled: isPro && !!userId && !!activeAccount?.id,
-    ...TRADES_DATA,
+  const { userId, mode, activeAccount, isInitialContext } = useStrategyClientContext({
+    initialUserId,
+    initialMode,
+    initialActiveAccount,
   });
-
-  const allTradesData = useMemo(
-    () => (isPro ? (rawTrades ?? (isInitialContext && initialTrades.length > 0 ? initialTrades : [])) : []),
-    [isPro, rawTrades, isInitialContext, initialTrades]
-  );
+  const { isPro } = useSubscription({ userId });
+  const { allTradesData, tradesLoading } = useStrategyAllTimeTrades({
+    userId,
+    activeAccountId: activeAccount?.id,
+    mode,
+    strategyId,
+    isPro,
+    initialTrades,
+    isInitialContext,
+  });
 
   const currencySymbol = activeAccount
     ? getCurrencySymbolFromAccount(activeAccount)
     : initialCurrencySymbol;
   const accountBalance = activeAccount?.account_balance ?? initialAccountBalance;
-
-  // Filters (reuse patterns from MyTradesClient)
-  const [dateRange, setDateRange] = useState<DateRangeState>(() => buildPresetRange('year').dateRange);
-  const [activeFilter, setActiveFilter] = useState<FilterType>('year');
-  const [selectedMarket, setSelectedMarket] = useState<string>('all');
-  const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'nonExecuted'>('executed');
 
   // Infinite scroll for days (mirrors TradeCardsView behavior)
   const [displayedCount, setDisplayedCount] = useState(DAYS_PER_LOAD);
@@ -251,14 +193,6 @@ export default function DailyJournalClient({
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  // Markets from full dataset
-  const markets = useMemo(
-    () => Array.from(new Set(allTradesData.map((t: Trade) => t.market).filter(Boolean))),
-    [allTradesData]
-  );
-
-  const isCustomRange = isCustomDateRange(dateRange);
 
   const lockedPreviewDayGroups: DayGroup[] = useMemo(() => {
     const today = new Date();
@@ -282,57 +216,38 @@ export default function DailyJournalClient({
     return [buildDayGroup(date, previewTrades, accountBalance)];
   }, [accountBalance]);
 
-  const handleFilterChange = useCallback((type: FilterType) => {
-    setActiveFilter(type);
-    const { dateRange: nextRange } = buildPresetRange(type);
-    setDateRange(nextRange);
-  }, []);
-
-  const handleDateRangeChange = useCallback((range: DateRangeValue) => {
-    setDateRange(range);
-  }, []);
-
-  const handleExecutionChange = useCallback(
-    (execution: 'all' | 'executed' | 'nonExecuted') => {
-      setExecutionFilter(execution);
-    },
-    []
+  const nonProEarliestSource = useMemo(
+    () => lockedPreviewDayGroups.flatMap((g) => g.trades),
+    [lockedPreviewDayGroups]
   );
 
-  // Earliest trade date for "All Trades" display
-  const earliestTradeDate = useMemo(() => {
-    if (activeFilter !== 'all') return undefined;
-    const source = isPro ? allTradesData : lockedPreviewDayGroups.flatMap((g) => g.trades);
-    if (source.length === 0) return undefined;
-    return source.reduce(
-      (min: string, t: Trade) => (t.trade_date < min ? t.trade_date : min),
-      source[0].trade_date
-    );
-  }, [activeFilter, isPro, allTradesData, lockedPreviewDayGroups]);
+  const {
+    dateRange,
+    activeFilter,
+    selectedMarket,
+    setSelectedMarket,
+    executionFilter,
+    markets,
+    isCustomRange,
+    earliestTradeDate,
+    handleFilterChange,
+    handleDateRangeChange,
+    handleExecutionChange,
+  } = useTradeFilters({
+    tradesForMarkets: allTradesData,
+    tradesForEarliestDate: isPro ? allTradesData : nonProEarliestSource,
+  });
 
-  // Apply filters client-side
-  const filteredTrades = useMemo(() => {
-    let list = allTradesData;
-
-    // Date range
-    list = list.filter(
-      (t: Trade) => t.trade_date >= dateRange.startDate && t.trade_date <= dateRange.endDate
-    );
-
-    // Execution
-    if (executionFilter === 'executed') {
-      list = list.filter((t: Trade) => t.executed === true);
-    } else if (executionFilter === 'nonExecuted') {
-      list = list.filter((t: Trade) => !t.executed);
-    }
-
-    // Market
-    if (selectedMarket !== 'all') {
-      list = list.filter((t: Trade) => t.market === selectedMarket);
-    }
-
-    return list;
-  }, [allTradesData, dateRange, executionFilter, selectedMarket]);
+  const filteredTrades = useMemo(
+    () =>
+      applyTradeClientFilters({
+        trades: allTradesData,
+        dateRange,
+        selectedMarket,
+        executionFilter,
+      }),
+    [allTradesData, dateRange, executionFilter, selectedMarket]
+  );
 
   // Group trades by day
   const dayGroups: DayGroup[] = useMemo(() => {

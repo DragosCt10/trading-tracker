@@ -1,23 +1,20 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trade } from '@/types/trade';
-import { useActionBarSelection } from '@/hooks/useActionBarSelection';
-import { useUserDetails } from '@/hooks/useUserDetails';
+import { useStrategyClientContext } from '@/hooks/useStrategyClientContext';
+import { useTradeFilters } from '@/hooks/useTradeFilters';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TRADES_DATA } from '@/constants/queryConfig';
-import { TradeFiltersBar, DateRangeValue } from '@/components/dashboard/analytics/TradeFiltersBar';
+import { TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { getFilteredTrades, deleteTrades, moveTradestoStrategy } from '@/lib/server/trades';
 import { getStrategiesOverview } from '@/lib/server/strategiesOverview';
 import type { Database } from '@/types/supabase';
 import { TradeCardsView } from '@/components/trades/TradeCardsView';
 import {
-  buildPresetRange,
-  isCustomDateRange,
   createAllTimeRange,
   DateRangeState,
-  FilterType,
 } from '@/utils/dateRangeHelpers';
 import { queryKeys } from '@/lib/queryKeys';
 import { useStrategies } from '@/hooks/useStrategies';
@@ -35,6 +32,7 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
 import { calculateWinRates } from '@/utils/calculateWinRates';
 import { calculateAverageDrawdown } from '@/utils/analyticsCalculations';
+import { applyTradeClientFilters } from '@/utils/applyTradeClientFilters';
 import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';
 import { cn, formatPercent, roundToCents } from '@/lib/utils';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -62,16 +60,6 @@ export default function MyTradesClient({
   initialActiveAccount,
   initialStrategyId,
 }: MyTradesClientProps) {
-  const [dateRange, setDateRange] = useState<DateRangeState>(() => initialDateRange);
-  const [activeFilter, setActiveFilter] = useState<FilterType>(() => {
-    if (isCustomDateRange(initialDateRange)) return 'custom';
-    const yearRange = buildPresetRange('year').dateRange;
-    return yearRange.startDate === initialDateRange.startDate && yearRange.endDate === initialDateRange.endDate
-      ? 'year'
-      : 'all';
-  });
-  const [selectedMarket, setSelectedMarket] = useState<string>('all');
-  const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'nonExecuted'>('executed');
   const [showPartialTrades, setShowPartialTrades] = useState(false);
   const [sortField, setSortField] = useState<'trade_date' | 'market' | 'outcome' | 'partials_only'>('trade_date');
   const [sortConfig, setSortConfig] = useState<{ field: 'trade_date' | 'market' | 'outcome'; direction: 'asc' | 'desc' }>({
@@ -83,28 +71,16 @@ export default function MyTradesClient({
 
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: userDetails } = useUserDetails();
-  const { selection, setSelection } = useActionBarSelection();
-  const userId = userDetails?.user?.id ?? initialUserId;
-  const mode = selection.mode ?? initialMode;
+  const { userId, mode, activeAccount } = useStrategyClientContext({
+    initialUserId,
+    initialMode,
+    initialActiveAccount,
+  });
   // Keep the all-time query key aligned with server-provided hydration date.
   const todayStr = useMemo(() => initialDateRange.endDate, [initialDateRange.endDate]);
   const { mounted, isDark } = useDarkMode();
   const { beCalcEnabled } = useBECalc();
   const { isPro } = useSubscription({ userId });
-
-  // Initialize selection from server props if not already set
-  useEffect(() => {
-    if (initialActiveAccount && !selection.activeAccount && initialMode) {
-      setSelection({
-        mode: initialMode,
-        activeAccount: initialActiveAccount,
-      });
-    }
-  }, [initialActiveAccount, initialMode, selection.activeAccount, setSelection]);
-
-  // Resolve account: use selection when set, else initial from server (so query can run before action bar hydrates)
-  const activeAccount = selection.activeAccount ?? initialActiveAccount;
 
   // Strategies for this account — used for the "move trades" feature
   const { strategies } = useStrategies({ userId, accountId: activeAccount?.id });
@@ -118,10 +94,10 @@ export default function MyTradesClient({
 
   // Strategy overview (same cache as Strategies list) — for "All trades" cumulative PnL to match StrategyCard
   const { data: strategiesOverview } = useQuery({
-    queryKey: queryKeys.strategiesOverview(userId, activeAccount?.id, selection.mode ?? initialMode),
+    queryKey: queryKeys.strategiesOverview(userId, activeAccount?.id, mode),
     queryFn: async () => {
       if (!activeAccount?.id) return {};
-      return getStrategiesOverview(activeAccount.id, selection.mode ?? initialMode);
+      return getStrategiesOverview(activeAccount.id, mode);
     },
     enabled: !!userId && !!activeAccount?.id && !!mode,
     ...TRADES_DATA,
@@ -145,7 +121,7 @@ export default function MyTradesClient({
   } = useQuery<Trade[]>({
     // Same key that StrategiesClient seeds — cache hit instead of re-fetch
     queryKey: queryKeys.trades.filtered(
-      selection.mode ?? initialMode,
+      mode,
       activeAccount?.id,
       userId,
       'dateRange',
@@ -159,7 +135,7 @@ export default function MyTradesClient({
       return getFilteredTrades({
         userId,
         accountId: activeAccount.id,
-        mode: (selection.mode ?? initialMode) as 'live' | 'backtesting' | 'demo',
+        mode,
         startDate,
         endDate: todayStr,
         includeNonExecuted: true,
@@ -175,70 +151,39 @@ export default function MyTradesClient({
     [allTrades, initialFilteredTrades]
   );
 
-  // Markets are derived from the full unfiltered dataset so the dropdown stays stable
-  const markets = useMemo(
-    () => Array.from(new Set(baseList.map((t) => t.market))),
-    [baseList],
-  );
-
-  const isCustomRange = isCustomDateRange(dateRange);
-
-  const handleFilter = useCallback((type: FilterType) => {
-    setActiveFilter(type);
-    const { dateRange: nextRange } = buildPresetRange(type);
-    setDateRange(nextRange);
-  }, []);
-
-  const handleDateRangeChange = useCallback((range: DateRangeValue) => {
-    setDateRange(range);
-  }, []);
-
-  const handleExecutionChange = useCallback((execution: 'all' | 'executed' | 'nonExecuted') => {
-    setExecutionFilter(execution);
-  }, []);
-
-  // Earliest trade date across the full dataset (shown as the "All Trades" display start)
-  const earliestTradeDate = useMemo(() => {
-    if (activeFilter !== 'all' || baseList.length === 0) return undefined;
-    return baseList.reduce(
-      (min, t) => (t.trade_date < min ? t.trade_date : min),
-      baseList[0].trade_date,
-    );
-  }, [activeFilter, baseList]);
+  const {
+    dateRange,
+    activeFilter,
+    selectedMarket,
+    setSelectedMarket,
+    executionFilter,
+    markets,
+    isCustomRange,
+    earliestTradeDate,
+    handleFilterChange,
+    handleDateRangeChange,
+    handleExecutionChange,
+  } = useTradeFilters({
+    initialDateRange,
+    tradesForMarkets: baseList,
+  });
 
   const getOutcomeValue = useCallback((trade: Trade) => {
     if (trade.break_even || trade.trade_outcome === 'BE') return 'BE';
     return trade.trade_outcome;
   }, []);
 
-  // All filtering is client-side — no additional DB queries on filter changes
-  const filteredTrades = useMemo(() => {
-    let list = baseList;
-
-    // Date range filter
-    list = list.filter(
-      (t) => t.trade_date >= dateRange.startDate && t.trade_date <= dateRange.endDate,
-    );
-
-    // Execution filter (executed can be boolean | null)
-    if (executionFilter === 'executed') {
-      list = list.filter((t) => t.executed === true);
-    } else if (executionFilter === 'nonExecuted') {
-      list = list.filter((t) => !t.executed);
-    }
-
-    // Partial trades filter
-    if (showPartialTrades) {
-      list = list.filter((t) => t.partials_taken);
-    }
-
-    // Market filter
-    if (selectedMarket !== 'all') {
-      list = list.filter((t) => t.market === selectedMarket);
-    }
-
-    return list;
-  }, [baseList, dateRange, selectedMarket, executionFilter, showPartialTrades]);
+  const filteredTrades = useMemo(
+    () =>
+      applyTradeClientFilters({
+        trades: baseList,
+        dateRange,
+        selectedMarket,
+        executionFilter,
+        partialsOnly: showPartialTrades,
+      }),
+    [baseList, dateRange, selectedMarket, executionFilter, showPartialTrades]
+  );
 
   const trades = useMemo(() => {
     const list = [...filteredTrades];
@@ -533,7 +478,7 @@ export default function MyTradesClient({
         dateRange={dateRange}
         onDateRangeChange={handleDateRangeChange}
         activeFilter={activeFilter}
-        onFilterChange={handleFilter}
+        onFilterChange={handleFilterChange}
         isCustomRange={isCustomRange}
         selectedMarket={selectedMarket}
         onSelectedMarketChange={setSelectedMarket}

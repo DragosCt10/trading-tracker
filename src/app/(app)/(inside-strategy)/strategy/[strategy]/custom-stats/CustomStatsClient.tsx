@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Crown, Eye, Pencil, Plus, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -12,23 +12,12 @@ import type { Trade } from '@/types/trade';
 import type { Database } from '@/types/supabase';
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { CustomStatConfig } from '@/types/customStats';
-import {
-  buildPresetRange,
-  isCustomDateRange,
-  createAllTimeRange,
-  type DateRangeState,
-  type FilterType,
-} from '@/utils/dateRangeHelpers';
-import {
-  TradeFiltersBar,
-  type DateRangeValue,
-} from '@/components/dashboard/analytics/TradeFiltersBar';
+import { TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { calculateWinRates } from '@/utils/calculateWinRates';
-import { useActionBarSelection } from '@/hooks/useActionBarSelection';
-import { useUserDetails } from '@/hooks/useUserDetails';
-import { getFilteredTrades } from '@/lib/server/trades';
 import { queryKeys } from '@/lib/queryKeys';
-import { TRADES_DATA } from '@/constants/queryConfig';
+import { useStrategyClientContext } from '@/hooks/useStrategyClientContext';
+import { useStrategyAllTimeTrades } from '@/hooks/useStrategyAllTimeTrades';
+import { useTradeFilters } from '@/hooks/useTradeFilters';
 import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
 import { buildEquityPointsFromTrades } from '@/utils/equityPoints';
@@ -71,66 +60,28 @@ export default function CustomStatsClient({
   currencySymbol: initialCurrencySymbol,
   accountBalance: initialAccountBalance,
 }: CustomStatsClientProps) {
-  const { data: userDetails } = useUserDetails();
   const { beCalcEnabled } = useBECalc();
-  const { selection, setSelection } = useActionBarSelection();
   const queryClient = useQueryClient();
-  const userId = userDetails?.user?.id ?? initialUserId;
-  const mode = selection.mode ?? initialMode;
-  const { isPro } = useSubscription({ userId });
-  const activeAccount = selection.activeAccount ?? initialActiveAccount;
-
-  useEffect(() => {
-    if (initialActiveAccount && !selection.activeAccount && initialMode) {
-      setSelection({ mode: initialMode, activeAccount: initialActiveAccount });
-    }
-  }, [initialActiveAccount, initialMode, selection.activeAccount, setSelection]);
-
-  const allTime = useMemo(() => createAllTimeRange(), []);
-  const isInitialContext =
-    mode === initialMode && activeAccount?.id === initialActiveAccount?.id;
-
-  const { data: rawTrades, isLoading: tradesLoading } = useQuery<Trade[]>({
-    queryKey: queryKeys.trades.filtered(
-      mode,
-      activeAccount?.id,
-      userId,
-      'all',
-      allTime.startDate,
-      allTime.endDate,
-      strategyId,
-    ),
-    queryFn: async () => {
-      if (!isPro) return [];
-      if (!userId || !activeAccount?.id) return [];
-      return getFilteredTrades({
-        userId,
-        accountId: activeAccount.id,
-        mode,
-        startDate: allTime.startDate,
-        endDate: allTime.endDate,
-        includeNonExecuted: true,
-        strategyId,
-      });
-    },
-    initialData: (isPro && isInitialContext && initialTrades.length > 0) ? initialTrades : undefined,
-    enabled: isPro && !!userId && !!activeAccount?.id,
-    ...TRADES_DATA,
+  const { userId, mode, activeAccount, isInitialContext } = useStrategyClientContext({
+    initialUserId,
+    initialMode,
+    initialActiveAccount,
   });
-
-  const allTradesData = useMemo(
-    () => (isPro ? (rawTrades ?? (isInitialContext && initialTrades.length > 0 ? initialTrades : [])) : []),
-    [isPro, rawTrades, isInitialContext, initialTrades]
-  );
+  const { isPro } = useSubscription({ userId });
+  const { allTradesData, tradesLoading } = useStrategyAllTimeTrades({
+    userId,
+    activeAccountId: activeAccount?.id,
+    mode,
+    strategyId,
+    isPro,
+    initialTrades,
+    isInitialContext,
+  });
 
   const currencySymbol = activeAccount
     ? getCurrencySymbolFromAccount(activeAccount)
     : initialCurrencySymbol;
   const accountBalance = activeAccount?.account_balance ?? initialAccountBalance;
-
-  // Filters (date range only — market and execution are per-card via CustomStatFilter)
-  const [dateRange, setDateRange] = useState<DateRangeState>(() => buildPresetRange('year').dateRange);
-  const [activeFilter, setActiveFilter] = useState<FilterType>('year');
 
   const [mounted] = useState(() => typeof window !== 'undefined');
 
@@ -173,16 +124,17 @@ export default function CustomStatsClient({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingConfig, setEditingConfig] = useState<CustomStatConfig | null>(null);
 
-  const isCustomRange = isCustomDateRange(dateRange);
-
-  const earliestTradeDate = useMemo(() => {
-    if (activeFilter !== 'all') return undefined;
-    if (allTradesData.length === 0) return undefined;
-    return allTradesData.reduce(
-      (min: string, t: Trade) => (t.trade_date < min ? t.trade_date : min),
-      allTradesData[0].trade_date
-    );
-  }, [activeFilter, allTradesData]);
+  const {
+    dateRange,
+    activeFilter,
+    isCustomRange,
+    earliestTradeDate,
+    handleFilterChange,
+    handleDateRangeChange,
+  } = useTradeFilters({
+    initialExecution: 'all',
+    tradesForMarkets: allTradesData,
+  });
 
   // Only filter by date range — market/execution are handled per-card by applyCustomStatFilter
   const filteredTrades = useMemo(
@@ -191,16 +143,6 @@ export default function CustomStatsClient({
     ),
     [allTradesData, dateRange]
   );
-
-  const handleFilterChange = useCallback((type: FilterType) => {
-    setActiveFilter(type);
-    const { dateRange: nextRange } = buildPresetRange(type);
-    setDateRange(nextRange);
-  }, []);
-
-  const handleDateRangeChange = useCallback((range: DateRangeValue) => {
-    setDateRange(range);
-  }, []);
 
   const persistStats = useCallback(
     async (nextStats: CustomStatConfig[]) => {
