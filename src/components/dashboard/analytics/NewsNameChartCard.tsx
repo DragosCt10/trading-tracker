@@ -18,6 +18,7 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
 import { buildPreviewTrade } from '@/utils/previewTrades';
 import { ComposedBarWinRateChart, type BarWinRateChartDatum } from './ComposedBarWinRateChart';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export interface NewsNameChartCardProps {
   trades: Trade[];
@@ -53,6 +54,9 @@ const FILTER_BTN_ACTIVE =
   'themed-btn-primary text-white font-semibold shadow-md border-0';
 const FILTER_BTN_INACTIVE =
   'border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 font-medium';
+const LOCKED_CARD_TOOLTIP_TEXT = 'The data shown under the blur card is fictive and for demo purposes only.';
+const LOCKED_CARD_TOOLTIP_CLASS =
+  'max-w-sm text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50';
 
 
 export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
@@ -171,6 +175,27 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     }, [stats, unnamedOnly]);
 
     const hasData  = chartData.length > 0;
+    const wrapLockedCard = (card: React.ReactElement) => {
+      if (!isLocked) {
+        return card;
+      }
+
+      return (
+        <TooltipProvider>
+          <Tooltip delayDuration={120}>
+            <TooltipTrigger asChild>{card}</TooltipTrigger>
+            <TooltipContent
+              side="top"
+              align="start"
+              sideOffset={8}
+              className={LOCKED_CARD_TOOLTIP_CLASS}
+            >
+              {LOCKED_CARD_TOOLTIP_TEXT}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    };
 
     /* ------------------------------------------------------------------ */
     /* Tooltip                                                              */
@@ -268,7 +293,7 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     /* Loading                                                              */
     /* ------------------------------------------------------------------ */
     if (!mounted || isLoading) {
-      return (
+      return wrapLockedCard(
         <Card className={CARD_CLASS}>
           {isLocked && (
             <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
@@ -300,7 +325,7 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     /* ------------------------------------------------------------------ */
     if (!hasData) {
       const activeLabel = INTENSITY_OPTIONS.find((o) => o.value === intensityFilter)?.label;
-      return (
+      return wrapLockedCard(
         <Card className={CARD_CLASS}>
           {isLocked && (
             <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
@@ -343,7 +368,7 @@ export const NewsNameChartCard: React.FC<NewsNameChartCardProps> = React.memo(
     /* ------------------------------------------------------------------ */
     /* Chart                                                                */
     /* ------------------------------------------------------------------ */
-    return (
+    return wrapLockedCard(
       <Card className={CARD_CLASS}>
         {isLocked && (
           <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">

@@ -18,11 +18,15 @@ import type { MarketStats, BaseStats } from '@/types/dashboard';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
 import { ComposedBarWinRateChart, type BarWinRateChartDatum } from './ComposedBarWinRateChart';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type MarketStatsLike = BaseStats & {
   market?: string;
   total?: number;
 };
+const LOCKED_CARD_TOOLTIP_TEXT = 'The data shown under the blur card is fictive and for demo purposes only.';
+const LOCKED_CARD_TOOLTIP_CLASS =
+  'max-w-sm text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50';
 
 export interface MarketStatisticsCardProps {
   marketStats: MarketStatsLike[];
@@ -68,6 +72,27 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
     const { beCalcEnabled } = useBECalc();
 
     const isLocked = !isPro;
+    const wrapLockedCard = (card: React.ReactElement) => {
+      if (!isLocked) {
+        return card;
+      }
+
+      return (
+        <TooltipProvider>
+          <Tooltip delayDuration={120}>
+            <TooltipTrigger asChild>{card}</TooltipTrigger>
+            <TooltipContent
+              side="top"
+              align="start"
+              sideOffset={8}
+              className={LOCKED_CARD_TOOLTIP_CLASS}
+            >
+              {LOCKED_CARD_TOOLTIP_TEXT}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    };
 
     const previewMarketStats = useMemo<MarketStatsLike[]>(
       () => [
@@ -131,7 +156,7 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
     );
 
     if (!mounted || isLoading) {
-      return (
+      return wrapLockedCard(
         <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           {isLocked && (
             <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
@@ -154,7 +179,7 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
     }
 
     if (!hasContent) {
-      return (
+      return wrapLockedCard(
         <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             {!isPro ? (
@@ -187,7 +212,7 @@ export const MarketStatisticsCard: React.FC<MarketStatisticsCardProps> = React.m
       );
     }
 
-    return (
+    return wrapLockedCard(
       <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-96 flex flex-col">
         {isLocked && (
           <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
