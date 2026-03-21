@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trade } from '@/types/trade';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
@@ -25,24 +25,18 @@ import { exportTradesToCsv } from '@/utils/exportTradesToCsv';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, TrendingUp, TrendingDown, Columns2, LayoutGrid, PanelLeft } from 'lucide-react';
-import {
-  getCurrencySymbolFromAccount,
-  computeMonthlyStatsFromTrades,
-  calculateTotalYearProfit,
-} from '@/components/dashboard/analytics/AccountOverviewCard';
-import { buildEquityPointsFromTrades } from '@/components/dashboard/analytics/EquityCurveCard';
+import { TrendingUp, TrendingDown, Columns2, LayoutGrid, PanelLeft, Info } from 'lucide-react';
+import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
+import { buildEquityPointsFromTrades } from '@/utils/equityPoints';
 import { EquityCurveChart } from '@/components/dashboard/analytics/EquityCurveChart';
 import { TotalTradesDonut } from '@/components/dashboard/analytics/TotalTradesChartCard';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
-import { calculateTradingOverviewStats } from '@/utils/calculateTradingOverviewStats';
 import { calculateWinRates } from '@/utils/calculateWinRates';
 import { calculateAverageDrawdown } from '@/utils/analyticsCalculations';
 import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGauge';
 import { cn, formatPercent, roundToCents } from '@/lib/utils';
-import { Info } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { MonteCarloCard } from '@/components/trades/MonteCarloCard';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -63,12 +57,19 @@ interface MyTradesClientProps {
 export default function MyTradesClient({
   initialUserId,
   initialFilteredTrades,
+  initialDateRange,
   initialMode,
   initialActiveAccount,
   initialStrategyId,
 }: MyTradesClientProps) {
-  const [dateRange, setDateRange] = useState<DateRangeState>(() => buildPresetRange('year').dateRange);
-  const [activeFilter, setActiveFilter] = useState<FilterType>('year');
+  const [dateRange, setDateRange] = useState<DateRangeState>(() => initialDateRange);
+  const [activeFilter, setActiveFilter] = useState<FilterType>(() => {
+    if (isCustomDateRange(initialDateRange)) return 'custom';
+    const yearRange = buildPresetRange('year').dateRange;
+    return yearRange.startDate === initialDateRange.startDate && yearRange.endDate === initialDateRange.endDate
+      ? 'year'
+      : 'all';
+  });
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
   const [executionFilter, setExecutionFilter] = useState<'all' | 'executed' | 'nonExecuted'>('executed');
   const [showPartialTrades, setShowPartialTrades] = useState(false);
@@ -86,8 +87,8 @@ export default function MyTradesClient({
   const { selection, setSelection } = useActionBarSelection();
   const userId = userDetails?.user?.id ?? initialUserId;
   const mode = selection.mode ?? initialMode;
-  // Stable today string — same format StrategiesClient uses when seeding filteredTrades cache
-  const todayStr = useMemo(() => createAllTimeRange().endDate, []);
+  // Keep the all-time query key aligned with server-provided hydration date.
+  const todayStr = useMemo(() => initialDateRange.endDate, [initialDateRange.endDate]);
   const { mounted, isDark } = useDarkMode();
   const { beCalcEnabled } = useBECalc();
   const { isPro } = useSubscription({ userId });
@@ -107,9 +108,13 @@ export default function MyTradesClient({
 
   // Strategies for this account — used for the "move trades" feature
   const { strategies } = useStrategies({ userId, accountId: activeAccount?.id });
-  const moveToStrategies = strategies
-    .filter((s) => s.id !== initialStrategyId)
-    .map((s) => ({ id: s.id, name: s.name }));
+  const moveToStrategies = useMemo(
+    () =>
+      strategies
+        .filter((s) => s.id !== initialStrategyId)
+        .map((s) => ({ id: s.id, name: s.name })),
+    [strategies, initialStrategyId]
+  );
 
   // Strategy overview (same cache as Strategies list) — for "All trades" cumulative PnL to match StrategyCard
   const { data: strategiesOverview } = useQuery({
@@ -150,13 +155,13 @@ export default function MyTradesClient({
     ),
     queryFn: async () => {
       if (!userId || !activeAccount?.id) return [];
-      const { startDate, endDate } = createAllTimeRange();
+      const { startDate } = createAllTimeRange();
       return getFilteredTrades({
         userId,
         accountId: activeAccount.id,
         mode: (selection.mode ?? initialMode) as 'live' | 'backtesting' | 'demo',
         startDate,
-        endDate,
+        endDate: todayStr,
         includeNonExecuted: true,
         strategyId: initialStrategyId,
       });
@@ -247,12 +252,10 @@ export default function MyTradesClient({
             ? aValue.localeCompare(bValue)
             : bValue.localeCompare(aValue);
       } else if (sortConfig.field === 'trade_date') {
-        const aVal = new Date(a.trade_date).getTime();
-        const bVal = new Date(b.trade_date).getTime();
         cmp =
           sortConfig.direction === 'asc'
-            ? bVal - aVal
-            : aVal - bVal;
+            ? b.trade_date.localeCompare(a.trade_date)
+            : a.trade_date.localeCompare(b.trade_date);
       } else {
         const aValue = (a as any)[sortConfig.field];
         const bValue = (b as any)[sortConfig.field];
@@ -272,14 +275,10 @@ export default function MyTradesClient({
     [activeAccount]
   );
 
-  // Reuse AccountOverviewCard helpers to compute net cumulative P&L from the current filtered trades
-  const monthlyStatsForPeriod = useMemo(
-    () => computeMonthlyStatsFromTrades(filteredTrades),
-    [filteredTrades]
-  );
+  // Direct sum is equivalent to monthly aggregation + re-sum for this view.
   const netCumulativePnl = useMemo(
-    () => calculateTotalYearProfit(monthlyStatsForPeriod),
-    [monthlyStatsForPeriod]
+    () => filteredTrades.reduce((sum, t) => sum + (t.calculated_profit || 0), 0),
+    [filteredTrades]
   );
 
   // When "All trades" + all markets + not "Non-executed only", use strategy overview (same as StrategyCard)
@@ -298,36 +297,32 @@ export default function MyTradesClient({
   const equityChartData = useMemo(() => buildEquityPointsFromTrades(trades), [trades]);
   const hasEquityData = equityChartData.length > 0;
 
-  const totalTrades = trades.length;
-  const wins = useMemo(
-    () =>
-      trades.filter(
-        (t) => !t.break_even && t.trade_outcome === 'Win',
-      ).length,
-    [trades],
-  );
-  const losses = useMemo(
-    () =>
-      trades.filter(
-        (t) => !t.break_even && t.trade_outcome === 'Lose',
-      ).length,
-    [trades],
-  );
-  const beTrades = useMemo(
-    () =>
-      trades.filter(
-        (t) => t.break_even || t.trade_outcome === 'BE',
-      ).length,
-    [trades],
-  );
+  const { totalTrades, wins, losses, beTrades } = useMemo(() => {
+    let winsCount = 0;
+    let lossesCount = 0;
+    let beCount = 0;
 
-  const overviewStats = useMemo(
-    () => calculateTradingOverviewStats(trades),
-    [trades],
-  );
+    for (const trade of trades) {
+      if (trade.break_even || trade.trade_outcome === 'BE') {
+        beCount += 1;
+      } else if (trade.trade_outcome === 'Win') {
+        winsCount += 1;
+      } else if (trade.trade_outcome === 'Lose') {
+        lossesCount += 1;
+      }
+    }
+
+    return {
+      totalTrades: trades.length,
+      wins: winsCount,
+      losses: lossesCount,
+      beTrades: beCount,
+    };
+  }, [trades]);
+
+  const { winRate, winRateWithBE } = useMemo(() => calculateWinRates(trades), [trades]);
   const displayWinRate =
-    useOverviewPnl && typeof strategyWinRate === 'number' ? strategyWinRate : overviewStats.winRate;
-  const { winRateWithBE } = calculateWinRates(trades);
+    useOverviewPnl && typeof strategyWinRate === 'number' ? strategyWinRate : winRate;
   const effectiveWinRate = beCalcEnabled ? winRateWithBE : displayWinRate;
 
   // Use same trade set as StrategyClient for drawdown: executed-only when execution is "all" or "executed"
@@ -347,79 +342,82 @@ export default function MyTradesClient({
     return (capped / 20) * 100;
   }, [averageDrawdown]);
 
-  const avgDrawdownTooltipContent = (
-    <div className="space-y-3">
-      <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-        Average Drawdown Interpretation
+  const avgDrawdownTooltipContent = useMemo(
+    () => (
+      <div className="space-y-3">
+        <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+          Average Drawdown Interpretation
+        </div>
+        <div className="space-y-2">
+          <div
+            className={cn(
+              'rounded-xl p-2.5 transition-all',
+              averageDrawdown <= 2
+                ? 'bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30'
+                : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30',
+            )}
+          >
+            <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🔹 0% – 2%</span>
+            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+              Excellent — Very low average drawdown, consistent performance.
+            </div>
+          </div>
+          <div
+            className={cn(
+              'rounded-xl p-2.5 transition-all',
+              averageDrawdown > 2 && averageDrawdown <= 5
+                ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/30'
+                : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30',
+            )}
+          >
+            <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">✅ 2% – 5%</span>
+            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+              Healthy — Acceptable average drawdown for most strategies.
+            </div>
+          </div>
+          <div
+            className={cn(
+              'rounded-xl p-2.5 transition-all',
+              averageDrawdown > 5 && averageDrawdown <= 10
+                ? 'bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30'
+                : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30',
+            )}
+          >
+            <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">⚠️ 5% – 10%</span>
+            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+              Moderate — Higher average drawdown, monitor risk management.
+            </div>
+          </div>
+          <div
+            className={cn(
+              'rounded-xl p-2.5 transition-all',
+              averageDrawdown > 10 && averageDrawdown <= 15
+                ? 'bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/50 dark:border-orange-800/30'
+                : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30',
+            )}
+          >
+            <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">❗ 10% – 15%</span>
+            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+              High Risk — Significant average drawdown exposure.
+            </div>
+          </div>
+          <div
+            className={cn(
+              'rounded-xl p-2.5 transition-all',
+              averageDrawdown > 15
+                ? 'bg-red-50/80 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/30'
+                : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30',
+            )}
+          >
+            <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🚫 15%+</span>
+            <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+              Danger Zone — Extreme average drawdown, immediate review required.
+            </div>
+          </div>
+        </div>
       </div>
-      <div className="space-y-2">
-        <div
-          className={cn(
-            'rounded-xl p-2.5 transition-all',
-            averageDrawdown <= 2
-              ? 'bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/30'
-              : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30',
-          )}
-        >
-          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🔹 0% – 2%</span>
-          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            Excellent — Very low average drawdown, consistent performance.
-          </div>
-        </div>
-        <div
-          className={cn(
-            'rounded-xl p-2.5 transition-all',
-            averageDrawdown > 2 && averageDrawdown <= 5
-              ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/30'
-              : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30',
-          )}
-        >
-          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">✅ 2% – 5%</span>
-          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            Healthy — Acceptable average drawdown for most strategies.
-          </div>
-        </div>
-        <div
-          className={cn(
-            'rounded-xl p-2.5 transition-all',
-            averageDrawdown > 5 && averageDrawdown <= 10
-              ? 'bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30'
-              : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30',
-          )}
-        >
-          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">⚠️ 5% – 10%</span>
-          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            Moderate — Higher average drawdown, monitor risk management.
-          </div>
-        </div>
-        <div
-          className={cn(
-            'rounded-xl p-2.5 transition-all',
-            averageDrawdown > 10 && averageDrawdown <= 15
-              ? 'bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/50 dark:border-orange-800/30'
-              : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30',
-          )}
-        >
-          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">❗ 10% – 15%</span>
-          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            High Risk — Significant average drawdown exposure.
-          </div>
-        </div>
-        <div
-          className={cn(
-            'rounded-xl p-2.5 transition-all',
-            averageDrawdown > 15
-              ? 'bg-red-50/80 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/30'
-              : 'bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/30',
-          )}
-        >
-          <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">🚫 15%+</span>
-          <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-            Danger Zone — Extreme average drawdown, immediate review required.
-          </div>
-        </div>
-      </div>
-    </div>
+    ),
+    [averageDrawdown]
   );
 
   // TradeDetailsPanel.invalidateAndRefetchTradeQueries already handles scoped cache invalidation
