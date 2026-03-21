@@ -76,6 +76,7 @@ export default function CustomStatsClient({
   const { selection, setSelection } = useActionBarSelection();
   const queryClient = useQueryClient();
   const userId = userDetails?.user?.id ?? initialUserId;
+  const mode = selection.mode ?? initialMode;
   const { isPro } = useSubscription({ userId });
   const activeAccount = selection.activeAccount ?? initialActiveAccount;
 
@@ -87,11 +88,11 @@ export default function CustomStatsClient({
 
   const allTime = useMemo(() => createAllTimeRange(), []);
   const isInitialContext =
-    selection.mode === initialMode && activeAccount?.id === initialActiveAccount?.id;
+    mode === initialMode && activeAccount?.id === initialActiveAccount?.id;
 
   const { data: rawTrades, isLoading: tradesLoading } = useQuery<Trade[]>({
     queryKey: queryKeys.trades.filtered(
-      selection.mode,
+      mode,
       activeAccount?.id,
       userId,
       'all',
@@ -105,7 +106,7 @@ export default function CustomStatsClient({
       return getFilteredTrades({
         userId,
         accountId: activeAccount.id,
-        mode: selection.mode,
+        mode,
         startDate: allTime.startDate,
         endDate: allTime.endDate,
         includeNonExecuted: true,
@@ -203,11 +204,17 @@ export default function CustomStatsClient({
 
   const persistStats = useCallback(
     async (nextStats: CustomStatConfig[]) => {
+      const previousStats = savedStats;
       setSavedStats(nextStats);
-      await updateStrategyCustomStats(strategyId, userId, nextStats);
-      queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userId) });
+      try {
+        await updateStrategyCustomStats(strategyId, userId, nextStats);
+        queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userId) });
+      } catch (error) {
+        console.error('Failed to persist custom stats:', error);
+        setSavedStats(previousStats);
+      }
     },
-    [strategyId, userId, queryClient]
+    [savedStats, strategyId, userId, queryClient]
   );
 
   const handleSave = useCallback(
@@ -251,6 +258,48 @@ export default function CustomStatsClient({
     () => (detailConfig ? applyCustomStatFilter(filteredTrades, detailConfig.filters) : []),
     [detailConfig, filteredTrades]
   );
+
+  const displayedStats = isPro ? savedStats : previewStats;
+
+  const cardMetricsById = useMemo(() => {
+    return Object.fromEntries(
+      displayedStats.map((config) => {
+        const cardTrades = isPro
+          ? applyCustomStatFilter(filteredTrades, config.filters)
+          : (previewTradesMap[config.id] ?? []);
+        const { winRate, winRateWithBE } = calculateWinRates(cardTrades);
+        const effectiveWinRate = beCalcEnabled ? winRateWithBE : winRate;
+        const filterPills = buildFilterPills(config.filters);
+        const visiblePills = filterPills.slice(0, 3);
+        const extraPillCount = filterPills.length - visiblePills.length;
+        const chartData = buildEquityPointsFromTrades(cardTrades);
+        const totalPnL = cardTrades.reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0);
+        const pnlPercent = (totalPnL / (accountBalance || 1)) * 100;
+
+        return [config.id, {
+          cardTrades,
+          totalTrades: cardTrades.length,
+          effectiveWinRate,
+          filterPills,
+          visiblePills,
+          extraPillCount,
+          chartData,
+          totalPnL,
+          pnlPercent,
+        }];
+      })
+    ) as Record<string, {
+      cardTrades: Trade[];
+      totalTrades: number;
+      effectiveWinRate: number;
+      filterPills: string[];
+      visiblePills: string[];
+      extraPillCount: number;
+      chartData: ReturnType<typeof buildEquityPointsFromTrades>;
+      totalPnL: number;
+      pnlPercent: number;
+    }>;
+  }, [displayedStats, isPro, filteredTrades, previewTradesMap, beCalcEnabled, accountBalance]);
 
   if (detailStatId !== null && detailConfig) {
     return (
@@ -314,19 +363,20 @@ export default function CustomStatsClient({
             <CustomStatsCardsSkeleton />
           ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(isPro ? savedStats : previewStats).map((config) => {
-              const cardTrades = isPro
-                ? applyCustomStatFilter(filteredTrades, config.filters)
-                : (previewTradesMap[config.id] ?? []);
-              const totalTrades = cardTrades.length;
-              const { winRate, winRateWithBE } = calculateWinRates(cardTrades);
-              const effectiveWinRate = beCalcEnabled ? winRateWithBE : winRate;
-              const filterPills = buildFilterPills(config.filters);
-              const visiblePills = filterPills.slice(0, 3);
-              const extraPillCount = filterPills.length - visiblePills.length;
-              const chartData = buildEquityPointsFromTrades(cardTrades);
-              const totalPnL = cardTrades.reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0);
-              const pnlPercent = (totalPnL / (accountBalance || 1)) * 100;
+            {displayedStats.map((config) => {
+              const metrics = cardMetricsById[config.id];
+              if (!metrics) return null;
+              const {
+                cardTrades,
+                totalTrades,
+                effectiveWinRate,
+                filterPills,
+                visiblePills,
+                extraPillCount,
+                chartData,
+                totalPnL,
+                pnlPercent,
+              } = metrics;
 
               const cardContent = (
                 <Card
