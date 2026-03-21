@@ -24,7 +24,7 @@ import { useDashboardData } from '@/hooks/useDashboardData';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useAccounts } from '@/hooks/useAccounts';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { TRADES_DATA } from '@/constants/queryConfig';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -131,6 +131,7 @@ const MindStateStatsCard   = dynamic(() => import('@/components/dashboard/analyt
 
 import {
   type DateRangeState,
+  type FilterType,
   createInitialDateRange,
   isCustomDateRange,
   createAllTimeRange,
@@ -294,6 +295,225 @@ function SectionHeading({
       </p>
     </>
   );
+}
+
+type StrategyControlsProps = {
+  viewMode: 'yearly' | 'dateRange';
+  onViewModeChange: (mode: 'yearly' | 'dateRange') => void;
+  isPro: boolean;
+  showProCards: boolean;
+  onShowProCardsChange: (value: boolean) => void;
+  dateRange: DateRangeState;
+  setDateRange: (range: DateRangeValue) => void;
+  activeFilter: FilterType;
+  onFilterChange: (filter: FilterType) => void;
+  isCustomRange: boolean;
+  selectedMarket: string;
+  onSelectedMarketChange: (market: string) => void;
+  markets: string[];
+  selectedExecution: ExecutionFilter;
+  onSelectedExecutionChange: (execution: ExecutionFilter) => void;
+  displayStartDate: string | undefined;
+};
+
+function StrategyControls(props: StrategyControlsProps) {
+  const {
+    viewMode,
+    onViewModeChange,
+    isPro,
+    showProCards,
+    onShowProCardsChange,
+    dateRange,
+    setDateRange,
+    activeFilter,
+    onFilterChange,
+    isCustomRange,
+    selectedMarket,
+    onSelectedMarketChange,
+    markets,
+    selectedExecution,
+    onSelectedExecutionChange,
+    displayStartDate,
+  } = props;
+
+  return (
+    <>
+      <ViewModeToggle
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
+        isPro={isPro}
+        showProCards={showProCards}
+        onShowProCardsChange={onShowProCardsChange}
+      />
+
+      {/* Date Range and Filter Buttons - Only show when in dateRange mode, above AccountOverviewCard */}
+      {viewMode === 'dateRange' && (
+        <TradeFiltersBar
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+          activeFilter={activeFilter}
+          onFilterChange={onFilterChange}
+          isCustomRange={isCustomRange}
+          selectedMarket={selectedMarket}
+          onSelectedMarketChange={onSelectedMarketChange}
+          markets={markets}
+          selectedExecution={selectedExecution}
+          onSelectedExecutionChange={onSelectedExecutionChange}
+          displayStartDate={displayStartDate}
+        />
+      )}
+
+      <hr className="my-10 border-t border-slate-200 dark:border-slate-700" />
+    </>
+  );
+}
+
+type UseAllTimePrefetchParams = {
+  isLoadingStats: boolean;
+  resolvedAccountId?: string;
+  resolvedAccountBalance?: number;
+  userId?: string;
+  mode: 'live' | 'demo' | 'backtesting';
+  strategyId: string | null;
+  selectedYear: number;
+  selectedExecution: ExecutionFilter;
+  selectedMarket: string;
+  includeCompactTrades: boolean;
+  queryClient: QueryClient;
+};
+
+function useAllTimePrefetch({
+  isLoadingStats,
+  resolvedAccountId,
+  resolvedAccountBalance,
+  userId,
+  mode,
+  strategyId,
+  selectedYear,
+  selectedExecution,
+  selectedMarket,
+  includeCompactTrades,
+  queryClient,
+}: UseAllTimePrefetchParams) {
+  const runAllTimePrefetch = useRef<(() => void) | null>(null);
+
+  const doAllTimePrefetch = useCallback(() => {
+    if (isLoadingStats || !resolvedAccountId || !userId || !mode) {
+      return;
+    }
+
+    const { startDate: allStart, endDate: allEnd } = createAllTimeRange();
+
+    // 1. Prefetch dashboardStats all-time (for "All Trades" filter switch)
+    const dashKey = queryKeys.dashboardStats(
+      mode,
+      resolvedAccountId,
+      userId,
+      strategyId,
+      selectedYear,
+      'dateRange',
+      allStart,
+      allEnd,
+      selectedExecution,
+      selectedMarket,
+    );
+    if (queryClient.getQueryData(dashKey) === undefined) {
+      void queryClient.prefetchQuery({
+        queryKey: dashKey,
+        queryFn: async () => {
+          const params = new URLSearchParams({
+            accountId: resolvedAccountId,
+            mode,
+            startDate: allStart,
+            endDate: allEnd,
+            accountBalance: String(resolvedAccountBalance ?? 0),
+            execution: selectedExecution,
+            market: selectedMarket,
+            ...(strategyId ? { strategyId } : {}),
+            ...(includeCompactTrades ? { includeCompactTrades: 'true' } : {}),
+          });
+          const response = await fetch(`/api/dashboard-stats?${params}`);
+          if (!response.ok) {
+            return null;
+          }
+          return response.json();
+        },
+        ...TRADES_DATA,
+      });
+    }
+
+    // 2 & 3. Fetch full Trade[] once, seed under both page-specific keys
+    const myTradesKey = queryKeys.trades.filtered(
+      mode,
+      resolvedAccountId,
+      userId,
+      'dateRange',
+      allStart,
+      allEnd,
+      strategyId
+    );
+    const dailyJournalKey = queryKeys.trades.filtered(
+      mode,
+      resolvedAccountId,
+      userId,
+      'all',
+      allStart,
+      allEnd,
+      strategyId
+    );
+    const needsMyTrades = queryClient.getQueryData(myTradesKey) === undefined;
+    const needsDailyJournal = queryClient.getQueryData(dailyJournalKey) === undefined;
+
+    if (needsMyTrades || needsDailyJournal) {
+      void getFilteredTrades({
+        userId,
+        accountId: resolvedAccountId,
+        mode,
+        startDate: allStart,
+        endDate: allEnd,
+        includeNonExecuted: true,
+        strategyId,
+      })
+        .then((trades) => {
+          if (needsMyTrades) {
+            queryClient.setQueryData(myTradesKey, trades);
+          }
+          if (needsDailyJournal) {
+            queryClient.setQueryData(dailyJournalKey, trades);
+          }
+        })
+        .catch(() => {
+          // Pages will fetch on demand if this fails.
+        });
+    }
+  }, [
+    includeCompactTrades,
+    isLoadingStats,
+    mode,
+    queryClient,
+    resolvedAccountBalance,
+    resolvedAccountId,
+    selectedExecution,
+    selectedMarket,
+    selectedYear,
+    strategyId,
+    userId,
+  ]);
+
+  useEffect(() => {
+    doAllTimePrefetch();
+    runAllTimePrefetch.current = doAllTimePrefetch;
+  }, [doAllTimePrefetch]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && runAllTimePrefetch.current) {
+        runAllTimePrefetch.current();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 }
 
 /* ---------------------------------------------------------
@@ -642,138 +862,20 @@ export default function StrategyClient(
 
 
   // Background-prefetch all-time data after initial stats load and on tab re-focus.
-  // Seeds three cache entries so subsequent filter/page switches are instant:
-  //   1. dashboardStats all-time  → "All Trades" filter on this page
-  //   2. trades.filtered 'dateRange' → My Trades page
-  //   3. trades.filtered 'all'     → Daily Journal page
-  // getQueryData() === undefined check prevents redundant fetches while cache is live.
-  // visibilitychange re-runs this when the user returns to the tab after gcTime (5 min) expires.
-  const runAllTimePrefetch = useRef<(() => void) | null>(null);
-  const doAllTimePrefetch = useCallback(() => {
-    if (isLoadingStats) {
-      return;
-    }
-
-    const accountId = resolvedAccount?.id;
-    const uid = userData?.user?.id;
-    const mode = selection.mode;
-    if (!accountId || !uid || !mode) {
-      return;
-    }
-
-    const { startDate: allStart, endDate: allEnd } = createAllTimeRange();
-
-    // 1. Prefetch dashboardStats all-time (for "All Trades" filter switch)
-    const dashKey = queryKeys.dashboardStats(
-      mode,
-      accountId,
-      uid,
-      strategyId,
-      selectedYear,
-      'dateRange',
-      allStart,
-      allEnd,
-      selectedExecution,
-      selectedMarket,
-    );
-    if (queryClient.getQueryData(dashKey) === undefined) {
-      void queryClient.prefetchQuery({
-        queryKey: dashKey,
-        queryFn: async () => {
-          const params = new URLSearchParams({
-            accountId,
-            mode,
-            startDate: allStart,
-            endDate: allEnd,
-            accountBalance: String(resolvedAccount?.account_balance ?? 0),
-            execution: selectedExecution,
-            market: selectedMarket,
-            ...(strategyId ? { strategyId } : {}),
-            ...(includeCompactTrades ? { includeCompactTrades: 'true' } : {}),
-          });
-          const response = await fetch(`/api/dashboard-stats?${params}`);
-          if (!response.ok) {
-            return null;
-          }
-          return response.json();
-        },
-        ...TRADES_DATA,
-      });
-    }
-
-    // 2 & 3. Fetch full Trade[] once, seed under both page-specific keys
-    const myTradesKey = queryKeys.trades.filtered(
-      mode,
-      accountId,
-      uid,
-      'dateRange',
-      allStart,
-      allEnd,
-      strategyId
-    );
-    const dailyJournalKey = queryKeys.trades.filtered(
-      mode,
-      accountId,
-      uid,
-      'all',
-      allStart,
-      allEnd,
-      strategyId
-    );
-    const needsMyTrades = queryClient.getQueryData(myTradesKey) === undefined;
-    const needsDailyJournal = queryClient.getQueryData(dailyJournalKey) === undefined;
-
-    if (needsMyTrades || needsDailyJournal) {
-      void getFilteredTrades({
-        userId: uid,
-        accountId,
-        mode,
-        startDate: allStart,
-        endDate: allEnd,
-        includeNonExecuted: true,
-        strategyId,
-      })
-        .then((trades) => {
-          if (needsMyTrades) {
-            queryClient.setQueryData(myTradesKey, trades);
-          }
-          if (needsDailyJournal) {
-            queryClient.setQueryData(dailyJournalKey, trades);
-          }
-        })
-        .catch(() => {
-          // Pages will fetch on demand if this fails.
-        });
-    }
-  }, [
-    includeCompactTrades,
+  // Seeds three cache entries so subsequent filter/page switches are instant.
+  useAllTimePrefetch({
     isLoadingStats,
-    queryClient,
-    resolvedAccount?.account_balance,
-    resolvedAccount?.id,
+    resolvedAccountId: resolvedAccount?.id,
+    resolvedAccountBalance: (resolvedAccount as { account_balance?: number } | null)?.account_balance,
+    userId: userData?.user?.id,
+    mode: selection.mode,
+    strategyId,
+    selectedYear,
     selectedExecution,
     selectedMarket,
-    selectedYear,
-    selection.mode,
-    strategyId,
-    userData?.user?.id,
-  ]);
-
-  useEffect(() => {
-    doAllTimePrefetch();
-    // Re-run on tab focus so cache is re-warmed after gcTime (5 min) expires.
-    runAllTimePrefetch.current = doAllTimePrefetch;
-  }, [doAllTimePrefetch]);
-
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === 'visible' && runAllTimePrefetch.current) {
-        runAllTimePrefetch.current();
-      }
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  }, []);
+    includeCompactTrades,
+    queryClient,
+  });
 
   // session check
   useEffect(() => {
@@ -1096,39 +1198,28 @@ export default function StrategyClient(
 
   return (
     <>
-      {/* View Mode Toggle */}
-      <ViewModeToggle
+      <StrategyControls
         viewMode={viewMode}
         onViewModeChange={(mode) => startFilterTransition(() => setViewMode(mode))}
         isPro={isPro}
         showProCards={showProCards}
         onShowProCardsChange={setShowProCards}
+        dateRange={dateRange}
+        setDateRange={setDateRange}
+        activeFilter={activeFilter}
+        onFilterChange={handleFilter}
+        isCustomRange={isCustomRange}
+        selectedMarket={selectedMarket}
+        onSelectedMarketChange={(market) => startFilterTransition(() => setSelectedMarket(market))}
+        markets={markets}
+        selectedExecution={selectedExecution}
+        onSelectedExecutionChange={(execution) =>
+          startFilterTransition(() =>
+            setSelectedExecution(execution === 'all' ? 'executed' : execution)
+          )
+        }
+        displayStartDate={earliestTradeDate}
       />
-
-      {/* Date Range and Filter Buttons - Only show when in dateRange mode, above AccountOverviewCard */}
-      {viewMode === 'dateRange' && (
-        <TradeFiltersBar
-          dateRange={dateRange}
-          onDateRangeChange={(range: DateRangeValue) => {
-            setDateRange(range);
-            // reset pagination etc if needed
-          }}
-          activeFilter={activeFilter}
-          onFilterChange={handleFilter}
-          isCustomRange={isCustomRange}
-          selectedMarket={selectedMarket}
-          onSelectedMarketChange={(market) => startFilterTransition(() => setSelectedMarket(market))}
-          markets={markets}
-          selectedExecution={selectedExecution}
-          onSelectedExecutionChange={(execution) => {
-            // Analytics page doesn't support 'all' option, so map it to 'executed'
-            startFilterTransition(() => setSelectedExecution(execution === 'all' ? 'executed' : execution));
-          }}
-          displayStartDate={earliestTradeDate}
-        />
-      )}
-
-      <hr className="my-10 border-t border-slate-200 dark:border-slate-700" />
 
       {/* Overview & monthly highlights */}
       <SectionHeading
