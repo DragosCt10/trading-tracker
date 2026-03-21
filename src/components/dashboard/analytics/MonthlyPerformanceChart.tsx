@@ -12,7 +12,7 @@ import {
 import { cn } from '@/lib/utils';
 import { DashboardCardHeaderAction } from './DashboardCardHeaderAction';
 import { Trade } from '@/types/trade';
-import { MONTHS } from '@/components/dashboard/analytics/AccountOverviewCard';
+import { MONTHS } from '@/utils/accountOverviewHelpers';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useBECalc } from '@/contexts/BECalcContext';
 import { ComposedBarWinRateChart, type BarWinRateChartDatum } from './ComposedBarWinRateChart';
