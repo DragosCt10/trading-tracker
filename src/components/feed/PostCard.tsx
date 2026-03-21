@@ -33,7 +33,6 @@ function timeAgo(dateStr: string): string {
 
 export default function PostCard({
   post,
-  currentUserId,
   currentProfileId,
   onLike,
   onDelete,
@@ -129,22 +128,25 @@ export default function PostCard({
         </div>
       </div>
 
-      {/* Trade card embed */}
-      {post.trade_snapshot && (
-        <div className="mb-3">
-          <TradePreviewCard snapshot={post.trade_snapshot} />
-        </div>
-      )}
-
       {/* Post text */}
-      <p className={`text-[15px] leading-[1.65] text-slate-200 whitespace-pre-wrap break-words ${!expanded ? 'line-clamp-6' : ''}`}>
+      <p
+        className={`text-[15px] leading-[1.65] text-slate-200 whitespace-pre-wrap break-words ${!expanded ? 'line-clamp-6' : ''} ${post.trade_snapshot ? 'mb-3' : ''}`}
+      >
         {post.content}
       </p>
 
+      {/* Trade card embed */}
+      {post.trade_snapshot && <TradePreviewCard snapshot={post.trade_snapshot} />}
+
       {/* Action bar */}
       <div className="flex items-center gap-1 mt-4 pt-3 border-t border-slate-700/40">
-        {/* Like — hidden on own posts */}
-        {!isOwn && (
+        {/* Like — read-only for own posts, interactive for others */}
+        {isOwn ? (
+          <div className="h-8 gap-1.5 flex items-center px-2 rounded-xl text-xs font-medium text-slate-500">
+            <Heart className="w-3.5 h-3.5" />
+            {post.like_count > 0 && <span>{post.like_count}</span>}
+          </div>
+        ) : (
           <Button
             variant="ghost"
             size="sm"
@@ -156,7 +158,7 @@ export default function PostCard({
             }`}
           >
             <Heart className={`w-3.5 h-3.5 ${post.is_liked_by_me ? 'fill-current' : ''}`} />
-            {post.like_count > 0 && post.like_count}
+            {post.like_count > 0 && <span>{post.like_count}</span>}
           </Button>
         )}
 
