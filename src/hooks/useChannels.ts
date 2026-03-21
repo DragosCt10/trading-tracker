@@ -30,32 +30,38 @@ export function usePublicChannels() {
 
 export function useChannelActions(userId?: string) {
   const qc = useQueryClient();
-  const channelsKey = queryKeys.feed.channels(userId);
+  const myChannelsKey = queryKeys.feed.channels(userId);
+  const publicChannelsKey = queryKeys.feed.channels();
+
+  function invalidateChannelLists() {
+    qc.invalidateQueries({ queryKey: myChannelsKey });
+    qc.invalidateQueries({ queryKey: publicChannelsKey });
+  }
 
   const create = useMutation({
     mutationFn: createChannel,
-    onSuccess: () => qc.invalidateQueries({ queryKey: channelsKey }),
+    onSuccess: invalidateChannelLists,
   });
 
   const update = useMutation({
     mutationFn: ({ channelId, input }: { channelId: string; input: Parameters<typeof updateChannel>[1] }) =>
       updateChannel(channelId, input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: channelsKey }),
+    onSuccess: invalidateChannelLists,
   });
 
   const remove = useMutation({
     mutationFn: deleteChannel,
-    onSuccess: () => qc.invalidateQueries({ queryKey: channelsKey }),
+    onSuccess: invalidateChannelLists,
   });
 
   const join = useMutation({
     mutationFn: joinChannel,
-    onSuccess: () => qc.invalidateQueries({ queryKey: channelsKey }),
+    onSuccess: invalidateChannelLists,
   });
 
   const leave = useMutation({
     mutationFn: leaveChannel,
-    onSuccess: () => qc.invalidateQueries({ queryKey: channelsKey }),
+    onSuccess: invalidateChannelLists,
   });
 
   return { create, update, remove, join, leave };

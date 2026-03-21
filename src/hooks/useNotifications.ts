@@ -14,6 +14,7 @@ export function useNotificationUnreadCount(userId?: string) {
     queryFn: getUnreadCount,
     enabled: !!userId,
     refetchInterval: 30_000,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: false,
     ...FEED_DATA,
   });
@@ -26,6 +27,7 @@ export function useNotificationList(userId?: string) {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: !!userId,
+    refetchOnMount: 'always',
     ...FEED_DATA,
   });
 }

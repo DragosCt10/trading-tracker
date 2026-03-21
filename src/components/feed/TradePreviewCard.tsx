@@ -15,6 +15,15 @@ const OUTCOME_BADGE_CLASS: Record<string, string> = {
   be:   'bg-slate-500 dark:bg-slate-500 text-white shadow-none border-none',
 };
 
+function formatTradeEntryDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
 export default function TradePreviewCard({ snapshot }: TradePreviewCardProps) {
   const [screenIndex, setScreenIndex] = useState(0);
   const screens = snapshot.screens ?? [];
@@ -55,10 +64,8 @@ export default function TradePreviewCard({ snapshot }: TradePreviewCardProps) {
             <span className="px-2 py-0.5 rounded-md bg-slate-200/90 dark:bg-slate-700/60 border border-slate-300/60 dark:border-slate-600/40 text-xs font-semibold text-slate-700 dark:text-slate-200 tabular-nums">
               Risk <span className="text-slate-900 dark:text-slate-100">{snapshot.riskPct.toFixed(2)}%</span>
             </span>
-            <span className="text-[11px] text-slate-500">
-              {new Date(snapshot.entryDate).toLocaleDateString('en-US', {
-                month: 'short', day: 'numeric', year: 'numeric',
-              })}
+            <span className="text-[11px] text-slate-500" suppressHydrationWarning>
+              {formatTradeEntryDate(snapshot.entryDate)}
             </span>
           </div>
         </div>

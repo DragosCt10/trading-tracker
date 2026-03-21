@@ -34,6 +34,7 @@ export function useFeed(
           pageParams: [undefined],
         }
       : undefined,
+    refetchOnMount: 'always',
     ...FEED_DATA,
   });
 }

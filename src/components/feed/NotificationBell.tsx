@@ -18,6 +18,14 @@ function notifLabel(type: string): string {
   return '';
 }
 
+function formatNotificationDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
 export default function NotificationBell({ userId }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
   const { data: unreadCount = 0 } = useNotificationUnreadCount(userId);
@@ -95,8 +103,8 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
                     <span className="font-semibold text-slate-100">{n.actor.display_name}</span>
                     {' '}{notifLabel(n.type)}
                   </p>
-                  <p className="text-xs text-slate-600 mt-0.5">
-                    {new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  <p className="text-xs text-slate-600 mt-0.5" suppressHydrationWarning>
+                    {formatNotificationDate(n.created_at)}
                   </p>
                 </div>
 

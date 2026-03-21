@@ -29,18 +29,28 @@ function toggleLikeInCache(
 
 export function usePostActions(userId?: string, channelId?: string) {
   const qc = useQueryClient();
-  const targetFeedKeys = channelId
-    ? [queryKeys.feed.channelPosts(channelId)]
-    : [queryKeys.feed.public(), queryKeys.feed.timeline(userId)];
+  const targetFeedPrefixes: (readonly unknown[])[] = channelId
+    ? [['feed:channelPosts', channelId]]
+    : [['feed:public'], ['feed:timeline', userId]];
+
+  function getTargetFeedEntries() {
+    const entries: Array<{ key: readonly unknown[]; data: InfiniteData | undefined }> = [];
+    for (const prefix of targetFeedPrefixes) {
+      const matches = qc.getQueriesData<InfiniteData>({ queryKey: prefix });
+      for (const [key, data] of matches) {
+        entries.push({ key, data });
+      }
+    }
+    return entries;
+  }
 
   const like = useMutation({
     mutationFn: (postId: string) => likePost(postId),
     onMutate: async (postId) => {
-      await Promise.all(targetFeedKeys.map((key) => qc.cancelQueries({ queryKey: key })));
-      const prev = targetFeedKeys.map((key) => ({
-        key,
-        data: qc.getQueryData<InfiniteData>(key),
-      }));
+      for (const prefix of targetFeedPrefixes) {
+        await qc.cancelQueries({ queryKey: prefix });
+      }
+      const prev = getTargetFeedEntries();
 
       for (const entry of prev) {
         const currentData = entry.data;
@@ -58,7 +68,7 @@ export function usePostActions(userId?: string, channelId?: string) {
     },
     onSuccess: (result, postId) => {
       if ('data' in result) {
-        for (const key of targetFeedKeys) {
+        for (const { key } of getTargetFeedEntries()) {
           qc.setQueryData<InfiniteData>(key, (d) =>
             d ? toggleLikeInCache(d, postId, result.data.liked, result.data.like_count) : d!
           );
@@ -76,8 +86,8 @@ export function usePostActions(userId?: string, channelId?: string) {
   const create = useMutation({
     mutationFn: (input: Parameters<typeof createPost>[0]) => createPost(input),
     onSuccess: () => {
-      for (const key of targetFeedKeys) {
-        qc.invalidateQueries({ queryKey: key });
+      for (const prefix of targetFeedPrefixes) {
+        qc.invalidateQueries({ queryKey: prefix });
       }
     },
   });
@@ -88,7 +98,7 @@ export function usePostActions(userId?: string, channelId?: string) {
     onSuccess: (result, { postId }) => {
       if ('error' in result) return;
       const updatedPost = result.data;
-      for (const key of targetFeedKeys) {
+      for (const { key } of getTargetFeedEntries()) {
         qc.setQueryData<InfiniteData>(key, (prev) => {
           if (!prev) return prev;
           return {
@@ -105,8 +115,8 @@ export function usePostActions(userId?: string, channelId?: string) {
         });
       }
       // Revalidate to avoid stale client/server divergence after edits.
-      for (const key of targetFeedKeys) {
-        qc.invalidateQueries({ queryKey: key });
+      for (const prefix of targetFeedPrefixes) {
+        qc.invalidateQueries({ queryKey: prefix });
       }
     },
   });
@@ -114,11 +124,10 @@ export function usePostActions(userId?: string, channelId?: string) {
   const remove = useMutation({
     mutationFn: (postId: string) => deletePost(postId),
     onMutate: async (postId) => {
-      await Promise.all(targetFeedKeys.map((key) => qc.cancelQueries({ queryKey: key })));
-      const prev = targetFeedKeys.map((key) => ({
-        key,
-        data: qc.getQueryData<InfiniteData>(key),
-      }));
+      for (const prefix of targetFeedPrefixes) {
+        await qc.cancelQueries({ queryKey: prefix });
+      }
+      const prev = getTargetFeedEntries();
       for (const entry of prev) {
         if (!entry.data) continue;
         qc.setQueryData<InfiniteData>(entry.key, {
