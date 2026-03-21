@@ -226,6 +226,14 @@ ALTER TABLE public.feed_reports       ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "profiles_select" ON public.social_profiles
   FOR SELECT USING (is_public = TRUE AND is_banned = FALSE);
 
+-- Users can always read their own profile (even when is_public = false)
+CREATE POLICY "profiles_select_own" ON public.social_profiles
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- Users can create their own profile (ensureSocialProfile)
+CREATE POLICY "profiles_insert_own" ON public.social_profiles
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
 CREATE POLICY "profiles_update_own" ON public.social_profiles
   FOR UPDATE USING (auth.uid() = user_id);
 
