@@ -320,8 +320,10 @@ export function useDashboardData({
   const tradesLoading = apiData?.compact_trades?.length ? false : allTimeTradesLoading;
 
   // ── Stats: always from API ────────────────────────────────────────────────
-  const stats = apiData ? mapApiToStats(apiData) : null;
-  const macroStats = apiData ? mapApiToMacro(apiData) : null;
+  // useMemo stabilises the object reference — components that receive stats/macroStats
+  // as props won't re-render unless apiData itself changes.
+  const stats = useMemo(() => apiData ? mapApiToStats(apiData) : null, [apiData]);
+  const macroStats = useMemo(() => apiData ? mapApiToMacro(apiData) : null, [apiData]);
   const setupStats = (apiData?.setup_stats ?? []) as SetupStats[];
   const liquidityStats = (apiData?.liquidity_stats ?? []) as LiquidityStats[];
   const sessionStats = (apiData?.session_stats ?? []) as SessionStats[];
@@ -336,7 +338,7 @@ export function useDashboardData({
   const evaluationStats = (apiData?.evaluation_stats ?? []) as EvaluationStat[];
   const riskStats = (apiData?.risk_analysis ?? null) as RiskAnalysis | null;
 
-  const monthlyStats = apiData ? mapApiToMonthlyStats(apiData) : null;
+  const monthlyStats = useMemo(() => apiData ? mapApiToMonthlyStats(apiData) : null, [apiData]);
 
   const nonExecutedStats = apiData?.nonExecutedStats;
   const nonExecutedSetupStats = (nonExecutedStats?.setup_stats ?? []) as SetupStats[];
