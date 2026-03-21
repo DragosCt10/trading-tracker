@@ -48,13 +48,15 @@ import MarketProfitStatisticsCard from '@/components/dashboard/analytics/MarketP
 import { MonthPerformanceCards } from '@/components/dashboard/analytics/MonthPerformanceCard';
 import {
   AccountOverviewCard,
+} from '@/components/dashboard/analytics/AccountOverviewCard';
+import {
   MONTHS,
-  getCurrencySymbolFromAccount,
-  computeMonthlyStatsFromTrades,
+  calculatePnlPercentFromOverview,
   calculateTotalYearProfit,
   calculateUpdatedBalance,
-  calculatePnlPercentFromOverview,
-} from '@/components/dashboard/analytics/AccountOverviewCard';
+  computeMonthlyStatsFromTrades,
+  getCurrencySymbolFromAccount,
+} from '@/utils/accountOverviewHelpers';
 import { ViewModeToggle } from '@/components/dashboard/analytics/ViewModeToggle';
 import { YearSelector } from '@/components/dashboard/analytics/YearSelector';
 import { AnalysisModal } from '@/components/dashboard/analytics/AnalysisModal';
