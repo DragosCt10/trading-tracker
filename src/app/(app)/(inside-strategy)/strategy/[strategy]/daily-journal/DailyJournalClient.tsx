@@ -57,6 +57,18 @@ type DayGroup = {
   date: string;
   trades: Trade[];
   totalProfit: number;
+  dayChartData: { date: string | Date; profit: number }[];
+  totalTrades: number;
+  winners: number;
+  losers: number;
+  breakEven: number;
+  winRate: number;
+  winRateWithBE: number;
+  totalPnLPct: number;
+  profitFactor: number;
+  isValidProfitFactor: boolean;
+  consistency: number;
+  formattedDate: string;
 };
 
 function formatTradeTimeForDisplay(value: string | Date | unknown): string {
@@ -77,6 +89,74 @@ function formatTradeTimeForDisplay(value: string | Date | unknown): string {
 
 const DAYS_PER_LOAD = 7;
 
+// Per-day equity curve data (one series per day).
+// Expects trades already sorted by trade_time.
+function buildDayChartData(trades: Trade[]) {
+  if (!trades.length) return [];
+
+  const dayDate = trades[0].trade_date;
+  let cumulative = 0;
+  const points = [];
+
+  // Start-of-day baseline so the curve is visible even for a single trade.
+  points.push({
+    date: new Date(dayDate),
+    profit: 0,
+  });
+
+  for (const trade of trades) {
+    cumulative += trade.calculated_profit ?? 0;
+    points.push({
+      date: trade.trade_date,
+      profit: cumulative,
+    });
+  }
+
+  return points;
+}
+
+function buildDayGroup(date: string, trades: Trade[], accountBalance: number | null): DayGroup {
+  const sortedTrades = trades.slice().sort((a: Trade, b: Trade) => a.trade_time.localeCompare(b.trade_time));
+  const totalProfit = sortedTrades.reduce((sum: number, t: Trade) => sum + (t.calculated_profit ?? 0), 0);
+  const totalTrades = sortedTrades.length;
+  const winners = sortedTrades.filter((t) => !t.break_even && t.trade_outcome === 'Win').length;
+  const losers = sortedTrades.filter((t) => !t.break_even && t.trade_outcome === 'Lose').length;
+  const breakEven = sortedTrades.filter((t) => t.break_even || t.trade_outcome === 'BE').length;
+  const { winRate, winRateWithBE } = calculateWinRates(sortedTrades);
+  const totalPnLPct = calculateAveragePnLPercentage(sortedTrades, accountBalance);
+  const profitFactor = calculateProfitFactor(sortedTrades, winners, losers);
+  const isValidProfitFactor =
+    Number.isFinite(profitFactor) && !Number.isNaN(profitFactor);
+  const realTrades = sortedTrades.filter(
+    (t) => !t.break_even || (t.break_even && t.partials_taken)
+  );
+  const profitableTrades = realTrades.filter(
+    (t) =>
+      (!t.break_even && t.trade_outcome === 'Win') ||
+      (t.break_even && t.partials_taken)
+  );
+  const consistency =
+    realTrades.length > 0 ? (profitableTrades.length / realTrades.length) * 100 : 0;
+
+  return {
+    date,
+    trades: sortedTrades,
+    totalProfit,
+    dayChartData: buildDayChartData(sortedTrades),
+    totalTrades,
+    winners,
+    losers,
+    breakEven,
+    winRate,
+    winRateWithBE,
+    totalPnLPct,
+    profitFactor,
+    isValidProfitFactor,
+    consistency,
+    formattedDate: format(new Date(date), 'EEE, MMM d, yyyy'),
+  };
+}
+
 export default function DailyJournalClient({
   strategyId,
   strategyName,
@@ -91,6 +171,7 @@ export default function DailyJournalClient({
   const { beCalcEnabled } = useBECalc();
   const { selection, setSelection } = useActionBarSelection();
   const userId = userDetails?.user?.id ?? initialUserId;
+  const mode = selection.mode ?? initialMode;
   const { isPro } = useSubscription({ userId });
   const activeAccount = selection.activeAccount ?? initialActiveAccount;
 
@@ -102,14 +183,14 @@ export default function DailyJournalClient({
 
   const allTime = useMemo(() => createAllTimeRange(), []);
   const isInitialContext =
-    selection.mode === initialMode && activeAccount?.id === initialActiveAccount?.id;
+    mode === initialMode && activeAccount?.id === initialActiveAccount?.id;
 
   const {
     data: rawTrades,
     isLoading: tradesLoading,
   } = useQuery<Trade[]>({
     queryKey: queryKeys.trades.filtered(
-      selection.mode,
+      mode,
       activeAccount?.id,
       userId,
       'all',
@@ -123,7 +204,7 @@ export default function DailyJournalClient({
       return getFilteredTrades({
         userId,
         accountId: activeAccount.id,
-        mode: selection.mode,
+        mode,
         startDate: allTime.startDate,
         endDate: allTime.endDate,
         includeNonExecuted: true,
@@ -198,14 +279,8 @@ export default function DailyJournalClient({
         direction: 'Long',
       }),
     ];
-    return [
-      {
-        date,
-        trades: previewTrades,
-        totalProfit: 100,
-      },
-    ];
-  }, []);
+    return [buildDayGroup(date, previewTrades, accountBalance)];
+  }, [accountBalance]);
 
   const handleFilterChange = useCallback((type: FilterType) => {
     setActiveFilter(type);
@@ -269,12 +344,8 @@ export default function DailyJournalClient({
 
     return Object.entries(byDate)
       .sort(([d1], [d2]) => (d1 < d2 ? 1 : -1)) // newest first
-      .map(([date, trades]) => ({
-        date,
-        trades: trades.slice().sort((a: Trade, b: Trade) => a.trade_time.localeCompare(b.trade_time)),
-        totalProfit: trades.reduce((sum: number, t: Trade) => sum + (t.calculated_profit ?? 0), 0),
-      }));
-  }, [filteredTrades]);
+      .map(([date, trades]) => buildDayGroup(date, trades, accountBalance));
+  }, [filteredTrades, accountBalance]);
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -337,37 +408,6 @@ export default function DailyJournalClient({
   const closeNotesModal = useCallback(() => {
     setIsNotesOpen(false);
   }, []);
-
-  // Per‑day equity curve data (one series per day)
-  const buildDayChartData = (trades: Trade[]) => {
-    if (!trades.length) return [];
-
-    const sorted = trades
-      .slice()
-      .sort((a, b) => a.trade_time.localeCompare(b.trade_time));
-
-    const dayDate = sorted[0].trade_date;
-
-    let cumulative = 0;
-    const points = [];
-
-    // Start-of-day baseline so the curve is visible even for a single trade
-    points.push({
-      date: new Date(dayDate),
-      profit: 0,
-    });
-
-    for (const trade of sorted) {
-      const profit = trade.calculated_profit ?? 0;
-      cumulative += profit;
-      points.push({
-        date: trade.trade_date,
-        profit: cumulative,
-      });
-    }
-
-    return points;
-  };
 
   if (activeAccount && tradesLoading && !isInitialContext) {
     return (
@@ -437,31 +477,7 @@ export default function DailyJournalClient({
         )}
         {displayedDayGroups.map((group, index) => {
           const isOpen = openByDate[group.date] ?? index === 0;
-          const dayChartData = buildDayChartData(group.trades);
-          const hasTrades = group.trades.length > 0;
-          const totalTrades = group.trades.length;
-          const winners = group.trades.filter((t) => !t.break_even && t.trade_outcome === 'Win').length;
-          const losers = group.trades.filter((t) => !t.break_even && t.trade_outcome === 'Lose').length;
-          const breakEven = group.trades.filter((t) => t.break_even).length;
-          const { winRate, winRateWithBE } = calculateWinRates(group.trades);
-          const totalPnLPct = calculateAveragePnLPercentage(
-            group.trades,
-            accountBalance
-          );
-          const profitFactor = calculateProfitFactor(group.trades, winners, losers);
-          const isValidProfitFactor =
-            Number.isFinite(profitFactor) && !Number.isNaN(profitFactor);
-          const realTrades = group.trades.filter(
-            (t) => !t.break_even || (t.break_even && t.partials_taken)
-          );
-          const profitableTrades = realTrades.filter(
-            (t) =>
-              (!t.break_even && t.trade_outcome === 'Win') ||
-              (t.break_even && t.partials_taken)
-          );
-          const consistency =
-            realTrades.length > 0 ? (profitableTrades.length / realTrades.length) * 100 : 0;
-          const formattedDate = format(new Date(group.date), 'EEE, MMM d, yyyy');
+          const hasTrades = group.totalTrades > 0;
 
           const cardContent = (
             <Card
@@ -503,7 +519,7 @@ export default function DailyJournalClient({
                   />
                   <div className="gap-1 flex flex-col">
                     <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                      {formattedDate}
+                      {group.formattedDate}
                     </p>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                       {group.trades.length} trades • P&L:{' '}
@@ -536,7 +552,7 @@ export default function DailyJournalClient({
                 <div className="flex flex-col gap-10 md:flex-row md:items-center">
                   <div className="md:w-1/3 h-32 flex items-center">
                     <EquityCurveChart
-                      data={dayChartData}
+                      data={group.dayChartData}
                       currencySymbol={currencySymbol}
                       hasTrades={hasTrades}
                       isLoading={!mounted}
@@ -551,7 +567,7 @@ export default function DailyJournalClient({
                         Total Trades
                       </p>
                       <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                        {totalTrades}
+                        {group.totalTrades}
                       </p>
                     </div>
                     <div>
@@ -559,7 +575,7 @@ export default function DailyJournalClient({
                         Wins
                       </p>
                       <p className="text-base font-semibold text-emerald-500">
-                        {winners}
+                        {group.winners}
                       </p>
                     </div>
                     <div>
@@ -567,7 +583,7 @@ export default function DailyJournalClient({
                         Losses
                       </p>
                       <p className="text-base font-semibold text-rose-500">
-                        {losers}
+                        {group.losers}
                       </p>
                     </div>
                     <div>
@@ -575,7 +591,7 @@ export default function DailyJournalClient({
                         BE
                       </p>
                       <p className="text-base font-semibold text-slate-600 dark:text-slate-300">
-                        {breakEven}
+                        {group.breakEven}
                       </p>
                     </div>
                     <div>
@@ -583,7 +599,7 @@ export default function DailyJournalClient({
                         P&L %
                       </p>
                       <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                        {formatPercent(totalPnLPct)}%
+                        {formatPercent(group.totalPnLPct)}%
                       </p>
                     </div>
                     <div>
@@ -591,7 +607,7 @@ export default function DailyJournalClient({
                         Winrate
                       </p>
                       <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                        {formatPercent(beCalcEnabled ? winRateWithBE : winRate)}%
+                        {formatPercent(beCalcEnabled ? group.winRateWithBE : group.winRate)}%
                       </p>
                     </div>
                     <div>
@@ -599,8 +615,8 @@ export default function DailyJournalClient({
                         Profit Factor
                       </p>
                       <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                        {isValidProfitFactor ? (
-                          profitFactor.toFixed(2)
+                        {group.isValidProfitFactor ? (
+                          group.profitFactor.toFixed(2)
                         ) : (
                           <span className="inline-flex items-center gap-1">
                             <InfinityIcon className="h-4 w-4" aria-label="Infinite profit factor" />
@@ -613,7 +629,7 @@ export default function DailyJournalClient({
                           Consistency
                         </p>
                         <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
-                          {formatPercent(consistency)}%
+                          {formatPercent(group.consistency)}%
                         </p>
                       </div>
                     </div>
@@ -735,16 +751,16 @@ export default function DailyJournalClient({
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-900 dark:text-slate-100">
                               {trade.notes ? (
-                                <a
-                                  href="#"
+                                <button
+                                  type="button"
                                   onClick={(e) => {
                                     e.preventDefault();
                                     openNotesModal(trade.notes || '');
                                   }}
-                                  className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline font-medium transition-colors"
+                                  className="cursor-pointer text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline font-medium transition-colors"
                                 >
                                   View Notes
-                                </a>
+                                </button>
                               ) : (
                                 <span className="text-slate-400 dark:text-slate-500">
                                   No notes
@@ -752,16 +768,16 @@ export default function DailyJournalClient({
                               )}
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap text-xs sm:text-sm text-slate-900 dark:text-slate-100">
-                              <a
-                                href="#"
+                              <button
+                                type="button"
                                 onClick={(e) => {
                                   e.preventDefault();
                                   openTradeDetails(trade);
                                 }}
-                                className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline font-medium transition-colors"
+                                className="cursor-pointer text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 underline font-medium transition-colors"
                               >
                                 Trade Details
-                              </a>
+                              </button>
                             </td>
                           </tr>
                         ))}
