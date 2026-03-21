@@ -34,7 +34,7 @@ import { useUserDetails } from '@/hooks/useUserDetails';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { queryKeys } from '@/lib/queryKeys';
 import { TRADES_DATA } from '@/constants/queryConfig';
-import { getCurrencySymbolFromAccount } from '@/components/dashboard/analytics/AccountOverviewCard';
+import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
 import { DailyJournalSkeleton } from './DailyJournalSkeleton';
 import { OutcomeChips } from '@/components/trades/OutcomeChips';
 import { useSubscription } from '@/hooks/useSubscription';

@@ -6,28 +6,11 @@ import { resolveActiveAccountFromCookies } from '@/lib/server/accounts';
 import { getFilteredTrades } from '@/lib/server/trades';
 import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import { queryKeys } from '@/lib/queryKeys';
+import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
 import CustomStatsClient from './CustomStatsClient';
 import { CustomStatsSkeleton } from './CustomStatsSkeleton';
 import type { User } from '@supabase/supabase-js';
 import type { Trade } from '@/types/trade';
-
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  USD: '$',
-  EUR: '€',
-  GBP: '£',
-  JPY: '¥',
-  AUD: 'A$',
-  CAD: 'C$',
-  CHF: 'CHF',
-  CNY: '¥',
-  HKD: 'HK$',
-  NZD: 'NZ$',
-};
-
-function getCurrencySymbol(account: { currency?: string | null }): string {
-  if (!account?.currency) return '$';
-  return CURRENCY_SYMBOLS[account.currency] ?? account.currency;
-}
 
 async function CustomStatsDataFetcher({
   user,
@@ -64,7 +47,7 @@ async function CustomStatsDataFetcher({
       initialTrades = tradesResult;
     }
     accountBalance = activeAccount.account_balance ?? null;
-    currencySymbol = getCurrencySymbol(activeAccount);
+    currencySymbol = getCurrencySymbolFromAccount(activeAccount);
   }
 
   const queryClient = new QueryClient();
