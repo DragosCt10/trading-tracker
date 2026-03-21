@@ -5,6 +5,7 @@ import PostCard from '@/components/feed/PostCard';
 import FollowButton from '@/components/feed/FollowButton';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useSocialProfile } from '@/hooks/useSocialProfile';
+import { useSubscription } from '@/hooks/useSubscription';
 import type { SocialProfile, FeedPost, PaginatedResult } from '@/types/social';
 
 interface ProfileClientProps {
@@ -23,10 +24,12 @@ export default function ProfileClient({
   const { data: userData } = useUserDetails();
   const userId = userData?.user?.id;
   const { data: ownProfile } = useSocialProfile(userId);
+  const { subscription } = useSubscription({ userId });
   const effectiveCurrentProfileId = currentProfileId ?? ownProfile?.id;
 
-  const isPro = profile.tier === 'pro' || profile.tier === 'elite';
   const isOwnProfile = ownProfile?.user_id === profile.user_id;
+  const effectiveTier = isOwnProfile && subscription?.tier ? subscription.tier : profile.tier;
+  const isPro = effectiveTier === 'pro' || effectiveTier === 'elite';
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-0 py-6 space-y-6">
@@ -103,6 +106,7 @@ export default function ProfileClient({
                 post={post}
                 currentUserId={userId}
                 currentProfileId={effectiveCurrentProfileId}
+                currentUserTier={isOwnProfile ? subscription?.tier : undefined}
               />
             ))}
           </div>

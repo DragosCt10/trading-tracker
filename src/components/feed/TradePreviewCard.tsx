@@ -2,79 +2,76 @@
 
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import type { TradeSnapshot } from '@/types/social';
 
 interface TradePreviewCardProps {
   snapshot: TradeSnapshot;
 }
 
-const OUTCOME_BORDER: Record<string, string> = {
-  win:  'border-l-green-500',
-  loss: 'border-l-red-500',
-  be:   'border-l-amber-500',
-};
-
-const OUTCOME_BADGE: Record<string, string> = {
-  win:  'bg-green-500/15 text-green-400',
-  loss: 'bg-red-500/15 text-red-400',
-  be:   'bg-amber-500/15 text-amber-400',
+const OUTCOME_BADGE_CLASS: Record<string, string> = {
+  win:  'bg-emerald-500 dark:bg-emerald-500 text-white shadow-none border-none',
+  loss: 'bg-rose-500 dark:bg-rose-500 text-white shadow-none border-none',
+  be:   'bg-slate-500 dark:bg-slate-500 text-white shadow-none border-none',
 };
 
 export default function TradePreviewCard({ snapshot }: TradePreviewCardProps) {
   const [screenIndex, setScreenIndex] = useState(0);
   const screens = snapshot.screens ?? [];
 
-  const borderClass = OUTCOME_BORDER[snapshot.outcome] ?? 'border-l-slate-500';
-  const badgeClass  = OUTCOME_BADGE[snapshot.outcome]  ?? 'bg-slate-500/15 text-slate-400';
+  const badgeClass = OUTCOME_BADGE_CLASS[snapshot.outcome] ?? 'bg-slate-500 dark:bg-slate-500 text-white shadow-none border-none';
 
-  const outcomeLabel = snapshot.outcome === 'be' ? 'B/E' : snapshot.outcome.toUpperCase();
+  const outcomeLabel = snapshot.outcome === 'be' ? 'BE' : snapshot.outcome.toUpperCase();
+
   const directionIcon =
-    snapshot.direction === 'long'  ? <TrendingUp  className="w-3 h-3" /> :
-    snapshot.direction === 'short' ? <TrendingDown className="w-3 h-3" /> :
-                                     <Minus        className="w-3 h-3" />;
+    snapshot.direction === 'long'  ? <TrendingUp  className="w-3.5 h-3.5" /> :
+    snapshot.direction === 'short' ? <TrendingDown className="w-3.5 h-3.5" /> :
+                                     <Minus        className="w-3.5 h-3.5" />;
 
-  const pnlSign  = snapshot.pnl >= 0 ? '+' : '';
-  const pnlColor = snapshot.pnl >= 0 ? 'text-green-400' : 'text-red-400';
+  const directionLabel =
+    snapshot.direction.charAt(0).toUpperCase() + snapshot.direction.slice(1);
 
   return (
-    <div
-      className={`rounded-xl border-l-[3px] ${borderClass} bg-slate-900/60 dark:bg-slate-950/60 overflow-hidden`}
-    >
-      {/* Stats row */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 text-xs">
-        <span className="font-semibold text-slate-200">{snapshot.market}</span>
+    <div className="rounded-2xl border border-slate-700/55 bg-slate-800/35 backdrop-blur-xl overflow-hidden">
+      {/* Header — two-zone */}
+      <div className="flex items-start justify-between gap-4 px-4 py-3">
+        {/* Left: market · direction */}
+        <div className="flex flex-col gap-1.5 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-[15px] text-slate-100 tracking-tight">
+              {snapshot.market}
+            </span>
+            <span className="flex items-center gap-1 text-slate-400 text-sm">
+              {directionIcon}
+              {directionLabel}
+            </span>
+          </div>
 
-        <span className="flex items-center gap-1 text-slate-400 capitalize">
-          {directionIcon}
-          {snapshot.direction}
-        </span>
+          {/* Stat strip */}
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded-md bg-slate-700/60 border border-slate-600/40 text-xs font-semibold text-slate-200 tabular-nums">
+              RR <span className="text-slate-100">{snapshot.rr.toFixed(2)}R</span>
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-slate-700/60 border border-slate-600/40 text-xs font-semibold text-slate-200 tabular-nums">
+              Risk <span className="text-slate-100">{snapshot.riskPct.toFixed(2)}%</span>
+            </span>
+            <span className="text-[11px] text-slate-500">
+              {new Date(snapshot.entryDate).toLocaleDateString('en-US', {
+                month: 'short', day: 'numeric', year: 'numeric',
+              })}
+            </span>
+          </div>
+        </div>
 
-        <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] uppercase tracking-wide ${badgeClass}`}>
+        {/* Right: outcome badge */}
+        <Badge className={`shrink-0 ${badgeClass}`}>
           {outcomeLabel}
-        </span>
-
-        <span className="text-slate-400">
-          <span className="text-slate-500">RR </span>
-          <span className="text-slate-200">{snapshot.rr.toFixed(2)}R</span>
-        </span>
-
-        <span className="text-slate-400">
-          <span className="text-slate-500">Risk </span>
-          <span className="text-slate-200">{snapshot.riskPct.toFixed(2)}%</span>
-        </span>
-
-        <span className={`font-semibold ${pnlColor}`}>
-          {pnlSign}{snapshot.pnl.toFixed(2)} {snapshot.currency}
-        </span>
-
-        <span className="ml-auto text-slate-500 text-[11px]">
-          {new Date(snapshot.entryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-        </span>
+        </Badge>
       </div>
 
       {/* Screenshot carousel */}
       {screens.length > 0 && (
-        <div className="relative group h-40 bg-slate-950/60 overflow-hidden">
+        <div className="relative group h-52 overflow-hidden border-t border-slate-700/40">
           <a
             href={screens[screenIndex].url}
             target="_blank"
@@ -91,25 +88,25 @@ export default function TradePreviewCard({ snapshot }: TradePreviewCardProps) {
 
           {/* TF badge */}
           {screens[screenIndex].tf && (
-            <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/55 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-wide select-none">
+            <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-wide select-none">
               {screens[screenIndex].tf}
             </span>
           )}
 
           {/* Counter */}
           {screens.length > 1 && (
-            <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/55 backdrop-blur-sm text-white text-[10px] select-none">
+            <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-sm text-white text-[10px] font-medium select-none">
               {screenIndex + 1}/{screens.length}
             </span>
           )}
 
-          {/* Navigation arrows — visible on hover */}
+          {/* Navigation arrows */}
           {screens.length > 1 && (
             <>
               <button
                 type="button"
                 onClick={(e) => { e.preventDefault(); setScreenIndex((i) => Math.max(0, i - 1)); }}
-                className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full bg-black/55 backdrop-blur-sm text-white disabled:opacity-30"
+                className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1.5 rounded-full bg-black/60 backdrop-blur-sm text-white disabled:opacity-30"
                 disabled={screenIndex === 0}
                 aria-label="Previous screenshot"
               >
@@ -118,7 +115,7 @@ export default function TradePreviewCard({ snapshot }: TradePreviewCardProps) {
               <button
                 type="button"
                 onClick={(e) => { e.preventDefault(); setScreenIndex((i) => Math.min(screens.length - 1, i + 1)); }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 rounded-full bg-black/55 backdrop-blur-sm text-white disabled:opacity-30"
+                className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1.5 rounded-full bg-black/60 backdrop-blur-sm text-white disabled:opacity-30"
                 disabled={screenIndex === screens.length - 1}
                 aria-label="Next screenshot"
               >

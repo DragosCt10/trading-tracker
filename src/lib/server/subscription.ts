@@ -121,6 +121,12 @@ export async function grantSubscription(userId: string, tier: TierId): Promise<v
     { onConflict: 'user_id' }
   );
   if (error) throw new Error(`grantSubscription failed: ${error.message}`);
+
+  // Sync tier to social_profiles so the feed PRO badge reflects the grant immediately
+  await supabase
+    .from('social_profiles')
+    .update({ tier, updated_at: new Date().toISOString() })
+    .eq('user_id', userId);
 }
 
 /**

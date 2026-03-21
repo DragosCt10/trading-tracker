@@ -1,16 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { Heart, MessageCircle, Share2, Crown, MoreHorizontal, Pencil, Trash2, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TradePreviewCard from './TradePreviewCard';
 import type { FeedPost } from '@/types/social';
+import type { TierId } from '@/types/subscription';
+import { useTheme } from '@/hooks/useTheme';
 
 interface PostCardProps {
   post: FeedPost;
   currentUserId?: string;
   currentProfileId?: string;
+  currentUserTier?: TierId;
   onLike?: (postId: string) => void;
   onDelete?: (postId: string) => void;
   onEdit?: (post: FeedPost) => void;
@@ -33,7 +36,9 @@ function timeAgo(dateStr: string): string {
 
 export default function PostCard({
   post,
+  currentUserId,
   currentProfileId,
+  currentUserTier,
   onLike,
   onDelete,
   onEdit,
@@ -41,17 +46,32 @@ export default function PostCard({
   expanded = false,
 }: PostCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { theme, mounted } = useTheme();
   const isOwn = currentProfileId === post.author.id;
-  const isPro = post.author.tier === 'pro' || post.author.tier === 'elite';
+  const authorTier =
+    currentUserId && post.author.user_id === currentUserId && currentUserTier
+      ? currentUserTier
+      : post.author.tier;
+  const isPro = authorTier === 'pro' || authorTier === 'elite';
+  const isLightMode = mounted && theme === 'light';
+  const proIconColor = isLightMode ? '#b45309' : '#fbbf24';
+  const proBorderColor = isLightMode ? 'rgba(180,83,9,0.45)' : 'rgba(251,191,36,0.45)';
+  const proTextStyle: CSSProperties = isLightMode
+    ? { color: '#b45309' }
+    : {
+        backgroundImage: 'linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #b45309 100%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
+      };
 
   return (
     <article className="rounded-2xl border border-slate-700/55 bg-slate-800/35 backdrop-blur-xl p-5 transition-all duration-200 hover:border-slate-600/60">
       {/* Author header */}
-      <div className="flex items-start gap-3 mb-3">
+      <div className="flex items-center gap-3 mb-3">
         <Link href={`/profile/${post.author.username}`} className="shrink-0">
           <div
-            className="w-9 h-9 rounded-full bg-slate-700 overflow-hidden flex items-center justify-center text-slate-300 font-semibold text-sm"
-            style={isPro ? { boxShadow: '0 0 0 2px rgba(251,191,36,0.45)' } : undefined}
+            className={`w-9 h-9 rounded-full bg-slate-700 overflow-hidden flex items-center justify-center text-slate-300 font-semibold text-sm ${isPro ? 'ring-2 ring-amber-400/75 ring-offset-1 ring-offset-slate-800' : ''}`}
           >
             {post.author.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -63,19 +83,26 @@ export default function PostCard({
         </Link>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <Link href={`/profile/${post.author.username}`} className="font-semibold text-sm text-slate-100 hover:text-white transition-colors">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link href={`/profile/${post.author.username}`} className="font-semibold text-sm text-slate-100 hover:text-white transition-colors leading-none">
               {post.author.display_name}
             </Link>
             {isPro && (
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                <Crown className="w-2.5 h-2.5" />
-                PRO
+              <span
+                className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 select-none"
+                style={{ border: `1px solid ${proBorderColor}` }}
+              >
+                <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={proTextStyle}>
+                  PRO
+                </span>
               </span>
             )}
-            <span className="text-slate-500 text-xs">@{post.author.username}</span>
             <span className="text-slate-600 text-xs">·</span>
             <span className="text-slate-500 text-xs">{timeAgo(post.created_at)}</span>
+          </div>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span className="text-slate-500 text-xs">@{post.author.username}</span>
           </div>
         </div>
 
@@ -95,7 +122,7 @@ export default function PostCard({
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
               <div className="absolute right-0 top-8 z-20 w-40 rounded-xl border border-slate-700/60 bg-slate-800/90 backdrop-blur-xl shadow-xl py-1">
-                {isOwn && onEdit && post.author.tier !== 'starter' && (
+                {isOwn && onEdit && authorTier !== 'starter' && (
                   <button
                     type="button"
                     className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 transition-colors"

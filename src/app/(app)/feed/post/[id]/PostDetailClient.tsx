@@ -6,6 +6,7 @@ import PostCard from '@/components/feed/PostCard';
 import CommentSection from '@/components/feed/CommentSection';
 import { usePostActions } from '@/hooks/usePostActions';
 import { useSocialProfile } from '@/hooks/useSocialProfile';
+import { useSubscription } from '@/hooks/useSubscription';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import type { FeedPost, PaginatedResult, FeedComment } from '@/types/social';
 
@@ -18,6 +19,7 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
   const { data: userData } = useUserDetails();
   const userId = userData?.user?.id;
   const { data: ownProfile } = useSocialProfile(userId);
+  const { subscription } = useSubscription({ userId });
   const { like, remove } = usePostActions(userId);
 
   return (
@@ -34,6 +36,7 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
         post={post}
         currentUserId={userId}
         currentProfileId={ownProfile?.id}
+        currentUserTier={subscription?.tier}
         onLike={(id) => like.mutate(id)}
         onDelete={(id) => remove.mutate(id)}
         expanded

@@ -101,6 +101,7 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
               post={post}
               currentUserId={userId}
               currentProfileId={currentProfileId}
+              currentUserTier={subscription?.tier}
               onLike={(id) => like.mutate(id)}
               onDelete={(id) => remove.mutate(id)}
               onEdit={(p) => setEditPost(p)}

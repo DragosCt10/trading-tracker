@@ -100,6 +100,7 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
                   post={post}
                   currentUserId={userId}
                   currentProfileId={initialProfile?.id}
+                  currentUserTier={subscription?.tier}
                   onLike={(id) => like.mutate(id)}
                   onDelete={(id) => remove.mutate(id)}
                   onEdit={(p) => setEditPost(p)}

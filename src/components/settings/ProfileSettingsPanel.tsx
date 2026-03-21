@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useTransition, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Loader2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { updateSocialProfile, checkUsernameAvailability } from '@/lib/server/socialProfile';
+import { queryKeys } from '@/lib/queryKeys';
 import type { SocialProfile } from '@/types/social';
 
 interface ProfileSettingsPanelProps {
@@ -16,6 +19,9 @@ const INPUT_CLASS =
   'h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300 placeholder:text-slate-400 dark:placeholder:text-slate-500';
 
 export default function ProfileSettingsPanel({ initialProfile }: ProfileSettingsPanelProps) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [savedProfile, setSavedProfile] = useState<SocialProfile | null>(initialProfile);
   const [displayName, setDisplayName] = useState(initialProfile?.display_name ?? '');
   const [username, setUsername]         = useState(initialProfile?.username ?? '');
   const [bio, setBio]                   = useState(initialProfile?.bio ?? '');
@@ -32,7 +38,7 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
 
   // Availability indicator: null when same as original (no check needed)
   const effectiveUsernameAvailable =
-    username === initialProfile?.username ? null : usernameAvailable;
+    username === savedProfile?.username ? null : usernameAvailable;
 
   const handleUsernameChange = useCallback(
     (value: string) => {
@@ -41,7 +47,7 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
       setUsernameAvailable(null);
 
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      if (!cleaned || cleaned === initialProfile?.username) return;
+      if (!cleaned || cleaned === savedProfile?.username) return;
 
       setUsernameChecking(true);
       debounceRef.current = setTimeout(async () => {
@@ -50,7 +56,7 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
         setUsernameChecking(false);
       }, 400);
     },
-    [initialProfile?.username]
+    [savedProfile?.username]
   );
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -75,6 +81,29 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
       if ('error' in result) {
         setError(result.error);
       } else {
+        const updatedProfile = result.data;
+        const oldUsername = savedProfile?.username;
+
+        setSavedProfile(updatedProfile);
+        setDisplayName(updatedProfile.display_name ?? '');
+        setUsername(updatedProfile.username ?? '');
+        setBio(updatedProfile.bio ?? '');
+        setAvatarUrl(updatedProfile.avatar_url ?? '');
+        setIsPublic(updatedProfile.is_public);
+        setUsernameAvailable(null);
+        setUsernameChecking(false);
+
+        queryClient.setQueryData(queryKeys.socialProfile(updatedProfile.user_id), updatedProfile);
+        queryClient.removeQueries({
+          predicate: (query) =>
+            typeof query.queryKey[0] === 'string' &&
+            query.queryKey[0].startsWith('feed:'),
+        });
+        if (oldUsername && oldUsername !== updatedProfile.username) {
+          queryClient.removeQueries({ queryKey: queryKeys.feed.profile(oldUsername) });
+        }
+
+        router.refresh();
         setMessage('Profile updated successfully.');
       }
     });

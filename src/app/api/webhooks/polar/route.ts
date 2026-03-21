@@ -171,6 +171,14 @@ async function processWebhookAction(action: Awaited<ReturnType<ReturnType<typeof
         { onConflict: 'user_id' }
       );
       if (error) console.error('[billing/webhook] upsert error:', error.message);
+
+      // Sync tier to social_profiles so the feed PRO badge stays accurate
+      const isActive = ['active', 'trialing', 'admin_granted', 'past_due'].includes(action.data.status);
+      const syncedTier = isActive ? action.data.tierId : 'starter';
+      await supabase
+        .from('social_profiles')
+        .update({ tier: syncedTier, updated_at: new Date().toISOString() })
+        .eq('user_id', resolvedUserId);
       break;
     }
 
