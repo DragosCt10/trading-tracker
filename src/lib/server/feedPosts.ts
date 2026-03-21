@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
+import { getCachedSubscription } from './subscription';
 import { TIER_DEFINITIONS } from '@/constants/tiers';
 import type { FeedPost, TradeSnapshot, TradeSelectorItem, PaginatedResult } from '@/types/social';
 import type { TierId } from '@/types/subscription';
@@ -371,8 +372,8 @@ export async function createPost(input: {
   if (!profile) return { error: 'Social profile not found', code: 'NOT_FOUND' };
   if (profile.is_banned) return { error: 'Account is banned', code: 'UNAUTHORIZED' };
 
-  const tier = profile.tier as TierId;
-  const def = TIER_DEFINITIONS[tier];
+  const subscription = await getCachedSubscription(session.user!.id);
+  const def = subscription.definition;
   const limits = def.limits;
   const features = def.features;
   const supabase = await createClient();
