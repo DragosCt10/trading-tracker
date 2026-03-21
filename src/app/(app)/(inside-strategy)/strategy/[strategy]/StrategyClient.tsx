@@ -14,7 +14,7 @@ import {
   format,
 } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import type { ExtraCardKey } from '@/constants/extraCards';
+import { PRO_ONLY_EXTRA_CARD_KEYS, type ExtraCardKey } from '@/constants/extraCards';
 
 import { Trade } from '@/types/trade';
 import type { AccountSettings } from '@/types/account-settings';
@@ -26,7 +26,6 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { TRADES_DATA } from '@/constants/queryConfig';
-import { Crown } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 
 import {
@@ -200,6 +199,7 @@ export default function StrategyClient(
 
   // view mode: 'yearly' or 'dateRange'
   const [viewMode, setViewMode] = useState<'yearly' | 'dateRange'>('dateRange');
+  const [showProCards, setShowProCards] = useState(true);
   // startTransition marks filter/view-mode changes as non-urgent so React can yield to
   // user input before re-running the heavy useMemo chains — fixes INP > 200 ms.
   const [, startFilterTransition] = useTransition();
@@ -265,6 +265,8 @@ export default function StrategyClient(
 
   const userId = userData?.user?.id;
   const { isPro } = useSubscription({ userId: props?.initialUserId });
+  /** PRO subscribers always see PRO sections; toggle only applies to Starter. */
+  const showProContent = isPro || showProCards;
 
   // Per-strategy extra cards configuration
   const extraCards = props?.initialExtraCards ?? [];
@@ -895,7 +897,11 @@ export default function StrategyClient(
     },
   ];
 
-  const selectedHalfWidthCards = HALF_WIDTH_EXTRA_CARDS.filter(c => hasCard(c.key));
+  const selectedHalfWidthCards = HALF_WIDTH_EXTRA_CARDS.filter(
+    (card) =>
+      hasCard(card.key) &&
+      (showProContent || !PRO_ONLY_EXTRA_CARD_KEYS.includes(card.key))
+  );
 
   return (
     <>
@@ -903,6 +909,9 @@ export default function StrategyClient(
       <ViewModeToggle
         viewMode={viewMode}
         onViewModeChange={(mode) => startFilterTransition(() => setViewMode(mode))}
+        isPro={isPro}
+        showProCards={showProCards}
+        onShowProCardsChange={setShowProCards}
       />
 
       {/* Date Range and Filter Buttons - Only show when in dateRange mode, above AccountOverviewCard */}
@@ -1032,9 +1041,9 @@ export default function StrategyClient(
               sessionStats: sessionStats,
               chartsLoadingState: chartsLoadingState,
               includeTotalTrades: filteredChartStats !== null,
-              showEvaluationCard: hasCard('evaluation_stats'),
+              showEvaluationCard: showProContent && hasCard('evaluation_stats'),
               showTrendCard: hasCard('trend_stats'),
-              showSessionCard: hasCard('session_stats'),
+              showSessionCard: showProContent && hasCard('session_stats'),
             }}
             beforeRiskPerTradeRow={{
               trades: tradesToUse,
@@ -1047,13 +1056,14 @@ export default function StrategyClient(
                 : (filteredRiskStats || riskStats)
               ) as RiskAnalysis | null ?? null
             }
+            showProCards={showProContent}
             isPro={isPro}
           />
         </div>
       )}
 
       {/* Confidence & Mind State — PRO */}
-      {(viewMode === 'dateRange' || viewMode === 'yearly') && (
+      {(viewMode === 'dateRange' || viewMode === 'yearly') && showProContent && (
         <>
           <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mt-14 mb-2">Psychological Factors</h2>
           <p className="text-slate-500 dark:text-slate-400 mt-1 mb-6">Confidence and mind state at entry across your trades.</p>
@@ -1078,30 +1088,34 @@ export default function StrategyClient(
       )}
 
       {/* Consistency & drawdown — PRO */}
-      <div className="flex items-center justify-between mt-14 mb-2">
-        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Consistency & drawdown</h2>
-      </div>
-      <p className="text-slate-500 dark:text-slate-400 mb-6">Consistency and capital preservation metrics.</p>
-      <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
-        <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} isPro={isPro} />
-        <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} isPro={isPro} />
-        <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} isPro={isPro} />
-      </div>
+      {showProContent && (
+        <>
+          <div className="flex items-center justify-between mt-14 mb-2">
+            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Consistency & drawdown</h2>
+          </div>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">Consistency and capital preservation metrics.</p>
+          <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
+            <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} isPro={isPro} />
+            <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} isPro={isPro} />
+            <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} isPro={isPro} />
+          </div>
 
-      {/* Performance ratios — PRO */}
-      <div className="flex items-center justify-between mt-14 mb-2">
-        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Performance ratios</h2>
-      </div>
-      <p className="text-slate-500 dark:text-slate-400 mb-6">Return and risk-adjusted metrics.</p>
-      <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
-        <ProfitFactorChart tradesToUse={tradesToUse} totalWins={statsToUse.totalWins} totalLosses={statsToUse.totalLosses} isPro={isPro} />
-        <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} isPro={isPro} />
-        <TQIChart tradesToUse={tradesToUse} isPro={isPro} />
-      </div>
-      <div className="flex flex-col md:grid md:grid-cols-2 gap-6 w-full mt-6">
-        <RecoveryFactorChart recoveryFactor={recoveryFactor} isPro={isPro} />
-        <DrawdownCountChart drawdownCount={drawdownCount} isPro={isPro} />
-      </div>
+          {/* Performance ratios — PRO */}
+          <div className="flex items-center justify-between mt-14 mb-2">
+            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Performance ratios</h2>
+          </div>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">Return and risk-adjusted metrics.</p>
+          <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
+            <ProfitFactorChart tradesToUse={tradesToUse} totalWins={statsToUse.totalWins} totalLosses={statsToUse.totalLosses} isPro={isPro} />
+            <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} isPro={isPro} />
+            <TQIChart tradesToUse={tradesToUse} isPro={isPro} />
+          </div>
+          <div className="flex flex-col md:grid md:grid-cols-2 gap-6 w-full mt-6">
+            <RecoveryFactorChart recoveryFactor={recoveryFactor} isPro={isPro} />
+            <DrawdownCountChart drawdownCount={drawdownCount} isPro={isPro} />
+          </div>
+        </>
+      )}
 
       <AnalysisModal
         isOpen={openAnalyzeModal}
@@ -1130,44 +1144,50 @@ export default function StrategyClient(
         />
       </div>
 
-      <div className="my-8">
-        {/* Market Stats Card */}
-        <MarketStatisticsCard
-          marketStats={
-            filteredChartStats
-              ? (statsToUseForCharts.marketStats as MarketStatisticsCardProps['marketStats'])
-              : marketStatsToUse
-          }
-          isLoading={chartsLoadingState}
-          includeTotalTrades={filteredChartStats !== null}
-          isPro={isPro}
-        />
-      </div>
+      {showProContent && (
+        <>
+          <div className="my-8">
+            {/* Market Stats Card */}
+            <MarketStatisticsCard
+              marketStats={
+                filteredChartStats
+                  ? (statsToUseForCharts.marketStats as MarketStatisticsCardProps['marketStats'])
+                  : marketStatsToUse
+              }
+              isLoading={chartsLoadingState}
+              includeTotalTrades={filteredChartStats !== null}
+              isPro={isPro}
+            />
+          </div>
 
-      <div className="my-8">
-        {/* Market Profit Stats Card */}
-        <MarketProfitStatisticsCard
-          trades={tradesToUse}
-          marketStats={
-            viewMode === 'yearly'
-              ? (filteredMarketStats || marketAllTradesStats) as any
-              : (filteredMarketStats || marketStats) as any
-          }
-          chartOptions={chartOptions}
-          getCurrencySymbol={getCurrencySymbol}
-          isPro={isPro}
-        />
-      </div>
+          <div className="my-8">
+            {/* Market Profit Stats Card */}
+            <MarketProfitStatisticsCard
+              trades={tradesToUse}
+              marketStats={
+                viewMode === 'yearly'
+                  ? (filteredMarketStats || marketAllTradesStats) as any
+                  : (filteredMarketStats || marketStats) as any
+              }
+              chartOptions={chartOptions}
+              getCurrencySymbol={getCurrencySymbol}
+              isPro={isPro}
+            />
+          </div>
+        </>
+      )}
 
       <hr className="col-span-full my-10 border-t border-slate-200 dark:border-slate-700" />
 
-      <div className="my-8">
-        <TimeIntervalStatisticsCard
-          data={timeIntervalChartDataToUse}
-          isLoading={chartsLoadingState}
-          isPro={isPro}
-        />
-      </div>
+      {showProContent && (
+        <div className="my-8">
+          <TimeIntervalStatisticsCard
+            data={timeIntervalChartDataToUse}
+            isLoading={chartsLoadingState}
+            isPro={isPro}
+          />
+        </div>
+      )}
 
       {/* Day Stats - full width */}
       <div className="my-8">
@@ -1178,13 +1198,15 @@ export default function StrategyClient(
         />
       </div>
       {/* News by event - full width */}
-      <div className="my-8">
-        <NewsNameChartCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
-      </div>
+      {showProContent && (
+        <div className="my-8">
+          <NewsNameChartCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
+        </div>
+      )}
 
       {/* Potential Risk/Reward Ratio Stats & Stop Loss Size Stats — extra cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8 w-full [&>*]:min-w-0">
-        {hasCard('potential_rr') && (
+        {showProContent && hasCard('potential_rr') && (
           <RiskRewardStats
             trades={tradesToUse}
             isLoading={chartsLoadingState}
