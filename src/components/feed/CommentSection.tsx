@@ -11,9 +11,18 @@ interface CommentSectionProps {
   postId: string;
   currentProfileId?: string;
   initialComments?: PaginatedResult<FeedComment>;
+  onCountChange?: (delta: number) => void;
 }
 
 type EditState = 'idle' | 'editing' | 'saving';
+
+function formatCommentDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+}
 
 function CommentItem({
   comment,
@@ -55,8 +64,8 @@ function CommentItem({
         </Link>
         <span className="text-slate-500 text-xs">@{comment.author.username}</span>
         <span className="text-slate-400 dark:text-slate-600 text-xs">·</span>
-        <span className="text-slate-500 dark:text-slate-600 text-xs">
-          {new Date(comment.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        <span className="text-slate-500 dark:text-slate-600 text-xs" suppressHydrationWarning>
+          {formatCommentDate(comment.created_at)}
         </span>
 
         {/* Author actions — shown on hover */}
@@ -83,7 +92,7 @@ function CommentItem({
       </div>
 
       {editState === 'idle' ? (
-        <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap break-words">
+        <p suppressHydrationWarning className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap break-words">
           {comment.content}
         </p>
       ) : (
@@ -125,17 +134,25 @@ function CommentItem({
   );
 }
 
-export default function CommentSection({ postId, currentProfileId, initialComments }: CommentSectionProps) {
+export default function CommentSection({ postId, currentProfileId, initialComments, onCountChange }: CommentSectionProps) {
   const { query, add, edit, remove } = useComments(postId, initialComments);
   const comments = query.data?.pages.flatMap((p) => p.items) ?? [];
 
   async function handleAdd(content: string) {
-    await add.mutateAsync({ content });
+    const result = await add.mutateAsync({ content });
+    if ('error' in result) return;
+    onCountChange?.(1);
   }
 
   async function handleEdit(commentId: string, content: string) {
     const result = await edit.mutateAsync({ commentId, content });
     if ('error' in result) throw new Error(result.error);
+  }
+
+  async function handleDelete(commentId: string) {
+    const result = await remove.mutateAsync(commentId);
+    if ('error' in result) return;
+    onCountChange?.(-1);
   }
 
   return (
@@ -156,7 +173,7 @@ export default function CommentSection({ postId, currentProfileId, initialCommen
               comment={comment}
               currentProfileId={currentProfileId}
               onEdit={handleEdit}
-              onDelete={(id) => remove.mutate(id)}
+              onDelete={handleDelete}
             />
           ))}
         </div>

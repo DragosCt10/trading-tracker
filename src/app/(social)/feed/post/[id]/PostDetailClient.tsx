@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import PostCard from '@/components/feed/PostCard';
@@ -21,6 +22,8 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
   const { data: ownProfile } = useSocialProfile(userId);
   const { subscription } = useSubscription({ userId });
   const { like, remove } = usePostActions(userId);
+  const [commentCount, setCommentCount] = useState(post.comment_count);
+  const postWithLiveComments = { ...post, comment_count: commentCount };
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-0 py-6 space-y-4">
@@ -33,7 +36,7 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
       </Link>
 
       <PostCard
-        post={post}
+        post={postWithLiveComments}
         currentUserId={userId}
         currentProfileId={ownProfile?.id}
         currentUserTier={subscription?.tier}
@@ -44,12 +47,13 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
 
       <div className="space-y-2">
         <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide px-1">
-          Comments · {post.comment_count}
+          Comments · {commentCount}
         </h2>
         <CommentSection
           postId={post.id}
           currentProfileId={ownProfile?.id}
           initialComments={initialComments}
+          onCountChange={(delta) => setCommentCount((prev) => Math.max(0, prev + delta))}
         />
       </div>
     </div>
