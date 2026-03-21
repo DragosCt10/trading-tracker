@@ -36,6 +36,8 @@ export function useStrategyClientContext({
     mode === initialMode && activeAccount?.id === initialActiveAccount?.id;
 
   return {
+    selection,
+    setSelection,
     userId,
     mode,
     activeAccount,

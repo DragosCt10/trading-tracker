@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { useUserDetails } from '@/hooks/useUserDetails';
 import { useStrategies } from '@/hooks/useStrategies';
-import { useActionBarSelection } from '@/hooks/useActionBarSelection';
+import { useStrategyClientContext } from '@/hooks/useStrategyClientContext';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TRADES_DATA } from '@/constants/queryConfig';
@@ -38,6 +37,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
 
 type SortByOption = 'default' | 'winRate' | 'totalRR' | 'totalTrades';
 
@@ -62,18 +62,24 @@ function getStrategySortMetric(
 }
 
 export function StrategiesClient() {
-  const { data: userDetails } = useUserDetails();
-  const userId = userDetails?.user?.id;
-  const { selection } = useActionBarSelection();
-  const mode = selection.mode;
+  const {
+    selection,
+    userId,
+    mode,
+    activeAccount: selectedAccount,
+  } = useStrategyClientContext({
+    initialUserId: '',
+    initialMode: 'live',
+    initialActiveAccount: null,
+  });
   const { accounts } = useAccounts({ userId, pendingMode: mode });
   const activeAccount = useMemo(
     () =>
-      selection.activeAccount ??
+      selectedAccount ??
       accounts.find((account) => account.is_active) ??
       accounts[0] ??
       null,
-    [accounts, selection.activeAccount]
+    [accounts, selectedAccount]
   );
   const { strategies, strategiesLoading, refetchStrategies } = useStrategies({ userId, accountId: activeAccount?.id });
   const queryClient = useQueryClient();
@@ -86,12 +92,10 @@ export function StrategiesClient() {
 
   const [sortBy, setSortBy] = useState<SortByOption>('default');
 
-  // Get currency symbol from active account
-  const currencySymbol = useMemo(() => {
-    if (activeAccount?.currency === 'USD') return '$';
-    if (activeAccount?.currency === 'EUR') return '€';
-    return '£';
-  }, [activeAccount?.currency]);
+  const currencySymbol = useMemo(
+    () => getCurrencySymbolFromAccount(activeAccount ?? undefined),
+    [activeAccount]
+  );
 
   const accountDescription = DEFAULT_DESCRIPTION;
 
@@ -128,7 +132,7 @@ export function StrategiesClient() {
     isLoading: archivedLoading,
     refetch: refetchArchived,
   } = useQuery<Strategy[]>({
-    queryKey: ['archived-strategies', userId],
+    queryKey: queryKeys.archivedStrategies(userId),
     queryFn: async () => {
       if (!userId) return [];
       return getInactiveStrategies(userId);
