@@ -194,8 +194,35 @@ export async function getTimeline(
   // Fall back to public feed if no profile yet
   if (!profileId) return getPublicFeed(cursor, limit);
 
-  // Timeline = followed users + own posts.
-  const query = await buildFeedQuery(supabase, session.user!.id, 'timeline', { cursor, limit });
+  // Timeline = own posts + followed profiles posts.
+  const { data: follows, error: followsError } = await supabase
+    .from('follows')
+    .select('following_id')
+    .eq('follower_id', profileId);
+  if (followsError) {
+    console.error('[getTimeline:follows]', followsError);
+    return { items: [], nextCursor: null, hasMore: false };
+  }
+
+  const authorIds = Array.from(new Set([
+    profileId,
+    ...(follows ?? []).map((f: { following_id: string }) => f.following_id),
+  ]));
+
+  let query = supabase
+    .from('feed_posts')
+    .select(`
+      *,
+      author:author_id (
+        id, user_id, display_name, username, avatar_url, tier
+      )
+    `)
+    .eq('is_hidden', false)
+    .in('author_id', authorIds)
+    .order('created_at', { ascending: false })
+    .limit(limit + 1);
+  if (cursor) query = query.lt('created_at', cursor);
+
   const { data, error } = await query;
   if (error) { console.error('[getTimeline]', error); return { items: [], nextCursor: null, hasMore: false }; }
 
