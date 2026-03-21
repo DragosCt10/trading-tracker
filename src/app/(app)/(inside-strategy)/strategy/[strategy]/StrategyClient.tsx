@@ -475,6 +475,140 @@ function StrategyOverviewAndCalendarSections({
   );
 }
 
+type TradingOverviewStatsProps = Parameters<typeof TradingOverviewStats>[0];
+
+type StrategyCoreStatisticsSectionProps = {
+  renderSectionCollapseButton: (key: FullWidthSectionKey) => ReactNode;
+  isSectionExpanded: (key: FullWidthSectionKey) => boolean;
+  tradingOverviewProps: TradingOverviewStatsProps;
+};
+
+function StrategyCoreStatisticsSection({
+  renderSectionCollapseButton,
+  isSectionExpanded,
+  tradingOverviewProps,
+}: StrategyCoreStatisticsSectionProps) {
+  return (
+    <>
+      <SectionHeading
+        title="Core statistics"
+        description="Trading statistics and performance metrics."
+        action={renderSectionCollapseButton('coreStatistics')}
+      />
+
+      {isSectionExpanded('coreStatistics') && (
+        <div className="flex flex-col md:grid md:grid-cols-4 gap-6 w-full">
+          <TradingOverviewStats {...tradingOverviewProps} />
+        </div>
+      )}
+    </>
+  );
+}
+
+type StrategyPerformanceSectionsProps = {
+  renderSectionCollapseButton: (key: FullWidthSectionKey) => ReactNode;
+  isSectionExpanded: (key: FullWidthSectionKey) => boolean;
+  showProContent: boolean;
+  isPro: boolean;
+  tradesToUse: Trade[];
+  chartsLoadingState: boolean;
+  currencySymbol: string;
+  consistencyScore: number;
+  averageDrawdown: number;
+  maxDrawdown: number | null;
+  totalWins: number;
+  totalLosses: number;
+  sharpeWithBE: number;
+  recoveryFactor: number;
+  drawdownCount: number;
+};
+
+function StrategyPerformanceSections({
+  renderSectionCollapseButton,
+  isSectionExpanded,
+  showProContent,
+  isPro,
+  tradesToUse,
+  chartsLoadingState,
+  currencySymbol,
+  consistencyScore,
+  averageDrawdown,
+  maxDrawdown,
+  totalWins,
+  totalLosses,
+  sharpeWithBE,
+  recoveryFactor,
+  drawdownCount,
+}: StrategyPerformanceSectionsProps) {
+  return (
+    <>
+      {showProContent && (
+        <>
+          <SectionHeading
+            title="Psychological Factors"
+            description="Confidence and mind state at entry across your trades."
+            descriptionClassName="mt-1"
+            action={renderSectionCollapseButton('psychologicalFactors')}
+          />
+          {isSectionExpanded('psychologicalFactors') && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-6">
+              <ConfidenceStatsCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
+              <MindStateStatsCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
+            </div>
+          )}
+        </>
+      )}
+
+      <SectionHeading
+        title="Equity Curve"
+        description="Cumulative P&L over time."
+        action={renderSectionCollapseButton('equityCurve')}
+      />
+      {isSectionExpanded('equityCurve') && (
+        <div className="w-full mb-6">
+          <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
+        </div>
+      )}
+
+      {showProContent && (
+        <>
+          <SectionHeading
+            title="Consistency & drawdown"
+            description="Consistency and capital preservation metrics."
+            action={renderSectionCollapseButton('consistencyDrawdown')}
+          />
+          {isSectionExpanded('consistencyDrawdown') && (
+            <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
+              <ConsistencyScoreChart consistencyScore={consistencyScore} isPro={isPro} />
+              <AverageDrawdownChart averageDrawdown={averageDrawdown} isPro={isPro} />
+              <MaxDrawdownChart maxDrawdown={maxDrawdown} isPro={isPro} />
+            </div>
+          )}
+
+          <SectionHeading
+            title="Performance ratios"
+            description="Return and risk-adjusted metrics."
+            action={renderSectionCollapseButton('performanceRatios')}
+          />
+          {isSectionExpanded('performanceRatios') && (
+            <>
+              <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
+                <ProfitFactorChart tradesToUse={tradesToUse} totalWins={totalWins} totalLosses={totalLosses} isPro={isPro} />
+                <SharpeRatioChart sharpeRatio={sharpeWithBE} isPro={isPro} />
+                <TQIChart tradesToUse={tradesToUse} isPro={isPro} />
+              </div>
+              <div className="flex flex-col md:grid md:grid-cols-2 gap-6 w-full mt-6">
+                <RecoveryFactorChart recoveryFactor={recoveryFactor} isPro={isPro} />
+                <DrawdownCountChart drawdownCount={drawdownCount} isPro={isPro} />
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
 type UseAllTimePrefetchParams = {
   isLoadingStats: boolean;
   resolvedAccountId?: string;
@@ -1203,6 +1337,53 @@ export default function StrategyClient(
     [halfWidthExtraCards, hasCard, showProContent]
   );
 
+  const tradingOverviewProps: TradingOverviewStatsProps = {
+    trades: tradesToUse,
+    currencySymbol,
+    hydrated,
+    accountBalance: selection.activeAccount?.account_balance,
+    totalProfitFromOverview: totalYearProfit,
+    pnlPercentFromOverview,
+    viewMode,
+    monthlyStats: viewMode === 'yearly' ? monthlyStats : undefined,
+    showTitle: false,
+    partialRowProps: {
+      partialStats: {
+        totalPartials: statsToUse.partialsTaken,
+        partialWinningTrades: statsToUse.partialWinningTrades,
+        partialLosingTrades: statsToUse.partialLosingTrades,
+        partialBETrades: statsToUse.partialBETrades,
+      },
+      initialNonExecutedTotalTradesCount: props?.initialNonExecutedTotalTradesCount,
+      directionStats: statsToUseForCharts.directionStats,
+      includeTotalTradesForDirection: filteredChartStats !== null,
+      chartsLoadingState,
+    },
+    aboveRiskPerTradeRow: {
+      evaluationStats: (filteredEvaluationStats ?? evaluationStats) as EvaluationStat[],
+      reentryStats: statsToUseForCharts.reentryStats as ReentryTradesChartCardProps['reentryStats'],
+      breakEvenStats: statsToUseForCharts.breakEvenStats as ReentryTradesChartCardProps['breakEvenStats'],
+      trendStats: statsToUseForCharts.trendStats ?? [],
+      sessionStats,
+      chartsLoadingState,
+      includeTotalTrades: filteredChartStats !== null,
+      showEvaluationCard: showProContent && hasCard('evaluation_stats'),
+      showTrendCard: hasCard('trend_stats'),
+      showSessionCard: showProContent && hasCard('session_stats'),
+    },
+    beforeRiskPerTradeRow: {
+      trades: tradesToUse,
+      currencySymbol,
+      isLoading: chartsLoadingState,
+    },
+    allTradesRiskStats:
+      ((viewMode === 'yearly'
+        ? (filteredRiskStats || allTradesRiskStats)
+        : (filteredRiskStats || riskStats)) as RiskAnalysis | null) ?? null,
+    showProCards: showProContent,
+    isPro,
+  };
+
   return (
     <>
       <StrategyControls
@@ -1257,135 +1438,29 @@ export default function StrategyClient(
         getDaysInMonth={getDaysInMonth}
       />
 
-      {/* Core statistics: title + description, then core stats, then Partial/Executed/Direction cards, then Evaluation + Re-entry Trades above RiskPerTrade */}
-      <SectionHeading
-        title="Core statistics"
-        description="Trading statistics and performance metrics."
-        action={renderSectionCollapseButton('coreStatistics')}
+      <StrategyCoreStatisticsSection
+        renderSectionCollapseButton={renderSectionCollapseButton}
+        isSectionExpanded={isSectionExpanded}
+        tradingOverviewProps={tradingOverviewProps}
       />
 
-      {isSectionExpanded('coreStatistics') && (
-        <div className="flex flex-col md:grid md:grid-cols-4 gap-6 w-full">
-          <TradingOverviewStats
-            trades={tradesToUse}
-            currencySymbol={currencySymbol}
-            hydrated={hydrated}
-            accountBalance={selection.activeAccount?.account_balance}
-            totalProfitFromOverview={totalYearProfit}
-            pnlPercentFromOverview={pnlPercentFromOverview}
-            viewMode={viewMode}
-            monthlyStats={viewMode === 'yearly' ? monthlyStats : undefined}
-            showTitle={false}
-            partialRowProps={{
-              partialStats: {
-                totalPartials: statsToUse.partialsTaken,
-                partialWinningTrades: statsToUse.partialWinningTrades,
-                partialLosingTrades: statsToUse.partialLosingTrades,
-                partialBETrades: statsToUse.partialBETrades,
-              },
-              initialNonExecutedTotalTradesCount: props?.initialNonExecutedTotalTradesCount,
-              directionStats: statsToUseForCharts.directionStats,
-              includeTotalTradesForDirection: filteredChartStats !== null,
-              chartsLoadingState: chartsLoadingState,
-            }}
-            aboveRiskPerTradeRow={{
-              evaluationStats: (filteredEvaluationStats ?? evaluationStats) as EvaluationStat[],
-              reentryStats: statsToUseForCharts.reentryStats as ReentryTradesChartCardProps['reentryStats'],
-              breakEvenStats: statsToUseForCharts.breakEvenStats as ReentryTradesChartCardProps['breakEvenStats'],
-              trendStats: statsToUseForCharts.trendStats ?? [],
-              sessionStats: sessionStats,
-              chartsLoadingState: chartsLoadingState,
-              includeTotalTrades: filteredChartStats !== null,
-              showEvaluationCard: showProContent && hasCard('evaluation_stats'),
-              showTrendCard: hasCard('trend_stats'),
-              showSessionCard: showProContent && hasCard('session_stats'),
-            }}
-            beforeRiskPerTradeRow={{
-              trades: tradesToUse,
-              currencySymbol,
-              isLoading: chartsLoadingState,
-            }}
-            allTradesRiskStats={
-              (viewMode === 'yearly'
-                ? (filteredRiskStats || allTradesRiskStats)
-                : (filteredRiskStats || riskStats)
-              ) as RiskAnalysis | null ?? null
-            }
-            showProCards={showProContent}
-            isPro={isPro}
-          />
-        </div>
-      )}
-
-      {/* Confidence & Mind State — PRO */}
-      {showProContent && (
-        <>
-          <SectionHeading
-            title="Psychological Factors"
-            description="Confidence and mind state at entry across your trades."
-            descriptionClassName="mt-1"
-            action={renderSectionCollapseButton('psychologicalFactors')}
-          />
-          {isSectionExpanded('psychologicalFactors') && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mb-6">
-              <ConfidenceStatsCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
-              <MindStateStatsCard trades={tradesToUse} isLoading={chartsLoadingState} isPro={isPro} />
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Equity Curve */}
-      <>
-        <SectionHeading
-          title="Equity Curve"
-          description="Cumulative P&L over time."
-          action={renderSectionCollapseButton('equityCurve')}
-        />
-        {isSectionExpanded('equityCurve') && (
-          <div className="w-full mb-6">
-            <EquityCurveCard trades={tradesToUse} currencySymbol={currencySymbol} />
-          </div>
-        )}
-      </>
-
-      {/* Consistency & drawdown — PRO */}
-      {showProContent && (
-        <>
-          <SectionHeading
-            title="Consistency & drawdown"
-            description="Consistency and capital preservation metrics."
-            action={renderSectionCollapseButton('consistencyDrawdown')}
-          />
-          {isSectionExpanded('consistencyDrawdown') && (
-            <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
-              <ConsistencyScoreChart consistencyScore={macroStatsToUse.consistencyScore ?? 0} isPro={isPro} />
-              <AverageDrawdownChart averageDrawdown={statsToUse.averageDrawdown ?? 0} isPro={isPro} />
-              <MaxDrawdownChart maxDrawdown={statsToUse.maxDrawdown ?? null} isPro={isPro} />
-            </div>
-          )}
-
-          {/* Performance ratios — PRO */}
-          <SectionHeading
-            title="Performance ratios"
-            description="Return and risk-adjusted metrics."
-            action={renderSectionCollapseButton('performanceRatios')}
-          />
-          {isSectionExpanded('performanceRatios') && (
-            <>
-              <div className="flex flex-col md:grid md:grid-cols-3 gap-6 w-full">
-                <ProfitFactorChart tradesToUse={tradesToUse} totalWins={statsToUse.totalWins} totalLosses={statsToUse.totalLosses} isPro={isPro} />
-                <SharpeRatioChart sharpeRatio={macroStatsToUse.sharpeWithBE ?? 0} isPro={isPro} />
-                <TQIChart tradesToUse={tradesToUse} isPro={isPro} />
-              </div>
-              <div className="flex flex-col md:grid md:grid-cols-2 gap-6 w-full mt-6">
-                <RecoveryFactorChart recoveryFactor={recoveryFactor} isPro={isPro} />
-                <DrawdownCountChart drawdownCount={drawdownCount} isPro={isPro} />
-              </div>
-            </>
-          )}
-        </>
-      )}
+      <StrategyPerformanceSections
+        renderSectionCollapseButton={renderSectionCollapseButton}
+        isSectionExpanded={isSectionExpanded}
+        showProContent={showProContent}
+        isPro={isPro}
+        tradesToUse={tradesToUse}
+        chartsLoadingState={chartsLoadingState}
+        currencySymbol={currencySymbol}
+        consistencyScore={macroStatsToUse.consistencyScore ?? 0}
+        averageDrawdown={statsToUse.averageDrawdown ?? 0}
+        maxDrawdown={statsToUse.maxDrawdown ?? null}
+        totalWins={statsToUse.totalWins}
+        totalLosses={statsToUse.totalLosses}
+        sharpeWithBE={macroStatsToUse.sharpeWithBE ?? 0}
+        recoveryFactor={recoveryFactor}
+        drawdownCount={drawdownCount}
+      />
 
       <AnalysisModal
         isOpen={openAnalyzeModal}
