@@ -67,6 +67,21 @@ export async function getPublicChannels(
   };
 }
 
+export async function getChannelBySlug(slug: string): Promise<FeedChannel | null> {
+  const normalized = slug.trim().toLowerCase();
+  if (!normalized) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('feed_channels')
+    .select('*')
+    .eq('slug', normalized)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return mapRow(data as Record<string, unknown>);
+}
+
 // ─── Create (PRO only) ───────────────────────────────────────────────────────
 
 export async function createChannel(input: {

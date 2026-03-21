@@ -1,8 +1,7 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
-import { getCachedUserSession } from './session';
-import { getCachedSocialProfile } from './socialProfile';
+import { createServiceRoleClient } from '@/utils/supabase/service-role';
+import { isAdmin } from './admin';
 import type { FeedPost, SocialProfile, PaginatedResult } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 
@@ -13,20 +12,8 @@ type ModeResult<T> =
 // ─── Guard: must be moderator/admin role ──────────────────────────────────────
 
 async function assertModerator() {
-  const session = await getCachedUserSession();
-  if (!session.user) return null;
-
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('social_profiles')
-    .select('id, role')
-    .eq('user_id', session.user.id)
-    .single();
-
-  const role = (data as { id: string; role: string } | null)?.role ?? 'user';
-  if (role !== 'moderator' && role !== 'admin') return null;
-
-  return { profileId: (data as { id: string; role: string }).id, role };
+  const allowed = await isAdmin();
+  return allowed ? { role: 'admin' as const } : null;
 }
 
 // ─── Reports ─────────────────────────────────────────────────────────────────
@@ -49,7 +36,7 @@ export async function getPendingReports(
   const mod = await assertModerator();
   if (!mod) return { items: [], nextCursor: null, hasMore: false };
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient() as any;
   let q = supabase
     .from('feed_reports')
     .select(`
@@ -83,7 +70,7 @@ export async function resolveReport(
   const mod = await assertModerator();
   if (!mod) return { error: 'Not authorized', code: 'UNAUTHORIZED' };
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient() as any;
 
   // Fetch the report to get post_id
   const { data: report } = await supabase
@@ -146,7 +133,7 @@ export async function setPostVisibility(
   const mod = await assertModerator();
   if (!mod) return { error: 'Not authorized', code: 'UNAUTHORIZED' };
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient() as any;
   const { error } = await supabase
     .from('feed_posts')
     .update({ is_hidden: hidden })
@@ -165,7 +152,7 @@ export async function setUserBan(
   const mod = await assertModerator();
   if (!mod) return { error: 'Not authorized', code: 'UNAUTHORIZED' };
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient() as any;
   const { error } = await supabase
     .from('social_profiles')
     .update({ is_banned: banned })
@@ -191,7 +178,7 @@ export async function getHiddenPosts(
   const mod = await assertModerator();
   if (!mod) return { items: [], nextCursor: null, hasMore: false };
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient() as any;
   let q = supabase
     .from('feed_posts')
     .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier)`)
@@ -236,7 +223,7 @@ export async function getBannedUsers(limit = 50): Promise<SocialProfile[]> {
   const mod = await assertModerator();
   if (!mod) return [];
 
-  const supabase = await createClient();
+  const supabase = createServiceRoleClient() as any;
   const { data, error } = await supabase
     .from('social_profiles')
     .select('*')

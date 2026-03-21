@@ -10,12 +10,20 @@ import type { SocialProfile, FeedPost, PaginatedResult } from '@/types/social';
 interface ProfileClientProps {
   profile: SocialProfile;
   initialPosts: PaginatedResult<FeedPost>;
+  currentProfileId?: string;
+  initialFollowing: boolean;
 }
 
-export default function ProfileClient({ profile, initialPosts }: ProfileClientProps) {
+export default function ProfileClient({
+  profile,
+  initialPosts,
+  currentProfileId,
+  initialFollowing,
+}: ProfileClientProps) {
   const { data: userData } = useUserDetails();
   const userId = userData?.user?.id;
   const { data: ownProfile } = useSocialProfile(userId);
+  const effectiveCurrentProfileId = currentProfileId ?? ownProfile?.id;
 
   const isPro = profile.tier === 'pro' || profile.tier === 'elite';
   const isOwnProfile = ownProfile?.user_id === profile.user_id;
@@ -54,7 +62,7 @@ export default function ProfileClient({ profile, initialPosts }: ProfileClientPr
               {!isOwnProfile && ownProfile && (
                 <FollowButton
                   targetProfileId={profile.id}
-                  initialFollowing={false}
+                  initialFollowing={initialFollowing}
                 />
               )}
             </div>
@@ -90,7 +98,12 @@ export default function ProfileClient({ profile, initialPosts }: ProfileClientPr
         ) : (
           <div className="space-y-3">
             {initialPosts.items.map((post) => (
-              <PostCard key={post.id} post={post} currentUserId={userId} />
+              <PostCard
+                key={post.id}
+                post={post}
+                currentUserId={userId}
+                currentProfileId={effectiveCurrentProfileId}
+              />
             ))}
           </div>
         )}

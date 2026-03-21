@@ -315,6 +315,11 @@ CREATE POLICY "notifications_update_own" ON public.feed_notifications
     auth.uid() = (SELECT user_id FROM public.social_profiles WHERE id = recipient_id)
   );
 
+CREATE POLICY "notifications_insert_actor" ON public.feed_notifications
+  FOR INSERT WITH CHECK (
+    auth.uid() = (SELECT user_id FROM public.social_profiles WHERE id = actor_id)
+  );
+
 -- feed_channels: members can read
 CREATE POLICY "channels_select" ON public.feed_channels
   FOR SELECT USING (
@@ -346,8 +351,23 @@ CREATE POLICY "channels_delete_own" ON public.feed_channels
 CREATE POLICY "channel_members_select" ON public.channel_members
   FOR SELECT USING (TRUE);
 
+CREATE POLICY "channel_members_insert_own" ON public.channel_members
+  FOR INSERT WITH CHECK (
+    auth.uid() = (SELECT user_id FROM public.social_profiles WHERE id = user_id)
+  );
+
+CREATE POLICY "channel_members_delete_own" ON public.channel_members
+  FOR DELETE USING (
+    auth.uid() = (SELECT user_id FROM public.social_profiles WHERE id = user_id)
+  );
+
 -- feed_reports: authenticated users can insert; service role handles admin reads
 CREATE POLICY "reports_insert" ON public.feed_reports
   FOR INSERT WITH CHECK (
+    auth.uid() = (SELECT user_id FROM public.social_profiles WHERE id = reporter_id)
+  );
+
+CREATE POLICY "reports_select_own" ON public.feed_reports
+  FOR SELECT USING (
     auth.uid() = (SELECT user_id FROM public.social_profiles WHERE id = reporter_id)
   );

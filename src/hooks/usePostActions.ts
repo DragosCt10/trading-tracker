@@ -27,15 +27,17 @@ function toggleLikeInCache(
   };
 }
 
-export function usePostActions(userId?: string) {
+export function usePostActions(userId?: string, channelId?: string) {
   const qc = useQueryClient();
-  const timelineKey = queryKeys.feed.timeline(userId);
+  const feedKey = channelId
+    ? queryKeys.feed.channelPosts(channelId)
+    : queryKeys.feed.timeline(userId);
 
   const like = useMutation({
     mutationFn: (postId: string) => likePost(postId),
     onMutate: async (postId) => {
-      await qc.cancelQueries({ queryKey: timelineKey });
-      const prev = qc.getQueryData<InfiniteData>(timelineKey);
+      await qc.cancelQueries({ queryKey: feedKey });
+      const prev = qc.getQueryData<InfiniteData>(feedKey);
 
       if (prev) {
         // Optimistic toggle
@@ -43,7 +45,7 @@ export function usePostActions(userId?: string) {
         if (currentPost) {
           const newLiked = !currentPost.is_liked_by_me;
           const newCount = currentPost.like_count + (newLiked ? 1 : -1);
-          qc.setQueryData<InfiniteData>(timelineKey, (d) =>
+          qc.setQueryData<InfiniteData>(feedKey, (d) =>
             d ? toggleLikeInCache(d, postId, newLiked, Math.max(0, newCount)) : d!
           );
         }
@@ -53,20 +55,20 @@ export function usePostActions(userId?: string) {
     },
     onSuccess: (result, postId) => {
       if ('data' in result) {
-        qc.setQueryData<InfiniteData>(timelineKey, (d) =>
+        qc.setQueryData<InfiniteData>(feedKey, (d) =>
           d ? toggleLikeInCache(d, postId, result.data.liked, result.data.like_count) : d!
         );
       }
     },
     onError: (_err, _postId, ctx) => {
-      if (ctx?.prev) qc.setQueryData(timelineKey, ctx.prev);
+      if (ctx?.prev) qc.setQueryData(feedKey, ctx.prev);
     },
   });
 
   const create = useMutation({
     mutationFn: (input: Parameters<typeof createPost>[0]) => createPost(input),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: timelineKey });
+      qc.invalidateQueries({ queryKey: feedKey });
     },
   });
 
@@ -74,17 +76,17 @@ export function usePostActions(userId?: string) {
     mutationFn: ({ postId, content }: { postId: string; content: string }) =>
       updatePost(postId, content),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: timelineKey });
+      qc.invalidateQueries({ queryKey: feedKey });
     },
   });
 
   const remove = useMutation({
     mutationFn: (postId: string) => deletePost(postId),
     onMutate: async (postId) => {
-      await qc.cancelQueries({ queryKey: timelineKey });
-      const prev = qc.getQueryData<InfiniteData>(timelineKey);
+      await qc.cancelQueries({ queryKey: feedKey });
+      const prev = qc.getQueryData<InfiniteData>(feedKey);
       if (prev) {
-        qc.setQueryData<InfiniteData>(timelineKey, {
+        qc.setQueryData<InfiniteData>(feedKey, {
           ...prev,
           pages: prev.pages.map((page) => ({
             ...page,
@@ -95,7 +97,7 @@ export function usePostActions(userId?: string) {
       return { prev };
     },
     onError: (_err, _postId, ctx) => {
-      if (ctx?.prev) qc.setQueryData(timelineKey, ctx.prev);
+      if (ctx?.prev) qc.setQueryData(feedKey, ctx.prev);
     },
   });
 

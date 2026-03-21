@@ -15,26 +15,23 @@ import type { FeedChannel, FeedPost, PaginatedResult } from '@/types/social';
 interface ChannelClientProps {
   channel: FeedChannel;
   initialFeed: PaginatedResult<FeedPost>;
+  userId: string;
   currentProfileId?: string;
 }
 
-export default function ChannelClient({ channel, initialFeed, currentProfileId }: ChannelClientProps) {
-  // userId resolved from currentProfileId presence; subscription needed for posting
+export default function ChannelClient({ channel, initialFeed, userId, currentProfileId }: ChannelClientProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [createError, setCreateError] = useState('');
   const [editPost, setEditPost] = useState<FeedPost | null>(null);
 
-  // We don't have userId here directly, derive from context via subscription hook
-  // We'll pass a placeholder — the modal reads subscription server-side anyway
-  const placeholderUserId = '';
-  const { subscription } = useSubscription({ userId: placeholderUserId || undefined });
+  const { subscription } = useSubscription({ userId });
 
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(
-    placeholderUserId || undefined,
+    userId,
     initialFeed,
     channel.id
   );
-  const { like, create, edit, remove, report } = usePostActions(placeholderUserId || undefined);
+  const { like, create, edit, remove, report } = usePostActions(userId, channel.id);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useCallback(
@@ -102,7 +99,7 @@ export default function ChannelClient({ channel, initialFeed, currentProfileId }
             <PostCard
               key={post.id}
               post={post}
-              currentUserId={placeholderUserId}
+              currentUserId={userId}
               currentProfileId={currentProfileId}
               onLike={(id) => like.mutate(id)}
               onDelete={(id) => remove.mutate(id)}
@@ -127,7 +124,7 @@ export default function ChannelClient({ channel, initialFeed, currentProfileId }
             setCreateOpen(false);
           }}
           subscription={subscription}
-          userId={placeholderUserId}
+          userId={userId}
           isSubmitting={create.isPending}
           submitError={createError}
         />
@@ -142,7 +139,7 @@ export default function ChannelClient({ channel, initialFeed, currentProfileId }
             setEditPost(null);
           }}
           subscription={subscription}
-          userId={placeholderUserId}
+          userId={userId}
           isSubmitting={edit.isPending}
           submitError={createError}
         />

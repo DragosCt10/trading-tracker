@@ -241,6 +241,28 @@ export async function getFollowing(
   };
 }
 
+export async function isFollowingProfile(targetProfileId: string): Promise<boolean> {
+  const session = await getCachedUserSession();
+  if (!session.user) return false;
+
+  const supabase = await createClient();
+  const { data: ownProfile } = await supabase
+    .from('social_profiles')
+    .select('id')
+    .eq('user_id', session.user.id)
+    .maybeSingle();
+
+  if (!ownProfile) return false;
+
+  const { count } = await supabase
+    .from('follows')
+    .select('follower_id', { count: 'exact', head: true })
+    .eq('follower_id', (ownProfile as { id: string }).id)
+    .eq('following_id', targetProfileId);
+
+  return (count ?? 0) > 0;
+}
+
 export async function followUser(
   targetProfileId: string
 ): Promise<ProfileResult<{ following_id: string }>> {
@@ -268,6 +290,18 @@ export async function followUser(
     if (error.code === '23505') return { data: { following_id: targetProfileId } }; // already following
     console.error('[followUser] error:', error);
     return { error: 'Failed to follow', code: 'DB_ERROR' };
+  }
+
+  try {
+    await supabase.from('feed_notifications').insert({
+      recipient_id: targetProfileId,
+      actor_id: ownProfile.id,
+      type: 'follow',
+      post_id: null,
+      comment_id: null,
+    });
+  } catch (err) {
+    console.error('[followUser] notification error (non-fatal):', err);
   }
 
   return { data: { following_id: targetProfileId } };

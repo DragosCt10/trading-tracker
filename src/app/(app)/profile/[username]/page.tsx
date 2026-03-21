@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
-import { getSocialProfileByUsername } from '@/lib/server/socialProfile';
+import { getCachedUserSession } from '@/lib/server/session';
+import { getCachedSocialProfile, getSocialProfileByUsername, isFollowingProfile } from '@/lib/server/socialProfile';
 import { getPostsByProfile } from '@/lib/server/feedPosts';
 import ProfileClient from './ProfileClient';
 
@@ -15,7 +16,19 @@ export default async function ProfilePage({
 
   if (!profile) notFound();
 
-  const initialPosts = await getPostsByProfile(profile.id, undefined, 20);
+  const session = await getCachedUserSession();
+  const [initialPosts, ownProfile, initialFollowing] = await Promise.all([
+    getPostsByProfile(profile.id, undefined, 20),
+    session.user ? getCachedSocialProfile(session.user.id) : Promise.resolve(null),
+    session.user ? isFollowingProfile(profile.id) : Promise.resolve(false),
+  ]);
 
-  return <ProfileClient profile={profile} initialPosts={initialPosts} />;
+  return (
+    <ProfileClient
+      profile={profile}
+      initialPosts={initialPosts}
+      currentProfileId={ownProfile?.id}
+      initialFollowing={initialFollowing}
+    />
+  );
 }

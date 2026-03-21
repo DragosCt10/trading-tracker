@@ -143,7 +143,7 @@ export default function CreatePostModal({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                What's on your mind?
+                What&apos;s on your mind?
               </Label>
               <span className={`text-xs ${nearLimit ? 'text-amber-500 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500'}`}>
                 {charLeft}

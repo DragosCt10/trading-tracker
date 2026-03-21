@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
+import { createNotification } from './feedNotifications';
 import type { FeedComment, PaginatedResult } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 
@@ -84,6 +85,12 @@ export async function likePost(
     await supabase.from('feed_likes').delete().eq('post_id', postId).eq('user_id', profile.id);
   } else {
     await supabase.from('feed_likes').upsert({ post_id: postId, user_id: profile.id }, { onConflict: 'post_id,user_id', ignoreDuplicates: true });
+    await createNotification({
+      recipientProfileId: (post as { author_id: string }).author_id,
+      actorProfileId: profile.id,
+      type: 'like',
+      postId,
+    });
   }
 
   // Fetch updated like_count (maintained by DB trigger)
@@ -155,7 +162,7 @@ export async function addComment(
   // Verify post exists and is not hidden
   const { data: post } = await supabase
     .from('feed_posts')
-    .select('id, is_hidden')
+    .select('id, author_id, is_hidden')
     .eq('id', postId)
     .single();
 
@@ -178,6 +185,14 @@ export async function addComment(
     console.error('[addComment] error:', error);
     return { error: 'Failed to add comment', code: 'DB_ERROR' };
   }
+
+  await createNotification({
+    recipientProfileId: (post as { author_id: string }).author_id,
+    actorProfileId: profile.id,
+    type: 'comment',
+    postId,
+    commentId: (created as { id: string }).id,
+  });
 
   return { data: mapCommentRow(created as Record<string, unknown>) };
 }

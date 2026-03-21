@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import PostCard from '@/components/feed/PostCard';
 import CommentSection from '@/components/feed/CommentSection';
 import { usePostActions } from '@/hooks/usePostActions';
+import { useSocialProfile } from '@/hooks/useSocialProfile';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import type { FeedPost, PaginatedResult, FeedComment } from '@/types/social';
 
@@ -16,6 +17,7 @@ interface PostDetailClientProps {
 export default function PostDetailClient({ post, initialComments }: PostDetailClientProps) {
   const { data: userData } = useUserDetails();
   const userId = userData?.user?.id;
+  const { data: ownProfile } = useSocialProfile(userId);
   const { like, remove } = usePostActions(userId);
 
   return (
@@ -31,6 +33,7 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
       <PostCard
         post={post}
         currentUserId={userId}
+        currentProfileId={ownProfile?.id}
         onLike={(id) => like.mutate(id)}
         onDelete={(id) => remove.mutate(id)}
         expanded
@@ -42,6 +45,7 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
         </h2>
         <CommentSection
           postId={post.id}
+          currentProfileId={ownProfile?.id}
           initialComments={initialComments}
         />
       </div>

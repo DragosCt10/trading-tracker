@@ -22,7 +22,7 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
   const { data: unreadCount = 0 } = useNotificationUnreadCount(userId);
   const { data, isFetching }      = useNotificationList(userId);
-  const { markAll }               = useMarkNotifications(userId);
+  const { markAll, markOne }      = useMarkNotifications(userId);
 
   const notifs = data?.pages.flatMap((p) => p.items) ?? [];
 
@@ -75,7 +75,10 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
               <Link
                 key={n.id}
                 href={n.post_id ? `/feed/post/${n.post_id}` : `/profile/${n.actor.username}`}
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  if (!n.is_read) markOne.mutate(n.id);
+                  setOpen(false);
+                }}
                 className={`flex items-start gap-3 px-4 py-3 hover:bg-slate-800/50 transition-colors border-b border-slate-800/60 last:border-0 ${!n.is_read ? 'bg-slate-800/30' : ''}`}
               >
                 {/* Actor avatar */}

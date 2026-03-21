@@ -194,8 +194,8 @@ export async function getTimeline(
   // Fall back to public feed if no profile yet
   if (!profileId) return getPublicFeed(cursor, limit);
 
-  // Use public feed query but filter by follows
-  const query = await buildFeedQuery(supabase, session.user!.id, 'public', { cursor, limit });
+  // Timeline = followed users + own posts.
+  const query = await buildFeedQuery(supabase, session.user!.id, 'timeline', { cursor, limit });
   const { data, error } = await query;
   if (error) { console.error('[getTimeline]', error); return { items: [], nextCursor: null, hasMore: false }; }
 
