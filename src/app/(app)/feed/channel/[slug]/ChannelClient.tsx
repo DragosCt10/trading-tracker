@@ -51,26 +51,26 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-0 py-6 space-y-4">
       {/* Back link */}
-      <Link href="/feed" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-300 transition-colors">
+      <Link href="/feed" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors">
         <ArrowLeft className="w-3.5 h-3.5" />
         Back to Feed
       </Link>
 
       {/* Channel header */}
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-900/40 backdrop-blur-xl px-5 py-4 flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700/60">
-          <Hash className="w-5 h-5 text-slate-400" />
+      <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-900/40 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-xl px-5 py-4 flex items-start gap-4">
+        <div className="w-10 h-10 rounded-xl bg-slate-200/90 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-300/60 dark:border-slate-700/60">
+          <Hash className="w-5 h-5 text-slate-500 dark:text-slate-400" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-100">{channel.name}</h1>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">{channel.name}</h1>
             {channel.is_public
               ? <Globe className="w-4 h-4 text-slate-500" />
               : <Lock className="w-4 h-4 text-slate-500" />
             }
           </div>
-          {channel.description && <p className="text-sm text-slate-400 mt-1">{channel.description}</p>}
-          <p className="text-xs text-slate-600 mt-1">#{channel.slug}</p>
+          {channel.description && <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{channel.description}</p>}
+          <p className="text-xs text-slate-500 dark:text-slate-600 mt-1">#{channel.slug}</p>
         </div>
         {currentProfileId && subscription && (
           <Button
@@ -89,9 +89,9 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
           {Array.from({ length: 3 }).map((_, i) => <PostCardSkeleton key={i} />)}
         </div>
       ) : posts.length === 0 ? (
-        <div className="rounded-2xl border border-slate-700/55 bg-slate-800/35 backdrop-blur-xl p-10 text-center">
-          <p className="text-slate-400 font-medium">No posts in this channel yet</p>
-          <p className="text-slate-600 text-sm mt-1">Be the first to post here!</p>
+        <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-10 text-center">
+          <p className="text-slate-600 dark:text-slate-400 font-medium">No posts in this channel yet</p>
+          <p className="text-slate-500 dark:text-slate-600 text-sm mt-1">Be the first to post here!</p>
         </div>
       ) : (
         <div className="space-y-3">

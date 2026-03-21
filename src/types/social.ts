@@ -119,7 +119,7 @@ export interface PaginatedResult<T> {
   hasMore: boolean;
 }
 
-// ─── Trade selector (for CreatePostModal) ───────────────────────────────────
+// ─── Trade selector (for AttachTradeModal) ───────────────────────────────────
 
 export interface TradeSelectorItem {
   id: string;

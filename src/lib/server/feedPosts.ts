@@ -299,7 +299,7 @@ export async function getWeeklyPostCount(
 
 // ─── Trades for posting (trade selector) ─────────────────────────────────────
 
-export async function getUserTradesForPosting(): Promise<TradeSelectorItem[]> {
+export async function getUserTradesForPosting(startDate?: string, endDate?: string): Promise<TradeSelectorItem[]> {
   const session = await getCachedUserSession();
   if (!session.user) return [];
 
@@ -308,10 +308,17 @@ export async function getUserTradesForPosting(): Promise<TradeSelectorItem[]> {
 
   const FIELDS = 'id, market, direction, trade_outcome, risk_reward_ratio, risk_per_trade, calculated_profit, trade_date, trade_screens, trade_screen_timeframes';
 
+  const buildQuery = (table: 'live_trades' | 'demo_trades' | 'backtesting_trades') => {
+    let q = supabase.from(table).select(FIELDS).eq('user_id', uid).eq('executed', true).order('trade_date', { ascending: false });
+    if (startDate) q = q.gte('trade_date', startDate);
+    if (endDate) q = q.lte('trade_date', endDate);
+    return q.limit(100);
+  };
+
   const [live, demo, bt] = await Promise.all([
-    supabase.from('live_trades').select(FIELDS).eq('user_id', uid).eq('executed', true).order('trade_date', { ascending: false }).limit(50),
-    supabase.from('demo_trades').select(FIELDS).eq('user_id', uid).eq('executed', true).order('trade_date', { ascending: false }).limit(50),
-    supabase.from('backtesting_trades').select(FIELDS).eq('user_id', uid).eq('executed', true).order('trade_date', { ascending: false }).limit(50),
+    buildQuery('live_trades'),
+    buildQuery('demo_trades'),
+    buildQuery('backtesting_trades'),
   ]);
 
   type RawTrade = {
@@ -492,12 +499,12 @@ export async function updatePost(
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
 
-  const tier = profile.tier as TierId;
-  if (!TIER_DEFINITIONS[tier].features.socialFeedEditPosts) {
+  const subscription = await getCachedSubscription(session.user!.id);
+  if (!subscription.definition.features.socialFeedEditPosts) {
     return { error: 'Editing posts requires PRO', code: 'UNAUTHORIZED' };
   }
 
-  const maxLen = TIER_DEFINITIONS[tier].limits.maxPostContentLength;
+  const maxLen = subscription.definition.limits.maxPostContentLength;
   if (content.length > maxLen) return { error: `Exceeds ${maxLen} characters`, code: 'LIMIT_EXCEEDED' };
 
   const supabase = await createClient();

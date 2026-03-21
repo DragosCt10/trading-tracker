@@ -45,17 +45,17 @@ function CommentItem({
   }
 
   return (
-    <div className="rounded-xl border border-slate-700/55 bg-slate-800/35 px-4 py-3 group">
+    <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none px-4 py-3 group">
       <div className="flex items-center gap-2 mb-1.5">
         <Link
           href={`/profile/${comment.author.username}`}
-          className="font-semibold text-sm text-slate-200 hover:text-white transition-colors"
+          className="font-semibold text-sm text-slate-900 dark:text-slate-200 hover:text-slate-700 dark:hover:text-white transition-colors"
         >
           {comment.author.display_name}
         </Link>
-        <span className="text-slate-600 text-xs">@{comment.author.username}</span>
-        <span className="text-slate-600 text-xs">·</span>
-        <span className="text-slate-600 text-xs">
+        <span className="text-slate-500 text-xs">@{comment.author.username}</span>
+        <span className="text-slate-400 dark:text-slate-600 text-xs">·</span>
+        <span className="text-slate-500 dark:text-slate-600 text-xs">
           {new Date(comment.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
         </span>
 
@@ -64,7 +64,7 @@ function CommentItem({
           <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               type="button"
-              className="p-1 rounded text-slate-500 hover:text-slate-300 transition-colors"
+              className="p-1 rounded text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors"
               onClick={() => { setEditContent(comment.content); setEditState('editing'); }}
               aria-label="Edit comment"
             >
@@ -94,7 +94,7 @@ function CommentItem({
             maxLength={500}
             rows={2}
             disabled={editState === 'saving'}
-            className="w-full px-3 py-2 rounded-lg border border-slate-700/60 bg-slate-800/60 text-slate-100 text-sm resize-none focus:outline-none focus:border-slate-500/80 transition-colors duration-200"
+            className="w-full px-3 py-2 rounded-lg border border-slate-200/80 dark:border-slate-700/60 bg-white dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-sm resize-none focus:outline-none focus:border-slate-400 dark:focus:border-slate-500/80 transition-colors duration-200"
             onKeyDown={(e) => {
               if (e.key === 'Escape') { setEditState('idle'); setEditContent(comment.content); }
             }}
@@ -105,7 +105,7 @@ function CommentItem({
               type="button"
               onClick={handleSave}
               disabled={editState === 'saving' || !editContent.trim()}
-              className="p-1.5 rounded-lg bg-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-600/60 disabled:opacity-50 transition-colors"
+              className="p-1.5 rounded-lg bg-slate-200/90 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/80 dark:hover:bg-slate-600/60 disabled:opacity-50 transition-colors"
               aria-label="Save edit"
             >
               <Check className="w-3.5 h-3.5" />
@@ -113,7 +113,7 @@ function CommentItem({
             <button
               type="button"
               onClick={() => { setEditState('idle'); setEditContent(comment.content); }}
-              className="p-1.5 rounded-lg bg-slate-700/60 text-slate-400 hover:text-white hover:bg-slate-600/60 transition-colors"
+              className="p-1.5 rounded-lg bg-slate-200/90 dark:bg-slate-700/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/80 dark:hover:bg-slate-600/60 transition-colors"
               aria-label="Cancel edit"
             >
               <X className="w-3.5 h-3.5" />
@@ -145,7 +145,7 @@ export default function CommentSection({ postId, currentProfileId, initialCommen
       )}
 
       {comments.length === 0 && !query.isLoading ? (
-        <div className="rounded-2xl border border-slate-700/55 bg-slate-800/35 backdrop-blur-xl p-6 text-center">
+        <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-6 text-center">
           <p className="text-slate-500 text-sm">Be the first to comment</p>
         </div>
       ) : (

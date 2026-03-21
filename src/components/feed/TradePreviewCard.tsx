@@ -32,16 +32,16 @@ export default function TradePreviewCard({ snapshot }: TradePreviewCardProps) {
     snapshot.direction.charAt(0).toUpperCase() + snapshot.direction.slice(1);
 
   return (
-    <div className="rounded-2xl border border-slate-700/55 bg-slate-800/35 backdrop-blur-xl overflow-hidden">
+    <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-100/60 dark:bg-slate-800/35 shadow-md shadow-slate-200/40 dark:shadow-none backdrop-blur-sm overflow-hidden">
       {/* Header — two-zone */}
       <div className="flex items-start justify-between gap-4 px-4 py-3">
         {/* Left: market · direction */}
         <div className="flex flex-col gap-1.5 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-[15px] text-slate-100 tracking-tight">
+            <span className="font-bold text-[15px] text-slate-900 dark:text-slate-100 tracking-tight">
               {snapshot.market}
             </span>
-            <span className="flex items-center gap-1 text-slate-400 text-sm">
+            <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-sm">
               {directionIcon}
               {directionLabel}
             </span>
@@ -49,11 +49,11 @@ export default function TradePreviewCard({ snapshot }: TradePreviewCardProps) {
 
           {/* Stat strip */}
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded-md bg-slate-700/60 border border-slate-600/40 text-xs font-semibold text-slate-200 tabular-nums">
-              RR <span className="text-slate-100">{snapshot.rr.toFixed(2)}R</span>
+            <span className="px-2 py-0.5 rounded-md bg-slate-200/90 dark:bg-slate-700/60 border border-slate-300/60 dark:border-slate-600/40 text-xs font-semibold text-slate-700 dark:text-slate-200 tabular-nums">
+              RR <span className="text-slate-900 dark:text-slate-100">{snapshot.rr.toFixed(2)}R</span>
             </span>
-            <span className="px-2 py-0.5 rounded-md bg-slate-700/60 border border-slate-600/40 text-xs font-semibold text-slate-200 tabular-nums">
-              Risk <span className="text-slate-100">{snapshot.riskPct.toFixed(2)}%</span>
+            <span className="px-2 py-0.5 rounded-md bg-slate-200/90 dark:bg-slate-700/60 border border-slate-300/60 dark:border-slate-600/40 text-xs font-semibold text-slate-700 dark:text-slate-200 tabular-nums">
+              Risk <span className="text-slate-900 dark:text-slate-100">{snapshot.riskPct.toFixed(2)}%</span>
             </span>
             <span className="text-[11px] text-slate-500">
               {new Date(snapshot.entryDate).toLocaleDateString('en-US', {
@@ -71,7 +71,7 @@ export default function TradePreviewCard({ snapshot }: TradePreviewCardProps) {
 
       {/* Screenshot carousel */}
       {screens.length > 0 && (
-        <div className="relative group h-52 overflow-hidden border-t border-slate-700/40">
+        <div className="relative group h-52 overflow-hidden border-t border-slate-200/70 dark:border-slate-700/40">
           <a
             href={screens[screenIndex].url}
             target="_blank"

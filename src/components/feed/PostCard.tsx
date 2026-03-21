@@ -22,16 +22,13 @@ interface PostCardProps {
   expanded?: boolean;
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins  = Math.floor(diff / 60_000);
-  const hours = Math.floor(diff / 3_600_000);
-  const days  = Math.floor(diff / 86_400_000);
-  if (mins  < 1)  return 'just now';
-  if (mins  < 60) return `${mins}m`;
-  if (hours < 24) return `${hours}h`;
-  if (days  < 7)  return `${days}d`;
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+function formatCreatedAt(dateStr: string): string {
+  // Keep deterministic between server/client to avoid hydration drift.
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
 }
 
 export default function PostCard({
@@ -66,12 +63,12 @@ export default function PostCard({
       };
 
   return (
-    <article className="rounded-2xl border border-slate-700/55 bg-slate-800/35 backdrop-blur-xl p-5 transition-all duration-200 hover:border-slate-600/60">
+    <article className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-5 transition-all duration-200 hover:border-slate-400/70 dark:hover:border-slate-600/60">
       {/* Author header */}
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex items-start gap-3 mb-3">
         <Link href={`/profile/${post.author.username}`} className="shrink-0">
           <div
-            className={`w-9 h-9 rounded-full bg-slate-700 overflow-hidden flex items-center justify-center text-slate-300 font-semibold text-sm ${isPro ? 'ring-2 ring-amber-400/75 ring-offset-1 ring-offset-slate-800' : ''}`}
+            className={`w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm ${isPro ? 'ring-2 ring-amber-400/75 ring-offset-1 ring-offset-white dark:ring-offset-slate-800' : ''}`}
           >
             {post.author.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -84,7 +81,7 @@ export default function PostCard({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <Link href={`/profile/${post.author.username}`} className="font-semibold text-sm text-slate-100 hover:text-white transition-colors leading-none">
+            <Link href={`/profile/${post.author.username}`} className="font-semibold text-sm text-slate-900 dark:text-slate-100 hover:text-slate-700 dark:hover:text-white transition-colors leading-none">
               {post.author.display_name}
             </Link>
             {isPro && (
@@ -98,66 +95,21 @@ export default function PostCard({
                 </span>
               </span>
             )}
-            <span className="text-slate-600 text-xs">·</span>
-            <span className="text-slate-500 text-xs">{timeAgo(post.created_at)}</span>
           </div>
           <div className="flex items-center gap-1.5 mt-1">
             <span className="text-slate-500 text-xs">@{post.author.username}</span>
           </div>
         </div>
+        <span className="ml-auto pl-2 text-slate-500 text-xs shrink-0" suppressHydrationWarning>
+          {formatCreatedAt(post.created_at)}
+        </span>
 
-        {/* Overflow menu */}
-        <div className="relative shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-slate-500 hover:text-slate-300 rounded-lg"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label="Post options"
-          >
-            <MoreHorizontal className="w-4 h-4" />
-          </Button>
-
-          {menuOpen && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-8 z-20 w-40 rounded-xl border border-slate-700/60 bg-slate-800/90 backdrop-blur-xl shadow-xl py-1">
-                {isOwn && onEdit && authorTier !== 'starter' && (
-                  <button
-                    type="button"
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 transition-colors"
-                    onClick={() => { setMenuOpen(false); onEdit(post); }}
-                  >
-                    <Pencil className="w-3.5 h-3.5" /> Edit
-                  </button>
-                )}
-                {isOwn && onDelete && (
-                  <button
-                    type="button"
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-rose-400 hover:bg-rose-500/10 transition-colors"
-                    onClick={() => { setMenuOpen(false); onDelete(post.id); }}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> Delete
-                  </button>
-                )}
-                {!isOwn && onReport && (
-                  <button
-                    type="button"
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-300 hover:bg-slate-700/50 transition-colors"
-                    onClick={() => { setMenuOpen(false); onReport(post.id); }}
-                  >
-                    <Flag className="w-3.5 h-3.5" /> Report
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-        </div>
       </div>
 
       {/* Post text */}
       <p
-        className={`text-[15px] leading-[1.65] text-slate-200 whitespace-pre-wrap break-words ${!expanded ? 'line-clamp-6' : ''} ${post.trade_snapshot ? 'mb-3' : ''}`}
+        suppressHydrationWarning
+        className={`text-[15px] leading-[1.65] text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words ${!expanded ? 'line-clamp-6' : ''} ${post.trade_snapshot ? 'mb-3' : ''}`}
       >
         {post.content}
       </p>
@@ -166,13 +118,18 @@ export default function PostCard({
       {post.trade_snapshot && <TradePreviewCard snapshot={post.trade_snapshot} />}
 
       {/* Action bar */}
-      <div className="flex items-center gap-1 mt-4 pt-3 border-t border-slate-700/40">
+      <div className="flex items-center gap-1 mt-4 pt-3 border-t border-slate-200/70 dark:border-slate-700/40">
         {/* Like — read-only for own posts, interactive for others */}
         {isOwn ? (
-          <div className="h-8 gap-1.5 flex items-center px-2 rounded-xl text-xs font-medium text-slate-500">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled
+            className="h-8 gap-1.5 rounded-xl text-xs font-medium text-slate-500 cursor-default"
+          >
             <Heart className="w-3.5 h-3.5" />
             {post.like_count > 0 && <span>{post.like_count}</span>}
-          </div>
+          </Button>
         ) : (
           <Button
             variant="ghost"
@@ -181,7 +138,7 @@ export default function PostCard({
             className={`h-8 gap-1.5 rounded-xl text-xs font-medium transition-all duration-200 ${
               post.is_liked_by_me
                 ? 'text-rose-400 hover:text-rose-300 hover:bg-rose-500/10'
-                : 'text-slate-500 hover:text-rose-400 hover:bg-rose-500/10'
+                : 'text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-500/10'
             }`}
           >
             <Heart className={`w-3.5 h-3.5 ${post.is_liked_by_me ? 'fill-current' : ''}`} />
@@ -194,7 +151,7 @@ export default function PostCard({
           variant="ghost"
           size="sm"
           asChild
-          className="h-8 gap-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all duration-200"
+          className="h-8 gap-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-500/10 transition-all duration-200"
         >
           <Link href={`/feed/post/${post.id}`}>
             <MessageCircle className="w-3.5 h-3.5" />
@@ -206,7 +163,7 @@ export default function PostCard({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 gap-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-300 hover:bg-slate-700/50 transition-all duration-200 ml-auto"
+          className="h-8 gap-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-700/50 transition-all duration-200"
           onClick={() => {
             const url = `${window.location.origin}/feed/post/${post.id}`;
             navigator.clipboard.writeText(url).catch(() => {});
@@ -215,6 +172,54 @@ export default function PostCard({
         >
           <Share2 className="w-3.5 h-3.5" />
         </Button>
+
+        {/* Options menu — far right */}
+        <div className="relative ml-auto shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-700/50 rounded-xl transition-all duration-200"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label="Post options"
+          >
+            <MoreHorizontal className="w-4 h-4" />
+          </Button>
+
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+              <div className="absolute right-0 bottom-9 z-20 w-40 rounded-xl border border-slate-200/70 dark:border-slate-700/60 bg-white/95 dark:bg-slate-800/90 backdrop-blur-xl shadow-xl shadow-slate-900/10 dark:shadow-black/40 py-1">
+                {isOwn && onEdit && authorTier !== 'starter' && (
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                    onClick={() => { setMenuOpen(false); onEdit(post); }}
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Edit
+                  </button>
+                )}
+                {isOwn && onDelete && (
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                    onClick={() => { setMenuOpen(false); onDelete(post.id); }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </button>
+                )}
+                {!isOwn && onReport && (
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                    onClick={() => { setMenuOpen(false); onReport(post.id); }}
+                  >
+                    <Flag className="w-3.5 h-3.5" /> Report
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </article>
   );

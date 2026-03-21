@@ -4,13 +4,26 @@ import { queryKeys } from '@/lib/queryKeys';
 import { FEED_DATA } from '@/constants/queryConfig';
 import type { PaginatedResult, FeedPost } from '@/types/social';
 
-export function useFeed(userId?: string, initialData?: PaginatedResult<FeedPost>, channelId?: string) {
+type FeedView = 'public' | 'following';
+
+export function useFeed(
+  userId?: string,
+  initialData?: PaginatedResult<FeedPost>,
+  channelId?: string,
+  view: FeedView = 'public'
+) {
+  const isFollowingView = view === 'following' && !!userId;
+
   return useInfiniteQuery({
-    queryKey: channelId ? queryKeys.feed.channelPosts(channelId) : queryKeys.feed.timeline(userId),
+    queryKey: channelId
+      ? queryKeys.feed.channelPosts(channelId)
+      : isFollowingView
+        ? queryKeys.feed.timeline(userId)
+        : queryKeys.feed.public(),
     queryFn: ({ pageParam }) =>
       channelId
         ? getChannelFeed(channelId, pageParam as string | undefined, 20)
-        : userId
+        : isFollowingView
           ? getTimeline(pageParam as string | undefined, 20)
           : getPublicFeed(pageParam as string | undefined, 20),
     initialPageParam: undefined as string | undefined,

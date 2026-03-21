@@ -130,6 +130,7 @@ export const queryKeys = {
   socialProfile: (userId?: string) => ['socialProfile', userId] as const,
 
   feed: {
+    public:       (cursor?: string)                   => ['feed:public',         cursor]         as const,
     timeline:     (userId?: string, cursor?: string) => ['feed:timeline',      userId, cursor] as const,
     post:         (postId: string)                   => ['feed:post',           postId]         as const,
     comments:     (postId: string, cursor?: string)  => ['feed:comments',       postId, cursor] as const,

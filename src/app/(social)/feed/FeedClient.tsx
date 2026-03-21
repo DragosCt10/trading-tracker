@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { PlusCircle, Hash, Plus, Globe } from 'lucide-react';
+import { Hash, Plus, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -10,7 +10,8 @@ import { usePostActions } from '@/hooks/usePostActions';
 import { useMyChannels } from '@/hooks/useChannels';
 import PostCard from '@/components/feed/PostCard';
 import PostCardSkeleton from '@/components/feed/PostCardSkeleton';
-import CreatePostModal from '@/components/feed/CreatePostModal';
+import InlineCreatePostCard from '@/components/feed/InlineCreatePostCard';
+import EditPostModal from '@/components/feed/EditPostModal';
 import CreateChannelModal from '@/components/feed/CreateChannelModal';
 import SearchBar from '@/components/feed/SearchBar';
 import type { SocialProfile, FeedPost, PaginatedResult } from '@/types/social';
@@ -21,17 +22,22 @@ interface FeedClientProps {
   initialFeed: PaginatedResult<FeedPost>;
 }
 
+type FeedTab = 'public' | 'following' | 'channels';
+
 export default function FeedClient({ userId, initialProfile, initialFeed }: FeedClientProps) {
   const uid = userId ?? undefined;
   const { subscription } = useSubscription({ userId: uid });
-  const [createOpen, setCreateOpen] = useState(false);
   const [createError, setCreateError] = useState('');
   const [editPost, setEditPost] = useState<FeedPost | null>(null);
   const [channelModalOpen, setChannelModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<FeedTab>('public');
 
   const isPro = subscription?.tier === 'pro' || subscription?.tier === 'elite';
 
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(uid, initialFeed);
+  const isChannelsTab = activeTab === 'channels';
+  const feedView = activeTab === 'following' ? 'following' : 'public';
+  const feedInitialData = feedView === 'public' ? initialFeed : undefined;
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(uid, feedInitialData, undefined, feedView);
   const { like, create, edit, remove, report } = usePostActions(uid);
   const { data: myChannels = [] } = useMyChannels(uid);
 
@@ -57,7 +63,6 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
       setCreateError(result.error);
       return;
     }
-    setCreateOpen(false);
   }
 
   return (
@@ -65,39 +70,110 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
       <div className="flex gap-6">
         {/* Main feed */}
         <div className="flex-1 min-w-0 space-y-4">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-100">Alpha Level</h1>
-              <p className="text-sm text-slate-500 mt-0.5">What are traders thinking right now</p>
+          <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-1">
+            <div className="grid grid-cols-3 gap-1">
+              {([
+                { id: 'public', label: 'Public' },
+                { id: 'following', label: 'Following' },
+                { id: 'channels', label: 'Channels' },
+              ] as const).map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`h-11 rounded-xl text-sm font-semibold transition-colors ${
+                      isActive
+                        ? 'text-white bg-slate-800/80 dark:bg-slate-800/70 border border-slate-700/80'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
-            {userId && initialProfile && subscription ? (
-              <Button
-                onClick={() => { setCreateError(''); setCreateOpen(true); }}
-                className="themed-btn-primary relative overflow-hidden rounded-xl text-white font-semibold border-0 group gap-2"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span className="relative z-10 text-sm">Post</span>
-                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
-              </Button>
-            ) : !userId ? (
+          </div>
+
+          {userId && initialProfile && subscription ? (
+            <InlineCreatePostCard
+              userId={userId}
+              profile={initialProfile}
+              subscription={subscription}
+              onSubmit={handleCreate}
+              isSubmitting={create.isPending}
+              submitError={createError}
+            />
+          ) : !userId ? (
+            <div className="flex justify-end">
               <Link href="/login">
-                <Button variant="outline" size="sm" className="rounded-xl border-slate-700 text-slate-300 hover:text-slate-100 hover:bg-slate-800">
+                <Button variant="outline" size="sm" className="rounded-xl border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-800">
                   Sign in to post
                 </Button>
               </Link>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
 
-          {/* Feed */}
-          {isLoading ? (
+          {isChannelsTab ? (
+            <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/40">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Your Channels</h3>
+              </div>
+              {myChannels.length === 0 ? (
+                <div className="px-5 py-10 text-center">
+                  <p className="text-slate-600 dark:text-slate-400 font-medium">No channels yet</p>
+                  {isPro ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 rounded-xl border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                      onClick={() => setChannelModalOpen(true)}
+                    >
+                      Create channel
+                    </Button>
+                  ) : (
+                    <Link
+                      href="/settings?tab=billing"
+                      className="inline-block mt-3 text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 underline underline-offset-2"
+                    >
+                      Upgrade to PRO to create channels
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-200/80 dark:divide-slate-800/60">
+                  {myChannels.map((channel) => (
+                    <Link
+                      key={channel.id}
+                      href={`/feed/channel/${channel.slug}`}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/40 transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-slate-200/90 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-300/60 dark:border-slate-700/60">
+                        <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{channel.name}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-600 truncate">#{channel.slug}</p>
+                      </div>
+                      {channel.is_public ? <Globe className="w-3.5 h-3.5 text-slate-500 dark:text-slate-600 shrink-0" /> : null}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : isLoading ? (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => <PostCardSkeleton key={i} />)}
             </div>
           ) : posts.length === 0 ? (
-            <div className="rounded-2xl border border-slate-700/55 bg-slate-800/35 backdrop-blur-xl p-10 text-center">
-              <p className="text-slate-400 font-medium">No posts yet</p>
-              <p className="text-slate-600 text-sm mt-1">Follow some traders or be the first to post!</p>
+            <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-10 text-center">
+              <p className="text-slate-600 dark:text-slate-400 font-medium">No posts yet</p>
+              <p className="text-slate-500 dark:text-slate-600 text-sm mt-1">
+                {activeTab === 'following'
+                  ? 'Follow some traders to populate your timeline.'
+                  : 'Follow some traders or be the first to post!'}
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -133,14 +209,14 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
           </div>
 
           {/* Channels */}
-          <div className="rounded-2xl border border-slate-700/60 bg-slate-900/40 backdrop-blur-xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/40">
-              <h3 className="text-sm font-semibold text-slate-100">Channels</h3>
+          <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-900/40 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/40">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Channels</h3>
               {isPro && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0 text-slate-400 hover:text-slate-200"
+                  className="h-7 w-7 p-0 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                   onClick={() => setChannelModalOpen(true)}
                   aria-label="Create channel"
                 >
@@ -149,19 +225,19 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
               )}
             </div>
 
-            <div className="divide-y divide-slate-800/60">
+            <div className="divide-y divide-slate-200/80 dark:divide-slate-800/60">
               {myChannels.length === 0 ? (
                 <div className="px-4 py-4 text-center">
                   <p className="text-xs text-slate-500">No channels yet</p>
                   {isPro ? (
                     <button
                       onClick={() => setChannelModalOpen(true)}
-                      className="text-xs text-slate-400 hover:text-slate-200 mt-1 underline underline-offset-2"
+                      className="text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 mt-1 underline underline-offset-2"
                     >
                       Create one
                     </button>
                   ) : (
-                    <Link href="/settings?tab=billing" className="text-xs text-slate-400 hover:text-slate-200 mt-1 underline underline-offset-2">
+                    <Link href="/settings?tab=billing" className="text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 mt-1 underline underline-offset-2">
                       Upgrade to PRO
                     </Link>
                   )}
@@ -171,17 +247,17 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
                   <Link
                     key={channel.id}
                     href={`/feed/channel/${channel.slug}`}
-                    className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-800/50 transition-colors"
+                    className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-100/90 dark:hover:bg-slate-800/50 transition-colors"
                   >
-                    <div className="w-6 h-6 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700/60">
-                      <Hash className="w-3 h-3 text-slate-400" />
+                    <div className="w-6 h-6 rounded-lg bg-slate-200/90 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-300/60 dark:border-slate-700/60">
+                      <Hash className="w-3 h-3 text-slate-500 dark:text-slate-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-200 truncate">{channel.name}</p>
-                      <p className="text-[10px] text-slate-600 truncate">#{channel.slug}</p>
+                      <p className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate">{channel.name}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-600 truncate">#{channel.slug}</p>
                     </div>
                     {channel.is_public
-                      ? <Globe className="w-3 h-3 text-slate-600 shrink-0" />
+                      ? <Globe className="w-3 h-3 text-slate-500 dark:text-slate-600 shrink-0" />
                       : null
                     }
                   </Link>
@@ -192,29 +268,17 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
         </aside>
       </div>
 
-      {/* Modals — only rendered when authenticated */}
-      {userId && subscription && (
-        <CreatePostModal
-          open={createOpen}
-          onClose={() => setCreateOpen(false)}
-          onSubmit={handleCreate}
-          subscription={subscription}
-          userId={userId}
-          isSubmitting={create.isPending}
-          submitError={createError}
-        />
-      )}
       {editPost && userId && subscription && (
-        <CreatePostModal
+        <EditPostModal
           open={!!editPost}
           onClose={() => setEditPost(null)}
-          onSubmit={async ({ content }) => {
+          onSubmit={async (content) => {
             const result = await edit.mutateAsync({ postId: editPost.id, content });
             if ('error' in result) { setCreateError(result.error); return; }
             setEditPost(null);
           }}
-          subscription={subscription}
-          userId={userId}
+          initialContent={editPost.content}
+          maxLen={subscription.definition.limits.maxPostContentLength}
           isSubmitting={edit.isPending}
           submitError={createError}
         />

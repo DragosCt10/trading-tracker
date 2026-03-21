@@ -75,7 +75,24 @@ export function usePostActions(userId?: string, channelId?: string) {
   const edit = useMutation({
     mutationFn: ({ postId, content }: { postId: string; content: string }) =>
       updatePost(postId, content),
-    onSuccess: () => {
+    onSuccess: (result, { postId }) => {
+      if ('error' in result) return;
+      const updatedPost = result.data;
+      qc.setQueryData<InfiniteData>(feedKey, (prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          pages: prev.pages.map((page) => ({
+            ...page,
+            items: page.items.map((p) =>
+              p.id === postId
+                ? { ...p, content: updatedPost.content, updated_at: updatedPost.updated_at }
+                : p
+            ),
+          })),
+        };
+      });
+      // Revalidate to avoid stale client/server divergence after edits.
       qc.invalidateQueries({ queryKey: feedKey });
     },
   });

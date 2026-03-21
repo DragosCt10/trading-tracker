@@ -29,7 +29,7 @@ export default function CommentInput({ onSubmit, placeholder = 'Write a commentâ
         rows={2}
         placeholder={placeholder}
         disabled={isSubmitting}
-        className="flex-1 px-3 py-2 rounded-xl border border-slate-700/60 bg-slate-800/50 text-slate-100 text-sm placeholder:text-slate-500 resize-none focus:outline-none focus:border-slate-500/80 transition-colors duration-200 disabled:opacity-50"
+        className="flex-1 px-3 py-2 rounded-xl border border-slate-200/80 dark:border-slate-700/60 bg-white/90 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none focus:outline-none focus:border-slate-400 dark:focus:border-slate-500/80 transition-colors duration-200 disabled:opacity-50 shadow-sm shadow-slate-200/30 dark:shadow-none"
       />
       <Button
         type="submit"
