@@ -179,7 +179,7 @@ export default function DailyJournalClient({
 
   // Infinite scroll for days (mirrors TradeCardsView behavior)
   const [displayedCount, setDisplayedCount] = useState(DAYS_PER_LOAD);
-  const [mounted, setMounted] = useState(false);
+  const [mounted] = useState(() => typeof window !== 'undefined');
   const observerTarget = useRef<HTMLDivElement | null>(null);
 
   // Per-day collapse state
@@ -189,10 +189,6 @@ export default function DailyJournalClient({
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedNotes, setSelectedNotes] = useState<string>('');
   const [isNotesOpen, setIsNotesOpen] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const lockedPreviewDayGroups: DayGroup[] = useMemo(() => {
     const today = new Date();

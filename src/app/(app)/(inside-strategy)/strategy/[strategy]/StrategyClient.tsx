@@ -26,6 +26,10 @@ import { queryKeys } from '@/lib/queryKeys';
 import { TRADES_DATA } from '@/constants/queryConfig';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useStrategyDashboardContext } from '@/hooks/useStrategyDashboardContext';
+import {
+  useStrategySectionVisibility,
+  type StrategySectionKey as FullWidthSectionKey,
+} from '@/hooks/useStrategySectionVisibility';
 import { hydrateStrategyDashboardCache } from '@/utils/hydrateStrategyDashboardCache';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -182,41 +186,7 @@ export type StrategyClientInitialProps = {
 
 const defaultInitialRange = createInitialDateRange();
 const defaultSelectedYear = new Date().getFullYear();
-type FullWidthSectionKey =
-  | 'overview'
-  | 'calendar'
-  | 'coreStatistics'
-  | 'psychologicalFactors'
-  | 'equityCurve'
-  | 'consistencyDrawdown'
-  | 'performanceRatios'
-  | 'monthlyPerformanceChart'
-  | 'marketStats'
-  | 'marketProfitStats'
-  | 'timeIntervalStats'
-  | 'dayStats'
-  | 'newsByEvent'
-  | 'setupStats'
-  | 'liquidityStats';
 type ExecutionFilter = 'all' | 'executed' | 'nonExecuted';
-
-const DEFAULT_SECTION_EXPANDED: Record<FullWidthSectionKey, boolean> = {
-  overview: true,
-  calendar: true,
-  coreStatistics: true,
-  psychologicalFactors: true,
-  equityCurve: true,
-  consistencyDrawdown: true,
-  performanceRatios: true,
-  monthlyPerformanceChart: true,
-  marketStats: true,
-  marketProfitStats: true,
-  timeIntervalStats: true,
-  dayStats: true,
-  newsByEvent: true,
-  setupStats: true,
-  liquidityStats: true,
-};
 
 const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -536,10 +506,6 @@ export default function StrategyClient(
 
   // view mode: 'yearly' or 'dateRange'
   const [viewMode, setViewMode] = useState<'yearly' | 'dateRange'>('dateRange');
-  const [showProCards, setShowProCards] = useState(true);
-  const [expandedSections, setExpandedSections] = useState<Record<FullWidthSectionKey, boolean>>(
-    () => DEFAULT_SECTION_EXPANDED
-  );
   // startTransition marks filter/view-mode changes as non-urgent so React can yield to
   // user input before re-running the heavy useMemo chains — fixes INP > 200 ms.
   const [, startFilterTransition] = useTransition();
@@ -585,15 +551,13 @@ export default function StrategyClient(
   const strategyId = props?.initialStrategyId ?? null;
 
   const { isPro } = useSubscription({ userId: props?.initialUserId });
-  /** PRO subscribers always see PRO sections; toggle only applies to Starter. */
-  const showProContent = isPro || showProCards;
-  const toggleSection = useCallback((key: FullWidthSectionKey) => {
-    setExpandedSections((current) => ({ ...current, [key]: !current[key] }));
-  }, []);
-  const isSectionExpanded = useCallback(
-    (key: FullWidthSectionKey) => !isPro || expandedSections[key],
-    [expandedSections, isPro]
-  );
+  const {
+    showProCards,
+    setShowProCards,
+    showProContent,
+    toggleSection,
+    isSectionExpanded,
+  } = useStrategySectionVisibility(isPro);
   const renderSectionCollapseButton = useCallback(
     (key: FullWidthSectionKey) => {
       if (!isPro) {
