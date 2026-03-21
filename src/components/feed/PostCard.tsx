@@ -68,7 +68,7 @@ export default function PostCard({
       <div className="flex items-start gap-3 mb-3">
         <Link href={`/profile/${post.author.username}`} className="shrink-0">
           <div
-            className={`w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm ${isPro ? 'ring-2 ring-amber-400/75 ring-offset-1 ring-offset-white dark:ring-offset-slate-800' : ''}`}
+            className={`w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm ${mounted && isPro ? 'ring-2 ring-amber-400/75 ring-offset-1 ring-offset-white dark:ring-offset-slate-800' : ''}`}
           >
             {post.author.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -84,7 +84,10 @@ export default function PostCard({
             <Link href={`/profile/${post.author.username}`} className="font-semibold text-sm text-slate-900 dark:text-slate-100 hover:text-slate-700 dark:hover:text-white transition-colors leading-none">
               {post.author.display_name}
             </Link>
-            {isPro && (
+            {!mounted && isPro && (
+              <span className="h-5 w-14 rounded-md bg-slate-200/70 dark:bg-slate-700/50 animate-pulse" />
+            )}
+            {mounted && isPro && (
               <span
                 className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 select-none"
                 style={{ border: `1px solid ${proBorderColor}` }}
