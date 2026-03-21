@@ -459,6 +459,7 @@ model users {
   strategy_stats_cache                      strategy_stats_cache[]
   subscriptions                             subscriptions?
   user_settings                             user_settings?
+  social_profiles                           social_profiles?
 
   @@index([instance_id])
   @@index([is_anonymous])
@@ -866,6 +867,212 @@ enum oauth_client_type {
   confidential
 
   @@schema("auth")
+}
+
+// ─── Social Feed ────────────────────────────────────────────────────────────
+
+enum post_type {
+  text
+  trade_share
+
+  @@schema("public")
+}
+
+enum notification_type {
+  like
+  comment
+  follow
+
+  @@schema("public")
+}
+
+/// Social identity for the feed. One per auth user.
+model social_profiles {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String    @unique @db.Uuid
+  display_name    String    @db.VarChar(100)
+  username        String    @unique @db.VarChar(50)
+  bio             String?   @db.VarChar(280)
+  avatar_url      String?
+  is_public       Boolean   @default(true)
+  is_banned       Boolean   @default(false)
+  ban_log         Json?
+  follower_count  Int       @default(0)
+  following_count Int       @default(0)
+  /// Denormalized from subscriptions. Updated by subscription server actions.
+  tier            String    @default("starter") @db.VarChar(20)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  users                    users                  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  feed_posts               feed_posts[]
+  feed_comments            feed_comments[]
+  feed_likes               feed_likes[]
+  follows_follower         follows[]              @relation("follows_follower")
+  follows_following        follows[]              @relation("follows_following")
+  feed_notifications_recipient feed_notifications[] @relation("notifications_recipient")
+  feed_notifications_actor feed_notifications[]   @relation("notifications_actor")
+  feed_channels            feed_channels[]
+  channel_members          channel_members[]
+  feed_reports             feed_reports[]
+
+  @@index([username])
+  @@index([user_id])
+  @@schema("public")
+}
+
+/// Posts in the social feed.
+model feed_posts {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  author_id      String    @db.Uuid
+  content        String
+  post_type      post_type @default(text)
+  /// Original trade ID — for reference only. Display uses trade_snapshot.
+  trade_id       String?   @db.Uuid
+  trade_mode     String?   @db.VarChar(20)
+  /// Denormalized trade data snapshotted at post time. Never joins trade tables.
+  trade_snapshot Json?
+  channel_id     String?   @db.Uuid
+  like_count     Int       @default(0)
+  comment_count  Int       @default(0)
+  is_hidden      Boolean   @default(false)
+  created_at     DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime  @default(now()) @db.Timestamptz(6)
+
+  author           social_profiles    @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  channel          feed_channels?     @relation(fields: [channel_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  feed_comments    feed_comments[]
+  feed_likes       feed_likes[]
+  feed_notifications feed_notifications[]
+  feed_reports     feed_reports[]
+
+  @@index([author_id, created_at(sort: Desc)], map: "idx_feed_posts_author_created")
+  @@index([channel_id, created_at(sort: Desc)], map: "idx_feed_posts_channel_created")
+  @@index([created_at(sort: Desc)], map: "idx_feed_posts_created")
+  @@schema("public")
+}
+
+/// Comments on feed posts (1-level nested replies via parent_id).
+model feed_comments {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id   String   @db.Uuid
+  author_id String   @db.Uuid
+  content   String   @db.VarChar(500)
+  parent_id String?  @db.Uuid
+  is_hidden Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  post              feed_posts      @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  author            social_profiles @relation(fields: [author_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  parent            feed_comments?  @relation("comment_replies", fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  replies           feed_comments[] @relation("comment_replies")
+  feed_reports      feed_reports[]
+
+  @@index([post_id, created_at(sort: Asc)], map: "idx_feed_comments_post_created")
+  @@schema("public")
+}
+
+/// Post likes — unique per (post_id, user_id).
+model feed_likes {
+  post_id    String   @db.Uuid
+  user_id    String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  post    feed_posts      @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profile social_profiles @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([post_id, user_id])
+  @@index([post_id, user_id], map: "idx_feed_likes_post_user")
+  @@schema("public")
+}
+
+/// Social graph — follower follows following.
+model follows {
+  follower_id  String   @db.Uuid
+  following_id String   @db.Uuid
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+
+  follower  social_profiles @relation("follows_follower",  fields: [follower_id],  references: [id], onDelete: Cascade, onUpdate: NoAction)
+  following social_profiles @relation("follows_following", fields: [following_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([follower_id, following_id])
+  @@index([follower_id],  map: "idx_follows_follower")
+  @@index([following_id], map: "idx_follows_following")
+  @@schema("public")
+}
+
+/// Activity notifications (like, comment, follow only — no new_post fanout).
+model feed_notifications {
+  id           String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipient_id String            @db.Uuid
+  actor_id     String            @db.Uuid
+  type         notification_type
+  post_id      String?           @db.Uuid
+  comment_id   String?           @db.Uuid
+  is_read      Boolean           @default(false)
+  created_at   DateTime          @default(now()) @db.Timestamptz(6)
+
+  recipient social_profiles  @relation("notifications_recipient", fields: [recipient_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  actor     social_profiles  @relation("notifications_actor",     fields: [actor_id],     references: [id], onDelete: Cascade, onUpdate: NoAction)
+  post      feed_posts?      @relation(fields: [post_id],    references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([recipient_id, is_read, created_at(sort: Desc)], map: "idx_feed_notifications_recipient")
+  @@schema("public")
+}
+
+/// PRO-only private channels.
+model feed_channels {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  owner_id    String   @db.Uuid
+  name        String   @db.VarChar(100)
+  slug        String   @unique @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  is_public   Boolean  @default(false)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  owner           social_profiles   @relation(fields: [owner_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  feed_posts      feed_posts[]
+  channel_members channel_members[]
+
+  @@index([owner_id], map: "idx_feed_channels_owner")
+  @@schema("public")
+}
+
+/// Channel membership.
+model channel_members {
+  channel_id String   @db.Uuid
+  user_id    String   @db.Uuid
+  role       String   @default("member") @db.VarChar(20)
+  joined_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  channel feed_channels   @relation(fields: [channel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profile social_profiles @relation(fields: [user_id],    references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([channel_id, user_id])
+  @@schema("public")
+}
+
+/// Content moderation reports.
+model feed_reports {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reporter_id String   @db.Uuid
+  post_id     String?  @db.Uuid
+  comment_id  String?  @db.Uuid
+  reason      String   @db.VarChar(500)
+  status      String   @default("pending") @db.VarChar(20)
+  reviewed_by String?  @db.Uuid
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  reporter social_profiles @relation(fields: [reporter_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  post     feed_posts?     @relation(fields: [post_id],    references: [id], onDelete: Cascade, onUpdate: NoAction)
+  comment  feed_comments?  @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status, created_at(sort: Desc)], map: "idx_feed_reports_status")
+  @@index([reporter_id], map: "idx_feed_reports_reporter")
+  @@schema("public")
 }
 
 enum oauth_registration_type {

@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, UserCheck, UserX, Shield, Loader2, AlertCircle } from 'lucide-react';
+import { Search, UserCheck, UserX, Shield, Loader2, AlertCircle, Flag } from 'lucide-react';
+import ModerationPanel from '@/components/admin/ModerationPanel';
 import {
   findUserByEmail,
   adminGrantSubscription,
@@ -31,7 +32,7 @@ interface AdminClientProps {
 
 export default function AdminClient({ currentUserId, admins: initialAdmins, isSuperAdmin }: AdminClientProps) {
   const router = useRouter();
-  const [tab, setTab] = useState<'users' | 'team'>('users');
+  const [tab, setTab] = useState<'users' | 'team' | 'moderation'>('users');
 
   // User search state
   const [email, setEmail] = useState('');
@@ -136,18 +137,19 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
       {/* Tabs */}
       {isSuperAdmin && (
         <div className="flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-900/20 p-1 mb-8 backdrop-blur-sm">
-          {(['users', 'team'] as const).map((t) => (
+          {(['users', 'team', 'moderation'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={cn(
-                'flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-colors capitalize !shadow-none cursor-pointer',
+                'flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition-colors capitalize !shadow-none cursor-pointer flex items-center justify-center gap-1.5',
                 tab === t
                   ? 'text-slate-900 dark:text-slate-50 shadow-sm border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/30'
                   : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
               )}
             >
-              {t === 'users' ? 'User Subscriptions' : 'Admin Team'}
+              {t === 'moderation' && <Flag className="h-3.5 w-3.5" />}
+              {t === 'users' ? 'Subscriptions' : t === 'team' ? 'Admin Team' : 'Moderation'}
             </button>
           ))}
         </div>
@@ -358,6 +360,9 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
           )}
         </div>
       )}
+
+      {/* Moderation tab */}
+      {tab === 'moderation' && <ModerationPanel />}
     </div>
   );
 }

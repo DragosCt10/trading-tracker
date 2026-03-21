@@ -22,6 +22,9 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       maxExtraCards: 3,
       maxAccounts: 1,
       allowedModes: ['demo'],
+      maxPostsPerWeek: 3,
+      maxPostsPerDay: null,
+      maxPostContentLength: 280,
     },
     features: {
       dailyJournal: false,
@@ -36,6 +39,9 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       allTradePerformanceAnalysis: false,
       allExtraCards: false,
       alphaHub: false,
+      socialFeedTradeAttach: false,
+      socialFeedEditPosts: false,
+      socialFeedChannels: false,
     },
     badge: { label: 'Starter', colorClass: 'text-zinc-400 border-zinc-700' },
   },
@@ -63,6 +69,9 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       maxExtraCards: null,  // all
       maxAccounts: null,    // unlimited
       allowedModes: ['demo', 'live', 'backtesting'],
+      maxPostsPerWeek: null,
+      maxPostsPerDay: 50,
+      maxPostContentLength: 1000,
     },
     features: {
       dailyJournal: true,
@@ -77,6 +86,9 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       allTradePerformanceAnalysis: true,
       allExtraCards: true,
       alphaHub: false,
+      socialFeedTradeAttach: true,
+      socialFeedEditPosts: true,
+      socialFeedChannels: true,
     },
     badge: { label: 'PRO', colorClass: 'text-amber-400 border-amber-500/50' },
   },
@@ -93,6 +105,9 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       maxExtraCards: null,
       maxAccounts: null,    // unlimited
       allowedModes: ['demo', 'live', 'backtesting'],
+      maxPostsPerWeek: null,
+      maxPostsPerDay: 50,
+      maxPostContentLength: 1000,
     },
     features: {
       dailyJournal: true,
@@ -107,6 +122,9 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       allTradePerformanceAnalysis: true,
       allExtraCards: true,
       alphaHub: true,
+      socialFeedTradeAttach: true,
+      socialFeedEditPosts: true,
+      socialFeedChannels: true,
     },
     badge: { label: 'Elite', colorClass: 'text-purple-400 border-purple-500/50' },
   },

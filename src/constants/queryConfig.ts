@@ -35,3 +35,15 @@ export const SUBSCRIPTION_DATA = {
   staleTime: 5 * MINUTE,
   gcTime: 10 * MINUTE,
 } as const;
+
+/** Social feed posts — short cache for fresh feel. */
+export const FEED_DATA = {
+  staleTime: 1 * MINUTE,
+  gcTime: 5 * MINUTE,
+} as const;
+
+/** Social profiles — refresh every 5 min, evict after 15 min. */
+export const SOCIAL_PROFILE_DATA = {
+  staleTime: 5 * MINUTE,
+  gcTime: 15 * MINUTE,
+} as const;

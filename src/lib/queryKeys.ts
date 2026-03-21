@@ -126,6 +126,23 @@ export const queryKeys = {
   /** Active subscription for a user (tier, features, limits). */
   subscription: (userId?: string) => ['subscription', userId] as const,
 
+  /** Social profile for a user (by userId). */
+  socialProfile: (userId?: string) => ['socialProfile', userId] as const,
+
+  feed: {
+    timeline:     (userId?: string, cursor?: string) => ['feed:timeline',      userId, cursor] as const,
+    post:         (postId: string)                   => ['feed:post',           postId]         as const,
+    comments:     (postId: string, cursor?: string)  => ['feed:comments',       postId, cursor] as const,
+    profile:      (username: string)                 => ['feed:profile',        username]       as const,
+    profilePosts: (profileId: string, cursor?: string) => ['feed:profilePosts', profileId, cursor] as const,
+    notifications:(userId?: string)                  => ['feed:notifications',  userId]         as const,
+    unreadCount:  (userId?: string)                  => ['feed:unreadCount',    userId]         as const,
+    channels:     (userId?: string)                  => ['feed:channels',       userId]         as const,
+    channelPosts: (channelId: string, cursor?: string) => ['feed:channelPosts', channelId, cursor] as const,
+    search:       (query: string, type: string)      => ['feed:search',         query, type]    as const,
+    userTrades:   (userId?: string)                  => ['feed:userTrades',     userId]         as const,
+  },
+
   /** Full Trade[] for a single calendar month (for calendar display). */
   calendarTrades: (
     mode: string,

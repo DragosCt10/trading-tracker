@@ -13,6 +13,7 @@ import {
   Settings,
   Crown,
   Sparkles,
+  Newspaper,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -33,6 +34,7 @@ import { cn } from '@/lib/utils';
 import Logo from '../shared/Logo';
 import { ThemePickerModal } from './ThemePickerModal';
 import { clearLastAccountPreference } from '@/utils/lastAccountCookie';
+import NotificationBell from '@/components/feed/NotificationBell';
 
 interface NavbarProps {
   /** Rendered in the navbar center on responsive (< lg); e.g. ActionBar */
@@ -117,6 +119,10 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
 
   const isStrategiesActive = useMemo(() => isActive('/stats'), [isActive]);
   const isInsightVaultActive = useMemo(() => isActive('/insight-vault'), [isActive]);
+  const isFeedActive = useMemo(
+    () => pathname.startsWith('/feed') || pathname.startsWith('/profile'),
+    [pathname]
+  );
   const isSettingsActive = useMemo(
     () => pathname.startsWith('/settings') || pathname.startsWith('/billing'),
     [pathname]
@@ -190,6 +196,19 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   <Link href="/insight-vault">
                     <Lightbulb className="h-4 w-4" />
                     <span>Insight Vault</span>
+                  </Link>
+                </Button>
+              </li>
+              <li>
+                <Button
+                  variant="ghost"
+                  asChild
+                  size="sm"
+                  className={navButtonClass(isFeedActive)}
+                >
+                  <Link href="/feed">
+                    <Newspaper className="h-4 w-4" />
+                    <span>Alpha Level</span>
                   </Link>
                 </Button>
               </li>
@@ -284,6 +303,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
             </Button>
 
             <Separator orientation="vertical" className="mx-1.5 h-6" />
+            <NotificationBell userId={userId} />
             <Button
               variant="ghost"
               asChild
@@ -378,6 +398,17 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   </Link>
                 </Button>
 
+                <Button
+                  variant="ghost"
+                  asChild
+                  className={cn('w-full justify-start', navButtonClass(isFeedActive))}
+                >
+                  <Link href="/feed" onClick={closeMobileMenu}>
+                    <Newspaper className="h-4 w-4" />
+                    Alpha Level
+                  </Link>
+                </Button>
+
                 {mobileMenuExtra ? (
                   <div className="w-full">{mobileMenuExtra}</div>
                 ) : null}
@@ -464,6 +495,10 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                 )}
 
                 <Separator className="my-2" />
+
+                <div className="flex justify-center">
+                  <NotificationBell userId={userId} />
+                </div>
 
                 <Button
                   variant="ghost"
