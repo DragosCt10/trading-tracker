@@ -34,8 +34,11 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
 }) => {
   const [futureTrades, setFutureTrades] = useState<number>(50);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('r');
+  /** Starter-only: hide locked PRO preview (matches strategy page Hide PRO toggle). */
+  const [showProPreview, setShowProPreview] = useState(true);
   const { isDark } = useDarkMode();
   const isLocked = !isPro;
+  const showHideProToggle = isPro === false;
 
   const simulationData = useMemo(() => {
     if (isLocked) return [];
@@ -47,21 +50,26 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
 
   const hasSufficientData = tradesCount >= MONTE_CARLO_MIN_TRADES;
 
-  const cardContent = (
-    <Card className="mb-4 relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm w-full flex flex-col">
-      {isLocked && (
-        <span className="absolute right-3 top-3 z-20 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
-          <Crown className="w-3 h-3" /> PRO
-        </span>
-      )}
+  if (showHideProToggle && !showProPreview) {
+    return (
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-3 rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 px-4 py-3">
+        <MonteCarloHideProToggle
+          showProCards={showProPreview}
+          onShowProCardsChange={setShowProPreview}
+        />
+      </div>
+    );
+  }
 
+  /** Blurred + overlay region only — tooltip trigger excludes top PRO / Hide PRO controls. */
+  const lockedPreviewBody = (
+    <>
       {isLocked && (
         <div className="pointer-events-none absolute inset-0 z-10 bg-white/10 dark:bg-slate-950/10 backdrop-blur-[2px]" />
       )}
-
       <div
         className={cn(
-          'relative z-0 flex h-full flex-col',
+          'relative z-0 flex h-full min-h-0 flex-1 flex-col',
           isLocked && 'blur-[3px] opacity-70 pointer-events-none select-none'
         )}
       >
@@ -143,7 +151,7 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
             </div>
 
             {hasSufficientData ? (
-              <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+              <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 gap-y-3">
                 {/* R / $ toggle */}
                 <div className="flex items-center rounded-xl border border-slate-200/70 dark:border-slate-700/50 overflow-hidden h-8 text-xs bg-slate-100/60 dark:bg-slate-800/40">
                   <button
@@ -227,31 +235,118 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
         </div>
         </CardContent>
       </div>
+    </>
+  );
+
+  const cardContent = (
+    <Card className="mb-4 relative flex w-full flex-col overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+      {isLocked && (
+        <div className="pointer-events-auto absolute right-3 top-3 z-30 flex max-w-[calc(100%-1.5rem)] flex-row-reverse flex-wrap items-center justify-end gap-2">
+          <span className="flex shrink-0 items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+            <Crown className="w-3 h-3" /> PRO
+          </span>
+          {showHideProToggle && (
+            <MonteCarloHideProToggle
+              showProCards={showProPreview}
+              onShowProCardsChange={setShowProPreview}
+              compact
+              onPointerDown={(e) => e.stopPropagation()}
+            />
+          )}
+        </div>
+      )}
+
+      {isLocked ? (
+        <TooltipProvider delayDuration={120}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="relative flex min-h-0 w-full flex-1 flex-col outline-none">
+                {lockedPreviewBody}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent
+              side="top"
+              align="start"
+              sideOffset={8}
+              className="max-w-sm text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50"
+            >
+              The data shown under the blur card is fictive and for demo purposes only.
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ) : (
+        lockedPreviewBody
+      )}
     </Card>
   );
 
-  if (isLocked) {
-    return (
-      <TooltipProvider delayDuration={120}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {cardContent}
-          </TooltipTrigger>
-          <TooltipContent
-            side="top"
-            align="start"
-            sideOffset={8}
-            className="max-w-sm text-xs rounded-2xl p-3 border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50"
-          >
-            The data shown under the blur card is fictive and for demo purposes only.
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
   return cardContent;
 };
+
+/** Same interaction + styling as `ViewModeToggle` Hide PRO (starter users only). */
+function MonteCarloHideProToggle({
+  showProCards,
+  onShowProCardsChange,
+  withLeadingSeparator = false,
+  compact = false,
+  onPointerDown,
+}: {
+  showProCards: boolean;
+  onShowProCardsChange: (show: boolean) => void;
+  withLeadingSeparator?: boolean;
+  compact?: boolean;
+  onPointerDown?: React.PointerEventHandler<HTMLDivElement>;
+}) {
+  return (
+    <div onPointerDown={onPointerDown} className="shrink-0">
+      {withLeadingSeparator && (
+        <>
+          <div
+            className="hidden sm:block h-7 w-px shrink-0 self-center bg-slate-300 dark:bg-slate-600"
+            aria-hidden
+          />
+          <div
+            className="sm:hidden w-full min-w-full basis-full shrink-0 h-px bg-slate-300 dark:bg-slate-600"
+            aria-hidden
+          />
+        </>
+      )}
+      <div className={cn('flex items-center', compact ? 'gap-2' : 'gap-3')}>
+        <button
+          type="button"
+          onClick={() => onShowProCardsChange(!showProCards)}
+          aria-label={showProCards ? 'Hide PRO statistics' : 'Show PRO statistics'}
+          className={cn(
+            'relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 themed-focus focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 shadow-md cursor-pointer',
+            !showProCards
+              ? 'themed-toggle-active bg-gradient-to-r from-purple-500 to-violet-600 shadow-purple-500/40 dark:shadow-purple-900/50'
+              : 'bg-gradient-to-r from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-700'
+          )}
+        >
+          <span
+            className={cn(
+              'inline-block h-5 w-5 transform rounded-full bg-white transition-all duration-300 shadow-md border',
+              !showProCards
+                ? 'translate-x-[24px] border-white/50'
+                : 'translate-x-[4px] border-slate-200/50 dark:border-slate-600/50'
+            )}
+          />
+        </button>
+        <span
+          className={cn(
+            'font-semibold transition-all duration-300',
+            compact ? 'text-xs' : 'text-sm',
+            !showProCards
+              ? 'text-slate-900 dark:text-slate-100'
+              : 'text-slate-500 dark:text-slate-400'
+          )}
+        >
+          Hide PRO
+        </span>
+      </div>
+    </div>
+  );
+}
 
 // ─── Small helpers ─────────────────────────────────────────────────────────────
 
