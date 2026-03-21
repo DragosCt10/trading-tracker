@@ -3,6 +3,7 @@
 import { cache } from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from './session';
+import { getCachedSubscription } from './subscription';
 import type { SocialProfile, PaginatedResult } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 
@@ -30,6 +31,32 @@ function mapRow(row: Record<string, unknown>): SocialProfile {
     created_at:      row.created_at as string,
     updated_at:      row.updated_at as string,
   };
+}
+
+function resolveTierFromSubscription(tier: TierId, isActive: boolean): TierId {
+  return isActive ? tier : 'starter';
+}
+
+async function syncProfileTierIfNeeded(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  profile: SocialProfile
+): Promise<SocialProfile> {
+  const subscription = await getCachedSubscription(profile.user_id);
+  const canonicalTier = resolveTierFromSubscription(subscription.tier, subscription.isActive);
+  if (profile.tier === canonicalTier) return profile;
+
+  const nowIso = new Date().toISOString();
+  const { data: updated } = await supabase
+    .from('social_profiles')
+    .update({ tier: canonicalTier, updated_at: nowIso })
+    .eq('id', profile.id)
+    .select('*')
+    .single();
+
+  if (!updated) {
+    return { ...profile, tier: canonicalTier, updated_at: nowIso };
+  }
+  return mapRow(updated as Record<string, unknown>);
 }
 
 /** Generate a unique username from an email prefix with retry. */
@@ -70,7 +97,8 @@ async function _getSocialProfile(userId: string): Promise<SocialProfile | null> 
     .single();
 
   if (error || !data) return null;
-  return mapRow(data as Record<string, unknown>);
+  const profile = mapRow(data as Record<string, unknown>);
+  return syncProfileTierIfNeeded(supabase, profile);
 }
 
 export const getCachedSocialProfile = cache(_getSocialProfile);
@@ -115,29 +143,33 @@ export async function ensureSocialProfile(): Promise<SocialProfile | null> {
     .eq('user_id', userId)
     .single();
 
-  if (existing) return mapRow(existing as Record<string, unknown>);
+  let profile = existing ? mapRow(existing as Record<string, unknown>) : null;
 
-  // Derive display_name and username from email
-  const email = session.user!.email ?? '';
-  const emailPrefix = email.split('@')[0] ?? 'user';
-  const displayName = emailPrefix
-    .replace(/[._-]/g, ' ')
-    .replace(/\b\w/g, (c: string) => c.toUpperCase());
+  if (!profile) {
+    // Derive display_name and username from email
+    const email = session.user!.email ?? '';
+    const emailPrefix = email.split('@')[0] ?? 'user';
+    const displayName = emailPrefix
+      .replace(/[._-]/g, ' ')
+      .replace(/\b\w/g, (c: string) => c.toUpperCase());
 
-  const username = await generateUniqueUsername(supabase, emailPrefix);
+    const username = await generateUniqueUsername(supabase, emailPrefix);
 
-  const { data: created, error } = await supabase
-    .from('social_profiles')
-    .insert({ user_id: userId, display_name: displayName, username })
-    .select('*')
-    .single();
+    const { data: created, error } = await supabase
+      .from('social_profiles')
+      .insert({ user_id: userId, display_name: displayName, username })
+      .select('*')
+      .single();
 
-  if (error || !created) {
-    console.error('[ensureSocialProfile] insert error:', error);
-    return null;
+    if (error || !created) {
+      console.error('[ensureSocialProfile] insert error:', error);
+      return null;
+    }
+
+    profile = mapRow(created as Record<string, unknown>);
   }
 
-  return mapRow(created as Record<string, unknown>);
+  return syncProfileTierIfNeeded(supabase, profile);
 }
 
 // ─── Write ───────────────────────────────────────────────────────────────────
