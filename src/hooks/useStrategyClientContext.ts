@@ -19,8 +19,8 @@ export function useStrategyClientContext({
   initialMode,
   initialActiveAccount,
 }: UseStrategyClientContextParams) {
-  const { data: userDetails } = useUserDetails();
-  const { selection, setSelection } = useActionBarSelection();
+  const { data: userDetails, isLoading: userLoading } = useUserDetails();
+  const { selection, setSelection, actionBarloading } = useActionBarSelection();
 
   const userId = userDetails?.user?.id ?? initialUserId;
   const mode = selection.mode ?? initialMode;
@@ -36,8 +36,11 @@ export function useStrategyClientContext({
     mode === initialMode && activeAccount?.id === initialActiveAccount?.id;
 
   return {
+    userDetails,
+    userLoading,
     selection,
     setSelection,
+    actionBarloading,
     userId,
     mode,
     activeAccount,

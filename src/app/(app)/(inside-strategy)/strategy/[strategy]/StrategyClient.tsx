@@ -21,13 +21,12 @@ import { Trade } from '@/types/trade';
 import type { AccountSettings } from '@/types/account-settings';
 import type { DashboardApiResponse } from '@/types/dashboard-rpc';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { useUserDetails } from '@/hooks/useUserDetails';
-import { useActionBarSelection } from '@/hooks/useActionBarSelection';
-import { useAccounts } from '@/hooks/useAccounts';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { TRADES_DATA } from '@/constants/queryConfig';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useStrategyDashboardContext } from '@/hooks/useStrategyDashboardContext';
+import { hydrateStrategyDashboardCache } from '@/utils/hydrateStrategyDashboardCache';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -568,37 +567,23 @@ export default function StrategyClient(
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
 
-  const { data: userData, isLoading: userLoading } = useUserDetails();
-  const { selection, setSelection, actionBarloading } = useActionBarSelection();
-  const { accounts: accountsForMode } = useAccounts({ userId: userData?.user?.id, pendingMode: selection.mode });
-
-  // Prefer ActionBar selection (what user applied) over server props so switching account/mode in the bar updates the dashboard.
-  // When there are no accounts for this mode (e.g. user deleted all subaccounts), show no account so AccountOverviewCard shows "No Active Account".
-  const activeAccount = selection.activeAccount ?? props?.initialActiveAccount ?? null;
-  const candidateAccount = activeAccount;
-  const resolvedAccount =
-    accountsForMode.length === 0
-      ? null
-      : candidateAccount && accountsForMode.some((a) => a.id === candidateAccount.id)
-        ? candidateAccount
-        : null;
-  // Sync ActionBar selection from server only when there is no existing selection.
-  // AppLayout pre-populates the selection on first paint; this effect is a fallback for
-  // edge cases (e.g. no accounts). Using !selection.activeAccount prevents overwriting
-  // a mode the user explicitly chose in the ActionBar when navigating between strategies.
-  useEffect(() => {
-    if (props?.initialActiveAccount && !selection.activeAccount && props.initialMode) {
-      setSelection({
-        mode: props.initialMode,
-        activeAccount: props.initialActiveAccount as Parameters<typeof setSelection>[0]['activeAccount'],
-      });
-    }
-  }, [props?.initialActiveAccount, props?.initialMode, setSelection, selection.activeAccount]);
+  const {
+    userDetails: userData,
+    userLoading,
+    selection,
+    actionBarloading,
+    userId,
+    activeAccount,
+    resolvedAccount,
+  } = useStrategyDashboardContext({
+    initialUserId: props?.initialUserId ?? '',
+    initialMode: props?.initialMode ?? 'live',
+    initialActiveAccount: props?.initialActiveAccount ?? null,
+  });
 
   // Store strategyId from props
   const strategyId = props?.initialStrategyId ?? null;
 
-  const userId = userData?.user?.id;
   const { isPro } = useSubscription({ userId: props?.initialUserId });
   /** PRO subscribers always see PRO sections; toggle only applies to Starter. */
   const showProContent = isPro || showProCards;
@@ -652,93 +637,14 @@ export default function StrategyClient(
     (['launch_hour', 'avg_displacement', 'displacement_size', 'fvg_size', 'potential_rr'] as ExtraCardKey[]).includes(k)
   );
 
-  // Helper function to hydrate React Query cache
-  const hydrateQueryCache = useCallback(() => {
-    const uid = props?.initialUserId;
-    const acc = props?.initialActiveAccount;
-    const dr = props?.initialDateRange;
-    const yr = props?.initialSelectedYear;
-    
-    if (!uid || !acc?.id || !dr) return;
-    
-    const mode = props?.initialMode ?? 'live';
-    const year = yr ?? new Date().getFullYear();
-    // Initial hydration uses dateRange mode (default viewMode), so use dr boundaries
-    const initialViewMode: 'yearly' | 'dateRange' = 'dateRange';
-    const effectiveStartDate = dr.startDate;
-    const effectiveEndDate = dr.endDate;
-    
-    const queryKeyAllTrades = queryKeys.trades.all(mode, acc.id, uid, year, strategyId);
-    const queryKeyFilteredTrades = queryKeys.trades.filtered(
-      mode,
-      acc.id,
-      uid,
-      initialViewMode,
-      effectiveStartDate,
-      effectiveEndDate,
-      strategyId,
-    );
-    
-    // Only hydrate if data doesn't already exist AND we haven't recently invalidated trade data
-    // This prevents stale initialData from being used after a trade's strategy_id changes
-    const wasInvalidated = typeof window !== 'undefined' && sessionStorage.getItem('trade-data-invalidated');
-    const shouldSkipHydration = wasInvalidated && (Date.now() - parseInt(wasInvalidated, 10)) < 30000; // Skip hydration for 30 seconds after invalidation
-    
-    // Only hydrate trades cache if the server actually provided trade arrays.
-    // StrategyData.tsx no longer passes initialFilteredTrades/initialAllTrades
-    // (Phase 1: trades come from getFilteredTrades() via useDashboardData Query 2).
-    // Setting the cache to [] would lock it there (refetchOnMount: false) and
-    // prevent Query 2 from ever fetching the real trades.
-    if (
-      props?.initialFilteredTrades != null &&
-      queryClient.getQueryData(queryKeyAllTrades) === undefined &&
-      !shouldSkipHydration
-    ) {
-      queryClient.setQueryData(queryKeyFilteredTrades, props.initialFilteredTrades);
-      queryClient.setQueryData(queryKeyAllTrades, props.initialAllTrades ?? []);
-      queryClient.setQueryData(
-        queryKeys.trades.nonExecuted(
-          mode,
-          acc.id,
-          uid,
-          initialViewMode,
-          effectiveStartDate,
-          effectiveEndDate,
-          strategyId,
-        ),
-        props.initialNonExecutedTrades ?? []
-      );
-    }
-
-    // Hydrate dashboard stats (same key as useDashboardData) so client doesn't call /api/dashboard-stats on first load (audit 2.1).
-    const dashboardStatsKey = queryKeys.dashboardStats(
-      mode,
-      acc.id,
-      uid,
-      strategyId,
-      year,
-      initialViewMode,
-      effectiveStartDate,
-      effectiveEndDate,
-      'executed',
-      'all',
-    );
-    // Only hydrate if cache is empty — prevents infinite render loop caused by
-    // setQueryData notifying observers (useDashboardData) on every render.
-    if (props?.initialDashboardStats != null && queryClient.getQueryData(dashboardStatsKey) === undefined) {
-      queryClient.setQueryData(dashboardStatsKey, props.initialDashboardStats);
-    }
-    
-    // Clear the invalidation flag after hydration check
-    if (shouldSkipHydration && typeof window !== 'undefined') {
-      sessionStorage.removeItem('trade-data-invalidated');
-    }
-  }, [props, queryClient, strategyId]);
-
   // Hydrate React Query cache once on mount. Calling setQueryData during render is a
   // side-effect anti-pattern — moved to useEffect to prevent infinite render loops.
   useEffect(() => {
-    hydrateQueryCache();
+    hydrateStrategyDashboardCache({
+      queryClient,
+      props,
+      strategyId,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount with server initial data
   }, []);
 
