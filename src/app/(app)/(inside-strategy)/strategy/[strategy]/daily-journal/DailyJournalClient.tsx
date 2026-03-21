@@ -162,7 +162,7 @@ export default function DailyJournalClient({
     initialActiveAccount,
   });
   const { isPro } = useSubscription({ userId });
-  const { allTradesData, tradesLoading } = useStrategyAllTimeTrades({
+  const { allTradesData, tradesLoading, tradesError, refetchTrades } = useStrategyAllTimeTrades({
     userId,
     activeAccountId: activeAccount?.id,
     mode,
@@ -362,6 +362,22 @@ export default function DailyJournalClient({
             showAllTradesOption={true}
             displayStartDate={earliestTradeDate}
           />
+        </div>
+      )}
+
+      {activeAccount && tradesError && (
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
+          Failed to load all strategy trades.{' '}
+          <button
+            type="button"
+            onClick={() => {
+              void refetchTrades();
+            }}
+            className="cursor-pointer underline underline-offset-2"
+          >
+            Try again
+          </button>
+          .
         </div>
       )}
 

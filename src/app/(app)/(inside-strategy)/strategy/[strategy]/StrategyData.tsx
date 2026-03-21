@@ -1,17 +1,14 @@
 import { Suspense } from 'react';
+import { redirect } from 'next/navigation';
 import { getDashboardApiResponse } from '@/lib/server/dashboardApiResponse';
 import { resolveActiveAccountFromCookies } from '@/lib/server/accounts';
 import { format, startOfYear, endOfYear } from 'date-fns';
 import { getStrategyBySlug } from '@/lib/server/strategies';
+import { raceWithTimeout } from '@/utils/raceWithTimeout';
 import StrategyClient from './StrategyClient';
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { User } from '@supabase/supabase-js';
 import { StrategySkeleton } from '@/components/skeletons/StrategySkeleton';
-
-/** Resolves to null after `ms` milliseconds — used to cap the stats prefetch. */
-function timeout(ms: number): Promise<null> {
-  return new Promise((resolve) => setTimeout(() => resolve(null), ms));
-}
 
 async function StrategyDataFetcher({ user, strategySlug }: { user: User; strategySlug: string }) {
   const today = new Date();
@@ -32,18 +29,7 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
   const initialExtraCards = (strategy?.extra_cards ?? []) as ExtraCardKey[];
 
   if (strategySlug && !strategy) {
-    return (
-      <StrategyClient
-        initialUserId={user.id}
-        initialDateRange={initialDateRange}
-        initialSelectedYear={initialSelectedYear}
-        initialMode={mode}
-        initialActiveAccount={null}
-        initialStrategyId={null}
-        initialStrategyName={null}
-        initialExtraCards={[]}
-      />
-    );
+    redirect('/stats');
   }
 
   if (!activeAccount) {
@@ -67,7 +53,7 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
   // (~500 ms) — far better than blocking the Suspense boundary for 3–7 s.
   let initialDashboardStats: Awaited<ReturnType<typeof getDashboardApiResponse>> | null = null;
   try {
-    initialDashboardStats = await Promise.race([
+    initialDashboardStats = await raceWithTimeout(
       getDashboardApiResponse({
         userId: user.id,
         accountId: activeAccount.id,
@@ -83,8 +69,9 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
           (['launch_hour', 'avg_displacement', 'displacement_size', 'fvg_size', 'potential_rr'] as ExtraCardKey[]).includes(k)
         ),
       }),
-      timeout(1000),
-    ]);
+      1000,
+      null
+    );
   } catch (error) {
     console.error('Error fetching initial dashboard stats:', (error as any)?.message ?? error);
   }

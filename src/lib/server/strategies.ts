@@ -488,17 +488,30 @@ export async function deleteArchivedStrategiesOlderThan30Days(
 /**
  * Updates the saved custom stat configurations for a specific strategy.
  */
+async function getAuthorizedUserId(expectedUserId: string): Promise<string | null> {
+  const { user } = await getCachedUserSession();
+  if (!user || user.id !== expectedUserId) {
+    return null;
+  }
+  return user.id;
+}
+
 export async function updateStrategyCustomStats(
   strategyId: string,
   userId: string,
   stats: CustomStatConfig[]
 ): Promise<{ error: Error | null }> {
+  const authorizedUserId = await getAuthorizedUserId(userId);
+  if (!authorizedUserId) {
+    return { error: new Error('Unauthorized') };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase
     .from('strategies')
     .update({ saved_custom_stats: stats, updated_at: new Date().toISOString() })
     .eq('id', strategyId)
-    .eq('user_id', userId);
+    .eq('user_id', authorizedUserId);
 
   if (error) {
     console.error('Error updating strategy custom stats:', error);
@@ -515,12 +528,18 @@ export async function updateStrategySetupTypes(
   userId: string,
   types: string[]
 ): Promise<void> {
+  const authorizedUserId = await getAuthorizedUserId(userId);
+  if (!authorizedUserId) {
+    console.error('Unauthorized attempt to update strategy setup types');
+    return;
+  }
+
   const supabase = await createClient();
   const { error } = await supabase
     .from('strategies')
     .update({ saved_setup_types: types, updated_at: new Date().toISOString() })
     .eq('id', strategyId)
-    .eq('user_id', userId);
+    .eq('user_id', authorizedUserId);
 
   if (error) {
     console.error('Error updating strategy setup types:', error);
@@ -535,12 +554,18 @@ export async function updateStrategyLiquidityTypes(
   userId: string,
   types: string[]
 ): Promise<void> {
+  const authorizedUserId = await getAuthorizedUserId(userId);
+  if (!authorizedUserId) {
+    console.error('Unauthorized attempt to update strategy liquidity types');
+    return;
+  }
+
   const supabase = await createClient();
   const { error } = await supabase
     .from('strategies')
     .update({ saved_liquidity_types: types, updated_at: new Date().toISOString() })
     .eq('id', strategyId)
-    .eq('user_id', userId);
+    .eq('user_id', authorizedUserId);
 
   if (error) {
     console.error('Error updating strategy liquidity types:', error);

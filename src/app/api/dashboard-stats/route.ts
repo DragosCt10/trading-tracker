@@ -42,6 +42,23 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid accountBalance' }, { status: 400 });
   }
 
+  const { data: ownedAccount, error: accountOwnershipError } = await supabase
+    .from('account_settings')
+    .select('id')
+    .eq('id', accountId)
+    .eq('user_id', user.id)
+    .eq('mode', mode)
+    .maybeSingle();
+
+  if (accountOwnershipError) {
+    console.error('dashboard-stats account ownership check failed:', accountOwnershipError);
+    return NextResponse.json({ error: 'Failed to validate account access' }, { status: 500 });
+  }
+
+  if (!ownedAccount) {
+    return NextResponse.json({ error: 'Forbidden account access' }, { status: 403 });
+  }
+
   const response = await getDashboardApiResponse({
     userId: user.id,
     accountId,

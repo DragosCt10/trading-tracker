@@ -6,6 +6,7 @@ import { resolveActiveAccountFromCookies } from '@/lib/server/accounts';
 import { getStrategyBySlug } from '@/lib/server/strategies';
 import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import { queryKeys } from '@/lib/queryKeys';
+import { raceWithTimeout } from '@/utils/raceWithTimeout';
 import MyTradesClient from './MyTradesClient';
 import { MyTradesSkeleton } from './MyTradesSkeleton';
 import type { User } from '@supabase/supabase-js';
@@ -45,7 +46,7 @@ async function MyTradesDataFetcher({
   const queryClient = new QueryClient();
   const key = queryKeys.trades.filtered(mode, activeAccount.id, user.id, 'dateRange', '2000-01-01', initialDateRange.endDate, initialStrategyId);
   const { startDate, endDate } = createAllTimeRange(today);
-  const tradesResult = await Promise.race([
+  const tradesResult = await raceWithTimeout(
     getFilteredTrades({
       userId: user.id,
       accountId: activeAccount.id,
@@ -55,8 +56,9 @@ async function MyTradesDataFetcher({
       includeNonExecuted: true,
       strategyId: initialStrategyId,
     }),
-    new Promise<null>((resolve) => setTimeout(() => resolve(null), PREFETCH_TIMEOUT_MS)),
-  ]);
+    PREFETCH_TIMEOUT_MS,
+    null
+  );
   if (tradesResult !== null) {
     queryClient.setQueryData(key, tradesResult);
   }
