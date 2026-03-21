@@ -123,7 +123,7 @@ export async function grantSubscription(userId: string, tier: TierId): Promise<v
   if (error) throw new Error(`grantSubscription failed: ${error.message}`);
 
   // Sync tier to social_profiles so the feed PRO badge reflects the grant immediately
-  await supabase
+  await (supabase as ReturnType<typeof createServiceRoleClient> & { from: (table: string) => any })
     .from('social_profiles')
     .update({ tier, updated_at: new Date().toISOString() })
     .eq('user_id', userId);

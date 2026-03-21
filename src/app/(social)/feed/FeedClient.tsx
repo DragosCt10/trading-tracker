@@ -16,13 +16,14 @@ import SearchBar from '@/components/feed/SearchBar';
 import type { SocialProfile, FeedPost, PaginatedResult } from '@/types/social';
 
 interface FeedClientProps {
-  userId: string;
+  userId: string | null;
   initialProfile: SocialProfile | null;
   initialFeed: PaginatedResult<FeedPost>;
 }
 
 export default function FeedClient({ userId, initialProfile, initialFeed }: FeedClientProps) {
-  const { subscription } = useSubscription({ userId });
+  const uid = userId ?? undefined;
+  const { subscription } = useSubscription({ userId: uid });
   const [createOpen, setCreateOpen] = useState(false);
   const [createError, setCreateError] = useState('');
   const [editPost, setEditPost] = useState<FeedPost | null>(null);
@@ -30,9 +31,9 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
 
   const isPro = subscription?.tier === 'pro' || subscription?.tier === 'elite';
 
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(userId, initialFeed);
-  const { like, create, edit, remove, report } = usePostActions(userId);
-  const { data: myChannels = [] } = useMyChannels(userId);
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(uid, initialFeed);
+  const { like, create, edit, remove, report } = usePostActions(uid);
+  const { data: myChannels = [] } = useMyChannels(uid);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useCallback(
@@ -70,7 +71,7 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
               <h1 className="text-2xl font-bold text-slate-100">Alpha Level</h1>
               <p className="text-sm text-slate-500 mt-0.5">What are traders thinking right now</p>
             </div>
-            {initialProfile && subscription && (
+            {userId && initialProfile && subscription ? (
               <Button
                 onClick={() => { setCreateError(''); setCreateOpen(true); }}
                 className="themed-btn-primary relative overflow-hidden rounded-xl text-white font-semibold border-0 group gap-2"
@@ -79,7 +80,13 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
                 <span className="relative z-10 text-sm">Post</span>
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
               </Button>
-            )}
+            ) : !userId ? (
+              <Link href="/login">
+                <Button variant="outline" size="sm" className="rounded-xl border-slate-700 text-slate-300 hover:text-slate-100 hover:bg-slate-800">
+                  Sign in to post
+                </Button>
+              </Link>
+            ) : null}
           </div>
 
           {/* Feed */}
@@ -98,7 +105,7 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
                 <PostCard
                   key={post.id}
                   post={post}
-                  currentUserId={userId}
+                  currentUserId={uid}
                   currentProfileId={initialProfile?.id}
                   currentUserTier={subscription?.tier}
                   onLike={(id) => like.mutate(id)}
@@ -185,8 +192,8 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
         </aside>
       </div>
 
-      {/* Modals */}
-      {subscription && (
+      {/* Modals — only rendered when authenticated */}
+      {userId && subscription && (
         <CreatePostModal
           open={createOpen}
           onClose={() => setCreateOpen(false)}
@@ -197,7 +204,7 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
           submitError={createError}
         />
       )}
-      {editPost && subscription && (
+      {editPost && userId && subscription && (
         <CreatePostModal
           open={!!editPost}
           onClose={() => setEditPost(null)}
@@ -215,7 +222,7 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
       <CreateChannelModal
         open={channelModalOpen}
         onClose={() => setChannelModalOpen(false)}
-        userId={userId}
+        userId={uid}
       />
     </div>
   );
