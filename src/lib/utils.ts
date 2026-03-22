@@ -5,10 +5,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-/** Format percentage for display: whole numbers as "100", "50", "0"; otherwise two decimals. */
+/**
+ * Format a numeric value for display (rates, percentages, RR, etc.):
+ * integers as "1", "50"; fractional values up to 2 decimals with trailing zeros dropped ("1.5", "2.25").
+ */
 export function formatPercent(value: number): string {
+  if (!Number.isFinite(value)) return '0'
   const rounded = Math.round(value * 100) / 100
-  return Number.isInteger(rounded) ? String(Math.round(rounded)) : value.toFixed(2)
+  if (Number.isInteger(rounded)) return String(rounded)
+  return rounded.toFixed(2).replace(/\.?0+$/, '')
 }
 
 /** Round to 2 decimal places (cents) for consistent currency display across components. */

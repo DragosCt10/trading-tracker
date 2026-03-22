@@ -363,3 +363,33 @@ export async function unfollowUser(
 
   return { data: { following_id: targetProfileId } };
 }
+
+export async function removeFollower(
+  followerProfileId: string
+): Promise<ProfileResult<{ follower_id: string }>> {
+  const session = await getCachedUserSession();
+  if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+
+  const supabase = await createClient();
+
+  const { data: ownProfile } = await supabase
+    .from('social_profiles')
+    .select('id')
+    .eq('user_id', session.user!.id)
+    .single();
+
+  if (!ownProfile) return { error: 'Profile not found', code: 'NOT_FOUND' };
+
+  const { error } = await supabase
+    .from('follows')
+    .delete()
+    .eq('follower_id', followerProfileId)
+    .eq('following_id', (ownProfile as { id: string }).id);
+
+  if (error) {
+    console.error('[removeFollower] error:', error);
+    return { error: 'Failed to remove follower', code: 'DB_ERROR' };
+  }
+
+  return { data: { follower_id: followerProfileId } };
+}

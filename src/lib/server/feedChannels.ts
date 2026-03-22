@@ -77,7 +77,19 @@ export async function getMyChannels(): Promise<FeedChannel[]> {
     (a, b) => new Date(b.updated_at as string).getTime() - new Date(a.updated_at as string).getTime()
   );
 
-  return deduped.map((r) => mapRow(r));
+  const channelIds = deduped.map((r) => r.id as string);
+  const countMap: Record<string, number> = {};
+  if (channelIds.length > 0) {
+    const { data: memberCountRows } = await supabase
+      .from('channel_members')
+      .select('channel_id')
+      .in('channel_id', channelIds);
+    (memberCountRows ?? []).forEach((m: { channel_id: string }) => {
+      countMap[m.channel_id] = (countMap[m.channel_id] ?? 0) + 1;
+    });
+  }
+
+  return deduped.map((r) => ({ ...mapRow(r), member_count: countMap[r.id as string] ?? 0 }));
 }
 
 export async function getPublicChannels(

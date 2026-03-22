@@ -1,13 +1,16 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Hash, Plus, Globe } from 'lucide-react';
+import { useState, useRef, useEffect, useTransition } from 'react';
+import { Hash, Plus, Globe, Lock, Loader2, Users } from 'lucide-react';
 import Link from 'next/link';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useFeed } from '@/hooks/useFeed';
 import { usePostActions } from '@/hooks/usePostActions';
 import { useMyChannels } from '@/hooks/useChannels';
+import { updateChannel } from '@/lib/server/feedChannels';
+import { queryKeys } from '@/lib/queryKeys';
 import FeedPostList from '@/components/feed/FeedPostList';
 import InlineCreatePostCard from '@/components/feed/InlineCreatePostCard';
 import EditPostModal from '@/components/feed/EditPostModal';
@@ -42,8 +45,22 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(uid, feedInitialData, undefined, feedView);
   const { like, create, edit, remove, report } = usePostActions(uid);
   const { data: myChannels = [] } = useMyChannels(uid);
+  const queryClient = useQueryClient();
+  const [pendingChannelId, setPendingChannelId] = useState<string | null>(null);
+  const [, startChannelTransition] = useTransition();
 
   const posts = data?.pages.flatMap((p) => p.items) ?? [];
+
+  function handleChannelToggle(e: React.MouseEvent, channelId: string, currentlyPublic: boolean) {
+    e.preventDefault();
+    e.stopPropagation();
+    setPendingChannelId(channelId);
+    startChannelTransition(async () => {
+      await updateChannel(channelId, { isPublic: !currentlyPublic });
+      setPendingChannelId(null);
+      queryClient.invalidateQueries({ queryKey: queryKeys.feed.channels(uid) });
+    });
+  }
 
   /** Match AppLayout ActionBar: hide on scroll down, show on scroll up; near top always expanded */
   useEffect(() => {
@@ -79,7 +96,7 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
       {/* 8rem = layout pt-20 (5rem) + this page py-6 (3rem); inner column scrolls feed only */}
       <div className="flex gap-6 items-stretch min-h-0 h-[calc(100dvh-8rem)] max-h-[calc(100dvh-8rem)]">
         {/* Main feed */}
-        <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-4">
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-6">
           <div className="shrink-0 rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-1">
             <div className="grid grid-cols-3 gap-1">
               {([
@@ -165,22 +182,55 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
                 </div>
               ) : (
                 <div className="divide-y divide-slate-200/80 dark:divide-slate-800/60">
-                  {myChannels.map((channel) => (
-                    <Link
-                      key={channel.id}
-                      href={`/feed/channel/${channel.slug}`}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/40 transition-colors"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-slate-200/90 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-300/60 dark:border-slate-700/60">
-                        <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                  {myChannels.map((channel) => {
+                    const isOwner = channel.owner_id === initialProfile?.id;
+                    const isPendingThis = pendingChannelId === channel.id;
+                    return (
+                      <div key={channel.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/40 transition-colors">
+                        <Link href={`/feed/channel/${channel.slug}`} className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-slate-200/90 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-300/60 dark:border-slate-700/60">
+                            <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{channel.name}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <p className="text-xs text-slate-500 dark:text-slate-600 truncate">#{channel.slug}</p>
+                              {channel.member_count != null && (
+                                <>
+                                  <span className="text-slate-300 dark:text-slate-700 text-xs">·</span>
+                                  <span className="flex items-center gap-0.5 text-xs text-slate-400 dark:text-slate-600">
+                                    <Users className="w-3 h-3" />
+                                    {channel.member_count}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+                        {isOwner ? (
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={channel.is_public}
+                            disabled={isPendingThis}
+                            onClick={(e) => handleChannelToggle(e, channel.id, channel.is_public)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none shrink-0 disabled:opacity-50 ${
+                              channel.is_public ? 'themed-btn-primary' : 'bg-slate-300 dark:bg-slate-600'
+                            }`}
+                          >
+                            {isPendingThis
+                              ? <Loader2 className="absolute inset-0 m-auto w-3 h-3 animate-spin text-white" />
+                              : <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${channel.is_public ? 'translate-x-6' : 'translate-x-1'}`} />
+                            }
+                          </button>
+                        ) : (
+                          channel.is_public
+                            ? <Globe className="w-3.5 h-3.5 text-slate-500 dark:text-slate-600 shrink-0" />
+                            : <Lock  className="w-3.5 h-3.5 text-slate-500 dark:text-slate-600 shrink-0" />
+                        )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{channel.name}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-600 truncate">#{channel.slug}</p>
-                      </div>
-                      {channel.is_public ? <Globe className="w-3.5 h-3.5 text-slate-500 dark:text-slate-600 shrink-0" /> : null}
-                    </Link>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -211,7 +261,7 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
         </div>
 
         {/* Sidebar — height follows content; long channel lists scroll inside a capped area */}
-        <aside className="hidden lg:flex flex-col gap-4 w-72 shrink-0 self-start">
+        <aside className="hidden lg:flex flex-col gap-6 w-72 shrink-0 self-start">
           <div className="shrink-0 rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-1">
             <SearchBar />
           </div>
@@ -261,11 +311,22 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate">{channel.name}</p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-600 truncate">#{channel.slug}</p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <p className="text-[10px] text-slate-500 dark:text-slate-600 truncate">#{channel.slug}</p>
+                        {channel.member_count != null && (
+                          <>
+                            <span className="text-slate-300 dark:text-slate-700 text-[10px]">·</span>
+                            <span className="flex items-center gap-0.5 text-[10px] text-slate-400 dark:text-slate-600">
+                              <Users className="w-2.5 h-2.5" />
+                              {channel.member_count}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                     {channel.is_public
                       ? <Globe className="w-3 h-3 text-slate-500 dark:text-slate-600 shrink-0" />
-                      : null
+                      : <Lock  className="w-3 h-3 text-slate-500 dark:text-slate-600 shrink-0" />
                     }
                   </Link>
                 ))

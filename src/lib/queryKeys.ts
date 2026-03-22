@@ -140,6 +140,8 @@ export const queryKeys = {
     channels:      (userId?: string)                   => ['feed:channels',       userId]         as const,
     channelPosts:  (channelId: string)                 => ['feed:channelPosts',   channelId]      as const,
     search:        (query: string, type: string)       => ['feed:search',         query, type]    as const,
+    followers:     (profileId?: string)                => ['feed:followers',      profileId]      as const,
+    following:     (profileId?: string)                => ['feed:following',      profileId]      as const,
   },
 
   /** Full Trade[] for a single calendar month (for calendar display). */

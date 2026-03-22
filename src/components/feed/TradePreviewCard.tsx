@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { TradeSnapshot } from '@/types/social';
+import { formatPercent } from '@/lib/utils';
 import { formatTradeEntryDate } from '@/utils/feedDateFormat';
 
 interface TradePreviewCardProps {
@@ -34,7 +35,7 @@ export default function TradePreviewCard({ snapshot }: TradePreviewCardProps) {
     snapshot.direction.charAt(0).toUpperCase() + snapshot.direction.slice(1);
 
   return (
-    <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-100/60 dark:bg-slate-800/35 shadow-md shadow-slate-200/40 dark:shadow-none backdrop-blur-sm overflow-hidden">
+    <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-transparent shadow-none overflow-hidden">
       {/* Header — two-zone */}
       <div className="flex items-start justify-between gap-4 px-4 py-3">
         {/* Left: market · direction */}
@@ -51,11 +52,11 @@ export default function TradePreviewCard({ snapshot }: TradePreviewCardProps) {
 
           {/* Stat strip */}
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded-md bg-slate-200/90 dark:bg-slate-700/60 border border-slate-300/60 dark:border-slate-600/40 text-xs font-semibold text-slate-700 dark:text-slate-200 tabular-nums">
-              RR <span className="text-slate-900 dark:text-slate-100">{snapshot.rr.toFixed(2)}R</span>
+            <span className="px-2 py-0.5 rounded-md bg-transparent border border-slate-300/60 dark:border-slate-600/50 text-xs font-semibold text-slate-700 dark:text-slate-200 tabular-nums">
+              RR <span className="text-slate-900 dark:text-slate-100">{formatPercent(snapshot.rr)}R</span>
             </span>
-            <span className="px-2 py-0.5 rounded-md bg-slate-200/90 dark:bg-slate-700/60 border border-slate-300/60 dark:border-slate-600/40 text-xs font-semibold text-slate-700 dark:text-slate-200 tabular-nums">
-              Risk <span className="text-slate-900 dark:text-slate-100">{snapshot.riskPct.toFixed(2)}%</span>
+            <span className="px-2 py-0.5 rounded-md bg-transparent border border-slate-300/60 dark:border-slate-600/50 text-xs font-semibold text-slate-700 dark:text-slate-200 tabular-nums">
+              Risk <span className="text-slate-900 dark:text-slate-100">{formatPercent(snapshot.riskPct)}%</span>
             </span>
             <span className="text-[11px] text-slate-500" suppressHydrationWarning>
               {formatTradeEntryDate(snapshot.entryDate)}
