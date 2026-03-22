@@ -9,6 +9,7 @@ import TradePreviewCard from './TradePreviewCard';
 import type { FeedPost } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 import { useTheme } from '@/hooks/useTheme';
+import { formatCompactCount } from '@/lib/utils';
 import { formatFeedDate } from '@/utils/feedDateFormat';
 
 interface PostCardProps {
@@ -53,7 +54,7 @@ function PostCardComponent({
   const isPro = authorTier === 'pro' || authorTier === 'elite';
 
   return (
-    <article className="rounded-2xl mb-6 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-5 transition-all duration-200 hover:border-slate-400/70 dark:hover:border-slate-600/60">
+    <article data-post-id={post.id} className="rounded-2xl mb-6 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-5 transition-all duration-200 hover:border-slate-400/70 dark:hover:border-slate-600/60">
       {/* Author header */}
       <div className="flex items-start gap-3 mb-7">
         <Link href={`/profile/${post.author.username}`} className="shrink-0">
@@ -62,7 +63,7 @@ function PostCardComponent({
           >
             {post.author.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={post.author.avatar_url} alt={post.author.display_name} className="w-full h-full object-cover" />
+              <img src={post.author.avatar_url} alt={post.author.display_name} className="w-full h-full object-cover" width="36" height="36" loading="lazy" />
             ) : (
               post.author.display_name.slice(0, 1).toUpperCase()
             )}
@@ -115,12 +116,13 @@ function PostCardComponent({
             }`}
           >
             <Heart className="w-3.5 h-3.5" />
-            {post.like_count > 0 && <span>{post.like_count}</span>}
+            {post.like_count > 0 && <span>{formatCompactCount(post.like_count)}</span>}
           </Button>
         ) : (
           <Button
             variant="ghost"
             size="sm"
+            data-action="like"
             onClick={() => onLike?.(post.id)}
             className={`h-8 gap-1.5 rounded-xl text-xs font-medium transition-all duration-200 ${
               post.is_liked_by_me || post.like_count > 0
@@ -129,7 +131,7 @@ function PostCardComponent({
             }`}
           >
             <Heart className={`w-3.5 h-3.5 ${post.is_liked_by_me ? 'fill-current' : ''}`} />
-            {post.like_count > 0 && <span>{post.like_count}</span>}
+            {post.like_count > 0 && <span data-like-count>{formatCompactCount(post.like_count)}</span>}
           </Button>
         )}
 
@@ -146,7 +148,7 @@ function PostCardComponent({
         >
           <Link href={`/feed/post/${post.id}`}>
             <MessageCircle className="w-3.5 h-3.5" />
-            {post.comment_count > 0 && post.comment_count}
+            {post.comment_count > 0 && formatCompactCount(post.comment_count)}
           </Link>
         </Button>
 

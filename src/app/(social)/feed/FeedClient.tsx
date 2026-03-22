@@ -19,12 +19,11 @@ import EditPostModal from '@/components/feed/EditPostModal';
 import CreateChannelModal from '@/components/feed/CreateChannelModal';
 import SearchBar from '@/components/feed/SearchBar';
 import { cn } from '@/lib/utils';
-import type { SocialProfile, FeedPost, PaginatedResult } from '@/types/social';
+import type { SocialProfile, FeedPost } from '@/types/social';
 
 interface FeedClientProps {
   userId: string | null;
   initialProfile: SocialProfile | null;
-  initialFeed: PaginatedResult<FeedPost>;
 }
 
 type FeedTab = 'public' | 'following' | 'channels';
@@ -35,7 +34,7 @@ const FEED_TAB_ICONS = {
   channels: Hash,
 } as const;
 
-export default function FeedClient({ userId, initialProfile, initialFeed }: FeedClientProps) {
+export default function FeedClient({ userId, initialProfile }: FeedClientProps) {
   const uid = userId ?? undefined;
   const { subscription } = useSubscription({ userId: uid });
   const [createError, setCreateError] = useState('');
@@ -51,8 +50,7 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
 
   const isChannelsTab = activeTab === 'channels';
   const feedView = activeTab === 'following' ? 'following' : 'public';
-  const feedInitialData = feedView === 'public' ? initialFeed : undefined;
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(uid, feedInitialData, undefined, feedView);
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(uid, undefined, undefined, feedView);
   const { like, create, edit, remove, report } = usePostActions(uid);
   const { data: myChannels = [] } = useMyChannels(uid);
   const { newPostCount, clearCount } = useNewPostsNotifier(

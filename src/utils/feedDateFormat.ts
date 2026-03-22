@@ -4,11 +4,22 @@
  * server/client renders and avoid hydration mismatches.
  */
 
-/** "Jan 5" — for feed posts, comments, and notifications */
+/** "Jan 5" — for feed posts and notifications */
 export function formatFeedDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+/** "Jan 5, 3:45 PM" — comment rows (includes time; UTC matches SSR/client) */
+export function formatFeedCommentDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
     timeZone: 'UTC',
   });
 }

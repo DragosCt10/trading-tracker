@@ -20,3 +20,15 @@ export function formatPercent(value: number): string {
 export function roundToCents(value: number): number {
   return Math.round(value * 100) / 100
 }
+
+const compactCountFormatter = new Intl.NumberFormat('en-US', {
+  notation: 'compact',
+  compactDisplay: 'short',
+  maximumFractionDigits: 1,
+})
+
+/** Social-style counts: 999, 1K, 1.1K, 1M … */
+export function formatCompactCount(value: number): string {
+  if (!Number.isFinite(value) || value < 0) return '0'
+  return compactCountFormatter.format(Math.round(value))
+}

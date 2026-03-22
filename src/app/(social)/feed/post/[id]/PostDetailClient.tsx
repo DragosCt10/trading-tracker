@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import PostCard from '@/components/feed/PostCard';
@@ -9,6 +10,9 @@ import { usePostActions } from '@/hooks/usePostActions';
 import { useSocialProfile } from '@/hooks/useSocialProfile';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { getPost } from '@/lib/server/feedPosts';
+import { queryKeys } from '@/lib/queryKeys';
+import { formatCompactCount } from '@/lib/utils';
 import type { FeedPost, PaginatedResult, FeedComment } from '@/types/social';
 
 interface PostDetailClientProps {
@@ -23,7 +27,19 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
   const { subscription } = useSubscription({ userId });
   const { like, remove } = usePostActions(userId);
   const [commentCount, setCommentCount] = useState(post.comment_count);
-  const postWithLiveComments = { ...post, comment_count: commentCount };
+
+  // Keep like_count and is_liked_by_me live — usePostActions writes to this cache key
+  // when a like mutation settles, so the PostCard re-renders without a page reload.
+  const { data: livePost } = useQuery({
+    queryKey: queryKeys.feed.post(post.id),
+    queryFn: () => getPost(post.id),
+    initialData: post,
+    staleTime: 60_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const postWithLiveComments = { ...(livePost ?? post), comment_count: commentCount };
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-0 py-6 space-y-4">
@@ -47,7 +63,7 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
 
       <div className="space-y-2">
         <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide px-1">
-          Comments · {commentCount}
+          Comments · {formatCompactCount(commentCount)}
         </h2>
         <CommentSection
           postId={post.id}

@@ -4,9 +4,11 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Pencil, Trash2, Check, X } from 'lucide-react';
 import CommentInput from './CommentInput';
+import TierBadge from './TierBadge';
 import { useComments } from '@/hooks/useComments';
+import { useTheme } from '@/hooks/useTheme';
 import type { FeedComment, PaginatedResult } from '@/types/social';
-import { formatFeedDate } from '@/utils/feedDateFormat';
+import { formatFeedCommentDate } from '@/utils/feedDateFormat';
 
 interface CommentSectionProps {
   postId: string;
@@ -33,6 +35,10 @@ function CommentItem({
   const [editContent, setEditContent] = useState(comment.content);
   const [editError, setEditError] = useState('');
   const isOwn = currentProfileId === comment.author.id;
+  const { theme, mounted } = useTheme();
+  const isLightMode = mounted && theme === 'light';
+  const authorTier = comment.author.tier;
+  const isPro = authorTier === 'pro' || authorTier === 'elite';
 
   async function handleSave() {
     if (!editContent.trim()) return;
@@ -48,41 +54,66 @@ function CommentItem({
   }
 
   return (
-    <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none px-4 py-3 group">
-      <div className="flex items-center gap-2 mb-1.5">
-        <Link
-          href={`/profile/${comment.author.username}`}
-          className="font-semibold text-sm text-slate-900 dark:text-slate-200 hover:text-slate-700 dark:hover:text-white transition-colors"
-        >
-          {comment.author.display_name}
-        </Link>
-        <span className="text-slate-500 text-xs">@{comment.author.username}</span>
-        <span className="text-slate-400 dark:text-slate-600 text-xs">·</span>
-        <span className="text-slate-500 dark:text-slate-600 text-xs" suppressHydrationWarning>
-          {formatFeedDate(comment.created_at)}
-        </span>
-
-        {/* Author actions — shown on hover */}
-        {isOwn && editState === 'idle' && (
-          <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              type="button"
-              className="p-1 rounded text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors"
-              onClick={() => { setEditContent(comment.content); setEditState('editing'); }}
-              aria-label="Edit comment"
-            >
-              <Pencil className="w-3 h-3" />
-            </button>
-            <button
-              type="button"
-              className="p-1 rounded text-slate-500 hover:text-rose-400 transition-colors"
-              onClick={() => onDelete(comment.id)}
-              aria-label="Delete comment"
-            >
-              <Trash2 className="w-3 h-3" />
-            </button>
+    <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none px-4 py-3">
+      <div className="flex items-start gap-3 mb-3">
+        <Link href={`/profile/${comment.author.username}`} className="shrink-0">
+          <div
+            className={`w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm ${mounted && isPro ? 'ring-2 ring-amber-400/75 ring-offset-1 ring-offset-white dark:ring-offset-slate-800' : ''}`}
+          >
+            {comment.author.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={comment.author.avatar_url} alt={comment.author.display_name} className="w-full h-full object-cover" />
+            ) : (
+              comment.author.display_name.slice(0, 1).toUpperCase()
+            )}
           </div>
-        )}
+        </Link>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              href={`/profile/${comment.author.username}`}
+              className="font-semibold text-sm text-slate-900 dark:text-slate-200 hover:text-slate-700 dark:hover:text-white transition-colors leading-none"
+            >
+              {comment.author.display_name}
+            </Link>
+            {!mounted && isPro && (
+              <span className="h-5 w-14 rounded-md bg-slate-200/70 dark:bg-slate-700/50 animate-pulse" />
+            )}
+            {mounted && isPro && (
+              <TierBadge tier={authorTier} isLightMode={isLightMode} />
+            )}
+          </div>
+          <div className="mt-1">
+            <span className="text-slate-500 text-xs">@{comment.author.username}</span>
+          </div>
+        </div>
+
+        <div className="ml-auto pl-2 shrink-0 flex items-center gap-1 self-start">
+          <span className="text-slate-500 text-xs shrink-0 whitespace-nowrap" suppressHydrationWarning>
+            {formatFeedCommentDate(comment.created_at)}
+          </span>
+          {isOwn && editState === 'idle' && (
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                className="p-1 rounded text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors"
+                onClick={() => { setEditContent(comment.content); setEditState('editing'); }}
+                aria-label="Edit comment"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                className="p-1 rounded text-slate-500 hover:text-rose-400 transition-colors"
+                onClick={() => onDelete(comment.id)}
+                aria-label="Delete comment"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {editState === 'idle' ? (

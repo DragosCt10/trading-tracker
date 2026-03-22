@@ -52,8 +52,12 @@ export function usePostActions(userId?: string, channelId?: string) {
       for (const prefix of targetFeedPrefixes) {
         await qc.cancelQueries({ queryKey: prefix });
       }
-      const prev = getTargetFeedEntries();
+      await qc.cancelQueries({ queryKey: queryKeys.feed.post(postId) });
 
+      const prev = getTargetFeedEntries();
+      const prevPost = qc.getQueryData<FeedPost>(queryKeys.feed.post(postId));
+
+      // Optimistically update feed list caches
       for (const entry of prev) {
         const currentData = entry.data;
         if (!currentData) continue;
@@ -66,22 +70,41 @@ export function usePostActions(userId?: string, channelId?: string) {
         );
       }
 
-      return { prev };
+      // Optimistically update individual post cache (used by post detail page)
+      if (prevPost) {
+        const newLiked = !prevPost.is_liked_by_me;
+        const newCount = Math.max(0, prevPost.like_count + (newLiked ? 1 : -1));
+        qc.setQueryData<FeedPost>(queryKeys.feed.post(postId), {
+          ...prevPost, is_liked_by_me: newLiked, like_count: newCount,
+        });
+      }
+
+      return { prev, prevPost };
     },
     onSuccess: (result, postId) => {
       if ('data' in result) {
+        // Settle feed list caches with confirmed server values
         for (const { key } of getTargetFeedEntries()) {
           qc.setQueryData<InfiniteData>(key, (d) =>
             d ? toggleLikeInCache(d, postId, result.data.liked, result.data.like_count) : d!
           );
         }
+        // Settle individual post cache
+        const cached = qc.getQueryData<FeedPost>(queryKeys.feed.post(postId));
+        if (cached) {
+          qc.setQueryData<FeedPost>(queryKeys.feed.post(postId), {
+            ...cached, is_liked_by_me: result.data.liked, like_count: result.data.like_count,
+          });
+        }
       }
     },
-    onError: (_err, _postId, ctx) => {
+    onError: (_err, postId, ctx) => {
       if (!ctx?.prev) return;
       for (const entry of ctx.prev) {
         if (entry.data) qc.setQueryData(entry.key, entry.data);
       }
+      // Roll back individual post cache
+      if (ctx.prevPost) qc.setQueryData(queryKeys.feed.post(postId), ctx.prevPost);
     },
   });
 

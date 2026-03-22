@@ -45,8 +45,9 @@ function mapCommentRow(row: Record<string, unknown>): FeedComment {
 
 /**
  * Toggle like on a post. Returns the new like state.
- * Uses upsert + delete pattern — idempotent.
- * Self-likes are blocked server-side.
+ * Delegates to the atomic `toggle_like` Postgres function (see apply-fixes.sql)
+ * which checks + upserts/deletes in a single transaction — no race condition.
+ * Self-likes are blocked server-side inside the function.
  */
 export async function likePost(
   postId: string
@@ -59,53 +60,32 @@ export async function likePost(
 
   const supabase = await createClient();
 
-  // Check post exists and is not hidden; also check self-like
-  const { data: post } = await supabase
-    .from('feed_posts')
-    .select('id, author_id, like_count')
-    .eq('id', postId)
-    .eq('is_hidden', false)
-    .single();
+  const { data, error } = await supabase.rpc('toggle_like', {
+    p_post_id: postId,
+    p_user_id: profile.id,
+  });
 
-  if (!post) return { error: 'Post not found', code: 'NOT_FOUND' };
-  if ((post as { author_id: string }).author_id === profile.id) {
-    return { error: 'Cannot like your own post', code: 'UNAUTHORIZED' };
+  if (error) {
+    // Handle known error codes returned by the function
+    if (error.message?.includes('NOT_FOUND')) return { error: 'Post not found', code: 'NOT_FOUND' };
+    if (error.message?.includes('SELF_LIKE')) return { error: 'Cannot like your own post', code: 'UNAUTHORIZED' };
+    console.error('[likePost]', error);
+    return { error: 'Failed to toggle like', code: 'DB_ERROR' };
   }
 
-  // Check if already liked
-  const { count } = await supabase
-    .from('feed_likes')
-    .select('post_id', { count: 'exact', head: true })
-    .eq('post_id', postId)
-    .eq('user_id', profile.id);
+  const result = data as { liked: boolean; like_count: number; author_id: string };
 
-  const alreadyLiked = (count ?? 0) > 0;
-
-  if (alreadyLiked) {
-    await supabase.from('feed_likes').delete().eq('post_id', postId).eq('user_id', profile.id);
-  } else {
-    await supabase.from('feed_likes').upsert({ post_id: postId, user_id: profile.id }, { onConflict: 'post_id,user_id', ignoreDuplicates: true });
+  // Fire notification for new likes (not unlikes)
+  if (result.liked) {
     await createNotification({
-      recipientProfileId: (post as { author_id: string }).author_id,
+      recipientProfileId: result.author_id,
       actorProfileId: profile.id,
       type: 'like',
       postId,
     });
   }
 
-  // Fetch updated like_count (maintained by DB trigger)
-  const { data: updated } = await supabase
-    .from('feed_posts')
-    .select('like_count')
-    .eq('id', postId)
-    .single();
-
-  return {
-    data: {
-      liked: !alreadyLiked,
-      like_count: (updated as { like_count: number })?.like_count ?? 0,
-    },
-  };
+  return { data: { liked: result.liked, like_count: result.like_count } };
 }
 
 // ─── Comments ────────────────────────────────────────────────────────────────

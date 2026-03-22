@@ -136,28 +136,19 @@ export async function getPublicFeed(
   cursor?: string,
   limit = 20
 ): Promise<PaginatedResult<FeedPost>> {
-  const session = await getCachedUserSession();
-  const supabase = await createClient();
+  const [session, supabase] = await Promise.all([getCachedUserSession(), createClient()]);
 
-  let profileId: string | null = null;
-  if (session.user) {
-    const { data: p } = await supabase
-      .from('social_profiles')
-      .select('id')
-      .eq('user_id', session.user!.id)
-      .single();
-    profileId = p?.id ?? null;
-  }
+  // Single round-trip: posts + author + is_liked_by_me joined in the DB function.
+  const { data, error } = await supabase.rpc('get_public_feed', {
+    p_cursor:  cursor ?? null,
+    p_limit:   limit,
+    p_user_id: session.user?.id ?? null,
+  });
 
-  const query = buildFeedQuery(supabase, 'public', { cursor, limit });
-  const { data, error } = await query;
   if (error) { console.error('[getPublicFeed]', error); return { items: [], nextCursor: null, hasMore: false }; }
 
   const rows = (data ?? []) as Record<string, unknown>[];
-  const postIds = rows.slice(0, limit).map((r) => r.id as string);
-  const likedSet = await resolveIsLikedByMe(supabase, postIds, profileId);
-
-  const items = rows.slice(0, limit).map((r) => mapPostRow(r, likedSet.has(r.id as string)));
+  const items = rows.slice(0, limit).map((r) => mapPostRow(r, (r.is_liked_by_me as boolean) ?? false));
 
   return {
     items,
@@ -172,58 +163,21 @@ export async function getTimeline(
   cursor?: string,
   limit = 20
 ): Promise<PaginatedResult<FeedPost>> {
-  const session = await getCachedUserSession();
+  const [session, supabase] = await Promise.all([getCachedUserSession(), createClient()]);
   if (!session.user) return { items: [], nextCursor: null, hasMore: false };
 
-  const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from('social_profiles')
-    .select('id')
-    .eq('user_id', session.user!.id)
-    .single();
+  // Single round-trip: DB function resolves the viewer's profile, JOINs follows,
+  // and resolves is_liked_by_me — no IN(500 UUIDs) or serial round-trips.
+  const { data, error } = await supabase.rpc('get_timeline', {
+    p_user_id: session.user.id,
+    p_cursor:  cursor ?? null,
+    p_limit:   limit,
+  });
 
-  const profileId = profile?.id ?? null;
-
-  // Fall back to public feed if no profile yet
-  if (!profileId) return getPublicFeed(cursor, limit);
-
-  // Timeline = own posts + followed profiles posts.
-  const { data: follows, error: followsError } = await supabase
-    .from('follows')
-    .select('following_id')
-    .eq('follower_id', profileId);
-  if (followsError) {
-    console.error('[getTimeline:follows]', followsError);
-    return { items: [], nextCursor: null, hasMore: false };
-  }
-
-  const authorIds = Array.from(new Set([
-    profileId,
-    ...(follows ?? []).map((f: { following_id: string }) => f.following_id),
-  ]));
-
-  let query = supabase
-    .from('feed_posts')
-    .select(`
-      *,
-      author:author_id (
-        id, user_id, display_name, username, avatar_url, tier
-      )
-    `)
-    .eq('is_hidden', false)
-    .in('author_id', authorIds)
-    .order('created_at', { ascending: false })
-    .limit(limit + 1);
-  if (cursor) query = query.lt('created_at', cursor);
-
-  const { data, error } = await query;
   if (error) { console.error('[getTimeline]', error); return { items: [], nextCursor: null, hasMore: false }; }
 
   const rows = (data ?? []) as Record<string, unknown>[];
-  const postIds = rows.slice(0, limit).map((r) => r.id as string);
-  const likedSet = await resolveIsLikedByMe(supabase, postIds, profileId);
-
-  const items = rows.slice(0, limit).map((r) => mapPostRow(r, likedSet.has(r.id as string)));
+  const items = rows.slice(0, limit).map((r) => mapPostRow(r, (r.is_liked_by_me as boolean) ?? false));
   return {
     items,
     nextCursor: rows.length > limit ? (rows[limit - 1].created_at as string) : null,
@@ -420,6 +374,16 @@ export async function createPost(input: {
     return { error: 'Post content cannot be empty', code: 'LIMIT_EXCEEDED' };
   }
 
+  // ── Advisory lock: prevents concurrent requests from the same user bypassing
+  //    the rate-limit check (see apply-fixes.sql for acquire_post_lock function).
+  //    Returns false if another request from this profile is mid-flight.
+  const { data: lockAcquired } = await supabase.rpc('acquire_post_lock', {
+    p_profile_id: profile.id,
+  });
+  if (!lockAcquired) {
+    return { error: 'Another post is being submitted. Please wait.', code: 'LIMIT_EXCEEDED' };
+  }
+
   // ── Posting rate limits
   if (limits.maxPostsPerWeek !== null) {
     const { used, resetDate } = await getWeeklyPostCount();
@@ -582,29 +546,21 @@ export async function getChannelFeed(
   cursor?: string,
   limit = 20
 ): Promise<PaginatedResult<FeedPost>> {
-  const session = await getCachedUserSession();
-  const supabase = await createClient();
+  const [session, supabase] = await Promise.all([getCachedUserSession(), createClient()]);
 
-  let profileId: string | null = null;
-  if (session.user) {
-    const { data: p } = await supabase
-      .from('social_profiles')
-      .select('id')
-      .eq('user_id', session.user!.id)
-      .single();
-    profileId = p?.id ?? null;
-  }
+  // Single round-trip: same pattern as get_public_feed, filtered to one channel.
+  const { data, error } = await supabase.rpc('get_channel_feed', {
+    p_channel_id: channelId,
+    p_cursor:     cursor ?? null,
+    p_limit:      limit,
+    p_user_id:    session.user?.id ?? null,
+  });
 
-  const query = buildFeedQuery(supabase, 'channel', { channelId, cursor, limit });
-  const { data, error } = await query;
   if (error) { console.error('[getChannelFeed]', error); return { items: [], nextCursor: null, hasMore: false }; }
 
   const rows = (data ?? []) as Record<string, unknown>[];
-  const postIds = rows.slice(0, limit).map((r) => r.id as string);
-  const likedSet = await resolveIsLikedByMe(supabase, postIds, profileId);
-
   return {
-    items: rows.slice(0, limit).map((r) => mapPostRow(r, likedSet.has(r.id as string))),
+    items: rows.slice(0, limit).map((r) => mapPostRow(r, (r.is_liked_by_me as boolean) ?? false)),
     nextCursor: rows.length > limit ? (rows[limit - 1].created_at as string) : null,
     hasMore: rows.length > limit,
   };

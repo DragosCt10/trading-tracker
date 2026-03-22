@@ -1,8 +1,8 @@
 'use client';
 
+import { Virtuoso } from 'react-virtuoso';
 import PostCard from './PostCard';
 import PostCardSkeleton from './PostCardSkeleton';
-import { useInfiniteScrollSentinel } from '@/hooks/useInfiniteScrollSentinel';
 import { useTheme } from '@/hooks/useTheme';
 import type { FeedPost } from '@/types/social';
 import type { TierId } from '@/types/subscription';
@@ -42,7 +42,6 @@ export default function FeedPostList({
   emptySubtext,
   skeletonCount = 3,
 }: FeedPostListProps) {
-  const sentinelRef = useInfiniteScrollSentinel(fetchNextPage, hasNextPage, isFetchingNextPage);
   const { theme, mounted } = useTheme();
   const isLightMode = mounted && theme === 'light';
 
@@ -66,29 +65,36 @@ export default function FeedPostList({
   }
 
   return (
-    <div className="space-y-3">
-      {posts.map((post) => (
-        <PostCard
-          key={post.id}
-          post={post}
-          currentUserId={currentUserId}
-          currentProfileId={currentProfileId}
-          currentUserTier={currentUserTier}
-          isLightMode={isLightMode}
-          mounted={mounted}
-          onLike={onLike}
-          onDelete={onDelete}
-          onEdit={onEdit}
-          onReport={onReport}
-        />
-      ))}
-      <div ref={sentinelRef} />
-      {isFetchingNextPage && (
-        <div className="space-y-3">
-          <PostCardSkeleton />
-          <PostCardSkeleton />
+    <Virtuoso
+      useWindowScroll
+      data={posts}
+      endReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
+      itemContent={(_, post) => (
+        <div className="mb-3">
+          <PostCard
+            key={post.id}
+            post={post}
+            currentUserId={currentUserId}
+            currentProfileId={currentProfileId}
+            currentUserTier={currentUserTier}
+            isLightMode={isLightMode}
+            mounted={mounted}
+            onLike={onLike}
+            onDelete={onDelete}
+            onEdit={onEdit}
+            onReport={onReport}
+          />
         </div>
       )}
-    </div>
+      components={{
+        Footer: () =>
+          isFetchingNextPage ? (
+            <div className="space-y-3 mt-3">
+              <PostCardSkeleton />
+              <PostCardSkeleton />
+            </div>
+          ) : null,
+      }}
+    />
   );
 }
