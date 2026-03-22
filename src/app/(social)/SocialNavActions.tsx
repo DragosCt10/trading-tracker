@@ -4,9 +4,7 @@ import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LogOut, Palette, Settings } from 'lucide-react';
-import TierBadge from '@/components/feed/TierBadge';
 import { createClient } from '@/utils/supabase/client';
-import { useSubscription } from '@/hooks/useSubscription';
 import { useTheme } from '@/hooks/useTheme';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -25,9 +23,6 @@ export default function SocialNavActions({ userId }: SocialNavActionsProps) {
   const { theme, toggleTheme, mounted } = useTheme();
   const [themePickerOpen, setThemePickerOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-
-  const { tier, isLoading } = useSubscription({ userId: userId ?? undefined });
-  const isLightMode = mounted && theme === 'light';
 
   const handleSignOut = useCallback(async () => {
     try {
@@ -59,20 +54,6 @@ export default function SocialNavActions({ userId }: SocialNavActionsProps) {
   return (
     <>
       <div className="flex items-center gap-2">
-        {/* Tier badge — auth only */}
-        {userId && mounted && (
-          isLoading ? (
-            <span
-              className="h-5 w-16 rounded-md border border-slate-200/70 bg-slate-200/70 dark:border-slate-700/60 dark:bg-slate-700/50 animate-pulse"
-              aria-label="Loading subscription tier"
-            />
-          ) : (
-            <TierBadge tier={tier ?? 'starter'} isLightMode={isLightMode} />
-          )
-        )}
-
-        {userId && <Separator orientation="vertical" className="mx-1 h-6" />}
-
         {/* Palette — always visible */}
         <Button
           type="button"
