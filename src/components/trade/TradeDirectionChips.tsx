@@ -48,3 +48,41 @@ export function TradeDirectionChips({ value, onChange, className }: TradeDirecti
   );
 }
 
+/**
+ * Read-only direction: coloured ↑/↓ only (same as `TradeDirectionChips`), neutral label text.
+ */
+export function TradeDirectionLabel({ direction = '' }: { direction?: string }) {
+  const trimmed = direction.trim();
+  const d = trimmed.toLowerCase();
+  const labelClass = 'text-slate-600 dark:text-slate-400 font-semibold';
+  if (d === 'long') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-sm">
+        <span className="text-emerald-500 dark:text-emerald-400 text-xs leading-none" aria-hidden>
+          ↑
+        </span>
+        <span className={labelClass}>Long</span>
+      </span>
+    );
+  }
+  if (d === 'short') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-sm">
+        <span className="text-rose-500 dark:text-rose-400 text-xs leading-none" aria-hidden>
+          ↓
+        </span>
+        <span className={labelClass}>Short</span>
+      </span>
+    );
+  }
+  const label =
+    trimmed.length > 0
+      ? trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
+      : '—';
+  return (
+    <span className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+      {label}
+    </span>
+  );
+}
+
