@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getDashboardApiResponse } from '@/lib/server/dashboardApiResponse';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (!checkRateLimit(`stats:${user.id}`, 30, 60_000)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
 
   const { searchParams } = req.nextUrl;
