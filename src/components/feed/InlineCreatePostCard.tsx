@@ -62,7 +62,7 @@ export default function InlineCreatePostCard({
   const limitReached = weeklyMax !== null && weeklyCount !== null && weeklyCount.used >= weeklyMax;
 
   useEffect(() => {
-    if (weeklyMax !== null) getWeeklyPostCount(userId).then(setWeeklyCount);
+    if (weeklyMax !== null) getWeeklyPostCount().then(setWeeklyCount);
   }, [userId, weeklyMax]);
 
   function tradeToSnapshot(t: TradeSelectorItem): TradeSnapshot {
