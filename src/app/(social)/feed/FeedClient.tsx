@@ -13,6 +13,8 @@ import { updateChannel } from '@/lib/server/feedChannels';
 import { queryKeys } from '@/lib/queryKeys';
 import FeedPostList from '@/components/feed/FeedPostList';
 import InlineCreatePostCard from '@/components/feed/InlineCreatePostCard';
+import NewPostsBanner from '@/components/feed/NewPostsBanner';
+import { useNewPostsNotifier } from '@/hooks/useNewPostsNotifier';
 import EditPostModal from '@/components/feed/EditPostModal';
 import CreateChannelModal from '@/components/feed/CreateChannelModal';
 import SearchBar from '@/components/feed/SearchBar';
@@ -53,6 +55,10 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(uid, feedInitialData, undefined, feedView);
   const { like, create, edit, remove, report } = usePostActions(uid);
   const { data: myChannels = [] } = useMyChannels(uid);
+  const { newPostCount, clearCount } = useNewPostsNotifier(
+    initialProfile?.id,
+    activeTab === 'public',  // only public tab: following tab can't filter by followed users client-side
+  );
   const queryClient = useQueryClient();
   const [pendingChannelId, setPendingChannelId] = useState<string | null>(null);
   const [, startChannelTransition] = useTransition();
@@ -104,6 +110,12 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
+  function handleSeeNewPosts() {
+    clearCount();
+    queryClient.invalidateQueries({ queryKey: queryKeys.feed.public() });
+    feedScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   async function handleCreate(input: { content: string; tradeId?: string; tradeMode?: 'live' | 'demo' | 'backtesting' }) {
     setCreateError('');
     const result = await create.mutateAsync(input);
@@ -135,6 +147,7 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
                   onClick={() => {
                     setActiveTab(tab.id);
                     setComposerCollapsed(false);
+                    clearCount();
                     lastFeedScrollTop.current = feedScrollRef.current?.scrollTop ?? 0;
                   }}
                   className={cn(
@@ -172,6 +185,7 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
                 </Link>
               </div>
             ) : null}
+            <NewPostsBanner count={newPostCount} onClick={handleSeeNewPosts} />
           </div>
 
           <div

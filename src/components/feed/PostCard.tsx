@@ -104,7 +104,9 @@ export default function PostCard({
             variant="ghost"
             size="sm"
             disabled
-            className="h-8 gap-1.5 rounded-xl text-xs font-medium text-slate-500 cursor-default"
+            className={`h-8 gap-1.5 rounded-xl text-xs font-medium cursor-default ${
+              post.like_count > 0 ? 'text-rose-400' : 'text-slate-500'
+            }`}
           >
             <Heart className="w-3.5 h-3.5" />
             {post.like_count > 0 && <span>{post.like_count}</span>}
@@ -115,7 +117,7 @@ export default function PostCard({
             size="sm"
             onClick={() => onLike?.(post.id)}
             className={`h-8 gap-1.5 rounded-xl text-xs font-medium transition-all duration-200 ${
-              post.is_liked_by_me
+              post.is_liked_by_me || post.like_count > 0
                 ? 'text-rose-400 hover:text-rose-300 hover:bg-rose-500/10'
                 : 'text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-500/10'
             }`}
@@ -130,7 +132,11 @@ export default function PostCard({
           variant="ghost"
           size="sm"
           asChild
-          className="h-8 gap-1.5 rounded-xl text-xs font-medium text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-500/10 transition-all duration-200"
+          className={`h-8 gap-1.5 rounded-xl text-xs font-medium transition-all duration-200 ${
+            post.comment_count > 0
+              ? 'text-blue-600 dark:text-blue-400 hover:bg-blue-500/10'
+              : 'text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-500/10'
+          }`}
         >
           <Link href={`/feed/post/${post.id}`}>
             <MessageCircle className="w-3.5 h-3.5" />
