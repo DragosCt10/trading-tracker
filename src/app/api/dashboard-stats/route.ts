@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getDashboardApiResponse } from '@/lib/server/dashboardApiResponse';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (!checkRateLimit(`stats:${user.id}`, 30, 60_000)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
 
   const { searchParams } = req.nextUrl;
@@ -40,6 +45,23 @@ export async function GET(req: NextRequest) {
 
   if (isNaN(accountBalance) || accountBalance < 0) {
     return NextResponse.json({ error: 'Invalid accountBalance' }, { status: 400 });
+  }
+
+  const { data: ownedAccount, error: accountOwnershipError } = await supabase
+    .from('account_settings')
+    .select('id')
+    .eq('id', accountId)
+    .eq('user_id', user.id)
+    .eq('mode', mode)
+    .maybeSingle();
+
+  if (accountOwnershipError) {
+    console.error('dashboard-stats account ownership check failed:', accountOwnershipError);
+    return NextResponse.json({ error: 'Failed to validate account access' }, { status: 500 });
+  }
+
+  if (!ownedAccount) {
+    return NextResponse.json({ error: 'Forbidden account access' }, { status: 403 });
   }
 
   const response = await getDashboardApiResponse({

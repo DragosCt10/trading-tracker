@@ -45,72 +45,39 @@ export function useFilteredStats({
   accountBalance = 0,
   hookStats,
 }: UseFilteredStatsProps & { hookStats: HookStats }): UseFilteredStatsReturn {
-  // Compute filtered statistics when filters are applied
-  const filteredChartStats = useMemo(() => {
-    // In yearly mode, execution filter doesn't apply, so only check market filter
-    // In dateRange mode, if execution is nonExecuted, filter is applied
-    if (viewMode === 'yearly') {
-      if (selectedMarket === 'all') {
-        return null; // Use hook stats
-      }
-    } else {
-      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) {
-        return null; // Use hook stats (executed/all is default, so no filter applied)
-      }
-    }
-    // If compact_trades are not loaded (e.g. includeCompactTrades=false), fall back to
-    // RPC stats which are already correctly filtered by market + execution in SQL.
-    if (tradesToUse.length === 0) return null;
-    return computeStatsFromTrades(tradesToUse);
-  }, [tradesToUse, selectedMarket, selectedExecution, viewMode]);
+  // All four stat families share the same guard conditions and the same deps array.
+  // Consolidating into one useMemo avoids four identical guard evaluations and four
+  // separate React memo subscriptions on every render — one pass to decide, one pass
+  // per utility function when compute is needed.
+  //
+  // In yearly mode, execution filter doesn't apply — only a non-"all" market triggers
+  // a client recompute. In dateRange mode, either a market filter or nonExecuted
+  // execution triggers it.
+  //
+  // Returns null when no filter is active (the RPC-aggregated hookStats are already
+  // correct) or when tradesToUse is empty (compact_trades not loaded → SQL-filtered
+  // RPC stats are authoritative).
+  const filteredStats = useMemo(() => {
+    const shouldCompute =
+      viewMode === 'yearly'
+        ? selectedMarket !== 'all'
+        : !(selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all'));
 
-  // Compute filtered risk stats when filters are applied
-  // In yearly mode, only compute if market filter is applied (execution filter doesn't apply in yearly mode)
-  // In dateRange mode, compute if either market or execution filter is applied
-  const filteredRiskStats = useMemo(() => {
-    if (viewMode === 'yearly') {
-      if (selectedMarket === 'all') return null;
-    } else {
-      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) return null;
-    }
-    if (tradesToUse.length === 0) return null;
-    return calculateRiskPerTradeStats(tradesToUse);
-  }, [tradesToUse, selectedMarket, selectedExecution, viewMode]);
+    if (!shouldCompute || tradesToUse.length === 0) return null;
 
-  // Compute filtered market stats when filters are applied
-  // In yearly mode, only compute if market filter is applied (execution filter doesn't apply in yearly mode)
-  // In dateRange mode, compute if either market or execution filter is applied
-  const filteredMarketStats = useMemo(() => {
-    if (viewMode === 'yearly') {
-      if (selectedMarket === 'all') return null;
-    } else {
-      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) return null;
-    }
-    if (tradesToUse.length === 0) return null;
-    return calculateMarketStats(tradesToUse, accountBalance);
-  }, [tradesToUse, selectedMarket, selectedExecution, viewMode, accountBalance]);
-
-  // Compute filtered evaluation stats when filters are applied
-  // In yearly mode, only compute if market filter is applied (execution filter doesn't apply in yearly mode)
-  // In dateRange mode, compute if either market or execution filter is applied
-  const filteredEvaluationStats = useMemo(() => {
-    if (viewMode === 'yearly') {
-      if (selectedMarket === 'all') return null;
-    } else {
-      if (selectedMarket === 'all' && (selectedExecution === 'executed' || selectedExecution === 'all')) return null;
-    }
-    if (tradesToUse.length === 0) return null;
-    return calculateEvaluationStats(tradesToUse);
-  }, [tradesToUse, selectedMarket, selectedExecution, viewMode]);
-
-  // Use filtered stats when filters are applied, otherwise use hook stats
-  const statsToUseForCharts = filteredChartStats || hookStats;
+    return {
+      chartStats: computeStatsFromTrades(tradesToUse),
+      riskStats: calculateRiskPerTradeStats(tradesToUse),
+      marketStats: calculateMarketStats(tradesToUse, accountBalance),
+      evaluationStats: calculateEvaluationStats(tradesToUse),
+    };
+  }, [viewMode, selectedMarket, selectedExecution, tradesToUse, accountBalance]);
 
   return {
-    filteredChartStats,
-    filteredRiskStats,
-    filteredMarketStats,
-    filteredEvaluationStats,
-    statsToUseForCharts,
+    filteredChartStats: filteredStats?.chartStats ?? null,
+    filteredRiskStats: filteredStats?.riskStats ?? null,
+    filteredMarketStats: filteredStats?.marketStats ?? null,
+    filteredEvaluationStats: filteredStats?.evaluationStats ?? null,
+    statsToUseForCharts: filteredStats?.chartStats ?? hookStats,
   };
 }

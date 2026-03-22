@@ -162,7 +162,7 @@ export default function DailyJournalClient({
     initialActiveAccount,
   });
   const { isPro } = useSubscription({ userId });
-  const { allTradesData, tradesLoading } = useStrategyAllTimeTrades({
+  const { allTradesData, tradesLoading, tradesError, refetchTrades } = useStrategyAllTimeTrades({
     userId,
     activeAccountId: activeAccount?.id,
     mode,
@@ -179,7 +179,7 @@ export default function DailyJournalClient({
 
   // Infinite scroll for days (mirrors TradeCardsView behavior)
   const [displayedCount, setDisplayedCount] = useState(DAYS_PER_LOAD);
-  const [mounted, setMounted] = useState(false);
+  const [mounted] = useState(() => typeof window !== 'undefined');
   const observerTarget = useRef<HTMLDivElement | null>(null);
 
   // Per-day collapse state
@@ -189,10 +189,6 @@ export default function DailyJournalClient({
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedNotes, setSelectedNotes] = useState<string>('');
   const [isNotesOpen, setIsNotesOpen] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const lockedPreviewDayGroups: DayGroup[] = useMemo(() => {
     const today = new Date();
@@ -362,6 +358,22 @@ export default function DailyJournalClient({
             showAllTradesOption={true}
             displayStartDate={earliestTradeDate}
           />
+        </div>
+      )}
+
+      {activeAccount && tradesError && (
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
+          Failed to load all strategy trades.{' '}
+          <button
+            type="button"
+            onClick={() => {
+              void refetchTrades();
+            }}
+            className="cursor-pointer underline underline-offset-2"
+          >
+            Try again
+          </button>
+          .
         </div>
       )}
 

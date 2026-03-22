@@ -1,5 +1,4 @@
-import { getCachedUserSession } from '@/lib/server/session';
-import { redirect } from 'next/navigation';
+import { getInsideStrategyPageContext } from '@/lib/server/insideStrategyPageContext';
 import DailyJournalData from './DailyJournalData';
 
 export const dynamic = 'force-dynamic';
@@ -9,10 +8,6 @@ interface PageProps {
 }
 
 export default async function DailyJournalPage({ params }: PageProps) {
-  const { user } = await getCachedUserSession();
-  if (!user) redirect('/login');
-
-  const resolvedParams = await params;
-  const strategySlug = decodeURIComponent(resolvedParams.strategy);
+  const { user, strategySlug } = await getInsideStrategyPageContext(params);
   return <DailyJournalData user={user} strategySlug={strategySlug} />;
 }
