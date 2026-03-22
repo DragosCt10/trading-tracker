@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Hash, Lock, Globe, ArrowLeft } from 'lucide-react';
 import { useFeed } from '@/hooks/useFeed';
 import { usePostActions } from '@/hooks/usePostActions';
-import PostCard from '@/components/feed/PostCard';
-import PostCardSkeleton from '@/components/feed/PostCardSkeleton';
+import FeedPostList from '@/components/feed/FeedPostList';
 import EditPostModal from '@/components/feed/EditPostModal';
 import InlineCreatePostCard from '@/components/feed/InlineCreatePostCard';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -31,19 +30,6 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
     channel.id
   );
   const { like, create, edit, remove, report } = usePostActions(userId, channel.id);
-
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const sentinelRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      if (observerRef.current) observerRef.current.disconnect();
-      if (!node || !hasNextPage || isFetchingNextPage) return;
-      observerRef.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) fetchNextPage();
-      });
-      observerRef.current.observe(node);
-    },
-    [hasNextPage, isFetchingNextPage, fetchNextPage]
-  );
 
   const posts = data?.pages.flatMap((p) => p.items) ?? [];
   const currentProfileId = currentProfile?.id;
@@ -98,34 +84,22 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
       )}
 
       {/* Posts */}
-      {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => <PostCardSkeleton key={i} />)}
-        </div>
-      ) : posts.length === 0 ? (
-        <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-10 text-center">
-          <p className="text-slate-600 dark:text-slate-400 font-medium">No posts in this channel yet</p>
-          <p className="text-slate-500 dark:text-slate-600 text-sm mt-1">Be the first to post here!</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              currentUserId={userId}
-              currentProfileId={currentProfileId}
-              currentUserTier={subscription?.tier}
-              onLike={(id) => like.mutate(id)}
-              onDelete={(id) => remove.mutate(id)}
-              onEdit={(p) => setEditPost(p)}
-              onReport={(id) => report.mutate({ postId: id, reason: 'Reported by user' })}
-            />
-          ))}
-          <div ref={sentinelRef} />
-          {isFetchingNextPage && <><PostCardSkeleton /><PostCardSkeleton /></>}
-        </div>
-      )}
+      <FeedPostList
+        posts={posts}
+        isLoading={isLoading}
+        isFetchingNextPage={isFetchingNextPage}
+        hasNextPage={!!hasNextPage}
+        fetchNextPage={fetchNextPage}
+        currentUserId={userId}
+        currentProfileId={currentProfileId}
+        currentUserTier={subscription?.tier}
+        onLike={(id) => like.mutate(id)}
+        onDelete={(id) => remove.mutate(id)}
+        onEdit={(p) => setEditPost(p)}
+        onReport={(id) => report.mutate({ postId: id, reason: 'Reported by user' })}
+        emptyMessage="No posts in this channel yet"
+        emptySubtext="Be the first to post here!"
+      />
 
       {editPost && subscription && (
         <EditPostModal

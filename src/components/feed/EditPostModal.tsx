@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Loader2, X, Pencil, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -22,7 +22,7 @@ interface EditPostModalProps {
   submitError?: string;
 }
 
-export default function EditPostModal({
+function EditPostForm({
   open,
   onClose,
   onSubmit,
@@ -36,10 +36,9 @@ export default function EditPostModal({
 
   useEffect(() => {
     if (open) {
-      setContent(initialContent);
       setTimeout(() => textareaRef.current?.focus(), 50);
     }
-  }, [open, initialContent]);
+  }, [open]);
 
   const charLeft  = maxLen - content.length;
   const nearLimit = charLeft <= 30;
@@ -137,4 +136,9 @@ export default function EditPostModal({
       </AlertDialogContent>
     </AlertDialog>
   );
+}
+
+export default function EditPostModal(props: EditPostModalProps) {
+  // Use key to reset form state (content) whenever the modal opens with new content
+  return <EditPostForm key={props.open ? props.initialContent : 'closed'} {...props} />;
 }

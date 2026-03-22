@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { TradeSnapshot } from '@/types/social';
+import { formatTradeEntryDate } from '@/utils/feedDateFormat';
 
 interface TradePreviewCardProps {
   snapshot: TradeSnapshot;
@@ -15,14 +16,6 @@ const OUTCOME_BADGE_CLASS: Record<string, string> = {
   be:   'bg-slate-500 dark:bg-slate-500 text-white shadow-none border-none',
 };
 
-function formatTradeEntryDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
-  });
-}
 
 export default function TradePreviewCard({ snapshot }: TradePreviewCardProps) {
   const [screenIndex, setScreenIndex] = useState(0);

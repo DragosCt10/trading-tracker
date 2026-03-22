@@ -3,11 +3,11 @@
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LogOut, Palette, Settings, Crown, Sparkles } from 'lucide-react';
+import { LogOut, Palette, Settings } from 'lucide-react';
+import TierBadge from '@/components/feed/TierBadge';
 import { createClient } from '@/utils/supabase/client';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useTheme } from '@/hooks/useTheme';
-import { TIER_DEFINITIONS } from '@/constants/tiers';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ThemePickerModal } from '@/components/shared/ThemePickerModal';
@@ -27,20 +27,7 @@ export default function SocialNavActions({ userId }: SocialNavActionsProps) {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const { tier, isLoading } = useSubscription({ userId: userId ?? undefined });
-  const tierDef = TIER_DEFINITIONS[tier ?? 'starter'];
-  const isPro = tier === 'pro' || tier === 'elite';
-
   const isLightMode = mounted && theme === 'light';
-  const proIconColor = isLightMode ? '#b45309' : '#fbbf24';
-  const proBorderColor = isLightMode ? 'rgba(180,83,9,0.45)' : 'rgba(251,191,36,0.45)';
-  const proTextStyle: React.CSSProperties = isLightMode
-    ? { color: '#b45309' }
-    : {
-        backgroundImage: 'linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #b45309 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text',
-      };
 
   const handleSignOut = useCallback(async () => {
     try {
@@ -80,30 +67,7 @@ export default function SocialNavActions({ userId }: SocialNavActionsProps) {
               aria-label="Loading subscription tier"
             />
           ) : (
-            <span
-              className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 select-none"
-              style={isPro ? { border: `1px solid ${proBorderColor}` } : { border: '1px solid var(--tc-border)' }}
-            >
-              {isPro
-                ? <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
-                : <Sparkles className="h-3 w-3 shrink-0" style={{ color: 'var(--tc-primary)' }} />
-              }
-              <span
-                className="text-[10px] font-bold uppercase tracking-widest"
-                style={
-                  isPro
-                    ? proTextStyle
-                    : {
-                        backgroundImage: 'linear-gradient(135deg, var(--tc-primary) 0%, var(--tc-accent) 100%)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                      }
-                }
-              >
-                {tierDef.badge.label}
-              </span>
-            </span>
+            <TierBadge tier={tier ?? 'starter'} isLightMode={isLightMode} />
           )
         )}
 

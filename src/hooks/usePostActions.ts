@@ -31,7 +31,9 @@ export function usePostActions(userId?: string, channelId?: string) {
   const qc = useQueryClient();
   const targetFeedPrefixes: (readonly unknown[])[] = channelId
     ? [['feed:channelPosts', channelId]]
-    : [['feed:public'], ['feed:timeline', userId]];
+    : userId
+      ? [['feed:public'], ['feed:timeline', userId]]
+      : [['feed:public']];
 
   function getTargetFeedEntries() {
     const entries: Array<{ key: readonly unknown[]; data: InfiniteData | undefined }> = [];

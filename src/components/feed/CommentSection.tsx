@@ -6,6 +6,7 @@ import { Pencil, Trash2, Check, X } from 'lucide-react';
 import CommentInput from './CommentInput';
 import { useComments } from '@/hooks/useComments';
 import type { FeedComment, PaginatedResult } from '@/types/social';
+import { formatFeedDate } from '@/utils/feedDateFormat';
 
 interface CommentSectionProps {
   postId: string;
@@ -16,13 +17,6 @@ interface CommentSectionProps {
 
 type EditState = 'idle' | 'editing' | 'saving';
 
-function formatCommentDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
-}
 
 function CommentItem({
   comment,
@@ -65,7 +59,7 @@ function CommentItem({
         <span className="text-slate-500 text-xs">@{comment.author.username}</span>
         <span className="text-slate-400 dark:text-slate-600 text-xs">·</span>
         <span className="text-slate-500 dark:text-slate-600 text-xs" suppressHydrationWarning>
-          {formatCommentDate(comment.created_at)}
+          {formatFeedDate(comment.created_at)}
         </span>
 
         {/* Author actions — shown on hover */}

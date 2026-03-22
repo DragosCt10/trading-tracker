@@ -34,7 +34,7 @@ export default function SearchBar() {
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 150)}
           placeholder="Search posts or traders…"
-          className="w-full pl-9 pr-8 py-2 text-sm rounded-xl border border-slate-200/80 dark:border-slate-700/60 bg-white/90 dark:bg-slate-900/60 text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-slate-400 dark:focus:border-slate-500/80 focus:bg-white dark:focus:bg-slate-800/80 transition-colors shadow-sm shadow-slate-200/30 dark:shadow-none"
+          className="w-full h-11 pl-9 pr-8 py-0 text-sm rounded-xl border-0 bg-transparent text-slate-900 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-none ring-0 focus:outline-none focus:ring-0 focus:bg-white/80 dark:focus:bg-slate-800/40 transition-colors"
         />
         {query && (
           <button onClick={clear} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300">

@@ -170,6 +170,18 @@ export async function addComment(
     return { error: 'Post not found', code: 'NOT_FOUND' };
   }
 
+  // Verify parent comment exists and belongs to the same post
+  if (parentId) {
+    const { data: parent } = await supabase
+      .from('feed_comments')
+      .select('id, post_id')
+      .eq('id', parentId)
+      .single();
+    if (!parent || (parent as { post_id: string }).post_id !== postId) {
+      return { error: 'Parent comment not found', code: 'NOT_FOUND' };
+    }
+  }
+
   const { data: created, error } = await supabase
     .from('feed_comments')
     .insert({

@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { Heart, MessageCircle, Share2, Crown, MoreHorizontal, Pencil, Trash2, Flag } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Pencil, Trash2, Flag } from 'lucide-react';
+import TierBadge from './TierBadge';
 import { Button } from '@/components/ui/button';
 import TradePreviewCard from './TradePreviewCard';
 import type { FeedPost } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 import { useTheme } from '@/hooks/useTheme';
+import { formatFeedDate } from '@/utils/feedDateFormat';
 
 interface PostCardProps {
   post: FeedPost;
@@ -22,14 +24,6 @@ interface PostCardProps {
   expanded?: boolean;
 }
 
-function formatCreatedAt(dateStr: string): string {
-  // Keep deterministic between server/client to avoid hydration drift.
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
-}
 
 export default function PostCard({
   post,
@@ -51,19 +45,9 @@ export default function PostCard({
       : post.author.tier;
   const isPro = authorTier === 'pro' || authorTier === 'elite';
   const isLightMode = mounted && theme === 'light';
-  const proIconColor = isLightMode ? '#b45309' : '#fbbf24';
-  const proBorderColor = isLightMode ? 'rgba(180,83,9,0.45)' : 'rgba(251,191,36,0.45)';
-  const proTextStyle: CSSProperties = isLightMode
-    ? { color: '#b45309' }
-    : {
-        backgroundImage: 'linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #b45309 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text',
-      };
 
   return (
-    <article className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-5 transition-all duration-200 hover:border-slate-400/70 dark:hover:border-slate-600/60">
+    <article className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-5 transition-all duration-200 hover:border-slate-400/70 dark:hover:border-slate-600/60 [content-visibility:auto] [contain-intrinsic-size:0_200px]">
       {/* Author header */}
       <div className="flex items-start gap-3 mb-3">
         <Link href={`/profile/${post.author.username}`} className="shrink-0">
@@ -88,15 +72,7 @@ export default function PostCard({
               <span className="h-5 w-14 rounded-md bg-slate-200/70 dark:bg-slate-700/50 animate-pulse" />
             )}
             {mounted && isPro && (
-              <span
-                className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 select-none"
-                style={{ border: `1px solid ${proBorderColor}` }}
-              >
-                <Crown className="h-3 w-3 shrink-0" style={{ color: proIconColor }} />
-                <span className="text-[10px] font-bold uppercase tracking-widest" style={proTextStyle}>
-                  PRO
-                </span>
-              </span>
+              <TierBadge tier={authorTier} isLightMode={isLightMode} />
             )}
           </div>
           <div className="flex items-center gap-1.5 mt-1">
@@ -104,7 +80,7 @@ export default function PostCard({
           </div>
         </div>
         <span className="ml-auto pl-2 text-slate-500 text-xs shrink-0" suppressHydrationWarning>
-          {formatCreatedAt(post.created_at)}
+          {formatFeedDate(post.created_at)}
         </span>
 
       </div>

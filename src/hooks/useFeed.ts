@@ -34,7 +34,7 @@ export function useFeed(
           pageParams: [undefined],
         }
       : undefined,
-    refetchOnMount: 'always',
+    refetchOnMount: true,
     ...FEED_DATA,
   });
 }

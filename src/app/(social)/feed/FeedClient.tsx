@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Hash, Plus, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -8,8 +8,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useFeed } from '@/hooks/useFeed';
 import { usePostActions } from '@/hooks/usePostActions';
 import { useMyChannels } from '@/hooks/useChannels';
-import PostCard from '@/components/feed/PostCard';
-import PostCardSkeleton from '@/components/feed/PostCardSkeleton';
+import FeedPostList from '@/components/feed/FeedPostList';
 import InlineCreatePostCard from '@/components/feed/InlineCreatePostCard';
 import EditPostModal from '@/components/feed/EditPostModal';
 import CreateChannelModal from '@/components/feed/CreateChannelModal';
@@ -31,6 +30,9 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
   const [editPost, setEditPost] = useState<FeedPost | null>(null);
   const [channelModalOpen, setChannelModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<FeedTab>('public');
+  const [composerCollapsed, setComposerCollapsed] = useState(false);
+  const feedScrollRef = useRef<HTMLDivElement>(null);
+  const lastFeedScrollTop = useRef(0);
 
   const isPro = subscription?.tier === 'pro' || subscription?.tier === 'elite';
 
@@ -41,20 +43,27 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
   const { like, create, edit, remove, report } = usePostActions(uid);
   const { data: myChannels = [] } = useMyChannels(uid);
 
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const sentinelRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      if (observerRef.current) observerRef.current.disconnect();
-      if (!node || !hasNextPage || isFetchingNextPage) return;
-      observerRef.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) fetchNextPage();
-      });
-      observerRef.current.observe(node);
-    },
-    [hasNextPage, isFetchingNextPage, fetchNextPage]
-  );
-
   const posts = data?.pages.flatMap((p) => p.items) ?? [];
+
+  /** Match AppLayout ActionBar: hide on scroll down, show on scroll up; near top always expanded */
+  useEffect(() => {
+    const el = feedScrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const current = el.scrollTop;
+      const diff = current - lastFeedScrollTop.current;
+      if (current < 12) {
+        setComposerCollapsed(false);
+      } else if (diff > 8) {
+        setComposerCollapsed(true);
+      } else if (diff < -8) {
+        setComposerCollapsed(false);
+      }
+      lastFeedScrollTop.current = current;
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
 
   async function handleCreate(input: { content: string; tradeId?: string; tradeMode?: 'live' | 'demo' | 'backtesting' }) {
     setCreateError('');
@@ -67,10 +76,11 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 sm:px-0 py-6">
-      <div className="flex gap-6">
+      {/* 8rem = layout pt-20 (5rem) + this page py-6 (3rem); inner column scrolls feed only */}
+      <div className="flex gap-6 items-stretch min-h-0 h-[calc(100dvh-8rem)] max-h-[calc(100dvh-8rem)]">
         {/* Main feed */}
-        <div className="flex-1 min-w-0 space-y-4">
-          <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-1">
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-4">
+          <div className="shrink-0 rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-1">
             <div className="grid grid-cols-3 gap-1">
               {([
                 { id: 'public', label: 'Public' },
@@ -82,11 +92,15 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
                   <button
                     key={tab.id}
                     type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`h-11 rounded-xl text-sm font-semibold transition-colors ${
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setComposerCollapsed(false);
+                      lastFeedScrollTop.current = feedScrollRef.current?.scrollTop ?? 0;
+                    }}
+                    className={`h-11 rounded-xl text-sm font-semibold transition-colors border ${
                       isActive
-                        ? 'text-white bg-slate-800/80 dark:bg-slate-800/70 border border-slate-700/80'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                        ? 'border-slate-400 dark:border-slate-500 bg-transparent text-slate-900 dark:text-slate-100'
+                        : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-800/40'
                     }`}
                   >
                     {tab.label}
@@ -96,25 +110,33 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
             </div>
           </div>
 
-          {userId && initialProfile && subscription ? (
-            <InlineCreatePostCard
-              userId={userId}
-              profile={initialProfile}
-              subscription={subscription}
-              onSubmit={handleCreate}
-              isSubmitting={create.isPending}
-              submitError={createError}
-            />
-          ) : !userId ? (
-            <div className="flex justify-end">
-              <Link href="/login">
-                <Button variant="outline" size="sm" className="rounded-xl border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-800">
-                  Sign in to post
-                </Button>
-              </Link>
-            </div>
-          ) : null}
+          <div className="shrink-0">
+            {userId && initialProfile && subscription ? (
+              <InlineCreatePostCard
+                userId={userId}
+                profile={initialProfile}
+                subscription={subscription}
+                onSubmit={handleCreate}
+                isSubmitting={create.isPending}
+                submitError={createError}
+                collapsed={composerCollapsed}
+                onExpand={() => setComposerCollapsed(false)}
+              />
+            ) : !userId ? (
+              <div className="flex justify-end">
+                <Link href="/login">
+                  <Button variant="outline" size="sm" className="rounded-xl border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-800">
+                    Sign in to post
+                  </Button>
+                </Link>
+              </div>
+            ) : null}
+          </div>
 
+          <div
+            ref={feedScrollRef}
+            className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pr-1 -mr-1 [scrollbar-gutter:stable]"
+          >
           {isChannelsTab ? (
             <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/40">
@@ -162,55 +184,40 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
                 </div>
               )}
             </div>
-          ) : isLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => <PostCardSkeleton key={i} />)}
-            </div>
-          ) : posts.length === 0 ? (
-            <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-10 text-center">
-              <p className="text-slate-600 dark:text-slate-400 font-medium">No posts yet</p>
-              <p className="text-slate-500 dark:text-slate-600 text-sm mt-1">
-                {activeTab === 'following'
-                  ? 'Follow some traders to populate your timeline.'
-                  : 'Follow some traders or be the first to post!'}
-              </p>
-            </div>
           ) : (
-            <div className="space-y-3">
-              {posts.map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  currentUserId={uid}
-                  currentProfileId={initialProfile?.id}
-                  currentUserTier={subscription?.tier}
-                  onLike={(id) => like.mutate(id)}
-                  onDelete={(id) => remove.mutate(id)}
-                  onEdit={(p) => setEditPost(p)}
-                  onReport={(id) => report.mutate({ postId: id, reason: 'Reported by user' })}
-                />
-              ))}
-              <div ref={sentinelRef} />
-              {isFetchingNextPage && (
-                <div className="space-y-3">
-                  <PostCardSkeleton />
-                  <PostCardSkeleton />
-                </div>
-              )}
-            </div>
+            <FeedPostList
+              posts={posts}
+              isLoading={isLoading}
+              isFetchingNextPage={isFetchingNextPage}
+              hasNextPage={!!hasNextPage}
+              fetchNextPage={fetchNextPage}
+              currentUserId={uid}
+              currentProfileId={initialProfile?.id}
+              currentUserTier={subscription?.tier}
+              onLike={(id) => like.mutate(id)}
+              onDelete={(id) => remove.mutate(id)}
+              onEdit={(p) => setEditPost(p)}
+              onReport={(id) => report.mutate({ postId: id, reason: 'Reported by user' })}
+              emptyMessage="No posts yet"
+              emptySubtext={
+                activeTab === 'following'
+                  ? 'Follow some traders to populate your timeline.'
+                  : 'Follow some traders or be the first to post!'
+              }
+              skeletonCount={5}
+            />
           )}
+          </div>
         </div>
 
-        {/* Sidebar */}
-        <aside className="hidden lg:flex flex-col gap-4 w-72 shrink-0">
-          {/* Search */}
-          <div>
+        {/* Sidebar — height follows content; long channel lists scroll inside a capped area */}
+        <aside className="hidden lg:flex flex-col gap-4 w-72 shrink-0 self-start">
+          <div className="shrink-0 rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-1">
             <SearchBar />
           </div>
 
-          {/* Channels */}
-          <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-900/40 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/40">
+          <div className="flex flex-col rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/40">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Channels</h3>
               {isPro && (
                 <Button
@@ -225,7 +232,7 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
               )}
             </div>
 
-            <div className="divide-y divide-slate-200/80 dark:divide-slate-800/60">
+            <div className="max-h-[min(50vh,18rem)] overflow-y-auto overscroll-y-contain divide-y divide-slate-200/80 dark:divide-slate-800/60">
               {myChannels.length === 0 ? (
                 <div className="px-4 py-4 text-center">
                   <p className="text-xs text-slate-500">No channels yet</p>

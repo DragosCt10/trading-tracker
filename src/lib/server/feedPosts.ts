@@ -4,7 +4,6 @@ import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { getCachedSubscription } from './subscription';
-import { TIER_DEFINITIONS } from '@/constants/tiers';
 import type { FeedPost, TradeSnapshot, TradeSelectorItem, PaginatedResult } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 
@@ -81,10 +80,9 @@ function todayUtc(): Date {
 
 // ─── Base feed query ──────────────────────────────────────────────────────────
 
-async function buildFeedQuery(
+function buildFeedQuery(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string | undefined,
-  filter: 'timeline' | 'public' | 'profile' | 'channel',
+  filter: 'public' | 'profile' | 'channel',
   opts: {
     profileId?: string;
     channelId?: string;
@@ -106,12 +104,7 @@ async function buildFeedQuery(
     .order('created_at', { ascending: false })
     .limit(limit + 1);
 
-  if (filter === 'timeline' && userId) {
-    // Posts by followed users + own posts
-    query = query.or(
-      `author_id.in.(select following_id from follows where follower_id = (select id from social_profiles where user_id = '${userId}')),author_id.eq.(select id from social_profiles where user_id = '${userId}')`
-    );
-  } else if (filter === 'profile' && opts.profileId) {
+  if (filter === 'profile' && opts.profileId) {
     query = query.eq('author_id', opts.profileId);
   } else if (filter === 'channel' && opts.channelId) {
     query = query.eq('channel_id', opts.channelId);
@@ -156,7 +149,7 @@ export async function getPublicFeed(
     profileId = p?.id ?? null;
   }
 
-  const query = await buildFeedQuery(supabase, undefined, 'public', { cursor, limit });
+  const query = buildFeedQuery(supabase, 'public', { cursor, limit });
   const { data, error } = await query;
   if (error) { console.error('[getPublicFeed]', error); return { items: [], nextCursor: null, hasMore: false }; }
 
@@ -246,12 +239,18 @@ export async function getPost(postId: string): Promise<FeedPost | null> {
 
   const { data, error } = await supabase
     .from('feed_posts')
-    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier)`)
+    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)`)
     .eq('id', postId)
     .eq('is_hidden', false)
     .single();
 
   if (error || !data) return null;
+
+  // Block access to posts by private-profile authors unless the requester is the author
+  const author = (data as Record<string, unknown> & { author: { is_public: boolean; user_id: string } }).author;
+  if (author && !author.is_public) {
+    if (!session.user || author.user_id !== session.user.id) return null;
+  }
 
   let liked = false;
   if (session.user) {
@@ -285,7 +284,7 @@ export async function getPostsByProfile(
     ownProfileId = p?.id ?? null;
   }
 
-  const query = await buildFeedQuery(supabase, undefined, 'profile', { profileId, cursor, limit });
+  const query = buildFeedQuery(supabase, 'profile', { profileId, cursor, limit });
   const { data, error } = await query;
   if (error) { console.error('[getPostsByProfile]', error); return { items: [], nextCursor: null, hasMore: false }; }
 
@@ -302,14 +301,15 @@ export async function getPostsByProfile(
 
 // ─── Weekly post count ────────────────────────────────────────────────────────
 
-export async function getWeeklyPostCount(
-  userId: string
-): Promise<{ used: number; resetDate: Date }> {
+export async function getWeeklyPostCount(): Promise<{ used: number; resetDate: Date }> {
+  const session = await getCachedUserSession();
+  if (!session.user) return { used: 0, resetDate: nextMondayUtc() };
+
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from('social_profiles')
     .select('id')
-    .eq('user_id', userId)
+    .eq('user_id', session.user.id)
     .single();
 
   if (!profile) return { used: 0, resetDate: nextMondayUtc() };
@@ -422,7 +422,7 @@ export async function createPost(input: {
 
   // ── Posting rate limits
   if (limits.maxPostsPerWeek !== null) {
-    const { used, resetDate } = await getWeeklyPostCount(session.user!.id);
+    const { used, resetDate } = await getWeeklyPostCount();
     if (used >= limits.maxPostsPerWeek) {
       return {
         error: `Weekly post limit reached (${limits.maxPostsPerWeek}/week). Resets ${resetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}.`,
@@ -595,7 +595,7 @@ export async function getChannelFeed(
     profileId = p?.id ?? null;
   }
 
-  const query = await buildFeedQuery(supabase, undefined, 'channel', { channelId, cursor, limit });
+  const query = buildFeedQuery(supabase, 'channel', { channelId, cursor, limit });
   const { data, error } = await query;
   if (error) { console.error('[getChannelFeed]', error); return { items: [], nextCursor: null, hasMore: false }; }
 

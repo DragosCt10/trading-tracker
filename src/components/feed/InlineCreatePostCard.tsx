@@ -20,6 +20,9 @@ interface InlineCreatePostCardProps {
   }) => Promise<void>;
   isSubmitting?: boolean;
   submitError?: string;
+  /** When true, show a single-row composer; expand via onExpand (e.g. feed scroll up). */
+  collapsed?: boolean;
+  onExpand?: () => void;
 }
 
 export default function InlineCreatePostCard({
@@ -29,12 +32,22 @@ export default function InlineCreatePostCard({
   onSubmit,
   isSubmitting,
   submitError,
+  collapsed = false,
+  onExpand,
 }: InlineCreatePostCardProps) {
   const [content, setContent] = useState('');
   const [selectedTrade, setSelectedTrade] = useState<TradeSelectorItem | null>(null);
   const [attachModalOpen, setAttachModalOpen] = useState(false);
   const [weeklyCount, setWeeklyCount] = useState<{ used: number; resetDate: Date } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const wasCollapsedRef = useRef(collapsed);
+
+  useEffect(() => {
+    if (wasCollapsedRef.current && !collapsed) {
+      requestAnimationFrame(() => textareaRef.current?.focus());
+    }
+    wasCollapsedRef.current = collapsed;
+  }, [collapsed]);
 
   const maxLen = subscription.definition.limits.maxPostContentLength;
   const canAttach = subscription.definition.features.socialFeedTradeAttach;
@@ -73,17 +86,37 @@ export default function InlineCreatePostCard({
     textareaRef.current?.focus();
   }
 
+  const avatar = (
+    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm ring-2 ring-amber-400/75 ring-offset-1 ring-offset-white dark:ring-offset-slate-800 shrink-0">
+      {profile.avatar_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={profile.avatar_url} alt={profile.display_name} className="w-full h-full object-cover" />
+      ) : (
+        profile.display_name.slice(0, 1).toUpperCase()
+      )}
+    </div>
+  );
+
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        onClick={() => onExpand?.()}
+        className="w-full rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-2.5 text-left transition-all duration-300 ease-in-out flex items-center gap-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/50"
+      >
+        {avatar}
+        <span className="flex-1 min-w-0 text-[15px] text-slate-400 dark:text-slate-500 truncate">
+          What&apos;s your trade thesis today?
+        </span>
+        <PlusCircle className="w-5 h-5 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden />
+      </button>
+    );
+  }
+
   return (
-    <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-3">
+    <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-3 transition-all duration-300 ease-in-out">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm ring-2 ring-amber-400/75 ring-offset-1 ring-offset-white dark:ring-offset-slate-800 shrink-0">
-          {profile.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={profile.avatar_url} alt={profile.display_name} className="w-full h-full object-cover" />
-          ) : (
-            profile.display_name.slice(0, 1).toUpperCase()
-          )}
-        </div>
+        {avatar}
 
         <div className="flex-1 min-w-0 space-y-2">
           <textarea

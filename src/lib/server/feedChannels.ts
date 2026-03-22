@@ -116,7 +116,28 @@ export async function getChannelBySlug(slug: string): Promise<FeedChannel | null
     .maybeSingle();
 
   if (error || !data) return null;
-  return mapRow(data as Record<string, unknown>);
+
+  const channel = mapRow(data as Record<string, unknown>);
+
+  // Private channels: verify the caller is the owner or a member
+  if (!channel.is_public) {
+    const session = await getCachedUserSession();
+    if (!session.user) return null;
+
+    const profile = await getCachedSocialProfile(session.user.id);
+    if (!profile) return null;
+
+    if (profile.id !== channel.owner_id) {
+      const { count } = await supabase
+        .from('channel_members')
+        .select('channel_id', { count: 'exact', head: true })
+        .eq('channel_id', channel.id)
+        .eq('user_id', profile.id);
+      if ((count ?? 0) === 0) return null;
+    }
+  }
+
+  return channel;
 }
 
 // ─── Create (PRO only) ───────────────────────────────────────────────────────

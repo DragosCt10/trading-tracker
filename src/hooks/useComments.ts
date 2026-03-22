@@ -62,7 +62,7 @@ export function useComments(postId: string, initialData?: PaginatedResult<FeedCo
     initialData: initialData
       ? { pages: [initialData], pageParams: [undefined] }
       : undefined,
-    refetchOnMount: 'always',
+    refetchOnMount: true,
     ...FEED_DATA,
   });
 

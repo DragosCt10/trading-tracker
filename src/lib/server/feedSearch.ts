@@ -73,7 +73,10 @@ export async function searchProfiles(
   if (!query.trim()) return [];
 
   const supabase = await createClient();
-  const pattern = `%${query.trim()}%`;
+  // Strip characters that break PostgREST filter parsing (comma, dot, parens)
+  const sanitized = query.trim().replace(/[,%.()\s]+/g, ' ').trim();
+  if (!sanitized) return [];
+  const pattern = `%${sanitized}%`;
 
   const { data, error } = await supabase
     .from('social_profiles')

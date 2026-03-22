@@ -6,6 +6,7 @@ import { Bell, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useNotificationUnreadCount, useNotificationList, useMarkNotifications } from '@/hooks/useNotifications';
+import { formatFeedDate } from '@/utils/feedDateFormat';
 
 interface NotificationBellProps {
   userId?: string;
@@ -18,13 +19,6 @@ function notifLabel(type: string): string {
   return '';
 }
 
-function formatNotificationDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
-}
 
 export default function NotificationBell({ userId }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
@@ -104,7 +98,7 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
                     {' '}{notifLabel(n.type)}
                   </p>
                   <p className="text-xs text-slate-600 mt-0.5" suppressHydrationWarning>
-                    {formatNotificationDate(n.created_at)}
+                    {formatFeedDate(n.created_at)}
                   </p>
                 </div>
 
