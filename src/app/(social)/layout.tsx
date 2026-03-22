@@ -36,28 +36,12 @@ export default async function SocialLayout({ children }: { children: ReactNode }
               </div>
             </Link>
 
-            {/* Nav links — authenticated: left side */}
-            {user && (
-              <>
-                <Separator orientation="vertical" className="mx-3 hidden h-6 lg:flex" />
-                <div className="hidden lg:block">
-                  <NavPillLink href="/stats">
-                    <Target className="h-4 w-4" />
-                    <span>Go to app</span>
-                  </NavPillLink>
-                </div>
-              </>
-            )}
-
-            {/* Right actions */}
+            {/* Right actions — Go to app first (same slot as former tier badge), then theme/actions */}
             <div className="ml-auto flex items-center gap-2">
-              {/* Guest: Go to app on the right */}
-              {!user && (
-                <NavPillLink href="/stats">
-                  <Target className="h-4 w-4" />
-                  <span>Go to app</span>
-                </NavPillLink>
-              )}
+              <NavPillLink href="/stats">
+                <Target className="h-4 w-4" />
+                <span>Go to app</span>
+              </NavPillLink>
               <SocialNavActions userId={user?.id ?? null} />
             </div>
           </div>
