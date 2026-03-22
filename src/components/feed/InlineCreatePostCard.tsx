@@ -2,12 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Link2, Loader2, X, PlusCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import TierBadge from './TierBadge';
 import TradePreviewCard from './TradePreviewCard';
 import AttachTradeModal from './AttachTradeModal';
 import { useTheme } from '@/hooks/useTheme';
 import { getWeeklyPostCount } from '@/lib/server/feedPosts';
+import { queryKeys } from '@/lib/queryKeys';
+import { USER_DATA } from '@/constants/queryConfig';
 import type { TradeSelectorItem, TradeSnapshot, SocialProfile } from '@/types/social';
 import type { ResolvedSubscription } from '@/types/subscription';
 
@@ -40,7 +43,6 @@ export default function InlineCreatePostCard({
   const [content, setContent] = useState('');
   const [selectedTrade, setSelectedTrade] = useState<TradeSelectorItem | null>(null);
   const [attachModalOpen, setAttachModalOpen] = useState(false);
-  const [weeklyCount, setWeeklyCount] = useState<{ used: number; resetDate: Date } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const wasCollapsedRef = useRef(collapsed);
   const { theme, mounted } = useTheme();
@@ -59,11 +61,15 @@ export default function InlineCreatePostCard({
   const maxLen = subscription.definition.limits.maxPostContentLength;
   const canAttach = subscription.definition.features.socialFeedTradeAttach;
   const weeklyMax = subscription.definition.limits.maxPostsPerWeek;
-  const limitReached = weeklyMax !== null && weeklyCount !== null && weeklyCount.used >= weeklyMax;
 
-  useEffect(() => {
-    if (weeklyMax !== null) getWeeklyPostCount().then(setWeeklyCount);
-  }, [userId, weeklyMax]);
+  const { data: weeklyCount = null } = useQuery({
+    queryKey: queryKeys.feed.weeklyPostCount(),
+    queryFn: () => getWeeklyPostCount(),
+    enabled: weeklyMax !== null,
+    ...USER_DATA,
+  });
+
+  const limitReached = weeklyMax !== null && weeklyCount !== null && weeklyCount.used >= weeklyMax;
 
   function tradeToSnapshot(t: TradeSelectorItem): TradeSnapshot {
     return {

@@ -3,6 +3,7 @@
 import PostCard from './PostCard';
 import PostCardSkeleton from './PostCardSkeleton';
 import { useInfiniteScrollSentinel } from '@/hooks/useInfiniteScrollSentinel';
+import { useTheme } from '@/hooks/useTheme';
 import type { FeedPost } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 
@@ -42,6 +43,8 @@ export default function FeedPostList({
   skeletonCount = 3,
 }: FeedPostListProps) {
   const sentinelRef = useInfiniteScrollSentinel(fetchNextPage, hasNextPage, isFetchingNextPage);
+  const { theme, mounted } = useTheme();
+  const isLightMode = mounted && theme === 'light';
 
   if (isLoading) {
     return (
@@ -71,6 +74,8 @@ export default function FeedPostList({
           currentUserId={currentUserId}
           currentProfileId={currentProfileId}
           currentUserTier={currentUserTier}
+          isLightMode={isLightMode}
+          mounted={mounted}
           onLike={onLike}
           onDelete={onDelete}
           onEdit={onEdit}

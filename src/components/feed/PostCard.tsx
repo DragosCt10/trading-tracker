@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import Link from 'next/link';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Pencil, Trash2, Flag } from 'lucide-react';
 import TierBadge from './TierBadge';
@@ -16,6 +16,10 @@ interface PostCardProps {
   currentUserId?: string;
   currentProfileId?: string;
   currentUserTier?: TierId;
+  /** Passed from FeedPostList to share a single useTheme() call across all cards. */
+  isLightMode?: boolean;
+  /** Passed from FeedPostList to share a single useTheme() call across all cards. */
+  mounted?: boolean;
   onLike?: (postId: string) => void;
   onDelete?: (postId: string) => void;
   onEdit?: (post: FeedPost) => void;
@@ -24,12 +28,13 @@ interface PostCardProps {
   expanded?: boolean;
 }
 
-
-export default function PostCard({
+function PostCardComponent({
   post,
   currentUserId,
   currentProfileId,
   currentUserTier,
+  isLightMode: isLightModeProp,
+  mounted: mountedProp,
   onLike,
   onDelete,
   onEdit,
@@ -37,17 +42,18 @@ export default function PostCard({
   expanded = false,
 }: PostCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { theme, mounted } = useTheme();
+  const { theme: _theme, mounted: _mounted } = useTheme();
+  const mounted = mountedProp !== undefined ? mountedProp : _mounted;
+  const isLightMode = isLightModeProp !== undefined ? isLightModeProp : (_mounted && _theme === 'light');
   const isOwn = currentProfileId === post.author.id;
   const authorTier =
     currentUserId && post.author.user_id === currentUserId && currentUserTier
       ? currentUserTier
       : post.author.tier;
   const isPro = authorTier === 'pro' || authorTier === 'elite';
-  const isLightMode = mounted && theme === 'light';
 
   return (
-    <article className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-5 transition-all duration-200 hover:border-slate-400/70 dark:hover:border-slate-600/60">
+    <article className="rounded-2xl mb-6 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-5 transition-all duration-200 hover:border-slate-400/70 dark:hover:border-slate-600/60">
       {/* Author header */}
       <div className="flex items-start gap-3 mb-7">
         <Link href={`/profile/${post.author.username}`} className="shrink-0">
@@ -209,3 +215,6 @@ export default function PostCard({
     </article>
   );
 }
+
+const PostCard = memo(PostCardComponent);
+export default PostCard;

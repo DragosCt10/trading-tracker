@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
+const supabase = createClient();
+
 export function useNewPostsNotifier(currentProfileId: string | undefined, enabled: boolean) {
   const [newPostCount, setNewPostCount] = useState(0);
 
   useEffect(() => {
     if (!enabled || !currentProfileId) return;
 
-    const supabase = createClient();
     const channel = supabase
       .channel('feed-new-posts')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'feed_posts' }, (payload) => {

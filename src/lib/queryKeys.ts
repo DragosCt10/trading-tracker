@@ -142,6 +142,7 @@ export const queryKeys = {
     search:        (query: string, type: string)       => ['feed:search',         query, type]    as const,
     followers:     (profileId?: string)                => ['feed:followers',      profileId]      as const,
     following:     (profileId?: string)                => ['feed:following',      profileId]      as const,
+    weeklyPostCount: ()                                => ['feed:weeklyPostCount']                as const,
   },
 
   /** Full Trade[] for a single calendar month (for calendar display). */

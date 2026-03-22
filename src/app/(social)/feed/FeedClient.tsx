@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useTransition } from 'react';
+import { useState, useRef, useEffect, useTransition, useCallback } from 'react';
 import { Hash, Plus, Globe, Lock, Loader2, UserPlus, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
@@ -64,6 +64,11 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
   const [, startChannelTransition] = useTransition();
 
   const posts = data?.pages.flatMap((p) => p.items) ?? [];
+
+  const handleLike = useCallback((id: string) => like.mutate(id), [like]);
+  const handleDelete = useCallback((id: string) => remove.mutate(id), [remove]);
+  const handleEdit = useCallback((p: FeedPost) => setEditPost(p), []);
+  const handleReport = useCallback((id: string) => report.mutate({ postId: id, reason: 'Reported by user' }), [report]);
 
   function handleChannelToggle(e: React.MouseEvent, channelId: string, currentlyPublic: boolean) {
     e.preventDefault();
@@ -282,10 +287,10 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
               currentUserId={uid}
               currentProfileId={initialProfile?.id}
               currentUserTier={subscription?.tier}
-              onLike={(id) => like.mutate(id)}
-              onDelete={(id) => remove.mutate(id)}
-              onEdit={(p) => setEditPost(p)}
-              onReport={(id) => report.mutate({ postId: id, reason: 'Reported by user' })}
+              onLike={handleLike}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
+              onReport={handleReport}
               emptyMessage="No posts yet"
               emptySubtext={
                 activeTab === 'following'

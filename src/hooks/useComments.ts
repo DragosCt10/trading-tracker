@@ -2,6 +2,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { getComments, addComment, editComment, deleteComment } from '@/lib/server/feedInteractions';
 import { queryKeys } from '@/lib/queryKeys';
 import { FEED_DATA } from '@/constants/queryConfig';
+
 import type { PaginatedResult, FeedComment } from '@/types/social';
 import type { FeedPost } from '@/types/social';
 
@@ -39,11 +40,11 @@ export function useComments(postId: string, initialData?: PaginatedResult<FeedCo
   const key = queryKeys.feed.comments(postId);
 
   function bumpCommentCountAcrossFeedCaches(delta: number) {
-    const prefixes: (readonly unknown[])[] = [
-      ['feed:public'],
-      ['feed:timeline'],
-      ['feed:channelPosts'],
-    ];
+    const prefixes = [
+      queryKeys.feed.public(),
+      queryKeys.feed.timeline(),
+      queryKeys.feed.channelPosts(''),
+    ] as readonly unknown[][];
 
     for (const prefix of prefixes) {
       const entries = qc.getQueriesData<InfiniteFeedData>({ queryKey: prefix });
@@ -84,7 +85,6 @@ export function useComments(postId: string, initialData?: PaginatedResult<FeedCo
         };
       });
       bumpCommentCountAcrossFeedCaches(1);
-      qc.invalidateQueries({ queryKey: key });
     },
   });
 
@@ -108,7 +108,6 @@ export function useComments(postId: string, initialData?: PaginatedResult<FeedCo
           })),
         };
       });
-      qc.invalidateQueries({ queryKey: key });
     },
   });
 
@@ -136,7 +135,6 @@ export function useComments(postId: string, initialData?: PaginatedResult<FeedCo
     onSuccess: (result) => {
       if ('error' in result) return;
       bumpCommentCountAcrossFeedCaches(-1);
-      qc.invalidateQueries({ queryKey: key });
     },
   });
 

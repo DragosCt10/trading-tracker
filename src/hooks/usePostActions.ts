@@ -116,10 +116,6 @@ export function usePostActions(userId?: string, channelId?: string) {
           };
         });
       }
-      // Revalidate to avoid stale client/server divergence after edits.
-      for (const prefix of targetFeedPrefixes) {
-        qc.invalidateQueries({ queryKey: prefix });
-      }
     },
   });
 
