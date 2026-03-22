@@ -49,15 +49,15 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-80 rounded-2xl border border-slate-700/60 bg-slate-900/95 backdrop-blur-xl shadow-2xl p-0"
+        className="w-80 z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-0"
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/40">
-          <h3 className="text-sm font-semibold text-slate-100">Notifications</h3>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/50">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">Notifications</h3>
           {unreadCount > 0 && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 text-xs text-slate-500 hover:text-slate-300 gap-1"
+              className="h-7 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 gap-1"
               onClick={() => markAll.mutate()}
               disabled={markAll.isPending}
             >
@@ -69,9 +69,9 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
 
         <div className="max-h-80 overflow-y-auto">
           {isFetching && notifs.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-slate-500">Loading…</div>
+            <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">Loading…</div>
           ) : notifs.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-slate-500">No notifications yet</div>
+            <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">No notifications yet</div>
           ) : (
             notifs.map((n) => (
               <Link
@@ -81,10 +81,10 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
                   if (!n.is_read) markOne.mutate(n.id);
                   setOpen(false);
                 }}
-                className={`flex items-start gap-3 px-4 py-3 hover:bg-slate-800/50 transition-colors border-b border-slate-800/60 last:border-0 ${!n.is_read ? 'bg-slate-800/30' : ''}`}
+                className={`flex items-start gap-3 px-4 py-3 hover:bg-slate-100/90 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-200/70 dark:border-slate-700/50 last:border-0 ${!n.is_read ? 'bg-slate-100/70 dark:bg-slate-800/40' : ''}`}
               >
                 {/* Actor avatar */}
-                <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 text-xs font-semibold shrink-0">
+                <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 text-xs font-semibold shrink-0">
                   {n.actor.avatar_url
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={n.actor.avatar_url} alt={n.actor.display_name} className="w-full h-full rounded-full object-cover" />
@@ -93,11 +93,11 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-300 leading-snug">
-                    <span className="font-semibold text-slate-100">{n.actor.display_name}</span>
+                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{n.actor.display_name}</span>
                     {' '}{notifLabel(n.type)}
                   </p>
-                  <p className="text-xs text-slate-600 mt-0.5" suppressHydrationWarning>
+                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5" suppressHydrationWarning>
                     {formatFeedDate(n.created_at)}
                   </p>
                 </div>

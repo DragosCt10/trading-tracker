@@ -39,7 +39,7 @@ export default async function SocialLayout({ children }: { children: ReactNode }
             {/* Right actions — Go to app first (same slot as former tier badge), then theme/actions */}
             <div className="ml-auto flex items-center gap-2">
               <NavPillLink href="/stats">
-                <Target className="h-4 w-4" />
+                {/* <Target className="h-4 w-4" /> */}
                 <span>Go to app</span>
               </NavPillLink>
               <SocialNavActions userId={user?.id ?? null} />

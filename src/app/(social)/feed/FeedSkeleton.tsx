@@ -1,5 +1,6 @@
 'use client';
 
+import { Globe, Hash, UserPlus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import PostCardSkeleton from '@/components/feed/PostCardSkeleton';
 
@@ -37,21 +38,26 @@ export function FeedSkeleton() {
         <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-6">
 
           {/* Tab bar — static, no skeleton */}
-          <div className="shrink-0 rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-1">
-            <div className="grid grid-cols-3 gap-1">
-              {(['Public', 'Following', 'Channels'] as const).map((label, i) => (
-                <div
-                  key={label}
-                  className={`h-11 rounded-xl flex items-center justify-center text-sm font-semibold border ${
-                    i === 0
-                      ? 'border-slate-400 dark:border-slate-500 text-slate-900 dark:text-slate-100'
-                      : 'border-transparent text-slate-400 dark:text-slate-500'
-                  }`}
-                >
-                  {label}
-                </div>
-              ))}
-            </div>
+          <div className="shrink-0 flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-900/20 p-1 backdrop-blur-sm">
+            {(
+              [
+                { label: 'Public', Icon: Globe },
+                { label: 'Following', Icon: UserPlus },
+                { label: 'Channels', Icon: Hash },
+              ] as const
+            ).map(({ label, Icon }, i) => (
+              <div
+                key={label}
+                className={`flex-1 rounded-xl px-4 py-2 min-h-[2.75rem] flex items-center justify-center gap-1.5 text-sm font-semibold ${
+                  i === 0
+                    ? 'text-slate-900 dark:text-slate-50 shadow-sm border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/30'
+                    : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {label}
+              </div>
+            ))}
           </div>
 
           {/* Composer skeleton */}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useTransition } from 'react';
-import { Hash, Plus, Globe, Lock, Loader2, Users } from 'lucide-react';
+import { Hash, Plus, Globe, Lock, Loader2, UserPlus, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import InlineCreatePostCard from '@/components/feed/InlineCreatePostCard';
 import EditPostModal from '@/components/feed/EditPostModal';
 import CreateChannelModal from '@/components/feed/CreateChannelModal';
 import SearchBar from '@/components/feed/SearchBar';
+import { cn } from '@/lib/utils';
 import type { SocialProfile, FeedPost, PaginatedResult } from '@/types/social';
 
 interface FeedClientProps {
@@ -25,6 +26,12 @@ interface FeedClientProps {
 }
 
 type FeedTab = 'public' | 'following' | 'channels';
+
+const FEED_TAB_ICONS = {
+  public: Globe,
+  following: UserPlus,
+  channels: Hash,
+} as const;
 
 export default function FeedClient({ userId, initialProfile, initialFeed }: FeedClientProps) {
   const uid = userId ?? undefined;
@@ -97,34 +104,36 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
       <div className="flex gap-6 items-stretch min-h-0 h-[calc(100dvh-8rem)] max-h-[calc(100dvh-8rem)]">
         {/* Main feed */}
         <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-6">
-          <div className="shrink-0 rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-1">
-            <div className="grid grid-cols-3 gap-1">
-              {([
-                { id: 'public', label: 'Public' },
-                { id: 'following', label: 'Following' },
-                { id: 'channels', label: 'Channels' },
-              ] as const).map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => {
-                      setActiveTab(tab.id);
-                      setComposerCollapsed(false);
-                      lastFeedScrollTop.current = feedScrollRef.current?.scrollTop ?? 0;
-                    }}
-                    className={`h-11 rounded-xl text-sm font-semibold transition-colors border ${
-                      isActive
-                        ? 'border-slate-400 dark:border-slate-500 bg-transparent text-slate-900 dark:text-slate-100'
-                        : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-800/40'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
+          {/* Tab bar — matches AdminClient */}
+          <div className="shrink-0 flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-900/20 p-1 backdrop-blur-sm">
+            {([
+              { id: 'public', label: 'Public' },
+              { id: 'following', label: 'Following' },
+              { id: 'channels', label: 'Channels' },
+            ] as const).map((tab) => {
+              const isActive = activeTab === tab.id;
+              const TabIcon = FEED_TAB_ICONS[tab.id];
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setComposerCollapsed(false);
+                    lastFeedScrollTop.current = feedScrollRef.current?.scrollTop ?? 0;
+                  }}
+                  className={cn(
+                    'flex-1 rounded-xl px-4 py-2 min-h-[2.75rem] text-sm font-semibold transition-colors !shadow-none cursor-pointer flex items-center justify-center gap-1.5',
+                    isActive
+                      ? 'text-slate-900 dark:text-slate-50 shadow-sm border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/30'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  )}
+                >
+                  <TabIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
 
           <div className="shrink-0">

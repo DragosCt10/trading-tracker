@@ -100,7 +100,7 @@ export default function InlineCreatePostCard({
 
   const avatar = (
     <div
-      className={`w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm shrink-0 ${avatarRing}`}
+      className={`w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm shrink-0 ${avatarRing}`}
     >
       {profile.avatar_url ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -111,115 +111,138 @@ export default function InlineCreatePostCard({
     </div>
   );
 
-  if (collapsed) {
-    return (
-      <button
-        type="button"
-        onClick={() => onExpand?.()}
-        className="w-full rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-2.5 text-left transition-all duration-300 ease-in-out flex items-center gap-2 sm:gap-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 min-w-0"
-      >
-        {avatar}
-        <span className="flex-1 min-w-0 text-[15px] text-slate-400 dark:text-slate-500 truncate">
-          What&apos;s your trade thesis today?
-        </span>
-        {!mounted && (
-          <span
-            className="h-5 w-14 shrink-0 rounded-md bg-slate-200/70 dark:bg-slate-700/50 animate-pulse"
-            aria-hidden
-          />
-        )}
-        {mounted && (
-          <span className="shrink-0">
-            <TierBadge tier={authorTier} isLightMode={isLightMode} />
-          </span>
-        )}
-        <PlusCircle className="w-5 h-5 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden />
-      </button>
-    );
-  }
+  const shellClass =
+    'rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden motion-reduce:transition-none';
+
+  const rowTransition =
+    'grid transition-[grid-template-rows] duration-300 ease-in-out motion-reduce:transition-none';
 
   return (
-    <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-3 transition-all duration-300 ease-in-out">
-      <div className="flex items-start gap-3">
-        {avatar}
-
-        <div className="flex-1 min-w-0 space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm text-slate-900 dark:text-slate-100 leading-none">
-              {profile.display_name}
+    <div className={shellClass}>
+      {/* Collapsed row — animates to 0fr when expanded */}
+      <div
+        className={`${rowTransition} ${collapsed ? '[grid-template-rows:1fr]' : '[grid-template-rows:0fr]'}`}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => onExpand?.()}
+            tabIndex={collapsed ? 0 : -1}
+            className="w-full px-5 py-2.5 text-left transition-colors duration-200 flex items-center gap-2 sm:gap-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 min-w-0"
+          >
+            {avatar}
+            <span className="flex-1 min-w-0 text-[15px] text-slate-400 dark:text-slate-500 truncate">
+              What&apos;s your trade thesis today?
             </span>
             {!mounted && (
               <span
-                className="h-5 w-14 rounded-md bg-slate-200/70 dark:bg-slate-700/50 animate-pulse"
+                className="h-5 w-14 shrink-0 rounded-md bg-slate-200/70 dark:bg-slate-700/50 animate-pulse"
                 aria-hidden
               />
             )}
-            {mounted && <TierBadge tier={authorTier} isLightMode={isLightMode} />}
-          </div>
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            maxLength={maxLen}
-            rows={2}
-            disabled={limitReached || isSubmitting}
-            placeholder="What's your trade thesis today?"
-            className="w-full resize-none bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-[15px] leading-[1.6] focus:outline-none disabled:opacity-50"
-          />
-
-          {selectedTrade && <TradePreviewCard snapshot={tradeToSnapshot(selectedTrade)} />}
-
-          {submitError && (
-            <p className="text-xs text-rose-400">{submitError}</p>
-          )}
-
-          {limitReached && weeklyMax !== null && weeklyCount && (
-            <p className="text-xs text-rose-400">
-              All {weeklyMax} posts used this week. Resets{' '}
-              {weeklyCount.resetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}.
-            </p>
-          )}
+            {mounted && (
+              <span className="shrink-0">
+                <TierBadge tier={authorTier} isLightMode={isLightMode} />
+              </span>
+            )}
+            <PlusCircle className="w-5 h-5 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden />
+          </button>
         </div>
       </div>
 
-      <div className="mt-3 pt-3 border-t border-slate-200/70 dark:border-slate-700/50 flex items-center justify-end gap-3">
-        {canAttach && (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setAttachModalOpen(true)}
-              className="h-9 px-4 rounded-xl border border-slate-300/80 dark:border-slate-700/70 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-100/80 dark:bg-slate-900/30 transition-colors inline-flex items-center gap-2 text-sm"
-            >
-              <Link2 className="w-4 h-4" />
-              <span className="font-semibold">
-                {selectedTrade ? `${selectedTrade.market} (${selectedTrade.outcome.toUpperCase()})` : 'Attach Trade'}
-              </span>
-            </button>
-            {selectedTrade && (
-              <button
-                type="button"
-                onClick={() => setSelectedTrade(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                aria-label="Remove trade"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        )}
+      {/* Expanded composer — animates from 0fr when collapsed */}
+      <div
+        className={`${rowTransition} ${collapsed ? '[grid-template-rows:0fr]' : '[grid-template-rows:1fr]'}`}
+      >
+        {/* inert while collapsed so the textarea/actions stay out of tab order when height is 0 */}
+        <div className="min-h-0 min-w-0 overflow-hidden" inert={collapsed ? true : undefined}>
+          <div className="p-5">
+            {/* Same header rhythm as PostCard: avatar row + mb-7 before body */}
+            <div className="flex items-start gap-3 mb-7">
+              {avatar}
 
-        <Button
-          onClick={handleSubmit}
-          disabled={!content.trim() || isSubmitting || limitReached}
-          className="themed-btn-primary h-9 px-5 cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold group border-0 disabled:opacity-60"
-        >
-          <span className="relative z-10 flex items-center gap-2 text-sm">
-            {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            {!isSubmitting && <PlusCircle className="w-4 h-4" />}
-            {isSubmitting ? 'Posting…' : 'Post'}
-          </span>
-          <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-        </Button>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-sm text-slate-900 dark:text-slate-100 leading-none">
+                    {profile.display_name}
+                  </span>
+                  {!mounted && (
+                    <span
+                      className="h-5 w-14 rounded-md bg-slate-200/70 dark:bg-slate-700/50 animate-pulse"
+                      aria-hidden
+                    />
+                  )}
+                  {mounted && <TierBadge tier={authorTier} isLightMode={isLightMode} />}
+                </div>
+              </div>
+            </div>
+
+            {/* Body: full width under header, like PostCard post text */}
+            <textarea
+              ref={textareaRef}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              maxLength={maxLen}
+              rows={2}
+              disabled={limitReached || isSubmitting}
+              placeholder="What's your trade thesis today?"
+              className={`w-full resize-none bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-[15px] leading-[1.65] focus:outline-none disabled:opacity-50 ${selectedTrade ? 'mb-3' : ''}`}
+            />
+
+            {selectedTrade && <TradePreviewCard snapshot={tradeToSnapshot(selectedTrade)} />}
+
+            {submitError && (
+              <p className="text-xs text-rose-400 mt-2">{submitError}</p>
+            )}
+
+            {limitReached && weeklyMax !== null && weeklyCount && (
+              <p className="text-xs text-rose-400 mt-2">
+                All {weeklyMax} posts used this week. Resets{' '}
+                {weeklyCount.resetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}.
+              </p>
+            )}
+
+            <div className="mt-4 pt-3 border-t border-slate-200/70 dark:border-slate-700/40 flex items-center justify-end gap-3">
+              {canAttach && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAttachModalOpen(true)}
+                    className="h-9 px-4 rounded-xl border border-slate-300/80 dark:border-slate-700/70 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-100/80 dark:bg-slate-900/30 transition-colors inline-flex items-center gap-2 text-sm"
+                  >
+                    <Link2 className="w-4 h-4" />
+                    <span className="font-semibold">
+                      {selectedTrade ? `${selectedTrade.market} (${selectedTrade.outcome.toUpperCase()})` : 'Attach Trade'}
+                    </span>
+                  </button>
+                  {selectedTrade && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTrade(null)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                      aria-label="Remove trade"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <Button
+                onClick={handleSubmit}
+                disabled={!content.trim() || isSubmitting || limitReached}
+                className="themed-btn-primary h-9 px-5 cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold group border-0 disabled:opacity-60"
+              >
+                <span className="relative z-10 flex items-center gap-2 text-sm">
+                  {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {!isSubmitting && <PlusCircle className="w-4 h-4" />}
+                  {isSubmitting ? 'Posting…' : 'Post'}
+                </span>
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <AttachTradeModal

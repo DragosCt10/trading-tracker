@@ -54,21 +54,32 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
         Back to Feed
       </Link>
 
-      {/* Channel header */}
-      <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/60 bg-slate-50/50 dark:bg-slate-900/40 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-xl px-5 py-4 flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-slate-200/90 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-300/60 dark:border-slate-700/60">
-          <Hash className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">{channel.name}</h1>
-            {channel.is_public
-              ? <Globe className="w-4 h-4 text-slate-500" />
-              : <Lock className="w-4 h-4 text-slate-500" />
-            }
+      {/* Channel header — matches SettingsClient page title + description */}
+      <div className="space-y-2 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2.5 rounded-xl shadow-sm themed-header-icon-box shrink-0">
+              <Hash className="w-6 h-6" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-3xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+                  {channel.name}
+                </h1>
+                {channel.is_public ? (
+                  <Globe className="w-5 h-5 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden />
+                ) : (
+                  <Lock className="w-5 h-5 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden />
+                )}
+              </div>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                {channel.description?.trim() || `Channel · #${channel.slug}`}
+              </p>
+              {channel.description?.trim() ? (
+                <p className="text-xs text-slate-500 dark:text-slate-600 mt-1">#{channel.slug}</p>
+              ) : null}
+            </div>
           </div>
-          {channel.description && <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{channel.description}</p>}
-          <p className="text-xs text-slate-500 dark:text-slate-600 mt-1">#{channel.slug}</p>
         </div>
       </div>
 
