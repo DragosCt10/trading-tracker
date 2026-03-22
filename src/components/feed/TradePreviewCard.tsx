@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { TradeDirectionLabel } from '@/components/trade/TradeDirectionChips';
 import type { TradeSnapshot } from '@/types/social';
 import { formatPercent } from '@/lib/utils';
 import { formatTradeEntryDate } from '@/utils/feedDateFormat';
@@ -26,14 +27,6 @@ export default function TradePreviewCard({ snapshot }: TradePreviewCardProps) {
 
   const outcomeLabel = snapshot.outcome === 'be' ? 'BE' : snapshot.outcome.toUpperCase();
 
-  const directionIcon =
-    snapshot.direction === 'long'  ? <TrendingUp  className="w-3.5 h-3.5" /> :
-    snapshot.direction === 'short' ? <TrendingDown className="w-3.5 h-3.5" /> :
-                                     <Minus        className="w-3.5 h-3.5" />;
-
-  const directionLabel =
-    snapshot.direction.charAt(0).toUpperCase() + snapshot.direction.slice(1);
-
   return (
     <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-transparent shadow-none overflow-hidden">
       {/* Header — two-zone */}
@@ -44,10 +37,7 @@ export default function TradePreviewCard({ snapshot }: TradePreviewCardProps) {
             <span className="font-bold text-[15px] text-slate-900 dark:text-slate-100 tracking-tight">
               {snapshot.market}
             </span>
-            <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 text-sm">
-              {directionIcon}
-              {directionLabel}
-            </span>
+            <TradeDirectionLabel direction={snapshot.direction} />
           </div>
 
           {/* Stat strip */}
