@@ -38,6 +38,7 @@ import { cn, formatPercent, roundToCents } from '@/lib/utils';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { MonteCarloCard } from '@/components/trades/MonteCarloCard';
 import { useSubscription } from '@/hooks/useSubscription';
+import { MyTradesSkeleton } from './MyTradesSkeleton';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -71,7 +72,7 @@ export default function MyTradesClient({
 
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { userId, mode, activeAccount } = useStrategyClientContext({
+  const { userId, mode, activeAccount, isInitialContext } = useStrategyClientContext({
     initialUserId,
     initialMode,
     initialActiveAccount,
@@ -118,6 +119,8 @@ export default function MyTradesClient({
     data: allTrades,
     isLoading: tradesLoading,
     isFetching: tradesFetching,
+    isError: tradesError,
+    refetch: refetchTrades,
   } = useQuery<Trade[]>({
     // Same key that StrategiesClient seeds — cache hit instead of re-fetch
     queryKey: queryKeys.trades.filtered(
@@ -449,6 +452,10 @@ export default function MyTradesClient({
     [mode, activeAccount?.id, userId, todayStr, initialStrategyId, queryClient]
   );
 
+  if (activeAccount && tradesLoading && !isInitialContext) {
+    return <MyTradesSkeleton />;
+  }
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
@@ -488,6 +495,33 @@ export default function MyTradesClient({
         showAllTradesOption={true}
         displayStartDate={earliestTradeDate}
       />
+
+      {activeAccount && tradesError && (
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
+          Failed to load trades.{' '}
+          <button
+            type="button"
+            onClick={() => { void refetchTrades(); }}
+            className="cursor-pointer underline underline-offset-2"
+          >
+            Try again
+          </button>
+          .
+        </div>
+      )}
+
+      {!activeAccount && (
+        <Card className="rounded-2xl border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm mt-6 py-10 px-6 flex items-center justify-center text-center">
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              No account selected
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Select an account from the toolbar above to view your trades.
+            </p>
+          </div>
+        </Card>
+      )}
 
       {/* Summary row: P&L + equity chart + total trades + win rate + avg drawdown (tied to current filters) */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">

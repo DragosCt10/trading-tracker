@@ -1,5 +1,4 @@
-import { getCachedUserSession } from '@/lib/server/session';
-import { redirect } from 'next/navigation';
+import { getInsideStrategyPageContext } from '@/lib/server/insideStrategyPageContext';
 import StrategyData from './StrategyData';
 
 export const dynamic = 'force-dynamic';
@@ -11,11 +10,7 @@ interface PageProps {
 }
 
 export default async function StrategyPage({ params }: PageProps) {
-  const resolvedParams = await params;
-  const { user } = await getCachedUserSession();
-  if (!user) redirect('/login');
-
-  const strategySlug = decodeURIComponent(resolvedParams.strategy);
+  const { user, strategySlug } = await getInsideStrategyPageContext(params);
 
   return <StrategyData user={user} strategySlug={strategySlug} />;
 }

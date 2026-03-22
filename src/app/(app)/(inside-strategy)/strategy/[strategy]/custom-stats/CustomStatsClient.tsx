@@ -68,7 +68,7 @@ export default function CustomStatsClient({
     initialActiveAccount,
   });
   const { isPro } = useSubscription({ userId });
-  const { allTradesData, tradesLoading } = useStrategyAllTimeTrades({
+  const { allTradesData, tradesLoading, tradesError, refetchTrades } = useStrategyAllTimeTrades({
     userId,
     activeAccountId: activeAccount?.id,
     mode,
@@ -149,7 +149,10 @@ export default function CustomStatsClient({
       const previousStats = savedStats;
       setSavedStats(nextStats);
       try {
-        await updateStrategyCustomStats(strategyId, userId, nextStats);
+        const result = await updateStrategyCustomStats(strategyId, userId, nextStats);
+        if (result.error) {
+          throw result.error;
+        }
         queryClient.invalidateQueries({ queryKey: queryKeys.strategies(userId) });
       } catch (error) {
         console.error('Failed to persist custom stats:', error);
@@ -285,6 +288,22 @@ export default function CustomStatsClient({
           hideMarket
           hideExecution
         />
+
+        {activeAccount && tradesError && (
+          <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
+            Failed to load all strategy trades.{' '}
+            <button
+              type="button"
+              onClick={() => {
+                void refetchTrades();
+              }}
+              className="cursor-pointer underline underline-offset-2"
+            >
+              Try again
+            </button>
+            .
+          </div>
+        )}
 
         <div className="space-y-6 mt-6">
           {!activeAccount && (

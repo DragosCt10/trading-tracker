@@ -31,7 +31,12 @@ export function useStrategyAllTimeTrades({
 }: UseStrategyAllTimeTradesParams) {
   const allTime = useMemo(() => createAllTimeRange(), []);
 
-  const { data: rawTrades, isLoading: tradesLoading } = useQuery<Trade[]>({
+  const {
+    data: rawTrades,
+    isLoading: tradesLoading,
+    isError: tradesError,
+    refetch: refetchTrades,
+  } = useQuery<Trade[]>({
     queryKey: queryKeys.trades.filtered(
       mode,
       activeAccountId,
@@ -68,5 +73,7 @@ export function useStrategyAllTimeTrades({
   return {
     allTradesData,
     tradesLoading,
+    tradesError,
+    refetchTrades,
   };
 }
