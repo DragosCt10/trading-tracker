@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link2, Loader2, X, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import TierBadge from './TierBadge';
 import TradePreviewCard from './TradePreviewCard';
 import AttachTradeModal from './AttachTradeModal';
+import { useTheme } from '@/hooks/useTheme';
 import { getWeeklyPostCount } from '@/lib/server/feedPosts';
 import type { TradeSelectorItem, TradeSnapshot, SocialProfile } from '@/types/social';
 import type { ResolvedSubscription } from '@/types/subscription';
@@ -41,6 +43,11 @@ export default function InlineCreatePostCard({
   const [weeklyCount, setWeeklyCount] = useState<{ used: number; resetDate: Date } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const wasCollapsedRef = useRef(collapsed);
+  const { theme, mounted } = useTheme();
+  const isLightMode = mounted && theme === 'light';
+  /** Same as PostCard for your own posts: live subscription tier, else denormalized social_profiles.tier */
+  const authorTier = subscription.tier ?? profile.tier;
+  const isPro = authorTier === 'pro' || authorTier === 'elite';
 
   useEffect(() => {
     if (wasCollapsedRef.current && !collapsed) {
@@ -86,8 +93,15 @@ export default function InlineCreatePostCard({
     textareaRef.current?.focus();
   }
 
+  const avatarRing =
+    mounted && isPro
+      ? 'ring-2 ring-amber-400/75 ring-offset-1 ring-offset-white dark:ring-offset-slate-800'
+      : '';
+
   const avatar = (
-    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm ring-2 ring-amber-400/75 ring-offset-1 ring-offset-white dark:ring-offset-slate-800 shrink-0">
+    <div
+      className={`w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm shrink-0 ${avatarRing}`}
+    >
       {profile.avatar_url ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={profile.avatar_url} alt={profile.display_name} className="w-full h-full object-cover" />
@@ -102,12 +116,23 @@ export default function InlineCreatePostCard({
       <button
         type="button"
         onClick={() => onExpand?.()}
-        className="w-full rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-2.5 text-left transition-all duration-300 ease-in-out flex items-center gap-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/50"
+        className="w-full rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-2.5 text-left transition-all duration-300 ease-in-out flex items-center gap-2 sm:gap-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 min-w-0"
       >
         {avatar}
         <span className="flex-1 min-w-0 text-[15px] text-slate-400 dark:text-slate-500 truncate">
           What&apos;s your trade thesis today?
         </span>
+        {!mounted && (
+          <span
+            className="h-5 w-14 shrink-0 rounded-md bg-slate-200/70 dark:bg-slate-700/50 animate-pulse"
+            aria-hidden
+          />
+        )}
+        {mounted && (
+          <span className="shrink-0">
+            <TierBadge tier={authorTier} isLightMode={isLightMode} />
+          </span>
+        )}
         <PlusCircle className="w-5 h-5 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden />
       </button>
     );
@@ -119,6 +144,18 @@ export default function InlineCreatePostCard({
         {avatar}
 
         <div className="flex-1 min-w-0 space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-sm text-slate-900 dark:text-slate-100 leading-none">
+              {profile.display_name}
+            </span>
+            {!mounted && (
+              <span
+                className="h-5 w-14 rounded-md bg-slate-200/70 dark:bg-slate-700/50 animate-pulse"
+                aria-hidden
+              />
+            )}
+            {mounted && <TierBadge tier={authorTier} isLightMode={isLightMode} />}
+          </div>
           <textarea
             ref={textareaRef}
             value={content}
