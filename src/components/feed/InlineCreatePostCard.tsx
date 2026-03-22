@@ -98,55 +98,74 @@ export default function InlineCreatePostCard({
       ? 'ring-2 ring-amber-400/75 ring-offset-1 ring-offset-white dark:ring-offset-slate-800'
       : '';
 
+  const avatarContent = profile.avatar_url ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={profile.avatar_url} alt={profile.display_name} className="w-full h-full object-cover" />
+  ) : (
+    profile.display_name.slice(0, 1).toUpperCase()
+  );
+
   const avatar = (
-    <div
-      className={`w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm shrink-0 ${avatarRing}`}
-    >
-      {profile.avatar_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={profile.avatar_url} alt={profile.display_name} className="w-full h-full object-cover" />
-      ) : (
-        profile.display_name.slice(0, 1).toUpperCase()
-      )}
+    <div className={`w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm shrink-0 ${avatarRing}`}>
+      {avatarContent}
     </div>
   );
 
-  const shellClass =
-    'rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden motion-reduce:transition-none';
+  const avatarSm = (
+    <div className={`w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-xs shrink-0 ${avatarRing}`}>
+      {avatarContent}
+    </div>
+  );
+
+  /** Match PostCard surface; blur on outer, clip on inner for collapse animation. */
+  const shellOuterClass =
+    'rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm motion-reduce:transition-none';
+  const shellInnerClass = 'overflow-hidden rounded-2xl motion-reduce:transition-none';
 
   const rowTransition =
     'grid transition-[grid-template-rows] duration-300 ease-in-out motion-reduce:transition-none';
 
   return (
-    <div className={shellClass}>
-      {/* Collapsed row — animates to 0fr when expanded */}
+    <div className={shellOuterClass}>
+      <div className={shellInnerClass}>
+      {/* Collapsed row — compact bar with avatar + textarea + action buttons */}
       <div
         className={`${rowTransition} ${collapsed ? '[grid-template-rows:1fr]' : '[grid-template-rows:0fr]'}`}
       >
-        <div className="min-h-0 overflow-hidden">
-          <button
-            type="button"
-            onClick={() => onExpand?.()}
-            tabIndex={collapsed ? 0 : -1}
-            className="w-full px-5 py-2.5 text-left transition-colors duration-200 flex items-center gap-2 sm:gap-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 min-w-0"
-          >
-            {avatar}
-            <span className="flex-1 min-w-0 text-[15px] text-slate-400 dark:text-slate-500 truncate">
-              What&apos;s your trade thesis today?
-            </span>
-            {!mounted && (
-              <span
-                className="h-5 w-14 shrink-0 rounded-md bg-slate-200/70 dark:bg-slate-700/50 animate-pulse"
-                aria-hidden
-              />
+        <div className="min-h-0 overflow-hidden" inert={!collapsed ? true : undefined}>
+          <div className="px-4 py-2.5 flex items-center gap-3">
+            {avatarSm}
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              maxLength={maxLen}
+              rows={1}
+              disabled={limitReached || isSubmitting}
+              placeholder="What's your trade thesis today?"
+              className="flex-1 min-w-0 resize-none bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm leading-tight focus:outline-none disabled:opacity-50"
+            />
+            {canAttach && (
+              <button
+                type="button"
+                onClick={() => setAttachModalOpen(true)}
+                className="shrink-0 p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-colors"
+                title="Attach Trade"
+              >
+                <Link2 className="w-4 h-4" />
+              </button>
             )}
-            {mounted && (
-              <span className="shrink-0">
-                <TierBadge tier={authorTier} isLightMode={isLightMode} />
+            <Button
+              onClick={handleSubmit}
+              disabled={!content.trim() || isSubmitting || limitReached}
+              className="themed-btn-primary h-8 px-4 cursor-pointer shrink-0 rounded-xl text-white font-semibold text-sm border-0 disabled:opacity-60 relative overflow-hidden group"
+            >
+              <span className="relative z-10 flex items-center gap-1.5">
+                {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PlusCircle className="w-3.5 h-3.5" />}
+                Post
               </span>
-            )}
-            <PlusCircle className="w-5 h-5 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden />
-          </button>
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -157,11 +176,10 @@ export default function InlineCreatePostCard({
         {/* inert while collapsed so the textarea/actions stay out of tab order when height is 0 */}
         <div className="min-h-0 min-w-0 overflow-hidden" inert={collapsed ? true : undefined}>
           <div className="p-5">
-            {/* Same header rhythm as PostCard: avatar row + mb-7 before body */}
-            <div className="flex items-start gap-3 mb-7">
+            <div className="flex items-start gap-3">
               {avatar}
 
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-sm text-slate-900 dark:text-slate-100 leading-none">
                     {profile.display_name}
@@ -174,33 +192,32 @@ export default function InlineCreatePostCard({
                   )}
                   {mounted && <TierBadge tier={authorTier} isLightMode={isLightMode} />}
                 </div>
+
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  maxLength={maxLen}
+                  rows={2}
+                  disabled={limitReached || isSubmitting}
+                  placeholder="What's your trade thesis today?"
+                  className="w-full resize-none bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-[15px] leading-[1.65] focus:outline-none disabled:opacity-50"
+                />
+
+                {selectedTrade && <TradePreviewCard snapshot={tradeToSnapshot(selectedTrade)} />}
+
+                {submitError && (
+                  <p className="text-xs text-rose-400">{submitError}</p>
+                )}
+
+                {limitReached && weeklyMax !== null && weeklyCount && (
+                  <p className="text-xs text-rose-400">
+                    All {weeklyMax} posts used this week. Resets{' '}
+                    {weeklyCount.resetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}.
+                  </p>
+                )}
               </div>
             </div>
-
-            {/* Body: full width under header, like PostCard post text */}
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              maxLength={maxLen}
-              rows={2}
-              disabled={limitReached || isSubmitting}
-              placeholder="What's your trade thesis today?"
-              className={`w-full resize-none bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-[15px] leading-[1.65] focus:outline-none disabled:opacity-50 ${selectedTrade ? 'mb-3' : ''}`}
-            />
-
-            {selectedTrade && <TradePreviewCard snapshot={tradeToSnapshot(selectedTrade)} />}
-
-            {submitError && (
-              <p className="text-xs text-rose-400 mt-2">{submitError}</p>
-            )}
-
-            {limitReached && weeklyMax !== null && weeklyCount && (
-              <p className="text-xs text-rose-400 mt-2">
-                All {weeklyMax} posts used this week. Resets{' '}
-                {weeklyCount.resetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}.
-              </p>
-            )}
 
             <div className="mt-4 pt-3 border-t border-slate-200/70 dark:border-slate-700/40 flex items-center justify-end gap-3">
               {canAttach && (
@@ -243,6 +260,7 @@ export default function InlineCreatePostCard({
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       <AttachTradeModal

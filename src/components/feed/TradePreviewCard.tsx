@@ -32,7 +32,7 @@ export default function TradePreviewCard({ snapshot }: TradePreviewCardProps) {
       {/* Header — two-zone */}
       <div className="flex items-start justify-between gap-4 px-4 py-3">
         {/* Left: market · direction */}
-        <div className="flex flex-col gap-1.5 min-w-0">
+        <div className="flex flex-col gap-2 min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-bold text-[15px] text-slate-900 dark:text-slate-100 tracking-tight">
               {snapshot.market}

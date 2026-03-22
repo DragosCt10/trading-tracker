@@ -47,7 +47,7 @@ export default function PostCard({
   const isLightMode = mounted && theme === 'light';
 
   return (
-    <article className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-5 transition-all duration-200 hover:border-slate-400/70 dark:hover:border-slate-600/60 [content-visibility:auto] [contain-intrinsic-size:0_200px]">
+    <article className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-5 transition-all duration-200 hover:border-slate-400/70 dark:hover:border-slate-600/60">
       {/* Author header */}
       <div className="flex items-start gap-3 mb-7">
         <Link href={`/profile/${post.author.username}`} className="shrink-0">

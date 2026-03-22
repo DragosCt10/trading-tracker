@@ -43,6 +43,7 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
   const [composerCollapsed, setComposerCollapsed] = useState(false);
   const feedScrollRef = useRef<HTMLDivElement>(null);
   const lastFeedScrollTop = useRef(0);
+  const composerLocked = useRef(false);
 
   const isPro = subscription?.tier === 'pro' || subscription?.tier === 'elite';
 
@@ -73,17 +74,31 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
   useEffect(() => {
     const el = feedScrollRef.current;
     if (!el) return;
+
+    const collapse = (next: boolean) => {
+      if (composerLocked.current) return;
+      composerLocked.current = true;
+      setComposerCollapsed(next);
+      // Hold the lock for the full animation duration so layout-triggered
+      // scroll events (card resize → scrollTop clamp) can't flip the state back.
+      setTimeout(() => {
+        composerLocked.current = false;
+        lastFeedScrollTop.current = el.scrollTop;
+      }, 350);
+    };
+
     const onScroll = () => {
+      if (composerLocked.current) return;
       const current = el.scrollTop;
       const diff = current - lastFeedScrollTop.current;
-      if (current < 12) {
-        setComposerCollapsed(false);
-      } else if (diff > 8) {
-        setComposerCollapsed(true);
-      } else if (diff < -8) {
-        setComposerCollapsed(false);
-      }
       lastFeedScrollTop.current = current;
+      if (current < 12) {
+        collapse(false);
+      } else if (diff > 8) {
+        collapse(true);
+      } else if (diff < -8) {
+        collapse(false);
+      }
     };
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => el.removeEventListener('scroll', onScroll);
@@ -146,7 +161,7 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
                 isSubmitting={create.isPending}
                 submitError={createError}
                 collapsed={composerCollapsed}
-                onExpand={() => setComposerCollapsed(false)}
+                onExpand={() => { composerLocked.current = false; setComposerCollapsed(false); }}
               />
             ) : !userId ? (
               <div className="flex justify-end">
@@ -161,7 +176,7 @@ export default function FeedClient({ userId, initialProfile, initialFeed }: Feed
 
           <div
             ref={feedScrollRef}
-            className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pr-1 -mr-1 [scrollbar-gutter:stable]"
+            className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden overscroll-y-contain pr-1 -mr-1 [scrollbar-gutter:stable]"
           >
           {isChannelsTab ? (
             <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
