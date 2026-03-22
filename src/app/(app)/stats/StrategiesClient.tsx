@@ -38,6 +38,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getCurrencySymbolFromAccount } from '@/utils/accountOverviewHelpers';
+import { computeStrategiesAccountTotals } from '@/utils/strategiesAccountTotals';
+import { cn, formatPercent } from '@/lib/utils';
+import { useSubscription } from '@/hooks/useSubscription';
 
 type SortByOption = 'default' | 'winRate' | 'totalRR' | 'totalTrades';
 
@@ -50,6 +53,10 @@ const SORT_BY_OPTIONS: Array<{ value: SortByOption; label: string }> = [
   { value: 'totalRR', label: 'RR total (high → low)' },
   { value: 'totalTrades', label: 'Total trades (high → low)' },
 ];
+
+/** Same border, background, and blur as `StrategyCard` root `<Card>`. */
+const STRATEGY_CARD_SURFACE =
+  'relative overflow-hidden border shadow-none backdrop-blur-sm border-slate-300/40 bg-slate-50/50 dark:border-slate-600 dark:bg-slate-800/30';
 
 function getStrategySortMetric(
   overview: StrategiesOverviewResult[string] | undefined,
@@ -65,6 +72,7 @@ export function StrategiesClient() {
   const {
     selection,
     userId,
+    userLoading,
     mode,
     activeAccount: selectedAccount,
   } = useStrategyClientContext({
@@ -72,7 +80,7 @@ export function StrategiesClient() {
     initialMode: 'live',
     initialActiveAccount: null,
   });
-  const { accounts } = useAccounts({ userId, pendingMode: mode });
+  const { accounts, accountsLoading } = useAccounts({ userId, pendingMode: mode });
   const activeAccount = useMemo(
     () =>
       selectedAccount ??
@@ -82,6 +90,7 @@ export function StrategiesClient() {
     [accounts, selectedAccount]
   );
   const { strategies, strategiesLoading, refetchStrategies } = useStrategies({ userId, accountId: activeAccount?.id });
+  const { isPro } = useSubscription({ userId: userId ?? undefined });
   const queryClient = useQueryClient();
   const [editingStrategy, setEditingStrategy] = useState<Strategy | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -104,6 +113,8 @@ export function StrategiesClient() {
   const {
     data: strategiesOverview,
     isFetching: tradesLoading,
+    /** First fetch with no cached data yet — prefer this over isPending so skeleton shows until the first result lands. */
+    isLoading: strategiesOverviewInitialLoading,
   } = useQuery<StrategiesOverviewResult>({
     queryKey: queryKeys.strategiesOverview(userId, activeAccount?.id, mode),
     queryFn: async () => {
@@ -125,6 +136,23 @@ export function StrategiesClient() {
       return valueB - valueA; // descending (highest first)
     });
   }, [strategies, strategiesOverview, sortBy]);
+
+  const accountTotals = useMemo(
+    () => computeStrategiesAccountTotals(strategies, strategiesOverview),
+    [strategies, strategiesOverview]
+  );
+
+  /**
+   * Skeleton until session + accounts + strategy list are ready, then (if any boards exist) overview RPC.
+   * Avoids flashing "—" / "0" while userId/accountId are still resolving or strategies query is idle with [].
+   */
+  const showAccountTotalsLoading =
+    isPro &&
+    (userLoading ||
+      accountsLoading ||
+      strategiesLoading ||
+      (strategies.length > 0 &&
+        (strategiesOverviewInitialLoading || strategiesOverview === undefined)));
 
   // Fetch archived (inactive) strategies
   const {
@@ -456,24 +484,65 @@ export function StrategiesClient() {
         </div>
       </div>
 
-      {/* Sort strategies: above the cards */}
-      <div className="flex items-center gap-2" aria-label="Sort strategies">
-        <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Order by:</span>
-        <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortByOption)}>
-          <SelectTrigger
-            className="h-8 w-[10rem] rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 text-xs font-medium cursor-pointer transition-colors duration-200"
-            aria-label="Sort by"
+      {/* Sort strategies + account totals */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2" aria-label="Sort strategies">
+          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Order by:</span>
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortByOption)}>
+            <SelectTrigger
+              className="h-8 w-[10rem] rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 text-xs font-medium cursor-pointer transition-colors duration-200"
+              aria-label="Sort by"
+            >
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
+              {SORT_BY_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {isPro ? (
+          <div
+            className="flex flex-wrap items-center gap-2 sm:justify-end"
+            aria-label="Account-wide stats for all Stats Boards (PRO)"
           >
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 cursor-pointer">
-            {SORT_BY_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+            {showAccountTotalsLoading ? (
+              <>
+                <div className={cn('h-8 w-[11rem] rounded-xl animate-pulse', STRATEGY_CARD_SURFACE)} />
+                <div className={cn('h-8 w-[9rem] rounded-xl animate-pulse', STRATEGY_CARD_SURFACE)} />
+              </>
+            ) : (
+              <>
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 tabular-nums',
+                    STRATEGY_CARD_SURFACE
+                  )}
+                >
+                  <span className="text-slate-500 dark:text-slate-400 font-normal">Total Win rate:</span>
+                  <span className="text-slate-900 dark:text-slate-100">
+                    {accountTotals.winRatePct != null
+                      ? `${formatPercent(accountTotals.winRatePct)}%`
+                      : '—'}
+                  </span>
+                </span>
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 tabular-nums',
+                    STRATEGY_CARD_SURFACE
+                  )}
+                >
+                  <span className="text-slate-500 dark:text-slate-400 font-normal">Total Trades:</span>
+                  <span className="text-slate-900 dark:text-slate-100">{accountTotals.totalTrades}</span>
+                </span>
+              </>
+            )}
+          </div>
+        ) : null}
       </div>
 
       {/* Strategies Grid */}
