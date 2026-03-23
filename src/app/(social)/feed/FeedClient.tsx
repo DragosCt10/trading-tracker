@@ -256,21 +256,27 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                           </div>
                         </Link>
                         {isOwner ? (
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={channel.is_public}
-                            disabled={isPendingThis}
-                            onClick={(e) => handleChannelToggle(e, channel.id, channel.is_public)}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none shrink-0 disabled:opacity-50 ${
-                              channel.is_public ? 'themed-btn-primary' : 'bg-slate-300 dark:bg-slate-600'
-                            }`}
-                          >
-                            {isPendingThis
-                              ? <Loader2 className="absolute inset-0 m-auto w-3 h-3 animate-spin text-white" />
-                              : <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${channel.is_public ? 'translate-x-6' : 'translate-x-1'}`} />
-                            }
-                          </button>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-200">
+                              {channel.is_public ? 'Public' : 'Private'}
+                            </span>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={channel.is_public}
+                              aria-label={`Toggle channel visibility: ${channel.is_public ? 'public' : 'private'}`}
+                              disabled={isPendingThis}
+                              onClick={(e) => handleChannelToggle(e, channel.id, channel.is_public)}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none shrink-0 disabled:opacity-50 ${
+                                channel.is_public ? 'themed-btn-primary' : 'bg-slate-300 dark:bg-slate-600'
+                              }`}
+                            >
+                              {isPendingThis
+                                ? <Loader2 className="absolute inset-0 m-auto w-3 h-3 animate-spin text-white" />
+                                : <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${channel.is_public ? 'translate-x-6' : 'translate-x-1'}`} />
+                              }
+                            </button>
+                          </div>
                         ) : (
                           channel.is_public
                             ? <Globe className="w-3.5 h-3.5 text-slate-500 dark:text-slate-600 shrink-0" />
