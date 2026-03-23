@@ -15,7 +15,9 @@
     "db:migrate:new": "prisma migrate dev --create-only --name",
     "db:migrate:create": "prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script",
     "db:types:test": "supabase gen types typescript --project-id vjzhqacouosiopedktat --schema public > src/types/supabase.ts",
-    "db:types:prod": "supabase gen types typescript --project-id obgexglqwdzgvwzppwfx --schema public > src/types/supabase.ts"
+    "db:types:prod": "supabase gen types typescript --project-id obgexglqwdzgvwzppwfx --schema public > src/types/supabase.ts",
+    "bench": "vitest bench tests/benchmark --reporter=verbose",
+    "bench:ci": "vitest bench tests/benchmark --reporter=json --outputFile=tests/benchmark/results/latest.json"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -74,6 +76,7 @@
     "postcss": "^8.5.8",
     "prisma": "^7.5.0",
     "tailwindcss": "^4.2.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
   }
 }
