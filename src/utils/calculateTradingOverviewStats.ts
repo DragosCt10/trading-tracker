@@ -57,10 +57,13 @@ export function calculateTradingOverviewStats(
   // Streaks: use only non-BE trades so BE (with or without final result) never affects streaks
   const { currentStreak, maxWinningStreak, maxLosingStreak } = calculateStreaks(nonBETrades);
   
-  // Calculate average days between trades
-  const sortedTrades = [...trades].sort((a, b) => 
-    new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime()
-  );
+  // Calculate average days between trades.
+  // ISO YYYY-MM-DD strings sort lexicographically — no Date() in comparator needed.
+  const sortedTrades = [...trades].sort((a, b) => {
+    const da = a.trade_date ?? '';
+    const db = b.trade_date ?? '';
+    return da < db ? -1 : da > db ? 1 : 0;
+  });
   let averageDaysBetweenTrades = 0;
   if (sortedTrades.length > 1) {
     const daysBetween: number[] = [];

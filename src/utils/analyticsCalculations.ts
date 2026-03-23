@@ -64,9 +64,10 @@ function sortTradesChronologicallyStable(trades: Trade[]): Trade[] {
   return trades
     .slice()
     .sort((a, b) => {
-      const tA = new Date(a.trade_date).getTime();
-      const tB = new Date(b.trade_date).getTime();
-      if (tA !== tB) return tA - tB;
+      // ISO YYYY-MM-DD strings sort correctly lexicographically — no Date() needed.
+      const da = a.trade_date ?? '';
+      const db = b.trade_date ?? '';
+      if (da !== db) return da < db ? -1 : 1;
       return String(a.id ?? '').localeCompare(String(b.id ?? ''));
     });
 }
