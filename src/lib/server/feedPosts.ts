@@ -25,16 +25,30 @@ type AuthorRow = {
 };
 
 function mapPostRow(row: Record<string, unknown>, isLikedByMe: boolean): FeedPost {
-  const author = (row.author ?? row.social_profiles ?? {}) as AuthorRow;
+  // The DB function / join can return `author: null` when the referenced profile
+  // was deleted or is otherwise missing. Keep the client resilient by always
+  // returning safe string fields.
+  const rawAuthor = (row.author ?? row.social_profiles ?? {}) as Partial<AuthorRow>;
+  const safeAuthorId = typeof rawAuthor.id === 'string' && rawAuthor.id ? rawAuthor.id : 'unknown_author';
+  const safeUserId =
+    typeof rawAuthor.user_id === 'string' && rawAuthor.user_id ? rawAuthor.user_id : 'unknown_user';
+  const safeDisplayName =
+    typeof rawAuthor.display_name === 'string' && rawAuthor.display_name
+      ? rawAuthor.display_name
+      : 'Unknown trader';
+  const safeUsername =
+    typeof rawAuthor.username === 'string' && rawAuthor.username ? rawAuthor.username : 'unknown';
+  const safeTier = (rawAuthor.tier as TierId) ?? 'starter';
+  const safeAvatarUrl = typeof rawAuthor.avatar_url === 'string' ? rawAuthor.avatar_url : null;
   return {
     id:             row.id as string,
     author: {
-      id:           author.id,
-      user_id:      author.user_id,
-      display_name: author.display_name,
-      username:     author.username,
-      avatar_url:   author.avatar_url ?? null,
-      tier:         (author.tier as TierId) ?? 'starter',
+      id:           safeAuthorId,
+      user_id:      safeUserId,
+      display_name: safeDisplayName,
+      username:     safeUsername,
+      avatar_url:   safeAvatarUrl,
+      tier:         safeTier,
     },
     content:        row.content as string,
     post_type:      (row.post_type as 'text' | 'trade_share') ?? 'text',
