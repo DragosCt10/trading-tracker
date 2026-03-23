@@ -213,6 +213,15 @@ export interface CompactTrade {
   risk_reward_ratio_long: number | null;
 }
 
+// ── Minimal non-executed stats (inline in RPC, no second call needed) ────────
+
+export interface RpcNonExecutedStats {
+  core: { totalTrades: number };
+  setup_stats: RpcSetupStat[];
+  liquidity_stats: RpcLiquidityStat[];
+  market_stats: RpcMarketStat[];
+}
+
 // ── Full RPC response ────────────────────────────────────────────────────────
 
 export interface DashboardRpcResult {
@@ -245,6 +254,8 @@ export interface DashboardRpcResult {
   trade_months: string[];
   /** Earliest trade date in the queried range (YYYY-MM-DD) — computed in DB */
   earliest_trade_date: string | null;
+  /** Non-executed comparison stats, computed inline in the RPC (no second call). */
+  non_executed_stats?: RpcNonExecutedStats;
 }
 
 // ── Full API route response (L2 merged with time-series) ────────────────────
@@ -264,8 +275,8 @@ export interface DashboardApiResponse extends DashboardRpcResult {
   tradeQualityIndex: number;
   /** multipleR (sum of R-values) — also in core but repeated for convenience */
   multipleR: number;
-  /** Non-executed trades stats (second parallel RPC call) */
-  nonExecutedStats: DashboardRpcResult;
+  /** Non-executed trades stats (computed inline in RPC via non_executed_stats key) */
+  nonExecutedStats: RpcNonExecutedStats;
   /** Non-executed total trade count */
   nonExecutedTotalTradesCount: number;
   /** Earliest trade date in the filtered range (YYYY-MM-DD) */

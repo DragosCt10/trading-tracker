@@ -4,7 +4,6 @@
 .pnp.js
 .env
 package-lock.json
-.claude
 
 # testing
 /coverage
@@ -28,9 +27,36 @@ yarn-error.log*
 # local env files
 .env*.local
 
+# Performance test credentials (contains Supabase JWTs — never commit)
+.env.test
+
+# Test results and reports (generated output)
+tests/load/results/
+tests/frontend/reports/
+tests/benchmark/results/*.json
+tests/e2e/reports/
+tests/e2e/test-results/
+tests/db/results/
+
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts 
+/src/generated/prisma
+.gstack/
+
+
+tests/load/results/
+tests/frontend/reports/*.html
+tests/e2e/reports/
+tests/e2e/test-results/
+.env.test
+
+
+.claude
+.claude-*
+CLAUDE.md
+.mcp.json
+rpc.sql

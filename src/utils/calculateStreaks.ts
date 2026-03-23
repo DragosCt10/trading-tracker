@@ -37,14 +37,21 @@ export function calculateStreaksFromTrades(
     };
   }
 
-  const sortedTrades = [...trades].sort((a, b) => {
-    if (sortByTime) {
-      const aDateTime = new Date(`${a.trade_date}T${a.trade_time || '00:00:00'}`);
-      const bDateTime = new Date(`${b.trade_date}T${b.trade_time || '00:00:00'}`);
-      return aDateTime.getTime() - bDateTime.getTime();
-    }
-    return new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime();
-  });
+  // Schwartzian transform: pre-compute sort key once per trade (O(n)) instead of
+  // building strings inside the comparator (O(n log n) ≈ 450k string ops at 30k trades).
+  let sortedTrades: Trade[];
+  if (sortByTime) {
+    sortedTrades = trades
+      .map(t => ({ t, k: `${t.trade_date ?? ''}T${t.trade_time || '00:00:00'}` }))
+      .sort((a, b) => a.k < b.k ? -1 : a.k > b.k ? 1 : 0)
+      .map(({ t }) => t);
+  } else {
+    sortedTrades = [...trades].sort((a, b) => {
+      const da = a.trade_date ?? '';
+      const db = b.trade_date ?? '';
+      return da < db ? -1 : da > db ? 1 : 0;
+    });
+  }
 
   let maxWinningStreak = 0;
   let maxLosingStreak = 0;
