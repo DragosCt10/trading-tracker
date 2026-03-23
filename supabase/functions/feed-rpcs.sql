@@ -58,7 +58,7 @@ AS $$
     fp.trade_snapshot,
     fp.channel_id,
     fp.like_count,
-    fp.comment_count,
+    COALESCE(fc.comment_count, 0)::int4 AS comment_count,
     fp.is_hidden,
     fp.created_at,
     fp.updated_at,
@@ -77,6 +77,12 @@ AS $$
   LEFT JOIN feed_likes fl
     ON fl.post_id = fp.id
     AND fl.user_id = viewer.id
+  LEFT JOIN LATERAL (
+    SELECT COUNT(*)::int AS comment_count
+    FROM feed_comments c
+    WHERE c.post_id = fp.id
+      AND c.is_hidden = false
+  ) fc ON true
   WHERE fp.is_hidden = false
     AND (p_cursor IS NULL OR fp.created_at < p_cursor)
   ORDER BY fp.created_at DESC
@@ -122,7 +128,7 @@ AS $$
     fp.trade_snapshot,
     fp.channel_id,
     fp.like_count,
-    fp.comment_count,
+    COALESCE(fc.comment_count, 0)::int4 AS comment_count,
     fp.is_hidden,
     fp.created_at,
     fp.updated_at,
@@ -141,6 +147,12 @@ AS $$
   LEFT JOIN feed_likes fl
     ON fl.post_id = fp.id
     AND fl.user_id = viewer.id
+  LEFT JOIN LATERAL (
+    SELECT COUNT(*)::int AS comment_count
+    FROM feed_comments c
+    WHERE c.post_id = fp.id
+      AND c.is_hidden = false
+  ) fc ON true
   WHERE fp.is_hidden = false
     AND fp.channel_id = p_channel_id
     AND (p_cursor IS NULL OR fp.created_at < p_cursor)
@@ -190,7 +202,7 @@ AS $$
     fp.trade_snapshot,
     fp.channel_id,
     fp.like_count,
-    fp.comment_count,
+    COALESCE(fc.comment_count, 0)::int4 AS comment_count,
     fp.is_hidden,
     fp.created_at,
     fp.updated_at,
@@ -214,6 +226,12 @@ AS $$
   LEFT JOIN feed_likes fl
     ON fl.post_id = fp.id
     AND fl.user_id = viewer.id
+  LEFT JOIN LATERAL (
+    SELECT COUNT(*)::int AS comment_count
+    FROM feed_comments c
+    WHERE c.post_id = fp.id
+      AND c.is_hidden = false
+  ) fc ON true
   WHERE fp.is_hidden = false
     AND (fp.author_id = viewer.id OR f.following_id IS NOT NULL)
     AND (p_cursor IS NULL OR fp.created_at < p_cursor)
