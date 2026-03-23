@@ -16,6 +16,11 @@ interface FeedPostListProps {
   currentUserId?: string;
   currentProfileId?: string;
   currentUserTier?: TierId;
+  /**
+   * When provided, `Virtuoso` will use this element as the scroll container.
+   * This prevents "window scroll" vs "inner div scroll" mismatches (huge blank gaps).
+   */
+  customScrollParent?: HTMLElement | null;
   onLike: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (post: FeedPost) => void;
@@ -34,6 +39,7 @@ export default function FeedPostList({
   currentUserId,
   currentProfileId,
   currentUserTier,
+  customScrollParent,
   onLike,
   onDelete,
   onEdit,
@@ -44,6 +50,7 @@ export default function FeedPostList({
 }: FeedPostListProps) {
   const { theme, mounted } = useTheme();
   const isLightMode = mounted && theme === 'light';
+  const hasCustomScrollParent = !!customScrollParent;
 
   if (isLoading) {
     return (
@@ -66,9 +73,11 @@ export default function FeedPostList({
 
   return (
     <Virtuoso
-      useWindowScroll
+      useWindowScroll={!hasCustomScrollParent}
+      customScrollParent={customScrollParent ?? undefined}
       data={posts}
       endReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
+      style={hasCustomScrollParent ? { height: '100%' } : undefined}
       itemContent={(_, post) => (
         <div className="mb-3">
           <PostCard
