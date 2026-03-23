@@ -23,22 +23,24 @@ export function calculateTradingOverviewStats(
   trades: Trade[],
   totalProfitFromOverview?: number
 ): TradingOverviewStats {
-  // Calculate all stats from trades
-  const nonBETrades = trades.filter((t) => !t.break_even);
-  const beTrades = trades.filter((t) => t.break_even);
-
-  // Base wins/losses from non-BE trades
-  const wins = nonBETrades.filter((t) => t.trade_outcome === 'Win').length;
-  const losses = nonBETrades.filter((t) => t.trade_outcome === 'Lose').length;
-
-  // BE trades: single bucket
-  const beTradesCount = beTrades.length;
+  // Single pass: count wins/losses/BE and sum profit simultaneously.
+  // Replaces 4 separate filter/reduce passes over the trades array.
+  let wins = 0, losses = 0, beTradesCount = 0, totalProfit = 0;
+  const nonBETrades: typeof trades = [];
+  for (const t of trades) {
+    totalProfit += (t.calculated_profit as number) || 0;
+    if (t.break_even) {
+      beTradesCount++;
+    } else {
+      nonBETrades.push(t);
+      if (t.trade_outcome === 'Win') wins++;
+      else if (t.trade_outcome === 'Lose') losses++;
+    }
+  }
 
   const totalTrades = trades.length;
   const totalWins = wins;
   const totalLosses = losses;
-
-  const totalProfit = trades.reduce((sum, t) => sum + (t.calculated_profit || 0), 0);
   const totalProfitToShow = totalProfitFromOverview ?? totalProfit;
   const averageProfit =
     totalProfitFromOverview !== undefined && trades.length > 0
