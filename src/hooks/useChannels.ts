@@ -8,6 +8,11 @@ import {
   joinChannel,
   leaveChannel,
 } from '@/lib/server/feedChannels';
+import {
+  getChannelInvites,
+  createChannelInvite,
+  revokeChannelInvite,
+} from '@/lib/server/channelInvites';
 import { queryKeys } from '@/lib/queryKeys';
 import { FEED_DATA } from '@/constants/queryConfig';
 
@@ -65,4 +70,31 @@ export function useChannelActions(userId?: string) {
   });
 
   return { create, update, remove, join, leave };
+}
+
+export function useChannelInvites(channelId: string, userId?: string) {
+  return useQuery({
+    queryKey: queryKeys.channelInvites(channelId),
+    queryFn: () => getChannelInvites(channelId),
+    enabled: !!channelId && !!userId,
+    ...FEED_DATA,
+  });
+}
+
+export function useChannelInviteActions(channelId: string, userId?: string) {
+  const qc = useQueryClient();
+  const invitesKey = queryKeys.channelInvites(channelId);
+
+  const create = useMutation({
+    mutationFn: (input: Parameters<typeof createChannelInvite>[1]) =>
+      createChannelInvite(channelId, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: invitesKey }),
+  });
+
+  const revoke = useMutation({
+    mutationFn: revokeChannelInvite,
+    onSuccess: () => qc.invalidateQueries({ queryKey: invitesKey }),
+  });
+
+  return { create, revoke };
 }

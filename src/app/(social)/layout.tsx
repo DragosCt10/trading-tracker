@@ -1,4 +1,5 @@
 import { getCachedUserSession } from '@/lib/server/session';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
 import Logo from '@/components/shared/Logo';
@@ -8,13 +9,11 @@ import { Target } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 export default async function SocialLayout({ children }: { children: ReactNode }) {
-  let user = null;
-  try {
-    const session = await getCachedUserSession();
-    user = session.user;
-  } catch {
-    // unauthenticated — render public layout
+  const session = await getCachedUserSession().catch(() => null);
+  if (!session?.user) {
+    redirect('/login');
   }
+  const user = session!.user;
 
   return (
     <div className="min-h-screen">

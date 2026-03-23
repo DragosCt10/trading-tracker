@@ -17,9 +17,10 @@ import NewPostsBanner from '@/components/feed/NewPostsBanner';
 import { useNewPostsNotifier } from '@/hooks/useNewPostsNotifier';
 import EditPostModal from '@/components/feed/EditPostModal';
 import CreateChannelModal from '@/components/feed/CreateChannelModal';
+import ChannelInviteModal from '@/components/feed/ChannelInviteModal';
 import SearchBar from '@/components/feed/SearchBar';
 import { cn } from '@/lib/utils';
-import type { SocialProfile, FeedPost } from '@/types/social';
+import type { SocialProfile, FeedPost, FeedChannel } from '@/types/social';
 
 interface FeedClientProps {
   userId: string | null;
@@ -40,6 +41,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const [createError, setCreateError] = useState('');
   const [editPost, setEditPost] = useState<FeedPost | null>(null);
   const [channelModalOpen, setChannelModalOpen] = useState(false);
+  const [inviteModalChannel, setInviteModalChannel] = useState<FeedChannel | null>(null);
   const [activeTab, setActiveTab] = useState<FeedTab>('public');
   const [composerCollapsed, setComposerCollapsed] = useState(false);
   const feedScrollRef = useRef<HTMLDivElement>(null);
@@ -275,6 +277,16 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                         </Link>
                         {isOwner ? (
                           <div className="flex items-center gap-2 shrink-0">
+                            {!channel.is_public && (
+                              <button
+                                type="button"
+                                title="Invite people"
+                                onClick={(e) => { e.preventDefault(); setInviteModalChannel(channel); }}
+                                className="cursor-pointer p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/40 transition-colors"
+                              >
+                                <UserPlus className="w-4 h-4" />
+                              </button>
+                            )}
                             <div className="flex flex-col items-start leading-tight">
                               <span className="text-[10px] text-slate-500 dark:text-slate-200">
                                 {channel.is_public ? 'Public' : 'Private'}
@@ -436,6 +448,14 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
         onClose={() => setChannelModalOpen(false)}
         userId={uid}
       />
+      {inviteModalChannel && (
+        <ChannelInviteModal
+          channel={inviteModalChannel}
+          userId={uid}
+          open={!!inviteModalChannel}
+          onClose={() => setInviteModalChannel(null)}
+        />
+      )}
     </div>
   );
 }

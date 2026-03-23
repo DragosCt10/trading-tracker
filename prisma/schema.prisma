@@ -1032,8 +1032,9 @@ model feed_channels {
   updated_at  DateTime @default(now()) @db.Timestamptz(6)
 
   owner           social_profiles   @relation(fields: [owner_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  feed_posts      feed_posts[]
-  channel_members channel_members[]
+  feed_posts       feed_posts[]
+  channel_members  channel_members[]
+  channel_invites  channel_invites[]
 
   @@index([owner_id], map: "idx_feed_channels_owner")
   @@schema("public")
@@ -1050,6 +1051,27 @@ model channel_members {
   profile social_profiles @relation(fields: [user_id],    references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@id([channel_id, user_id])
+  @@schema("public")
+}
+
+/// Invite links for private channels (Discord-style).
+model channel_invites {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  channel_id String    @db.Uuid
+  created_by String    @db.Uuid
+  token      String    @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  label      String?   @db.VarChar(60)
+  max_uses   Int?
+  use_count  Int       @default(0)
+  expires_at DateTime? @db.Timestamptz(6)
+  is_active  Boolean   @default(true)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+
+  feed_channels feed_channels @relation(fields: [channel_id], references: [id], onDelete: Cascade)
+
+  @@index([channel_id])
+  @@index([token])
+  @@map("channel_invites")
   @@schema("public")
 }
 

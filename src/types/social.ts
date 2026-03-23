@@ -111,6 +111,21 @@ export interface ChannelMember {
   profile?: Pick<SocialProfile, 'id' | 'display_name' | 'username' | 'avatar_url' | 'tier'>;
 }
 
+// ─── ChannelInvite ───────────────────────────────────────────────────────────
+
+export interface ChannelInvite {
+  id: string;
+  channel_id: string;
+  created_by: string;
+  token: string;
+  label: string | null;
+  max_uses: number | null;
+  use_count: number;
+  expires_at: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 // ─── Paginated result helper ─────────────────────────────────────────────────
 
 export interface PaginatedResult<T> {

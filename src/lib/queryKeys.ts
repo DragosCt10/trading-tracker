@@ -145,6 +145,9 @@ export const queryKeys = {
     weeklyPostCount: ()                                => ['feed:weeklyPostCount']                as const,
   },
 
+  /** Active invite links for a private channel (owner only). */
+  channelInvites: (channelId: string) => ['channel-invites', channelId] as const,
+
   /** Full Trade[] for a single calendar month (for calendar display). */
   calendarTrades: (
     mode: string,
