@@ -177,7 +177,7 @@ export function generateTrades(count: number, opts: GenerateOptions = {}): Trade
       local_high_low: rand() < 0.2,
       risk_per_trade,
       calculated_profit,
-      notes: null,
+      notes: undefined,
       pnl_percentage,
       quarter: `Q${Math.ceil((new Date(trade_date).getMonth() + 1) / 3)}`,
       evaluation: pick(EVALUATIONS),
