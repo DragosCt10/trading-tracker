@@ -59,3 +59,4 @@ tests/e2e/test-results/
 .claude-*
 CLAUDE.md
 .mcp.json
+rpc.sql
