@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useTransition, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useTransition, useCallback } from 'react';
 import { Hash, Plus, Globe, Lock, Loader2, UserPlus, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
@@ -43,6 +43,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const [activeTab, setActiveTab] = useState<FeedTab>('public');
   const [composerCollapsed, setComposerCollapsed] = useState(false);
   const feedScrollRef = useRef<HTMLDivElement>(null);
+  const [scrollParentEl, setScrollParentEl] = useState<HTMLElement | null>(null);
   const lastFeedScrollTop = useRef(0);
   const composerLocked = useRef(false);
 
@@ -111,6 +112,12 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
     };
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // FeedPostList uses Virtuoso; provide the actual scroll container to avoid
+  // "window scroll" vs "inner div scroll" layout gaps on public feed.
+  useLayoutEffect(() => {
+    setScrollParentEl(feedScrollRef.current);
   }, []);
 
   function handleSeeNewPosts() {
@@ -277,6 +284,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
             </div>
           ) : (
             <FeedPostList
+              customScrollParent={scrollParentEl}
               posts={posts}
               isLoading={isLoading}
               isFetchingNextPage={isFetchingNextPage}
