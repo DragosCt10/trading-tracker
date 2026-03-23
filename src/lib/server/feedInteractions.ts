@@ -106,10 +106,10 @@ export async function getComments(
     .eq('post_id', postId)
     .eq('is_hidden', false)
     .is('parent_id', null) // top-level only; replies fetched separately or nested
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(limit + 1);
 
-  if (cursor) query = query.gt('created_at', cursor);
+  if (cursor) query = query.lt('created_at', cursor);
 
   const { data, error } = await query;
   if (error) { console.error('[getComments]', error); return { items: [], nextCursor: null, hasMore: false }; }
