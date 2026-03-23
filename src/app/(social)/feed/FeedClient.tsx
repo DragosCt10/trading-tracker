@@ -456,7 +456,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
           <Button
             type="button"
             onClick={handleQuickPost}
-            className="h-12 px-8 themed-btn-primary rounded-full text-white font-semibold text-4 border-0 shadow-lg shadow-violet-500/30 pointer-events-auto"
+            className="h-12 cursor-pointer px-8 themed-btn-primary rounded-full text-white font-semibold text-4 border-0 shadow-lg shadow-violet-500/30 pointer-events-auto"
             aria-label="Scroll to top and start writing a post"
             title="Post"
             tabIndex={!feedChromeVisible ? 0 : -1}
