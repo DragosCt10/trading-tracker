@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useLayoutEffect, useTransition, useCallback } from 'react';
+import { useState, useRef, useEffect, useTransition, useCallback } from 'react';
 import { Hash, Plus, Globe, Lock, Loader2, UserPlus, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
@@ -43,11 +43,6 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const [channelModalOpen, setChannelModalOpen] = useState(false);
   const [inviteModalChannel, setInviteModalChannel] = useState<FeedChannel | null>(null);
   const [activeTab, setActiveTab] = useState<FeedTab>('public');
-  const [composerCollapsed, setComposerCollapsed] = useState(false);
-  const feedScrollRef = useRef<HTMLDivElement>(null);
-  const [scrollParentEl, setScrollParentEl] = useState<HTMLElement | null>(null);
-  const lastFeedScrollTop = useRef(0);
-  const composerLocked = useRef(false);
 
   const isPro = subscription?.tier === 'pro' || subscription?.tier === 'elite';
 
@@ -104,50 +99,10 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
     });
   }
 
-  /** Match AppLayout ActionBar: hide on scroll down, show on scroll up; near top always expanded */
-  useEffect(() => {
-    const el = feedScrollRef.current;
-    if (!el) return;
-
-    const collapse = (next: boolean) => {
-      if (composerLocked.current) return;
-      composerLocked.current = true;
-      setComposerCollapsed(next);
-      // Hold the lock for the full animation duration so layout-triggered
-      // scroll events (card resize → scrollTop clamp) can't flip the state back.
-      setTimeout(() => {
-        composerLocked.current = false;
-        lastFeedScrollTop.current = el.scrollTop;
-      }, 350);
-    };
-
-    const onScroll = () => {
-      if (composerLocked.current) return;
-      const current = el.scrollTop;
-      const diff = current - lastFeedScrollTop.current;
-      lastFeedScrollTop.current = current;
-      if (current < 12) {
-        collapse(false);
-      } else if (diff > 8) {
-        collapse(true);
-      } else if (diff < -8) {
-        collapse(false);
-      }
-    };
-    el.addEventListener('scroll', onScroll, { passive: true });
-    return () => el.removeEventListener('scroll', onScroll);
-  }, []);
-
-  // FeedPostList uses Virtuoso; provide the actual scroll container to avoid
-  // "window scroll" vs "inner div scroll" layout gaps on public feed.
-  useLayoutEffect(() => {
-    setScrollParentEl(feedScrollRef.current);
-  }, []);
-
   function handleSeeNewPosts() {
     clearCount();
     queryClient.invalidateQueries({ queryKey: queryKeys.feed.public() });
-    feedScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   async function handleCreate(input: { content: string; tradeId?: string; tradeMode?: 'live' | 'demo' | 'backtesting' }) {
@@ -161,12 +116,11 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 sm:px-0 py-6">
-      {/* 8rem = layout pt-20 (5rem) + this page py-6 (3rem); inner column scrolls feed only */}
-      <div className="flex gap-6 items-stretch min-h-0 h-[calc(100dvh-8rem)] max-h-[calc(100dvh-8rem)]">
+      <div className="flex gap-6 items-start">
         {/* Main feed */}
-        <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-6">
+        <div className="flex-1 min-w-0 flex flex-col gap-6">
           {/* Tab bar — matches AdminClient */}
-          <div className="shrink-0 flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-900/20 p-1 backdrop-blur-sm">
+          <div className="sticky top-24 z-30 shrink-0 flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-900/40 p-1 backdrop-blur-sm">
             {([
               { id: 'public', label: 'Public' },
               { id: 'following', label: 'Following' },
@@ -180,9 +134,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                   type="button"
                   onClick={() => {
                     setActiveTab(tab.id);
-                    setComposerCollapsed(false);
                     clearCount();
-                    lastFeedScrollTop.current = feedScrollRef.current?.scrollTop ?? 0;
                   }}
                   className={cn(
                     'flex-1 rounded-xl px-4 py-2 min-h-[2.75rem] text-sm font-semibold transition-colors !shadow-none cursor-pointer flex items-center justify-center gap-1.5',
@@ -208,8 +160,6 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                   onSubmit={handleCreate}
                   isSubmitting={create.isPending}
                   submitError={createError}
-                  collapsed={composerCollapsed}
-                  onExpand={() => { composerLocked.current = false; setComposerCollapsed(false); }}
                 />
               ) : !userId ? (
                 <div className="flex justify-end">
@@ -224,10 +174,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
             </div>
           ) : null}
 
-          <div
-            ref={feedScrollRef}
-            className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden overscroll-y-contain pr-1 -mr-1 [scrollbar-gutter:stable]"
-          >
+          <div className="min-w-0">
           {isChannelsTab ? (
             <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/40">
@@ -333,7 +280,6 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
             </div>
           ) : (
             <FeedPostList
-              customScrollParent={scrollParentEl}
               posts={visiblePosts}
               isLoading={isLoading}
               isFetchingNextPage={isFetchingNextPage}
@@ -359,7 +305,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
         </div>
 
         {/* Sidebar — height follows content; long channel lists scroll inside a capped area */}
-        <aside className="hidden lg:flex flex-col gap-6 w-72 shrink-0 self-start">
+        <aside className="hidden lg:flex flex-col gap-6 w-72 shrink-0 self-start sticky top-24 h-fit">
           <div className="shrink-0 rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-1">
             <SearchBar />
           </div>
