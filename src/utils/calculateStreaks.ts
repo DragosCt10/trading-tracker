@@ -37,13 +37,17 @@ export function calculateStreaksFromTrades(
     };
   }
 
+  // ISO YYYY-MM-DD (and HH:MM:SS) strings sort correctly lexicographically.
+  // Avoids creating ~450k Date objects for the O(n log n) sort at 30k trades.
   const sortedTrades = [...trades].sort((a, b) => {
     if (sortByTime) {
-      const aDateTime = new Date(`${a.trade_date}T${a.trade_time || '00:00:00'}`);
-      const bDateTime = new Date(`${b.trade_date}T${b.trade_time || '00:00:00'}`);
-      return aDateTime.getTime() - bDateTime.getTime();
+      const at = `${a.trade_date ?? ''}T${a.trade_time || '00:00:00'}`;
+      const bt = `${b.trade_date ?? ''}T${b.trade_time || '00:00:00'}`;
+      return at < bt ? -1 : at > bt ? 1 : 0;
     }
-    return new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime();
+    const da = a.trade_date ?? '';
+    const db = b.trade_date ?? '';
+    return da < db ? -1 : da > db ? 1 : 0;
   });
 
   let maxWinningStreak = 0;

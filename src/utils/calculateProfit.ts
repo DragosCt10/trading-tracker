@@ -27,11 +27,10 @@ export function calculateProfit(
   trades: Trade[],
   accountBalance: number
 ): ProfitStats {
-  // Filter non-BE trades only (ignoring all BE and partial trades)
-  const nonBETrades = trades
-    .filter(t => !t.break_even)
-    .slice()
-    .sort((a, b) => new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime());
+  // Filter non-BE trades only (ignoring all BE and partial trades).
+  // No sort needed here — profit sum is order-independent.
+  // (calculateMaxDrawdown / calculateAverageDrawdown sort internally via sortTradesChronologicallyStable.)
+  const nonBETrades = trades.filter(t => !t.break_even);
 
   // Sum calculated_profit for all non-BE trades (stored as absolute currency amounts)
   let totalProfit = 0;

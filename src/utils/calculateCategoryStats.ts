@@ -1,6 +1,17 @@
 import { DayStats, DirectionStats, IntervalStats, LiquidityStats, LocalHLStats, MarketStats, MssStats, NewsStats, NewsNameStats, SLSizeStats, TradeTypeStats } from '@/types/dashboard';
 import { Trade } from '@/types/trade';
-import { getDayOfWeekFromTradeDate } from '@/utils/dateRangeHelpers';
+
+/** Fast weekday name from a YYYY-MM-DD string — avoids Intl/toLocaleDateString per trade. */
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+function getWeekdayName(tradeDate: string | null | undefined, fallback?: string | null): string {
+  if (tradeDate && tradeDate.length >= 10) {
+    const y = +tradeDate.slice(0, 4);
+    const m = +tradeDate.slice(5, 7);
+    const d = +tradeDate.slice(8, 10);
+    if (y && m && d) return WEEKDAY_NAMES[new Date(y, m - 1, d).getDay()] ?? '';
+  }
+  return fallback || '';
+}
 
 /**
  * Single source of truth for "liquidated" (local H/L = true).
@@ -434,7 +445,7 @@ export function calculateNewsNameStats(
 
 export function calculateDayStats(trades: Trade[]): DayStats[] {
   if (trades.length === 0) return [];
-  return calculateGroupedStats(trades, t => getDayOfWeekFromTradeDate(t.trade_date) || t.day_of_week || 'Unknown')
+  return calculateGroupedStats(trades, t => getWeekdayName(t.trade_date, t.day_of_week) || 'Unknown')
     .map(g => ({
       day: g.type,
       total: g.total,
@@ -445,32 +456,34 @@ export function calculateDayStats(trades: Trade[]): DayStats[] {
       breakEven: g.breakEven
     }));
 }
-export function calculateMarketStats(trades: Trade[], accountBalance: number): MarketStats[] {  
+export function calculateMarketStats(trades: Trade[], accountBalance: number): MarketStats[] {
   if (trades.length === 0) return [];
-  return calculateGroupedStats(trades, t => t.market || 'Unknown')
-    .map(g => {
-      const marketTrades = trades.filter(t => (t.market || 'Unknown') === g.type);
 
-      // Use stored absolute P/L per trade (calculated_profit); ignore non-numeric entries
-      const profit = marketTrades.reduce((sum, trade) => {
-        const value = typeof trade.calculated_profit === 'number' ? trade.calculated_profit : 0;
-        return sum + value;
-      }, 0);
+  // Single pass: group + accumulate wins/losses/BE/profit simultaneously.
+  // Avoids the previous O(n×M) pattern of grouping then re-filtering per market.
+  type Acc = { wins: number; losses: number; breakEven: number; profit: number };
+  const groups: Record<string, Acc> = {};
 
-      const pnlPercentage = accountBalance > 0 ? (profit / accountBalance) * 100 : 0;
-      return {
-        market: g.type,
-        total: g.total,
-        wins: g.wins,
-        losses: g.losses,
-        winRate: g.winRate,
-        winRateWithBE: g.winRateWithBE,
-        breakEven: g.breakEven,
-        profit,
-        pnlPercentage,
-        profitTaken: true
-      };
-    });
+  for (const t of trades) {
+    const key = t.market || 'Unknown';
+    let g = groups[key];
+    if (!g) { g = { wins: 0, losses: 0, breakEven: 0, profit: 0 }; groups[key] = g; }
+    g.profit += typeof t.calculated_profit === 'number' ? t.calculated_profit : 0;
+    if (t.break_even) g.breakEven++;
+    else if (t.trade_outcome === 'Win') g.wins++;
+    else if (t.trade_outcome === 'Lose') g.losses++;
+  }
+
+  return Object.entries(groups)
+    .map(([market, g]) => {
+      const total  = g.wins + g.losses + g.breakEven;
+      const denom  = g.wins + g.losses;
+      const winRate       = denom  > 0 ? (g.wins / denom)  * 100 : 0;
+      const winRateWithBE = total  > 0 ? (g.wins / total)  * 100 : 0;
+      const pnlPercentage = accountBalance > 0 ? (g.profit / accountBalance) * 100 : 0;
+      return { market, total, wins: g.wins, losses: g.losses, winRate, winRateWithBE, breakEven: g.breakEven, profit: g.profit, pnlPercentage, profitTaken: true };
+    })
+    .sort((a, b) => b.total - a.total);
 }
 
 /**
