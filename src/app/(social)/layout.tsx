@@ -17,7 +17,7 @@ export default async function SocialLayout({ children }: { children: ReactNode }
 
   return (
     <div className="max-w-(--breakpoint-xl) mx-auto min-h-screen flex flex-col">
-      <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-(--breakpoint-xl) px-4 sm:px-0">
+      <nav className="fixed top-4 left-0 right-0 z-50 mx-auto w-full max-w-5xl">
         <div className="relative rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40">
           <div className="themed-nav-overlay pointer-events-none absolute inset-0 rounded-2xl" />
           <div className="relative flex items-center px-3 py-2 sm:px-4 sm:py-2.5">
@@ -49,7 +49,9 @@ export default async function SocialLayout({ children }: { children: ReactNode }
       <div className="pt-20 flex-1">
         {children}
       </div>
-      <Footer />
+      <div className="w-full max-w-5xl mx-auto">
+        <Footer />
+      </div>
     </div>
   );
 }
