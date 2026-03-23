@@ -71,22 +71,13 @@ async function signInPerfUser(page: Page) {
     throw new Error(`Sign-in failed: ${response.status()} — run generate-tokens.mjs first`);
   }
 
-  const { access_token, refresh_token } = await response.json();
-
-  // Set Supabase auth cookies (Next.js Supabase client reads these)
+  // @supabase/ssr stores the full session as JSON in 'supabase.auth.token'
+  const session = await response.json();
   const cookieDomain = new URL(APP_URL).hostname;
   await page.context().addCookies([
     {
-      name: 'sb-access-token',
-      value: access_token,
-      domain: cookieDomain,
-      path: '/',
-      httpOnly: false,
-      secure: false,
-    },
-    {
-      name: 'sb-refresh-token',
-      value: refresh_token,
+      name: 'supabase.auth.token',
+      value: JSON.stringify(session),
       domain: cookieDomain,
       path: '/',
       httpOnly: false,
@@ -174,7 +165,7 @@ test.describe('RT1: Realtime Feed Subscription Latency', () => {
     expect(feedErrors).toHaveLength(0);
 
     // Cleanup: delete the test post
-    await admin.from('feed_posts').delete().eq('id', post.id);
+    await admin.from('feed_posts').delete().eq('id', post!.id);
   });
 
   test('Subscription survives tab switch and back', async ({ page }) => {

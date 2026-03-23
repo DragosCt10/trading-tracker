@@ -81,12 +81,20 @@ async function signInPerfUser(page: Page) {
     );
   }
 
-  const { access_token, refresh_token } = await response.json();
+  // @supabase/ssr stores the full session as JSON in 'supabase.auth.token'
+  // (not the old 'sb-access-token' / 'sb-refresh-token' split format)
+  const session = await response.json();
   const domain = new URL(APP_URL).hostname;
 
   await page.context().addCookies([
-    { name: 'sb-access-token',  value: access_token,  domain, path: '/', httpOnly: false, secure: false },
-    { name: 'sb-refresh-token', value: refresh_token, domain, path: '/', httpOnly: false, secure: false },
+    {
+      name: 'supabase.auth.token',
+      value: JSON.stringify(session),
+      domain,
+      path: '/',
+      httpOnly: false,
+      secure: false,
+    },
   ]);
 }
 

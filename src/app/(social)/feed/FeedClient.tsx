@@ -60,6 +60,8 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   );
   const queryClient = useQueryClient();
   const [pendingChannelId, setPendingChannelId] = useState<string | null>(null);
+  const [channelToggleErrorChannelId, setChannelToggleErrorChannelId] = useState<string | null>(null);
+  const [channelToggleError, setChannelToggleError] = useState<string>('');
   const [, startChannelTransition] = useTransition();
 
   const posts = data?.pages.flatMap((p) => p.items) ?? [];
@@ -73,10 +75,26 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
     e.preventDefault();
     e.stopPropagation();
     setPendingChannelId(channelId);
+    setChannelToggleErrorChannelId(null);
+    setChannelToggleError('');
     startChannelTransition(async () => {
-      await updateChannel(channelId, { isPublic: !currentlyPublic });
-      setPendingChannelId(null);
-      queryClient.invalidateQueries({ queryKey: queryKeys.feed.channels(uid) });
+      try {
+        const result = await updateChannel(channelId, { isPublic: !currentlyPublic });
+
+        if ('error' in result) {
+          setChannelToggleErrorChannelId(channelId);
+          setChannelToggleError(result.error || 'Failed to update channel');
+        } else {
+          setChannelToggleErrorChannelId(null);
+          setChannelToggleError('');
+        }
+      } catch {
+        setChannelToggleErrorChannelId(channelId);
+        setChannelToggleError('Failed to update channel');
+      } finally {
+        setPendingChannelId(null);
+        queryClient.invalidateQueries({ queryKey: queryKeys.feed.channels(uid) });
+      }
     });
   }
 
@@ -257,9 +275,16 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                         </Link>
                         {isOwner ? (
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[10px] text-slate-500 dark:text-slate-200">
-                              {channel.is_public ? 'Public' : 'Private'}
-                            </span>
+                            <div className="flex flex-col items-start leading-tight">
+                              <span className="text-[10px] text-slate-500 dark:text-slate-200">
+                                {channel.is_public ? 'Public' : 'Private'}
+                              </span>
+                              {channelToggleErrorChannelId === channel.id && channelToggleError ? (
+                                <span className="text-[10px] text-red-600 dark:text-red-400">
+                                  {channelToggleError}
+                                </span>
+                              ) : null}
+                            </div>
                             <button
                               type="button"
                               role="switch"
