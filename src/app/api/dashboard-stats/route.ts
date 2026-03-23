@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { getDashboardApiResponse } from '@/lib/server/dashboardApiResponse';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { buildStatsCacheKey, getStatsCache, setStatsCache } from '@/lib/statsCache';
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
@@ -64,6 +65,29 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden account access' }, { status: 403 });
   }
 
+  const cacheKey = buildStatsCacheKey({
+    userId: user.id,
+    accountId,
+    strategyId,
+    mode,
+    startDate,
+    endDate,
+    execution,
+    market,
+    includeCompactTrades,
+    includeSeries,
+  });
+
+  const cached = getStatsCache(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: {
+        'Cache-Control': 'private, no-cache, must-revalidate',
+        'X-Cache': 'HIT',
+      },
+    });
+  }
+
   const response = await getDashboardApiResponse({
     userId: user.id,
     accountId,
@@ -78,9 +102,12 @@ export async function GET(req: NextRequest) {
     includeSeries,
   });
 
+  setStatsCache(cacheKey, response);
+
   return NextResponse.json(response, {
     headers: {
       'Cache-Control': 'private, no-cache, must-revalidate',
+      'X-Cache': 'MISS',
     },
   });
 }
