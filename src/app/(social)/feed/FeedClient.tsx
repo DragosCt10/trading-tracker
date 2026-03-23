@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useTransition, useCallback } from 'react';
-import { Hash, Plus, Globe, Lock, Loader2, UserPlus, Users } from 'lucide-react';
+import { Hash, Plus, PlusCircle, Globe, Lock, Loader2, UserPlus, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -60,6 +60,8 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const [channelToggleErrorChannelId, setChannelToggleErrorChannelId] = useState<string | null>(null);
   const [channelToggleError, setChannelToggleError] = useState<string>('');
   const [, startChannelTransition] = useTransition();
+  const [feedChromeVisible, setFeedChromeVisible] = useState(true);
+  const lastScrollY = useRef(0);
 
   const posts = data?.pages.flatMap((p) => p.items) ?? [];
   const visiblePosts =
@@ -105,6 +107,30 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function handleQuickPost() {
+    setActiveTab('public');
+    clearCount();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Wait for the top composer to be in view after smooth scroll, then focus.
+    setTimeout(() => {
+      const composer = document.querySelector<HTMLTextAreaElement>('textarea[data-feed-composer="true"]');
+      composer?.focus();
+    }, 420);
+  }
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const diff = currentY - lastScrollY.current;
+      if (diff > 6) setFeedChromeVisible(false);
+      else if (diff < -6) setFeedChromeVisible(true);
+      lastScrollY.current = currentY;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   async function handleCreate(input: { content: string; tradeId?: string; tradeMode?: 'live' | 'demo' | 'backtesting' }) {
     setCreateError('');
     const result = await create.mutateAsync(input);
@@ -120,7 +146,15 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
         {/* Main feed */}
         <div className="flex-1 min-w-0 flex flex-col gap-6">
           {/* Tab bar — matches AdminClient */}
-          <div className="sticky top-24 z-30 shrink-0 flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-900/40 p-1 backdrop-blur-sm">
+          <div
+            className={cn(
+              'sticky top-24 z-30 shrink-0 flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-900/40 p-1 backdrop-blur-sm',
+              'transition-all duration-300 ease-in-out',
+              feedChromeVisible
+                ? 'opacity-100 translate-y-0 pointer-events-auto'
+                : 'opacity-0 -translate-y-3 pointer-events-none'
+            )}
+          >
             {([
               { id: 'public', label: 'Public' },
               { id: 'following', label: 'Following' },
@@ -407,6 +441,32 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
           open={!!inviteModalChannel}
           onClose={() => setInviteModalChannel(null)}
         />
+      )}
+
+      {userId && initialProfile && subscription && (
+        <div
+          className={cn(
+            'hidden lg:flex justify-center fixed bottom-6 z-40 right-[max(1rem,calc((100vw-64rem)/2+0rem))] w-72',
+            'transition-all duration-300 ease-in-out will-change-transform will-change-opacity',
+            !feedChromeVisible
+              ? 'opacity-100 translate-y-0 scale-100 pointer-events-none'
+              : 'opacity-0 translate-y-2 scale-95 pointer-events-none'
+          )}
+        >
+          <Button
+            type="button"
+            onClick={handleQuickPost}
+            className="h-12 px-8 themed-btn-primary rounded-full text-white font-semibold text-4 border-0 shadow-lg shadow-violet-500/30 pointer-events-auto"
+            aria-label="Scroll to top and start writing a post"
+            title="Post"
+            tabIndex={!feedChromeVisible ? 0 : -1}
+          >
+            <span className="relative z-10 flex items-center gap-2.5">
+              <PlusCircle className="w-5 h-5" />
+              <span>Post</span>
+            </span>
+          </Button>
+        </div>
       )}
     </div>
   );
