@@ -91,7 +91,7 @@ export default function SearchBar() {
                     {profile.avatar_url
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={profile.avatar_url} alt={profile.display_name} className="w-full h-full rounded-full object-cover" />
-                      : profile.display_name.slice(0, 1).toUpperCase()
+                      : String(profile.display_name ?? '?').slice(0, 1).toUpperCase()
                     }
                   </div>
                   <div className="min-w-0">

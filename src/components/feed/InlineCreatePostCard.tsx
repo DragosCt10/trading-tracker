@@ -108,7 +108,7 @@ export default function InlineCreatePostCard({
     // eslint-disable-next-line @next/next/no-img-element
     <img src={profile.avatar_url} alt={profile.display_name} className="w-full h-full object-cover" />
   ) : (
-    profile.display_name.slice(0, 1).toUpperCase()
+    String(profile.display_name ?? '?').slice(0, 1).toUpperCase()
   );
 
   const avatar = (

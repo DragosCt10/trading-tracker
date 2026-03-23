@@ -64,7 +64,7 @@ function CommentItem({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={comment.author.avatar_url} alt={comment.author.display_name} className="w-full h-full object-cover" />
             ) : (
-              comment.author.display_name.slice(0, 1).toUpperCase()
+              String(comment.author.display_name ?? '?').slice(0, 1).toUpperCase()
             )}
           </div>
         </Link>

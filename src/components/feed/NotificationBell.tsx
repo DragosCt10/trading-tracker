@@ -88,7 +88,7 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
                   {n.actor.avatar_url
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={n.actor.avatar_url} alt={n.actor.display_name} className="w-full h-full rounded-full object-cover" />
-                    : n.actor.display_name.slice(0, 1).toUpperCase()
+                    : String(n.actor.display_name ?? '?').slice(0, 1).toUpperCase()
                   }
                 </div>
 
