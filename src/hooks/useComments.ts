@@ -79,7 +79,7 @@ export function useComments(postId: string, initialData?: PaginatedResult<FeedCo
           ...prev,
           pages: prev.pages.map((page, idx) =>
             idx === 0
-              ? { ...page, items: [...page.items, newComment] }
+              ? { ...page, items: [newComment, ...page.items] }
               : page
           ),
         };
