@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!checkRateLimit(`stats:${user.id}`, 30, 60_000)) {
+  if (!checkRateLimit(`stats:${user.id}`, 300, 60_000)) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
 
