@@ -44,7 +44,7 @@ export function useComments(postId: string, initialData?: PaginatedResult<FeedCo
       queryKeys.feed.public(),
       queryKeys.feed.timeline(),
       queryKeys.feed.channelPosts(''),
-    ] as readonly unknown[][];
+    ] as unknown as unknown[][];
 
     for (const prefix of prefixes) {
       const entries = qc.getQueriesData<InfiniteFeedData>({ queryKey: prefix });
