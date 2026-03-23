@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { followUser, unfollowUser } from '@/lib/server/socialProfile';
@@ -14,6 +14,10 @@ interface FollowButtonProps {
 export default function FollowButton({ targetProfileId, initialFollowing, onFollowChange }: FollowButtonProps) {
   const [following, setFollowing] = useState(initialFollowing);
   const [loading, setLoading]     = useState(false);
+
+  useEffect(() => {
+    setFollowing(initialFollowing);
+  }, [initialFollowing]);
 
   async function handleClick() {
     if (loading) return;

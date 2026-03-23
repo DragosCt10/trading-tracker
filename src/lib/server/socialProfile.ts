@@ -59,6 +59,27 @@ async function syncProfileTierIfNeeded(
   return mapRow(updated as Record<string, unknown>);
 }
 
+async function getLiveFollowCounts(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  profileId: string
+): Promise<{ follower_count: number; following_count: number }> {
+  const [{ count: followerCount }, { count: followingCount }] = await Promise.all([
+    supabase
+      .from('follows')
+      .select('follower_id', { count: 'exact', head: true })
+      .eq('following_id', profileId),
+    supabase
+      .from('follows')
+      .select('following_id', { count: 'exact', head: true })
+      .eq('follower_id', profileId),
+  ]);
+
+  return {
+    follower_count: followerCount ?? 0,
+    following_count: followingCount ?? 0,
+  };
+}
+
 /** Generate a unique username from an email prefix with retry. */
 async function generateUniqueUsername(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -98,7 +119,9 @@ async function _getSocialProfile(userId: string): Promise<SocialProfile | null> 
 
   if (error || !data) return null;
   const profile = mapRow(data as Record<string, unknown>);
-  return syncProfileTierIfNeeded(supabase, profile);
+  const tierSyncedProfile = await syncProfileTierIfNeeded(supabase, profile);
+  const liveCounts = await getLiveFollowCounts(supabase, tierSyncedProfile.id);
+  return { ...tierSyncedProfile, ...liveCounts };
 }
 
 export const getCachedSocialProfile = cache(_getSocialProfile);
@@ -114,7 +137,9 @@ export async function getSocialProfileByUsername(username: string): Promise<Soci
     .single();
 
   if (error || !data) return null;
-  return mapRow(data as Record<string, unknown>);
+  const profile = mapRow(data as Record<string, unknown>);
+  const liveCounts = await getLiveFollowCounts(supabase, profile.id);
+  return { ...profile, ...liveCounts };
 }
 
 export async function checkUsernameAvailability(username: string): Promise<boolean> {

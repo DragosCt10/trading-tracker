@@ -1,8 +1,12 @@
 'use client';
 
-import { Crown } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import PostCard from '@/components/feed/PostCard';
 import FollowButton from '@/components/feed/FollowButton';
+import TierBadge from '@/components/feed/TierBadge';
+import { useDarkMode } from '@/hooks/useDarkMode';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useSocialProfile } from '@/hooks/useSocialProfile';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -24,15 +28,40 @@ export default function ProfileClient({
   const { data: userData } = useUserDetails();
   const userId = userData?.user?.id;
   const { data: ownProfile } = useSocialProfile(userId);
+  const { mounted, isDark } = useDarkMode();
   const { subscription } = useSubscription({ userId });
+  const [followerCount, setFollowerCount] = useState(profile.follower_count);
+  const [followingCount, setFollowingCount] = useState(profile.following_count);
+  const [isFollowing, setIsFollowing] = useState(initialFollowing);
   const effectiveCurrentProfileId = currentProfileId ?? ownProfile?.id;
 
-  const isOwnProfile = ownProfile?.user_id === profile.user_id;
+  // Prefer server-provided identity to avoid SSR/client hydration divergence.
+  const isOwnProfile = currentProfileId === profile.id;
   const effectiveTier = isOwnProfile && subscription?.tier ? subscription.tier : profile.tier;
   const isPro = effectiveTier === 'pro' || effectiveTier === 'elite';
+  const isLightMode = mounted && !isDark;
+
+  useEffect(() => {
+    setFollowerCount(profile.follower_count);
+    setFollowingCount(profile.following_count);
+    setIsFollowing(initialFollowing);
+  }, [profile.follower_count, profile.following_count, initialFollowing, profile.id]);
+
+  function handleFollowChange(nextFollowing: boolean) {
+    setIsFollowing(nextFollowing);
+    setFollowerCount((prev) => Math.max(0, prev + (nextFollowing ? 1 : -1)));
+  }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 sm:px-0 py-6 space-y-6">
+    <div suppressHydrationWarning className="mx-auto w-full max-w-5xl px-4 sm:px-0 py-6 space-y-6">
+      <Link
+        href="/feed"
+        className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to feed
+      </Link>
+
       {/* Profile header */}
       <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-6">
         <div className="flex items-start gap-4">
@@ -53,18 +82,17 @@ export default function ProfileClient({
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">{profile.display_name}</h1>
-                {isPro && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/35 dark:border-amber-500/30">
-                    <Crown className="w-2.5 h-2.5" />
-                    PRO
-                  </span>
+                {!mounted && isPro && (
+                  <span className="h-5 w-14 rounded-md bg-slate-200/70 dark:bg-slate-700/50 animate-pulse" />
                 )}
+                {mounted && isPro && <TierBadge tier={effectiveTier} isLightMode={isLightMode} />}
               </div>
 
               {!isOwnProfile && ownProfile && (
                 <FollowButton
                   targetProfileId={profile.id}
-                  initialFollowing={initialFollowing}
+                  initialFollowing={isFollowing}
+                  onFollowChange={handleFollowChange}
                 />
               )}
             </div>
@@ -75,13 +103,14 @@ export default function ProfileClient({
               <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed mt-2">{profile.bio}</p>
             )}
 
-            <div className="flex items-center gap-4 mt-3 text-sm">
+            <div className="flex items-center gap-3 mt-3 text-sm">
               <span>
-                <span className="font-semibold text-slate-900 dark:text-slate-100">{profile.follower_count}</span>
+                <span className="font-semibold text-slate-900 dark:text-slate-100">{followerCount}</span>
                 <span className="text-slate-500 ml-1">Followers</span>
               </span>
+              <span aria-hidden className="text-slate-400 dark:text-slate-500 select-none">•</span>
               <span>
-                <span className="font-semibold text-slate-900 dark:text-slate-100">{profile.following_count}</span>
+                <span className="font-semibold text-slate-900 dark:text-slate-100">{followingCount}</span>
                 <span className="text-slate-500 ml-1">Following</span>
               </span>
             </div>
