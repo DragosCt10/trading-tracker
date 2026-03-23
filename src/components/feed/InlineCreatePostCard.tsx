@@ -201,6 +201,7 @@ export default function InlineCreatePostCard({
 
                 <textarea
                   ref={textareaRef}
+                  data-feed-composer="true"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   maxLength={maxLen}
