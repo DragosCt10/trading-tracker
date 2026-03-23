@@ -65,7 +65,8 @@ function PostCardComponent({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={post.author.avatar_url} alt={post.author.display_name} className="w-full h-full object-cover" width="36" height="36" loading="lazy" />
             ) : (
-              post.author.display_name.slice(0, 1).toUpperCase()
+              // Guard against missing author fields from DB joins (deleted profiles).
+              String(post.author.display_name ?? '?').slice(0, 1).toUpperCase()
             )}
           </div>
         </Link>
