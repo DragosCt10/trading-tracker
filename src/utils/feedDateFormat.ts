@@ -13,6 +13,17 @@ export function formatFeedDate(dateStr: string): string {
   });
 }
 
+/** "Jan 5, 3:45 PM" — feed posts (includes time; UTC matches SSR/client) */
+export function formatFeedDateTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'UTC',
+  });
+}
+
 /** "Jan 5, 3:45 PM" — comment rows (includes time; UTC matches SSR/client) */
 export function formatFeedCommentDate(dateStr: string): string {
   return new Date(dateStr).toLocaleString('en-US', {

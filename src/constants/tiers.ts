@@ -22,8 +22,8 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       maxExtraCards: 3,
       maxAccounts: 1,
       allowedModes: ['demo'],
-      maxPostsPerWeek: 3,
-      maxPostsPerDay: null,
+      maxPostsPerWeek: null,
+      maxPostsPerDay: 50,
       maxPostContentLength: 280,
     },
     features: {

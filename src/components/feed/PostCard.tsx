@@ -10,7 +10,7 @@ import type { FeedPost } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 import { useTheme } from '@/hooks/useTheme';
 import { formatCompactCount } from '@/lib/utils';
-import { formatFeedDate } from '@/utils/feedDateFormat';
+import { formatFeedDateTime } from '@/utils/feedDateFormat';
 
 interface PostCardProps {
   post: FeedPost;
@@ -88,7 +88,7 @@ function PostCardComponent({
           </div>
         </div>
         <span className="ml-auto pl-2 text-slate-500 text-xs shrink-0" suppressHydrationWarning>
-          {formatFeedDate(post.created_at)}
+          {formatFeedDateTime(post.created_at)}
         </span>
 
       </div>

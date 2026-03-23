@@ -67,6 +67,10 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const [, startChannelTransition] = useTransition();
 
   const posts = data?.pages.flatMap((p) => p.items) ?? [];
+  const visiblePosts =
+    activeTab === 'following' && uid
+      ? posts.filter((post) => post.author.user_id !== uid)
+      : posts;
 
   const handleLike = useCallback((id: string) => like.mutate(id), [like]);
   const handleDelete = useCallback((id: string) => remove.mutate(id), [remove]);
@@ -194,29 +198,31 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
             })}
           </div>
 
-          <div className="shrink-0">
-            {userId && initialProfile && subscription ? (
-              <InlineCreatePostCard
-                userId={userId}
-                profile={initialProfile}
-                subscription={subscription}
-                onSubmit={handleCreate}
-                isSubmitting={create.isPending}
-                submitError={createError}
-                collapsed={composerCollapsed}
-                onExpand={() => { composerLocked.current = false; setComposerCollapsed(false); }}
-              />
-            ) : !userId ? (
-              <div className="flex justify-end">
-                <Link href="/login">
-                  <Button variant="outline" size="sm" className="rounded-xl border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-800">
-                    Sign in to post
-                  </Button>
-                </Link>
-              </div>
-            ) : null}
-            <NewPostsBanner count={newPostCount} onClick={handleSeeNewPosts} />
-          </div>
+          {activeTab === 'public' ? (
+            <div className="shrink-0">
+              {userId && initialProfile && subscription ? (
+                <InlineCreatePostCard
+                  userId={userId}
+                  profile={initialProfile}
+                  subscription={subscription}
+                  onSubmit={handleCreate}
+                  isSubmitting={create.isPending}
+                  submitError={createError}
+                  collapsed={composerCollapsed}
+                  onExpand={() => { composerLocked.current = false; setComposerCollapsed(false); }}
+                />
+              ) : !userId ? (
+                <div className="flex justify-end">
+                  <Link href="/login">
+                    <Button variant="outline" size="sm" className="rounded-xl border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-800">
+                      Sign in to post
+                    </Button>
+                  </Link>
+                </div>
+              ) : null}
+              <NewPostsBanner count={newPostCount} onClick={handleSeeNewPosts} />
+            </div>
+          ) : null}
 
           <div
             ref={feedScrollRef}
@@ -328,7 +334,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
           ) : (
             <FeedPostList
               customScrollParent={scrollParentEl}
-              posts={posts}
+              posts={visiblePosts}
               isLoading={isLoading}
               isFetchingNextPage={isFetchingNextPage}
               hasNextPage={!!hasNextPage}

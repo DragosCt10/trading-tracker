@@ -47,7 +47,7 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 sm:px-0 py-6 space-y-4">
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-0 py-6 space-y-4">
       {/* Back link */}
       <Link href="/feed" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors">
         <ArrowLeft className="w-3.5 h-3.5" />
