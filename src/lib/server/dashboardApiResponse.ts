@@ -1,10 +1,11 @@
 /**
- * Server-only: builds the full dashboard API response (1–2 RPCs via getDashboardAggregates).
+ * Server-only: builds the full dashboard API response (single RPC via getDashboardAggregates).
  * Shared by the /api/dashboard-stats route and StrategyData so the client can be hydrated
  * without a separate API call (audit 2.1).
  *
- * Time-series stats (maxDrawdown, streaks, Sharpe, TQI) are now computed directly in the
- * RPC via series_stats — no need to transfer series[] to the application layer.
+ * Time-series stats (maxDrawdown, streaks, Sharpe, TQI) are computed directly in the
+ * RPC via series_stats. Non-executed comparison stats are computed inline in the RPC
+ * via non_executed_stats — no second round-trip needed.
  */
 import { getDashboardAggregates } from '@/lib/server/dashboardAggregates';
 import type { DashboardApiResponse } from '@/types/dashboard-rpc';
@@ -41,40 +42,22 @@ export async function getDashboardApiResponse(
     market = 'all',
   } = params;
 
-  const nonExecutedNeeded = execution !== 'non_executed';
-  // series[] is no longer needed for stat computation — series_stats in the RPC provides
-  // all 6 time-series values (maxDrawdown, streaks, Sharpe, TQI) computed directly in SQL.
-  // Default includeSeries to false to avoid transferring ~4 MB for large trade sets.
-  const [main, nonExecutedOrNull] = await Promise.all([
-    getDashboardAggregates({
-      userId,
-      accountId,
-      mode,
-      startDate,
-      endDate,
-      strategyId,
-      execution,
-      accountBalance,
-      includeCompactTrades: params.includeCompactTrades ?? false,
-      market,
-      includeSeries: params.includeSeries ?? false,
-    }),
-    nonExecutedNeeded
-      ? getDashboardAggregates({
-          userId,
-          accountId,
-          mode,
-          startDate,
-          endDate,
-          strategyId,
-          execution: 'non_executed',
-          accountBalance,
-          includeCompactTrades: false,
-          includeSeries: false,
-        })
-      : Promise.resolve(null),
-  ]);
-  const nonExecuted = nonExecutedOrNull ?? main;
+  // Single RPC call — non_executed_stats is now computed inline in the RPC
+  // via the _ne/_ne_*_raw CTEs, eliminating a second round-trip + full table scan.
+  const main = await getDashboardAggregates({
+    userId,
+    accountId,
+    mode,
+    startDate,
+    endDate,
+    strategyId,
+    execution,
+    accountBalance,
+    includeCompactTrades: params.includeCompactTrades ?? false,
+    market,
+    includeSeries: params.includeSeries ?? false,
+  });
+  const nonExecuted = main.non_executed_stats ?? { core: { totalTrades: 0 }, setup_stats: [], liquidity_stats: [], market_stats: [] };
 
   // Read pre-computed time-series stats from the RPC (series_stats key).
   const ss = main.series_stats;
