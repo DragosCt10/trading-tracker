@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
   AlertDialogContent,
+  AlertDialogDescription,
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
@@ -98,6 +99,9 @@ export default function AttachTradeModal({ open, onClose, onSelect }: AttachTrad
                 <X className="h-4 w-4" />
               </button>
             </div>
+            <AlertDialogDescription className="sr-only">
+              Select a date range, find your trades, and attach one to this post.
+            </AlertDialogDescription>
           </AlertDialogHeader>
         </div>
 

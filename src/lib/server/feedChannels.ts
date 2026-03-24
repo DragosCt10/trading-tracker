@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { getCachedSubscription } from './subscription';
-import type { FeedChannel, PaginatedResult } from '@/types/social';
+import type { ChannelMember, FeedChannel, PaginatedResult } from '@/types/social';
 
 type ChannelResult<T> =
   | { data: T }
@@ -42,6 +42,46 @@ function mapRow(row: Record<string, unknown>): FeedChannel {
     created_at:  row.created_at as string,
     updated_at:  row.updated_at as string,
   };
+}
+
+function mapChannelMemberRow(row: Record<string, unknown>): ChannelMember {
+  const rawProfile = row.profile as Record<string, unknown> | null | undefined;
+  return {
+    channel_id: row.channel_id as string,
+    user_id: row.user_id as string,
+    role: row.role as ChannelMember['role'],
+    joined_at: row.joined_at as string,
+    profile: rawProfile
+      ? {
+          id: rawProfile.id as string,
+          display_name: rawProfile.display_name as string,
+          username: rawProfile.username as string,
+          avatar_url: (rawProfile.avatar_url as string | null) ?? null,
+          tier: rawProfile.tier as ChannelMember['profile']['tier'],
+        }
+      : undefined,
+  };
+}
+
+async function assertChannelOwner(channelId: string, ownerId: string): Promise<ChannelResult<null>> {
+  const supabase = await createClient();
+  const { data: channel, error } = await supabase
+    .from('feed_channels')
+    .select('id')
+    .eq('id', channelId)
+    .eq('owner_id', ownerId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[assertChannelOwner] error:', error);
+    return { error: 'Failed to validate channel ownership', code: 'DB_ERROR' };
+  }
+
+  if (!channel) {
+    return { error: 'Channel not found', code: 'NOT_FOUND' };
+  }
+
+  return { data: null };
 }
 
 // ─── Read ────────────────────────────────────────────────────────────────────
@@ -401,4 +441,143 @@ export async function leaveChannel(channelId: string): Promise<ChannelResult<{ c
     .eq('user_id', profile.id);
 
   return { data: { channel_id: channelId } };
+}
+
+export async function getChannelMembersForOwner(
+  channelId: string,
+  cursor?: string,
+  limit = 25
+): Promise<ChannelResult<PaginatedResult<ChannelMember>>> {
+  const session = await getCachedUserSession();
+  if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+
+  const profile = await getCachedSocialProfile(session.user.id);
+  if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
+
+  const ownerCheck = await assertChannelOwner(channelId, profile.id);
+  if ('error' in ownerCheck) return ownerCheck;
+
+  const supabase = await createClient();
+  let query = supabase
+    .from('channel_members')
+    .select('channel_id, user_id, role, joined_at, profile:social_profiles!channel_members_user_id_fkey(id, display_name, username, avatar_url, tier)')
+    .eq('channel_id', channelId)
+    .order('joined_at', { ascending: false })
+    .limit(limit + 1);
+
+  if (cursor) query = query.lt('joined_at', cursor);
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('[getChannelMembersForOwner] error:', error);
+    return { error: 'Failed to fetch channel members', code: 'DB_ERROR' };
+  }
+
+  const rows = (data ?? []) as Record<string, unknown>[];
+  const pageRows = rows.slice(0, limit);
+  const items = pageRows.map(mapChannelMemberRow);
+
+  return {
+    data: {
+      items,
+      nextCursor: rows.length > limit ? (pageRows[pageRows.length - 1]?.joined_at as string) : null,
+      hasMore: rows.length > limit,
+    },
+  };
+}
+
+export async function addChannelMemberByHandle(
+  channelId: string,
+  handle: string
+): Promise<ChannelResult<ChannelMember>> {
+  const session = await getCachedUserSession();
+  if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+
+  const profile = await getCachedSocialProfile(session.user.id);
+  if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
+
+  const ownerCheck = await assertChannelOwner(channelId, profile.id);
+  if ('error' in ownerCheck) return ownerCheck;
+
+  const normalizedHandle = handle.trim().replace(/^@+/, '').toLowerCase();
+  if (!normalizedHandle) {
+    return { error: 'Username is required', code: 'CONFLICT' };
+  }
+
+  const supabase = await createClient();
+  const { data: targetProfile, error: targetProfileError } = await supabase
+    .from('social_profiles')
+    .select('id')
+    .eq('username', normalizedHandle)
+    .maybeSingle();
+
+  if (targetProfileError) {
+    console.error('[addChannelMemberByHandle:profile] error:', targetProfileError);
+    return { error: 'Failed to find user', code: 'DB_ERROR' };
+  }
+
+  if (!targetProfile) {
+    return { error: 'User not found', code: 'NOT_FOUND' };
+  }
+
+  const targetProfileId = (targetProfile as { id: string }).id;
+
+  const { error: insertError } = await supabase
+    .from('channel_members')
+    .upsert(
+      { channel_id: channelId, user_id: targetProfileId, role: targetProfileId === profile.id ? 'owner' : 'member' },
+      { onConflict: 'channel_id,user_id', ignoreDuplicates: true }
+    );
+
+  if (insertError) {
+    console.error('[addChannelMemberByHandle:upsert] error:', insertError);
+    return { error: 'Failed to add member', code: 'DB_ERROR' };
+  }
+
+  const { data: createdMembership, error: membershipError } = await supabase
+    .from('channel_members')
+    .select('channel_id, user_id, role, joined_at, profile:social_profiles!channel_members_user_id_fkey(id, display_name, username, avatar_url, tier)')
+    .eq('channel_id', channelId)
+    .eq('user_id', targetProfileId)
+    .single();
+
+  if (membershipError || !createdMembership) {
+    console.error('[addChannelMemberByHandle:select] error:', membershipError);
+    return { error: 'Failed to load added member', code: 'DB_ERROR' };
+  }
+
+  return { data: mapChannelMemberRow(createdMembership as Record<string, unknown>) };
+}
+
+export async function removeChannelMemberByUserId(
+  channelId: string,
+  memberUserId: string
+): Promise<ChannelResult<{ channel_id: string; user_id: string }>> {
+  const session = await getCachedUserSession();
+  if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+
+  const profile = await getCachedSocialProfile(session.user.id);
+  if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
+
+  const ownerCheck = await assertChannelOwner(channelId, profile.id);
+  if ('error' in ownerCheck) return ownerCheck;
+
+  if (memberUserId === profile.id) {
+    return { error: 'Owner cannot be removed from channel', code: 'CONFLICT' };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('channel_members')
+    .delete()
+    .eq('channel_id', channelId)
+    .eq('user_id', memberUserId);
+
+  if (error) {
+    console.error('[removeChannelMemberByUserId] error:', error);
+    return { error: 'Failed to remove member', code: 'DB_ERROR' };
+  }
+
+  return { data: { channel_id: channelId, user_id: memberUserId } };
 }

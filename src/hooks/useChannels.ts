@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getMyChannels,
   getPublicChannels,
@@ -8,6 +8,9 @@ import {
   joinChannel,
   leaveChannel,
   isChannelMember,
+  getChannelMembersForOwner,
+  addChannelMemberByHandle,
+  removeChannelMemberByUserId,
 } from '@/lib/server/feedChannels';
 import {
   getChannelInvites,
@@ -110,4 +113,46 @@ export function useChannelInviteActions(channelId: string) {
   });
 
   return { create, revoke };
+}
+
+export function useChannelMembers(channelId: string, userId?: string) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.channelMembers(channelId),
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }) => {
+      const result = await getChannelMembersForOwner(channelId, pageParam ?? undefined);
+      if ('error' in result) throw new Error(result.error);
+      return result.data;
+    },
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
+    enabled: !!channelId && !!userId,
+    ...FEED_DATA,
+    refetchOnMount: true,
+  });
+}
+
+export function useChannelMemberActions(channelId: string, userId?: string) {
+  const qc = useQueryClient();
+  const membersKey = queryKeys.channelMembers(channelId);
+  const myChannelsKey = queryKeys.feed.channels(userId);
+  const publicChannelsKey = queryKeys.feed.channels();
+
+  function invalidateMemberAndChannelData() {
+    qc.invalidateQueries({ queryKey: membersKey });
+    qc.invalidateQueries({ queryKey: myChannelsKey });
+    qc.invalidateQueries({ queryKey: publicChannelsKey });
+    qc.invalidateQueries({ queryKey: ['channel-membership'] });
+  }
+
+  const add = useMutation({
+    mutationFn: (handle: string) => addChannelMemberByHandle(channelId, handle),
+    onSuccess: invalidateMemberAndChannelData,
+  });
+
+  const remove = useMutation({
+    mutationFn: (memberUserId: string) => removeChannelMemberByUserId(channelId, memberUserId),
+    onSuccess: invalidateMemberAndChannelData,
+  });
+
+  return { add, remove };
 }

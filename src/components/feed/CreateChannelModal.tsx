@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2, X, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,14 @@ export default function CreateChannelModal({ open, onClose, userId }: CreateChan
   const [error, setError]       = useState<string | null>(null);
 
   const { create } = useChannelActions(userId);
+
+  useEffect(() => {
+    if (!error) return;
+    const timeoutId = window.setTimeout(() => {
+      setError(null);
+    }, 5000);
+    return () => window.clearTimeout(timeoutId);
+  }, [error]);
 
   const handleNameChange = (v: string) => {
     setName(v);

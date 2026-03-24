@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect, useTransition, useCallback } from 'react';
-import { Hash, Plus, PlusCircle, Globe, Lock, Loader2, UserPlus, Users } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Hash, Plus, PlusCircle, Globe, Lock, UserPlus, Users, Settings2 } from 'lucide-react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,6 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useFeed } from '@/hooks/useFeed';
 import { usePostActions } from '@/hooks/usePostActions';
 import { useMyChannels, usePublicChannels, useChannelActions } from '@/hooks/useChannels';
-import { updateChannel } from '@/lib/server/feedChannels';
 import { queryKeys } from '@/lib/queryKeys';
 import FeedPostList from '@/components/feed/FeedPostList';
 import InlineCreatePostCard from '@/components/feed/InlineCreatePostCard';
@@ -18,6 +17,7 @@ import { useNewPostsNotifier } from '@/hooks/useNewPostsNotifier';
 import EditPostModal from '@/components/feed/EditPostModal';
 import CreateChannelModal from '@/components/feed/CreateChannelModal';
 import ChannelInviteModal from '@/components/feed/ChannelInviteModal';
+import EditChannelModal from '@/components/feed/EditChannelModal';
 import SearchBar from '@/components/feed/SearchBar';
 import ProfilePreviewModal from '@/components/feed/ProfilePreviewModal';
 import { FEED_CARD_SURFACE_CLASS } from '@/components/feed/feedCardStyles';
@@ -65,6 +65,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const [editPost, setEditPost] = useState<FeedPost | null>(null);
   const [channelModalOpen, setChannelModalOpen] = useState(false);
   const [inviteModalChannel, setInviteModalChannel] = useState<FeedChannel | null>(null);
+  const [editModalChannel, setEditModalChannel] = useState<FeedChannel | null>(null);
   const [activeTab, setActiveTab] = useState<FeedTab>('public');
 
   const isPro = subscription?.tier === 'pro' || subscription?.tier === 'elite';
@@ -84,10 +85,6 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
     activeTab === 'public',  // only public tab: following tab can't filter by followed users client-side
   );
   const queryClient = useQueryClient();
-  const [pendingChannelId, setPendingChannelId] = useState<string | null>(null);
-  const [channelToggleErrorChannelId, setChannelToggleErrorChannelId] = useState<string | null>(null);
-  const [channelToggleError, setChannelToggleError] = useState<string>('');
-  const [, startChannelTransition] = useTransition();
   const [feedChromeVisible, setFeedChromeVisible] = useState(true);
   const [previewUsername, setPreviewUsername] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -103,34 +100,6 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const handleDelete = useCallback((id: string) => remove.mutate(id), [remove]);
   const handleEdit = useCallback((p: FeedPost) => setEditPost(p), []);
   const handleReport = useCallback((id: string) => report.mutate({ postId: id, reason: 'Reported by user' }), [report]);
-
-  function handleChannelToggle(e: React.MouseEvent, channelId: string, currentlyPublic: boolean) {
-    e.preventDefault();
-    e.stopPropagation();
-    setPendingChannelId(channelId);
-    setChannelToggleErrorChannelId(null);
-    setChannelToggleError('');
-    startChannelTransition(async () => {
-      try {
-        const result = await updateChannel(channelId, { isPublic: !currentlyPublic });
-
-        if ('error' in result) {
-          setChannelToggleErrorChannelId(channelId);
-          setChannelToggleError(result.error || 'Failed to update channel');
-        } else {
-          setChannelToggleErrorChannelId(null);
-          setChannelToggleError('');
-        }
-      } catch {
-        setChannelToggleErrorChannelId(channelId);
-        setChannelToggleError('Failed to update channel');
-      } finally {
-        setPendingChannelId(null);
-        queryClient.invalidateQueries({ queryKey: queryKeys.feed.channels(uid) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.feed.channels() });
-      }
-    });
-  }
 
   function handleSeeNewPosts() {
     clearCount();
@@ -275,7 +244,6 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                 <div className="divide-y divide-slate-200/80 dark:divide-slate-800/60">
                   {myChannels.map((channel) => {
                     const isOwner = channel.owner_id === initialProfile?.id;
-                    const isPendingThis = pendingChannelId === channel.id;
                     return (
                       <div key={channel.id} className="flex items-center gap-3 px-4 py-3.5 hover:bg-slate-100/70 dark:hover:bg-slate-800/40 transition-colors">
                         <Link href={`/feed/channel/${channel.slug}`} className="flex items-center gap-3 flex-1 min-w-0">
@@ -314,32 +282,24 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                                 <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
                               </>
                             )}
-                            <div className="flex flex-col items-start leading-tight">
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                title="Edit channel"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setEditModalChannel(channel);
+                                }}
+                                className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-slate-700 dark:text-slate-200 text-xs font-medium border border-slate-300/90 dark:border-slate-600/70 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                              >
+                                <Settings2 className="w-3.5 h-3.5" />
+                                Edit
+                              </button>
+                              <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
                               <span className="text-[10px] text-slate-500 dark:text-slate-200">
                                 {channel.is_public ? 'Public' : 'Private'}
                               </span>
-                              {channelToggleErrorChannelId === channel.id && channelToggleError ? (
-                                <span className="text-[10px] text-red-600 dark:text-red-400">
-                                  {channelToggleError}
-                                </span>
-                              ) : null}
                             </div>
-                            <button
-                              type="button"
-                              role="switch"
-                              aria-checked={channel.is_public}
-                              aria-label={`Toggle channel visibility: ${channel.is_public ? 'public' : 'private'}`}
-                              disabled={isPendingThis}
-                              onClick={(e) => handleChannelToggle(e, channel.id, channel.is_public)}
-                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none shrink-0 disabled:opacity-50 ${
-                                channel.is_public ? 'themed-btn-primary' : 'bg-slate-300 dark:bg-slate-600'
-                              }`}
-                            >
-                              {isPendingThis
-                                ? <Loader2 className="absolute inset-0 m-auto w-3 h-3 animate-spin text-white" />
-                                : <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${channel.is_public ? 'translate-x-6' : 'translate-x-1'}`} />
-                              }
-                            </button>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2 shrink-0">
@@ -554,6 +514,18 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
           userId={uid}
           open={!!inviteModalChannel}
           onClose={() => setInviteModalChannel(null)}
+        />
+      )}
+      {editModalChannel && (
+        <EditChannelModal
+          channel={editModalChannel}
+          userId={uid}
+          open={!!editModalChannel}
+          onClose={() => {
+            setEditModalChannel(null);
+            queryClient.invalidateQueries({ queryKey: queryKeys.feed.channels(uid) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.feed.channels() });
+          }}
         />
       )}
       <ProfilePreviewModal
