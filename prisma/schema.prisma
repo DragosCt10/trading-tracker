@@ -882,6 +882,7 @@ enum notification_type {
   like
   comment
   follow
+  account_ban
 
   @@schema("public")
 }

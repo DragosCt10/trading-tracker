@@ -160,3 +160,18 @@ export async function createNotification(opts: {
     console.error('[createNotification] failed (non-fatal):', err);
   }
 }
+
+/** Notifies a user that their social account was banned (moderation). Fire-and-forget. */
+export async function notifyUserAccountBanned(recipientProfileId: string): Promise<void> {
+  const session = await getCachedUserSession();
+  if (!session.user) return;
+
+  const actor = await getCachedSocialProfile(session.user.id);
+  if (!actor) return;
+
+  await createNotification({
+    recipientProfileId,
+    actorProfileId: actor.id,
+    type: 'account_ban',
+  });
+}

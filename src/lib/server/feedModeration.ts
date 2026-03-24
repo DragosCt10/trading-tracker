@@ -2,6 +2,7 @@
 
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { isAdmin } from './admin';
+import { notifyUserAccountBanned } from './feedNotifications';
 import type { FeedPost, SocialProfile, PaginatedResult } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 
@@ -112,6 +113,8 @@ export async function resolveReport(
         .from('feed_posts')
         .update({ is_hidden: true })
         .eq('author_id', authorId);
+
+      await notifyUserAccountBanned(authorId);
     }
   }
 
@@ -165,6 +168,10 @@ export async function setUserBan(
     .from('feed_posts')
     .update({ is_hidden: banned })
     .eq('author_id', profileId);
+
+  if (banned) {
+    await notifyUserAccountBanned(profileId);
+  }
 
   return { data: { profileId } };
 }
