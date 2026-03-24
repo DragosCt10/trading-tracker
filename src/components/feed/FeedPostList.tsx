@@ -60,7 +60,7 @@ export default function FeedPostList({
     () => Array.from(new Set(posts.map((post) => post.author.id).filter((id) => id !== currentProfileId))),
     [posts, currentProfileId]
   );
-  const { data: followedProfileIds = [] } = useQuery({
+  const { data: followedProfileIds = [], isLoading: isFollowingIdsLoading } = useQuery({
     queryKey: ['following-profile-ids', currentUserId, authorProfileIds],
     queryFn: () => getFollowingProfileIds(authorProfileIds),
     enabled: !!currentUserId && authorProfileIds.length > 0,
@@ -111,6 +111,7 @@ export default function FeedPostList({
             onAuthorClick={onAuthorClick}
             showAuthorFollowButton
             initialFollowing={followedProfileIdSet.has(post.author.id)}
+            isFollowStateLoading={isFollowingIdsLoading}
           />
         </div>
       )}

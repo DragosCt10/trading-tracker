@@ -34,6 +34,7 @@ interface PostCardProps {
   onAuthorClick?: (username: string) => void;
   showAuthorFollowButton?: boolean;
   initialFollowing?: boolean;
+  isFollowStateLoading?: boolean;
 }
 
 function PostCardComponent({
@@ -52,6 +53,7 @@ function PostCardComponent({
   onAuthorClick,
   showAuthorFollowButton = false,
   initialFollowing = false,
+  isFollowStateLoading = false,
 }: PostCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { theme: _theme, mounted: _mounted } = useTheme();
@@ -112,7 +114,11 @@ function PostCardComponent({
           {showAuthorFollowButton && currentUserId && !isOwn && (
             <>
               <span className="text-slate-400 dark:text-slate-600 text-xs" aria-hidden>•</span>
-              <FollowButton targetProfileId={post.author.id} initialFollowing={initialFollowing} />
+              <FollowButton
+                targetProfileId={post.author.id}
+                initialFollowing={initialFollowing}
+                isLoading={isFollowStateLoading}
+              />
             </>
           )}
         </div>

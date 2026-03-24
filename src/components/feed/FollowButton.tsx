@@ -8,16 +8,26 @@ import { followUser, unfollowUser } from '@/lib/server/socialProfile';
 interface FollowButtonProps {
   targetProfileId: string;
   initialFollowing: boolean;
+  isLoading?: boolean;
   onFollowChange?: (following: boolean) => void;
 }
 
-export default function FollowButton({ targetProfileId, initialFollowing, onFollowChange }: FollowButtonProps) {
+export default function FollowButton({ targetProfileId, initialFollowing, isLoading = false, onFollowChange }: FollowButtonProps) {
   const [following, setFollowing] = useState(initialFollowing);
   const [loading, setLoading]     = useState(false);
 
   useEffect(() => {
     setFollowing(initialFollowing);
   }, [initialFollowing]);
+
+  if (isLoading) {
+    return (
+      <div
+        className="h-7 w-[72px] rounded-lg bg-slate-200/80 dark:bg-slate-700/60 animate-pulse"
+        aria-label="Loading follow button"
+      />
+    );
+  }
 
   async function handleClick() {
     if (loading) return;
