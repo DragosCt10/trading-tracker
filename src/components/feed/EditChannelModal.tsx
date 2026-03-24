@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Hash, Loader2, UserMinus, UserPlus, Users, X } from 'lucide-react';
+import { Hash, Link2, Loader2, UserMinus, UserPlus, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useChannelActions, useChannelMemberActions, useChannelMembers } from '@/hooks/useChannels';
+import ChannelInviteModal from '@/components/feed/ChannelInviteModal';
 import type { FeedChannel } from '@/types/social';
 
 interface EditChannelModalProps {
@@ -47,6 +48,7 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
   const [formError, setFormError] = useState<string | null>(null);
   const [membersError, setMembersError] = useState<string | null>(null);
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
   useEffect(() => {
     setName(channel.name);
@@ -55,6 +57,7 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
     setFormError(null);
     setMembersError(null);
     setPendingRemoveId(null);
+    setInviteModalOpen(false);
   }, [channel.id, channel.is_public, channel.name, open]);
 
   const sortedMembers = useMemo(
@@ -150,7 +153,7 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
 
   return (
     <Dialog open={open} onOpenChange={(value) => { if (!value) onClose(); }}>
-      <DialogContent className="max-w-xl max-h-[90vh] fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl p-0 flex flex-col overflow-hidden">
+      <DialogContent className="max-w-xl max-h-[90vh] fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl p-0 flex flex-col overflow-hidden [&>button]:hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
           <div className="absolute -top-40 -left-32 w-[420px] h-[420px] orb-bg-1 rounded-full blur-3xl" />
           <div className="absolute -bottom-40 -right-32 w-[420px] h-[420px] orb-bg-2 rounded-full blur-3xl" />
@@ -217,10 +220,24 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Members</p>
-              <span className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                <Users className="w-3.5 h-3.5" />
-                {sortedMembers.length}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                  <Users className="w-3.5 h-3.5" />
+                  {sortedMembers.length}
+                </span>
+                {!isPublic && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setInviteModalOpen(true)}
+                    className="h-8 cursor-pointer rounded-lg text-xs border-slate-300/90 bg-slate-50/70 text-slate-600 hover:text-slate-900 hover:border-slate-300 hover:bg-slate-100/70 dark:border-slate-600/70 dark:bg-slate-800/40 dark:text-slate-300 dark:hover:text-slate-200 dark:hover:border-slate-500/60 dark:hover:bg-slate-700/40"
+                  >
+                    <Link2 className="w-3.5 h-3.5 mr-1" />
+                    Invite links
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -339,6 +356,14 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
           </div>
         </div>
       </DialogContent>
+      {!isPublic && (
+        <ChannelInviteModal
+          channel={{ ...channel, is_public: isPublic, name: name.trim() || channel.name }}
+          userId={userId}
+          open={inviteModalOpen}
+          onClose={() => setInviteModalOpen(false)}
+        />
+      )}
     </Dialog>
   );
 }
