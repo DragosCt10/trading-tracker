@@ -125,6 +125,26 @@ export async function getComments(
   };
 }
 
+export async function getReplies(
+  commentId: string,
+  limit = 20
+): Promise<FeedComment[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('feed_comments')
+    .select(`
+      *,
+      author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)
+    `)
+    .eq('parent_id', commentId)
+    .eq('is_hidden', false)
+    .order('created_at', { ascending: true })
+    .limit(limit);
+
+  if (error) { console.error('[getReplies]', error); return []; }
+  return (data ?? []).map((row) => mapCommentRow(row as Record<string, unknown>));
+}
+
 export async function addComment(
   postId: string,
   content: string,

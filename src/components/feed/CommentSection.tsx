@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Pencil, Trash2, Check, X } from 'lucide-react';
+import { Pencil, Trash2, Check, X, CornerDownRight } from 'lucide-react';
 import CommentInput from './CommentInput';
 import TierBadge from './TierBadge';
-import { useComments } from '@/hooks/useComments';
+import { useComments, useReplies } from '@/hooks/useComments';
 import { useTheme } from '@/hooks/useTheme';
 import type { FeedComment, PaginatedResult } from '@/types/social';
 import { formatFeedCommentDate } from '@/utils/feedDateFormat';
@@ -22,6 +22,71 @@ interface CommentSectionProps {
 type EditState = 'idle' | 'editing' | 'saving';
 const COMMENT_EDIT_WINDOW_MS = 10 * 60 * 1000;
 
+// ─── Inline reply input ───────────────────────────────────────────────────────
+
+function ReplyInput({
+  placeholder,
+  onSubmit,
+  onCancel,
+  isSubmitting,
+}: {
+  placeholder: string;
+  onSubmit: (content: string) => Promise<void>;
+  onCancel: () => void;
+  isSubmitting: boolean;
+}) {
+  const [value, setValue] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
+
+  async function handleSubmit() {
+    const trimmed = value.trim();
+    if (!trimmed || isSubmitting) return;
+    await onSubmit(trimmed);
+    setValue('');
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        maxLength={500}
+        rows={2}
+        disabled={isSubmitting}
+        placeholder={placeholder}
+        className="w-full px-3 py-2 rounded-lg border border-slate-200/80 dark:border-slate-700/60 bg-white dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-sm resize-none focus:outline-none focus:border-slate-400 dark:focus:border-slate-500/80 transition-colors duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onCancel();
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit();
+        }}
+      />
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={isSubmitting || !value.trim()}
+          className="px-3 py-1 rounded-lg bg-slate-200/90 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-300/80 dark:hover:bg-slate-600/60 disabled:opacity-50 text-xs font-medium transition-colors"
+        >
+          {isSubmitting ? 'Replying…' : 'Reply'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-3 py-1 rounded-lg text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-xs transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Single comment item ──────────────────────────────────────────────────────
 
 function CommentItem({
   comment,
@@ -29,12 +94,16 @@ function CommentItem({
   onEdit,
   onDelete,
   onAuthorClick,
+  onReplyClick,
+  isReply = false,
 }: {
   comment: FeedComment;
   currentProfileId?: string;
   onEdit: (id: string, content: string) => Promise<void>;
   onDelete: (id: string) => void;
   onAuthorClick?: (username: string) => void;
+  onReplyClick?: () => void;
+  isReply?: boolean;
 }) {
   const [editState, setEditState] = useState<EditState>('idle');
   const [editContent, setEditContent] = useState(comment.content);
@@ -51,30 +120,10 @@ function CommentItem({
   const canEdit = nowTs !== null && nowTs - createdAtTs <= COMMENT_EDIT_WINDOW_MS;
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setNowTs(Date.now());
-    }, 0);
-    const intervalId = window.setInterval(() => {
-      setNowTs(Date.now());
-    }, 30_000);
-    return () => {
-      window.clearTimeout(timeoutId);
-      window.clearInterval(intervalId);
-    };
+    const timeoutId = window.setTimeout(() => setNowTs(Date.now()), 0);
+    const intervalId = window.setInterval(() => setNowTs(Date.now()), 30_000);
+    return () => { window.clearTimeout(timeoutId); window.clearInterval(intervalId); };
   }, []);
-
-  function isEditWindowExpired() {
-    return !canEdit;
-  }
-
-  function handleStartEdit() {
-    if (isEditWindowExpired()) {
-      return;
-    }
-    setEditError('');
-    setEditContent(comment.content);
-    setEditState('editing');
-  }
 
   function handleAuthorClick(e: React.MouseEvent) {
     if (!onAuthorClick) return;
@@ -84,7 +133,7 @@ function CommentItem({
 
   async function handleSave() {
     if (!editContent.trim()) return;
-    if (isEditWindowExpired()) {
+    if (nowTs !== null && nowTs - createdAtTs > COMMENT_EDIT_WINDOW_MS) {
       setEditError('Comments can only be edited within 10 minutes.');
       setEditState('idle');
       return;
@@ -100,12 +149,14 @@ function CommentItem({
     }
   }
 
+  const avatarSize = isReply ? 'w-7 h-7' : 'w-9 h-9';
+
   return (
     <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none px-4 py-3">
       <div className="flex items-start gap-3 mb-3">
         <Link href={`/profile/${comment.author.username}`} onClick={handleAuthorClick} className="shrink-0">
           <div
-            className={`w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm ${mounted && isPro ? 'ring-2 ring-[#b45309]/45 dark:ring-[rgba(251,191,36,0.45)] ring-offset-1 ring-offset-white dark:ring-offset-slate-800' : ''}`}
+            className={`${avatarSize} rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm ${mounted && isPro ? 'ring-2 ring-[#b45309]/45 dark:ring-[rgba(251,191,36,0.45)] ring-offset-1 ring-offset-white dark:ring-offset-slate-800' : ''}`}
           >
             {comment.author.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -152,7 +203,7 @@ function CommentItem({
                 <button
                   type="button"
                   className="p-1 rounded text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors cursor-pointer"
-                  onClick={handleStartEdit}
+                  onClick={() => { setEditError(''); setEditContent(comment.content); setEditState('editing'); }}
                   aria-label="Edit comment"
                 >
                   <Pencil className="w-3 h-3" />
@@ -210,9 +261,102 @@ function CommentItem({
           </div>
         </div>
       )}
+
+      {/* Reply button — only for top-level comments */}
+      {!isReply && onReplyClick && editState === 'idle' && (
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={onReplyClick}
+            className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors cursor-pointer"
+          >
+            <CornerDownRight className="w-3 h-3" />
+            Reply
+          </button>
+        </div>
+      )}
     </div>
   );
 }
+
+// ─── Comment + its replies ────────────────────────────────────────────────────
+
+function CommentWithReplies({
+  comment,
+  currentProfileId,
+  onEdit,
+  onDelete,
+  onReply,
+  onAuthorClick,
+}: {
+  comment: FeedComment;
+  currentProfileId?: string;
+  onEdit: (id: string, content: string, parentId?: string) => Promise<void>;
+  onDelete: (id: string, parentId?: string) => void;
+  onReply: (parentId: string, content: string) => Promise<boolean>;
+  onAuthorClick?: (username: string) => void;
+}) {
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [replying, setReplying] = useState(false);
+  // Fetch replies once the user clicks Reply
+  const repliesQuery = useReplies(comment.id, replyOpen);
+  const replies = repliesQuery.data ?? [];
+
+  async function handleReplySubmit(content: string) {
+    setReplying(true);
+    try {
+      await onReply(comment.id, content);
+      // keep replies visible after posting
+    } finally {
+      setReplying(false);
+      setReplyOpen(false);
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <CommentItem
+        comment={comment}
+        currentProfileId={currentProfileId}
+        onEdit={(id, content) => onEdit(id, content)}
+        onDelete={(id) => onDelete(id)}
+        onAuthorClick={onAuthorClick}
+        onReplyClick={() => setReplyOpen(true)}
+      />
+
+      {/* Inline reply form */}
+      {replyOpen && (
+        <div className="ml-10 pl-3 border-l-2 border-slate-200/60 dark:border-slate-700/50">
+          <ReplyInput
+            placeholder={`Reply to @${comment.author.username}…`}
+            onSubmit={handleReplySubmit}
+            onCancel={() => setReplyOpen(false)}
+            isSubmitting={replying}
+          />
+        </div>
+      )}
+
+      {/* Replies list */}
+      {replies.length > 0 && (
+        <div className="ml-10 pl-3 border-l-2 border-slate-200/60 dark:border-slate-700/50 space-y-1.5">
+          {replies.map((reply) => (
+            <CommentItem
+              key={reply.id}
+              comment={reply}
+              currentProfileId={currentProfileId}
+              onEdit={(id, content) => onEdit(id, content, comment.id)}
+              onDelete={(id) => onDelete(id, comment.id)}
+              onAuthorClick={onAuthorClick}
+              isReply
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Comment section ──────────────────────────────────────────────────────────
 
 export default function CommentSection({ postId, currentProfileId, initialComments, onCountChange, onAuthorClick }: CommentSectionProps) {
   const { query, add, edit, remove } = useComments(postId, initialComments);
@@ -224,15 +368,21 @@ export default function CommentSection({ postId, currentProfileId, initialCommen
     onCountChange?.(1);
   }
 
-  async function handleEdit(commentId: string, content: string) {
-    const result = await edit.mutateAsync({ commentId, content });
+  async function handleEdit(commentId: string, content: string, parentId?: string) {
+    const result = await edit.mutateAsync({ commentId, content, parentId });
     if ('error' in result) throw new Error(result.error);
   }
 
-  async function handleDelete(commentId: string) {
-    const result = await remove.mutateAsync(commentId);
-    if ('error' in result) return;
-    onCountChange?.(-1);
+  function handleDelete(commentId: string, parentId?: string) {
+    remove.mutateAsync({ commentId, parentId }).then((result) => {
+      if ('error' in result) return;
+      if (!parentId) onCountChange?.(-1);
+    });
+  }
+
+  async function handleReply(parentId: string, content: string): Promise<boolean> {
+    const result = await add.mutateAsync({ content, parentId });
+    return !('error' in result);
   }
 
   return (
@@ -248,12 +398,13 @@ export default function CommentSection({ postId, currentProfileId, initialCommen
       ) : (
         <div className="space-y-2">
           {comments.map((comment) => (
-            <CommentItem
+            <CommentWithReplies
               key={comment.id}
               comment={comment}
               currentProfileId={currentProfileId}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onReply={handleReply}
               onAuthorClick={onAuthorClick}
             />
           ))}

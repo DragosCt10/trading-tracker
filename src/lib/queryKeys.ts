@@ -143,6 +143,7 @@ export const queryKeys = {
     followers:     (profileId?: string)                => ['feed:followers',      profileId]      as const,
     following:     (profileId?: string)                => ['feed:following',      profileId]      as const,
     weeklyPostCount: ()                                => ['feed:weeklyPostCount']                as const,
+    replies:       (commentId: string)                 => ['feed:replies',        commentId]      as const,
   },
 
   /** Active invite links for a private channel (owner only). */

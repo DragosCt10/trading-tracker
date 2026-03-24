@@ -86,7 +86,7 @@ export default function SearchBar() {
                   key={post.id}
                   href={`/feed/post/${post.id}`}
                   onClick={() => setOpen(false)}
-                  className="flex flex-col gap-0.5 border-b border-slate-100 px-4 py-3 transition-colors hover:rounded-xl mt-1 hover:bg-slate-100/90 dark:border-slate-800/60 dark:hover:bg-slate-800/50 last:border-0"
+                  className="flex flex-col gap-0.5 border-b border-slate-100 px-4 py-3 transition-colors hover:rounded-xl mt-1 hover:bg-slate-100/80 dark:border-slate-800/60 dark:hover:bg-slate-800/50 last:border-0"
                 >
                   <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">{post.author.display_name}</p>
                   <p className="line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{post.content}</p>
@@ -98,7 +98,7 @@ export default function SearchBar() {
                   key={profile.id}
                   href={`/profile/${profile.username}`}
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 transition-colors hover:rounded-xl mt-1 hover:bg-slate-100/90 dark:border-slate-800/60 dark:hover:bg-slate-800/50 last:border-0"
+                  className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 transition-colors hover:rounded-xl mt-1 hover:bg-slate-100/80 dark:border-slate-800/60 dark:hover:bg-slate-800/50 last:border-0"
                 >
                   <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 text-xs font-semibold shrink-0">
                     {profile.avatar_url
