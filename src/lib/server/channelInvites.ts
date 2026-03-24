@@ -112,18 +112,25 @@ export async function revokeChannelInvite(inviteId: string): Promise<InviteResul
 
   const supabase = await createClient();
 
-  // Owner-only guard: verify the invite belongs to a channel owned by this profile
-  const { data: invite } = await supabase
+  // Owner-only guard: fetch invite then verify channel ownership separately
+  const { data: invite, error: inviteFetchError } = await supabase
     .from('channel_invites')
-    .select('id, channel_id, feed_channels!inner(owner_id)')
+    .select('id, channel_id')
     .eq('id', inviteId)
     .maybeSingle();
 
-  type InviteRow = { id: string; channel_id: string; feed_channels: { owner_id: string } };
-  const row = invite as InviteRow | null;
-  if (!row || row.feed_channels.owner_id !== profile.id) {
-    return { error: 'Not the channel owner', code: 'UNAUTHORIZED' };
+  if (inviteFetchError) {
+    console.error('[revokeChannelInvite:fetch]', inviteFetchError);
+    return { error: 'Failed to load invite', code: 'DB_ERROR' };
   }
+  if (!invite) return { error: 'Invite not found', code: 'NOT_FOUND' };
+
+  const { count } = await supabase
+    .from('feed_channels')
+    .select('id', { count: 'exact', head: true })
+    .eq('id', invite.channel_id)
+    .eq('owner_id', profile.id);
+  if ((count ?? 0) === 0) return { error: 'Not the channel owner', code: 'UNAUTHORIZED' };
 
   const { error } = await supabase
     .from('channel_invites')
@@ -151,24 +158,28 @@ export async function redeemChannelInvite(
 
   const supabase = await createClient();
 
-  // Fetch invite + channel slug in one query
-  const { data: inviteRow } = await supabase
+  // Fetch invite by token (no FK join — avoids PostgREST relationship inference failures)
+  const { data: inviteRow, error: inviteError } = await supabase
     .from('channel_invites')
-    .select('id, channel_id, max_uses, use_count, expires_at, is_active, feed_channels!inner(slug)')
+    .select('id, channel_id, max_uses, use_count, expires_at, is_active')
     .eq('token', token)
     .maybeSingle();
 
-  type InviteWithChannel = {
+  if (inviteError) {
+    console.error('[redeemChannelInvite:fetch]', inviteError);
+    return { error: 'Failed to load invite', code: 'DB_ERROR' };
+  }
+
+  type InviteRow = {
     id: string;
     channel_id: string;
     max_uses: number | null;
     use_count: number;
     expires_at: string | null;
     is_active: boolean;
-    feed_channels: { slug: string };
   };
 
-  const row = inviteRow as InviteWithChannel | null;
+  const row = inviteRow as InviteRow | null;
   if (!row || !row.is_active) return { error: 'Invalid or revoked invite', code: 'INVALID' };
 
   // Expiry check
@@ -179,6 +190,18 @@ export async function redeemChannelInvite(
   // Max uses check
   if (row.max_uses !== null && row.use_count >= row.max_uses) {
     return { error: 'This invite link has reached its maximum number of uses', code: 'MAXED' };
+  }
+
+  // Fetch channel slug in a separate query
+  const { data: channelRow, error: channelError } = await supabase
+    .from('feed_channels')
+    .select('slug')
+    .eq('id', row.channel_id)
+    .maybeSingle();
+
+  if (channelError || !channelRow) {
+    console.error('[redeemChannelInvite:channel]', channelError);
+    return { error: 'Channel not found', code: 'DB_ERROR' };
   }
 
   // Increment use_count (conditional to prevent overrun under races)
@@ -193,12 +216,12 @@ export async function redeemChannelInvite(
     return { error: 'Failed to redeem invite', code: 'DB_ERROR' };
   }
 
-  // Join channel (upsert with ignoreDuplicates — already-a-member is idempotent)
+  // Join channel (upsert — already-a-member is idempotent)
   const joinResult = await joinChannel(row.channel_id);
   if ('error' in joinResult) {
     console.error('[redeemChannelInvite:join]', joinResult.error);
     return { error: 'Failed to join channel', code: 'DB_ERROR' };
   }
 
-  return { data: { channelSlug: row.feed_channels.slug } };
+  return { data: { channelSlug: channelRow.slug } };
 }
