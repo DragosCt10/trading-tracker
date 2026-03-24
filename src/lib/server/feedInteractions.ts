@@ -5,8 +5,9 @@ import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { createNotification } from './feedNotifications';
 import { isPublicChannelReadOnlyForProfile } from './feedChannels';
+import { mapAuthorRow } from './feedHelpers';
+import type { AuthorRow } from './feedHelpers';
 import type { FeedComment, PaginatedResult } from '@/types/social';
-import type { TierId } from '@/types/subscription';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -15,28 +16,16 @@ type InteractionResult<T> =
   | { error: string; code: 'UNAUTHORIZED' | 'NOT_FOUND' | 'LIMIT_EXCEEDED' | 'DB_ERROR' };
 
 const COMMENT_EDIT_WINDOW_MS = 10 * 60 * 1000;
+const COMMENT_DAILY_LIMIT = 50;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-type AuthorRow = {
-  id: string; user_id: string; display_name: string;
-  username: string; avatar_url: string | null; tier: TierId; is_public: boolean;
-};
-
 function mapCommentRow(row: Record<string, unknown>, replyCount = 0): FeedComment {
-  const author = (row.author ?? {}) as AuthorRow;
+  const author = (row.author ?? {}) as Partial<AuthorRow>;
   return {
     id:          row.id as string,
     post_id:     row.post_id as string,
-    author: {
-      id:           author.id,
-      user_id:      author.user_id,
-      display_name: author.display_name,
-      username:     author.username,
-      avatar_url:   author.avatar_url ?? null,
-      tier:         (author.tier as TierId) ?? 'starter',
-      is_public:    typeof author.is_public === 'boolean' ? author.is_public : true,
-    },
+    author:      mapAuthorRow(author),
     content:     row.content as string,
     parent_id:   (row.parent_id as string | null) ?? null,
     is_hidden:   (row.is_hidden as boolean) ?? false,
@@ -122,7 +111,8 @@ export async function getComments(
   const rows = (data ?? []) as Record<string, unknown>[];
   const pageRows = rows.slice(0, limit);
 
-  // Fetch reply counts for this page in a single query
+  // Fetch reply counts — select only parent_id (UUID) to minimize data transfer,
+  // then count in JS. A GROUP BY RPC would be cleaner but requires a migration.
   const commentIds = pageRows.map((r) => r.id as string);
   const replyCounts: Record<string, number> = {};
   if (commentIds.length > 0) {
@@ -131,9 +121,8 @@ export async function getComments(
       .select('parent_id')
       .in('parent_id', commentIds)
       .eq('is_hidden', false);
-    for (const r of replyRows ?? []) {
-      const pid = r.parent_id as string;
-      replyCounts[pid] = (replyCounts[pid] ?? 0) + 1;
+    for (const r of (replyRows ?? []) as { parent_id: string }[]) {
+      replyCounts[r.parent_id] = (replyCounts[r.parent_id] ?? 0) + 1;
     }
   }
 
@@ -180,6 +169,17 @@ export async function addComment(
   if (profile.is_banned) return { error: 'Account is banned', code: 'UNAUTHORIZED' };
 
   const supabase = await createClient();
+
+  // S2: Rate limit — max 50 comments per profile per 24h
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count: recentCount } = await supabase
+    .from('feed_comments')
+    .select('id', { count: 'exact', head: true })
+    .eq('author_id', profile.id)
+    .gte('created_at', since24h);
+  if ((recentCount ?? 0) >= COMMENT_DAILY_LIMIT) {
+    return { error: `Comment limit reached (${COMMENT_DAILY_LIMIT}/24h). Try again later.`, code: 'LIMIT_EXCEEDED' };
+  }
 
   // Verify post exists and is not hidden
   const { data: post } = await supabase

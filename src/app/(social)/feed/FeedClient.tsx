@@ -81,7 +81,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(uid, undefined, undefined, feedView);
   const { like, create, edit, remove, report } = usePostActions(uid);
   const { data: myChannels = [], isLoading: isMyChannelsLoading } = useMyChannels(uid);
-  const { data: publicChannelsResult } = usePublicChannels();
+  const { data: publicChannelsResult } = usePublicChannels(isChannelsTab);
   const publicChannels = publicChannelsResult?.items ?? [];
   const { join: joinChannel, leave: leaveChannel } = useChannelActions(uid);
   const myChannelIds = new Set(myChannels.map((c) => c.id));

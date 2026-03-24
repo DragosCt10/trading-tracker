@@ -5,8 +5,9 @@ import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { getCachedSubscription } from './subscription';
 import { isPublicChannelReadOnlyForProfile } from './feedChannels';
+import { mapAuthorRow } from './feedHelpers';
+import type { AuthorRow } from './feedHelpers';
 import type { FeedPost, TradeSnapshot, TradeSelectorItem, PaginatedResult } from '@/types/social';
-import type { TierId } from '@/types/subscription';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -14,47 +15,14 @@ type PostResult<T> =
   | { data: T }
   | { error: string; code: 'UNAUTHORIZED' | 'NOT_FOUND' | 'LIMIT_EXCEEDED' | 'DB_ERROR'; resetDate?: Date };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-type AuthorRow = {
-  id: string;
-  user_id: string;
-  display_name: string;
-  username: string;
-  avatar_url: string | null;
-  tier: TierId;
-  is_public: boolean;
-};
-
 function mapPostRow(row: Record<string, unknown>, isLikedByMe: boolean): FeedPost {
   // The DB function / join can return `author: null` when the referenced profile
   // was deleted or is otherwise missing. Keep the client resilient by always
   // returning safe string fields.
   const rawAuthor = (row.author ?? row.social_profiles ?? {}) as Partial<AuthorRow>;
-  const safeAuthorId = typeof rawAuthor.id === 'string' && rawAuthor.id ? rawAuthor.id : 'unknown_author';
-  const safeUserId =
-    typeof rawAuthor.user_id === 'string' && rawAuthor.user_id ? rawAuthor.user_id : 'unknown_user';
-  const safeDisplayName =
-    typeof rawAuthor.display_name === 'string' && rawAuthor.display_name
-      ? rawAuthor.display_name
-      : 'Unknown trader';
-  const safeUsername =
-    typeof rawAuthor.username === 'string' && rawAuthor.username ? rawAuthor.username : 'unknown';
-  const safeTier = (rawAuthor.tier as TierId) ?? 'starter';
-  const safeAvatarUrl = typeof rawAuthor.avatar_url === 'string' ? rawAuthor.avatar_url : null;
   return {
     id:             row.id as string,
-    author: {
-      id:           safeAuthorId,
-      user_id:      safeUserId,
-      display_name: safeDisplayName,
-      username:     safeUsername,
-      avatar_url:   safeAvatarUrl,
-      tier:         safeTier,
-      // Default true for RPC responses that don't return is_public (public feed RPCs only
-      // return public-profile posts anyway, so true is the correct safe default).
-      is_public:    typeof rawAuthor.is_public === 'boolean' ? rawAuthor.is_public : true,
-    },
+    author: mapAuthorRow(rawAuthor),
     content:        row.content as string,
     post_type:      (row.post_type as 'text' | 'trade_share') ?? 'text',
     trade_snapshot: (row.trade_snapshot as TradeSnapshot | null) ?? null,
@@ -114,7 +82,9 @@ function buildFeedQuery(
   let query = supabase
     .from('feed_posts')
     .select(`
-      *,
+      id, author_id, content, post_type, channel_id,
+      like_count, comment_count, is_hidden, created_at, updated_at,
+      trade_snapshot,
       author:author_id (
         id, user_id, display_name, username, avatar_url, tier, is_public
       )
@@ -212,33 +182,65 @@ export async function getPost(postId: string): Promise<FeedPost | null> {
 
   const { data, error } = await supabase
     .from('feed_posts')
-    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)`)
+    .select(`
+      id, author_id, content, post_type, channel_id,
+      like_count, comment_count, is_hidden, created_at, updated_at,
+      trade_snapshot,
+      author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)
+    `)
     .eq('id', postId)
     .eq('is_hidden', false)
     .single();
 
   if (error || !data) return null;
 
+  const row = data as Record<string, unknown>;
+
   // Block access to posts by private-profile authors unless the requester is the author
-  const author = (data as Record<string, unknown> & { author: { is_public: boolean; user_id: string } }).author;
+  const author = (row.author ?? {}) as { is_public: boolean; user_id: string };
   if (author && !author.is_public) {
     if (!session.user || author.user_id !== session.user.id) return null;
   }
 
+  // S1: Block access to private-channel posts for non-members
+  const channelId = (row.channel_id as string | null) ?? null;
+  if (channelId) {
+    const { data: channel } = await supabase
+      .from('feed_channels')
+      .select('is_public')
+      .eq('id', channelId)
+      .single();
+
+    if (channel && !(channel as { is_public: boolean }).is_public) {
+      if (!session.user) return null;
+      const viewerProfile = await getCachedSocialProfile(session.user.id);
+      if (!viewerProfile) return null;
+      // Allow if the viewer is the post author (already a member by definition)
+      const { count } = await supabase
+        .from('channel_members')
+        .select('channel_id', { count: 'exact', head: true })
+        .eq('channel_id', channelId)
+        .eq('user_id', viewerProfile.id);
+      if ((count ?? 0) === 0) return null;
+    }
+  }
+
+  // Use getCachedSocialProfile (request-level memoized) instead of a raw DB query —
+  // eliminates one serial round trip.
   let liked = false;
   if (session.user) {
-    const { data: p } = await supabase.from('social_profiles').select('id').eq('user_id', session.user!.id).single();
-    if (p) {
+    const profile = await getCachedSocialProfile(session.user.id);
+    if (profile) {
       const { count } = await supabase
         .from('feed_likes')
         .select('post_id', { count: 'exact', head: true })
         .eq('post_id', postId)
-        .eq('user_id', p.id);
+        .eq('user_id', profile.id);
       liked = (count ?? 0) > 0;
     }
   }
 
-  return mapPostRow(data as Record<string, unknown>, liked);
+  return mapPostRow(row, liked);
 }
 
 // ─── Posts by profile ─────────────────────────────────────────────────────────
@@ -251,11 +253,9 @@ export async function getPostsByProfile(
   const session = await getCachedUserSession();
   const supabase = await createClient();
 
-  let ownProfileId: string | null = null;
-  if (session.user) {
-    const { data: p } = await supabase.from('social_profiles').select('id').eq('user_id', session.user!.id).single();
-    ownProfileId = p?.id ?? null;
-  }
+  // getCachedSocialProfile uses React cache() — no extra DB round trip if already fetched.
+  const ownProfile = session.user ? await getCachedSocialProfile(session.user.id) : null;
+  const ownProfileId = ownProfile?.id ?? null;
 
   const query = buildFeedQuery(supabase, 'profile', { profileId, cursor, limit });
   const { data, error } = await query;
@@ -274,24 +274,29 @@ export async function getPostsByProfile(
 
 // ─── Weekly post count ────────────────────────────────────────────────────────
 
-export async function getWeeklyPostCount(): Promise<{ used: number; resetDate: Date }> {
+export async function getWeeklyPostCount(knownProfileId?: string): Promise<{ used: number; resetDate: Date }> {
   const session = await getCachedUserSession();
   if (!session.user) return { used: 0, resetDate: nextMondayUtc() };
 
+  // If the caller already has the profile (e.g. createPost), skip the extra lookup.
+  let profileId = knownProfileId;
+  if (!profileId) {
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from('social_profiles')
+      .select('id')
+      .eq('user_id', session.user.id)
+      .single();
+    if (!profile) return { used: 0, resetDate: nextMondayUtc() };
+    profileId = profile.id;
+  }
+
   const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from('social_profiles')
-    .select('id')
-    .eq('user_id', session.user.id)
-    .single();
-
-  if (!profile) return { used: 0, resetDate: nextMondayUtc() };
-
   const monday = currentWeekMondayUtc();
   const { count } = await supabase
     .from('feed_posts')
     .select('id', { count: 'exact', head: true })
-    .eq('author_id', profile.id)
+    .eq('author_id', profileId)
     .gte('created_at', monday.toISOString());
 
   return { used: count ?? 0, resetDate: nextMondayUtc() };
@@ -423,7 +428,7 @@ export async function createPost(input: {
 
   // ── Posting rate limits
   if (limits.maxPostsPerWeek !== null) {
-    const { used, resetDate } = await getWeeklyPostCount();
+    const { used, resetDate } = await getWeeklyPostCount(profile.id);
     if (used >= limits.maxPostsPerWeek) {
       return {
         error: `Weekly post limit reached (${limits.maxPostsPerWeek}/week). Resets ${resetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}.`,

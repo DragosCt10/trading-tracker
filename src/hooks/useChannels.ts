@@ -26,16 +26,15 @@ export function useMyChannels(userId?: string) {
     queryFn: getMyChannels,
     enabled: !!userId,
     ...FEED_DATA,
-    refetchOnMount: true,
   });
 }
 
-export function usePublicChannels() {
+export function usePublicChannels(enabled = true) {
   return useQuery({
     queryKey: queryKeys.feed.channels(),
     queryFn: () => getPublicChannels(),
+    enabled,
     ...FEED_DATA,
-    refetchOnMount: true,
   });
 }
 
@@ -45,14 +44,7 @@ export function useChannelMembershipFlags(channelId: string) {
     queryFn: () => getChannelMembershipFlags(channelId),
     enabled: !!channelId,
     ...FEED_DATA,
-    refetchOnMount: 'always',
   });
-}
-
-/** @deprecated Prefer useChannelMembershipFlags when you need `removedByOwner`. */
-export function useIsChannelMember(channelId: string) {
-  const q = useChannelMembershipFlags(channelId);
-  return { ...q, data: q.data?.isMember ?? false };
 }
 
 export function useChannelActions(userId?: string) {
