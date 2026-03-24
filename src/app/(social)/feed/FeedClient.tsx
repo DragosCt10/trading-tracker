@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { Hash, Plus, PlusCircle, Globe, Lock, UserPlus, Users, Settings2 } from 'lucide-react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
@@ -87,8 +87,12 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const queryClient = useQueryClient();
   const [feedChromeVisible, setFeedChromeVisible] = useState(true);
   const [previewUsername, setPreviewUsername] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
   const lastScrollY = useRef(0);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const posts = data?.pages.flatMap((p) => p.items) ?? [];
   const visiblePosts =
@@ -130,8 +134,6 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  useEffect(() => { setMounted(true); }, []);
 
   async function handleCreate(input: { content: string; tradeId?: string; tradeMode?: 'live' | 'demo' | 'backtesting' }) {
     setCreateError('');
@@ -423,7 +425,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0 -mr-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  className="h-7 w-7 p-0 -mr-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
                   onClick={() => setChannelModalOpen(true)}
                   aria-label="Create channel"
                 >
