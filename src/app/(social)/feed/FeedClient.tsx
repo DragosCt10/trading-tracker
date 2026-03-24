@@ -35,6 +35,25 @@ const FEED_TAB_ICONS = {
   channels: Hash,
 } as const;
 
+function ChannelListSkeleton({ rows = 3, compact = false }: { rows?: number; compact?: boolean }) {
+  return (
+    <div className="divide-y divide-slate-200/80 dark:divide-slate-800/60">
+      {Array.from({ length: rows }).map((_, index) => (
+        <div
+          key={`channel-skeleton-${index}`}
+          className={compact ? 'flex items-center gap-2.5 px-4 py-2.5' : 'flex items-center gap-3 px-4 py-3'}
+        >
+          <div className={compact ? 'h-6 w-6 rounded-lg bg-slate-200/80 dark:bg-slate-700/60 animate-pulse' : 'h-8 w-8 rounded-lg bg-slate-200/80 dark:bg-slate-700/60 animate-pulse'} />
+          <div className="flex-1 min-w-0 space-y-1.5">
+            <div className={compact ? 'h-3 w-28 rounded bg-slate-200/80 dark:bg-slate-700/60 animate-pulse' : 'h-4 w-36 rounded bg-slate-200/80 dark:bg-slate-700/60 animate-pulse'} />
+            <div className={compact ? 'h-2.5 w-20 rounded bg-slate-200/70 dark:bg-slate-700/50 animate-pulse' : 'h-3 w-24 rounded bg-slate-200/70 dark:bg-slate-700/50 animate-pulse'} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function FeedClient({ userId, initialProfile }: FeedClientProps) {
   const uid = userId ?? undefined;
   const { subscription } = useSubscription({ userId: uid });
@@ -50,7 +69,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const feedView = activeTab === 'following' ? 'following' : 'public';
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(uid, undefined, undefined, feedView);
   const { like, create, edit, remove, report } = usePostActions(uid);
-  const { data: myChannels = [] } = useMyChannels(uid);
+  const { data: myChannels = [], isLoading: isMyChannelsLoading } = useMyChannels(uid);
   const { data: publicChannelsResult } = usePublicChannels();
   const publicChannels = publicChannelsResult?.items ?? [];
   const { join: joinChannel, leave: leaveChannel } = useChannelActions(uid);
@@ -224,7 +243,9 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
               <div className="px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/40">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">My Channels</h3>
               </div>
-              {myChannels.length === 0 ? (
+              {isMyChannelsLoading ? (
+                <ChannelListSkeleton rows={4} />
+              ) : myChannels.length === 0 ? (
                 <div className="px-5 py-10 text-center">
                   <p className="text-slate-600 dark:text-slate-400 font-medium">No channels yet</p>
                   {isPro ? (
@@ -446,7 +467,9 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
             </div>
 
             <div className="max-h-[min(50vh,18rem)] overflow-y-auto overscroll-y-contain divide-y divide-slate-200/80 dark:divide-slate-800/60">
-              {myChannels.length === 0 ? (
+              {isMyChannelsLoading ? (
+                <ChannelListSkeleton rows={3} compact />
+              ) : myChannels.length === 0 ? (
                 <div className="px-4 py-4 text-center">
                   <p className="text-xs text-slate-500">No channels yet</p>
                   {isPro ? (
