@@ -52,7 +52,7 @@ function ReplyInput({
   }
 
   return (
-    <div className="space-y-1.5">
+    <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none px-3 py-2.5 space-y-1.5">
       <textarea
         ref={textareaRef}
         value={value}
@@ -61,7 +61,7 @@ function ReplyInput({
         rows={2}
         disabled={isSubmitting}
         placeholder={placeholder}
-        className="w-full px-3 py-2 rounded-lg border border-slate-200/80 dark:border-slate-700/60 bg-white dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-sm resize-none focus:outline-none focus:border-slate-400 dark:focus:border-slate-500/80 transition-colors duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+        className="w-full px-3 py-2 rounded-lg border border-slate-200/80 dark:border-slate-700/60 bg-white dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 text-sm resize-none focus:outline-none focus:border-slate-400 dark:focus:border-slate-500/80 transition-colors duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"
         onKeyDown={(e) => {
           if (e.key === 'Escape') onCancel();
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSubmit();
@@ -121,6 +121,7 @@ function CommentItem({
   onAuthorClick,
   onReplyClick,
   variant = 'thread',
+  replyCount = 0,
   replyDisabled,
 }: {
   comment: FeedComment;
@@ -130,6 +131,7 @@ function CommentItem({
   onAuthorClick?: (username: string) => void;
   onReplyClick?: () => void;
   variant?: 'thread' | 'reply';
+  replyCount?: number;
   replyDisabled?: boolean;
 }) {
   const [editState, setEditState] = useState<EditState>('idle');
@@ -302,7 +304,7 @@ function CommentItem({
             className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors cursor-pointer rounded-lg px-1.5 py-0.5 -ml-1.5 hover:bg-slate-100/80 dark:hover:bg-slate-800/50"
           >
             <CornerDownRight className="w-3 h-3 shrink-0" />
-            Reply
+            {replyCount > 0 ? `${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}` : 'Reply'}
           </button>
         </div>
       )}
@@ -329,21 +331,29 @@ function CommentWithReplies({
   onAuthorClick?: (username: string) => void;
   repliesDisabled?: boolean;
 }) {
-  const [replyOpen, setReplyOpen] = useState(false);
+  const [threadOpen, setThreadOpen] = useState(false);
   const [replying, setReplying] = useState(false);
-  // Always load replies for this thread (also supports optional nested `comment.replies` from the server)
-  const repliesQuery = useReplies(comment.id, true);
+  // Optimistic reply count so the label updates immediately after posting/deleting
+  const [replyCountDelta, setReplyCountDelta] = useState(0);
+
+  // Lazy: only fetch when the thread is opened
+  const repliesQuery = useReplies(comment.id, threadOpen);
   const replies = repliesQuery.data ?? comment.replies ?? [];
-  const showReplyThread = repliesDisabled ? replies.length > 0 : replyOpen || replies.length > 0;
+  const displayedCount = (comment.reply_count ?? 0) + replyCountDelta;
 
   async function handleReplySubmit(content: string) {
     setReplying(true);
     try {
       const ok = await onReply(comment.id, content);
-      if (ok) setReplyOpen(false);
+      if (ok) setReplyCountDelta((d) => d + 1);
     } finally {
       setReplying(false);
     }
+  }
+
+  function handleDeleteReply(id: string) {
+    onDelete(id, comment.id);
+    setReplyCountDelta((d) => d - 1);
   }
 
   return (
@@ -355,23 +365,22 @@ function CommentWithReplies({
         onEdit={(id, content) => onEdit(id, content)}
         onDelete={(id) => onDelete(id)}
         onAuthorClick={onAuthorClick}
-        onReplyClick={repliesDisabled ? undefined : () => setReplyOpen((o) => !o)}
+        onReplyClick={repliesDisabled ? undefined : () => setThreadOpen((o) => !o)}
+        replyCount={displayedCount}
         replyDisabled={repliesDisabled}
       />
 
-      {showReplyThread && (
+      {threadOpen && !repliesDisabled && (
         <div className="ml-4 sm:ml-6 pl-3 sm:pl-4 border-l-2 border-slate-200/70 dark:border-slate-700/55 space-y-2">
-          {replyOpen && !repliesDisabled && (
-            <div className="pt-0.5 space-y-1.5">
-              {repliesQuery.isFetching && replies.length === 0 && <ReplySkeleton />}
-              <ReplyInput
-                placeholder={`Reply to @${comment.author.username}…`}
-                onSubmit={handleReplySubmit}
-                onCancel={() => setReplyOpen(false)}
-                isSubmitting={replying}
-              />
-            </div>
-          )}
+          <div className="pt-0.5 space-y-1.5">
+            {repliesQuery.isFetching && replies.length === 0 && <ReplySkeleton />}
+            <ReplyInput
+              placeholder={`Reply to @${comment.author.username}…`}
+              onSubmit={handleReplySubmit}
+              onCancel={() => setThreadOpen(false)}
+              isSubmitting={replying}
+            />
+          </div>
 
           {replies.map((reply) => (
             <CommentItem
@@ -380,7 +389,7 @@ function CommentWithReplies({
               variant="reply"
               currentProfileId={currentProfileId}
               onEdit={(id, content) => onEdit(id, content, comment.id)}
-              onDelete={(id) => onDelete(id, comment.id)}
+              onDelete={handleDeleteReply}
               onAuthorClick={onAuthorClick}
             />
           ))}

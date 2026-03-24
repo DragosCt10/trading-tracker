@@ -71,6 +71,8 @@ export interface FeedComment {
   is_hidden: boolean;
   created_at: string;
   updated_at: string;
+  /** Denormalized count of direct replies. Populated by getComments, not stored in DB. */
+  reply_count?: number;
   replies?: FeedComment[];
 }
 

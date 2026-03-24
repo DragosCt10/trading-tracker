@@ -23,11 +23,11 @@ type AuthorRow = {
   username: string; avatar_url: string | null; tier: TierId; is_public: boolean;
 };
 
-function mapCommentRow(row: Record<string, unknown>): FeedComment {
+function mapCommentRow(row: Record<string, unknown>, replyCount = 0): FeedComment {
   const author = (row.author ?? {}) as AuthorRow;
   return {
-    id:         row.id as string,
-    post_id:    row.post_id as string,
+    id:          row.id as string,
+    post_id:     row.post_id as string,
     author: {
       id:           author.id,
       user_id:      author.user_id,
@@ -37,11 +37,12 @@ function mapCommentRow(row: Record<string, unknown>): FeedComment {
       tier:         (author.tier as TierId) ?? 'starter',
       is_public:    typeof author.is_public === 'boolean' ? author.is_public : true,
     },
-    content:    row.content as string,
-    parent_id:  (row.parent_id as string | null) ?? null,
-    is_hidden:  (row.is_hidden as boolean) ?? false,
-    created_at: row.created_at as string,
-    updated_at: row.updated_at as string,
+    content:     row.content as string,
+    parent_id:   (row.parent_id as string | null) ?? null,
+    is_hidden:   (row.is_hidden as boolean) ?? false,
+    created_at:  row.created_at as string,
+    updated_at:  row.updated_at as string,
+    reply_count: replyCount,
   };
 }
 
@@ -119,8 +120,25 @@ export async function getComments(
   if (error) { console.error('[getComments]', error); return { items: [], nextCursor: null, hasMore: false }; }
 
   const rows = (data ?? []) as Record<string, unknown>[];
+  const pageRows = rows.slice(0, limit);
+
+  // Fetch reply counts for this page in a single query
+  const commentIds = pageRows.map((r) => r.id as string);
+  const replyCounts: Record<string, number> = {};
+  if (commentIds.length > 0) {
+    const { data: replyRows } = await supabase
+      .from('feed_comments')
+      .select('parent_id')
+      .in('parent_id', commentIds)
+      .eq('is_hidden', false);
+    for (const r of replyRows ?? []) {
+      const pid = r.parent_id as string;
+      replyCounts[pid] = (replyCounts[pid] ?? 0) + 1;
+    }
+  }
+
   return {
-    items: rows.slice(0, limit).map(mapCommentRow),
+    items: pageRows.map((r) => mapCommentRow(r, replyCounts[r.id as string] ?? 0)),
     nextCursor: rows.length > limit ? (rows[limit - 1].created_at as string) : null,
     hasMore: rows.length > limit,
   };
