@@ -153,7 +153,8 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
           {/* Tab bar — matches AdminClient */}
           <div
             className={cn(
-              'shrink-0 flex gap-1 rounded-2xl border border-slate-300/60 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-900/40 p-1 backdrop-blur-sm shadow-sm shadow-slate-200/60 dark:shadow-none',
+              FEED_SURFACE_CLASS,
+              'shrink-0 flex gap-1 p-1',
               activeTab !== 'channels' && 'sticky top-24 z-30 transition-all duration-300 ease-in-out',
               activeTab !== 'channels' && (feedChromeVisible
                 ? 'opacity-100 translate-y-0 pointer-events-auto'
@@ -551,7 +552,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
           <Button
             type="button"
             onClick={handleQuickPost}
-            className="h-12 cursor-pointer px-8 themed-btn-primary rounded-full !text-white font-semibold text-base border-0 shadow-lg shadow-violet-500/30 pointer-events-auto"
+            className="h-12 cursor-pointer px-8 themed-btn-primary rounded-full !text-white font-semibold text-base border-0 shadow-lg shadow-violet-500/30 pointer-events-auto relative overflow-hidden group"
             aria-label="Scroll to top and start writing a post"
             title="Post"
             tabIndex={!feedChromeVisible ? 0 : -1}
@@ -560,6 +561,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
               <PlusCircle className="w-5 h-5 text-white" />
               <span>Post</span>
             </span>
+            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
           </Button>
         </div>
       )}

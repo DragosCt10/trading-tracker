@@ -63,7 +63,7 @@ export default function SearchBar() {
               <button
                 key={t}
                 onMouseDown={(e) => { e.preventDefault(); setType(t); }}
-                className={`flex-1 py-2.5 text-xs font-semibold capitalize transition-colors ${
+                className={`flex-1 py-2.5 text-xs hover:rounded-xl font-semibold cursor-pointer capitalize transition-colors ${
                   type === t
                     ? 'text-slate-900 dark:text-slate-100 border-b-2 border-slate-700 dark:border-slate-400'
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800 dark:hover:bg-slate-800/40 dark:hover:text-slate-300'

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface CommentInputProps {
@@ -13,31 +13,60 @@ interface CommentInputProps {
 export default function CommentInput({ onSubmit, placeholder = 'Write a comment…', isSubmitting }: CommentInputProps) {
   const [content, setContent] = useState('');
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submit() {
     if (!content.trim() || isSubmitting) return;
     await onSubmit(content.trim());
     setContent('');
   }
 
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await submit();
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        maxLength={500}
-        rows={2}
-        placeholder={placeholder}
-        disabled={isSubmitting}
-        className="flex-1 px-3 py-2 rounded-xl border border-slate-200/80 dark:border-slate-700/60 bg-white/90 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none focus:outline-none focus:border-slate-400 dark:focus:border-slate-500/80 transition-colors duration-200 disabled:opacity-50 shadow-sm shadow-slate-200/30 dark:shadow-none"
-      />
-      <Button
-        type="submit"
-        disabled={!content.trim() || isSubmitting}
-        className="self-end themed-btn-primary relative overflow-hidden rounded-xl text-white font-semibold border-0 disabled:opacity-50 h-9 px-3 group text-sm"
-      >
-        {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Post'}
-      </Button>
+    <form onSubmit={handleSubmit} className="w-full">
+      <div className="relative rounded-xl border border-slate-200/80 dark:border-slate-700/60 bg-white/90 dark:bg-slate-800/50 shadow-sm shadow-slate-200/30 dark:shadow-none transition-colors duration-200 focus-within:border-slate-400 dark:focus-within:border-slate-500/80">
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          maxLength={500}
+          rows={2}
+          placeholder={placeholder}
+          disabled={isSubmitting}
+          className="w-full min-h-[2.75rem] pl-3 pr-[7.25rem] py-2.5 bg-transparent text-slate-900 dark:text-slate-100 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none rounded-xl border-0 focus:outline-none focus:ring-0 transition-colors duration-200 disabled:opacity-50"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              void submit();
+            }
+          }}
+        />
+        <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+          <Button
+            type="submit"
+            disabled={!content.trim() || isSubmitting}
+            className="pointer-events-auto themed-btn-primary cursor-pointer inline-flex items-center justify-center relative overflow-hidden rounded-full text-white/95 font-semibold border-0 disabled:opacity-60 h-9 min-w-[6.75rem] px-3.5 group text-sm shrink-0 shadow-md shadow-violet-950/25"
+          >
+            <span className="relative z-10 inline-flex items-center gap-2">
+              {isSubmitting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
+              ) : (
+                <>
+                  <span
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/35 bg-white/10"
+                    aria-hidden
+                  >
+                    <Plus className="h-3 w-3" strokeWidth={2.5} />
+                  </span>
+                  <span>Comment</span>
+                </>
+              )}
+            </span>
+            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+          </Button>
+        </div>
+      </div>
     </form>
   );
 }

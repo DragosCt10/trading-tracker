@@ -86,6 +86,29 @@ function ReplyInput({
   );
 }
 
+// ─── Reply thread loading placeholder ─────────────────────────────────────────
+
+function ReplySkeleton() {
+  return (
+    <div
+      className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none px-3 py-2.5 animate-pulse"
+      aria-hidden
+    >
+      <div className="flex items-start gap-3">
+        <div className="w-7 h-7 rounded-full bg-slate-200/90 dark:bg-slate-700/80 shrink-0" />
+        <div className="flex-1 min-w-0 space-y-2 pt-0.5">
+          <div className="flex items-center gap-2">
+            <div className="h-3.5 w-28 rounded-md bg-slate-200/90 dark:bg-slate-700/75" />
+            <div className="h-3 w-12 rounded-md bg-slate-200/70 dark:bg-slate-700/60" />
+          </div>
+          <div className="h-3 w-full max-w-[95%] rounded-md bg-slate-200/70 dark:bg-slate-700/65" />
+          <div className="h-3 w-4/5 max-w-[14rem] rounded-md bg-slate-200/60 dark:bg-slate-700/55" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Single comment item ──────────────────────────────────────────────────────
 
 function CommentItem({
@@ -95,7 +118,7 @@ function CommentItem({
   onDelete,
   onAuthorClick,
   onReplyClick,
-  isReply = false,
+  variant = 'thread',
 }: {
   comment: FeedComment;
   currentProfileId?: string;
@@ -103,7 +126,7 @@ function CommentItem({
   onDelete: (id: string) => void;
   onAuthorClick?: (username: string) => void;
   onReplyClick?: () => void;
-  isReply?: boolean;
+  variant?: 'thread' | 'reply';
 }) {
   const [editState, setEditState] = useState<EditState>('idle');
   const [editContent, setEditContent] = useState(comment.content);
@@ -149,10 +172,14 @@ function CommentItem({
     }
   }
 
+  const isReply = variant === 'reply';
   const avatarSize = isReply ? 'w-7 h-7' : 'w-9 h-9';
+  const shellClass =
+    'rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none ' +
+    (isReply ? 'px-3 py-2.5' : 'px-4 py-3');
 
   return (
-    <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none px-4 py-3">
+    <div className={shellClass}>
       <div className="flex items-start gap-3 mb-3">
         <Link href={`/profile/${comment.author.username}`} onClick={handleAuthorClick} className="shrink-0">
           <div
@@ -223,7 +250,7 @@ function CommentItem({
       </div>
 
       {editState === 'idle' ? (
-        <p suppressHydrationWarning className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap break-words">
+        <p suppressHydrationWarning className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-wrap break-words">
           {comment.content}
         </p>
       ) : (
@@ -268,9 +295,9 @@ function CommentItem({
           <button
             type="button"
             onClick={onReplyClick}
-            className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors cursor-pointer rounded-lg px-1.5 py-0.5 -ml-1.5 hover:bg-slate-100/80 dark:hover:bg-slate-800/50"
           >
-            <CornerDownRight className="w-3 h-3" />
+            <CornerDownRight className="w-3 h-3 shrink-0" />
             Reply
           </button>
         </div>
@@ -298,56 +325,56 @@ function CommentWithReplies({
 }) {
   const [replyOpen, setReplyOpen] = useState(false);
   const [replying, setReplying] = useState(false);
-  // Fetch replies once the user clicks Reply
-  const repliesQuery = useReplies(comment.id, replyOpen);
-  const replies = repliesQuery.data ?? [];
+  // Always load replies for this thread (also supports optional nested `comment.replies` from the server)
+  const repliesQuery = useReplies(comment.id, true);
+  const replies = repliesQuery.data ?? comment.replies ?? [];
+  const showReplyThread = replyOpen || replies.length > 0;
 
   async function handleReplySubmit(content: string) {
     setReplying(true);
     try {
-      await onReply(comment.id, content);
-      // keep replies visible after posting
+      const ok = await onReply(comment.id, content);
+      if (ok) setReplyOpen(false);
     } finally {
       setReplying(false);
-      setReplyOpen(false);
     }
   }
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <CommentItem
         comment={comment}
+        variant="thread"
         currentProfileId={currentProfileId}
         onEdit={(id, content) => onEdit(id, content)}
         onDelete={(id) => onDelete(id)}
         onAuthorClick={onAuthorClick}
-        onReplyClick={() => setReplyOpen(true)}
+        onReplyClick={() => setReplyOpen((o) => !o)}
       />
 
-      {/* Inline reply form */}
-      {replyOpen && (
-        <div className="ml-10 pl-3 border-l-2 border-slate-200/60 dark:border-slate-700/50">
-          <ReplyInput
-            placeholder={`Reply to @${comment.author.username}…`}
-            onSubmit={handleReplySubmit}
-            onCancel={() => setReplyOpen(false)}
-            isSubmitting={replying}
-          />
-        </div>
-      )}
+      {showReplyThread && (
+        <div className="ml-4 sm:ml-6 pl-3 sm:pl-4 border-l-2 border-slate-200/70 dark:border-slate-700/55 space-y-2">
+          {replyOpen && (
+            <div className="pt-0.5 space-y-1.5">
+              {repliesQuery.isFetching && replies.length === 0 && <ReplySkeleton />}
+              <ReplyInput
+                placeholder={`Reply to @${comment.author.username}…`}
+                onSubmit={handleReplySubmit}
+                onCancel={() => setReplyOpen(false)}
+                isSubmitting={replying}
+              />
+            </div>
+          )}
 
-      {/* Replies list */}
-      {replies.length > 0 && (
-        <div className="ml-10 pl-3 border-l-2 border-slate-200/60 dark:border-slate-700/50 space-y-1.5">
           {replies.map((reply) => (
             <CommentItem
               key={reply.id}
               comment={reply}
+              variant="reply"
               currentProfileId={currentProfileId}
               onEdit={(id, content) => onEdit(id, content, comment.id)}
               onDelete={(id) => onDelete(id, comment.id)}
               onAuthorClick={onAuthorClick}
-              isReply
             />
           ))}
         </div>
@@ -392,8 +419,8 @@ export default function CommentSection({ postId, currentProfileId, initialCommen
       )}
 
       {comments.length === 0 && !query.isLoading ? (
-        <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-6 text-center">
-          <p className="text-slate-500 text-sm">Be the first to comment</p>
+        <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none px-4 py-6 text-center">
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Be the first to comment</p>
         </div>
       ) : (
         <div className="space-y-2">
