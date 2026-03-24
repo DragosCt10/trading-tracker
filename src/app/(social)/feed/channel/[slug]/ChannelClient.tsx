@@ -146,7 +146,7 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
         onLike={(id) => like.mutate(id)}
         onDelete={(id) => remove.mutate(id)}
         onEdit={(p) => setEditPost(p)}
-        onReport={(id) => report.mutate({ postId: id, reason: 'Reported by user' })}
+        onReport={(id, reason) => report.mutate({ postId: id, reason: reason.trim() })}
         emptyMessage="No posts in this channel yet"
         emptySubtext="Be the first to post here!"
       />

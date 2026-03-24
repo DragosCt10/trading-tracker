@@ -1,13 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import PostCard from '@/components/feed/PostCard';
 import ProfileSummaryCard from '@/components/feed/ProfileSummaryCard';
+import EditPostModal from '@/components/feed/EditPostModal';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useSocialProfile } from '@/hooks/useSocialProfile';
 import { useSubscription } from '@/hooks/useSubscription';
+import { usePostActions } from '@/hooks/usePostActions';
 import type { SocialProfile, FeedPost, PaginatedResult } from '@/types/social';
 
 interface ProfileClientProps {
@@ -23,20 +26,46 @@ export default function ProfileClient({
   currentProfileId,
   initialFollowing,
 }: ProfileClientProps) {
+  const router = useRouter();
   const { data: userData } = useUserDetails();
   const userId = userData?.user?.id;
   const { data: ownProfile } = useSocialProfile(userId);
   const { subscription } = useSubscription({ userId });
+  const { like, remove, edit, report } = usePostActions(userId);
   const [followerCount, setFollowerCount] = useState(profile.follower_count);
   const [followingCount, setFollowingCount] = useState(profile.following_count);
   const [isFollowing, setIsFollowing] = useState(initialFollowing);
+  const [editPost, setEditPost] = useState<FeedPost | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
   const effectiveCurrentProfileId = currentProfileId ?? ownProfile?.id;
 
   // Prefer server-provided identity to avoid SSR/client hydration divergence.
   const isOwnProfile = currentProfileId === profile.id;
   const effectiveTier = isOwnProfile && subscription?.tier ? subscription.tier : profile.tier;
 
-function handleFollowChange(nextFollowing: boolean) {
+  const refreshProfile = useCallback(() => {
+    router.refresh();
+  }, [router]);
+
+  const handleLike = useCallback(
+    (id: string) => like.mutate(id, { onSettled: refreshProfile }),
+    [like, refreshProfile]
+  );
+  const handleDelete = useCallback(
+    (id: string) => remove.mutate(id, { onSettled: refreshProfile }),
+    [remove, refreshProfile]
+  );
+  const handleEdit = useCallback((p: FeedPost) => {
+    setEditError(null);
+    setEditPost(p);
+  }, []);
+  const handleReport = useCallback(
+    (id: string, reason: string) =>
+      report.mutate({ postId: id, reason: reason.trim() }, { onSettled: refreshProfile }),
+    [report, refreshProfile]
+  );
+
+  function handleFollowChange(nextFollowing: boolean) {
     setIsFollowing(nextFollowing);
     setFollowerCount((prev) => Math.max(0, prev + (nextFollowing ? 1 : -1)));
   }
@@ -81,11 +110,39 @@ function handleFollowChange(nextFollowing: boolean) {
                 currentUserId={userId}
                 currentProfileId={effectiveCurrentProfileId}
                 currentUserTier={isOwnProfile ? subscription?.tier : undefined}
+                onLike={userId ? handleLike : undefined}
+                onDelete={userId ? handleDelete : undefined}
+                onEdit={userId ? handleEdit : undefined}
+                onReport={userId ? handleReport : undefined}
               />
             ))}
           </div>
         )}
       </div>
+
+      {editPost && userId && subscription && (
+        <EditPostModal
+          open={!!editPost}
+          onClose={() => {
+            setEditPost(null);
+            setEditError(null);
+          }}
+          onSubmit={async (content) => {
+            setEditError(null);
+            const result = await edit.mutateAsync({ postId: editPost.id, content });
+            if ('error' in result) {
+              setEditError(result.error);
+              return;
+            }
+            setEditPost(null);
+            refreshProfile();
+          }}
+          initialContent={editPost.content}
+          maxLen={subscription.definition.limits.maxPostContentLength}
+          isSubmitting={edit.isPending}
+          submitError={editError ?? undefined}
+        />
+      )}
     </div>
   );
 }

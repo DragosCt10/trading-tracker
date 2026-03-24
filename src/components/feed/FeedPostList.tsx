@@ -30,7 +30,7 @@ interface FeedPostListProps {
   onLike: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (post: FeedPost) => void;
-  onReport: (id: string) => void;
+  onReport: (id: string, reason: string) => void;
   onAuthorClick?: (username: string) => void;
   emptyMessage?: string;
   emptySubtext?: string;

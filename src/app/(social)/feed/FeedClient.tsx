@@ -104,7 +104,10 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const handleLike = useCallback((id: string) => like.mutate(id), [like]);
   const handleDelete = useCallback((id: string) => remove.mutate(id), [remove]);
   const handleEdit = useCallback((p: FeedPost) => setEditPost(p), []);
-  const handleReport = useCallback((id: string) => report.mutate({ postId: id, reason: 'Reported by user' }), [report]);
+  const handleReport = useCallback(
+    (id: string, reason: string) => report.mutate({ postId: id, reason: reason.trim() }),
+    [report]
+  );
 
   function handleSeeNewPosts() {
     clearCount();

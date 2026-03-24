@@ -285,6 +285,7 @@ export async function deleteComment(commentId: string): Promise<InteractionResul
 // ─── Reports ─────────────────────────────────────────────────────────────────
 
 const REPORT_DAILY_LIMIT = 5;
+const REPORT_REASON_MAX_LEN = 100;
 
 export async function reportContent(
   reason: string,
@@ -292,6 +293,11 @@ export async function reportContent(
 ): Promise<InteractionResult<{ id: string }>> {
   if (!opts.postId && !opts.commentId) {
     return { error: 'Must provide postId or commentId', code: 'LIMIT_EXCEEDED' };
+  }
+
+  const reasonTrimmed = reason.trim();
+  if (reasonTrimmed.length > REPORT_REASON_MAX_LEN) {
+    return { error: `Report reason must be ${REPORT_REASON_MAX_LEN} characters or less`, code: 'LIMIT_EXCEEDED' };
   }
 
   const session = await getCachedUserSession();
@@ -320,7 +326,7 @@ export async function reportContent(
       reporter_id: profile.id,
       post_id:     opts.postId ?? null,
       comment_id:  opts.commentId ?? null,
-      reason,
+      reason:      reasonTrimmed,
     })
     .select('id')
     .single();

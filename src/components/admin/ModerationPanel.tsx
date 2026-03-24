@@ -149,8 +149,8 @@ export default function ModerationPanel() {
                   <div className="flex gap-2 pt-1">
                     <Button
                       size="sm"
-                      variant="ghost"
-                      className="h-7 text-xs text-slate-400 hover:text-slate-200 border border-slate-700/60"
+                      variant="default"
+                      className="h-8 min-h-8 rounded-lg px-3 py-0 text-xs font-semibold border-0 text-slate-100 shadow-md shadow-slate-900/25 bg-gradient-to-r from-slate-600 via-slate-700 to-slate-800 hover:from-slate-500 hover:via-slate-600 hover:to-slate-700 hover:bg-gradient-to-r dark:from-slate-600 dark:via-slate-700 dark:to-slate-800 dark:hover:from-slate-500 dark:hover:via-slate-600 dark:hover:to-slate-700"
                       onClick={() => handleResolve(report.id, 'dismiss')}
                       disabled={isMutating}
                     >
@@ -159,8 +159,8 @@ export default function ModerationPanel() {
                     {report.post_id && (
                       <Button
                         size="sm"
-                        variant="ghost"
-                        className="h-7 text-xs text-amber-400 hover:text-amber-200 border border-amber-700/40"
+                        variant="default"
+                        className="h-8 min-h-8 rounded-lg px-3 py-0 text-xs font-semibold border-0 text-white shadow-md shadow-amber-500/25 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 hover:bg-gradient-to-r dark:from-amber-500 dark:via-orange-500 dark:to-amber-600 dark:hover:from-amber-600 dark:hover:via-orange-600 dark:hover:to-amber-700"
                         onClick={() => handleResolve(report.id, 'hide_post')}
                         disabled={isMutating}
                       >
@@ -169,8 +169,8 @@ export default function ModerationPanel() {
                     )}
                     <Button
                       size="sm"
-                      variant="ghost"
-                      className="h-7 text-xs text-rose-400 hover:text-rose-200 border border-rose-700/40"
+                      variant="default"
+                      className="h-8 min-h-8 rounded-lg px-3 py-0 text-xs font-semibold border-0 text-white shadow-md shadow-rose-500/25 bg-gradient-to-r from-rose-500 via-red-500 to-rose-600 hover:from-rose-600 hover:via-red-600 hover:to-rose-700 hover:bg-gradient-to-r dark:from-rose-500 dark:via-red-600 dark:to-rose-600 dark:hover:from-rose-600 dark:hover:via-red-600 dark:hover:to-rose-700"
                       onClick={() => handleResolve(report.id, 'ban_author')}
                       disabled={isMutating}
                     >
@@ -195,12 +195,12 @@ export default function ModerationPanel() {
                   </div>
                   <Button
                     size="sm"
-                    variant="ghost"
-                    className="h-7 text-xs text-emerald-400 hover:text-emerald-200 border border-emerald-700/40 shrink-0 gap-1"
+                    variant="default"
+                    className="h-8 min-h-8 rounded-lg px-3 py-0 text-xs font-semibold border-0 text-white shadow-md shadow-emerald-500/25 shrink-0 gap-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:via-teal-600 hover:to-emerald-700 hover:bg-gradient-to-r dark:from-emerald-500 dark:via-teal-500 dark:to-emerald-600 dark:hover:from-emerald-600 dark:hover:via-teal-600 dark:hover:to-emerald-700 [&_svg]:size-3.5"
                     onClick={() => handleToggleVisibility(post.id, true)}
                     disabled={isMutating}
                   >
-                    <Eye className="w-3 h-3" />
+                    <Eye className="shrink-0" />
                     Unhide
                   </Button>
                 </div>
@@ -221,8 +221,8 @@ export default function ModerationPanel() {
                   </div>
                   <Button
                     size="sm"
-                    variant="ghost"
-                    className="h-7 text-xs text-slate-300 hover:text-white border border-slate-600/60 shrink-0"
+                    variant="default"
+                    className="h-8 min-h-8 rounded-lg px-3 py-0 text-xs font-semibold border-0 text-white shadow-md shadow-sky-500/25 shrink-0 bg-gradient-to-r from-sky-500 via-cyan-500 to-sky-600 hover:from-sky-600 hover:via-cyan-600 hover:to-sky-700 hover:bg-gradient-to-r dark:from-sky-500 dark:via-cyan-500 dark:to-sky-600 dark:hover:from-sky-600 dark:hover:via-cyan-600 dark:hover:to-sky-700"
                     onClick={() => handleToggleBan(user.id, true)}
                     disabled={isMutating}
                   >
