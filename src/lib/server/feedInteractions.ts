@@ -202,15 +202,17 @@ export async function addComment(
   }
 
   // Verify parent comment exists and belongs to the same post
+  let parentAuthorId: string | null = null;
   if (parentId) {
     const { data: parent } = await supabase
       .from('feed_comments')
-      .select('id, post_id')
+      .select('id, post_id, author_id')
       .eq('id', parentId)
       .single();
     if (!parent || (parent as { post_id: string }).post_id !== postId) {
       return { error: 'Parent comment not found', code: 'NOT_FOUND' };
     }
+    parentAuthorId = (parent as { author_id: string }).author_id;
   }
 
   const { data: created, error } = await supabase
@@ -229,13 +231,17 @@ export async function addComment(
     return { error: 'Failed to add comment', code: 'DB_ERROR' };
   }
 
-  await createNotification({
-    recipientProfileId: (post as { author_id: string }).author_id,
-    actorProfileId: profile.id,
-    type: 'comment',
-    postId,
-    commentId: (created as { id: string }).id,
-  });
+  const notificationRecipient = parentAuthorId ?? (post as { author_id: string }).author_id;
+  // Don't notify if the actor is replying to themselves
+  if (notificationRecipient !== profile.id) {
+    await createNotification({
+      recipientProfileId: notificationRecipient,
+      actorProfileId: profile.id,
+      type: 'comment',
+      postId,
+      commentId: (created as { id: string }).id,
+    });
+  }
 
   return { data: mapCommentRow(created as Record<string, unknown>) };
 }
