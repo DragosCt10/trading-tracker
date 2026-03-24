@@ -10,6 +10,27 @@ type ChannelResult<T> =
   | { data: T }
   | { error: string; code: 'UNAUTHORIZED' | 'NOT_FOUND' | 'CONFLICT' | 'DB_ERROR' };
 
+const MAX_PUBLIC_CHANNELS_PER_OWNER = 1;
+const MAX_PRIVATE_CHANNELS_FOR_PRO = 5;
+
+async function getOwnedChannelCounts(supabase: Awaited<ReturnType<typeof createClient>>, ownerId: string) {
+  const { data, error } = await supabase
+    .from('feed_channels')
+    .select('id, is_public')
+    .eq('owner_id', ownerId);
+
+  if (error) return { error };
+
+  let publicCount = 0;
+  let privateCount = 0;
+  for (const row of data ?? []) {
+    if ((row as { is_public: boolean }).is_public) publicCount += 1;
+    else privateCount += 1;
+  }
+
+  return { publicCount, privateCount };
+}
+
 function mapRow(row: Record<string, unknown>): FeedChannel {
   return {
     id:          row.id as string,
@@ -203,6 +224,20 @@ export async function createChannel(input: {
 
   const supabase = await createClient();
   const slug = input.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  const wantsPublic = input.isPublic ?? false;
+  const counts = await getOwnedChannelCounts(supabase, profile.id);
+  if ('error' in counts) {
+    console.error('[createChannel:counts] error:', counts.error);
+    return { error: 'Failed to validate channel limits', code: 'DB_ERROR' };
+  }
+
+  if (wantsPublic && counts.publicCount >= MAX_PUBLIC_CHANNELS_PER_OWNER) {
+    return { error: 'You can only have 1 public channel', code: 'CONFLICT' };
+  }
+
+  if (!wantsPublic && subscription.tier === 'pro' && counts.privateCount >= MAX_PRIVATE_CHANNELS_FOR_PRO) {
+    return { error: 'PRO users can create up to 5 private channels', code: 'CONFLICT' };
+  }
 
   const { data: created, error } = await supabase
     .from('feed_channels')
@@ -244,7 +279,48 @@ export async function updateChannel(
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
 
+  const subscription = await getCachedSubscription(session.user.id);
+  if (!subscription.definition.features.socialFeedChannels) {
+    return { error: 'Updating channels requires PRO', code: 'UNAUTHORIZED' };
+  }
+
   const supabase = await createClient();
+  if (input.isPublic !== undefined) {
+    const { data: currentChannel, error: currentChannelError } = await supabase
+      .from('feed_channels')
+      .select('id, is_public')
+      .eq('id', channelId)
+      .eq('owner_id', profile.id)
+      .maybeSingle();
+
+    if (currentChannelError) {
+      console.error('[updateChannel:current] error:', currentChannelError);
+      return { error: 'Failed to validate channel limits', code: 'DB_ERROR' };
+    }
+
+    if (!currentChannel) {
+      return { error: 'Channel not found', code: 'NOT_FOUND' };
+    }
+
+    const currentIsPublic = (currentChannel as { is_public: boolean }).is_public;
+    const nextIsPublic = input.isPublic;
+    if (currentIsPublic !== nextIsPublic) {
+      const counts = await getOwnedChannelCounts(supabase, profile.id);
+      if ('error' in counts) {
+        console.error('[updateChannel:counts] error:', counts.error);
+        return { error: 'Failed to validate channel limits', code: 'DB_ERROR' };
+      }
+
+      if (nextIsPublic && counts.publicCount >= MAX_PUBLIC_CHANNELS_PER_OWNER) {
+        return { error: 'You can only have 1 public channel', code: 'CONFLICT' };
+      }
+
+      if (!nextIsPublic && subscription.tier === 'pro' && counts.privateCount >= MAX_PRIVATE_CHANNELS_FOR_PRO) {
+        return { error: 'PRO users can create up to 5 private channels', code: 'CONFLICT' };
+      }
+    }
+  }
+
   const { data: updated, error } = await supabase
     .from('feed_channels')
     .update({
