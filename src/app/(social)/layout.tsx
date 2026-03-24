@@ -30,7 +30,7 @@ export default async function SocialLayout({ children }: { children: ReactNode }
                 </span>
                 <Separator orientation="vertical" className="h-4" />
                 <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                  Level
+                  Feed
                 </span>
               </div>
             </Link>
