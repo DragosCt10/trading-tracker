@@ -351,7 +351,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-8 cursor-pointer rounded-lg text-xs border-slate-300/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/70 dark:border-slate-600 dark:bg-transparent dark:text-slate-300 dark:hover:text-red-400 dark:hover:border-red-500"
+                              className="h-8 cursor-pointer rounded-lg text-xs border-slate-300/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/70 dark:border-slate-600/70 dark:bg-slate-800/40 dark:text-rose-300 dark:hover:text-rose-200 dark:hover:border-rose-400/60 dark:hover:bg-rose-500/12"
                               disabled={leaveChannel.isPending}
                               onClick={() => leaveChannel.mutate(channel.id)}
                             >
@@ -399,7 +399,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                           <Button
                             variant="outline"
                             size="sm"
-                            className="shrink-0 cursor-pointer h-8 rounded-lg text-xs border-slate-300/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/70 dark:border-slate-600 dark:bg-transparent dark:text-slate-300 dark:hover:text-red-400 dark:hover:border-red-500"
+                            className="shrink-0 cursor-pointer h-8 rounded-lg text-xs border-slate-300/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/70 dark:border-slate-600/70 dark:bg-slate-800/40 dark:text-rose-300 dark:hover:text-rose-200 dark:hover:border-rose-400/60 dark:hover:bg-rose-500/12"
                             disabled={leaveChannel.isPending}
                             onClick={() => leaveChannel.mutate(channel.id)}
                           >
