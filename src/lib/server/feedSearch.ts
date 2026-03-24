@@ -27,7 +27,7 @@ export async function searchPosts(
 
   let q = supabase
     .from('feed_posts')
-    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier)`)
+    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)`)
     .eq('is_hidden', false)
     .textSearch('content', tsQuery, { type: 'websearch', config: 'english' })
     .order('created_at', { ascending: false })
@@ -40,10 +40,10 @@ export async function searchPosts(
 
   const rows = (data ?? []) as Record<string, unknown>[];
   const items = rows.slice(0, limit).map((row) => {
-    const author = (row.author ?? {}) as { id: string; user_id: string; display_name: string; username: string; avatar_url: string | null; tier: TierId };
+    const author = (row.author ?? {}) as { id: string; user_id: string; display_name: string; username: string; avatar_url: string | null; tier: TierId; is_public: boolean };
     return {
       id: row.id as string,
-      author: { id: author.id, user_id: author.user_id, display_name: author.display_name, username: author.username, avatar_url: author.avatar_url ?? null, tier: author.tier ?? 'starter' as TierId },
+      author: { id: author.id, user_id: author.user_id, display_name: author.display_name, username: author.username, avatar_url: author.avatar_url ?? null, tier: author.tier ?? 'starter' as TierId, is_public: typeof author.is_public === 'boolean' ? author.is_public : true },
       content: row.content as string,
       post_type: (row.post_type as 'text' | 'trade_share') ?? 'text',
       trade_snapshot: null,

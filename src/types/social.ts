@@ -46,7 +46,7 @@ export interface SocialProfile {
 
 export interface FeedPost {
   id: string;
-  author: Pick<SocialProfile, 'id' | 'user_id' | 'display_name' | 'username' | 'avatar_url' | 'tier'>;
+  author: Pick<SocialProfile, 'id' | 'user_id' | 'display_name' | 'username' | 'avatar_url' | 'tier' | 'is_public'>;
   content: string;
   post_type: PostType;
   trade_snapshot: TradeSnapshot | null;
@@ -65,7 +65,7 @@ export interface FeedPost {
 export interface FeedComment {
   id: string;
   post_id: string;
-  author: Pick<SocialProfile, 'id' | 'user_id' | 'display_name' | 'username' | 'avatar_url' | 'tier'>;
+  author: Pick<SocialProfile, 'id' | 'user_id' | 'display_name' | 'username' | 'avatar_url' | 'tier' | 'is_public'>;
   content: string;
   parent_id: string | null;
   is_hidden: boolean;

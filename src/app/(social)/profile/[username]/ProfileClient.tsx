@@ -11,6 +11,7 @@ import { useUserDetails } from '@/hooks/useUserDetails';
 import { useSocialProfile } from '@/hooks/useSocialProfile';
 import { useSubscription } from '@/hooks/useSubscription';
 import type { SocialProfile, FeedPost, PaginatedResult } from '@/types/social';
+import { getPublicDisplayName } from '@/utils/displayName';
 
 interface ProfileClientProps {
   profile: SocialProfile;
@@ -37,6 +38,8 @@ export default function ProfileClient({
 
   // Prefer server-provided identity to avoid SSR/client hydration divergence.
   const isOwnProfile = currentProfileId === profile.id;
+  // Always apply the mask if is_public=false, regardless of who is viewing.
+  const displayedName = getPublicDisplayName(profile);
   const effectiveTier = isOwnProfile && subscription?.tier ? subscription.tier : profile.tier;
   const isPro = effectiveTier === 'pro' || effectiveTier === 'elite';
   const isLightMode = mounted && !isDark;
@@ -71,9 +74,9 @@ export default function ProfileClient({
           >
             {profile.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.avatar_url} alt={profile.display_name} className="w-full h-full object-cover" />
+              <img src={profile.avatar_url} alt={displayedName} className="w-full h-full object-cover" />
             ) : (
-              profile.display_name.slice(0, 1).toUpperCase()
+              displayedName.slice(0, 1).toUpperCase()
             )}
           </div>
 
@@ -81,7 +84,7 @@ export default function ProfileClient({
           <div className="flex-1 min-w-0 space-y-1">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">{profile.display_name}</h1>
+                <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">{displayedName}</h1>
                 {!mounted && isPro && (
                   <span className="h-5 w-14 rounded-md bg-slate-200/70 dark:bg-slate-700/50 animate-pulse" />
                 )}
@@ -97,7 +100,7 @@ export default function ProfileClient({
               )}
             </div>
 
-            <p className="text-slate-500 text-sm">@{profile.username}</p>
+            <p className="text-slate-500 text-sm">@{profile.is_public ? profile.username : displayedName.toLowerCase()}</p>
 
             {profile.bio && (
               <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed mt-2">{profile.bio}</p>

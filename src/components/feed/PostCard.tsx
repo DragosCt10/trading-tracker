@@ -11,6 +11,7 @@ import type { TierId } from '@/types/subscription';
 import { useTheme } from '@/hooks/useTheme';
 import { formatCompactCount } from '@/lib/utils';
 import { formatFeedDateTime } from '@/utils/feedDateFormat';
+import { getPublicDisplayName } from '@/utils/displayName';
 
 interface PostCardProps {
   post: FeedPost;
@@ -27,6 +28,8 @@ interface PostCardProps {
   onReport?: (postId: string) => void;
   /** Show full content without truncation (used on post detail page) */
   expanded?: boolean;
+  /** Override the author display name (e.g. masked Trader#### for private profiles). */
+  authorDisplayName?: string;
 }
 
 function PostCardComponent({
@@ -41,12 +44,14 @@ function PostCardComponent({
   onEdit,
   onReport,
   expanded = false,
+  authorDisplayName,
 }: PostCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { theme: _theme, mounted: _mounted } = useTheme();
   const mounted = mountedProp !== undefined ? mountedProp : _mounted;
   const isLightMode = isLightModeProp !== undefined ? isLightModeProp : (_mounted && _theme === 'light');
   const isOwn = currentProfileId === post.author.id;
+  const displayedAuthorName = authorDisplayName ?? getPublicDisplayName(post.author);
   const authorTier =
     currentUserId && post.author.user_id === currentUserId && currentUserTier
       ? currentUserTier
@@ -63,10 +68,10 @@ function PostCardComponent({
           >
             {post.author.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={post.author.avatar_url} alt={post.author.display_name} className="w-full h-full object-cover" width="36" height="36" loading="lazy" />
+              <img src={post.author.avatar_url} alt={displayedAuthorName} className="w-full h-full object-cover" width="36" height="36" loading="lazy" />
             ) : (
               // Guard against missing author fields from DB joins (deleted profiles).
-              String(post.author.display_name ?? '?').slice(0, 1).toUpperCase()
+              String(displayedAuthorName ?? '?').slice(0, 1).toUpperCase()
             )}
           </div>
         </Link>
@@ -74,7 +79,7 @@ function PostCardComponent({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <Link href={`/profile/${post.author.username}`} className="font-semibold text-sm text-slate-900 dark:text-slate-100 hover:text-slate-700 dark:hover:text-white transition-colors leading-none">
-              {post.author.display_name}
+              {displayedAuthorName}
             </Link>
             {!mounted && isPro && (
               <span className="h-5 w-14 rounded-md bg-slate-200/70 dark:bg-slate-700/50 animate-pulse" />
@@ -84,7 +89,7 @@ function PostCardComponent({
             )}
           </div>
           <div className="flex items-center gap-1.5 mt-1">
-            <span className="text-slate-500 text-xs">@{post.author.username}</span>
+            <span className="text-slate-500 text-xs">@{post.author.is_public ? post.author.username : displayedAuthorName.toLowerCase()}</span>
           </div>
         </div>
         <span className="ml-auto pl-2 text-slate-500 text-xs shrink-0" suppressHydrationWarning>

@@ -9,6 +9,7 @@ import { useComments } from '@/hooks/useComments';
 import { useTheme } from '@/hooks/useTheme';
 import type { FeedComment, PaginatedResult } from '@/types/social';
 import { formatFeedCommentDate } from '@/utils/feedDateFormat';
+import { getPublicDisplayName } from '@/utils/displayName';
 
 interface CommentSectionProps {
   postId: string;
@@ -39,6 +40,7 @@ function CommentItem({
   const isLightMode = mounted && theme === 'light';
   const authorTier = comment.author.tier;
   const isPro = authorTier === 'pro' || authorTier === 'elite';
+  const displayedName = getPublicDisplayName(comment.author);
 
   async function handleSave() {
     if (!editContent.trim()) return;
@@ -62,9 +64,9 @@ function CommentItem({
           >
             {comment.author.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={comment.author.avatar_url} alt={comment.author.display_name} className="w-full h-full object-cover" />
+              <img src={comment.author.avatar_url} alt={displayedName} className="w-full h-full object-cover" />
             ) : (
-              String(comment.author.display_name ?? '?').slice(0, 1).toUpperCase()
+              String(displayedName ?? '?').slice(0, 1).toUpperCase()
             )}
           </div>
         </Link>
@@ -75,7 +77,7 @@ function CommentItem({
               href={`/profile/${comment.author.username}`}
               className="font-semibold text-sm text-slate-900 dark:text-slate-200 hover:text-slate-700 dark:hover:text-white transition-colors leading-none"
             >
-              {comment.author.display_name}
+              {displayedName}
             </Link>
             {!mounted && isPro && (
               <span className="h-5 w-14 rounded-md bg-slate-200/70 dark:bg-slate-700/50 animate-pulse" />
@@ -85,7 +87,7 @@ function CommentItem({
             )}
           </div>
           <div className="mt-1">
-            <span className="text-slate-500 text-xs">@{comment.author.username}</span>
+            <span className="text-slate-500 text-xs">@{comment.author.is_public ? comment.author.username : displayedName.toLowerCase()}</span>
           </div>
         </div>
 

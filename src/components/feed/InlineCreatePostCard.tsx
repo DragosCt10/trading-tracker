@@ -12,6 +12,7 @@ import { getWeeklyPostCount } from '@/lib/server/feedPosts';
 import { queryKeys } from '@/lib/queryKeys';
 import { USER_DATA } from '@/constants/queryConfig';
 import type { TradeSelectorItem, TradeSnapshot, SocialProfile } from '@/types/social';
+import { getPublicDisplayName } from '@/utils/displayName';
 import type { ResolvedSubscription } from '@/types/subscription';
 
 interface InlineCreatePostCardProps {
@@ -58,6 +59,7 @@ export default function InlineCreatePostCard({
     wasCollapsedRef.current = collapsed;
   }, [collapsed]);
 
+  const displayedName = getPublicDisplayName(profile);
   const maxLen = subscription.definition.limits.maxPostContentLength;
   const canAttach = subscription.definition.features.socialFeedTradeAttach;
   const weeklyMax = subscription.definition.limits.maxPostsPerWeek;
@@ -106,9 +108,9 @@ export default function InlineCreatePostCard({
 
   const avatarContent = profile.avatar_url ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={profile.avatar_url} alt={profile.display_name} className="w-full h-full object-cover" />
+    <img src={profile.avatar_url} alt={displayedName} className="w-full h-full object-cover" />
   ) : (
-    String(profile.display_name ?? '?').slice(0, 1).toUpperCase()
+    String(displayedName ?? '?').slice(0, 1).toUpperCase()
   );
 
   const avatar = (
@@ -188,7 +190,7 @@ export default function InlineCreatePostCard({
               <div className="flex-1 min-w-0 space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-sm text-slate-900 dark:text-slate-100 leading-none">
-                    {profile.display_name}
+                    {displayedName}
                   </span>
                   {!mounted && (
                     <span

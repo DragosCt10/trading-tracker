@@ -17,7 +17,7 @@ type InteractionResult<T> =
 
 type AuthorRow = {
   id: string; user_id: string; display_name: string;
-  username: string; avatar_url: string | null; tier: TierId;
+  username: string; avatar_url: string | null; tier: TierId; is_public: boolean;
 };
 
 function mapCommentRow(row: Record<string, unknown>): FeedComment {
@@ -32,6 +32,7 @@ function mapCommentRow(row: Record<string, unknown>): FeedComment {
       username:     author.username,
       avatar_url:   author.avatar_url ?? null,
       tier:         (author.tier as TierId) ?? 'starter',
+      is_public:    typeof author.is_public === 'boolean' ? author.is_public : true,
     },
     content:    row.content as string,
     parent_id:  (row.parent_id as string | null) ?? null,
@@ -101,7 +102,7 @@ export async function getComments(
     .from('feed_comments')
     .select(`
       *,
-      author:author_id (id, user_id, display_name, username, avatar_url, tier)
+      author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)
     `)
     .eq('post_id', postId)
     .eq('is_hidden', false)
@@ -170,7 +171,7 @@ export async function addComment(
       content:   content.trim(),
       parent_id: parentId ?? null,
     })
-    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier)`)
+    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)`)
     .single();
 
   if (error || !created) {
@@ -208,7 +209,7 @@ export async function editComment(
     .update({ content: content.trim(), updated_at: new Date().toISOString() })
     .eq('id', commentId)
     .eq('author_id', profile.id)
-    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier)`)
+    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)`)
     .single();
 
   if (error || !updated) {

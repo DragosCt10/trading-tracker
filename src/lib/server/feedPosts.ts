@@ -22,6 +22,7 @@ type AuthorRow = {
   username: string;
   avatar_url: string | null;
   tier: TierId;
+  is_public: boolean;
 };
 
 function mapPostRow(row: Record<string, unknown>, isLikedByMe: boolean): FeedPost {
@@ -49,6 +50,9 @@ function mapPostRow(row: Record<string, unknown>, isLikedByMe: boolean): FeedPos
       username:     safeUsername,
       avatar_url:   safeAvatarUrl,
       tier:         safeTier,
+      // Default true for RPC responses that don't return is_public (public feed RPCs only
+      // return public-profile posts anyway, so true is the correct safe default).
+      is_public:    typeof rawAuthor.is_public === 'boolean' ? rawAuthor.is_public : true,
     },
     content:        row.content as string,
     post_type:      (row.post_type as 'text' | 'trade_share') ?? 'text',
@@ -111,7 +115,7 @@ function buildFeedQuery(
     .select(`
       *,
       author:author_id (
-        id, user_id, display_name, username, avatar_url, tier
+        id, user_id, display_name, username, avatar_url, tier, is_public
       )
     `)
     .eq('is_hidden', false)
@@ -481,7 +485,7 @@ export async function createPost(input: {
       trade_snapshot: tradeSnapshot,
       channel_id:     input.channelId ?? null,
     })
-    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier)`)
+    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)`)
     .single();
 
   if (error || !created) {
@@ -518,7 +522,7 @@ export async function updatePost(
     .update({ content, updated_at: new Date().toISOString() })
     .eq('id', postId)
     .eq('author_id', profile.id)
-    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier)`)
+    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)`)
     .single();
 
   if (error || !updated) {

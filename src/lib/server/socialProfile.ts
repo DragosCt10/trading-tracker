@@ -132,7 +132,6 @@ export async function getSocialProfileByUsername(username: string): Promise<Soci
     .from('social_profiles')
     .select('*')
     .eq('username', username)
-    .eq('is_public', true)
     .eq('is_banned', false)
     .single();
 
