@@ -43,6 +43,10 @@ function resolveTierFromSubscription(tier: TierId, isActive: boolean): TierId {
   return isActive ? tier : 'starter';
 }
 
+function normalizeUsername(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 50);
+}
+
 async function syncProfileTierIfNeeded(
   supabase: Awaited<ReturnType<typeof createClient>>,
   profile: SocialProfile
@@ -91,7 +95,7 @@ async function generateUniqueUsername(
   supabase: Awaited<ReturnType<typeof createClient>>,
   emailPrefix: string
 ): Promise<string> {
-  const base = emailPrefix.replace(/[^a-z0-9_]/gi, '').toLowerCase() || 'user';
+  const base = normalizeUsername(emailPrefix) || 'user';
 
   const attempts = [
     base,
@@ -133,11 +137,14 @@ async function _getSocialProfile(userId: string): Promise<SocialProfile | null> 
 export const getCachedSocialProfile = cache(_getSocialProfile);
 
 export async function getSocialProfileByUsername(username: string): Promise<SocialProfile | null> {
+  const normalizedUsername = normalizeUsername(username);
+  if (!normalizedUsername) return null;
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('social_profiles')
     .select('*')
-    .eq('username', username)
+    .eq('username', normalizedUsername)
     .eq('is_banned', false)
     .single();
 
@@ -173,11 +180,14 @@ export async function getSocialProfilePreviewByUsername(
 }
 
 export async function checkUsernameAvailability(username: string): Promise<boolean> {
+  const normalizedUsername = normalizeUsername(username);
+  if (!normalizedUsername) return false;
+
   const supabase = await createClient();
   const { count } = await supabase
     .from('social_profiles')
     .select('id', { count: 'exact', head: true })
-    .eq('username', username.toLowerCase());
+    .eq('username', normalizedUsername);
   return (count ?? 0) === 0;
 }
 
@@ -208,20 +218,42 @@ export async function ensureSocialProfile(): Promise<SocialProfile | null> {
       .replace(/[._-]/g, ' ')
       .replace(/\b\w/g, (c: string) => c.toUpperCase());
 
-    const username = await generateUniqueUsername(supabase, emailPrefix);
+    // Retry on username conflicts to handle concurrent profile creation safely.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const username = await generateUniqueUsername(supabase, emailPrefix);
+      const { data: created, error } = await supabase
+        .from('social_profiles')
+        .insert({ user_id: userId, display_name: displayName, username })
+        .select('*')
+        .single();
 
-    const { data: created, error } = await supabase
-      .from('social_profiles')
-      .insert({ user_id: userId, display_name: displayName, username })
-      .select('*')
-      .single();
+      if (!error && created) {
+        profile = mapRow(created as Record<string, unknown>);
+        break;
+      }
 
-    if (error || !created) {
+      // Unique violation (usually username or user_id raced): try to recover.
+      if (error?.code === '23505') {
+        const { data: racedExisting } = await supabase
+          .from('social_profiles')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
+        if (racedExisting) {
+          profile = mapRow(racedExisting as Record<string, unknown>);
+          break;
+        }
+        continue;
+      }
+
       console.error('[ensureSocialProfile] insert error:', error);
       return null;
     }
 
-    profile = mapRow(created as Record<string, unknown>);
+    if (!profile) {
+      console.error('[ensureSocialProfile] failed to create profile after retries');
+      return null;
+    }
   }
 
   return syncProfileTierIfNeeded(supabase, profile);
@@ -244,7 +276,12 @@ export async function updateSocialProfile(data: {
   const supabase = await createClient();
 
   if (data.username) {
-    const available = await checkUsernameAvailability(data.username);
+    const normalizedUsername = normalizeUsername(data.username);
+    if (!normalizedUsername) {
+      return { error: 'Username must contain letters, numbers, or underscores', code: 'DB_ERROR' };
+    }
+
+    const available = await checkUsernameAvailability(normalizedUsername);
     // Check it's available OR it's the user's current username
     if (!available) {
       const { data: own } = await supabase
@@ -252,11 +289,11 @@ export async function updateSocialProfile(data: {
         .select('username')
         .eq('user_id', session.user!.id)
         .single();
-      if (own?.username !== data.username) {
+      if (own?.username !== normalizedUsername) {
         return { error: 'Username is already taken', code: 'CONFLICT' };
       }
     }
-    data.username = data.username.toLowerCase();
+    data.username = normalizedUsername;
   }
 
   const { data: updated, error } = await supabase
