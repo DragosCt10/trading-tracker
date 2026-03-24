@@ -61,6 +61,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const [channelToggleError, setChannelToggleError] = useState<string>('');
   const [, startChannelTransition] = useTransition();
   const [feedChromeVisible, setFeedChromeVisible] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const lastScrollY = useRef(0);
 
   const posts = data?.pages.flatMap((p) => p.items) ?? [];
@@ -131,6 +132,8 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => { setMounted(true); }, []);
+
   async function handleCreate(input: { content: string; tradeId?: string; tradeMode?: 'live' | 'demo' | 'backtesting' }) {
     setCreateError('');
     const result = await create.mutateAsync(input);
@@ -186,7 +189,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
 
           {activeTab === 'public' ? (
             <div className="shrink-0">
-              {userId && initialProfile && subscription ? (
+              {mounted && userId && initialProfile && subscription ? (
                 <InlineCreatePostCard
                   userId={userId}
                   profile={initialProfile}
@@ -195,7 +198,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                   isSubmitting={create.isPending}
                   submitError={createError}
                 />
-              ) : !userId ? (
+              ) : mounted && !userId ? (
                 <div className="flex justify-end">
                   <Link href="/login">
                     <Button variant="outline" size="sm" className="rounded-xl border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-800">
