@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import PostCard from '@/components/feed/PostCard';
 import CommentSection from '@/components/feed/CommentSection';
+import ProfilePreviewModal from '@/components/feed/ProfilePreviewModal';
 import { usePostActions } from '@/hooks/usePostActions';
 import { useSocialProfile } from '@/hooks/useSocialProfile';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -27,6 +28,7 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
   const { subscription } = useSubscription({ userId });
   const { like, remove } = usePostActions(userId);
   const [commentCount, setCommentCount] = useState(post.comment_count);
+  const [previewUsername, setPreviewUsername] = useState<string | null>(null);
 
   // Keep like_count and is_liked_by_me live — usePostActions writes to this cache key
   // when a like mutation settles, so the PostCard re-renders without a page reload.
@@ -58,6 +60,7 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
         currentUserTier={subscription?.tier}
         onLike={(id) => like.mutate(id)}
         onDelete={(id) => remove.mutate(id)}
+        onAuthorClick={(username) => setPreviewUsername(username)}
         expanded
       />
 
@@ -70,8 +73,15 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
           currentProfileId={ownProfile?.id}
           initialComments={initialComments}
           onCountChange={(delta) => setCommentCount((prev) => Math.max(0, prev + delta))}
+          onAuthorClick={(username) => setPreviewUsername(username)}
         />
       </div>
+      <ProfilePreviewModal
+        open={!!previewUsername}
+        username={previewUsername}
+        currentProfileId={ownProfile?.id}
+        onClose={() => setPreviewUsername(null)}
+      />
     </div>
   );
 }

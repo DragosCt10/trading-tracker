@@ -19,6 +19,7 @@ import EditPostModal from '@/components/feed/EditPostModal';
 import CreateChannelModal from '@/components/feed/CreateChannelModal';
 import ChannelInviteModal from '@/components/feed/ChannelInviteModal';
 import SearchBar from '@/components/feed/SearchBar';
+import ProfilePreviewModal from '@/components/feed/ProfilePreviewModal';
 import { cn } from '@/lib/utils';
 import type { SocialProfile, FeedPost, FeedChannel } from '@/types/social';
 
@@ -85,6 +86,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const [channelToggleError, setChannelToggleError] = useState<string>('');
   const [, startChannelTransition] = useTransition();
   const [feedChromeVisible, setFeedChromeVisible] = useState(true);
+  const [previewUsername, setPreviewUsername] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const lastScrollY = useRef(0);
 
@@ -432,6 +434,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
               onDelete={handleDelete}
               onEdit={handleEdit}
               onReport={handleReport}
+              onAuthorClick={(username) => setPreviewUsername(username)}
               emptyMessage="No posts yet"
               emptySubtext={
                 activeTab === 'following'
@@ -550,6 +553,12 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
           onClose={() => setInviteModalChannel(null)}
         />
       )}
+      <ProfilePreviewModal
+        open={!!previewUsername}
+        username={previewUsername}
+        currentProfileId={initialProfile?.id}
+        onClose={() => setPreviewUsername(null)}
+      />
 
       {userId && initialProfile && subscription && activeTab !== 'channels' && (
         <div

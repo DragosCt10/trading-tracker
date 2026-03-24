@@ -1,9 +1,12 @@
 'use client';
 
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Virtuoso } from 'react-virtuoso';
 import PostCard from './PostCard';
 import PostCardSkeleton from './PostCardSkeleton';
 import { useTheme } from '@/hooks/useTheme';
+import { getFollowingProfileIds } from '@/lib/server/socialProfile';
 import type { FeedPost } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 
@@ -25,6 +28,7 @@ interface FeedPostListProps {
   onDelete: (id: string) => void;
   onEdit: (post: FeedPost) => void;
   onReport: (id: string) => void;
+  onAuthorClick?: (username: string) => void;
   emptyMessage?: string;
   emptySubtext?: string;
   skeletonCount?: number;
@@ -44,6 +48,7 @@ export default function FeedPostList({
   onDelete,
   onEdit,
   onReport,
+  onAuthorClick,
   emptyMessage = 'No posts yet',
   emptySubtext,
   skeletonCount = 3,
@@ -51,6 +56,17 @@ export default function FeedPostList({
   const { theme, mounted } = useTheme();
   const isLightMode = mounted && theme === 'light';
   const hasCustomScrollParent = !!customScrollParent;
+  const authorProfileIds = useMemo(
+    () => Array.from(new Set(posts.map((post) => post.author.id).filter((id) => id !== currentProfileId))),
+    [posts, currentProfileId]
+  );
+  const { data: followedProfileIds = [] } = useQuery({
+    queryKey: ['following-profile-ids', currentUserId, authorProfileIds],
+    queryFn: () => getFollowingProfileIds(authorProfileIds),
+    enabled: !!currentUserId && authorProfileIds.length > 0,
+    staleTime: 60_000,
+  });
+  const followedProfileIdSet = useMemo(() => new Set(followedProfileIds), [followedProfileIds]);
 
   if (isLoading) {
     return (
@@ -92,6 +108,9 @@ export default function FeedPostList({
             onDelete={onDelete}
             onEdit={onEdit}
             onReport={onReport}
+            onAuthorClick={onAuthorClick}
+            showAuthorFollowButton
+            initialFollowing={followedProfileIdSet.has(post.author.id)}
           />
         </div>
       )}

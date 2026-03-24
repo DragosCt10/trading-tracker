@@ -13,6 +13,12 @@ type ProfileResult<T> =
   | { data: T }
   | { error: string; code: 'UNAUTHORIZED' | 'NOT_FOUND' | 'CONFLICT' | 'DB_ERROR' };
 
+export interface SocialProfilePreview {
+  profile: SocialProfile;
+  isFollowing: boolean;
+  hasPosts: boolean;
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function mapRow(row: Record<string, unknown>): SocialProfile {
@@ -139,6 +145,31 @@ export async function getSocialProfileByUsername(username: string): Promise<Soci
   const profile = mapRow(data as Record<string, unknown>);
   const liveCounts = await getLiveFollowCounts(supabase, profile.id);
   return { ...profile, ...liveCounts };
+}
+
+export async function getSocialProfilePreviewByUsername(
+  username: string
+): Promise<ProfileResult<SocialProfilePreview>> {
+  const profile = await getSocialProfileByUsername(username);
+  if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
+
+  const supabase = await createClient();
+  const [isFollowing, postCount] = await Promise.all([
+    isFollowingProfile(profile.id),
+    supabase
+      .from('feed_posts')
+      .select('id', { count: 'exact', head: true })
+      .eq('author_id', profile.id)
+      .eq('is_hidden', false),
+  ]);
+
+  return {
+    data: {
+      profile,
+      isFollowing,
+      hasPosts: (postCount.count ?? 0) > 0,
+    },
+  };
 }
 
 export async function checkUsernameAvailability(username: string): Promise<boolean> {
@@ -317,6 +348,35 @@ export async function isFollowingProfile(targetProfileId: string): Promise<boole
     .eq('following_id', targetProfileId);
 
   return (count ?? 0) > 0;
+}
+
+export async function getFollowingProfileIds(profileIds: string[]): Promise<string[]> {
+  if (profileIds.length === 0) return [];
+
+  const session = await getCachedUserSession();
+  if (!session.user) return [];
+
+  const supabase = await createClient();
+  const { data: ownProfile } = await supabase
+    .from('social_profiles')
+    .select('id')
+    .eq('user_id', session.user.id)
+    .maybeSingle();
+
+  if (!ownProfile) return [];
+
+  const { data, error } = await supabase
+    .from('follows')
+    .select('following_id')
+    .eq('follower_id', (ownProfile as { id: string }).id)
+    .in('following_id', profileIds);
+
+  if (error) {
+    console.error('[getFollowingProfileIds] error:', error);
+    return [];
+  }
+
+  return (data ?? []).map((row: { following_id: string }) => row.following_id);
 }
 
 export async function followUser(

@@ -16,6 +16,7 @@ interface CommentSectionProps {
   currentProfileId?: string;
   initialComments?: PaginatedResult<FeedComment>;
   onCountChange?: (delta: number) => void;
+  onAuthorClick?: (username: string) => void;
 }
 
 type EditState = 'idle' | 'editing' | 'saving';
@@ -27,11 +28,13 @@ function CommentItem({
   currentProfileId,
   onEdit,
   onDelete,
+  onAuthorClick,
 }: {
   comment: FeedComment;
   currentProfileId?: string;
   onEdit: (id: string, content: string) => Promise<void>;
   onDelete: (id: string) => void;
+  onAuthorClick?: (username: string) => void;
 }) {
   const [editState, setEditState] = useState<EditState>('idle');
   const [editContent, setEditContent] = useState(comment.content);
@@ -73,6 +76,12 @@ function CommentItem({
     setEditState('editing');
   }
 
+  function handleAuthorClick(e: React.MouseEvent) {
+    if (!onAuthorClick) return;
+    e.preventDefault();
+    onAuthorClick(comment.author.username);
+  }
+
   async function handleSave() {
     if (!editContent.trim()) return;
     if (isEditWindowExpired()) {
@@ -94,7 +103,7 @@ function CommentItem({
   return (
     <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none px-4 py-3">
       <div className="flex items-start gap-3 mb-3">
-        <Link href={`/profile/${comment.author.username}`} className="shrink-0">
+        <Link href={`/profile/${comment.author.username}`} onClick={handleAuthorClick} className="shrink-0">
           <div
             className={`w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm ${mounted && isPro ? 'ring-2 ring-amber-400/75 ring-offset-1 ring-offset-white dark:ring-offset-slate-800' : ''}`}
           >
@@ -111,6 +120,7 @@ function CommentItem({
           <div className="flex items-center gap-2 flex-wrap">
             <Link
               href={`/profile/${comment.author.username}`}
+              onClick={handleAuthorClick}
               className="font-semibold text-sm text-slate-900 dark:text-slate-200 hover:text-slate-700 dark:hover:text-white transition-colors leading-none"
             >
               {displayedName}
@@ -204,7 +214,7 @@ function CommentItem({
   );
 }
 
-export default function CommentSection({ postId, currentProfileId, initialComments, onCountChange }: CommentSectionProps) {
+export default function CommentSection({ postId, currentProfileId, initialComments, onCountChange, onAuthorClick }: CommentSectionProps) {
   const { query, add, edit, remove } = useComments(postId, initialComments);
   const comments = query.data?.pages.flatMap((p) => p.items) ?? [];
 
@@ -244,6 +254,7 @@ export default function CommentSection({ postId, currentProfileId, initialCommen
               currentProfileId={currentProfileId}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onAuthorClick={onAuthorClick}
             />
           ))}
         </div>

@@ -4,6 +4,7 @@ import { memo, useState } from 'react';
 import Link from 'next/link';
 import { Heart, MessageCircle, MoreHorizontal, Pencil, Trash2, Flag } from 'lucide-react';
 import TierBadge from './TierBadge';
+import FollowButton from './FollowButton';
 import { Button } from '@/components/ui/button';
 import TradePreviewCard from './TradePreviewCard';
 import type { FeedPost } from '@/types/social';
@@ -30,6 +31,9 @@ interface PostCardProps {
   expanded?: boolean;
   /** Override the author display name (e.g. masked Trader#### for private profiles). */
   authorDisplayName?: string;
+  onAuthorClick?: (username: string) => void;
+  showAuthorFollowButton?: boolean;
+  initialFollowing?: boolean;
 }
 
 function PostCardComponent({
@@ -45,6 +49,9 @@ function PostCardComponent({
   onReport,
   expanded = false,
   authorDisplayName,
+  onAuthorClick,
+  showAuthorFollowButton = false,
+  initialFollowing = false,
 }: PostCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { theme: _theme, mounted: _mounted } = useTheme();
@@ -58,11 +65,17 @@ function PostCardComponent({
       : post.author.tier;
   const isPro = authorTier === 'pro' || authorTier === 'elite';
 
+  const handleAuthorClick = (e: React.MouseEvent) => {
+    if (!onAuthorClick) return;
+    e.preventDefault();
+    onAuthorClick(post.author.username);
+  };
+
   return (
     <article data-post-id={post.id} className="rounded-2xl mb-6 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-5">
       {/* Author header */}
       <div className="flex items-start gap-3 mb-7">
-        <Link href={`/profile/${post.author.username}`} className="shrink-0">
+        <Link href={`/profile/${post.author.username}`} onClick={handleAuthorClick} className="shrink-0">
           <div
             className={`w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm ${mounted && isPro ? 'ring-2 ring-amber-400/75 ring-offset-1 ring-offset-white dark:ring-offset-slate-800' : ''}`}
           >
@@ -78,7 +91,7 @@ function PostCardComponent({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <Link href={`/profile/${post.author.username}`} className="font-semibold text-sm text-slate-900 dark:text-slate-100 hover:text-slate-700 dark:hover:text-white transition-colors leading-none">
+            <Link href={`/profile/${post.author.username}`} onClick={handleAuthorClick} className="font-semibold text-sm text-slate-900 dark:text-slate-100 hover:text-slate-700 dark:hover:text-white transition-colors leading-none">
               {displayedAuthorName}
             </Link>
             {!mounted && isPro && (
@@ -92,9 +105,17 @@ function PostCardComponent({
             <span className="text-slate-500 text-xs">@{post.author.is_public ? post.author.username : displayedAuthorName.toLowerCase()}</span>
           </div>
         </div>
-        <span className="ml-auto pl-2 text-slate-500 text-xs shrink-0" suppressHydrationWarning>
-          {formatFeedDateTime(post.created_at)}
-        </span>
+        <div className="ml-auto pl-2 flex items-center gap-2 shrink-0">
+          <span className="text-slate-500 text-xs shrink-0" suppressHydrationWarning>
+            {formatFeedDateTime(post.created_at)}
+          </span>
+          {showAuthorFollowButton && currentUserId && !isOwn && (
+            <>
+              <span className="text-slate-400 dark:text-slate-600 text-xs" aria-hidden>•</span>
+              <FollowButton targetProfileId={post.author.id} initialFollowing={initialFollowing} />
+            </>
+          )}
+        </div>
 
       </div>
 

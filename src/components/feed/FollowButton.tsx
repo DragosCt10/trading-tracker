@@ -45,8 +45,8 @@ export default function FollowButton({ targetProfileId, initialFollowing, onFoll
       size="sm"
       className={
         following
-          ? 'rounded-xl border-slate-600/60 text-slate-300 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-500/10 transition-all duration-200 disabled:opacity-50'
-          : 'themed-btn-primary relative overflow-hidden rounded-xl text-white border-0 disabled:opacity-50 group'
+          ? 'h-7 px-2.5 text-xs rounded-lg border-slate-600/60 text-slate-300 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-500/10 transition-all duration-200 disabled:opacity-50 cursor-pointer'
+          : 'h-7 px-2.5 text-xs themed-btn-primary relative overflow-hidden rounded-lg text-white border-0 disabled:opacity-50 group cursor-pointer'
       }
     >
       {loading && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />}
