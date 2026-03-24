@@ -245,6 +245,72 @@ export async function isChannelMember(channelId: string): Promise<boolean> {
   return (count ?? 0) > 0;
 }
 
+export type ChannelMembershipFlags = { isMember: boolean; removedByOwner: boolean };
+
+/** Membership + whether the owner removed this user from a public channel (read-only until re-added). */
+export async function getChannelMembershipFlags(channelId: string): Promise<ChannelMembershipFlags> {
+  const session = await getCachedUserSession();
+  if (!session.user) return { isMember: false, removedByOwner: false };
+
+  const profile = await getCachedSocialProfile(session.user.id);
+  if (!profile) return { isMember: false, removedByOwner: false };
+
+  const supabase = await createClient();
+  const { data: ch } = await supabase
+    .from('feed_channels')
+    .select('is_public')
+    .eq('id', channelId)
+    .maybeSingle();
+
+  if (!ch) return { isMember: false, removedByOwner: false };
+
+  const [{ count: memberCount }, { count: removalCount }] = await Promise.all([
+    supabase
+      .from('channel_members')
+      .select('channel_id', { count: 'exact', head: true })
+      .eq('channel_id', channelId)
+      .eq('user_id', profile.id),
+    (ch as { is_public: boolean }).is_public
+      ? supabase
+          .from('channel_public_removed_members')
+          .select('channel_id', { count: 'exact', head: true })
+          .eq('channel_id', channelId)
+          .eq('user_id', profile.id)
+      : Promise.resolve({ count: 0 }),
+  ]);
+
+  return {
+    isMember: (memberCount ?? 0) > 0,
+    removedByOwner: (ch as { is_public: boolean }).is_public && (removalCount ?? 0) > 0,
+  };
+}
+
+/**
+ * True when `profileId` is on the public-channel removal list (cannot comment until re-added; posting/join blocked separately).
+ * Used by feed comment guard; no-ops for private channels or missing channel.
+ */
+export async function isPublicChannelReadOnlyForProfile(
+  profileId: string,
+  channelId: string
+): Promise<boolean> {
+  const supabase = await createClient();
+  const { data: ch } = await supabase
+    .from('feed_channels')
+    .select('is_public')
+    .eq('id', channelId)
+    .maybeSingle();
+
+  if (!(ch as { is_public?: boolean } | null)?.is_public) return false;
+
+  const { count } = await supabase
+    .from('channel_public_removed_members')
+    .select('channel_id', { count: 'exact', head: true })
+    .eq('channel_id', channelId)
+    .eq('user_id', profileId);
+
+  return (count ?? 0) > 0;
+}
+
 // ─── Create (PRO only) ───────────────────────────────────────────────────────
 
 export async function createChannel(input: {
@@ -416,6 +482,29 @@ export async function joinChannel(channelId: string): Promise<ChannelResult<{ ch
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
 
   const supabase = await createClient();
+
+  const { data: ch } = await supabase
+    .from('feed_channels')
+    .select('is_public')
+    .eq('id', channelId)
+    .maybeSingle();
+
+  if ((ch as { is_public?: boolean } | null)?.is_public) {
+    const { count } = await supabase
+      .from('channel_public_removed_members')
+      .select('channel_id', { count: 'exact', head: true })
+      .eq('channel_id', channelId)
+      .eq('user_id', profile.id);
+
+    if ((count ?? 0) > 0) {
+      return {
+        error:
+          'You were removed from this channel by the owner. They must add you back before you can participate again.',
+        code: 'CONFLICT',
+      };
+    }
+  }
+
   const { error } = await supabase
     .from('channel_members')
     .upsert({ channel_id: channelId, user_id: profile.id, role: 'member' }, { onConflict: 'channel_id,user_id', ignoreDuplicates: true });
@@ -567,6 +656,12 @@ export async function addChannelMemberByHandle(
     return { error: 'Failed to add member', code: 'DB_ERROR' };
   }
 
+  await (admin as any)
+    .from('channel_public_removed_members')
+    .delete()
+    .eq('channel_id', channelId)
+    .eq('user_id', targetProfileId);
+
   const { data: createdMembership, error: membershipError } = await supabase
     .from('channel_members')
     .select('channel_id, user_id, role, joined_at, profile:social_profiles!channel_members_user_id_fkey(id, display_name, username, avatar_url, tier)')
@@ -600,6 +695,13 @@ export async function removeChannelMemberByUserId(
   }
 
   const admin = createServiceRoleClient();
+
+  const { data: chMeta } = await (admin as any)
+    .from('feed_channels')
+    .select('is_public')
+    .eq('id', channelId)
+    .maybeSingle();
+
   const { error } = await (admin as any)
     .from('channel_members')
     .delete()
@@ -609,6 +711,18 @@ export async function removeChannelMemberByUserId(
   if (error) {
     console.error('[removeChannelMemberByUserId] error:', error);
     return { error: 'Failed to remove member', code: 'DB_ERROR' };
+  }
+
+  if ((chMeta as { is_public?: boolean } | null)?.is_public) {
+    const { error: upsertError } = await (admin as any)
+      .from('channel_public_removed_members')
+      .upsert(
+        { channel_id: channelId, user_id: memberUserId },
+        { onConflict: 'channel_id,user_id' }
+      );
+    if (upsertError) {
+      console.error('[removeChannelMemberByUserId:removal-record]', upsertError);
+    }
   }
 
   return { data: { channel_id: channelId, user_id: memberUserId } };

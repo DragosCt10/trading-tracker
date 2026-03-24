@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { getCachedSubscription } from './subscription';
+import { isPublicChannelReadOnlyForProfile } from './feedChannels';
 import type { FeedPost, TradeSnapshot, TradeSelectorItem, PaginatedResult } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 
@@ -384,6 +385,24 @@ export async function createPost(input: {
   const features = def.features;
   const supabase = await createClient();
 
+  if (input.channelId) {
+    if (await isPublicChannelReadOnlyForProfile(profile.id, input.channelId)) {
+      return {
+        error: 'You were removed from this channel by the owner. You cannot post here until they add you back.',
+        code: 'UNAUTHORIZED',
+      };
+    }
+
+    const { count } = await supabase
+      .from('channel_members')
+      .select('channel_id', { count: 'exact', head: true })
+      .eq('channel_id', input.channelId)
+      .eq('user_id', profile.id);
+    if ((count ?? 0) === 0) {
+      return { error: 'You must be a member of this channel to post.', code: 'UNAUTHORIZED' };
+    }
+  }
+
   // ── Content length check
   if (input.content.length > limits.maxPostContentLength) {
     return { error: `Post exceeds ${limits.maxPostContentLength} characters`, code: 'LIMIT_EXCEEDED' };
@@ -507,6 +526,7 @@ export async function updatePost(
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
+  if (profile.is_banned) return { error: 'Account is banned', code: 'UNAUTHORIZED' };
 
   const subscription = await getCachedSubscription(session.user!.id);
   if (!subscription.definition.features.socialFeedEditPosts) {
@@ -541,6 +561,7 @@ export async function deletePost(postId: string): Promise<PostResult<{ id: strin
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
+  if (profile.is_banned) return { error: 'Account is banned', code: 'UNAUTHORIZED' };
 
   const supabase = await createClient();
   const { error } = await supabase

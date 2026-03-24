@@ -422,11 +422,14 @@ export async function followUser(
 
   const { data: ownProfile } = await supabase
     .from('social_profiles')
-    .select('id')
+    .select('id, is_banned')
     .eq('user_id', session.user!.id)
     .single();
 
   if (!ownProfile) return { error: 'Profile not found', code: 'NOT_FOUND' };
+  if ((ownProfile as { is_banned?: boolean }).is_banned) {
+    return { error: 'Account is banned', code: 'UNAUTHORIZED' };
+  }
   if (ownProfile.id === targetProfileId) {
     return { error: 'Cannot follow yourself', code: 'UNAUTHORIZED' };
   }

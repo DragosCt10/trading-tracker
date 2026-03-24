@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { createNotification } from './feedNotifications';
+import { isPublicChannelReadOnlyForProfile } from './feedChannels';
 import type { FeedComment, PaginatedResult } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 
@@ -165,12 +166,21 @@ export async function addComment(
   // Verify post exists and is not hidden
   const { data: post } = await supabase
     .from('feed_posts')
-    .select('id, author_id, is_hidden')
+    .select('id, author_id, is_hidden, channel_id')
     .eq('id', postId)
     .single();
 
   if (!post || (post as { is_hidden: boolean }).is_hidden) {
     return { error: 'Post not found', code: 'NOT_FOUND' };
+  }
+
+  const commentChannelId = (post as { channel_id: string | null }).channel_id;
+  if (commentChannelId && (await isPublicChannelReadOnlyForProfile(profile.id, commentChannelId))) {
+    return {
+      error:
+        'You were removed from this channel by the owner. You cannot comment here until they add you back.',
+      code: 'UNAUTHORIZED',
+    };
   }
 
   // Verify parent comment exists and belongs to the same post
@@ -224,6 +234,7 @@ export async function editComment(
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
+  if (profile.is_banned) return { error: 'Account is banned', code: 'UNAUTHORIZED' };
 
   const supabase = await createClient();
   const nowIso = new Date().toISOString();
@@ -266,6 +277,7 @@ export async function deleteComment(commentId: string): Promise<InteractionResul
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
+  if (profile.is_banned) return { error: 'Account is banned', code: 'UNAUTHORIZED' };
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -305,6 +317,7 @@ export async function reportContent(
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
+  if (profile.is_banned) return { error: 'Account is banned', code: 'UNAUTHORIZED' };
 
   const supabase = await createClient();
 

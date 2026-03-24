@@ -7,7 +7,7 @@ import {
   deleteChannel,
   joinChannel,
   leaveChannel,
-  isChannelMember,
+  getChannelMembershipFlags,
   getChannelMembersForOwner,
   addChannelMemberByHandle,
   removeChannelMemberByUserId,
@@ -39,13 +39,20 @@ export function usePublicChannels() {
   });
 }
 
-export function useIsChannelMember(channelId: string) {
+export function useChannelMembershipFlags(channelId: string) {
   return useQuery({
     queryKey: queryKeys.channelMembership(channelId),
-    queryFn: () => isChannelMember(channelId),
+    queryFn: () => getChannelMembershipFlags(channelId),
+    enabled: !!channelId,
     ...FEED_DATA,
     refetchOnMount: 'always',
   });
+}
+
+/** @deprecated Prefer useChannelMembershipFlags when you need `removedByOwner`. */
+export function useIsChannelMember(channelId: string) {
+  const q = useChannelMembershipFlags(channelId);
+  return { ...q, data: q.data?.isMember ?? false };
 }
 
 export function useChannelActions(userId?: string) {

@@ -181,7 +181,7 @@ function PostCardComponent({
 
       {/* Action bar */}
       <div className="mt-4 flex items-center gap-1 border-t border-slate-200/80 pt-3 dark:border-slate-700/40">
-        {/* Like — read-only for own posts, interactive for others */}
+        {/* Like — read-only for own posts; removed channel members may still like others' posts. */}
         {isOwn ? (
           <Button
             variant="ghost"
@@ -211,7 +211,7 @@ function PostCardComponent({
           </Button>
         )}
 
-        {/* Comment */}
+        {/* Comment — link opens thread (composer hidden server-side + in UI when locked) */}
         <Button
           variant="ghost"
           size="sm"
@@ -230,15 +230,17 @@ function PostCardComponent({
 
         {/* Options menu — far right */}
         <div className="relative ml-auto shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-xl text-slate-500 hover:bg-slate-200/80 hover:text-slate-800 dark:hover:bg-slate-700/50 dark:hover:text-slate-300"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label="Post options"
-          >
-            <MoreHorizontal className="w-4 h-4" />
-          </Button>
+          {(isOwn || (!isOwn && onReport)) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-xl text-slate-500 hover:bg-slate-200/80 hover:text-slate-800 dark:hover:bg-slate-700/50 dark:hover:text-slate-300"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Post options"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          )}
 
           {menuOpen && (
             <>

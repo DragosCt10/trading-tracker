@@ -17,6 +17,8 @@ interface CommentSectionProps {
   initialComments?: PaginatedResult<FeedComment>;
   onCountChange?: (delta: number) => void;
   onAuthorClick?: (username: string) => void;
+  /** Removed from public channel by owner — hide composer and replies. */
+  channelReadOnly?: boolean;
 }
 
 type EditState = 'idle' | 'editing' | 'saving';
@@ -119,6 +121,7 @@ function CommentItem({
   onAuthorClick,
   onReplyClick,
   variant = 'thread',
+  replyDisabled,
 }: {
   comment: FeedComment;
   currentProfileId?: string;
@@ -127,6 +130,7 @@ function CommentItem({
   onAuthorClick?: (username: string) => void;
   onReplyClick?: () => void;
   variant?: 'thread' | 'reply';
+  replyDisabled?: boolean;
 }) {
   const [editState, setEditState] = useState<EditState>('idle');
   const [editContent, setEditContent] = useState(comment.content);
@@ -290,7 +294,7 @@ function CommentItem({
       )}
 
       {/* Reply button — only for top-level comments */}
-      {!isReply && onReplyClick && editState === 'idle' && (
+      {!isReply && onReplyClick && !replyDisabled && editState === 'idle' && (
         <div className="mt-2">
           <button
             type="button"
@@ -315,6 +319,7 @@ function CommentWithReplies({
   onDelete,
   onReply,
   onAuthorClick,
+  repliesDisabled,
 }: {
   comment: FeedComment;
   currentProfileId?: string;
@@ -322,13 +327,14 @@ function CommentWithReplies({
   onDelete: (id: string, parentId?: string) => void;
   onReply: (parentId: string, content: string) => Promise<boolean>;
   onAuthorClick?: (username: string) => void;
+  repliesDisabled?: boolean;
 }) {
   const [replyOpen, setReplyOpen] = useState(false);
   const [replying, setReplying] = useState(false);
   // Always load replies for this thread (also supports optional nested `comment.replies` from the server)
   const repliesQuery = useReplies(comment.id, true);
   const replies = repliesQuery.data ?? comment.replies ?? [];
-  const showReplyThread = replyOpen || replies.length > 0;
+  const showReplyThread = repliesDisabled ? replies.length > 0 : replyOpen || replies.length > 0;
 
   async function handleReplySubmit(content: string) {
     setReplying(true);
@@ -349,12 +355,13 @@ function CommentWithReplies({
         onEdit={(id, content) => onEdit(id, content)}
         onDelete={(id) => onDelete(id)}
         onAuthorClick={onAuthorClick}
-        onReplyClick={() => setReplyOpen((o) => !o)}
+        onReplyClick={repliesDisabled ? undefined : () => setReplyOpen((o) => !o)}
+        replyDisabled={repliesDisabled}
       />
 
       {showReplyThread && (
         <div className="ml-4 sm:ml-6 pl-3 sm:pl-4 border-l-2 border-slate-200/70 dark:border-slate-700/55 space-y-2">
-          {replyOpen && (
+          {replyOpen && !repliesDisabled && (
             <div className="pt-0.5 space-y-1.5">
               {repliesQuery.isFetching && replies.length === 0 && <ReplySkeleton />}
               <ReplyInput
@@ -385,7 +392,14 @@ function CommentWithReplies({
 
 // ─── Comment section ──────────────────────────────────────────────────────────
 
-export default function CommentSection({ postId, currentProfileId, initialComments, onCountChange, onAuthorClick }: CommentSectionProps) {
+export default function CommentSection({
+  postId,
+  currentProfileId,
+  initialComments,
+  onCountChange,
+  onAuthorClick,
+  channelReadOnly = false,
+}: CommentSectionProps) {
   const { query, add, edit, remove } = useComments(postId, initialComments);
   const comments = query.data?.pages.flatMap((p) => p.items) ?? [];
 
@@ -414,9 +428,14 @@ export default function CommentSection({ postId, currentProfileId, initialCommen
 
   return (
     <div className="space-y-3">
-      {currentProfileId && (
-        <CommentInput onSubmit={handleAdd} isSubmitting={add.isPending} />
-      )}
+      {currentProfileId &&
+        (channelReadOnly ? (
+          <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+            You cannot comment here until the channel owner adds you back to the channel.
+          </div>
+        ) : (
+          <CommentInput onSubmit={handleAdd} isSubmitting={add.isPending} />
+        ))}
 
       {comments.length === 0 && !query.isLoading ? (
         <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none px-4 py-6 text-center">
@@ -433,6 +452,7 @@ export default function CommentSection({ postId, currentProfileId, initialCommen
               onDelete={handleDelete}
               onReply={handleReply}
               onAuthorClick={onAuthorClick}
+              repliesDisabled={channelReadOnly}
             />
           ))}
         </div>

@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { Hash, Lock, Globe, ArrowLeft } from 'lucide-react';
 import { useFeed } from '@/hooks/useFeed';
 import { usePostActions } from '@/hooks/usePostActions';
-import { useChannelActions, useIsChannelMember } from '@/hooks/useChannels';
+import { useChannelActions, useChannelMembershipFlags } from '@/hooks/useChannels';
 import FeedPostList from '@/components/feed/FeedPostList';
 import EditPostModal from '@/components/feed/EditPostModal';
 import InlineCreatePostCard from '@/components/feed/InlineCreatePostCard';
+import ChannelPublicRemovedCard from '@/components/feed/ChannelPublicRemovedCard';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
 import type { FeedChannel, FeedPost, PaginatedResult, SocialProfile } from '@/types/social';
@@ -25,7 +26,9 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
   const [editPost, setEditPost] = useState<FeedPost | null>(null);
 
   const { subscription } = useSubscription({ userId });
-  const { data: isMember = false, isLoading: isMemberIsLoading, isFetching: isMemberIsFetching } = useIsChannelMember(channel.id);
+  const { data: membership, isLoading: isMemberIsLoading, isFetching: isMemberIsFetching } = useChannelMembershipFlags(channel.id);
+  const isMember = membership?.isMember ?? false;
+  const removedByOwner = membership?.removedByOwner ?? false;
   const isMemberLoading = isMemberIsLoading || isMemberIsFetching;
   const { join, leave } = useChannelActions(userId);
 
@@ -85,7 +88,7 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
               ) : null}
             </div>
           </div>
-          {channel.is_public && channel.owner_id !== currentProfile?.id && (
+          {channel.is_public && channel.owner_id !== currentProfile?.id && !removedByOwner && (
             isMemberLoading ? (
               <div className="h-8 w-16 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse shrink-0" />
             ) : isMember ? (
@@ -122,6 +125,8 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
             <div className="h-8 w-16 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
           </div>
         </div>
+      ) : removedByOwner && currentProfile ? (
+        <ChannelPublicRemovedCard />
       ) : isMember && subscription && currentProfile && (
         <InlineCreatePostCard
           userId={userId}

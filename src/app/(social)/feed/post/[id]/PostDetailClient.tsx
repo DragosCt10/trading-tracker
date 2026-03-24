@@ -8,6 +8,7 @@ import PostCard from '@/components/feed/PostCard';
 import CommentSection from '@/components/feed/CommentSection';
 import ProfilePreviewModal from '@/components/feed/ProfilePreviewModal';
 import { usePostActions } from '@/hooks/usePostActions';
+import { useChannelMembershipFlags } from '@/hooks/useChannels';
 import { useSocialProfile } from '@/hooks/useSocialProfile';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -27,6 +28,8 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
   const { data: ownProfile } = useSocialProfile(userId);
   const { subscription } = useSubscription({ userId });
   const { like, remove } = usePostActions(userId);
+  const { data: channelMembership } = useChannelMembershipFlags(post.channel_id ?? '');
+  const channelReadOnly = !!post.channel_id && (channelMembership?.removedByOwner ?? false);
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const [previewUsername, setPreviewUsername] = useState<string | null>(null);
 
@@ -74,6 +77,7 @@ export default function PostDetailClient({ post, initialComments }: PostDetailCl
           initialComments={initialComments}
           onCountChange={(delta) => setCommentCount((prev) => Math.max(0, prev + delta))}
           onAuthorClick={(username) => setPreviewUsername(username)}
+          channelReadOnly={channelReadOnly}
         />
       </div>
       <ProfilePreviewModal
