@@ -26,7 +26,7 @@ export default function FollowButton({ targetProfileId, initialFollowing, isLoad
   if (isLoading) {
     return (
       <div
-        className="h-8 w-8 rounded-xl bg-slate-200/80 dark:bg-slate-700/60 animate-pulse"
+        className="h-7 w-7 rounded-xl bg-slate-200/80 dark:bg-slate-700/60 animate-pulse"
         aria-label="Loading follow button"
       />
     );
@@ -58,20 +58,20 @@ export default function FollowButton({ targetProfileId, initialFollowing, isLoad
       size="sm"
       className={
         following
-          ? 'h-8 w-8 p-0 rounded-xl border border-slate-300/80 dark:border-slate-600/70 bg-slate-100/90 dark:bg-slate-800/40 text-slate-600 dark:text-rose-300 hover:text-rose-500 dark:hover:text-rose-200 hover:border-rose-300 dark:hover:border-rose-400/60 hover:bg-rose-50 dark:hover:bg-rose-500/12 transition-all duration-200 disabled:opacity-50 cursor-pointer'
+          ? 'h-7 w-7 p-0 rounded-xl border border-slate-300/80 dark:border-slate-600/70 bg-slate-100/90 dark:bg-slate-800/40 text-slate-600 dark:text-rose-300 hover:text-rose-500 dark:hover:text-rose-200 hover:border-rose-300 dark:hover:border-rose-400/60 hover:bg-rose-50 dark:hover:bg-rose-500/12 transition-all duration-200 disabled:opacity-50 cursor-pointer'
           : isLightMode
-            ? 'h-8 w-8 p-0 rounded-xl text-violet-700 border border-violet-300/80 bg-violet-100/80 hover:bg-violet-200/80 hover:border-violet-400/80 hover:text-violet-800 transition-colors duration-200 disabled:opacity-50 cursor-pointer'
-            : 'relative overflow-hidden h-8 w-8 p-0 rounded-xl text-white border-0 disabled:opacity-50 group cursor-pointer bg-gradient-to-r from-[#A665FF] via-[#8B5CF6] to-[#D32FD6] hover:from-[#B07CFF] hover:via-[#9D6BFF] hover:to-[#DF49DE] shadow-[0_10px_24px_-10px_rgba(168,95,255,0.95)]'
+            ? 'h-7 w-7 p-0 rounded-xl text-violet-700 border border-violet-300/80 bg-violet-100/80 hover:bg-violet-200/80 hover:border-violet-400/80 hover:text-violet-800 transition-colors duration-200 disabled:opacity-50 cursor-pointer'
+            : 'relative overflow-hidden h-7 w-7 p-0 rounded-xl text-white border-0 disabled:opacity-50 group cursor-pointer bg-gradient-to-r from-[#A665FF] via-[#8B5CF6] to-[#D32FD6] hover:from-[#B07CFF] hover:via-[#9D6BFF] hover:to-[#DF49DE] shadow-[0_10px_24px_-10px_rgba(168,95,255,0.95)]'
       }
       aria-label={following ? 'Unfollow user' : 'Follow user'}
       title={following ? 'Unfollow' : 'Follow'}
     >
       {loading ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        <Loader2 className="w-2.5 h-2.5 animate-spin" />
       ) : following ? (
-        <UserMinus className="w-3.5 h-3.5" />
+        <UserMinus className="w-2.5 h-2.5" />
       ) : (
-        <UserPlus className="relative z-10 w-3.5 h-3.5" />
+        <UserPlus className="relative z-10 w-2.5 h-2.5" />
       )}
       {!following && !loading && !isLightMode && (
         <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
