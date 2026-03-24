@@ -90,19 +90,14 @@ async function getLiveFollowCounts(
   };
 }
 
-/** Generate a unique username from an email prefix with retry. */
+/** Generate a unique username in trader + 6 digits format. */
 async function generateUniqueUsername(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  emailPrefix: string
+  supabase: Awaited<ReturnType<typeof createClient>>
 ): Promise<string> {
-  const base = normalizeUsername(emailPrefix) || 'user';
-
-  const attempts = [
-    base,
-    `${base}${Math.floor(1000 + Math.random() * 9000)}`,
-    `${base}${Math.random().toString(16).slice(2, 10)}`,
-    `user${Math.random().toString(16).slice(2, 16)}`,
-  ];
+  const attempts = Array.from({ length: 8 }, () => {
+    const sixDigits = Math.floor(100000 + Math.random() * 900000);
+    return `trader${sixDigits}`;
+  });
 
   for (const candidate of attempts) {
     const { count } = await supabase
@@ -113,8 +108,9 @@ async function generateUniqueUsername(
     if ((count ?? 0) === 0) return candidate;
   }
 
-  // Fallback: always unique
-  return `user${Date.now().toString(36)}`;
+  // Fallback: still follows trader + 6 digits format.
+  const fallback = Math.floor(100000 + Math.random() * 900000);
+  return `trader${fallback}`;
 }
 
 // ─── Read ────────────────────────────────────────────────────────────────────
@@ -220,7 +216,7 @@ export async function ensureSocialProfile(): Promise<SocialProfile | null> {
 
     // Retry on username conflicts to handle concurrent profile creation safely.
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      const username = await generateUniqueUsername(supabase, emailPrefix);
+    const username = await generateUniqueUsername(supabase);
       const { data: created, error } = await supabase
         .from('social_profiles')
         .insert({ user_id: userId, display_name: displayName, username })
