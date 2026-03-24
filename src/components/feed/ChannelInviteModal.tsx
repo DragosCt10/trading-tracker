@@ -69,7 +69,7 @@ function expiryToDate(value: string): string | undefined {
 
 export default function ChannelInviteModal({ channel, userId, open, onClose }: ChannelInviteModalProps) {
   const { data: invites = [], isLoading } = useChannelInvites(channel.id, userId);
-  const { create, revoke } = useChannelInviteActions(channel.id, userId);
+  const { create, revoke } = useChannelInviteActions(channel.id);
 
   const [label, setLabel]     = useState('');
   const [maxUses, setMaxUses] = useState('');

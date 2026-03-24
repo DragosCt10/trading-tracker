@@ -148,6 +148,9 @@ export const queryKeys = {
   /** Active invite links for a private channel (owner only). */
   channelInvites: (channelId: string) => ['channel-invites', channelId] as const,
 
+  /** Whether the current user is a member of a specific channel. */
+  channelMembership: (channelId: string) => ['channel-membership', channelId] as const,
+
   /** Full Trade[] for a single calendar month (for calendar display). */
   calendarTrades: (
     mode: string,

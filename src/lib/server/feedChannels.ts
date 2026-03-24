@@ -165,6 +165,23 @@ export async function getChannelBySlug(slug: string): Promise<FeedChannel | null
   return channel;
 }
 
+export async function isChannelMember(channelId: string): Promise<boolean> {
+  const session = await getCachedUserSession();
+  if (!session.user) return false;
+
+  const profile = await getCachedSocialProfile(session.user.id);
+  if (!profile) return false;
+
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from('channel_members')
+    .select('channel_id', { count: 'exact', head: true })
+    .eq('channel_id', channelId)
+    .eq('user_id', profile.id);
+
+  return (count ?? 0) > 0;
+}
+
 // ─── Create (PRO only) ───────────────────────────────────────────────────────
 
 export async function createChannel(input: {

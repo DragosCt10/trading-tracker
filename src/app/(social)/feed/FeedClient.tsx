@@ -157,11 +157,11 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
           {/* Tab bar — matches AdminClient */}
           <div
             className={cn(
-              'sticky top-24 z-30 shrink-0 flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-900/40 p-1 backdrop-blur-sm',
-              'transition-all duration-300 ease-in-out',
-              feedChromeVisible
+              'shrink-0 flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-900/40 p-1 backdrop-blur-sm',
+              activeTab !== 'channels' && 'sticky top-24 z-30 transition-all duration-300 ease-in-out',
+              activeTab !== 'channels' && (feedChromeVisible
                 ? 'opacity-100 translate-y-0 pointer-events-auto'
-                : 'opacity-0 -translate-y-3 pointer-events-none'
+                : 'opacity-0 -translate-y-3 pointer-events-none')
             )}
           >
             {([
@@ -222,7 +222,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
             <div className="flex flex-col gap-4">
             <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/40">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Your Channels</h3>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">My Channels</h3>
               </div>
               {myChannels.length === 0 ? (
                 <div className="px-5 py-10 text-center">
@@ -263,7 +263,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                               {channel.member_count != null && (
                                 <>
                                   <span className="text-slate-300 dark:text-slate-700 text-xs">·</span>
-                                  <span className="flex items-center gap-0.5 text-xs text-slate-400 dark:text-slate-600">
+                                  <span className="flex items-center gap-0.5 text-xs text-slate-800 dark:text-slate-200">
                                     <Users className="w-3 h-3" />
                                     {channel.member_count}
                                   </span>
@@ -275,14 +275,18 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                         {isOwner ? (
                           <div className="flex items-center gap-2 shrink-0">
                             {!channel.is_public && (
-                              <button
-                                type="button"
-                                title="Invite people"
-                                onClick={(e) => { e.preventDefault(); setInviteModalChannel(channel); }}
-                                className="cursor-pointer p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/40 transition-colors"
-                              >
-                                <UserPlus className="w-4 h-4" />
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  title="Invite people"
+                                  onClick={(e) => { e.preventDefault(); setInviteModalChannel(channel); }}
+                                  className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white text-xs font-medium themed-btn-primary border-0 transition-opacity hover:opacity-90"
+                                >
+                                  <UserPlus className="w-3.5 h-3.5" />
+                                  Add
+                                </button>
+                                <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
+                              </>
                             )}
                             <div className="flex flex-col items-start leading-tight">
                               <span className="text-[10px] text-slate-500 dark:text-slate-200">
@@ -317,6 +321,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                               ? <Globe className="w-3.5 h-3.5 text-slate-500 dark:text-slate-600" />
                               : <Lock  className="w-3.5 h-3.5 text-slate-500 dark:text-slate-600" />
                             }
+                            <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 shrink-0" />
                             <Button
                               variant="outline"
                               size="sm"
@@ -354,7 +359,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                             {channel.member_count != null && (
                               <>
                                 <span className="text-slate-300 dark:text-slate-700 text-xs">·</span>
-                                <span className="flex items-center gap-0.5 text-xs text-slate-400 dark:text-slate-600">
+                                <span className="flex items-center gap-0.5 text-xs text-slate-800 dark:text-slate-200">
                                   <Users className="w-3 h-3" />
                                   {channel.member_count}
                                 </span>
@@ -368,7 +373,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                           <Button
                             variant="outline"
                             size="sm"
-                            className="shrink-0 h-7 rounded-lg text-xs border-slate-300 dark:border-slate-600 text-red-600 hover:text-red-700 hover:border-red-300 dark:text-red-400 dark:border-slate-600 dark:hover:border-red-500"
+                            className="shrink-0 cursor-pointer h-7 rounded-lg text-xs border-slate-300 dark:border-slate-600 text-red-600 hover:text-red-700 hover:border-red-300 dark:text-red-400 dark:border-slate-600 dark:hover:border-red-500"
                             disabled={leaveChannel.isPending}
                             onClick={() => leaveChannel.mutate(channel.id)}
                           >
@@ -378,7 +383,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                           <Button
                             variant="outline"
                             size="sm"
-                            className="shrink-0 h-7 rounded-lg text-xs border-slate-300 dark:border-slate-600"
+                            className="shrink-0 h-7 rounded-lg text-xs border-slate-300 dark:border-slate-600 cursor-pointer"
                             disabled={joinChannel.isPending}
                             onClick={() => joinChannel.mutate(channel.id)}
                           >
@@ -419,7 +424,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
         </div>
 
         {/* Sidebar — height follows content; long channel lists scroll inside a capped area */}
-        <aside className="hidden lg:flex flex-col gap-6 w-72 shrink-0 self-start sticky top-24 h-fit">
+        <aside className={cn('hidden lg:flex flex-col gap-6 w-72 shrink-0 self-start h-fit', activeTab !== 'channels' && 'sticky top-24')}>
           <div className="shrink-0 rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-1">
             <SearchBar />
           </div>
@@ -431,7 +436,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  className="h-7 w-7 p-0 -mr-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                   onClick={() => setChannelModalOpen(true)}
                   aria-label="Create channel"
                 >
@@ -474,7 +479,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                         {channel.member_count != null && (
                           <>
                             <span className="text-slate-300 dark:text-slate-700 text-[10px]">·</span>
-                            <span className="flex items-center gap-0.5 text-[10px] text-slate-400 dark:text-slate-600">
+                            <span className="flex items-center gap-0.5 text-[10px] text-slate-800 dark:text-slate-200">
                               <Users className="w-2.5 h-2.5" />
                               {channel.member_count}
                             </span>
@@ -523,7 +528,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
         />
       )}
 
-      {userId && initialProfile && subscription && (
+      {userId && initialProfile && subscription && activeTab !== 'channels' && (
         <div
           className={cn(
             'hidden lg:flex justify-center fixed bottom-6 z-40 right-[max(1rem,calc((100vw-64rem)/2+0rem))] w-72',

@@ -7,6 +7,7 @@ import {
   deleteChannel,
   joinChannel,
   leaveChannel,
+  isChannelMember,
 } from '@/lib/server/feedChannels';
 import {
   getChannelInvites,
@@ -22,6 +23,7 @@ export function useMyChannels(userId?: string) {
     queryFn: getMyChannels,
     enabled: !!userId,
     ...FEED_DATA,
+    refetchOnMount: true,
   });
 }
 
@@ -30,6 +32,16 @@ export function usePublicChannels() {
     queryKey: queryKeys.feed.channels(),
     queryFn: () => getPublicChannels(),
     ...FEED_DATA,
+    refetchOnMount: true,
+  });
+}
+
+export function useIsChannelMember(channelId: string) {
+  return useQuery({
+    queryKey: queryKeys.channelMembership(channelId),
+    queryFn: () => isChannelMember(channelId),
+    ...FEED_DATA,
+    refetchOnMount: 'always',
   });
 }
 
@@ -41,6 +53,7 @@ export function useChannelActions(userId?: string) {
   function invalidateChannelLists() {
     qc.invalidateQueries({ queryKey: myChannelsKey });
     qc.invalidateQueries({ queryKey: publicChannelsKey });
+    qc.invalidateQueries({ queryKey: ['channel-membership'] });
   }
 
   const create = useMutation({
@@ -81,7 +94,7 @@ export function useChannelInvites(channelId: string, userId?: string) {
   });
 }
 
-export function useChannelInviteActions(channelId: string, userId?: string) {
+export function useChannelInviteActions(channelId: string) {
   const qc = useQueryClient();
   const invitesKey = queryKeys.channelInvites(channelId);
 

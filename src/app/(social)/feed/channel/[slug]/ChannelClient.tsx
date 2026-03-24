@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { Hash, Lock, Globe, ArrowLeft } from 'lucide-react';
 import { useFeed } from '@/hooks/useFeed';
 import { usePostActions } from '@/hooks/usePostActions';
+import { useChannelActions, useIsChannelMember } from '@/hooks/useChannels';
 import FeedPostList from '@/components/feed/FeedPostList';
 import EditPostModal from '@/components/feed/EditPostModal';
 import InlineCreatePostCard from '@/components/feed/InlineCreatePostCard';
+import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
 import type { FeedChannel, FeedPost, PaginatedResult, SocialProfile } from '@/types/social';
 
@@ -23,6 +25,9 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
   const [editPost, setEditPost] = useState<FeedPost | null>(null);
 
   const { subscription } = useSubscription({ userId });
+  const { data: isMember = false, isLoading: isMemberIsLoading, isFetching: isMemberIsFetching } = useIsChannelMember(channel.id);
+  const isMemberLoading = isMemberIsLoading || isMemberIsFetching;
+  const { join, leave } = useChannelActions(userId);
 
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(
     userId,
@@ -80,10 +85,44 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
               ) : null}
             </div>
           </div>
+          {channel.is_public && channel.owner_id !== currentProfile?.id && (
+            isMemberLoading ? (
+              <div className="h-8 w-16 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse shrink-0" />
+            ) : isMember ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 rounded-xl text-sm border-slate-300 dark:border-slate-600 text-red-600 hover:text-red-700 hover:border-red-300 dark:text-red-400 dark:hover:border-red-500 cursor-pointer"
+                disabled={leave.isPending}
+                onClick={() => leave.mutate(channel.id)}
+              >
+                Leave
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 rounded-xl text-sm border-slate-300 dark:border-slate-600 cursor-pointer"
+                disabled={join.isPending}
+                onClick={() => join.mutate(channel.id)}
+              >
+                Join
+              </Button>
+            )
+          )}
         </div>
       </div>
 
-      {subscription && currentProfile && (
+      {isMemberLoading ? (
+        <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-4 space-y-3">
+          <div className="h-4 w-3/4 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse" />
+          <div className="h-4 w-1/2 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse" />
+          <div className="flex justify-end gap-2 pt-1">
+            <div className="h-8 w-24 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
+            <div className="h-8 w-16 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
+          </div>
+        </div>
+      ) : isMember && subscription && currentProfile && (
         <InlineCreatePostCard
           userId={userId}
           profile={currentProfile}
