@@ -108,9 +108,22 @@ export async function getPublicChannels(
 
   const { data } = await q;
   const rows = (data ?? []) as Record<string, unknown>[];
+  const pageRows = rows.slice(0, limit);
+
+  const channelIds = pageRows.map((r) => r.id as string);
+  const countMap: Record<string, number> = {};
+  if (channelIds.length > 0) {
+    const { data: memberCountRows } = await supabase
+      .from('channel_members')
+      .select('channel_id')
+      .in('channel_id', channelIds);
+    (memberCountRows ?? []).forEach((m: { channel_id: string }) => {
+      countMap[m.channel_id] = (countMap[m.channel_id] ?? 0) + 1;
+    });
+  }
 
   return {
-    items: rows.slice(0, limit).map(mapRow),
+    items: pageRows.map((r) => ({ ...mapRow(r), member_count: countMap[r.id as string] ?? 0 })),
     nextCursor: rows.length > limit ? (rows[limit - 1].created_at as string) : null,
     hasMore: rows.length > limit,
   };
