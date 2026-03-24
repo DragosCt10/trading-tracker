@@ -11,11 +11,8 @@
 --   get_channel_feed()  — same for channel feeds
 --   get_timeline()      — following feed using JOIN on follows (not IN())
 --
--- Note: SET search_path at the top is required — LANGUAGE sql functions are
--- analyzed at CREATE time using the session search_path, not the function-level
--- SET option (which only applies at execution time).
+-- Note: Tables are fully qualified as public.<table> to avoid search_path issues.
 -- ============================================================
-SET search_path TO public;
 
 
 -- ──────────────────────────────────────────────────────────────
@@ -68,18 +65,19 @@ AS $$
       'display_name', sp.display_name,
       'username',     sp.username,
       'avatar_url',   sp.avatar_url,
-      'tier',         sp.tier
+      'tier',         sp.tier,
+      'is_public',    sp.is_public
     ) AS author,
     (fl.post_id IS NOT NULL) AS is_liked_by_me
-  FROM feed_posts fp
-  INNER JOIN social_profiles sp ON sp.id = fp.author_id
-  LEFT JOIN social_profiles viewer ON viewer.user_id = p_user_id
-  LEFT JOIN feed_likes fl
+  FROM public.feed_posts fp
+  INNER JOIN public.social_profiles sp ON sp.id = fp.author_id
+  LEFT JOIN public.social_profiles viewer ON viewer.user_id = p_user_id
+  LEFT JOIN public.feed_likes fl
     ON fl.post_id = fp.id
     AND fl.user_id = viewer.id
   LEFT JOIN LATERAL (
     SELECT COUNT(*)::int AS comment_count
-    FROM feed_comments c
+    FROM public.feed_comments c
     WHERE c.post_id = fp.id
       AND c.is_hidden = false
   ) fc ON true
@@ -138,18 +136,19 @@ AS $$
       'display_name', sp.display_name,
       'username',     sp.username,
       'avatar_url',   sp.avatar_url,
-      'tier',         sp.tier
+      'tier',         sp.tier,
+      'is_public',    sp.is_public
     ) AS author,
     (fl.post_id IS NOT NULL) AS is_liked_by_me
-  FROM feed_posts fp
-  INNER JOIN social_profiles sp ON sp.id = fp.author_id
-  LEFT JOIN social_profiles viewer ON viewer.user_id = p_user_id
-  LEFT JOIN feed_likes fl
+  FROM public.feed_posts fp
+  INNER JOIN public.social_profiles sp ON sp.id = fp.author_id
+  LEFT JOIN public.social_profiles viewer ON viewer.user_id = p_user_id
+  LEFT JOIN public.feed_likes fl
     ON fl.post_id = fp.id
     AND fl.user_id = viewer.id
   LEFT JOIN LATERAL (
     SELECT COUNT(*)::int AS comment_count
-    FROM feed_comments c
+    FROM public.feed_comments c
     WHERE c.post_id = fp.id
       AND c.is_hidden = false
   ) fc ON true
@@ -212,23 +211,24 @@ AS $$
       'display_name', sp.display_name,
       'username',     sp.username,
       'avatar_url',   sp.avatar_url,
-      'tier',         sp.tier
+      'tier',         sp.tier,
+      'is_public',    sp.is_public
     ) AS author,
     (fl.post_id IS NOT NULL) AS is_liked_by_me
-  FROM feed_posts fp
-  INNER JOIN social_profiles sp ON sp.id = fp.author_id
+  FROM public.feed_posts fp
+  INNER JOIN public.social_profiles sp ON sp.id = fp.author_id
   CROSS JOIN (
-    SELECT id FROM social_profiles WHERE user_id = p_user_id LIMIT 1
+    SELECT id FROM public.social_profiles WHERE user_id = p_user_id LIMIT 1
   ) AS viewer
-  LEFT JOIN follows f
+  LEFT JOIN public.follows f
     ON f.following_id = fp.author_id
     AND f.follower_id = viewer.id
-  LEFT JOIN feed_likes fl
+  LEFT JOIN public.feed_likes fl
     ON fl.post_id = fp.id
     AND fl.user_id = viewer.id
   LEFT JOIN LATERAL (
     SELECT COUNT(*)::int AS comment_count
-    FROM feed_comments c
+    FROM public.feed_comments c
     WHERE c.post_id = fp.id
       AND c.is_hidden = false
   ) fc ON true
