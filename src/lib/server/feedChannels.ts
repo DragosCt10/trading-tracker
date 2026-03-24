@@ -6,6 +6,7 @@ import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { getCachedSubscription } from './subscription';
 import type { ChannelMember, FeedChannel, PaginatedResult } from '@/types/social';
+import type { TierId } from '@/types/subscription';
 
 type ChannelResult<T> =
   | { data: T }
@@ -58,7 +59,7 @@ function mapChannelMemberRow(row: Record<string, unknown>): ChannelMember {
           display_name: rawProfile.display_name as string,
           username: rawProfile.username as string,
           avatar_url: (rawProfile.avatar_url as string | null) ?? null,
-          tier: rawProfile.tier as ChannelMember['profile']['tier'],
+          tier: rawProfile.tier as TierId,
         }
       : undefined,
   };
@@ -525,7 +526,7 @@ export async function addChannelMemberByHandle(
   const targetProfileId = (targetProfile as { id: string }).id;
   const admin = createServiceRoleClient();
 
-  const { error: insertError } = await admin
+  const { error: insertError } = await (admin as any)
     .from('channel_members')
     .upsert(
       { channel_id: channelId, user_id: targetProfileId, role: targetProfileId === profile.id ? 'owner' : 'member' },
@@ -570,7 +571,7 @@ export async function removeChannelMemberByUserId(
   }
 
   const admin = createServiceRoleClient();
-  const { error } = await admin
+  const { error } = await (admin as any)
     .from('channel_members')
     .delete()
     .eq('channel_id', channelId)
