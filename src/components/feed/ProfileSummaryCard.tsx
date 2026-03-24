@@ -45,7 +45,7 @@ export default function ProfileSummaryCard({
   return (
     <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-6">
       <div className="flex items-start gap-4">
-        <div className={`w-16 h-16 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xl shrink-0 ${showTierBadge && mounted && isPro ? 'ring-2 ring-amber-400/75 ring-offset-2 ring-offset-white dark:ring-offset-slate-800' : ''}`}>
+        <div className={`w-16 h-16 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold text-xl shrink-0 ${showTierBadge && mounted && isPro ? 'ring-2 ring-[#b45309]/45 dark:ring-[rgba(251,191,36,0.45)] ring-offset-2 ring-offset-white dark:ring-offset-slate-800' : ''}`}>
           {profile.avatar_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={profile.avatar_url} alt={displayedName} className="w-full h-full object-cover" />

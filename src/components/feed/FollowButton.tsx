@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, UserMinus, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { followUser, unfollowUser } from '@/lib/server/socialProfile';
+import { useTheme } from '@/hooks/useTheme';
 
 interface FollowButtonProps {
   targetProfileId: string;
@@ -15,6 +16,8 @@ interface FollowButtonProps {
 export default function FollowButton({ targetProfileId, initialFollowing, isLoading = false, onFollowChange }: FollowButtonProps) {
   const [following, setFollowing] = useState(initialFollowing);
   const [loading, setLoading]     = useState(false);
+  const { theme, mounted } = useTheme();
+  const isLightMode = mounted && theme === 'light';
 
   useEffect(() => {
     setFollowing(initialFollowing);
@@ -55,8 +58,10 @@ export default function FollowButton({ targetProfileId, initialFollowing, isLoad
       size="sm"
       className={
         following
-          ? 'h-8 w-8 p-0 rounded-xl border border-slate-500/55 bg-slate-900/20 text-rose-400 hover:text-rose-300 hover:border-rose-400/60 hover:bg-rose-500/12 transition-all duration-200 disabled:opacity-50 cursor-pointer'
-          : 'relative overflow-hidden h-8 w-8 p-0 rounded-xl text-white border-0 disabled:opacity-50 group cursor-pointer bg-gradient-to-r from-[#A665FF] via-[#8B5CF6] to-[#D32FD6] hover:from-[#B07CFF] hover:via-[#9D6BFF] hover:to-[#DF49DE] shadow-[0_10px_24px_-10px_rgba(168,95,255,0.95)]'
+          ? 'h-8 w-8 p-0 rounded-xl border border-slate-300/80 dark:border-slate-600/70 bg-slate-100/90 dark:bg-slate-800/40 text-slate-600 dark:text-rose-300 hover:text-rose-500 dark:hover:text-rose-200 hover:border-rose-300 dark:hover:border-rose-400/60 hover:bg-rose-50 dark:hover:bg-rose-500/12 transition-all duration-200 disabled:opacity-50 cursor-pointer'
+          : isLightMode
+            ? 'h-8 w-8 p-0 rounded-xl text-violet-700 border border-violet-300/80 bg-violet-100/80 hover:bg-violet-200/80 hover:border-violet-400/80 hover:text-violet-800 transition-colors duration-200 disabled:opacity-50 cursor-pointer'
+            : 'relative overflow-hidden h-8 w-8 p-0 rounded-xl text-white border-0 disabled:opacity-50 group cursor-pointer bg-gradient-to-r from-[#A665FF] via-[#8B5CF6] to-[#D32FD6] hover:from-[#B07CFF] hover:via-[#9D6BFF] hover:to-[#DF49DE] shadow-[0_10px_24px_-10px_rgba(168,95,255,0.95)]'
       }
       aria-label={following ? 'Unfollow user' : 'Follow user'}
       title={following ? 'Unfollow' : 'Follow'}
@@ -68,7 +73,7 @@ export default function FollowButton({ targetProfileId, initialFollowing, isLoad
       ) : (
         <UserPlus className="relative z-10 w-3.5 h-3.5" />
       )}
-      {!following && !loading && (
+      {!following && !loading && !isLightMode && (
         <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
       )}
     </Button>

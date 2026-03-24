@@ -105,7 +105,7 @@ function CommentItem({
       <div className="flex items-start gap-3 mb-3">
         <Link href={`/profile/${comment.author.username}`} onClick={handleAuthorClick} className="shrink-0">
           <div
-            className={`w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm ${mounted && isPro ? 'ring-2 ring-amber-400/75 ring-offset-1 ring-offset-white dark:ring-offset-slate-800' : ''}`}
+            className={`w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm ${mounted && isPro ? 'ring-2 ring-[#b45309]/45 dark:ring-[rgba(251,191,36,0.45)] ring-offset-1 ring-offset-white dark:ring-offset-slate-800' : ''}`}
           >
             {comment.author.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element

@@ -14,6 +14,7 @@ import { USER_DATA } from '@/constants/queryConfig';
 import type { TradeSelectorItem, TradeSnapshot, SocialProfile } from '@/types/social';
 import { getPublicDisplayName } from '@/utils/displayName';
 import type { ResolvedSubscription } from '@/types/subscription';
+import { FEED_CARD_SURFACE_CLASS } from './feedCardStyles';
 
 interface InlineCreatePostCardProps {
   userId: string;
@@ -103,7 +104,7 @@ export default function InlineCreatePostCard({
 
   const avatarRing =
     mounted && isPro
-      ? 'ring-2 ring-amber-400/75 ring-offset-1 ring-offset-white dark:ring-offset-slate-800'
+      ? 'ring-2 ring-[#b45309]/45 dark:ring-[rgba(251,191,36,0.45)] ring-offset-1 ring-offset-white dark:ring-offset-slate-800'
       : '';
 
   const avatarContent = profile.avatar_url ? (
@@ -127,7 +128,7 @@ export default function InlineCreatePostCard({
 
   /** Match PostCard surface; blur on outer, clip on inner for collapse animation. */
   const shellOuterClass =
-    'rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm motion-reduce:transition-none';
+    `${FEED_CARD_SURFACE_CLASS} motion-reduce:transition-none`;
   const shellInnerClass = 'overflow-hidden rounded-2xl motion-reduce:transition-none';
 
   const rowTransition =
@@ -187,7 +188,7 @@ export default function InlineCreatePostCard({
             <div className="flex items-start gap-3">
               {avatar}
 
-              <div className="flex-1 min-w-0 space-y-2">
+              <div className="flex-1 min-w-0 space-y-3">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-sm text-slate-900 dark:text-slate-100 leading-none">
                     {displayedName}
@@ -210,7 +211,7 @@ export default function InlineCreatePostCard({
                   rows={2}
                   disabled={limitReached || isSubmitting}
                   placeholder="What's your trade thesis today?"
-                  className="w-full resize-none bg-transparent text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-[15px] leading-[1.65] focus:outline-none disabled:opacity-50"
+                  className="w-full resize-none bg-transparent text-[15px] leading-[1.65] text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none disabled:opacity-50"
                 />
 
                 {selectedTrade && <TradePreviewCard snapshot={tradeToSnapshot(selectedTrade)} />}
@@ -228,7 +229,7 @@ export default function InlineCreatePostCard({
               </div>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-slate-200/70 dark:border-slate-700/40 flex items-center justify-end gap-3">
+            <div className="mt-4 flex items-center justify-end gap-3 border-t border-slate-200/80 pt-3 dark:border-slate-700/40">
               {canAttach && (
                 <div className="flex items-center gap-2">
                   <button

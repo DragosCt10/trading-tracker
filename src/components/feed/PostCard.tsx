@@ -13,6 +13,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { formatCompactCount } from '@/lib/utils';
 import { formatFeedDateTime } from '@/utils/feedDateFormat';
 import { getPublicDisplayName } from '@/utils/displayName';
+import { FEED_CARD_SURFACE_CLASS } from './feedCardStyles';
 
 interface PostCardProps {
   post: FeedPost;
@@ -74,12 +75,12 @@ function PostCardComponent({
   };
 
   return (
-    <article data-post-id={post.id} className="rounded-2xl mb-6 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-5">
+    <article data-post-id={post.id} className={`${FEED_CARD_SURFACE_CLASS} p-5`}>
       {/* Author header */}
-      <div className="flex items-start gap-3 mb-7">
+      <div className="mb-5 flex items-start gap-3">
         <Link href={`/profile/${post.author.username}`} onClick={handleAuthorClick} className="shrink-0">
           <div
-            className={`w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm ${mounted && isPro ? 'ring-2 ring-amber-400/75 ring-offset-1 ring-offset-white dark:ring-offset-slate-800' : ''}`}
+            className={`w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center text-slate-600 dark:text-slate-300 font-semibold text-sm ${mounted && isPro ? 'ring-2 ring-[#b45309]/45 dark:ring-[rgba(251,191,36,0.45)] ring-offset-1 ring-offset-white dark:ring-offset-slate-800' : ''}`}
           >
             {post.author.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -93,7 +94,7 @@ function PostCardComponent({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <Link href={`/profile/${post.author.username}`} onClick={handleAuthorClick} className="font-semibold text-sm text-slate-900 dark:text-slate-100 hover:text-slate-700 dark:hover:text-white transition-colors leading-none">
+            <Link href={`/profile/${post.author.username}`} onClick={handleAuthorClick} className="text-sm font-semibold leading-none text-slate-900 transition-colors hover:text-slate-700 dark:text-slate-100 dark:hover:text-white">
               {displayedAuthorName}
             </Link>
             {!mounted && isPro && (
@@ -104,11 +105,11 @@ function PostCardComponent({
             )}
           </div>
           <div className="flex items-center gap-1.5 mt-1">
-            <span className="text-slate-500 text-xs">@{post.author.is_public ? post.author.username : displayedAuthorName.toLowerCase()}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">@{post.author.is_public ? post.author.username : displayedAuthorName.toLowerCase()}</span>
           </div>
         </div>
         <div className="ml-auto pl-2 flex items-center gap-2 shrink-0">
-          <span className="text-slate-500 text-xs shrink-0" suppressHydrationWarning>
+          <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400" suppressHydrationWarning>
             {formatFeedDateTime(post.created_at)}
           </span>
           {showAuthorFollowButton && currentUserId && !isOwn && (
@@ -128,7 +129,7 @@ function PostCardComponent({
       {/* Post text */}
       <p
         suppressHydrationWarning
-        className={`text-[15px] leading-[1.65] text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words ${!expanded ? 'line-clamp-6' : ''} ${post.trade_snapshot ? 'mb-3' : ''}`}
+        className={`text-[15px] leading-[1.65] text-slate-700 dark:text-slate-200 whitespace-pre-wrap break-words ${!expanded ? 'line-clamp-6' : ''} ${post.trade_snapshot ? 'mb-4' : ''}`}
       >
         {post.content}
       </p>
@@ -137,7 +138,7 @@ function PostCardComponent({
       {post.trade_snapshot && <TradePreviewCard snapshot={post.trade_snapshot} />}
 
       {/* Action bar */}
-      <div className="flex items-center gap-1 mt-4 pt-3 border-t border-slate-200/70 dark:border-slate-700/40">
+      <div className="mt-4 flex items-center gap-1 border-t border-slate-200/80 pt-3 dark:border-slate-700/40">
         {/* Like — read-only for own posts, interactive for others */}
         {isOwn ? (
           <Button
@@ -190,7 +191,7 @@ function PostCardComponent({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-700/50 rounded-xl"
+            className="h-8 w-8 rounded-xl text-slate-500 hover:bg-slate-200/80 hover:text-slate-800 dark:hover:bg-slate-700/50 dark:hover:text-slate-300"
             onClick={() => setMenuOpen((v) => !v)}
             aria-label="Post options"
           >
@@ -200,7 +201,7 @@ function PostCardComponent({
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute p-1 right-0 bottom-9 z-20 w-40 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40">
+              <div className="absolute right-0 bottom-9 z-20 w-40 rounded-2xl border border-slate-300/60 bg-slate-50/95 p-1 shadow-xl shadow-slate-900/10 backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80 dark:shadow-black/40">
                 {isOwn && onEdit && authorTier !== 'starter' && (
                   <button
                     type="button"

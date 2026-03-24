@@ -9,6 +9,9 @@ import { useTheme } from '@/hooks/useTheme';
 import { getFollowingProfileIds } from '@/lib/server/socialProfile';
 import type { FeedPost } from '@/types/social';
 import type { TierId } from '@/types/subscription';
+import { FEED_CARD_SURFACE_CLASS } from './feedCardStyles';
+
+const FEED_SURFACE_CLASS = FEED_CARD_SURFACE_CLASS;
 
 interface FeedPostListProps {
   posts: FeedPost[];
@@ -78,10 +81,10 @@ export default function FeedPostList({
 
   if (posts.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-10 text-center">
-        <p className="text-slate-600 dark:text-slate-400 font-medium">{emptyMessage}</p>
+      <div className={`${FEED_SURFACE_CLASS} p-10 text-center`}>
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{emptyMessage}</p>
         {emptySubtext && (
-          <p className="text-slate-500 dark:text-slate-600 text-sm mt-1">{emptySubtext}</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-500">{emptySubtext}</p>
         )}
       </div>
     );
@@ -95,7 +98,7 @@ export default function FeedPostList({
       endReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
       style={hasCustomScrollParent ? { height: '100%' } : undefined}
       itemContent={(_, post) => (
-        <div className="mb-3">
+        <div className="mb-4">
           <PostCard
             key={post.id}
             post={post}

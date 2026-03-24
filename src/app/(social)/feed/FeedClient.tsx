@@ -20,6 +20,7 @@ import CreateChannelModal from '@/components/feed/CreateChannelModal';
 import ChannelInviteModal from '@/components/feed/ChannelInviteModal';
 import SearchBar from '@/components/feed/SearchBar';
 import ProfilePreviewModal from '@/components/feed/ProfilePreviewModal';
+import { FEED_CARD_SURFACE_CLASS } from '@/components/feed/feedCardStyles';
 import { cn } from '@/lib/utils';
 import type { SocialProfile, FeedPost, FeedChannel } from '@/types/social';
 
@@ -36,6 +37,8 @@ const FEED_TAB_ICONS = {
   channels: Hash,
 } as const;
 
+const FEED_SURFACE_CLASS = FEED_CARD_SURFACE_CLASS;
+
 function ChannelListSkeleton({ rows = 3, compact = false }: { rows?: number; compact?: boolean }) {
   return (
     <div className="divide-y divide-slate-200/80 dark:divide-slate-800/60">
@@ -47,7 +50,7 @@ function ChannelListSkeleton({ rows = 3, compact = false }: { rows?: number; com
           <div className={compact ? 'h-6 w-6 rounded-lg bg-slate-200/80 dark:bg-slate-700/60 animate-pulse' : 'h-8 w-8 rounded-lg bg-slate-200/80 dark:bg-slate-700/60 animate-pulse'} />
           <div className="flex-1 min-w-0 space-y-1.5">
             <div className={compact ? 'h-3 w-28 rounded bg-slate-200/80 dark:bg-slate-700/60 animate-pulse' : 'h-4 w-36 rounded bg-slate-200/80 dark:bg-slate-700/60 animate-pulse'} />
-            <div className={compact ? 'h-2.5 w-20 rounded bg-slate-200/70 dark:bg-slate-700/50 animate-pulse' : 'h-3 w-24 rounded bg-slate-200/70 dark:bg-slate-700/50 animate-pulse'} />
+            <div className={compact ? 'h-2.5 w-20 rounded bg-slate-200/70 dark:bg-slate-700/40 animate-pulse' : 'h-3 w-24 rounded bg-slate-200/70 dark:bg-slate-700/40 animate-pulse'} />
           </div>
         </div>
       ))}
@@ -178,7 +181,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
           {/* Tab bar — matches AdminClient */}
           <div
             className={cn(
-              'shrink-0 flex gap-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-900/40 p-1 backdrop-blur-sm',
+              'shrink-0 flex gap-1 rounded-2xl border border-slate-300/60 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-900/40 p-1 backdrop-blur-sm shadow-sm shadow-slate-200/60 dark:shadow-none',
               activeTab !== 'channels' && 'sticky top-24 z-30 transition-all duration-300 ease-in-out',
               activeTab !== 'channels' && (feedChromeVisible
                 ? 'opacity-100 translate-y-0 pointer-events-auto'
@@ -201,10 +204,10 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                     clearCount();
                   }}
                   className={cn(
-                    'flex-1 rounded-xl px-4 py-2 min-h-[2.75rem] text-sm font-semibold transition-colors !shadow-none cursor-pointer flex items-center justify-center gap-1.5',
+                    'flex-1 rounded-xl px-4 py-2.5 min-h-[2.75rem] text-sm font-semibold transition-colors !shadow-none cursor-pointer flex items-center justify-center gap-1.5',
                     isActive
-                      ? 'text-slate-900 dark:text-slate-50 shadow-sm border border-slate-200/70 dark:border-slate-700/50 bg-white dark:bg-slate-800/30'
-                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                      ? 'text-slate-900 dark:text-slate-50 shadow-sm border border-slate-300/60 dark:border-slate-700/50 bg-slate-50/90 dark:bg-slate-800/30'
+                      : 'text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
                   )}
                 >
                   <TabIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -241,8 +244,8 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
           <div className="min-w-0">
           {isChannelsTab ? (
             <div className="flex flex-col gap-4">
-            <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
-              <div className="px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/40">
+            <div className={cn(FEED_SURFACE_CLASS, 'overflow-hidden')}>
+              <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/40">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">My Channels</h3>
               </div>
               {isMyChannelsLoading ? (
@@ -274,19 +277,19 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                     const isOwner = channel.owner_id === initialProfile?.id;
                     const isPendingThis = pendingChannelId === channel.id;
                     return (
-                      <div key={channel.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/40 transition-colors">
+                      <div key={channel.id} className="flex items-center gap-3 px-4 py-3.5 hover:bg-slate-100/70 dark:hover:bg-slate-800/40 transition-colors">
                         <Link href={`/feed/channel/${channel.slug}`} className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-slate-200/90 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-300/60 dark:border-slate-700/60">
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/60">
                             <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{channel.name}</p>
+                            <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate leading-5">{channel.name}</p>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <p className="text-xs text-slate-500 dark:text-slate-600 truncate">#{channel.slug}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-500 truncate">#{channel.slug}</p>
                               {channel.member_count != null && (
                                 <>
                                   <span className="text-slate-300 dark:text-slate-700 text-xs">·</span>
-                                  <span className="flex items-center gap-0.5 text-xs text-slate-800 dark:text-slate-200">
+                                  <span className="flex items-center gap-1 text-xs text-slate-700 dark:text-slate-200">
                                     <Users className="w-3 h-3" />
                                     {channel.member_count}
                                   </span>
@@ -303,7 +306,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                                   type="button"
                                   title="Invite people"
                                   onClick={(e) => { e.preventDefault(); setInviteModalChannel(channel); }}
-                                  className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white text-xs font-medium themed-btn-primary border-0 transition-opacity hover:opacity-90"
+                                  className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-white text-xs font-medium themed-btn-primary border-0 transition-opacity hover:opacity-90"
                                 >
                                   <UserPlus className="w-3.5 h-3.5" />
                                   Add
@@ -348,7 +351,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-7 rounded-lg text-xs border-slate-300 dark:border-slate-600 text-red-600 hover:text-red-700 hover:border-red-300 dark:text-red-400 dark:hover:border-red-500"
+                              className="h-8 cursor-pointer rounded-lg text-xs border-slate-300/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/70 dark:border-slate-600 dark:bg-transparent dark:text-slate-300 dark:hover:text-red-400 dark:hover:border-red-500"
                               disabled={leaveChannel.isPending}
                               onClick={() => leaveChannel.mutate(channel.id)}
                             >
@@ -364,25 +367,25 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
             </div>
 
             {discoverChannels.length > 0 && (
-              <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/40">
+              <div className={cn(FEED_SURFACE_CLASS, 'overflow-hidden')}>
+                <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/40">
                   <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Discover</h3>
                 </div>
                 <div className="divide-y divide-slate-200/80 dark:divide-slate-800/60">
                   {discoverChannels.map((channel) => (
-                    <div key={channel.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/40 transition-colors">
+                    <div key={channel.id} className="flex items-center gap-3 px-4 py-3.5 hover:bg-slate-100/70 dark:hover:bg-slate-800/40 transition-colors">
                       <Link href={`/feed/channel/${channel.slug}`} className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-slate-200/90 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-300/60 dark:border-slate-700/60">
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/60">
                           <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{channel.name}</p>
+                          <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate leading-5">{channel.name}</p>
                           <div className="flex items-center gap-1.5 mt-0.5">
-                            <p className="text-xs text-slate-500 dark:text-slate-600 truncate">#{channel.slug}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-500 truncate">#{channel.slug}</p>
                             {channel.member_count != null && (
                               <>
                                 <span className="text-slate-300 dark:text-slate-700 text-xs">·</span>
-                                <span className="flex items-center gap-0.5 text-xs text-slate-800 dark:text-slate-200">
+                                <span className="flex items-center gap-1 text-xs text-slate-700 dark:text-slate-200">
                                   <Users className="w-3 h-3" />
                                   {channel.member_count}
                                 </span>
@@ -396,7 +399,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                           <Button
                             variant="outline"
                             size="sm"
-                            className="shrink-0 cursor-pointer h-7 rounded-lg text-xs border-slate-300 dark:border-slate-600 text-red-600 hover:text-red-700 hover:border-red-300 dark:text-red-400 dark:border-slate-600 dark:hover:border-red-500"
+                            className="shrink-0 cursor-pointer h-8 rounded-lg text-xs border-slate-300/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/70 dark:border-slate-600 dark:bg-transparent dark:text-slate-300 dark:hover:text-red-400 dark:hover:border-red-500"
                             disabled={leaveChannel.isPending}
                             onClick={() => leaveChannel.mutate(channel.id)}
                           >
@@ -406,7 +409,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                           <Button
                             variant="outline"
                             size="sm"
-                            className="shrink-0 h-7 rounded-lg text-xs border-slate-300 dark:border-slate-600 cursor-pointer"
+                            className="shrink-0 h-8 rounded-lg text-xs border-slate-300 dark:border-slate-600 cursor-pointer"
                             disabled={joinChannel.isPending}
                             onClick={() => joinChannel.mutate(channel.id)}
                           >
@@ -449,12 +452,12 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
 
         {/* Sidebar — height follows content; long channel lists scroll inside a capped area */}
         <aside className={cn('hidden lg:flex flex-col gap-6 w-72 shrink-0 self-start h-fit', activeTab !== 'channels' && 'sticky top-24')}>
-          <div className="shrink-0 rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-1">
+          <div className={cn(FEED_SURFACE_CLASS, 'shrink-0 p-1')}>
             <SearchBar />
           </div>
 
-          <div className="flex flex-col rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
-            <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/40">
+          <div className={cn(FEED_SURFACE_CLASS, 'flex flex-col overflow-hidden')}>
+            <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/40">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">My Channels</h3>
               {isPro && (
                 <Button
@@ -493,19 +496,19 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                   <Link
                     key={channel.id}
                     href={`/feed/channel/${channel.slug}`}
-                    className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-slate-100/90 dark:hover:bg-slate-800/50 transition-colors"
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-colors"
                   >
-                    <div className="w-6 h-6 rounded-lg bg-slate-200/90 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-300/60 dark:border-slate-700/60">
-                      <Hash className="w-3 h-3 text-slate-500 dark:text-slate-400" />
+                    <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/60">
+                      <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate">{channel.name}</p>
+                      <p className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate leading-5">{channel.name}</p>
                       <div className="flex items-center gap-1 mt-0.5">
-                        <p className="text-[10px] text-slate-500 dark:text-slate-600 truncate">#{channel.slug}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-500 truncate">#{channel.slug}</p>
                         {channel.member_count != null && (
                           <>
-                            <span className="text-slate-300 dark:text-slate-700 text-[10px]">·</span>
-                            <span className="flex items-center gap-0.5 text-[10px] text-slate-800 dark:text-slate-200">
+                            <span className="text-slate-300 dark:text-slate-700 text-[11px]">·</span>
+                            <span className="flex items-center gap-1 text-[11px] text-slate-700 dark:text-slate-200">
                               <Users className="w-2.5 h-2.5" />
                               {channel.member_count}
                             </span>
@@ -573,13 +576,13 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
           <Button
             type="button"
             onClick={handleQuickPost}
-            className="h-12 cursor-pointer px-8 themed-btn-primary rounded-full text-white font-semibold text-4 border-0 shadow-lg shadow-violet-500/30 pointer-events-auto"
+            className="h-12 cursor-pointer px-8 themed-btn-primary rounded-full !text-white font-semibold text-base border-0 shadow-lg shadow-violet-500/30 pointer-events-auto"
             aria-label="Scroll to top and start writing a post"
             title="Post"
             tabIndex={!feedChromeVisible ? 0 : -1}
           >
-            <span className="relative z-10 flex items-center gap-2.5">
-              <PlusCircle className="w-5 h-5" />
+            <span className="relative z-10 flex items-center gap-2.5 text-white">
+              <PlusCircle className="w-5 h-5 text-white" />
               <span>Post</span>
             </span>
           </Button>
