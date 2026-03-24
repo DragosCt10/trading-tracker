@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import PostCard from '@/components/feed/PostCard';
@@ -36,13 +36,7 @@ export default function ProfileClient({
   const isOwnProfile = currentProfileId === profile.id;
   const effectiveTier = isOwnProfile && subscription?.tier ? subscription.tier : profile.tier;
 
-  useEffect(() => {
-    setFollowerCount(profile.follower_count);
-    setFollowingCount(profile.following_count);
-    setIsFollowing(initialFollowing);
-  }, [profile.follower_count, profile.following_count, initialFollowing, profile.id]);
-
-  function handleFollowChange(nextFollowing: boolean) {
+function handleFollowChange(nextFollowing: boolean) {
     setIsFollowing(nextFollowing);
     setFollowerCount((prev) => Math.max(0, prev + (nextFollowing ? 1 : -1)));
   }

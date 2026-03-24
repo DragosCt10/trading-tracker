@@ -37,30 +37,32 @@ export default function ProfilePreviewModal({
     if (!open || !username) return;
 
     let cancelled = false;
-    setLoading(true);
-    setError(null);
 
-    getSocialProfilePreviewByUsername(username)
-      .then((result) => {
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await getSocialProfilePreviewByUsername(username);
         if (cancelled) return;
         if ('error' in result) {
           setPreview(null);
           setError(result.error);
-          return;
+        } else {
+          setPreview(result.data);
+          setIsFollowing(result.data.isFollowing);
+          setFollowerCount(result.data.profile.follower_count);
         }
-        setPreview(result.data);
-        setIsFollowing(result.data.isFollowing);
-        setFollowerCount(result.data.profile.follower_count);
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) {
           setPreview(null);
           setError('Failed to load profile');
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    };
+
+    load();
 
     return () => {
       cancelled = true;

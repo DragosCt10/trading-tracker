@@ -415,7 +415,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
 
         {/* Sidebar — height follows content; long channel lists scroll inside a capped area */}
         <aside className={cn('hidden lg:flex flex-col gap-6 w-72 shrink-0 self-start h-fit', activeTab !== 'channels' && 'sticky top-24')}>
-          <div className={cn(FEED_SURFACE_CLASS, 'shrink-0 p-1')}>
+          <div className={cn(FEED_SURFACE_CLASS, 'relative z-50 shrink-0 overflow-visible p-1')}>
             <SearchBar />
           </div>
 

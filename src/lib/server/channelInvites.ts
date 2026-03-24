@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
-import { joinChannel } from './feedChannels';
+import { checkRateLimit } from '@/lib/rateLimit';
 import type { ChannelInvite } from '@/types/social';
 
 type InviteResult<T> =
@@ -156,94 +156,32 @@ export async function redeemChannelInvite(
   const profile = await getCachedSocialProfile(session.user.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
 
+  // Rate limit: 10 redemption attempts per user per minute
+  if (!checkRateLimit(`${profile.id}:invite`, 10, 60_000)) {
+    return { error: 'Too many redemption attempts. Please try again later.', code: 'DB_ERROR' };
+  }
+
   const supabase = await createClient();
 
-  // Fetch invite by token (no FK join — avoids PostgREST relationship inference failures)
-  const { data: inviteRow, error: inviteError } = await supabase
-    .from('channel_invites')
-    .select('id, channel_id, max_uses, use_count, expires_at, is_active')
-    .eq('token', token)
-    .maybeSingle();
+  // Atomic redemption via SECURITY DEFINER function:
+  // validates invite, locks row, increments use_count, and upserts membership
+  // in a single transaction — no race conditions, no RLS bypass surface.
+  const { data, error } = await supabase
+    .rpc('redeem_channel_invite', { p_token: token })
+    .single();
 
-  if (inviteError) {
-    console.error('[redeemChannelInvite:fetch]', inviteError);
-    return { error: 'Failed to load invite', code: 'DB_ERROR' };
-  }
-
-  type InviteRow = {
-    id: string;
-    channel_id: string;
-    max_uses: number | null;
-    use_count: number;
-    expires_at: string | null;
-    is_active: boolean;
-  };
-
-  const row = inviteRow as InviteRow | null;
-  if (!row || !row.is_active) return { error: 'Invalid or revoked invite', code: 'INVALID' };
-
-  // Expiry check
-  if (row.expires_at !== null && new Date(row.expires_at) <= new Date()) {
-    return { error: 'This invite link has expired', code: 'EXPIRED' };
-  }
-
-  // Max uses check
-  if (row.max_uses !== null && row.use_count >= row.max_uses) {
-    return { error: 'This invite link has reached its maximum number of uses', code: 'MAXED' };
-  }
-
-  // Already a member? Skip increment + join; just return slug.
-  const { count: memberCount } = await supabase
-    .from('channel_members')
-    .select('channel_id', { count: 'exact', head: true })
-    .eq('channel_id', row.channel_id)
-    .eq('user_id', profile.id);
-
-  if ((memberCount ?? 0) > 0) {
-    const { data: existingChannel, error: existingChannelError } = await supabase
-      .from('feed_channels')
-      .select('slug')
-      .eq('id', row.channel_id)
-      .maybeSingle();
-    if (existingChannelError || !existingChannel) {
-      console.error('[redeemChannelInvite:already-member:channel]', existingChannelError);
-      return { error: 'Channel not found', code: 'DB_ERROR' };
-    }
-    return { data: { channelSlug: existingChannel.slug, alreadyMember: true } };
-  }
-
-  // Increment use_count (conditional to prevent overrun under races)
-  const { error: incrError } = await supabase
-    .from('channel_invites')
-    .update({ use_count: row.use_count + 1 })
-    .eq('id', row.id)
-    .or(`max_uses.is.null,use_count.lt.${row.max_uses}`);
-
-  if (incrError) {
-    console.error('[redeemChannelInvite:increment]', incrError);
+  if (error) {
+    console.error('[redeemChannelInvite:rpc]', error);
     return { error: 'Failed to redeem invite', code: 'DB_ERROR' };
   }
 
-  // Join channel first (upsert — already-a-member is idempotent).
-  // Must happen before reading feed_channels slug because RLS on feed_channels
-  // only allows SELECT for public channels, the owner, or existing members.
-  const joinResult = await joinChannel(row.channel_id);
-  if ('error' in joinResult) {
-    console.error('[redeemChannelInvite:join]', joinResult.error);
-    return { error: 'Failed to join channel', code: 'DB_ERROR' };
+  type RpcRow = { channel_slug: string | null; already_member: boolean | null; error_code: string | null };
+  const row = data as RpcRow;
+
+  if (row.error_code) {
+    const validCode = row.error_code as 'INVALID' | 'EXPIRED' | 'MAXED' | 'DB_ERROR';
+    return { error: row.error_code, code: validCode };
   }
 
-  // Now the user is a member — fetch the channel slug (RLS allows member reads)
-  const { data: channelRow, error: channelError } = await supabase
-    .from('feed_channels')
-    .select('slug')
-    .eq('id', row.channel_id)
-    .maybeSingle();
-
-  if (channelError || !channelRow) {
-    console.error('[redeemChannelInvite:channel]', channelError);
-    return { error: 'Channel not found', code: 'DB_ERROR' };
-  }
-
-  return { data: { channelSlug: channelRow.slug, alreadyMember: false } };
+  return { data: { channelSlug: row.channel_slug!, alreadyMember: row.already_member! } };
 }

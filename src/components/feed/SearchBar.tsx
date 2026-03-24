@@ -22,7 +22,7 @@ export default function SearchBar() {
   const showDropdown = focused && query.length >= 2;
 
   return (
-    <div className="relative w-full max-w-sm">
+    <div className="relative z-[120] isolate w-full max-w-sm">
       {/* Input */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
@@ -45,7 +45,7 @@ export default function SearchBar() {
 
       {/* Type tabs */}
       {showDropdown && (
-        <div className="absolute top-full z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-300/60 bg-slate-50/95 shadow-xl shadow-slate-900/10 backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/95 dark:shadow-2xl dark:shadow-black/40">
+        <div className="absolute top-full z-[100] mt-2 w-full rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 p-0 cursor-pointer">
           {/* Tabs */}
           <div className="flex border-b border-slate-200/80 dark:border-slate-700/40">
             {(['posts', 'traders'] as const).map((t) => (

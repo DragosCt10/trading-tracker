@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Check, X } from 'lucide-react';
@@ -300,7 +301,7 @@ export default function ProfileSettingsPanel({ initialProfile }: ProfileSettings
                 <div key={person.id} className="flex items-center gap-3 py-2.5 border-b border-slate-200/60 dark:border-slate-700/40 last:border-0">
                   <div className="shrink-0">
                     {person.avatar_url ? (
-                      <img src={person.avatar_url} alt={person.display_name ?? ''} className="w-8 h-8 rounded-full object-cover" />
+                      <Image src={person.avatar_url} alt={person.display_name ?? ''} width={32} height={32} className="rounded-full object-cover" />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
                         <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{initials}</span>
