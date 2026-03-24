@@ -244,7 +244,7 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
               <Input
                 value={memberHandle}
                 onChange={(e) => setMemberHandle(e.target.value)}
-                placeholder="Add by username (e.g. john)"
+                placeholder="Add by username (e.g. trader123456)"
                 className={INPUT_CLASS}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
