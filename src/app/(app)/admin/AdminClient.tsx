@@ -66,18 +66,26 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
   function handleGrantPro() {
     if (!foundUser) return;
     startMutateTransition(async () => {
-      await adminGrantSubscription(foundUser.id, 'pro');
-      const sub = await adminResolveSubscription(foundUser.id);
-      setFoundUser((u) => u ? { ...u, subscription: sub } : null);
+      try {
+        await adminGrantSubscription(foundUser.id, 'pro');
+        const sub = await adminResolveSubscription(foundUser.id);
+        setFoundUser((u) => u ? { ...u, subscription: sub } : null);
+      } catch {
+        setSearchError('Failed to grant PRO subscription. Please try again.');
+      }
     });
   }
 
   function handleRevoke() {
     if (!foundUser) return;
     startMutateTransition(async () => {
-      await adminRevokeSubscription(foundUser.id);
-      const sub = await adminResolveSubscription(foundUser.id);
-      setFoundUser((u) => u ? { ...u, subscription: sub } : null);
+      try {
+        await adminRevokeSubscription(foundUser.id);
+        const sub = await adminResolveSubscription(foundUser.id);
+        setFoundUser((u) => u ? { ...u, subscription: sub } : null);
+      } catch {
+        setSearchError('Failed to revoke subscription. Please try again.');
+      }
     });
   }
 
@@ -85,22 +93,30 @@ export default function AdminClient({ currentUserId, admins: initialAdmins, isSu
     e.preventDefault();
     setTeamError(null);
     startTeamTransition(async () => {
-      const user = await findUserByEmail(newAdminEmail.trim().toLowerCase());
-      if (!user) {
-        setTeamError('No user found with that email.');
-        return;
+      try {
+        const user = await findUserByEmail(newAdminEmail.trim().toLowerCase());
+        if (!user) {
+          setTeamError('No user found with that email.');
+          return;
+        }
+        await grantAdminRole(user.id);
+        setAdmins((prev) => [...prev, { userId: user.id, email: user.email, role: 'admin' as const, grantedAt: new Date().toISOString() }]);
+        setNewAdminEmail('');
+        router.refresh();
+      } catch {
+        setTeamError('Failed to grant admin role. Please try again.');
       }
-      await grantAdminRole(user.id);
-      setAdmins((prev) => [...prev, { userId: user.id, email: user.email, role: 'admin' as const, grantedAt: new Date().toISOString() }]);
-      setNewAdminEmail('');
-      router.refresh();
     });
   }
 
   function handleRemoveAdmin(userId: string) {
     startTeamTransition(async () => {
-      await revokeAdminRole(userId);
-      setAdmins((prev) => prev.filter((a) => a.userId !== userId));
+      try {
+        await revokeAdminRole(userId);
+        setAdmins((prev) => prev.filter((a) => a.userId !== userId));
+      } catch {
+        setTeamError('Failed to revoke admin role. Please try again.');
+      }
     });
   }
 

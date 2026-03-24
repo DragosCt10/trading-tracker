@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Note } from '@/types/note';
-import { useUserDetails } from '@/hooks/useUserDetails';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -28,18 +27,15 @@ const ITEMS_PER_LOAD = 12;
 
 interface NotesClientProps {
   initialUserId: string;
-  initialNotes: Note[];
 }
 
 export default function NotesClient({
   initialUserId,
-  initialNotes,
 }: NotesClientProps) {
-  const { data: userDetails } = useUserDetails();
   const queryClient = useQueryClient();
   const { selection } = useActionBarSelection();
   const accountId = selection.activeAccount?.id;
-  const userId = userDetails?.user?.id ?? initialUserId;
+  const userId = initialUserId;
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isNewNoteModalOpen, setIsNewNoteModalOpen] = useState(false);
@@ -90,17 +86,13 @@ export default function NotesClient({
         strategyId: selectedStrategy === 'all' ? undefined : selectedStrategy === 'none' ? null : selectedStrategy,
       });
     },
-    initialData: selectedStrategy === 'all' ? initialNotes : undefined,
     enabled: !!userId,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     placeholderData: keepPreviousData,
   });
 
-  const notesList = useMemo(
-    () => notes ?? (selectedStrategy === 'all' ? initialNotes : []),
-    [notes, selectedStrategy, initialNotes]
-  );
+  const notesList = useMemo(() => notes ?? [], [notes]);
 
   // Filter by search query (client-side)
   const filteredNotes = useMemo(() => {

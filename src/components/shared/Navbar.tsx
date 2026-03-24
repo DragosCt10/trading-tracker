@@ -13,7 +13,7 @@ import {
   Settings,
   Crown,
   Sparkles,
-  Newspaper,
+  Rss,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -182,8 +182,8 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               </li>
               <li>
                 <NavPillLink href="/feed" active={isFeedActive}>
-                  <Newspaper className="h-4 w-4" />
-                  <span>Alpha Level</span>
+                  <Rss className="h-4 w-4" />
+                  <span>Feed</span>
                 </NavPillLink>
               </li>
             </ul>
@@ -376,8 +376,8 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   className="h-auto min-h-8 w-full justify-start py-2"
                   onClick={closeMobileMenu}
                 >
-                  <Newspaper className="h-4 w-4" />
-                  Alpha Level
+                  <Rss className="h-4 w-4" />
+                  Feed
                 </NavPillLink>
 
                 {mobileMenuExtra ? (

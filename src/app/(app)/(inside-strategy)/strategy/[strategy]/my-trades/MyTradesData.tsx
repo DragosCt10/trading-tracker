@@ -21,7 +21,7 @@ async function MyTradesDataFetcher({
   const { mode, activeAccount } = await resolveActiveAccountFromCookies(user.id);
   const strategy = await getStrategyBySlug(user.id, strategySlug, activeAccount?.id);
 
-  if (!strategy) redirect('/stats');
+  if (!strategy || strategy.user_id !== user.id) redirect('/stats');
   const initialStrategyId = strategy.id;
 
   const today = new Date();
