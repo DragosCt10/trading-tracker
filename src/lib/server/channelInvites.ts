@@ -149,7 +149,7 @@ export async function revokeChannelInvite(inviteId: string): Promise<InviteResul
 
 export async function redeemChannelInvite(
   token: string
-): Promise<InviteResult<{ channelSlug: string }>> {
+): Promise<InviteResult<{ channelSlug: string; alreadyMember: boolean }>> {
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
 
@@ -192,16 +192,24 @@ export async function redeemChannelInvite(
     return { error: 'This invite link has reached its maximum number of uses', code: 'MAXED' };
   }
 
-  // Fetch channel slug in a separate query
-  const { data: channelRow, error: channelError } = await supabase
-    .from('feed_channels')
-    .select('slug')
-    .eq('id', row.channel_id)
-    .maybeSingle();
+  // Already a member? Skip increment + join; just return slug.
+  const { count: memberCount } = await supabase
+    .from('channel_members')
+    .select('channel_id', { count: 'exact', head: true })
+    .eq('channel_id', row.channel_id)
+    .eq('user_id', profile.id);
 
-  if (channelError || !channelRow) {
-    console.error('[redeemChannelInvite:channel]', channelError);
-    return { error: 'Channel not found', code: 'DB_ERROR' };
+  if ((memberCount ?? 0) > 0) {
+    const { data: existingChannel, error: existingChannelError } = await supabase
+      .from('feed_channels')
+      .select('slug')
+      .eq('id', row.channel_id)
+      .maybeSingle();
+    if (existingChannelError || !existingChannel) {
+      console.error('[redeemChannelInvite:already-member:channel]', existingChannelError);
+      return { error: 'Channel not found', code: 'DB_ERROR' };
+    }
+    return { data: { channelSlug: existingChannel.slug, alreadyMember: true } };
   }
 
   // Increment use_count (conditional to prevent overrun under races)
@@ -216,12 +224,26 @@ export async function redeemChannelInvite(
     return { error: 'Failed to redeem invite', code: 'DB_ERROR' };
   }
 
-  // Join channel (upsert — already-a-member is idempotent)
+  // Join channel first (upsert — already-a-member is idempotent).
+  // Must happen before reading feed_channels slug because RLS on feed_channels
+  // only allows SELECT for public channels, the owner, or existing members.
   const joinResult = await joinChannel(row.channel_id);
   if ('error' in joinResult) {
     console.error('[redeemChannelInvite:join]', joinResult.error);
     return { error: 'Failed to join channel', code: 'DB_ERROR' };
   }
 
-  return { data: { channelSlug: channelRow.slug } };
+  // Now the user is a member — fetch the channel slug (RLS allows member reads)
+  const { data: channelRow, error: channelError } = await supabase
+    .from('feed_channels')
+    .select('slug')
+    .eq('id', row.channel_id)
+    .maybeSingle();
+
+  if (channelError || !channelRow) {
+    console.error('[redeemChannelInvite:channel]', channelError);
+    return { error: 'Channel not found', code: 'DB_ERROR' };
+  }
+
+  return { data: { channelSlug: channelRow.slug, alreadyMember: false } };
 }

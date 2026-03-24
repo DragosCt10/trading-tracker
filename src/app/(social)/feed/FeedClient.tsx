@@ -67,8 +67,14 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const [inviteModalChannel, setInviteModalChannel] = useState<FeedChannel | null>(null);
   const [editModalChannel, setEditModalChannel] = useState<FeedChannel | null>(null);
   const [activeTab, setActiveTab] = useState<FeedTab>('public');
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const isPro = subscription?.tier === 'pro' || subscription?.tier === 'elite';
+  const canCreateChannel = mounted && isPro;
 
   const isChannelsTab = activeTab === 'channels';
   const feedView = activeTab === 'following' ? 'following' : 'public';
@@ -88,11 +94,6 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const [feedChromeVisible, setFeedChromeVisible] = useState(true);
   const [previewUsername, setPreviewUsername] = useState<string | null>(null);
   const lastScrollY = useRef(0);
-  const mounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
 
   const posts = data?.pages.flatMap((p) => p.items) ?? [];
   const visiblePosts =
@@ -224,7 +225,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
               ) : myChannels.length === 0 ? (
                 <div className="px-5 py-10 text-center">
                   <p className="text-slate-600 dark:text-slate-400 font-medium">No channels yet</p>
-                  {isPro ? (
+                  {canCreateChannel ? (
                     <Button
                       variant="outline"
                       size="sm"
@@ -421,7 +422,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
           <div className={cn(FEED_SURFACE_CLASS, 'flex flex-col overflow-hidden')}>
             <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/40">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">My Channels</h3>
-              {isPro && (
+              {canCreateChannel && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -440,7 +441,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
               ) : myChannels.length === 0 ? (
                 <div className="px-4 py-4 text-center">
                   <p className="text-xs text-slate-500">No channels yet</p>
-                  {isPro ? (
+                  {canCreateChannel ? (
                     <button
                       onClick={() => setChannelModalOpen(true)}
                       className="text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 mt-1 underline underline-offset-2"

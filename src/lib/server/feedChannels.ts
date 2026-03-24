@@ -480,6 +480,35 @@ export async function getChannelMembersForOwner(
   const pageRows = rows.slice(0, limit);
   const items = pageRows.map(mapChannelMemberRow);
 
+  // Auto-heal: ensure owner always appears (old channels may lack the owner row)
+  const ownerInList = items.some((m) => m.user_id === profile.id);
+  if (!ownerInList && !cursor) {
+    await supabase
+      .from('channel_members')
+      .upsert({ channel_id: channelId, user_id: profile.id, role: 'owner' }, { onConflict: 'channel_id,user_id', ignoreDuplicates: true });
+
+    items.push({
+      channel_id: channelId,
+      user_id:    profile.id,
+      role:       'owner',
+      joined_at:  new Date(0).toISOString(),
+      profile: {
+        id:           profile.id,
+        display_name: profile.display_name,
+        username:     profile.username,
+        avatar_url:   profile.avatar_url ?? null,
+        tier:         profile.tier,
+      },
+    });
+  }
+
+  // Owner always last regardless of joined_at
+  items.sort((a, b) => {
+    if (a.role === 'owner') return 1;
+    if (b.role === 'owner') return -1;
+    return 0;
+  });
+
   return {
     data: {
       items,
