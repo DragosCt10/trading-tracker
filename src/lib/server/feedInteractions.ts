@@ -13,6 +13,8 @@ type InteractionResult<T> =
   | { data: T }
   | { error: string; code: 'UNAUTHORIZED' | 'NOT_FOUND' | 'LIMIT_EXCEEDED' | 'DB_ERROR' };
 
+const COMMENT_EDIT_WINDOW_MS = 10 * 60 * 1000;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 type AuthorRow = {
@@ -204,15 +206,33 @@ export async function editComment(
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
 
   const supabase = await createClient();
+  const nowIso = new Date().toISOString();
+  const editWindowStartIso = new Date(Date.now() - COMMENT_EDIT_WINDOW_MS).toISOString();
   const { data: updated, error } = await supabase
     .from('feed_comments')
-    .update({ content: content.trim(), updated_at: new Date().toISOString() })
+    .update({ content: content.trim(), updated_at: nowIso })
     .eq('id', commentId)
     .eq('author_id', profile.id)
+    .gte('created_at', editWindowStartIso)
     .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)`)
     .single();
 
   if (error || !updated) {
+    const { data: existing } = await supabase
+      .from('feed_comments')
+      .select('id, created_at')
+      .eq('id', commentId)
+      .eq('author_id', profile.id)
+      .maybeSingle();
+
+    if (!existing) {
+      return { error: 'Comment not found', code: 'NOT_FOUND' };
+    }
+
+    if (new Date(existing.created_at as string).getTime() < Date.now() - COMMENT_EDIT_WINDOW_MS) {
+      return { error: 'Comments can only be edited within 10 minutes', code: 'LIMIT_EXCEEDED' };
+    }
+
     console.error('[editComment] error:', error);
     return { error: 'Failed to edit comment', code: 'DB_ERROR' };
   }
