@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { getCachedSubscription } from './subscription';
@@ -522,8 +523,9 @@ export async function addChannelMemberByHandle(
   }
 
   const targetProfileId = (targetProfile as { id: string }).id;
+  const admin = createServiceRoleClient();
 
-  const { error: insertError } = await supabase
+  const { error: insertError } = await admin
     .from('channel_members')
     .upsert(
       { channel_id: channelId, user_id: targetProfileId, role: targetProfileId === profile.id ? 'owner' : 'member' },
@@ -567,8 +569,8 @@ export async function removeChannelMemberByUserId(
     return { error: 'Owner cannot be removed from channel', code: 'CONFLICT' };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase
+  const admin = createServiceRoleClient();
+  const { error } = await admin
     .from('channel_members')
     .delete()
     .eq('channel_id', channelId)
