@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Pencil, Trash2, Check, X } from 'lucide-react';
 import CommentInput from './CommentInput';
@@ -19,6 +19,7 @@ interface CommentSectionProps {
 }
 
 type EditState = 'idle' | 'editing' | 'saving';
+const COMMENT_EDIT_WINDOW_MS = 10 * 60 * 1000;
 
 
 function CommentItem({
@@ -35,15 +36,50 @@ function CommentItem({
   const [editState, setEditState] = useState<EditState>('idle');
   const [editContent, setEditContent] = useState(comment.content);
   const [editError, setEditError] = useState('');
+  const [nowTs, setNowTs] = useState<number | null>(null);
   const isOwn = currentProfileId === comment.author.id;
   const { theme, mounted } = useTheme();
   const isLightMode = mounted && theme === 'light';
   const authorTier = comment.author.tier;
   const isPro = authorTier === 'pro' || authorTier === 'elite';
   const displayedName = getPublicDisplayName(comment.author);
+  const isEdited = new Date(comment.updated_at).getTime() > new Date(comment.created_at).getTime();
+  const createdAtTs = new Date(comment.created_at).getTime();
+  const canEdit = nowTs !== null && nowTs - createdAtTs <= COMMENT_EDIT_WINDOW_MS;
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setNowTs(Date.now());
+    }, 0);
+    const intervalId = window.setInterval(() => {
+      setNowTs(Date.now());
+    }, 30_000);
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  function isEditWindowExpired() {
+    return !canEdit;
+  }
+
+  function handleStartEdit() {
+    if (isEditWindowExpired()) {
+      return;
+    }
+    setEditError('');
+    setEditContent(comment.content);
+    setEditState('editing');
+  }
 
   async function handleSave() {
     if (!editContent.trim()) return;
+    if (isEditWindowExpired()) {
+      setEditError('Comments can only be edited within 10 minutes.');
+      setEditState('idle');
+      return;
+    }
     setEditState('saving');
     setEditError('');
     try {
@@ -92,22 +128,29 @@ function CommentItem({
         </div>
 
         <div className="ml-auto pl-2 shrink-0 flex items-center gap-1 self-start">
+          {isEdited && (
+            <span className="text-slate-500 text-xs shrink-0 whitespace-nowrap">
+              Edited &middot;
+            </span>
+          )}
           <span className="text-slate-500 text-xs shrink-0 whitespace-nowrap" suppressHydrationWarning>
             {formatFeedCommentDate(comment.created_at)}
           </span>
           {isOwn && editState === 'idle' && (
             <div className="flex items-center gap-0.5">
+              {canEdit && (
+                <button
+                  type="button"
+                  className="p-1 rounded text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors cursor-pointer"
+                  onClick={handleStartEdit}
+                  aria-label="Edit comment"
+                >
+                  <Pencil className="w-3 h-3" />
+                </button>
+              )}
               <button
                 type="button"
-                className="p-1 rounded text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 transition-colors"
-                onClick={() => { setEditContent(comment.content); setEditState('editing'); }}
-                aria-label="Edit comment"
-              >
-                <Pencil className="w-3 h-3" />
-              </button>
-              <button
-                type="button"
-                className="p-1 rounded text-slate-500 hover:text-rose-400 transition-colors"
+                className="p-1 rounded text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
                 onClick={() => onDelete(comment.id)}
                 aria-label="Delete comment"
               >
