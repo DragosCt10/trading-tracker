@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useFeed } from '@/hooks/useFeed';
 import { usePostActions } from '@/hooks/usePostActions';
-import { useMyChannels } from '@/hooks/useChannels';
+import { useMyChannels, usePublicChannels, useChannelActions } from '@/hooks/useChannels';
 import { updateChannel } from '@/lib/server/feedChannels';
 import { queryKeys } from '@/lib/queryKeys';
 import FeedPostList from '@/components/feed/FeedPostList';
@@ -51,6 +51,11 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(uid, undefined, undefined, feedView);
   const { like, create, edit, remove, report } = usePostActions(uid);
   const { data: myChannels = [] } = useMyChannels(uid);
+  const { data: publicChannelsResult } = usePublicChannels();
+  const publicChannels = publicChannelsResult?.items ?? [];
+  const { join: joinChannel, leave: leaveChannel } = useChannelActions(uid);
+  const myChannelIds = new Set(myChannels.map((c) => c.id));
+  const discoverChannels = publicChannels.filter((c) => !myChannelIds.has(c.id));
   const { newPostCount, clearCount } = useNewPostsNotifier(
     initialProfile?.id,
     activeTab === 'public',  // only public tab: following tab can't filter by followed users client-side
@@ -98,6 +103,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
       } finally {
         setPendingChannelId(null);
         queryClient.invalidateQueries({ queryKey: queryKeys.feed.channels(uid) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.feed.channels() });
       }
     });
   }
@@ -213,6 +219,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
 
           <div className="min-w-0">
           {isChannelsTab ? (
+            <div className="flex flex-col gap-4">
             <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/40">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Your Channels</h3>
@@ -305,15 +312,85 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                             </button>
                           </div>
                         ) : (
-                          channel.is_public
-                            ? <Globe className="w-3.5 h-3.5 text-slate-500 dark:text-slate-600 shrink-0" />
-                            : <Lock  className="w-3.5 h-3.5 text-slate-500 dark:text-slate-600 shrink-0" />
+                          <div className="flex items-center gap-2 shrink-0">
+                            {channel.is_public
+                              ? <Globe className="w-3.5 h-3.5 text-slate-500 dark:text-slate-600" />
+                              : <Lock  className="w-3.5 h-3.5 text-slate-500 dark:text-slate-600" />
+                            }
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 rounded-lg text-xs border-slate-300 dark:border-slate-600 text-red-600 hover:text-red-700 hover:border-red-300 dark:text-red-400 dark:hover:border-red-500"
+                              disabled={leaveChannel.isPending}
+                              onClick={() => leaveChannel.mutate(channel.id)}
+                            >
+                              Leave
+                            </Button>
+                          </div>
                         )}
                       </div>
                     );
                   })}
                 </div>
               )}
+            </div>
+
+            {discoverChannels.length > 0 && (
+              <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/40">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Discover</h3>
+                </div>
+                <div className="divide-y divide-slate-200/80 dark:divide-slate-800/60">
+                  {discoverChannels.map((channel) => (
+                    <div key={channel.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/40 transition-colors">
+                      <Link href={`/feed/channel/${channel.slug}`} className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-slate-200/90 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-300/60 dark:border-slate-700/60">
+                          <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{channel.name}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <p className="text-xs text-slate-500 dark:text-slate-600 truncate">#{channel.slug}</p>
+                            {channel.member_count != null && (
+                              <>
+                                <span className="text-slate-300 dark:text-slate-700 text-xs">·</span>
+                                <span className="flex items-center gap-0.5 text-xs text-slate-400 dark:text-slate-600">
+                                  <Users className="w-3 h-3" />
+                                  {channel.member_count}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                      {uid && channel.owner_id !== initialProfile?.id && (
+                        myChannelIds.has(channel.id) ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="shrink-0 h-7 rounded-lg text-xs border-slate-300 dark:border-slate-600 text-red-600 hover:text-red-700 hover:border-red-300 dark:text-red-400 dark:border-slate-600 dark:hover:border-red-500"
+                            disabled={leaveChannel.isPending}
+                            onClick={() => leaveChannel.mutate(channel.id)}
+                          >
+                            Leave
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="shrink-0 h-7 rounded-lg text-xs border-slate-300 dark:border-slate-600"
+                            disabled={joinChannel.isPending}
+                            onClick={() => joinChannel.mutate(channel.id)}
+                          >
+                            Join
+                          </Button>
+                        )
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             </div>
           ) : (
             <FeedPostList
@@ -349,7 +426,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
 
           <div className="flex flex-col rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
             <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-slate-200/70 dark:border-slate-700/40">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Channels</h3>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">My Channels</h3>
               {isPro && (
                 <Button
                   variant="ghost"
