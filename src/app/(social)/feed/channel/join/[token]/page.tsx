@@ -28,10 +28,10 @@ async function getInvitePreview(token: string) {
     expires_at: string | null;
     max_uses: number | null;
     use_count: number;
-    feed_channels: { name: string; slug: string } | null;
+    feed_channels: { name: string; slug: string }[] | null;
   };
 
-  return data as Row;
+  return data as unknown as Row;
 }
 
 export default async function JoinChannelPage({ params }: Props) {
@@ -59,7 +59,7 @@ export default async function JoinChannelPage({ params }: Props) {
     return <InviteError message="This invite link has reached its maximum number of uses." />;
   }
 
-  const channelName = invite.feed_channels?.name ?? 'a channel';
+  const channelName = invite.feed_channels?.[0]?.name ?? 'a channel';
 
   return (
     <div className="relative overflow-hidden flex items-start justify-center px-4 pb-4 pt-15 transition-colors duration-500">
