@@ -93,7 +93,8 @@ export function useChannelActions(userId?: string) {
       const pubResult = qc.getQueryData<PaginatedResult<FeedChannel>>(publicChannelsKey);
       const ch = pubResult?.items?.find((c) => c.id === channelId);
       if (ch) {
-        qc.setQueryData<FeedChannel[]>(myChannelsKey, (old = []) => [...old, ch]);
+        // Match getMyChannels sort (updated_at desc): joining bumps updated_at, so newest first.
+        qc.setQueryData<FeedChannel[]>(myChannelsKey, (old = []) => [ch, ...old.filter((c) => c.id !== ch.id)]);
       }
       return { previous };
     },
