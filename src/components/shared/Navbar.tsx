@@ -30,9 +30,12 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { navPillButtonClass } from '@/components/shared/navPillButtonClass';
+import { NavPillLink } from '@/components/shared/NavPillLink';
 import Logo from '../shared/Logo';
 import { ThemePickerModal } from './ThemePickerModal';
 import { clearLastAccountPreference } from '@/utils/lastAccountCookie';
+import NotificationBell from '@/components/feed/NotificationBell';
 
 interface NavbarProps {
   /** Rendered in the navbar center on responsive (< lg); e.g. ActionBar */
@@ -94,13 +97,6 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
     if (path === '/insight-vault') return pathname.startsWith('/insight-vault');
     return pathname === path;
   }, [pathname]);
-
-  const navButtonClass = useCallback((active: boolean) => cn(
-    'gap-2 rounded-xl border transition-all duration-200',
-    'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 hover:border-slate-300/70',
-    'dark:text-slate-200 dark:hover:text-slate-50 dark:hover:bg-slate-800/70 dark:hover:border-slate-700/70',
-    active && 'themed-nav-active'
-  ), []);
 
   const openThemePicker = useCallback(() => setThemePickerOpen(true), []);
   const closeThemePicker = useCallback(() => setThemePickerOpen(false), []);
@@ -168,30 +164,16 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
           <div className="hidden lg:block">
             <ul className="flex items-center gap-2">
               <li>
-                <Button
-                  variant="ghost"
-                  asChild
-                  size="sm"
-                  className={navButtonClass(isStrategiesActive)}
-                >
-                  <Link href="/stats">
-                    <Target className="h-4 w-4" />
-                    <span>Stats Center</span>
-                  </Link>
-                </Button>
+                <NavPillLink href="/stats" active={isStrategiesActive}>
+                  <Target className="h-4 w-4" />
+                  <span>Stats Center</span>
+                </NavPillLink>
               </li>
               <li>
-                <Button
-                  variant="ghost"
-                  asChild
-                  size="sm"
-                  className={navButtonClass(isInsightVaultActive)}
-                >
-                  <Link href="/insight-vault">
-                    <Lightbulb className="h-4 w-4" />
-                    <span>Insight Vault</span>
-                  </Link>
-                </Button>
+                <NavPillLink href="/insight-vault" active={isInsightVaultActive}>
+                  <Lightbulb className="h-4 w-4" />
+                  <span>Insight Vault</span>
+                </NavPillLink>
               </li>
             </ul>
           </div>
@@ -284,11 +266,12 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
             </Button>
 
             <Separator orientation="vertical" className="mx-1.5 h-6" />
+            <NotificationBell userId={userId} />
             <Button
               variant="ghost"
               asChild
               size="icon"
-              className={cn(navButtonClass(isSettingsActive), 'h-8 w-8 p-0')}
+              className={cn(navPillButtonClass(isSettingsActive), 'h-8 w-8 p-0')}
               aria-label="Settings"
             >
               <Link href="/settings?tab=billing" className="group flex items-center justify-center">
@@ -356,27 +339,25 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               </SheetHeader>
 
               <div className="mt-4 space-y-2">
-                <Button
-                  variant="ghost"
-                  asChild
-                  className={cn('w-full justify-start', navButtonClass(isStrategiesActive))}
+                <NavPillLink
+                  href="/stats"
+                  active={isStrategiesActive}
+                  className="h-auto min-h-8 w-full justify-start py-2"
+                  onClick={closeMobileMenu}
                 >
-                  <Link href="/stats" onClick={closeMobileMenu}>
-                    <Target className="h-4 w-4" />
-                    Stats Center
-                  </Link>
-                </Button>
+                  <Target className="h-4 w-4" />
+                  Stats Center
+                </NavPillLink>
 
-                <Button
-                  variant="ghost"
-                  asChild
-                  className={cn('w-full justify-start', navButtonClass(isInsightVaultActive))}
+                <NavPillLink
+                  href="/insight-vault"
+                  active={isInsightVaultActive}
+                  className="h-auto min-h-8 w-full justify-start py-2"
+                  onClick={closeMobileMenu}
                 >
-                  <Link href="/insight-vault" onClick={closeMobileMenu}>
-                    <Lightbulb className="h-4 w-4" />
-                    Insight Vault
-                  </Link>
-                </Button>
+                  <Lightbulb className="h-4 w-4" />
+                  Insight Vault
+                </NavPillLink>
 
                 {mobileMenuExtra ? (
                   <div className="w-full">{mobileMenuExtra}</div>
@@ -465,10 +446,14 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
 
                 <Separator className="my-2" />
 
+                <div className="flex justify-center">
+                  <NotificationBell userId={userId} />
+                </div>
+
                 <Button
                   variant="ghost"
                   asChild
-                  className={cn('w-full justify-center', navButtonClass(isSettingsActive))}
+                  className={cn('w-full justify-center', navPillButtonClass(isSettingsActive))}
                   aria-label="Settings"
                 >
                   <Link href="/settings?tab=billing" onClick={closeMobileMenu} className="flex items-center justify-center">

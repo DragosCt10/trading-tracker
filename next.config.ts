@@ -21,7 +21,8 @@ const nextConfig = {
               `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
-              "connect-src 'self' https://*.supabase.co",
+              // Supabase Realtime uses wss:// websockets; allow both HTTP + WS schemes.
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
               "font-src 'self'",
               "frame-ancestors 'none'",
             ].join('; '),

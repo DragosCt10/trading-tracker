@@ -49,7 +49,7 @@ export function ViewModeToggle({
             className={cn(
               "relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 themed-focus focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 shadow-md cursor-pointer",
               viewMode === 'dateRange'
-                ? "themed-toggle-active bg-gradient-to-r from-purple-500 to-violet-600 shadow-purple-500/40 dark:shadow-purple-900/50"
+                ? "themed-btn-primary"
                 : "bg-gradient-to-r from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-700"
             )}
           >
@@ -94,7 +94,7 @@ export function ViewModeToggle({
                 className={cn(
                   "relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 themed-focus focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 shadow-md cursor-pointer",
                   !showProCards
-                    ? "themed-toggle-active bg-gradient-to-r from-purple-500 to-violet-600 shadow-purple-500/40 dark:shadow-purple-900/50"
+                    ? "themed-btn-primary"
                     : "bg-gradient-to-r from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-700"
                 )}
               >

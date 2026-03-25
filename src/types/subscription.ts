@@ -12,6 +12,12 @@ export interface TierLimits {
   maxAccounts: number | null;
   /** Which account modes this tier can access */
   allowedModes: AccountMode[];
+  /** null = check daily cap instead. 3 for starter. */
+  maxPostsPerWeek: number | null;
+  /** null = no cap. 50 for pro (spam prevention). */
+  maxPostsPerDay: number | null;
+  /** 280 for starter, 1000 for pro. */
+  maxPostContentLength: number;
 }
 
 export interface TierFeatureFlags {
@@ -32,6 +38,13 @@ export interface TierFeatureFlags {
   allExtraCards: boolean;
   /** Elite tier only */
   alphaHub: boolean;
+  // ── Social Feed ──
+  /** Can attach trades to posts (PRO only) */
+  socialFeedTradeAttach: boolean;
+  /** Can edit posts after creation (PRO only) */
+  socialFeedEditPosts: boolean;
+  /** Can create private channels (PRO only) */
+  socialFeedChannels: boolean;
 }
 
 export interface TierPricingOption {

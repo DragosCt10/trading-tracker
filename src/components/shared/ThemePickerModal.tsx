@@ -6,6 +6,7 @@ import {
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogDescription,
 } from '@/components/ui/alert-dialog';
 import { COLOR_THEMES, type ColorThemeId } from '@/constants/colorThemes';
 import { useColorTheme } from '@/hooks/useColorTheme';
@@ -53,6 +54,9 @@ export function ThemePickerModal({ open, onClose }: ThemePickerModalProps) {
                 <span className="sr-only">Close</span>
               </button>
             </div>
+            <AlertDialogDescription className="sr-only">
+              Choose a color theme for the application.
+            </AlertDialogDescription>
           </AlertDialogHeader>
         </div>
 

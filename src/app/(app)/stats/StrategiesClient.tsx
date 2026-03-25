@@ -596,7 +596,7 @@ export function StrategiesClient() {
                 overviewStats={strategiesOverview?.[strategy.id]}
                 accountId={activeAccount?.id ?? ''}
                 mode={mode as 'live' | 'backtesting' | 'demo'}
-                userId={userId ?? ''}
+                userId={userId!}
                 currencySymbol={currencySymbol}
                 accountBalance={activeAccount?.account_balance}
                 onEdit={handleEdit}

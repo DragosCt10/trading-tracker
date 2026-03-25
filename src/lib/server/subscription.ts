@@ -121,6 +121,12 @@ export async function grantSubscription(userId: string, tier: TierId): Promise<v
     { onConflict: 'user_id' }
   );
   if (error) throw new Error(`grantSubscription failed: ${error.message}`);
+
+  // Sync tier to social_profiles so the feed PRO badge reflects the grant immediately
+  await (supabase as ReturnType<typeof createServiceRoleClient> & { from: (table: string) => any })
+    .from('social_profiles')
+    .update({ tier, updated_at: new Date().toISOString() })
+    .eq('user_id', userId);
 }
 
 /**
@@ -182,6 +188,15 @@ export async function verifyAndActivateSubscription(userId: string): Promise<Res
     console.error('[billing/subscription] verifyAndActivate upsert failed:', error.message);
     return existing;
   }
+
+  // Keep social feed badge tier in sync even before webhook delivery.
+  const syncedTier = ['active', 'trialing', 'admin_granted', 'past_due'].includes(providerSub.status)
+    ? providerSub.tierId
+    : 'starter';
+  await (supabase as ReturnType<typeof createServiceRoleClient> & { from: (table: string) => any })
+    .from('social_profiles')
+    .update({ tier: syncedTier, updated_at: new Date().toISOString() })
+    .eq('user_id', userId);
 
   return _getSubscription(userId);
 }

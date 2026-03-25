@@ -26,7 +26,7 @@ async function CustomStatsDataFetcher({
     strategySlug,
   });
 
-  if (!strategy) redirect('/stats');
+  if (!strategy || strategy.user_id !== user.id) redirect('/stats');
 
   return (
     <HydrationBoundary state={dehydratedState}>

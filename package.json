@@ -15,7 +15,9 @@
     "db:migrate:new": "prisma migrate dev --create-only --name",
     "db:migrate:create": "prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script",
     "db:types:test": "supabase gen types typescript --project-id vjzhqacouosiopedktat --schema public > src/types/supabase.ts",
-    "db:types:prod": "supabase gen types typescript --project-id obgexglqwdzgvwzppwfx --schema public > src/types/supabase.ts"
+    "db:types:prod": "supabase gen types typescript --project-id obgexglqwdzgvwzppwfx --schema public > src/types/supabase.ts",
+    "bench": "vitest bench tests/benchmark --reporter=verbose --run",
+    "bench:ci": "vitest bench tests/benchmark --reporter=json --outputFile=tests/benchmark/results/latest.json --run"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -51,6 +53,7 @@
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.4",
     "react-markdown": "^10.1.0",
+    "react-virtuoso": "^4.18.3",
     "recharts": "^3.8.0",
     "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.5.0",
@@ -59,6 +62,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/forms": "^0.5.11",
     "@types/node": "^25.5.0",
     "@types/papaparse": "^5.5.2",
@@ -72,6 +76,7 @@
     "postcss": "^8.5.8",
     "prisma": "^7.5.0",
     "tailwindcss": "^4.2.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
   }
 }

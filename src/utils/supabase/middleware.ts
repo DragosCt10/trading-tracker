@@ -46,12 +46,15 @@ export async function updateSession(request: NextRequest): Promise<{ response: N
     pathname.startsWith('/update-password') ||
     pathname.startsWith('/auth')
 
-  // Public share pages should be accessible without auth.
-  const isPublicSharePath = pathname.startsWith('/share')
+  // Public routes should be accessible without auth.
+  const isPublicPath =
+    pathname === '/' ||
+    pathname.startsWith('/share') ||
+    pathname.startsWith('/feed')
 
-  // Allow auth pages and public share pages without a user;
+  // Allow auth pages and public routes without a user;
   // redirect for auth pages is handled in proxy so we don't duplicate logic.
-  if (!user && !isAuthPath && !isPublicSharePath) {
+  if (!user && !isAuthPath && !isPublicPath) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return { response: NextResponse.redirect(url), user: null }

@@ -60,3 +60,4 @@ tests/e2e/test-results/
 CLAUDE.md
 .mcp.json
 rpc.sql
+.agents

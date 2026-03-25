@@ -126,6 +126,37 @@ export const queryKeys = {
   /** Active subscription for a user (tier, features, limits). */
   subscription: (userId?: string) => ['subscription', userId] as const,
 
+  /** Social profile for a user (by userId). */
+  socialProfile: (userId?: string) => ['socialProfile', userId] as const,
+
+  feed: {
+    public:        ()                                  => ['feed:public']                        as const,
+    timeline:      (userId?: string)                   => ['feed:timeline',      userId]         as const,
+    post:          (postId: string)                    => ['feed:post',           postId]         as const,
+    comments:      (postId: string)                    => ['feed:comments',       postId]         as const,
+    profile:       (username: string)                  => ['feed:profile',        username]       as const,
+    notifications: (userId?: string)                   => ['feed:notifications',  userId]         as const,
+    unreadCount:   (userId?: string)                   => ['feed:unreadCount',    userId]         as const,
+    channels:      (userId?: string)                   => ['feed:channels',       userId]         as const,
+    channelPosts:  (channelId: string)                 => ['feed:channelPosts',   channelId]      as const,
+    search:        (query: string, type: string)       => ['feed:search',         query, type]    as const,
+    followers:     (profileId?: string)                => ['feed:followers',      profileId]      as const,
+    following:     (profileId?: string)                => ['feed:following',      profileId]      as const,
+    weeklyPostCount: ()                                => ['feed:weeklyPostCount']                as const,
+    replies:       (commentId: string)                 => ['feed:replies',        commentId]      as const,
+  },
+
+  /** Active invite links for a private channel (owner only). */
+  channelInvites: (channelId: string) => ['channel-invites', channelId] as const,
+
+  /** Channel IDs from which the current user has been removed (public channels). */
+  removedPublicChannels: (userId?: string) => ['channel-removed-public', userId] as const,
+
+  /** Whether the current user is a member of a specific channel. */
+  channelMembership: (channelId: string) => ['channel-membership', channelId] as const,
+  /** Paginated member list for a channel (owner management modal). */
+  channelMembers: (channelId: string) => ['channel-members:v2', channelId] as const,
+
   /** Full Trade[] for a single calendar month (for calendar display). */
   calendarTrades: (
     mode: string,

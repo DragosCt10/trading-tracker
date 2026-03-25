@@ -10,6 +10,10 @@ const footerLinks = {
     { label: "Features", href: "/#features" },
     { label: "Dashboard", href: "/" },
   ],
+  feed: [
+    { label: "Posts", href: "/feed" },
+    { label: "Rules", href: "/feed/rules" },
+  ],
   legal: [
     { label: "Privacy Policy", href: "/privacy-policy" },
     { label: "Terms of Service", href: "/terms-of-service" },
@@ -97,6 +101,7 @@ export function Footer() {
             <div className="flex flex-wrap gap-8 sm:gap-10 lg:gap-12 lg:flex-shrink-0">
               <FooterSection title="Product" links={footerLinks.product} />
               <FooterSection title="Legal" links={footerLinks.legal} />
+              <FooterSection title="Feed" links={footerLinks.feed} />
               <FooterSection title="Support" links={footerLinks.support} />
             </div>
           </div>
