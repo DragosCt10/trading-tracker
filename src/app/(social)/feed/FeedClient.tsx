@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
-import { Hash, Plus, PlusCircle, Globe, Lock, UserPlus, Users, Settings2, Ban } from 'lucide-react';
+import { Hash, Plus, PlusCircle, Globe, Lock, UserPlus, Users, Settings2, Ban, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -76,6 +76,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData }: 
   );
   const [joinErrorChannelId, setJoinErrorChannelId] = useState<string | null>(null);
   const joinErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pendingChannelId, setPendingChannelId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<FeedTab>('public');
   const mounted = useSyncExternalStore(
     () => () => {},
@@ -329,10 +330,19 @@ export default function FeedClient({ userId, initialProfile, initialFeedData }: 
                               variant="outline"
                               size="sm"
                               className="h-8 cursor-pointer rounded-lg text-xs border-slate-300/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/70 dark:border-slate-600/70 dark:bg-slate-800/40 dark:text-rose-300 dark:hover:text-rose-200 dark:hover:border-rose-400/60 dark:hover:bg-rose-500/12"
-                              disabled={leaveChannel.isPending}
-                              onClick={() => leaveChannel.mutate(channel.id)}
+                              disabled={pendingChannelId === channel.id}
+                              onClick={async () => {
+                                setPendingChannelId(channel.id);
+                                try {
+                                  await leaveChannel.mutateAsync(channel.id);
+                                } finally {
+                                  setPendingChannelId(null);
+                                }
+                              }}
                             >
-                              Leave
+                              {pendingChannelId === channel.id
+                                ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Leaving…</>
+                                : 'Leave'}
                             </Button>
                           </div>
                         )}
@@ -382,10 +392,19 @@ export default function FeedClient({ userId, initialProfile, initialFeedData }: 
                             variant="outline"
                             size="sm"
                             className="shrink-0 cursor-pointer h-8 rounded-lg text-xs border-slate-300/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/70 dark:border-slate-600/70 dark:bg-slate-800/40 dark:text-rose-300 dark:hover:text-rose-200 dark:hover:border-rose-400/60 dark:hover:bg-rose-500/12"
-                            disabled={leaveChannel.isPending}
-                            onClick={() => leaveChannel.mutate(channel.id)}
+                            disabled={pendingChannelId === channel.id}
+                            onClick={async () => {
+                              setPendingChannelId(channel.id);
+                              try {
+                                await leaveChannel.mutateAsync(channel.id);
+                              } finally {
+                                setPendingChannelId(null);
+                              }
+                            }}
                           >
-                            Leave
+                            {pendingChannelId === channel.id
+                              ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Leaving…</>
+                              : 'Leave'}
                           </Button>
                         ) : removedChannelIds.has(channel.id) ? (
                           <TooltipProvider delayDuration={200}>
@@ -411,18 +430,25 @@ export default function FeedClient({ userId, initialProfile, initialFeedData }: 
                             variant="outline"
                             size="sm"
                             className="shrink-0 h-8 rounded-lg text-xs border-slate-300 dark:border-slate-600 cursor-pointer"
-                            disabled={joinChannel.isPending}
+                            disabled={pendingChannelId === channel.id}
                             onClick={async () => {
-                              const result = await joinChannel.mutateAsync(channel.id);
-                              if ('error' in result) {
-                                setLocalRemovedChannelIds((prev) => new Set(prev).add(channel.id));
-                                setJoinErrorChannelId(channel.id);
-                                if (joinErrorTimerRef.current) clearTimeout(joinErrorTimerRef.current);
-                                joinErrorTimerRef.current = setTimeout(() => setJoinErrorChannelId(null), 5000);
+                              setPendingChannelId(channel.id);
+                              try {
+                                const result = await joinChannel.mutateAsync(channel.id);
+                                if ('error' in result) {
+                                  setLocalRemovedChannelIds((prev) => new Set(prev).add(channel.id));
+                                  setJoinErrorChannelId(channel.id);
+                                  if (joinErrorTimerRef.current) clearTimeout(joinErrorTimerRef.current);
+                                  joinErrorTimerRef.current = setTimeout(() => setJoinErrorChannelId(null), 5000);
+                                }
+                              } finally {
+                                setPendingChannelId(null);
                               }
                             }}
                           >
-                            Join
+                            {pendingChannelId === channel.id
+                              ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Joining…</>
+                              : 'Join'}
                           </Button>
                         )
                       )}
