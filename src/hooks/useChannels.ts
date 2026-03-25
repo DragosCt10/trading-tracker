@@ -11,6 +11,7 @@ import {
   getChannelMembersForOwner,
   addChannelMemberByHandle,
   removeChannelMemberByUserId,
+  getRemovedPublicChannelIds,
 } from '@/lib/server/feedChannels';
 import {
   getChannelInvites,
@@ -34,6 +35,15 @@ export function usePublicChannels(enabled = true) {
     queryKey: queryKeys.feed.channels(),
     queryFn: () => getPublicChannels(),
     enabled,
+    ...FEED_DATA,
+  });
+}
+
+export function useRemovedPublicChannelIds(userId?: string) {
+  return useQuery({
+    queryKey: queryKeys.removedPublicChannels(userId),
+    queryFn: getRemovedPublicChannelIds,
+    enabled: !!userId,
     ...FEED_DATA,
   });
 }

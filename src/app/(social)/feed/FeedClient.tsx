@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, useSyncExternalStore } from 'react';
-import { Hash, Plus, PlusCircle, Globe, Lock, UserPlus, Users, Settings2 } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
+import { Hash, Plus, PlusCircle, Globe, Lock, UserPlus, Users, Settings2, Ban } from 'lucide-react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useFeed } from '@/hooks/useFeed';
 import { usePostActions } from '@/hooks/usePostActions';
-import { useMyChannels, usePublicChannels, useChannelActions } from '@/hooks/useChannels';
+import { useMyChannels, usePublicChannels, useChannelActions, useRemovedPublicChannelIds } from '@/hooks/useChannels';
 import { queryKeys } from '@/lib/queryKeys';
 import FeedPostList from '@/components/feed/FeedPostList';
 import InlineCreatePostCard from '@/components/feed/InlineCreatePostCard';
@@ -66,6 +67,14 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
   const [channelModalOpen, setChannelModalOpen] = useState(false);
   const [inviteModalChannel, setInviteModalChannel] = useState<FeedChannel | null>(null);
   const [editModalChannel, setEditModalChannel] = useState<FeedChannel | null>(null);
+  const { data: serverRemovedChannelIds = [] } = useRemovedPublicChannelIds(uid);
+  const [localRemovedChannelIds, setLocalRemovedChannelIds] = useState<Set<string>>(new Set());
+  const removedChannelIds = useMemo(
+    () => new Set([...serverRemovedChannelIds, ...Array.from(localRemovedChannelIds)]),
+    [serverRemovedChannelIds, localRemovedChannelIds]
+  );
+  const [joinErrorChannelId, setJoinErrorChannelId] = useState<string | null>(null);
+  const joinErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeTab, setActiveTab] = useState<FeedTab>('public');
   const mounted = useSyncExternalStore(
     () => () => {},
@@ -338,6 +347,11 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                 <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/40">
                   <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Discover</h3>
                 </div>
+                {joinErrorChannelId && (
+                  <p className="px-4 py-2 text-xs text-rose-600 dark:text-rose-400">
+                    You were removed from this channel by the owner.
+                  </p>
+                )}
                 <div className="divide-y divide-slate-200/80 dark:divide-slate-800/60">
                   {discoverChannels.map((channel) => (
                     <div key={channel.id} className="flex items-center gap-3 px-4 py-3.5 hover:bg-slate-100/70 dark:hover:bg-slate-800/40 transition-colors">
@@ -372,13 +386,40 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                           >
                             Leave
                           </Button>
+                        ) : removedChannelIds.has(channel.id) ? (
+                          <TooltipProvider delayDuration={200}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled
+                                  className="shrink-0 h-8 rounded-lg text-xs border-rose-200 dark:border-rose-800/60 text-rose-400 dark:text-rose-500 bg-rose-50/50 dark:bg-rose-950/20 cursor-not-allowed opacity-70"
+                                >
+                                  <Ban className="w-3 h-3 mr-1" />
+                                  Removed by owner
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="left">
+                                You were removed by the owner
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         ) : (
                           <Button
                             variant="outline"
                             size="sm"
                             className="shrink-0 h-8 rounded-lg text-xs border-slate-300 dark:border-slate-600 cursor-pointer"
                             disabled={joinChannel.isPending}
-                            onClick={() => joinChannel.mutate(channel.id)}
+                            onClick={async () => {
+                              const result = await joinChannel.mutateAsync(channel.id);
+                              if ('error' in result) {
+                                setLocalRemovedChannelIds((prev) => new Set(prev).add(channel.id));
+                                setJoinErrorChannelId(channel.id);
+                                if (joinErrorTimerRef.current) clearTimeout(joinErrorTimerRef.current);
+                                joinErrorTimerRef.current = setTimeout(() => setJoinErrorChannelId(null), 5000);
+                              }
+                            }}
                           >
                             Join
                           </Button>

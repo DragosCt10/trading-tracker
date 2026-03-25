@@ -286,6 +286,26 @@ export async function getChannelMembershipFlags(channelId: string): Promise<Chan
 }
 
 /**
+ * Returns all public channel IDs from which the current user has been removed.
+ * The RLS policy on channel_public_removed_members scopes SELECT to the current user's rows,
+ * so no explicit user filter is needed.
+ */
+export async function getRemovedPublicChannelIds(): Promise<string[]> {
+  const session = await getCachedUserSession();
+  if (!session.user) return [];
+
+  const profile = await getCachedSocialProfile(session.user.id);
+  if (!profile) return [];
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('channel_public_removed_members')
+    .select('channel_id');
+
+  return (data ?? []).map((r: { channel_id: string }) => r.channel_id);
+}
+
+/**
  * True when `profileId` is on the public-channel removal list (cannot comment until re-added; posting/join blocked separately).
  * Used by feed comment guard; no-ops for private channels or missing channel.
  */

@@ -149,6 +149,9 @@ export const queryKeys = {
   /** Active invite links for a private channel (owner only). */
   channelInvites: (channelId: string) => ['channel-invites', channelId] as const,
 
+  /** Channel IDs from which the current user has been removed (public channels). */
+  removedPublicChannels: (userId?: string) => ['channel-removed-public', userId] as const,
+
   /** Whether the current user is a member of a specific channel. */
   channelMembership: (channelId: string) => ['channel-membership', channelId] as const,
   /** Paginated member list for a channel (owner management modal). */
