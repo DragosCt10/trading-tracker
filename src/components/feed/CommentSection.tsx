@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Pencil, Trash2, Check, X, CornerDownRight } from 'lucide-react';
 import CommentInput from './CommentInput';
@@ -123,6 +123,7 @@ function CommentItem({
   variant = 'thread',
   replyCount = 0,
   replyDisabled,
+  nowTs,
 }: {
   comment: FeedComment;
   currentProfileId?: string;
@@ -133,11 +134,11 @@ function CommentItem({
   variant?: 'thread' | 'reply';
   replyCount?: number;
   replyDisabled?: boolean;
+  nowTs: number;
 }) {
   const [editState, setEditState] = useState<EditState>('idle');
   const [editContent, setEditContent] = useState(comment.content);
   const [editError, setEditError] = useState('');
-  const [nowTs, setNowTs] = useState<number | null>(null);
   const isOwn = currentProfileId === comment.author.id;
   const { theme, mounted } = useTheme();
   const isLightMode = mounted && theme === 'light';
@@ -146,13 +147,7 @@ function CommentItem({
   const displayedName = getPublicDisplayName(comment.author);
   const isEdited = new Date(comment.updated_at).getTime() > new Date(comment.created_at).getTime();
   const createdAtTs = new Date(comment.created_at).getTime();
-  const canEdit = nowTs !== null && nowTs - createdAtTs <= COMMENT_EDIT_WINDOW_MS;
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => setNowTs(Date.now()), 0);
-    const intervalId = window.setInterval(() => setNowTs(Date.now()), 30_000);
-    return () => { window.clearTimeout(timeoutId); window.clearInterval(intervalId); };
-  }, []);
+  const canEdit = nowTs - createdAtTs <= COMMENT_EDIT_WINDOW_MS;
 
   function handleAuthorClick(e: React.MouseEvent) {
     if (!onAuthorClick) return;
@@ -322,6 +317,7 @@ function CommentWithReplies({
   onReply,
   onAuthorClick,
   repliesDisabled,
+  nowTs,
 }: {
   comment: FeedComment;
   currentProfileId?: string;
@@ -330,6 +326,7 @@ function CommentWithReplies({
   onReply: (parentId: string, content: string) => Promise<boolean>;
   onAuthorClick?: (username: string) => void;
   repliesDisabled?: boolean;
+  nowTs: number;
 }) {
   const [threadOpen, setThreadOpen] = useState(false);
   const [replying, setReplying] = useState(false);
@@ -368,6 +365,7 @@ function CommentWithReplies({
         onReplyClick={repliesDisabled ? undefined : () => setThreadOpen((o) => !o)}
         replyCount={displayedCount}
         replyDisabled={repliesDisabled}
+        nowTs={nowTs}
       />
 
       {threadOpen && !repliesDisabled && (
@@ -391,6 +389,7 @@ function CommentWithReplies({
               onEdit={(id, content) => onEdit(id, content, comment.id)}
               onDelete={handleDeleteReply}
               onAuthorClick={onAuthorClick}
+              nowTs={nowTs}
             />
           ))}
         </div>
@@ -412,28 +411,37 @@ export default function CommentSection({
   const { query, add, edit, remove } = useComments(postId, initialComments);
   const comments = query.data?.pages.flatMap((p) => p.items) ?? [];
 
-  async function handleAdd(content: string) {
+  // Single shared timer for all CommentItem edit-window checks — avoids N intervals for N comments.
+  const [nowTs, setNowTs] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTs(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const handleAdd = useCallback(async (content: string) => {
     const result = await add.mutateAsync({ content });
     if ('error' in result) return;
     onCountChange?.(1);
-  }
+  }, [add, onCountChange]);
 
-  async function handleEdit(commentId: string, content: string, parentId?: string) {
+  const handleEdit = useCallback(async (commentId: string, content: string, parentId?: string) => {
     const result = await edit.mutateAsync({ commentId, content, parentId });
     if ('error' in result) throw new Error(result.error);
-  }
+  }, [edit]);
 
-  function handleDelete(commentId: string, parentId?: string) {
-    remove.mutateAsync({ commentId, parentId }).then((result) => {
-      if ('error' in result) return;
-      if (!parentId) onCountChange?.(-1);
-    });
-  }
+  const handleDelete = useCallback(async (commentId: string, parentId?: string) => {
+    const result = await remove.mutateAsync({ commentId, parentId });
+    if ('error' in result) {
+      console.error('[CommentSection] delete failed:', result.error);
+      return;
+    }
+    if (!parentId) onCountChange?.(-1);
+  }, [remove, onCountChange]);
 
-  async function handleReply(parentId: string, content: string): Promise<boolean> {
+  const handleReply = useCallback(async (parentId: string, content: string): Promise<boolean> => {
     const result = await add.mutateAsync({ content, parentId });
     return !('error' in result);
-  }
+  }, [add]);
 
   return (
     <div className="space-y-3">
@@ -462,6 +470,7 @@ export default function CommentSection({
               onReply={handleReply}
               onAuthorClick={onAuthorClick}
               repliesDisabled={channelReadOnly}
+              nowTs={nowTs}
             />
           ))}
         </div>

@@ -94,12 +94,12 @@ export async function getComments(
   let query = supabase
     .from('feed_comments')
     .select(`
-      *,
+      id, post_id, author_id, content, parent_id, is_hidden, reply_count, created_at, updated_at,
       author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)
     `)
     .eq('post_id', postId)
     .eq('is_hidden', false)
-    .is('parent_id', null) // top-level only; replies fetched separately or nested
+    .is('parent_id', null) // top-level only; replies fetched separately
     .order('created_at', { ascending: false })
     .limit(limit + 1);
 
@@ -111,23 +111,10 @@ export async function getComments(
   const rows = (data ?? []) as Record<string, unknown>[];
   const pageRows = rows.slice(0, limit);
 
-  // Fetch reply counts — select only parent_id (UUID) to minimize data transfer,
-  // then count in JS. A GROUP BY RPC would be cleaner but requires a migration.
-  const commentIds = pageRows.map((r) => r.id as string);
-  const replyCounts: Record<string, number> = {};
-  if (commentIds.length > 0) {
-    const { data: replyRows } = await supabase
-      .from('feed_comments')
-      .select('parent_id')
-      .in('parent_id', commentIds)
-      .eq('is_hidden', false);
-    for (const r of (replyRows ?? []) as { parent_id: string }[]) {
-      replyCounts[r.parent_id] = (replyCounts[r.parent_id] ?? 0) + 1;
-    }
-  }
-
+  // reply_count is a denormalized column maintained by DB triggers —
+  // no second query needed.
   return {
-    items: pageRows.map((r) => mapCommentRow(r, replyCounts[r.id as string] ?? 0)),
+    items: pageRows.map((r) => mapCommentRow(r, (r.reply_count as number) ?? 0)),
     nextCursor: rows.length > limit ? (rows[limit - 1].created_at as string) : null,
     hasMore: rows.length > limit,
   };
@@ -232,15 +219,15 @@ export async function addComment(
   }
 
   const notificationRecipient = parentAuthorId ?? (post as { author_id: string }).author_id;
-  // Don't notify if the actor is replying to themselves
+  // Don't notify if the actor is replying to themselves. Fire-and-forget — not in critical path.
   if (notificationRecipient !== profile.id) {
-    await createNotification({
+    createNotification({
       recipientProfileId: notificationRecipient,
       actorProfileId: profile.id,
       type: 'comment',
       postId,
       commentId: (created as { id: string }).id,
-    });
+    }).catch((e) => console.error('[addComment] notification:', e));
   }
 
   return { data: mapCommentRow(created as Record<string, unknown>) };
@@ -273,23 +260,11 @@ export async function editComment(
     .single();
 
   if (error || !updated) {
-    const { data: existing } = await supabase
-      .from('feed_comments')
-      .select('id, created_at')
-      .eq('id', commentId)
-      .eq('author_id', profile.id)
-      .maybeSingle();
-
-    if (!existing) {
-      return { error: 'Comment not found', code: 'NOT_FOUND' };
-    }
-
-    if (new Date(existing.created_at as string).getTime() < Date.now() - COMMENT_EDIT_WINDOW_MS) {
-      return { error: 'Comments can only be edited within 10 minutes', code: 'LIMIT_EXCEEDED' };
-    }
-
+    // The UPDATE matched 0 rows — either the comment doesn't exist, doesn't belong to this
+    // user, or the 10-minute edit window has passed. The client already hides the Edit button
+    // when canEdit=false, so this path is only hit in rare race conditions.
     console.error('[editComment] error:', error);
-    return { error: 'Failed to edit comment', code: 'DB_ERROR' };
+    return { error: 'Comment not found or edit window has expired', code: 'NOT_FOUND' };
   }
 
   return { data: mapCommentRow(updated as Record<string, unknown>) };

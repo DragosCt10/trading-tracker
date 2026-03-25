@@ -132,6 +132,10 @@ export const queryKeys = {
   feed: {
     public:        ()                                  => ['feed:public']                        as const,
     timeline:      (userId?: string)                   => ['feed:timeline',      userId]         as const,
+    /** Bare prefix — matches ALL timeline queries regardless of userId. Use for cache invalidation. */
+    timelineAll:   ()                                  => ['feed:timeline']                      as const,
+    /** Bare prefix — matches ALL channelPosts queries regardless of channelId. Use for cache invalidation. */
+    channelPostsAll: ()                                => ['feed:channelPosts']                  as const,
     post:          (postId: string)                    => ['feed:post',           postId]         as const,
     comments:      (postId: string)                    => ['feed:comments',       postId]         as const,
     profile:       (username: string)                  => ['feed:profile',        username]       as const,

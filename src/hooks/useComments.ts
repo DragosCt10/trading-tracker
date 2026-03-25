@@ -52,8 +52,8 @@ export function useComments(postId: string, initialData?: PaginatedResult<FeedCo
   function bumpCommentCountAcrossFeedCaches(delta: number) {
     const prefixes = [
       queryKeys.feed.public(),
-      queryKeys.feed.timeline(),
-      queryKeys.feed.channelPosts(''),
+      queryKeys.feed.timelineAll(),      // bare prefix — matches all timelines
+      queryKeys.feed.channelPostsAll(),  // bare prefix — matches all channel feeds
     ] as unknown as unknown[][];
 
     for (const prefix of prefixes) {
@@ -73,7 +73,9 @@ export function useComments(postId: string, initialData?: PaginatedResult<FeedCo
     initialData: initialData
       ? { pages: [initialData], pageParams: [undefined] }
       : undefined,
-    refetchOnMount: true,
+    // Skip refetch on mount when the server pre-fetched fresh data — avoid a redundant
+    // network round-trip immediately after hydration.
+    refetchOnMount: !initialData,
     ...FEED_DATA,
   });
 
