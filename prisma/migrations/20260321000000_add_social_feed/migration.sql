@@ -159,7 +159,10 @@ CREATE INDEX idx_feed_reports_reporter ON public.feed_reports (reporter_id);
 
 -- like_count on feed_posts
 CREATE OR REPLACE FUNCTION public.update_post_like_count()
-RETURNS trigger AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE public.feed_posts SET like_count = like_count + 1 WHERE id = NEW.post_id;
@@ -168,7 +171,7 @@ BEGIN
   END IF;
   RETURN NULL;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 CREATE TRIGGER trg_like_count
   AFTER INSERT OR DELETE ON public.feed_likes
@@ -176,7 +179,10 @@ CREATE TRIGGER trg_like_count
 
 -- comment_count on feed_posts
 CREATE OR REPLACE FUNCTION public.update_post_comment_count()
-RETURNS trigger AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE public.feed_posts SET comment_count = comment_count + 1 WHERE id = NEW.post_id;
@@ -185,7 +191,7 @@ BEGIN
   END IF;
   RETURN NULL;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 CREATE TRIGGER trg_comment_count
   AFTER INSERT OR DELETE ON public.feed_comments
@@ -193,7 +199,10 @@ CREATE TRIGGER trg_comment_count
 
 -- follower_count / following_count on social_profiles
 CREATE OR REPLACE FUNCTION public.update_follow_counts()
-RETURNS trigger AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE public.social_profiles SET follower_count  = follower_count  + 1 WHERE id = NEW.following_id;
@@ -204,7 +213,7 @@ BEGIN
   END IF;
   RETURN NULL;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 CREATE TRIGGER trg_follow_counts
   AFTER INSERT OR DELETE ON public.follows
