@@ -1,5 +1,6 @@
 import { getCachedUserSession } from '@/lib/server/session';
 import { ensureSocialProfile } from '@/lib/server/socialProfile';
+import { getPublicFeed } from '@/lib/server/feedPosts';
 import FeedClient from './FeedClient';
 
 export const dynamic = 'force-dynamic';
@@ -13,12 +14,16 @@ export default async function FeedPage() {
     // unauthenticated
   }
 
-  const profile = user ? await ensureSocialProfile() : null;
+  const [profile, initialFeedData] = await Promise.all([
+    user ? ensureSocialProfile() : null,
+    getPublicFeed(undefined, 20),
+  ]);
 
   return (
     <FeedClient
       userId={user?.id ?? null}
       initialProfile={profile}
+      initialFeedData={initialFeedData}
     />
   );
 }

@@ -71,7 +71,7 @@ export function FeedSkeleton() {
           {/* Feed posts skeleton */}
           <div className="flex-1 min-h-0 overflow-y-hidden pr-1 -mr-1">
             <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
+              {Array.from({ length: 3 }).map((_, i) => (
                 <PostCardSkeleton key={i} />
               ))}
             </div>

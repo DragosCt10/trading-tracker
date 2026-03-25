@@ -389,23 +389,39 @@ export async function getFollowingProfileIds(profileIds: string[]): Promise<stri
   const session = await getCachedUserSession();
   if (!session.user) return [];
 
-  const supabase = await createClient();
-  const { data: ownProfile } = await supabase
-    .from('social_profiles')
-    .select('id')
-    .eq('user_id', session.user.id)
-    .maybeSingle();
-
+  const ownProfile = await getCachedSocialProfile(session.user.id);
   if (!ownProfile) return [];
 
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from('follows')
     .select('following_id')
-    .eq('follower_id', (ownProfile as { id: string }).id)
+    .eq('follower_id', ownProfile.id)
     .in('following_id', profileIds);
 
   if (error) {
     console.error('[getFollowingProfileIds] error:', error);
+    return [];
+  }
+
+  return (data ?? []).map((row: { following_id: string }) => row.following_id);
+}
+
+export async function getAllFollowedProfileIds(): Promise<string[]> {
+  const session = await getCachedUserSession();
+  if (!session.user) return [];
+
+  const ownProfile = await getCachedSocialProfile(session.user.id);
+  if (!ownProfile) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('follows')
+    .select('following_id')
+    .eq('follower_id', ownProfile.id);
+
+  if (error) {
+    console.error('[getAllFollowedProfileIds] error:', error);
     return [];
   }
 

@@ -6,7 +6,7 @@ import { Virtuoso } from 'react-virtuoso';
 import PostCard from './PostCard';
 import PostCardSkeleton from './PostCardSkeleton';
 import { useTheme } from '@/hooks/useTheme';
-import { getFollowingProfileIds } from '@/lib/server/socialProfile';
+import { getAllFollowedProfileIds } from '@/lib/server/socialProfile';
 import type { FeedPost } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 import { FEED_CARD_SURFACE_CLASS } from './feedCardStyles';
@@ -59,15 +59,11 @@ export default function FeedPostList({
   const { theme, mounted } = useTheme();
   const isLightMode = mounted && theme === 'light';
   const hasCustomScrollParent = !!customScrollParent;
-  const authorProfileIds = useMemo(
-    () => Array.from(new Set(posts.map((post) => post.author.id).filter((id) => id !== currentProfileId))),
-    [posts, currentProfileId]
-  );
   const { data: followedProfileIds = [], isLoading: isFollowingIdsLoading } = useQuery({
-    queryKey: ['following-profile-ids', currentUserId, authorProfileIds],
-    queryFn: () => getFollowingProfileIds(authorProfileIds),
-    enabled: !!currentUserId && authorProfileIds.length > 0,
-    staleTime: 60_000,
+    queryKey: ['followed-profile-ids-all', currentUserId],
+    queryFn: getAllFollowedProfileIds,
+    enabled: !!currentUserId,
+    staleTime: 5 * 60_000,
   });
   const followedProfileIdSet = useMemo(() => new Set(followedProfileIds), [followedProfileIds]);
 

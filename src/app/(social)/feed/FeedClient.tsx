@@ -23,11 +23,12 @@ import SearchBar from '@/components/feed/SearchBar';
 import ProfilePreviewModal from '@/components/feed/ProfilePreviewModal';
 import { FEED_CARD_SURFACE_CLASS } from '@/components/feed/feedCardStyles';
 import { cn } from '@/lib/utils';
-import type { SocialProfile, FeedPost, FeedChannel } from '@/types/social';
+import type { SocialProfile, FeedPost, FeedChannel, PaginatedResult } from '@/types/social';
 
 interface FeedClientProps {
   userId: string | null;
   initialProfile: SocialProfile | null;
+  initialFeedData?: PaginatedResult<FeedPost>;
 }
 
 type FeedTab = 'public' | 'following' | 'channels';
@@ -59,7 +60,7 @@ function ChannelListSkeleton({ rows = 3, compact = false }: { rows?: number; com
   );
 }
 
-export default function FeedClient({ userId, initialProfile }: FeedClientProps) {
+export default function FeedClient({ userId, initialProfile, initialFeedData }: FeedClientProps) {
   const uid = userId ?? undefined;
   const { subscription } = useSubscription({ userId: uid });
   const [createError, setCreateError] = useState('');
@@ -87,7 +88,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
 
   const isChannelsTab = activeTab === 'channels';
   const feedView = activeTab === 'following' ? 'following' : 'public';
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(uid, undefined, undefined, feedView);
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(uid, feedView === 'public' ? initialFeedData : undefined, undefined, feedView);
   const { like, create, edit, remove, report } = usePostActions(uid);
   const { data: myChannels = [], isLoading: isMyChannelsLoading } = useMyChannels(uid);
   const { data: publicChannelsResult } = usePublicChannels(isChannelsTab);
@@ -452,7 +453,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
                   ? 'Follow some traders to populate your timeline.'
                   : 'Follow some traders or be the first to post!'
               }
-              skeletonCount={5}
+              skeletonCount={3}
             />
           )}
           </div>
