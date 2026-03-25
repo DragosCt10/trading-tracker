@@ -26,10 +26,10 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
   const [editPost, setEditPost] = useState<FeedPost | null>(null);
 
   const { subscription } = useSubscription({ userId });
-  const { data: membership, isLoading: isMemberIsLoading, isFetching: isMemberIsFetching } = useChannelMembershipFlags(channel.id);
+  const { data: membership, isLoading: isMemberIsLoading } = useChannelMembershipFlags(channel.id);
   const isMember = membership?.isMember ?? false;
   const removedByOwner = membership?.removedByOwner ?? false;
-  const isMemberLoading = isMemberIsLoading || isMemberIsFetching;
+  const isMemberLoading = isMemberIsLoading;
   const { join, leave } = useChannelActions(userId);
 
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(
