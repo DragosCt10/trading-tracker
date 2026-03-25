@@ -13,6 +13,7 @@ import {
   addChannelMemberByHandle,
   removeChannelMemberByUserId,
   getRemovedPublicChannelIds,
+  type ChannelMembershipFlags,
 } from '@/lib/server/feedChannels';
 import {
   getChannelInvites,
@@ -93,8 +94,10 @@ export function useChannelActions(userId?: string) {
     onMutate: async (channelId) => {
       await qc.cancelQueries({ queryKey: myChannelsKey });
       await qc.cancelQueries({ queryKey: publicChannelsKey });
+      await qc.cancelQueries({ queryKey: queryKeys.channelMembership(channelId) });
       const previous = qc.getQueryData<FeedChannel[]>(myChannelsKey);
       const previousPub = qc.getQueryData<PaginatedResult<FeedChannel>>(publicChannelsKey);
+      const previousMembership = qc.getQueryData<ChannelMembershipFlags>(queryKeys.channelMembership(channelId));
       const ch = previousPub?.items?.find((c) => c.id === channelId);
       const updatedCh = ch ? { ...ch, member_count: (ch.member_count ?? 0) + 1 } : undefined;
       if (updatedCh) {
@@ -104,18 +107,23 @@ export function useChannelActions(userId?: string) {
           old ? { ...old, items: old.items.map((c) => (c.id === channelId ? updatedCh : c)) } : old
         );
       }
-      return { previous, previousPub };
+      qc.setQueryData<ChannelMembershipFlags>(queryKeys.channelMembership(channelId), (old) =>
+        old ? { ...old, isMember: true } : { isMember: true, removedByOwner: false }
+      );
+      return { previous, previousPub, previousMembership };
     },
-    onSuccess: (result, _channelId, ctx) => {
+    onSuccess: (result, channelId, ctx) => {
       if ('error' in result) {
         if (ctx?.previous !== undefined) qc.setQueryData(myChannelsKey, ctx.previous);
         if (ctx?.previousPub !== undefined) qc.setQueryData(publicChannelsKey, ctx.previousPub);
+        if (ctx?.previousMembership !== undefined) qc.setQueryData(queryKeys.channelMembership(channelId), ctx.previousMembership);
       }
       invalidateChannelLists();
     },
-    onError: (_err, _vars, ctx) => {
+    onError: (_err, channelId, ctx) => {
       if (ctx?.previous !== undefined) qc.setQueryData(myChannelsKey, ctx.previous);
       if (ctx?.previousPub !== undefined) qc.setQueryData(publicChannelsKey, ctx.previousPub);
+      if (ctx?.previousMembership !== undefined) qc.setQueryData(queryKeys.channelMembership(channelId), ctx.previousMembership);
       invalidateChannelLists();
     },
   });
@@ -125,8 +133,10 @@ export function useChannelActions(userId?: string) {
     onMutate: async (channelId) => {
       await qc.cancelQueries({ queryKey: myChannelsKey });
       await qc.cancelQueries({ queryKey: publicChannelsKey });
+      await qc.cancelQueries({ queryKey: queryKeys.channelMembership(channelId) });
       const previous = qc.getQueryData<FeedChannel[]>(myChannelsKey);
       const previousPub = qc.getQueryData<PaginatedResult<FeedChannel>>(publicChannelsKey);
+      const previousMembership = qc.getQueryData<ChannelMembershipFlags>(queryKeys.channelMembership(channelId));
       qc.setQueryData<FeedChannel[]>(myChannelsKey, (old = []) =>
         old.filter((c) => c.id !== channelId)
       );
@@ -140,18 +150,23 @@ export function useChannelActions(userId?: string) {
             }
           : old
       );
-      return { previous, previousPub };
+      qc.setQueryData<ChannelMembershipFlags>(queryKeys.channelMembership(channelId), (old) =>
+        old ? { ...old, isMember: false } : { isMember: false, removedByOwner: false }
+      );
+      return { previous, previousPub, previousMembership };
     },
-    onSuccess: (result, _channelId, ctx) => {
+    onSuccess: (result, channelId, ctx) => {
       if ('error' in result) {
         if (ctx?.previous !== undefined) qc.setQueryData(myChannelsKey, ctx.previous);
         if (ctx?.previousPub !== undefined) qc.setQueryData(publicChannelsKey, ctx.previousPub);
+        if (ctx?.previousMembership !== undefined) qc.setQueryData(queryKeys.channelMembership(channelId), ctx.previousMembership);
       }
       invalidateChannelLists();
     },
-    onError: (_err, _vars, ctx) => {
+    onError: (_err, channelId, ctx) => {
       if (ctx?.previous !== undefined) qc.setQueryData(myChannelsKey, ctx.previous);
       if (ctx?.previousPub !== undefined) qc.setQueryData(publicChannelsKey, ctx.previousPub);
+      if (ctx?.previousMembership !== undefined) qc.setQueryData(queryKeys.channelMembership(channelId), ctx.previousMembership);
       invalidateChannelLists();
     },
   });
