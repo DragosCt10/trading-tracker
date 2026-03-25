@@ -1,28 +1,74 @@
 -- ============================================================
--- feed-rpcs.sql
--- Postgres functions for feed queries.
--- These replace multi-step serial Supabase calls with single JOIN queries.
---
--- Usage:
---   psql "$DATABASE_URL" -f supabase/functions/feed-rpcs.sql
---
--- What this does:
---   get_public_feed()   — feed + author + like status in 1 JOIN query
---   get_channel_feed()  — same for channel feeds
---   get_timeline()      — following feed using JOIN on follows (not IN())
---
--- Note: Tables are fully qualified as public.<table> to avoid search_path issues.
+-- Feed helper functions
+-- toggle_like, acquire_post_lock, get_public_feed,
+-- get_channel_feed, get_timeline
 -- ============================================================
 
 
--- ──────────────────────────────────────────────────────────────
--- get_public_feed
---
--- Returns all non-hidden posts ordered newest-first.
--- Joins the author profile and the current viewer's like status
--- in a single query. p_user_id is nullable for unauthenticated
--- viewers — they get is_liked_by_me = false.
--- ──────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.toggle_like(
+  p_post_id uuid,
+  p_user_id uuid
+)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_author_id  uuid;
+  v_liked      boolean;
+  v_like_count int;
+BEGIN
+  SELECT author_id INTO v_author_id
+  FROM feed_posts
+  WHERE id = p_post_id AND is_hidden = false;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'NOT_FOUND: post % does not exist or is hidden', p_post_id;
+  END IF;
+
+  IF v_author_id = p_user_id THEN
+    RAISE EXCEPTION 'SELF_LIKE: cannot like your own post';
+  END IF;
+
+  SELECT EXISTS(
+    SELECT 1 FROM feed_likes
+    WHERE post_id = p_post_id AND user_id = p_user_id
+  ) INTO v_liked;
+
+  IF v_liked THEN
+    DELETE FROM feed_likes WHERE post_id = p_post_id AND user_id = p_user_id;
+  ELSE
+    INSERT INTO feed_likes (post_id, user_id)
+    VALUES (p_post_id, p_user_id)
+    ON CONFLICT (post_id, user_id) DO NOTHING;
+  END IF;
+
+  SELECT like_count INTO v_like_count FROM feed_posts WHERE id = p_post_id;
+
+  RETURN json_build_object(
+    'liked',      NOT v_liked,
+    'like_count', v_like_count,
+    'author_id',  v_author_id
+  );
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION public.acquire_post_lock(
+  p_profile_id uuid
+)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN pg_try_advisory_xact_lock(hashtext(p_profile_id::text));
+END;
+$$;
+
+
 CREATE OR REPLACE FUNCTION public.get_public_feed(
   p_cursor    TIMESTAMPTZ DEFAULT NULL,
   p_limit     INT         DEFAULT 20,
@@ -88,11 +134,6 @@ AS $$
 $$;
 
 
--- ──────────────────────────────────────────────────────────────
--- get_channel_feed
---
--- Same as get_public_feed but filtered to a specific channel.
--- ──────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.get_channel_feed(
   p_channel_id UUID,
   p_cursor     TIMESTAMPTZ DEFAULT NULL,
@@ -160,15 +201,6 @@ AS $$
 $$;
 
 
--- ──────────────────────────────────────────────────────────────
--- get_timeline
---
--- Returns posts from users the viewer follows + their own posts.
--- Uses a JOIN on follows (not WHERE author_id IN(...)) so query
--- cost stays flat regardless of follow count.
--- CROSS JOIN with the profile subquery ensures the query returns
--- nothing if the user has no social profile.
--- ──────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.get_timeline(
   p_user_id  UUID,
   p_cursor   TIMESTAMPTZ DEFAULT NULL,

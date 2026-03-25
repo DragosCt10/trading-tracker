@@ -43,6 +43,7 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
         initialStrategyId={strategyId}
         initialStrategyName={strategy?.name ?? null}
         initialExtraCards={initialExtraCards}
+        initialSavedTags={strategy?.saved_tags ?? []}
       />
     );
   }
@@ -87,6 +88,7 @@ async function StrategyDataFetcher({ user, strategySlug }: { user: User; strateg
       initialStrategyId={strategyId}
       initialStrategyName={strategy?.name ?? null}
       initialExtraCards={initialExtraCards}
+      initialSavedTags={strategy?.saved_tags ?? []}
     />
   );
 }

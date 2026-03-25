@@ -29,6 +29,11 @@ export function buildFilterPills(filters: CustomStatFilter): string[] {
   if (filters.local_high_low !== undefined) pills.push(filters.local_high_low ? 'Local H/L' : 'No Local H/L');
   if (filters.launch_hour !== undefined) pills.push(filters.launch_hour ? 'Launch Hour' : 'No Launch Hour');
   if (filters.fvg_size !== undefined) pills.push(`FVG: ${filters.fvg_size}`);
+  if (filters.tags?.length) {
+    filters.tags.forEach((t) => {
+      pills.push(t.length > 20 ? t.slice(0, 19) + '…' : t);
+    });
+  }
   return pills;
 }
 
@@ -68,6 +73,9 @@ export function applyCustomStatFilter(trades: Trade[], filter: CustomStatFilter)
     if (filter.local_high_low !== undefined && trade.local_high_low !== filter.local_high_low) return false;
     if (filter.launch_hour !== undefined && trade.launch_hour !== filter.launch_hour) return false;
     if (filter.fvg_size !== undefined && trade.fvg_size !== filter.fvg_size) return false;
+    if (filter.tags?.length) {
+      if (!filter.tags.some((t) => trade.tags?.includes(t))) return false;
+    }
     return true;
   });
 }

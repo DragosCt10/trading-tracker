@@ -71,7 +71,8 @@ import { invalidateAndRefetchTradeQueries as invalidateTradeQueries } from '@/li
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
-import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyFavourites } from '@/lib/server/strategies';
+import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyFavourites, syncStrategyTags, renameStrategyTag, deleteStrategyTag } from '@/lib/server/strategies';
+import { TagInput } from '@/components/ui/TagInput';
 import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
 import { snapToHalfStep } from '@/utils/tradeFormHelpers';
 
@@ -185,6 +186,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     fvg_size: undefined as any,
     confidence_at_entry: null as number | null,
     mind_state_at_entry: 3, // Preselect Neutral so user sees the scale (1–5) like Confidence
+    tags: [],
   }), [selection.mode]);
 
   const [trade, setTrade] = useState<Trade>(initialTradeState);
@@ -390,6 +392,42 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 ...s,
                 saved_liquidity_types: next,
               }
+            : s
+        );
+      }
+    );
+  }, [userId, accountId, currentStrategy, queryClient]);
+
+  const handleRenameTag = useCallback(async (oldName: string, newName: string) => {
+    if (!userId || !currentStrategy) return;
+    const { error } = await renameStrategyTag(currentStrategy.id, userId, oldName, newName);
+    if (error) return;
+    const strategiesKey = queryKeys.strategies(userId, accountId);
+    queryClient.setQueryData(
+      strategiesKey,
+      (prev: { id: string; saved_tags?: string[] }[] | undefined) => {
+        if (!prev) return prev;
+        return prev.map((s) =>
+          s.id === currentStrategy.id
+            ? { ...s, saved_tags: (s.saved_tags ?? []).map((t) => (t === oldName ? newName : t)).sort() }
+            : s
+        );
+      }
+    );
+  }, [userId, accountId, currentStrategy, queryClient]);
+
+  const handleDeleteTag = useCallback(async (tag: string) => {
+    if (!userId || !currentStrategy) return;
+    const { error } = await deleteStrategyTag(currentStrategy.id, userId, tag);
+    if (error) return;
+    const strategiesKey = queryKeys.strategies(userId, accountId);
+    queryClient.setQueryData(
+      strategiesKey,
+      (prev: { id: string; saved_tags?: string[] }[] | undefined) => {
+        if (!prev) return prev;
+        return prev.map((s) =>
+          s.id === currentStrategy.id
+            ? { ...s, saved_tags: (s.saved_tags ?? []).filter((t) => t !== tag) }
             : s
         );
       }
@@ -606,6 +644,17 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
             savePromises.push(updateSavedMarkets(updatedMarkets));
           }
 
+          const tradeTags = (tradeSnapshot.tags ?? []).map((t: string) => t.toLowerCase().trim()).filter(Boolean);
+          let updatedTags: string[] | undefined;
+          if (tradeTags.length > 0 && userIdSnapshot && currentStrategySnapshot) {
+            const current = currentStrategySnapshot.saved_tags ?? [];
+            const merged = Array.from(new Set([...current, ...tradeTags])).sort();
+            if (merged.length !== current.length || merged.some((t, i) => t !== current[i])) {
+              updatedTags = merged;
+              savePromises.push(syncStrategyTags(currentStrategySnapshot.id, userIdSnapshot, tradeTags));
+            }
+          }
+
           await Promise.all(savePromises);
 
           // Update cache immediately so next time modal opens, useSettings/useStrategies see fresh data (refetch alone doesn't work because those queries use enabled: !cached)
@@ -620,12 +669,12 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               }),
             );
 
-            if (currentStrategySnapshot && (updatedSetups !== undefined || updatedLiquidity !== undefined)) {
+            if (currentStrategySnapshot && (updatedSetups !== undefined || updatedLiquidity !== undefined || updatedTags !== undefined)) {
               const strategiesKey = queryKeys.strategies(userIdSnapshot, accountIdSnapshot);
               queryClient.setQueryData(
                 strategiesKey,
                 (prev:
-                  | { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[] }[]
+                  | { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[]; saved_tags?: string[] }[]
                   | undefined) => {
                   if (!prev) return prev;
                   return prev.map((s) =>
@@ -634,6 +683,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                           ...s,
                           saved_setup_types: updatedSetups ?? s.saved_setup_types ?? [],
                           saved_liquidity_types: updatedLiquidity ?? s.saved_liquidity_types ?? [],
+                          saved_tags: updatedTags ?? s.saved_tags ?? [],
                         }
                       : s,
                   );
@@ -651,7 +701,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         }
       })();
     } catch (err: any) {
-      setError(err?.message ?? 'Failed to create trade. Please check your data and try again.');
+      setError('Failed to create trade. Please try again.');
       setIsSubmitting(false);
     }
   }, [hasCard, selection, userId, accountId, settings, currentStrategy, queryClient, invalidateAndRefetchTradeQueries, initialTradeState, onTradeCreated, onClose, setError]);
@@ -1024,6 +1074,21 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               </div>
             </div>
 
+            {/* Tags */}
+            <div className="space-y-2">
+              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Tags</Label>
+              <TagInput
+                tags={trade.tags ?? []}
+                savedTags={(currentStrategy?.saved_tags ?? []).sort()}
+                onChange={(tags) => updateTrade('tags', tags)}
+                onRenameTag={currentStrategy ? handleRenameTag : undefined}
+                onDeleteTag={currentStrategy ? handleDeleteTag : undefined}
+                pinnedTags={currentStrategy?.saved_favourites?.tags}
+                onTogglePin={currentStrategy ? handleToggleFavourite('tags') : undefined}
+                placeholder="Add tag..."
+              />
+            </div>
+
             {/* Notes & Confidence Section */}
             <div className="space-y-3">
               <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Notes & Confidence</Label>
@@ -1031,10 +1096,10 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                 ref={notesRef}
                 defaultValue={trade.notes}
                 onBlur={(e) => updateTrade('notes', e.target.value)}
-                className="min-h-[280px] backdrop-blur-sm shadow-sm bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-slate-200/60 dark:border-slate-600 themed-focus transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100"
+                className="min-h-[280px] backdrop-blur-sm shadow-sm bg-slate-50/50 dark:bg-slate-800/30 rounded-xl border border-slate-200/60 dark:border-slate-800 themed-focus transition-all duration-300 placeholder:text-slate-500 dark:placeholder:text-slate-600 text-slate-900 dark:text-slate-100"
                 placeholder="Add your trade notes here..."
               />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 p-5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/60 dark:border-slate-600 shadow-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 p-5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/60 dark:border-slate-800 shadow-sm">
                 {/* Confidence */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-1.5">
@@ -1061,7 +1126,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                         className={`min-w-[2.25rem] px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer ${
                           trade.confidence_at_entry === value
                             ? 'themed-header-icon-box shadow-sm'
-                            : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                            : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                         }`}
                         title={['Very low', 'Low', 'Neutral', 'Good', 'Very confident'][value - 1]}
                       >
@@ -1101,7 +1166,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                         className={`min-w-[2.25rem] px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer ${
                           trade.mind_state_at_entry === value
                             ? 'themed-header-icon-box shadow-sm'
-                            : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                            : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                         }`}
                         title={['Very poor', 'Poor', 'Neutral', 'Good', 'Very good'][value - 1]}
                       >
@@ -1691,7 +1756,7 @@ const RiskSection = React.memo(function RiskSection({
       </div>
 
       {/* P&L Display */}
-      <div className="p-5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/60 dark:border-slate-600 shadow-sm">
+      <div className="p-5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/60 dark:border-slate-800 shadow-sm">
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">Calculated P&L:</span>
           <div className="flex items-center gap-3">

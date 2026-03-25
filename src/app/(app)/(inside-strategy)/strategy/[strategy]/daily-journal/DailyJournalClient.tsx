@@ -39,6 +39,7 @@ interface DailyJournalClientProps {
   initialUserId: string;
   currencySymbol: string;
   accountBalance: number | null;
+  savedTags?: string[];
 }
 
 type DayGroup = {
@@ -154,6 +155,7 @@ export default function DailyJournalClient({
   initialUserId,
   currencySymbol: initialCurrencySymbol,
   accountBalance: initialAccountBalance,
+  savedTags,
 }: DailyJournalClientProps) {
   const { beCalcEnabled } = useBECalc();
   const { userId, mode, activeAccount, isInitialContext } = useStrategyClientContext({
@@ -757,6 +759,7 @@ export default function DailyJournalClient({
           isOpen={isDetailsOpen}
           onClose={closeTradeDetails}
           strategyName={strategyName}
+          savedTags={savedTags}
         />
       )}
       <NotesModal isOpen={isNotesOpen} onClose={closeNotesModal} notes={selectedNotes} />

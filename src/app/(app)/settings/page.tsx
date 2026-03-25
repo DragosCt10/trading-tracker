@@ -22,6 +22,8 @@ export default async function SettingsPage({
   const [{ user }, resolvedSearch] = await Promise.all([getCachedUserSession(), searchParams]);
   if (!user) redirect('/login');
 
+  const tab = normalizeTab(resolvedSearch.tab);
+
   const [subscription, socialProfile] = await Promise.all([
     resolveSubscription(user.id),
     getCachedSocialProfile(user.id),
@@ -29,11 +31,12 @@ export default async function SettingsPage({
 
   return (
     <SettingsClient
-      initialTab={normalizeTab(resolvedSearch.tab)}
+      initialTab={tab}
       subscription={subscription}
       justPaid={resolvedSearch.success === '1'}
       featureContext={resolvedSearch.feature}
       userEmail={user.email ?? ''}
+      userId={user.id}
       socialProfile={socialProfile}
     />
   );

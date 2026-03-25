@@ -73,6 +73,7 @@ function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
     trade_executed_at: trade.trade_executed_at ?? null,
     news_name: trade.news_name ?? null,
     news_intensity: trade.news_intensity ?? null,
+    tags: trade.tags ?? [],
   };
 }
 
@@ -647,4 +648,67 @@ export async function getTradeCountForAccount(
 
   if (error) return 0;
   return count ?? 0;
+}
+
+/**
+ * Bulk-updates tags on a set of trades (add and/or remove) for the current user.
+ * Tags are normalized (lowercase + trim) before applying.
+ */
+export async function bulkUpdateTradeTags(params: {
+  tradeIds: string[];
+  tagsToAdd: string[];
+  tagsToRemove: string[];
+  accountId: string;
+  mode: 'live' | 'backtesting' | 'demo';
+}): Promise<{ error: { message: string } | null }> {
+  if (params.tradeIds.length === 0) return { error: null };
+
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: { message: 'Unauthorized' } };
+
+  const normalizedAdd = params.tagsToAdd.map(t => t.toLowerCase().trim()).filter(Boolean);
+  const normalizedRemove = params.tagsToRemove.map(t => t.toLowerCase().trim()).filter(Boolean);
+
+  const supabase = await createClient();
+  const tableName = `${params.mode}_trades`;
+
+  // Fetch current tags for the selected trades
+  const { data: rows, error: fetchError } = await supabase
+    .from(tableName)
+    .select('id, tags')
+    .in('id', params.tradeIds)
+    .eq('user_id', user.id)
+    .eq('account_id', params.accountId) as any;
+
+  if (fetchError) {
+    console.error('Error fetching trades for bulk tag update:', fetchError);
+    return { error: { message: fetchError.message ?? 'Failed to fetch trades' } };
+  }
+
+  const updates = (rows ?? []).map((row: { id: string; tags: string[] | null }) => {
+    let current: string[] = row.tags ?? [];
+    // Apply adds (deduplicated)
+    for (const tag of normalizedAdd) {
+      if (!current.includes(tag)) current = [...current, tag];
+    }
+    // Apply removes
+    current = current.filter(t => !normalizedRemove.includes(t));
+    return { id: row.id, tags: current };
+  });
+
+  // Upsert each trade's tags individually (Supabase doesn't support per-row updates in bulk)
+  for (const update of updates) {
+    const { error: updateError } = await supabase
+      .from(tableName)
+      .update({ tags: update.tags, updated_at: new Date().toISOString() })
+      .eq('id', update.id)
+      .eq('user_id', user.id);
+
+    if (updateError) {
+      console.error('Error updating trade tags in bulk:', updateError);
+      return { error: { message: updateError.message ?? 'Failed to update trade tags' } };
+    }
+  }
+
+  return { error: null };
 }

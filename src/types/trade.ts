@@ -49,4 +49,6 @@ export interface Trade {
   mind_state_at_entry?: number | null;
   /** UTC ISO timestamp for session bucketing (NY/UK/Asia); derived from trade_date + trade_time (local). */
   trade_executed_at?: string | null;
+  /** Free-form tags attached to this trade (lowercase, trimmed). */
+  tags?: string[] | null;
 }

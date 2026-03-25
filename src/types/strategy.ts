@@ -2,7 +2,7 @@ import type { ExtraCardKey } from '@/constants/extraCards';
 import type { CustomStatConfig } from '@/types/customStats';
 
 /** Favourite/pinned combobox items per kind. Max 10 per kind. */
-export type SavedFavouritesKind = 'setup' | 'liquidity' | 'market' | 'news';
+export type SavedFavouritesKind = 'setup' | 'liquidity' | 'market' | 'news' | 'tags';
 export type SavedFavourites = Partial<Record<SavedFavouritesKind, string[]>>;
 
 export interface Strategy {
@@ -21,4 +21,6 @@ export interface Strategy {
   saved_favourites?: SavedFavourites | null;
   /** User-defined custom stat filter combinations. */
   saved_custom_stats?: CustomStatConfig[] | null;
+  /** Strategy-level tag vocabulary (lowercase, trimmed). */
+  saved_tags: string[];
 }

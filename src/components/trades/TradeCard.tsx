@@ -230,6 +230,25 @@ export function TradeCard({
           </div>
         </div>
 
+        {(trade.tags?.length ?? 0) > 0 && (
+          <div className="flex flex-wrap gap-1 mb-3">
+            {(trade.tags ?? []).slice(0, 3).map((tag) => (
+              <span
+                key={tag}
+                title={tag}
+                className="inline-flex items-center bg-primary/10 text-primary rounded px-2 py-0.5 text-xs font-medium max-w-[120px]"
+              >
+                <span className="truncate">{tag.length > 20 ? tag.slice(0, 19) + '…' : tag}</span>
+              </span>
+            ))}
+            {(trade.tags?.length ?? 0) > 3 && (
+              <span className="inline-flex items-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded px-2 py-0.5 text-xs font-medium">
+                +{(trade.tags?.length ?? 0) - 3}
+              </span>
+            )}
+          </div>
+        )}
+
         {!hideDetailsLink && (
           <button
             onClick={() => onOpenModal(trade)}

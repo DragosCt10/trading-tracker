@@ -63,7 +63,7 @@ function ChipGroup({ options, value, onChange }: ChipGroupProps) {
               'min-w-[2.25rem] px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer',
               isActive
                 ? 'themed-header-icon-box shadow-sm'
-                : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
             )}
           >
             {opt.label}
@@ -127,11 +127,12 @@ interface ModalFormContentProps {
   extraCards: ExtraCardKey[];
   setupOptions: string[];
   liquidityOptions: string[];
+  tagOptions: string[];
   onSave: (config: CustomStatConfig) => void;
   onClose: () => void;
 }
 
-function ModalFormContent({ editing, extraCards, setupOptions, liquidityOptions, onSave, onClose }: ModalFormContentProps) {
+function ModalFormContent({ editing, extraCards, setupOptions, liquidityOptions, tagOptions, onSave, onClose }: ModalFormContentProps) {
   const [name, setName] = useState(editing?.name ?? '');
   const [filters, setFilters] = useState<CustomStatFilter>(editing?.filters ?? EMPTY_FILTER);
   const [nameError, setNameError] = useState('');
@@ -337,7 +338,7 @@ function ModalFormContent({ editing, extraCards, setupOptions, liquidityOptions,
           <Separator />
 
           {/* Confidence & Mind State */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 p-5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/60 dark:border-slate-600 shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 p-5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm border border-slate-200/60 dark:border-slate-800 shadow-sm">
             <div className="space-y-2">
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Confidence at Entry</p>
               <ChipGroup
@@ -485,6 +486,42 @@ function ModalFormContent({ editing, extraCards, setupOptions, liquidityOptions,
                   />
                 </FieldRow>
               )}
+
+              {(tagOptions.length > 0 || (filters.tags?.length ?? 0) > 0) && (
+                <FieldRow label="Tags">
+                  <div className="flex flex-wrap gap-2">
+                    {tagOptions.sort().map((tag) => {
+                      const isActive = filters.tags?.includes(tag) ?? false;
+                      const label = tag.length > 20 ? tag.slice(0, 19) + '…' : tag;
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          title={tag}
+                          onClick={() => {
+                            const current = filters.tags ?? [];
+                            const next = isActive
+                              ? current.filter((t) => t !== tag)
+                              : [...current, tag];
+                            setFilter('tags', next.length > 0 ? next : undefined);
+                          }}
+                          className={cn(
+                            'px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer',
+                            isActive
+                              ? 'themed-header-icon-box shadow-sm'
+                              : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                          )}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {(filters.tags?.length ?? 0) > 0 && (
+                    <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Matches trades with any selected tag</p>
+                  )}
+                </FieldRow>
+              )}
             </>
           )}
 
@@ -532,6 +569,7 @@ interface CustomStatModalProps {
   extraCards: ExtraCardKey[];
   setupOptions?: string[];
   liquidityOptions?: string[];
+  tagOptions?: string[];
 }
 
 export function CustomStatModal({
@@ -542,6 +580,7 @@ export function CustomStatModal({
   extraCards,
   setupOptions = [],
   liquidityOptions = [],
+  tagOptions = [],
 }: CustomStatModalProps) {
   if (!isOpen) return null;
 
@@ -572,6 +611,7 @@ export function CustomStatModal({
           extraCards={extraCards}
           setupOptions={setupOptions}
           liquidityOptions={liquidityOptions}
+          tagOptions={tagOptions}
           onSave={onSave}
           onClose={onClose}
         />

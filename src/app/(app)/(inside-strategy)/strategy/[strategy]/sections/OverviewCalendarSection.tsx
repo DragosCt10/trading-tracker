@@ -45,6 +45,8 @@ type StrategyOverviewAndCalendarSectionsProps = {
   calendarMonthTradesToUse: Trade[];
   selectionActiveAccountBalance?: number | null;
   getDaysInMonth: ReturnType<typeof getDaysInMonthForDate>;
+  /** Strategy's saved tag vocabulary for autocomplete in trade details. */
+  savedTags?: string[];
 };
 
 export function StrategyOverviewAndCalendarSections({
@@ -74,6 +76,7 @@ export function StrategyOverviewAndCalendarSections({
   calendarMonthTradesToUse,
   selectionActiveAccountBalance,
   getDaysInMonth,
+  savedTags,
 }: StrategyOverviewAndCalendarSectionsProps) {
   const [calendarTradeDetails, setCalendarTradeDetails] = useState<Trade | null>(null);
 
@@ -147,6 +150,7 @@ export function StrategyOverviewAndCalendarSections({
             trade={calendarTradeDetails}
             isOpen={!!calendarTradeDetails}
             onClose={() => setCalendarTradeDetails(null)}
+            savedTags={savedTags}
           />
         </>
       )}

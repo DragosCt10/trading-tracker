@@ -19,9 +19,11 @@ interface TradeDetailsModalProps {
   strategyName?: string;
   /** Extra card keys for read-only mode (e.g. public share where no auth session exists). */
   extraCards?: string[];
+  /** Strategy's saved tag vocabulary for autocomplete. Pass [] for read-only contexts. */
+  savedTags?: string[];
 }
 
-export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdated, readOnly, strategyName, extraCards }: TradeDetailsModalProps) {
+export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdated, readOnly, strategyName, extraCards, savedTags }: TradeDetailsModalProps) {
   if (!isOpen || !trade) return null;
 
   return (
@@ -46,7 +48,7 @@ export default function TradeDetailsModal({ trade, isOpen, onClose, onTradeUpdat
         <div className="absolute -top-px left-0 right-0 h-0.5 themed-accent-line rounded-t-2xl" />
 
         <AlertDialogTitle className="sr-only">Trade Details</AlertDialogTitle>
-        <TradeDetailsPanel trade={trade} onClose={onClose} onTradeUpdated={onTradeUpdated} readOnly={readOnly} strategyName={strategyName} extraCards={extraCards} />
+        <TradeDetailsPanel trade={trade} onClose={onClose} onTradeUpdated={onTradeUpdated} readOnly={readOnly} strategyName={strategyName} extraCards={extraCards} savedTags={savedTags} />
       </AlertDialogContent>
     </AlertDialog>
   );

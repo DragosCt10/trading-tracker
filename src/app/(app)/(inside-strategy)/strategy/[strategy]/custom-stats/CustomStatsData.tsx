@@ -37,6 +37,7 @@ async function CustomStatsDataFetcher({
         savedCustomStats={strategy.saved_custom_stats ?? []}
         savedSetupTypes={strategy.saved_setup_types ?? []}
         savedLiquidityTypes={strategy.saved_liquidity_types ?? []}
+        savedTags={strategy.saved_tags ?? []}
         initialTrades={initialTrades}
         initialActiveAccount={activeAccount}
         initialMode={mode}

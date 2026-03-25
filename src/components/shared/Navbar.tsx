@@ -118,6 +118,8 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
     [pathname]
   );
 
+  const settingsHref = '/settings?tab=billing';
+
   const tierDef = TIER_DEFINITIONS[tier ?? 'starter'];
   const isPro = tier === 'pro' || tier === 'elite';
 
@@ -274,7 +276,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
               className={cn(navPillButtonClass(isSettingsActive), 'h-8 w-8 p-0')}
               aria-label="Settings"
             >
-              <Link href="/settings?tab=billing" className="group flex items-center justify-center">
+              <Link href={settingsHref} className="group flex items-center justify-center">
                 <Settings className="h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
               </Link>
             </Button>
@@ -456,7 +458,7 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                   className={cn('w-full justify-center', navPillButtonClass(isSettingsActive))}
                   aria-label="Settings"
                 >
-                  <Link href="/settings?tab=billing" onClick={closeMobileMenu} className="flex items-center justify-center">
+                  <Link href={settingsHref} onClick={closeMobileMenu} className="flex items-center justify-center">
                     <Settings className="h-4 w-4" />
                   </Link>
                 </Button>

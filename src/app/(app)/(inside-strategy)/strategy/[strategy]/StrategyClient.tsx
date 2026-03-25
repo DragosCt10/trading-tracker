@@ -146,6 +146,8 @@ export type StrategyClientInitialProps = {
   initialExtraCards: ExtraCardKey[];
   /** Server-fetched dashboard stats (API shape) for initial hydration — avoids client /api/dashboard-stats call (audit 2.1). */
   initialDashboardStats?: DashboardApiResponse | null;
+  /** Strategy's saved tag vocabulary for initial hydration. */
+  initialSavedTags?: string[];
 };
 
 const defaultInitialRange = createInitialDateRange();
@@ -523,6 +525,7 @@ export default function StrategyClient(
 
   // Per-strategy extra cards configuration
   const extraCards = useMemo(() => props?.initialExtraCards ?? [], [props?.initialExtraCards]);
+  const savedTags = useMemo(() => props?.initialSavedTags ?? [], [props?.initialSavedTags]);
   const extraCardsSet = useMemo(() => new Set(extraCards), [extraCards]);
   const hasCard = useCallback((key: ExtraCardKey) => extraCardsSet.has(key), [extraCardsSet]);
 
@@ -1101,6 +1104,7 @@ export default function StrategyClient(
         calendarMonthTradesToUse={calendarMonthTradesToUse}
         selectionActiveAccountBalance={selection.activeAccount?.account_balance}
         getDaysInMonth={getDaysInMonth}
+        savedTags={savedTags}
       />
 
       <StrategyCoreStatisticsSection

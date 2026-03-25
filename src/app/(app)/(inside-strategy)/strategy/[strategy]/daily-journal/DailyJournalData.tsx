@@ -39,6 +39,7 @@ async function DailyJournalDataFetcher({
         initialUserId={user.id}
         currencySymbol={currencySymbol}
         accountBalance={accountBalance}
+        savedTags={strategy.saved_tags ?? []}
       />
     </HydrationBoundary>
   );

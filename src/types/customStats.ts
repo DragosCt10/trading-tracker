@@ -22,6 +22,7 @@ export interface CustomStatFilter {
   local_high_low?: boolean;     // requires 'local_hl_stats'
   launch_hour?: boolean;        // requires 'launch_hour'
   fvg_size?: number;            // requires 'fvg_size'
+  tags?: string[];              // match trades that have ANY of these tags
 }
 
 export interface CustomStatConfig {

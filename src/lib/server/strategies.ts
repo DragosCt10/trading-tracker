@@ -625,6 +625,150 @@ export async function updateStrategyFavourites(
 }
 
 /**
+ * Merges new tags into strategy.saved_tags (idempotent — skips already-present tags).
+ * Called after a trade is saved to keep the strategy's tag vocabulary up to date.
+ */
+export async function syncStrategyTags(
+  strategyId: string,
+  userId: string,
+  newTags: string[]
+): Promise<void> {
+  if (!newTags.length) return;
+
+  const authorizedUserId = await getAuthorizedUserId(userId);
+  if (!authorizedUserId) return;
+
+  const supabase = await createClient();
+  const { data: strategy } = await supabase
+    .from('strategies')
+    .select('saved_tags')
+    .eq('id', strategyId)
+    .eq('user_id', authorizedUserId)
+    .single();
+
+  const current: string[] = (strategy?.saved_tags as string[]) ?? [];
+  const merged = Array.from(new Set([...current, ...newTags])).sort();
+
+  if (merged.length === current.length && merged.every((t, i) => t === current[i])) return;
+
+  const { error } = await supabase
+    .from('strategies')
+    .update({ saved_tags: merged, updated_at: new Date().toISOString() })
+    .eq('id', strategyId)
+    .eq('user_id', authorizedUserId);
+
+  if (error) {
+    console.error('Error syncing strategy tags:', error);
+  }
+}
+
+/**
+ * Renames a tag across all 3 trade tables and updates strategy.saved_tags.
+ * Uses a DB RPC function to do this atomically.
+ */
+export async function renameStrategyTag(
+  strategyId: string,
+  userId: string,
+  oldName: string,
+  newName: string
+): Promise<{ error: { message: string } | null }> {
+  const authorizedUserId = await getAuthorizedUserId(userId);
+  if (!authorizedUserId) {
+    return { error: { message: 'Unauthorized' } };
+  }
+
+  const supabase = await createClient();
+
+  const { error: rpcError } = await supabase.rpc('rename_strategy_tag', {
+    p_strategy_id: strategyId,
+    p_user_id: authorizedUserId,
+    p_old: oldName,
+    p_new: newName,
+  });
+
+  if (rpcError) {
+    console.error('Error renaming strategy tag (rpc):', rpcError);
+    return { error: { message: rpcError.message ?? 'Failed to rename tag' } };
+  }
+
+  // Update saved_tags on the strategy
+  const { data: strategy } = await supabase
+    .from('strategies')
+    .select('saved_tags')
+    .eq('id', strategyId)
+    .eq('user_id', authorizedUserId)
+    .single();
+
+  const currentTags: string[] = (strategy?.saved_tags as string[]) ?? [];
+  const updatedTags = currentTags.map(t => (t === oldName ? newName : t));
+
+  const { error: updateError } = await supabase
+    .from('strategies')
+    .update({ saved_tags: updatedTags, updated_at: new Date().toISOString() })
+    .eq('id', strategyId)
+    .eq('user_id', authorizedUserId);
+
+  if (updateError) {
+    console.error('Error updating strategy saved_tags after rename:', updateError);
+    return { error: { message: updateError.message ?? 'Failed to update strategy tags' } };
+  }
+
+  return { error: null };
+}
+
+/**
+ * Deletes a tag from all 3 trade tables and removes it from strategy.saved_tags.
+ * Uses a DB RPC function for the trade table updates.
+ */
+export async function deleteStrategyTag(
+  strategyId: string,
+  userId: string,
+  tagName: string
+): Promise<{ error: { message: string } | null }> {
+  const authorizedUserId = await getAuthorizedUserId(userId);
+  if (!authorizedUserId) {
+    return { error: { message: 'Unauthorized' } };
+  }
+
+  const supabase = await createClient();
+
+  const { error: rpcError } = await supabase.rpc('delete_strategy_tag', {
+    p_strategy_id: strategyId,
+    p_user_id: authorizedUserId,
+    p_tag: tagName,
+  });
+
+  if (rpcError) {
+    console.error('Error deleting strategy tag (rpc):', rpcError);
+    return { error: { message: rpcError.message ?? 'Failed to delete tag' } };
+  }
+
+  // Remove from saved_tags on the strategy
+  const { data: strategy } = await supabase
+    .from('strategies')
+    .select('saved_tags')
+    .eq('id', strategyId)
+    .eq('user_id', authorizedUserId)
+    .single();
+
+  const currentTags: string[] = (strategy?.saved_tags as string[]) ?? [];
+  const updatedTags = currentTags.filter(t => t !== tagName);
+
+  const { error: updateError } = await supabase
+    .from('strategies')
+    .update({ saved_tags: updatedTags, updated_at: new Date().toISOString() })
+    .eq('id', strategyId)
+    .eq('user_id', authorizedUserId);
+
+  if (updateError) {
+    console.error('Error updating strategy saved_tags after delete:', updateError);
+    return { error: { message: updateError.message ?? 'Failed to update strategy tags' } };
+  }
+
+  return { error: null };
+}
+
+/**
  * Reactivates a strategy by setting is_active to true.
  */
 export async function reactivateStrategy(

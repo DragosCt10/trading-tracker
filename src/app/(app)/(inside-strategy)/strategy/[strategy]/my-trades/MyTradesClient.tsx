@@ -8,7 +8,7 @@ import { useTradeFilters } from '@/hooks/useTradeFilters';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TRADES_DATA } from '@/constants/queryConfig';
 import { TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
-import { getFilteredTrades, deleteTrades, moveTradestoStrategy } from '@/lib/server/trades';
+import { getFilteredTrades, deleteTrades, moveTradestoStrategy, bulkUpdateTradeTags } from '@/lib/server/trades';
 import { getStrategiesOverview } from '@/lib/server/strategiesOverview';
 import type { Database } from '@/types/supabase';
 import { TradeCardsView } from '@/components/trades/TradeCardsView';
@@ -51,6 +51,7 @@ interface MyTradesClientProps {
   initialMode: 'live' | 'backtesting' | 'demo';
   initialActiveAccount: AccountRow | null;
   initialStrategyId: string;
+  savedTags?: string[];
 }
 
 export default function MyTradesClient({
@@ -60,6 +61,7 @@ export default function MyTradesClient({
   initialMode,
   initialActiveAccount,
   initialStrategyId,
+  savedTags,
 }: MyTradesClientProps) {
   const [showPartialTrades, setShowPartialTrades] = useState(false);
   const [sortField, setSortField] = useState<'trade_date' | 'market' | 'outcome' | 'partials_only'>('trade_date');
@@ -452,6 +454,35 @@ export default function MyTradesClient({
     [mode, activeAccount?.id, userId, todayStr, initialStrategyId, queryClient]
   );
 
+  const handleBulkTag = useCallback(
+    async (ids: string[], tagsToAdd: string[]) => {
+      if (ids.length === 0 || !activeAccount?.id) return;
+      const { error } = await bulkUpdateTradeTags({
+        tradeIds: ids,
+        tagsToAdd,
+        tagsToRemove: [],
+        accountId: activeAccount.id,
+        mode,
+      });
+      if (error) {
+        console.error('Bulk tag error:', error);
+        return;
+      }
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.trades.filtered(
+          mode,
+          activeAccount.id,
+          userId,
+          'dateRange',
+          '2000-01-01',
+          todayStr,
+          initialStrategyId
+        ),
+      });
+    },
+    [mode, activeAccount?.id, userId, todayStr, initialStrategyId, queryClient]
+  );
+
   if (activeAccount && tradesLoading && !isInitialContext) {
     return <MyTradesSkeleton />;
   }
@@ -824,12 +855,14 @@ export default function MyTradesClient({
           onTradeUpdated={handleTradeUpdated}
           enableBulkDeleteInTableView
           onBulkDelete={handleBulkDelete}
+          onBulkTag={handleBulkTag}
           moveToStrategies={moveToStrategies}
           onBulkMoveToStrategy={handleBulkMoveToStrategy}
           totalFilteredCount={filteredTrades.length}
           cardViewMode={cardViewMode}
           onCardViewModeChange={setCardViewMode}
           suppressHeaderControls
+          savedTags={savedTags}
         />
       </div>
     </div>

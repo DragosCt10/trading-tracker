@@ -256,6 +256,7 @@ interface CustomStatsClientProps {
   savedCustomStats: CustomStatConfig[];
   savedSetupTypes: string[];
   savedLiquidityTypes: string[];
+  savedTags: string[];
   initialTrades: Trade[];
   initialActiveAccount: AccountRow | null;
   initialMode: 'live' | 'demo' | 'backtesting';
@@ -271,6 +272,7 @@ export default function CustomStatsClient({
   savedCustomStats,
   savedSetupTypes,
   savedLiquidityTypes,
+  savedTags,
   initialTrades,
   initialActiveAccount,
   initialMode,
@@ -549,6 +551,7 @@ export default function CustomStatsClient({
           extraCards={extraCards}
           setupOptions={savedSetupTypes}
           liquidityOptions={savedLiquidityTypes}
+          tagOptions={savedTags}
         />
 
 

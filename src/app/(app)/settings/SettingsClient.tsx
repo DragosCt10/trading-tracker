@@ -31,6 +31,7 @@ interface SettingsClientProps {
   justPaid: boolean;
   featureContext?: string;
   userEmail: string;
+  userId: string;
   socialProfile: SocialProfile | null;
 }
 
@@ -40,6 +41,7 @@ export default function SettingsClient({
   justPaid,
   featureContext,
   userEmail,
+  userId,
   socialProfile,
 }: SettingsClientProps) {
   const activeTab = initialTab === 'account' ? 'account' : initialTab === 'profile' ? 'profile' : 'billing';

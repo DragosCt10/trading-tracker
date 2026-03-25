@@ -36,6 +36,7 @@ async function MyTradesDataFetcher({
         initialMode={mode}
         initialActiveAccount={null}
         initialStrategyId={initialStrategyId}
+        savedTags={strategy.saved_tags ?? []}
       />
     );
   }
@@ -71,6 +72,7 @@ async function MyTradesDataFetcher({
         initialMode={mode}
         initialActiveAccount={activeAccount}
         initialStrategyId={initialStrategyId}
+        savedTags={strategy.saved_tags ?? []}
       />
     </HydrationBoundary>
   );

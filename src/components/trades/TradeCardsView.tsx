@@ -33,7 +33,7 @@ import TradeDetailsModal from '@/components/TradeDetailsModal';
 import TradeDetailsPanel from '@/components/TradeDetailsPanel';
 import { TradeCard } from '@/components/trades/TradeCard';
 import { TradesTableView } from '@/components/trades/TradesTableView';
-import { Columns2, Eye, LayoutGrid, Loader2, MoveRight, PanelLeft, Trash2 } from 'lucide-react';
+import { Columns2, Eye, LayoutGrid, Loader2, MoveRight, PanelLeft, Tag, Trash2 } from 'lucide-react';
 
 type CardViewMode = 'grid-4' | 'grid-2' | 'split' | 'table';
 
@@ -50,6 +50,8 @@ export type TradeCardsViewProps = {
   strategyName?: string;
   /** Extra card keys for read-only mode (e.g. public share where no auth session exists). */
   extraCards?: string[];
+  /** Strategy's saved tag vocabulary for autocomplete. */
+  savedTags?: string[];
   onTradeUpdated?: () => void | Promise<void>;
   emptyMessage?: string;
   initialViewMode?: CardViewMode;
@@ -69,6 +71,8 @@ export type TradeCardsViewProps = {
   enableBulkDeleteInTableView?: boolean;
   /** Called when user confirms bulk delete in table view. Clear selection after resolve. */
   onBulkDelete?: (ids: string[]) => Promise<void>;
+  /** Called when user applies tags to selected trades. */
+  onBulkTag?: (ids: string[], tagsToAdd: string[]) => Promise<void>;
   /** Strategies to move selected trades to (excludes the current one). */
   moveToStrategies?: { id: string; name: string }[];
   /** Called when user confirms move to strategy. Clear selection after resolve. */
@@ -99,12 +103,14 @@ export function TradeCardsView({
   readOnly = false,
   strategyName,
   extraCards,
+  savedTags,
   onTradeUpdated,
   emptyMessage = 'No trades found for the selected period.',
   initialViewMode = 'grid-4',
   marketFilter,
   enableBulkDeleteInTableView = false,
   onBulkDelete,
+  onBulkTag,
   moveToStrategies,
   onBulkMoveToStrategy,
   sortControl,
@@ -125,6 +131,9 @@ export function TradeCardsView({
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [moveTargetStrategyId, setMoveTargetStrategyId] = useState('');
   const [bulkMoving, setBulkMoving] = useState(false);
+  const [showTagDialog, setShowTagDialog] = useState(false);
+  const [bulkTagging, setBulkTagging] = useState(false);
+  const [pendingTagSelection, setPendingTagSelection] = useState<string[]>([]);
 
   // Use prop if provided (controlled), otherwise use internal state (uncontrolled)
   const currentViewMode = cardViewMode !== undefined ? cardViewMode : internalCardViewMode;
@@ -464,6 +473,7 @@ export function TradeCardsView({
                   readOnly={readOnly}
                   strategyName={strategyName}
                   extraCards={extraCards}
+                  savedTags={savedTags}
                 />
               ) : (
                 <div className="flex h-full items-center justify-center">
@@ -513,6 +523,18 @@ export function TradeCardsView({
                   >
                     <MoveRight className="h-4 w-4" />
                     {bulkMoving ? 'Moving…' : `Move to strategy`}
+                  </Button>
+                )}
+                {onBulkTag && savedTags && savedTags.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setPendingTagSelection([]); setShowTagDialog(true); }}
+                    disabled={bulkDeleting || bulkMoving || bulkTagging}
+                    className="cursor-pointer rounded-xl px-4 py-2 text-sm transition-all duration-200 border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 disabled:opacity-60 flex items-center gap-2"
+                  >
+                    <Tag className="h-4 w-4" />
+                    {bulkTagging ? 'Applying…' : 'Add tags'}
                   </Button>
                 )}
               </div>
@@ -660,6 +682,92 @@ export function TradeCardsView({
                 </AlertDialogContent>
               </AlertDialog>
             )}
+            {showTableBulkActions && onBulkTag && savedTags && savedTags.length > 0 && (
+              <AlertDialog open={showTagDialog} onOpenChange={(open) => { setShowTagDialog(open); if (!open) setPendingTagSelection([]); }}>
+                <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl p-0 overflow-hidden">
+                  <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
+                    <div className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl" />
+                    <div className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl" />
+                  </div>
+                  <div className="absolute -top-px left-0 right-0 h-0.5 themed-accent-line rounded-t-2xl" />
+                  <div className="relative px-6 pt-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
+                    <AlertDialogHeader className="space-y-1.5">
+                      <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                        <div className="p-2 rounded-lg themed-header-icon-box">
+                          <Tag className="h-5 w-5" />
+                        </div>
+                        <span>Add tags to trades</span>
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
+                        Select tags to add to {selectedIds.size} selected trade{selectedIds.size !== 1 ? 's' : ''}. Existing tags are preserved.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                  </div>
+                  <div className="relative px-6 py-5">
+                    <div className="flex flex-wrap gap-2">
+                      {savedTags.sort().map((tag) => {
+                        const isSelected = pendingTagSelection.includes(tag);
+                        const label = tag.length > 20 ? tag.slice(0, 19) + '…' : tag;
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            title={tag}
+                            onClick={() => setPendingTagSelection((prev) =>
+                              isSelected ? prev.filter((t) => t !== tag) : [...prev, tag]
+                            )}
+                            className={cn(
+                              'px-3 py-1.5 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer',
+                              isSelected
+                                ? 'themed-header-icon-box shadow-sm border-primary/30'
+                                : 'border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70'
+                            )}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <AlertDialogFooter className="relative flex-shrink-0 flex items-center justify-between px-6 pt-4 pb-5 border-t border-slate-200/50 dark:border-slate-700/50">
+                    <AlertDialogCancel asChild>
+                      <Button
+                        variant="outline"
+                        onClick={() => { setShowTagDialog(false); setPendingTagSelection([]); }}
+                        disabled={bulkTagging}
+                        className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200"
+                      >
+                        Cancel
+                      </Button>
+                    </AlertDialogCancel>
+                    <AlertDialogAction asChild>
+                      <Button
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          if (!onBulkTag || pendingTagSelection.length === 0) return;
+                          setBulkTagging(true);
+                          try {
+                            await onBulkTag(Array.from(selectedIds), pendingTagSelection);
+                          } finally {
+                            setBulkTagging(false);
+                          }
+                          setShowTagDialog(false);
+                          setPendingTagSelection([]);
+                        }}
+                        disabled={bulkTagging || pendingTagSelection.length === 0}
+                        className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60 text-sm"
+                      >
+                        <span className="relative z-10 flex items-center justify-center gap-2">
+                          {bulkTagging && <Loader2 className="h-4 w-4 animate-spin" />}
+                          {bulkTagging ? 'Applying…' : `Apply tag${pendingTagSelection.length !== 1 ? 's' : ''}`}
+                        </span>
+                        <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                      </Button>
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </>
         ) : (
           <div
@@ -731,6 +839,7 @@ export function TradeCardsView({
           readOnly={readOnly}
           strategyName={strategyName}
           extraCards={extraCards}
+          savedTags={savedTags}
         />
       )}
     </TooltipProvider>

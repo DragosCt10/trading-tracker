@@ -84,8 +84,9 @@ import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
-import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyFavourites } from '@/lib/server/strategies';
+import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyFavourites, syncStrategyTags } from '@/lib/server/strategies';
 import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
+import { TagInput } from '@/components/ui/TagInput';
 
 interface TradeDetailsPanelProps {
   trade: Trade | null;
@@ -99,9 +100,11 @@ interface TradeDetailsPanelProps {
   strategyName?: string;
   /** Extra card keys to show in read-only mode (e.g. from public share page where no auth session exists). */
   extraCards?: string[];
+  /** Strategy's saved tag vocabulary for autocomplete. Pass [] for read-only contexts. */
+  savedTags?: string[];
 }
 
-export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inlineMode, readOnly = false, strategyName: strategyNameProp, extraCards: extraCardsProp }: TradeDetailsPanelProps) {
+export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inlineMode, readOnly = false, strategyName: strategyNameProp, extraCards: extraCardsProp, savedTags: savedTagsProp = [] }: TradeDetailsPanelProps) {
   const params = useParams();
   const strategySlug = (params?.strategy as string | undefined) ?? '';
   const { selection } = useActionBarSelection();
@@ -291,12 +294,13 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         fvg_size: editedTrade.fvg_size ?? null,
         confidence_at_entry: editedTrade.confidence_at_entry ?? null,
         mind_state_at_entry: editedTrade.mind_state_at_entry ?? null,
+        tags: (editedTrade.tags ?? []).map((t: string) => t.toLowerCase().trim()).filter(Boolean),
       };
 
       const { error: updateError } = await updateTrade(editedTrade.id, tradingMode, updateData);
 
       if (updateError) {
-        setError(updateError.message ?? 'Failed to update trade. Please try again.');
+        setError('Failed to update trade. Please try again.');
         setIsSaving(false);
         return;
       }
@@ -347,6 +351,18 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             updatedMarkets = mergeMarketIntoSaved(editedTrade.market, savedMarkets);
             savePromises.push(updateSavedMarkets(updatedMarkets));
           }
+
+          const tradeTags = (editedTrade.tags ?? []).map((t: string) => t.toLowerCase().trim()).filter(Boolean);
+          let updatedTags: string[] | undefined;
+          if (tradeTags.length > 0 && userId && currentStrategy) {
+            const current = currentStrategy.saved_tags ?? [];
+            const merged = Array.from(new Set([...current, ...tradeTags])).sort();
+            if (merged.length !== current.length || merged.some((t, i) => t !== current[i])) {
+              updatedTags = merged;
+              savePromises.push(syncStrategyTags(currentStrategy.id, userId, tradeTags));
+            }
+          }
+
           await Promise.all(savePromises);
 
           if (userId) {
@@ -356,9 +372,9 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               saved_news: updatedNews ?? prev?.saved_news ?? [],
               saved_markets: updatedMarkets ?? prev?.saved_markets ?? [],
             }));
-            if (currentStrategy && (updatedSetups !== undefined || updatedLiquidity !== undefined)) {
+            if (currentStrategy && (updatedSetups !== undefined || updatedLiquidity !== undefined || updatedTags !== undefined)) {
               const strategiesKey = queryKeys.strategies(userId, accountId);
-              queryClient.setQueryData(strategiesKey, (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[] }[] | undefined) => {
+              queryClient.setQueryData(strategiesKey, (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[]; saved_tags?: string[] }[] | undefined) => {
                 if (!prev) return prev;
                 return prev.map((s) =>
                   s.id === currentStrategy.id
@@ -366,6 +382,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                         ...s,
                         saved_setup_types: updatedSetups ?? s.saved_setup_types ?? [],
                         saved_liquidity_types: updatedLiquidity ?? s.saved_liquidity_types ?? [],
+                        saved_tags: updatedTags ?? s.saved_tags ?? [],
                       }
                     : s
                 );
@@ -377,8 +394,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
         }
       })();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to save trade. Please try again.';
-      setError(message);
+      setError('Failed to save trade. Please try again.');
       setIsSaving(false);
     }
   };
@@ -408,7 +424,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       const { error: deleteError } = await deleteTrade(trade.id, tradingMode);
 
       if (deleteError) {
-        setError(deleteError.message ?? 'Failed to delete trade. Please try again.');
+        setError('Failed to delete trade. Please try again.');
         setIsDeleting(false);
         return;
       }
@@ -421,8 +437,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       void invalidateAndRefetchTradeQueries();
     } catch (err: unknown) {
       setShowDeleteConfirm(false);
-      const message = err instanceof Error ? err.message : 'Failed to delete trade. Please try again.';
-      setError(message);
+      setError('Failed to delete trade. Please try again.');
       setIsDeleting(false);
     }
   };
@@ -1426,6 +1441,35 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               </div>
             )}
           </div>
+          )}
+
+          {/* Tags Section */}
+          {(effectiveIsEditing || (editedTrade?.tags ?? []).length > 0) && (
+            <div className="space-y-2">
+              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Tags</Label>
+              {effectiveIsEditing ? (
+                <TagInput
+                  tags={editedTrade?.tags ?? []}
+                  savedTags={((readOnly ? savedTagsProp : (currentStrategy?.saved_tags ?? savedTagsProp)) ?? []).sort()}
+                  onChange={(tags) => handleInputChange('tags', tags)}
+                  pinnedTags={currentStrategy?.saved_favourites?.tags}
+                  onTogglePin={!readOnly && currentStrategy ? handleToggleFavourite('tags') : undefined}
+                  placeholder="Add tag..."
+                />
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {(editedTrade?.tags ?? []).map((tag) => (
+                    <span
+                      key={tag}
+                      title={tag}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm text-slate-500 dark:text-slate-500 border-slate-200/50 dark:border-slate-700/50 max-w-[140px]"
+                    >
+                      <span className="truncate">{tag.length > 20 ? tag.slice(0, 19) + '…' : tag}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Notes & Confidence Section */}
