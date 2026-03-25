@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { FeedChannel, PaginatedResult } from '@/types/social';
 import {
   getMyChannels,
   getPublicChannels,
@@ -86,12 +87,48 @@ export function useChannelActions(userId?: string) {
 
   const join = useMutation({
     mutationFn: joinChannel,
-    onSuccess: invalidateChannelLists,
+    onMutate: async (channelId) => {
+      await qc.cancelQueries({ queryKey: myChannelsKey });
+      const previous = qc.getQueryData<FeedChannel[]>(myChannelsKey);
+      const pubResult = qc.getQueryData<PaginatedResult<FeedChannel>>(publicChannelsKey);
+      const ch = pubResult?.items?.find((c) => c.id === channelId);
+      if (ch) {
+        qc.setQueryData<FeedChannel[]>(myChannelsKey, (old = []) => [...old, ch]);
+      }
+      return { previous };
+    },
+    onSuccess: (result, _channelId, ctx) => {
+      if ('error' in result && ctx?.previous !== undefined) {
+        qc.setQueryData(myChannelsKey, ctx.previous);
+      }
+      invalidateChannelLists();
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous !== undefined) qc.setQueryData(myChannelsKey, ctx.previous);
+      invalidateChannelLists();
+    },
   });
 
   const leave = useMutation({
     mutationFn: leaveChannel,
-    onSuccess: invalidateChannelLists,
+    onMutate: async (channelId) => {
+      await qc.cancelQueries({ queryKey: myChannelsKey });
+      const previous = qc.getQueryData<FeedChannel[]>(myChannelsKey);
+      qc.setQueryData<FeedChannel[]>(myChannelsKey, (old = []) =>
+        old.filter((c) => c.id !== channelId)
+      );
+      return { previous };
+    },
+    onSuccess: (result, _channelId, ctx) => {
+      if ('error' in result && ctx?.previous !== undefined) {
+        qc.setQueryData(myChannelsKey, ctx.previous);
+      }
+      invalidateChannelLists();
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous !== undefined) qc.setQueryData(myChannelsKey, ctx.previous);
+      invalidateChannelLists();
+    },
   });
 
   return { create, update, remove, join, leave };
