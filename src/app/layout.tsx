@@ -24,7 +24,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* Apply theme before first paint to avoid flash of default theme on refresh */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
