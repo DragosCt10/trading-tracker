@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Bell, Check, Ban, ShieldCheck, UserPlus } from 'lucide-react';
+import { Bell, Check, Ban, ShieldCheck, UserPlus, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useNotificationUnreadCount, useNotificationList, useMarkNotifications } from '@/hooks/useNotifications';
@@ -28,6 +28,26 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
   const { markAll, markOne }      = useMarkNotifications(userId);
 
   const notifs = data?.pages.flatMap((p) => p.items) ?? [];
+  const offerDate = formatFeedDate(new Date().toISOString());
+
+  const defaultOffers = [
+    {
+      key: 'pro-3mo-discount',
+      icon: ShieldCheck,
+      iconBg: 'bg-sky-500/15 dark:bg-sky-500/20 border border-sky-500/30',
+      iconColor: 'text-sky-600 dark:text-sky-400',
+      title: 'PRO retention reward',
+      message: 'Stay on PRO for 3 months and get 10% off your 4th month.',
+    },
+    {
+      key: 'trade-milestones-discount',
+      icon: Activity,
+      iconBg: 'bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30',
+      iconColor: 'text-emerald-600 dark:text-emerald-400',
+      title: 'Trade milestones',
+      message: 'Reach 100 trades for 5% off, 500 for additional 15%, and 1000 trades for 20%.',
+    },
+  ] as const;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -77,11 +97,34 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
         </div>
 
         <div className="max-h-80 overflow-y-auto">
+          {defaultOffers.map(({ key, icon: OfferIcon, iconBg, iconColor, title, message }) => {
+            const offerRowClass = `flex items-start gap-3 px-4 py-3 hover:bg-slate-100/90 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-200/70 dark:border-slate-700/50 ${key ? 'bg-white/10 dark:bg-black/10' : ''}`;
+
+            return (
+              <div key={key} className={offerRowClass} role="status">
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${iconBg} ${iconColor}`}
+                  aria-hidden
+                >
+                  <OfferIcon className="w-3.5 h-3.5" />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug">
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{title}</span>
+                    {' '}{message}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5" suppressHydrationWarning>
+                    {offerDate}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+
           {isFetching && notifs.length === 0 ? (
             <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">Loading…</div>
-          ) : notifs.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">No notifications yet</div>
-          ) : (
+          ) : notifs.length === 0 ? null : (
             notifs.map((n) => {
               const rowClass = `flex items-start gap-3 px-4 py-3 hover:bg-slate-100/90 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-200/70 dark:border-slate-700/50 last:border-0 ${!n.is_read ? 'bg-slate-100/70 dark:bg-slate-800/40' : ''}`;
 
