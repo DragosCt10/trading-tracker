@@ -1,5 +1,5 @@
-import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { FeedChannel, PaginatedResult } from '@/types/social';
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import type { FeedChannel, PaginatedResult, ChannelMember } from '@/types/social';
 import {
   getMyChannels,
   getPublicChannels,
@@ -212,8 +212,9 @@ export function useChannelMembers(channelId: string, userId?: string) {
     },
     getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
     enabled: !!channelId && !!userId,
-    ...FEED_DATA,
-    refetchOnMount: true,
+    staleTime: Infinity,           // mutations invalidate explicitly; no refetch on re-open
+    gcTime: FEED_DATA.gcTime,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -221,23 +222,53 @@ export function useChannelMemberActions(channelId: string, userId?: string) {
   const qc = useQueryClient();
   const membersKey = queryKeys.channelMembers(channelId);
   const myChannelsKey = queryKeys.feed.channels(userId);
-  const publicChannelsKey = queryKeys.feed.channels();
-
-  function invalidateMemberAndChannelData() {
-    qc.invalidateQueries({ queryKey: membersKey });
-    qc.invalidateQueries({ queryKey: myChannelsKey });
-    qc.invalidateQueries({ queryKey: publicChannelsKey });
-    qc.invalidateQueries({ queryKey: ['channel-membership'] });
-  }
 
   const add = useMutation({
     mutationFn: (handle: string) => addChannelMemberByHandle(channelId, handle),
-    onSuccess: invalidateMemberAndChannelData,
+    onSuccess: (result) => {
+      if ('error' in result) return;
+      // Prepend the returned member to page 0 — no refetch needed
+      qc.setQueryData<InfiniteData<PaginatedResult<ChannelMember>>>(membersKey, (old) => {
+        if (!old) return old;
+        const [first, ...rest] = old.pages;
+        return {
+          ...old,
+          pages: [{ ...first, items: [result.data, ...first.items] }, ...rest],
+        };
+      });
+      // Invalidate channel list for updated member_count
+      qc.invalidateQueries({ queryKey: myChannelsKey });
+    },
   });
 
   const remove = useMutation({
     mutationFn: (memberUserId: string) => removeChannelMemberByUserId(channelId, memberUserId),
-    onSuccess: invalidateMemberAndChannelData,
+    onMutate: async (memberUserId) => {
+      await qc.cancelQueries({ queryKey: membersKey });
+      const prev = qc.getQueryData<InfiniteData<PaginatedResult<ChannelMember>>>(membersKey);
+      qc.setQueryData<InfiniteData<PaginatedResult<ChannelMember>>>(membersKey, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            items: page.items.filter((m) => m.user_id !== memberUserId),
+          })),
+        };
+      });
+      return { prev };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.prev) qc.setQueryData(membersKey, ctx.prev);
+    },
+    onSuccess: (result, _id, ctx) => {
+      if ('error' in result) {
+        if (ctx?.prev) qc.setQueryData(membersKey, ctx.prev);
+        return;
+      }
+      // Invalidate channel list for updated member_count only
+      qc.invalidateQueries({ queryKey: myChannelsKey });
+    },
   });
 
   return { add, remove };

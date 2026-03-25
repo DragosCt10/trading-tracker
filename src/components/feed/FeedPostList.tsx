@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Virtuoso } from 'react-virtuoso';
 import PostCard from './PostCard';
 import PostCardSkeleton from './PostCardSkeleton';
+import CreatePostCardSkeleton from './CreatePostCardSkeleton';
 import { useTheme } from '@/hooks/useTheme';
 import { getAllFollowedProfileIds } from '@/lib/server/socialProfile';
 import type { FeedPost } from '@/types/social';
@@ -35,6 +36,8 @@ interface FeedPostListProps {
   emptyMessage?: string;
   emptySubtext?: string;
   skeletonCount?: number;
+  /** Public feed: first loading row matches the create-post composer card. */
+  composerSkeletonFirst?: boolean;
 }
 
 export default function FeedPostList({
@@ -55,6 +58,7 @@ export default function FeedPostList({
   emptyMessage = 'No posts yet',
   emptySubtext,
   skeletonCount = 3,
+  composerSkeletonFirst = false,
 }: FeedPostListProps) {
   const { theme, mounted } = useTheme();
   const isLightMode = mounted && theme === 'light';
@@ -68,9 +72,13 @@ export default function FeedPostList({
   const followedProfileIdSet = useMemo(() => new Set(followedProfileIds), [followedProfileIds]);
 
   if (isLoading) {
+    const postSkeletons = Math.max(0, skeletonCount - (composerSkeletonFirst ? 1 : 0));
     return (
       <div className="space-y-3">
-        {Array.from({ length: skeletonCount }).map((_, i) => <PostCardSkeleton key={i} />)}
+        {composerSkeletonFirst && <CreatePostCardSkeleton />}
+        {Array.from({ length: postSkeletons }).map((_, i) => (
+          <PostCardSkeleton key={composerSkeletonFirst ? `post-${i}` : i} />
+        ))}
       </div>
     );
   }

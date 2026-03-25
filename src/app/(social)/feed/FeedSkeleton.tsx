@@ -3,6 +3,7 @@
 import { Globe, Hash, UserPlus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import PostCardSkeleton from '@/components/feed/PostCardSkeleton';
+import CreatePostCardSkeleton from '@/components/feed/CreatePostCardSkeleton';
 
 function ChannelRowSkeleton({ size = 'md' }: { size?: 'sm' | 'md' }) {
   if (size === 'sm') {
@@ -60,12 +61,9 @@ export function FeedSkeleton() {
             ))}
           </div>
 
-          {/* Composer skeleton */}
-          <div className="shrink-0 rounded-2xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-4">
-            <div className="flex items-center gap-3">
-              <Skeleton className="w-8 h-8 rounded-full shrink-0" />
-              <Skeleton className="h-10 flex-1 rounded-xl" />
-            </div>
+          {/* Composer skeleton — same shell as InlineCreatePostCard */}
+          <div className="shrink-0">
+            <CreatePostCardSkeleton />
           </div>
 
           {/* Feed posts skeleton */}

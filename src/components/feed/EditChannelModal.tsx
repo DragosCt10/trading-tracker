@@ -2,12 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Hash, Link2, Loader2, UserMinus, UserPlus, Users, X } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useChannelActions, useChannelMemberActions, useChannelMembers } from '@/hooks/useChannels';
 import ChannelInviteModal from '@/components/feed/ChannelInviteModal';
+import { getChannelInvites } from '@/lib/server/channelInvites';
+import { queryKeys } from '@/lib/queryKeys';
+import { FEED_DATA } from '@/constants/queryConfig';
 import type { FeedChannel } from '@/types/social';
 
 interface EditChannelModalProps {
@@ -30,6 +34,7 @@ function initialsFromName(name: string) {
 }
 
 export default function EditChannelModal({ channel, open, onClose, userId }: EditChannelModalProps) {
+  const qc = useQueryClient();
   const { update } = useChannelActions(userId);
   const {
     data: memberPages,
@@ -75,6 +80,16 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Warm the invites cache while user reads the modal — so ChannelInviteModal opens instantly
+  useEffect(() => {
+    if (!open || isPublic || !userId) return;
+    void qc.prefetchQuery({
+      queryKey: queryKeys.channelInvites(channel.id),
+      queryFn: () => getChannelInvites(channel.id),
+      staleTime: FEED_DATA.staleTime,
+    });
+  }, [open, isPublic, channel.id, userId, qc]);
 
   useEffect(() => {
     if (!formError && !membersError) return;
@@ -268,10 +283,15 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
 
             <div className="rounded-xl border border-slate-200/70 dark:border-slate-700/40 bg-white/40 dark:bg-slate-800/30 divide-y divide-slate-200/70 dark:divide-slate-700/50">
               {isLoadingMembers ? (
-                <div className="px-4 py-4 text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading members...
-                </div>
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="px-4 py-3 flex items-center gap-2.5 animate-pulse">
+                    <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 w-32 rounded bg-slate-200 dark:bg-slate-700" />
+                      <div className="h-2.5 w-20 rounded bg-slate-200/70 dark:bg-slate-700/50" />
+                    </div>
+                  </div>
+                ))
               ) : sortedMembers.length === 0 ? (
                 <div className="px-4 py-4 text-sm text-slate-500 dark:text-slate-400">No members yet.</div>
               ) : (

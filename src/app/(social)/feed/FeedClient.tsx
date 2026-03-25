@@ -489,6 +489,10 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                   : 'Follow some traders or be the first to post!'
               }
               skeletonCount={3}
+              composerSkeletonFirst={
+                activeTab === 'public' &&
+                !(mounted && userId && initialProfile && subscription)
+              }
             />
           )}
           </div>
