@@ -67,7 +67,7 @@ export function useComments(postId: string, initialData?: PaginatedResult<FeedCo
 
   const query = useInfiniteQuery({
     queryKey: key,
-    queryFn: ({ pageParam }) => getComments(postId, pageParam as string | undefined, 30),
+    queryFn: ({ pageParam }) => getComments(postId, pageParam as string | undefined, 20),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     initialData: initialData
