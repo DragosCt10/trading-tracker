@@ -98,7 +98,7 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
 
         <div className="max-h-80 overflow-y-auto">
           {defaultOffers.map(({ key, icon: OfferIcon, iconBg, iconColor, title, message }) => {
-            const offerRowClass = `flex items-start gap-3 px-4 py-3 hover:bg-slate-100/90 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-200/70 dark:border-slate-700/50 ${key ? 'bg-white/10 dark:bg-black/10' : ''}`;
+            const offerRowClass = `flex items-start gap-3 px-4 py-3 hover:bg-slate-100/90 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-200/70 dark:border-slate-700/50 last:rounded-b-2xl last:border-b-0 ${key ? 'bg-white/10 dark:bg-black/10' : ''}`;
 
             return (
               <div key={key} className={offerRowClass} role="status">
@@ -126,7 +126,7 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
             <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">Loading…</div>
           ) : notifs.length === 0 ? null : (
             notifs.map((n) => {
-              const rowClass = `flex items-start gap-3 px-4 py-3 hover:bg-slate-100/90 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-200/70 dark:border-slate-700/50 last:border-0 ${!n.is_read ? 'bg-slate-100/70 dark:bg-slate-800/40' : ''}`;
+              const rowClass = `flex items-start gap-3 px-4 py-3 hover:bg-slate-100/90 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-200/70 dark:border-slate-700/50 last:rounded-b-2xl last:border-b-0 ${!n.is_read ? 'bg-slate-100/70 dark:bg-slate-800/40' : ''}`;
 
               const onRowActivate = () => {
                 if (!n.is_read) markOne.mutate(n.id);
