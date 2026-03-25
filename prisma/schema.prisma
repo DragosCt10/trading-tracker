@@ -889,6 +889,8 @@ enum notification_type {
   account_ban
   account_unban
   channel_added
+  pro_3mo_discount
+  trade_milestone_10
 
   @@schema("public")
 }

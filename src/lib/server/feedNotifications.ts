@@ -140,6 +140,34 @@ export async function markAllAsRead(): Promise<NotifResult<{ count: number }>> {
 // Called by other server actions (likePost, addComment, followUser).
 // Never throws — failures are logged and swallowed.
 
+const OFFER_TYPES: NotificationType[] = ['pro_3mo_discount', 'trade_milestone_10'];
+
+export async function ensureOfferNotification(
+  profileId: string,
+  type: 'pro_3mo_discount' | 'trade_milestone_10',
+): Promise<void> {
+  try {
+    // Use service role to bypass RLS — offer notifications are self-notifications
+    // (actor_id = recipient_id) which session-scoped clients may block.
+    const supabase = createServiceRoleClient() as any;
+    const { count } = await supabase
+      .from('feed_notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('recipient_id', profileId)
+      .eq('type', type);
+    if ((count ?? 0) > 0) return;
+    await supabase.from('feed_notifications').insert({
+      recipient_id: profileId,
+      actor_id:     profileId,
+      type,
+      post_id:      null,
+      comment_id:   null,
+    });
+  } catch (err) {
+    console.error('[ensureOfferNotification] failed (non-fatal):', err);
+  }
+}
+
 export async function createNotification(opts: {
   recipientProfileId: string;
   actorProfileId: string;
@@ -147,8 +175,8 @@ export async function createNotification(opts: {
   postId?: string;
   commentId?: string;
 }): Promise<void> {
-  // No self-notifications
-  if (opts.recipientProfileId === opts.actorProfileId) return;
+  // No self-notifications except for offer types
+  if (!OFFER_TYPES.includes(opts.type) && opts.recipientProfileId === opts.actorProfileId) return;
 
   try {
     const supabase = await createClient();

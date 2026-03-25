@@ -6,6 +6,7 @@ import type { ParsedTrade } from '@/utils/tradeImportParser';
 import { getAccountsForMode } from '@/lib/server/accounts';
 import { getCachedUserSession } from '@/lib/server/session';
 import { calculateRRStats } from '@/utils/calculateRMultiple';
+import { ensureOfferNotification } from '@/lib/server/feedNotifications';
  
 /**
  * Normalizes trade_screens from DB. Falls back to legacy trade_link / liquidity_taken
@@ -214,6 +215,11 @@ export async function createTrade(params: {
     console.error('Error creating trade:', error);
     return { error: { message: error.message ?? 'Failed to create trade' } };
   }
+
+  if (params.trade.executed) {
+    void triggerOfferNotifications(user.id, params.account_id, params.mode);
+  }
+
   return { error: null };
 }
 
@@ -382,7 +388,49 @@ export async function importTrades(params: {
     }
   }
 
+  const hasExecuted = params.trades.some((t) => t.executed);
+  if (hasExecuted && inserted > 0) {
+    void triggerOfferNotifications(user.id, params.account_id, params.mode);
+  }
+
   return { inserted, failed };
+}
+
+async function triggerOfferNotifications(
+  userId: string,
+  accountId: string,
+  mode: 'live' | 'demo' | 'backtesting',
+): Promise<void> {
+  try {
+    const supabase = await createClient();
+
+    // social_profiles.id ≠ auth.users.id — must resolve via user_id FK
+    const { data: profileRow } = await supabase
+      .from('social_profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (!profileRow) return;
+
+    const profileId = (profileRow as { id: string }).id;
+
+    // pro_3mo_discount: fires on first executed trade ever (ensureOfferNotification is idempotent)
+    void ensureOfferNotification(profileId, 'pro_3mo_discount');
+
+    // trade_milestone_10: fires once when (account, mode) executed count hits 10
+    const table = `${mode}_trades` as const;
+    const { count } = await supabase
+      .from(table)
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('account_id', accountId)
+      .neq('executed', false);
+    if ((count ?? 0) >= 10) {
+      void ensureOfferNotification(profileId, 'trade_milestone_10');
+    }
+  } catch {
+    // Fire-and-forget — never throw
+  }
 }
 
 /**
