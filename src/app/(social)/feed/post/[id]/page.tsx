@@ -13,7 +13,7 @@ export default async function PostDetailPage({
   const { id } = await params;
   const [post, comments] = await Promise.all([
     getPost(id),
-    getComments(id, undefined, 30),
+    getComments(id, undefined, 20),
   ]);
 
   if (!post) notFound();
