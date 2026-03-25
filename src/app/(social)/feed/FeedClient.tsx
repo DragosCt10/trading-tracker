@@ -542,7 +542,7 @@ export default function FeedClient({ userId, initialProfile }: FeedClientProps) 
         onClose={() => setPreviewUsername(null)}
       />
 
-      {userId && initialProfile && subscription && activeTab !== 'channels' && (
+      {mounted && userId && initialProfile && subscription && activeTab !== 'channels' && (
         <div
           className={cn(
             'hidden lg:flex justify-center fixed bottom-6 z-40 right-[max(1rem,calc((100vw-64rem)/2+0rem))] w-72',
