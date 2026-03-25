@@ -92,23 +92,30 @@ export function useChannelActions(userId?: string) {
     mutationFn: joinChannel,
     onMutate: async (channelId) => {
       await qc.cancelQueries({ queryKey: myChannelsKey });
+      await qc.cancelQueries({ queryKey: publicChannelsKey });
       const previous = qc.getQueryData<FeedChannel[]>(myChannelsKey);
-      const pubResult = qc.getQueryData<PaginatedResult<FeedChannel>>(publicChannelsKey);
-      const ch = pubResult?.items?.find((c) => c.id === channelId);
-      if (ch) {
+      const previousPub = qc.getQueryData<PaginatedResult<FeedChannel>>(publicChannelsKey);
+      const ch = previousPub?.items?.find((c) => c.id === channelId);
+      const updatedCh = ch ? { ...ch, member_count: (ch.member_count ?? 0) + 1 } : undefined;
+      if (updatedCh) {
         // Match getMyChannels sort (updated_at desc): joining bumps updated_at, so newest first.
-        qc.setQueryData<FeedChannel[]>(myChannelsKey, (old = []) => [ch, ...old.filter((c) => c.id !== ch.id)]);
+        qc.setQueryData<FeedChannel[]>(myChannelsKey, (old = []) => [updatedCh, ...old.filter((c) => c.id !== channelId)]);
+        qc.setQueryData<PaginatedResult<FeedChannel>>(publicChannelsKey, (old) =>
+          old ? { ...old, items: old.items.map((c) => (c.id === channelId ? updatedCh : c)) } : old
+        );
       }
-      return { previous };
+      return { previous, previousPub };
     },
     onSuccess: (result, _channelId, ctx) => {
-      if ('error' in result && ctx?.previous !== undefined) {
-        qc.setQueryData(myChannelsKey, ctx.previous);
+      if ('error' in result) {
+        if (ctx?.previous !== undefined) qc.setQueryData(myChannelsKey, ctx.previous);
+        if (ctx?.previousPub !== undefined) qc.setQueryData(publicChannelsKey, ctx.previousPub);
       }
       invalidateChannelLists();
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.previous !== undefined) qc.setQueryData(myChannelsKey, ctx.previous);
+      if (ctx?.previousPub !== undefined) qc.setQueryData(publicChannelsKey, ctx.previousPub);
       invalidateChannelLists();
     },
   });
@@ -117,20 +124,34 @@ export function useChannelActions(userId?: string) {
     mutationFn: leaveChannel,
     onMutate: async (channelId) => {
       await qc.cancelQueries({ queryKey: myChannelsKey });
+      await qc.cancelQueries({ queryKey: publicChannelsKey });
       const previous = qc.getQueryData<FeedChannel[]>(myChannelsKey);
+      const previousPub = qc.getQueryData<PaginatedResult<FeedChannel>>(publicChannelsKey);
       qc.setQueryData<FeedChannel[]>(myChannelsKey, (old = []) =>
         old.filter((c) => c.id !== channelId)
       );
-      return { previous };
+      qc.setQueryData<PaginatedResult<FeedChannel>>(publicChannelsKey, (old) =>
+        old
+          ? {
+              ...old,
+              items: old.items.map((c) =>
+                c.id === channelId ? { ...c, member_count: Math.max(0, (c.member_count ?? 1) - 1) } : c
+              ),
+            }
+          : old
+      );
+      return { previous, previousPub };
     },
     onSuccess: (result, _channelId, ctx) => {
-      if ('error' in result && ctx?.previous !== undefined) {
-        qc.setQueryData(myChannelsKey, ctx.previous);
+      if ('error' in result) {
+        if (ctx?.previous !== undefined) qc.setQueryData(myChannelsKey, ctx.previous);
+        if (ctx?.previousPub !== undefined) qc.setQueryData(publicChannelsKey, ctx.previousPub);
       }
       invalidateChannelLists();
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.previous !== undefined) qc.setQueryData(myChannelsKey, ctx.previous);
+      if (ctx?.previousPub !== undefined) qc.setQueryData(publicChannelsKey, ctx.previousPub);
       invalidateChannelLists();
     },
   });
