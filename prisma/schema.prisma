@@ -883,6 +883,8 @@ enum notification_type {
   comment
   follow
   account_ban
+  account_unban
+  channel_added
 
   @@schema("public")
 }

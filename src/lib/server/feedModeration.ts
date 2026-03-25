@@ -2,7 +2,7 @@
 
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { isAdmin } from './admin';
-import { notifyUserAccountBanned } from './feedNotifications';
+import { notifyUserAccountBanned, notifyUserAccountUnbanned } from './feedNotifications';
 import type { FeedPost, SocialProfile, PaginatedResult } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 
@@ -171,6 +171,8 @@ export async function setUserBan(
 
   if (banned) {
     await notifyUserAccountBanned(profileId);
+  } else {
+    await notifyUserAccountUnbanned(profileId);
   }
 
   return { data: { profileId } };

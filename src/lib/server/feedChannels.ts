@@ -6,6 +6,7 @@ import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { getCachedSubscription } from './subscription';
 import type { ChannelMember, FeedChannel, PaginatedResult } from '@/types/social';
+import { notifyChannelMemberAdded } from './feedNotifications';
 import type { TierId } from '@/types/subscription';
 
 type ChannelResult<T> =
@@ -693,6 +694,8 @@ export async function addChannelMemberByHandle(
     console.error('[addChannelMemberByHandle:select] error:', membershipError);
     return { error: 'Failed to load added member', code: 'DB_ERROR' };
   }
+
+  void notifyChannelMemberAdded(targetProfileId, profile.id);
 
   return { data: mapChannelMemberRow(createdMembership as Record<string, unknown>) };
 }

@@ -1,7 +1,7 @@
 import type { TierId } from './subscription';
 
 export type PostType = 'text' | 'trade_share';
-export type NotificationType = 'like' | 'comment' | 'follow' | 'account_ban';
+export type NotificationType = 'like' | 'comment' | 'follow' | 'account_ban' | 'account_unban' | 'channel_added';
 export type ChannelMemberRole = 'owner' | 'moderator' | 'member';
 export type ReportStatus = 'pending' | 'reviewed' | 'dismissed';
 

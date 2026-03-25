@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Bell, Check, Ban } from 'lucide-react';
+import { Bell, Check, Ban, ShieldCheck, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useNotificationUnreadCount, useNotificationList, useMarkNotifications } from '@/hooks/useNotifications';
@@ -90,6 +90,60 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
                 setOpen(false);
               };
 
+              if (n.type === 'channel_added') {
+                return (
+                  <button
+                    key={n.id}
+                    type="button"
+                    className={`${rowClass} w-full text-left cursor-pointer`}
+                    onClick={onRowActivate}
+                  >
+                    <div className="w-7 h-7 rounded-full bg-sky-500/15 dark:bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
+                      <UserPlus className="w-3.5 h-3.5" aria-hidden />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug">
+                        <span className="font-semibold text-slate-900 dark:text-slate-100">{n.actor.display_name}</span>
+                        {' '}added you to his channel.
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5" suppressHydrationWarning>
+                        {formatFeedDate(n.created_at)}
+                      </p>
+                    </div>
+                    {!n.is_read && (
+                      <div className="w-2 h-2 rounded-full bg-sky-500 shrink-0 mt-1" />
+                    )}
+                  </button>
+                );
+              }
+
+              if (n.type === 'account_unban') {
+                return (
+                  <button
+                    key={n.id}
+                    type="button"
+                    className={`${rowClass} w-full text-left cursor-pointer`}
+                    onClick={onRowActivate}
+                  >
+                    <div className="w-7 h-7 rounded-full bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                      <ShieldCheck className="w-3.5 h-3.5" aria-hidden />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug">
+                        <span className="font-semibold text-slate-900 dark:text-slate-100">Moderation team</span>
+                        {' '}restored your account access to the social feed.
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5" suppressHydrationWarning>
+                        {formatFeedDate(n.created_at)}
+                      </p>
+                    </div>
+                    {!n.is_read && (
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 mt-1" />
+                    )}
+                  </button>
+                );
+              }
+
               if (n.type === 'account_ban') {
                 return (
                   <button
@@ -102,8 +156,8 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
                       <Ban className="w-3.5 h-3.5" aria-hidden />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-snug">
-                        <span className="font-semibold text-slate-900 dark:text-slate-100">{n.actor.display_name}</span>
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug">
+                        <span className="font-semibold text-slate-900 dark:text-slate-100">Moderation team</span>
                         {' '}suspended your account from the social feed.
                       </p>
                       <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5" suppressHydrationWarning>

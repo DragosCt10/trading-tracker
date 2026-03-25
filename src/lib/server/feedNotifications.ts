@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import type { FeedNotification, NotificationType, PaginatedResult } from '@/types/social';
@@ -46,7 +47,8 @@ export async function getNotifications(
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { items: [], nextCursor: null, hasMore: false };
 
-  const supabase = await createClient();
+  // Use service role so banned users can still read their own notifications.
+  const supabase = createServiceRoleClient() as any;
   let query = supabase
     .from('feed_notifications')
     .select(`
@@ -77,7 +79,8 @@ export async function getUnreadCount(): Promise<number> {
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return 0;
 
-  const supabase = await createClient();
+  // Use service role so banned users can still see their unread count.
+  const supabase = createServiceRoleClient() as any;
   const { count } = await supabase
     .from('feed_notifications')
     .select('id', { count: 'exact', head: true })
@@ -161,17 +164,81 @@ export async function createNotification(opts: {
   }
 }
 
+/** Notifies a user that their social account was unbanned (moderation). Fire-and-forget. */
+export async function notifyUserAccountUnbanned(recipientProfileId: string): Promise<void> {
+  const session = await getCachedUserSession();
+  if (!session.user) return;
+
+  const admin = createServiceRoleClient() as ReturnType<typeof createServiceRoleClient>;
+  const { data: actorRow } = await (admin as any)
+    .from('social_profiles')
+    .select('id')
+    .eq('user_id', session.user.id)
+    .maybeSingle();
+
+  if (!actorRow?.id) return;
+  if (actorRow.id === recipientProfileId) return;
+
+  try {
+    await (admin as any).from('feed_notifications').insert({
+      recipient_id: recipientProfileId,
+      actor_id:     actorRow.id,
+      type:         'account_unban',
+      post_id:      null,
+      comment_id:   null,
+    });
+  } catch (err) {
+    console.error('[notifyUserAccountUnbanned] failed:', err);
+  }
+}
+
 /** Notifies a user that their social account was banned (moderation). Fire-and-forget. */
 export async function notifyUserAccountBanned(recipientProfileId: string): Promise<void> {
   const session = await getCachedUserSession();
   if (!session.user) return;
 
-  const actor = await getCachedSocialProfile(session.user.id);
-  if (!actor) return;
+  // Look up the acting moderator's profile via service role so RLS never blocks the lookup.
+  const admin = createServiceRoleClient() as ReturnType<typeof createServiceRoleClient>;
+  const { data: actorRow } = await (admin as any)
+    .from('social_profiles')
+    .select('id')
+    .eq('user_id', session.user.id)
+    .maybeSingle();
 
-  await createNotification({
-    recipientProfileId,
-    actorProfileId: actor.id,
-    type: 'account_ban',
-  });
+  if (!actorRow?.id) return;
+  if (actorRow.id === recipientProfileId) return; // no self-notification
+
+  // Use service role for the insert to bypass any RLS restrictions on feed_notifications.
+  try {
+    await (admin as any).from('feed_notifications').insert({
+      recipient_id: recipientProfileId,
+      actor_id:     actorRow.id,
+      type:         'account_ban',
+      post_id:      null,
+      comment_id:   null,
+    });
+  } catch (err) {
+    console.error('[notifyUserAccountBanned] failed:', err);
+  }
+}
+
+/** Notifies a user that a channel owner added them to a channel. Fire-and-forget. */
+export async function notifyChannelMemberAdded(
+  recipientProfileId: string,
+  actorProfileId: string,
+): Promise<void> {
+  if (recipientProfileId === actorProfileId) return;
+
+  try {
+    const supabase = createServiceRoleClient() as any;
+    await supabase.from('feed_notifications').insert({
+      recipient_id: recipientProfileId,
+      actor_id:     actorProfileId,
+      type:         'channel_added',
+      post_id:      null,
+      comment_id:   null,
+    });
+  } catch (err) {
+    console.error('[notifyChannelMemberAdded] failed (non-fatal):', err);
+  }
 }

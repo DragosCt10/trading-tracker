@@ -13,7 +13,6 @@ import {
   Settings,
   Crown,
   Sparkles,
-  Rss,
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -114,10 +113,6 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
 
   const isStrategiesActive = useMemo(() => isActive('/stats'), [isActive]);
   const isInsightVaultActive = useMemo(() => isActive('/insight-vault'), [isActive]);
-  const isFeedActive = useMemo(
-    () => pathname.startsWith('/feed') || pathname.startsWith('/profile'),
-    [pathname]
-  );
   const isSettingsActive = useMemo(
     () => pathname.startsWith('/settings') || pathname.startsWith('/billing'),
     [pathname]
@@ -178,12 +173,6 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                 <NavPillLink href="/insight-vault" active={isInsightVaultActive}>
                   <Lightbulb className="h-4 w-4" />
                   <span>Insight Vault</span>
-                </NavPillLink>
-              </li>
-              <li>
-                <NavPillLink href="/feed" active={isFeedActive}>
-                  <Rss className="h-4 w-4" />
-                  <span>Feed</span>
                 </NavPillLink>
               </li>
             </ul>
@@ -368,16 +357,6 @@ export default function Navbar({ centerContent, mobileMenuExtra }: NavbarProps) 
                 >
                   <Lightbulb className="h-4 w-4" />
                   Insight Vault
-                </NavPillLink>
-
-                <NavPillLink
-                  href="/feed"
-                  active={isFeedActive}
-                  className="h-auto min-h-8 w-full justify-start py-2"
-                  onClick={closeMobileMenu}
-                >
-                  <Rss className="h-4 w-4" />
-                  Feed
                 </NavPillLink>
 
                 {mobileMenuExtra ? (
