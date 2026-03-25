@@ -24,11 +24,15 @@ import ProfilePreviewModal from '@/components/feed/ProfilePreviewModal';
 import { FEED_CARD_SURFACE_CLASS } from '@/components/feed/feedCardStyles';
 import { cn } from '@/lib/utils';
 import type { SocialProfile, FeedPost, FeedChannel, PaginatedResult } from '@/types/social';
+import type { ResolvedSubscription } from '@/types/subscription';
 
 interface FeedClientProps {
   userId: string | null;
   initialProfile: SocialProfile | null;
   initialFeedData?: PaginatedResult<FeedPost>;
+  initialSubscription?: ResolvedSubscription | null;
+  initialMyChannels?: FeedChannel[];
+  initialFollowingFeedData?: PaginatedResult<FeedPost>;
 }
 
 type FeedTab = 'public' | 'following' | 'channels';
@@ -60,9 +64,9 @@ function ChannelListSkeleton({ rows = 3, compact = false }: { rows?: number; com
   );
 }
 
-export default function FeedClient({ userId, initialProfile, initialFeedData }: FeedClientProps) {
+export default function FeedClient({ userId, initialProfile, initialFeedData, initialSubscription, initialMyChannels, initialFollowingFeedData }: FeedClientProps) {
   const uid = userId ?? undefined;
-  const { subscription } = useSubscription({ userId: uid });
+  const { subscription } = useSubscription({ userId: uid, initialData: initialSubscription ?? undefined });
   const [createError, setCreateError] = useState('');
   const [editPost, setEditPost] = useState<FeedPost | null>(null);
   const [channelModalOpen, setChannelModalOpen] = useState(false);
@@ -89,9 +93,14 @@ export default function FeedClient({ userId, initialProfile, initialFeedData }: 
 
   const isChannelsTab = activeTab === 'channels';
   const feedView = activeTab === 'following' ? 'following' : 'public';
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(uid, feedView === 'public' ? initialFeedData : undefined, undefined, feedView);
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useFeed(
+    uid,
+    feedView === 'public' ? initialFeedData : initialFollowingFeedData,
+    undefined,
+    feedView,
+  );
   const { like, create, edit, remove, report } = usePostActions(uid);
-  const { data: myChannels = [], isLoading: isMyChannelsLoading } = useMyChannels(uid);
+  const { data: myChannels = [], isLoading: isMyChannelsLoading } = useMyChannels(uid, initialMyChannels);
   const { data: publicChannelsResult } = usePublicChannels(isChannelsTab);
   const publicChannels = publicChannelsResult?.items ?? [];
   const { join: joinChannel, leave: leaveChannel } = useChannelActions(uid);

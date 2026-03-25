@@ -10,6 +10,7 @@ import { formatFeedDate } from '@/utils/feedDateFormat';
 
 interface NotificationBellProps {
   userId?: string;
+  initialUnreadCount?: number;
 }
 
 function notifLabel(type: string): string {
@@ -20,9 +21,9 @@ function notifLabel(type: string): string {
 }
 
 
-export default function NotificationBell({ userId }: NotificationBellProps) {
+export default function NotificationBell({ userId, initialUnreadCount }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
-  const { data: unreadCount = 0 } = useNotificationUnreadCount(userId);
+  const { data: unreadCount = 0 } = useNotificationUnreadCount(userId, initialUnreadCount);
   const { data, isFetching }      = useNotificationList(userId);
   const { markAll, markOne }      = useMarkNotifications(userId);
 

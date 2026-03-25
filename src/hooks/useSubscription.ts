@@ -8,16 +8,21 @@ import { queryKeys } from '@/lib/queryKeys';
 
 interface UseSubscriptionOptions {
   userId?: string;
+  initialData?: ResolvedSubscription;
 }
 
-export function useSubscription({ userId }: UseSubscriptionOptions = {}) {
+export function useSubscription({ userId, initialData }: UseSubscriptionOptions = {}) {
   const key = queryKeys.subscription(userId);
 
   const query = useQuery<ResolvedSubscription>({
     queryKey: key,
     enabled: !!userId,
-    // Subscription gates feature access, so always revalidate when mounted.
-    refetchOnMount: 'always',
+    // When SSR initialData is provided, let staleTime govern revalidation.
+    // Without it, always revalidate on mount so feature gates stay accurate.
+    refetchOnMount: initialData ? true : 'always',
+    initialData,
+    // eslint-disable-next-line react-hooks/purity
+    initialDataUpdatedAt: initialData ? Date.now() : undefined,
     ...SUBSCRIPTION_DATA,
     queryFn: async (): Promise<ResolvedSubscription> => {
       if (!userId) throw new Error('Cannot fetch subscription without userId');

@@ -15,9 +15,10 @@ import { clearLastAccountPreference } from '@/utils/lastAccountCookie';
 
 interface SocialNavActionsProps {
   userId: string | null;
+  initialUnreadCount?: number;
 }
 
-export default function SocialNavActions({ userId }: SocialNavActionsProps) {
+export default function SocialNavActions({ userId, initialUnreadCount }: SocialNavActionsProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { theme, toggleTheme, mounted } = useTheme();
@@ -94,7 +95,7 @@ export default function SocialNavActions({ userId }: SocialNavActionsProps) {
         {userId && (
           <>
             <Separator orientation="vertical" className="mx-1 h-6" />
-            <NotificationBell userId={userId} />
+            <NotificationBell userId={userId} initialUnreadCount={initialUnreadCount} />
             <Button
               variant="ghost"
               size="icon"

@@ -1,6 +1,8 @@
 import { getCachedUserSession } from '@/lib/server/session';
 import { ensureSocialProfile } from '@/lib/server/socialProfile';
-import { getPublicFeed } from '@/lib/server/feedPosts';
+import { getPublicFeed, getTimeline } from '@/lib/server/feedPosts';
+import { resolveSubscription } from '@/lib/server/subscription';
+import { getMyChannels } from '@/lib/server/feedChannels';
 import FeedClient from './FeedClient';
 
 export const dynamic = 'force-dynamic';
@@ -14,9 +16,12 @@ export default async function FeedPage() {
     // unauthenticated
   }
 
-  const [profile, initialFeedData] = await Promise.all([
+  const [profile, initialFeedData, initialSubscription, initialMyChannels, initialFollowingFeedData] = await Promise.all([
     user ? ensureSocialProfile() : null,
     getPublicFeed(undefined, 20),
+    user ? resolveSubscription(user.id) : null,
+    user ? getMyChannels() : null,
+    user ? getTimeline(undefined, 20) : null,
   ]);
 
   return (
@@ -24,6 +29,9 @@ export default async function FeedPage() {
       userId={user?.id ?? null}
       initialProfile={profile}
       initialFeedData={initialFeedData}
+      initialSubscription={initialSubscription}
+      initialMyChannels={initialMyChannels ?? []}
+      initialFollowingFeedData={initialFollowingFeedData ?? undefined}
     />
   );
 }

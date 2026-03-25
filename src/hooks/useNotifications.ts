@@ -8,14 +8,17 @@ import {
 import { queryKeys } from '@/lib/queryKeys';
 import { FEED_DATA } from '@/constants/queryConfig';
 
-export function useNotificationUnreadCount(userId?: string) {
+export function useNotificationUnreadCount(userId?: string, initialData?: number) {
   return useQuery({
     queryKey: queryKeys.feed.unreadCount(userId),
     queryFn: getUnreadCount,
     enabled: !!userId,
     refetchInterval: 30_000,
-    refetchOnMount: 'always',
+    refetchOnMount: initialData !== undefined ? true : 'always',
     refetchOnWindowFocus: false,
+    initialData,
+    // eslint-disable-next-line react-hooks/purity
+    initialDataUpdatedAt: initialData !== undefined ? Date.now() : undefined,
     ...FEED_DATA,
   });
 }
@@ -27,7 +30,7 @@ export function useNotificationList(userId?: string) {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: !!userId,
-    refetchOnMount: 'always',
+    refetchOnMount: true,
     ...FEED_DATA,
   });
 }

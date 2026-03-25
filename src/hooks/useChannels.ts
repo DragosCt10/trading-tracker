@@ -22,11 +22,14 @@ import {
 import { queryKeys } from '@/lib/queryKeys';
 import { FEED_DATA } from '@/constants/queryConfig';
 
-export function useMyChannels(userId?: string) {
+export function useMyChannels(userId?: string, initialData?: FeedChannel[]) {
   return useQuery({
     queryKey: queryKeys.feed.channels(userId),
     queryFn: getMyChannels,
     enabled: !!userId,
+    initialData,
+    // eslint-disable-next-line react-hooks/purity
+    initialDataUpdatedAt: initialData ? Date.now() : undefined,
     ...FEED_DATA,
   });
 }

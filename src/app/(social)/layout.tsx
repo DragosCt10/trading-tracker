@@ -1,4 +1,5 @@
 import { getCachedUserSession } from '@/lib/server/session';
+import { getUnreadCount } from '@/lib/server/feedNotifications';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -14,6 +15,7 @@ export default async function SocialLayout({ children }: { children: ReactNode }
     redirect('/login');
   }
   const user = session!.user;
+  const initialUnreadCount = await getUnreadCount().catch(() => 0);
 
   return (
     <div className="max-w-(--breakpoint-xl) mx-auto min-h-screen flex flex-col">
@@ -41,7 +43,7 @@ export default async function SocialLayout({ children }: { children: ReactNode }
                 {/* <Target className="h-4 w-4" /> */}
                 <span>Go to app</span>
               </NavPillLink>
-              <SocialNavActions userId={user?.id ?? null} />
+              <SocialNavActions userId={user?.id ?? null} initialUnreadCount={initialUnreadCount} />
             </div>
           </div>
         </div>
