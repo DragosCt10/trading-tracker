@@ -6,6 +6,7 @@ import { Pencil, Trash2, Check, X, CornerDownRight } from 'lucide-react';
 import CommentInput from './CommentInput';
 import TierBadge from './TierBadge';
 import { useComments, useReplies } from '@/hooks/useComments';
+import { useInfiniteScrollSentinel } from '@/hooks/useInfiniteScrollSentinel';
 import { useTheme } from '@/hooks/useTheme';
 import type { FeedComment, PaginatedResult } from '@/types/social';
 import { formatFeedCommentDate } from '@/utils/feedDateFormat';
@@ -410,6 +411,11 @@ export default function CommentSection({
 }: CommentSectionProps) {
   const { query, add, edit, remove } = useComments(postId, initialComments);
   const comments = query.data?.pages.flatMap((p) => p.items) ?? [];
+  const sentinelRef = useInfiniteScrollSentinel(
+    query.fetchNextPage,
+    !!query.hasNextPage,
+    query.isFetchingNextPage
+  );
 
   // Single shared timer for all CommentItem edit-window checks — avoids N intervals for N comments.
   const [nowTs, setNowTs] = useState(() => Date.now());
@@ -473,6 +479,13 @@ export default function CommentSection({
               nowTs={nowTs}
             />
           ))}
+          <div ref={sentinelRef} className="h-px" aria-hidden />
+          {query.isFetchingNextPage && (
+            <div className="space-y-2">
+              <ReplySkeleton />
+              <ReplySkeleton />
+            </div>
+          )}
         </div>
       )}
     </div>
