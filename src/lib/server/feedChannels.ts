@@ -614,6 +614,7 @@ export async function getChannelMembersForOwner(
         username:     profile.username,
         avatar_url:   profile.avatar_url ?? null,
         tier:         profile.tier,
+        is_public:    profile.is_public ?? true,
       },
     });
   }
