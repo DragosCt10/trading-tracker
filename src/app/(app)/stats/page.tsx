@@ -24,6 +24,7 @@ export default async function StrategiesPage() {
 
   return (
     <StrategiesClient
+      initialUserId={user.id}
       initialActiveAccount={initialActiveAccount}
       initialMode={initialMode}
       initialStrategies={initialStrategies}
