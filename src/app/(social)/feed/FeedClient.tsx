@@ -204,7 +204,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                     'flex-1 rounded-xl px-4 py-2.5 min-h-[2.75rem] text-sm font-semibold transition-colors !shadow-none cursor-pointer flex items-center justify-center gap-1.5',
                     isActive
                       ? 'text-slate-900 dark:text-slate-50 shadow-sm border border-slate-300/60 dark:border-slate-700/50 bg-slate-50/90 dark:bg-slate-800/30'
-                      : 'text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                      : 'text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 border border-transparent'
                   )}
                 >
                   <TabIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
