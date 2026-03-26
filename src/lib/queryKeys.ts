@@ -160,6 +160,8 @@ export const queryKeys = {
   channelMembership: (channelId: string) => ['channel-membership', channelId] as const,
   /** Paginated member list for a channel (owner management modal). */
   channelMembers: (channelId: string) => ['channel-members:v2', channelId] as const,
+  /** Paginated member list for a channel (any member — public members modal). */
+  channelMembersPublic: (channelId: string) => ['channel-members-public', channelId] as const,
 
   /** Full Trade[] for a single calendar month (for calendar display). */
   calendarTrades: (

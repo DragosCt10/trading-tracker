@@ -301,7 +301,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                                   type="button"
                                   title="Invite people"
                                   onClick={(e) => { e.preventDefault(); setInviteModalChannel(channel); }}
-                                  className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-white text-xs font-medium themed-btn-primary border-0 transition-opacity hover:opacity-90"
+                                  className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 h-8 rounded-xl text-white text-xs font-medium themed-btn-primary border-0 transition-opacity hover:opacity-90"
                                 >
                                   <UserPlus className="w-3.5 h-3.5" />
                                   Add
@@ -317,7 +317,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                                   e.preventDefault();
                                   setEditModalChannel(channel);
                                 }}
-                                className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg text-slate-700 dark:text-slate-200 text-xs font-medium border border-slate-300/90 dark:border-slate-600/70 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                                className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 h-8 rounded-xl text-slate-700 dark:text-slate-200 text-xs font-medium border border-slate-300/90 dark:border-slate-600/70 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
                               >
                                 <Settings2 className="w-3.5 h-3.5" />
                                 Edit
@@ -338,7 +338,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                             <Button
                               variant="outline"
                               size="sm"
-                              className="h-8 cursor-pointer rounded-lg text-xs border-slate-300/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/70 dark:border-slate-600/70 dark:bg-slate-800/40 dark:text-rose-300 dark:hover:text-rose-200 dark:hover:border-rose-400/60 dark:hover:bg-rose-500/12"
+                              className="h-8 cursor-pointer rounded-xl text-xs border-slate-300/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/70 dark:border-slate-600/70 dark:bg-slate-800/40 dark:text-rose-300 dark:hover:text-rose-200 dark:hover:border-rose-400/60 dark:hover:bg-rose-500/12"
                               disabled={pendingChannelId === channel.id}
                               onClick={async () => {
                                 setPendingChannelId(channel.id);
@@ -400,7 +400,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                           <Button
                             variant="outline"
                             size="sm"
-                            className="shrink-0 cursor-pointer h-8 rounded-lg text-xs border-slate-300/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/70 dark:border-slate-600/70 dark:bg-slate-800/40 dark:text-rose-300 dark:hover:text-rose-200 dark:hover:border-rose-400/60 dark:hover:bg-rose-500/12"
+                            className="shrink-0 cursor-pointer h-8 rounded-xl text-xs border-slate-300/90 bg-slate-50/70 text-slate-600 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/70 dark:border-slate-600/70 dark:bg-slate-800/40 dark:text-rose-300 dark:hover:text-rose-200 dark:hover:border-rose-400/60 dark:hover:bg-rose-500/12"
                             disabled={pendingChannelId === channel.id}
                             onClick={async () => {
                               setPendingChannelId(channel.id);
@@ -423,7 +423,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                                   variant="outline"
                                   size="sm"
                                   disabled
-                                  className="shrink-0 h-8 rounded-lg text-xs border-rose-200 dark:border-rose-800/60 text-rose-400 dark:text-rose-500 bg-rose-50/50 dark:bg-rose-950/20 cursor-not-allowed opacity-70"
+                                  className="shrink-0 h-8 rounded-xl text-xs border-rose-200 dark:border-rose-800/60 text-rose-400 dark:text-rose-500 bg-rose-50/50 dark:bg-rose-950/20 cursor-not-allowed opacity-70"
                                 >
                                   <Ban className="w-3 h-3 mr-1" />
                                   Removed by owner
@@ -438,7 +438,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                           <Button
                             variant="outline"
                             size="sm"
-                            className="shrink-0 h-8 rounded-lg text-xs border-slate-300 dark:border-slate-600 cursor-pointer"
+                            className="shrink-0 h-8 rounded-xl text-xs border-slate-300 dark:border-slate-600 cursor-pointer"
                             disabled={pendingChannelId === channel.id}
                             onClick={async () => {
                               setPendingChannelId(channel.id);
@@ -636,7 +636,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
           <Button
             type="button"
             onClick={handleQuickPost}
-            className="h-12 cursor-pointer px-8 themed-btn-primary rounded-full !text-white font-semibold text-base border-0 shadow-lg shadow-violet-500/30 pointer-events-auto relative overflow-hidden group"
+            className="h-12 cursor-pointer px-8 themed-btn-primary rounded-xl !text-white font-semibold text-base border-0 shadow-lg shadow-violet-500/30 pointer-events-auto relative overflow-hidden group"
             aria-label="Scroll to top and start writing a post"
             title="Post"
             tabIndex={!feedChromeVisible ? 0 : -1}

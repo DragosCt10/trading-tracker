@@ -157,7 +157,7 @@ export default function InlineCreatePostCard({
               <button
                 type="button"
                 onClick={() => setAttachModalOpen(true)}
-                className="shrink-0 p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-colors"
+                className="shrink-0 p-1.5 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-colors"
                 title="Attach Trade"
               >
                 <Link2 className="w-4 h-4" />
@@ -246,7 +246,7 @@ export default function InlineCreatePostCard({
                     <button
                       type="button"
                       onClick={() => setSelectedTrade(null)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                       aria-label="Remove trade"
                     >
                       <X className="w-3.5 h-3.5" />

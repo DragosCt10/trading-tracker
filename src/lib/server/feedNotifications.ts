@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
+import { getAnonymousDisplayName } from '@/utils/displayName';
 import type { FeedNotification, NotificationType, PaginatedResult } from '@/types/social';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -16,16 +17,17 @@ type NotifResult<T> =
 
 function mapNotifRow(row: Record<string, unknown>): FeedNotification {
   const actor = (row.actor ?? {}) as {
-    id: string; display_name: string; username: string; avatar_url: string | null;
+    id: string; display_name: string; username: string; avatar_url: string | null; is_public: boolean;
   };
+  const isPublic = typeof actor.is_public === 'boolean' ? actor.is_public : true;
   return {
     id:           row.id as string,
     recipient_id: row.recipient_id as string,
     actor: {
       id:           actor.id,
-      display_name: actor.display_name,
+      display_name: isPublic ? actor.display_name : getAnonymousDisplayName(actor.id),
       username:     actor.username,
-      avatar_url:   actor.avatar_url ?? null,
+      avatar_url:   isPublic ? (actor.avatar_url ?? null) : null,
     },
     type:       row.type as NotificationType,
     post_id:    (row.post_id as string | null) ?? null,
@@ -53,7 +55,7 @@ export async function getNotifications(
     .from('feed_notifications')
     .select(`
       *,
-      actor:actor_id (id, display_name, username, avatar_url)
+      actor:actor_id (id, display_name, username, avatar_url, is_public)
     `)
     .eq('recipient_id', profile.id)
     .order('created_at', { ascending: false })
@@ -134,6 +136,61 @@ export async function markAllAsRead(): Promise<NotifResult<{ count: number }>> {
   }
 
   return { data: { count: count ?? 0 } };
+}
+
+// ─── Delete ──────────────────────────────────────────────────────────────────
+
+export async function deleteNotification(notificationId: string): Promise<void> {
+  const session = await getCachedUserSession();
+  if (!session.user) return;
+
+  const profile = await getCachedSocialProfile(session.user!.id);
+  if (!profile) return;
+
+  // Use service role to bypass RLS — recipient_id filter enforces ownership.
+  const supabase = createServiceRoleClient() as any;
+  const { error } = await supabase
+    .from('feed_notifications')
+    .delete()
+    .eq('id', notificationId)
+    .eq('recipient_id', profile.id);
+
+  if (error) console.error('[deleteNotification] error:', error);
+}
+
+export async function deleteAllReadNotifications(): Promise<void> {
+  const session = await getCachedUserSession();
+  if (!session.user) return;
+
+  const profile = await getCachedSocialProfile(session.user!.id);
+  if (!profile) return;
+
+  // Use service role to bypass RLS — recipient_id filter enforces ownership.
+  const supabase = createServiceRoleClient() as any;
+  const { error } = await supabase
+    .from('feed_notifications')
+    .delete()
+    .eq('recipient_id', profile.id)
+    .eq('is_read', true);
+
+  if (error) console.error('[deleteAllReadNotifications] error:', error);
+}
+
+export async function deleteAllNotifications(): Promise<void> {
+  const session = await getCachedUserSession();
+  if (!session.user) return;
+
+  const profile = await getCachedSocialProfile(session.user!.id);
+  if (!profile) return;
+
+  // Use service role to bypass RLS — recipient_id filter enforces ownership.
+  const supabase = createServiceRoleClient() as any;
+  const { error } = await supabase
+    .from('feed_notifications')
+    .delete()
+    .eq('recipient_id', profile.id);
+
+  if (error) console.error('[deleteAllNotifications] error:', error);
 }
 
 // ─── Internal: create notification (fire-and-forget) ─────────────────────────
@@ -247,6 +304,66 @@ export async function notifyUserAccountBanned(recipientProfileId: string): Promi
     });
   } catch (err) {
     console.error('[notifyUserAccountBanned] failed:', err);
+  }
+}
+
+/** Notifies a user that a channel owner removed them from a public channel. Fire-and-forget. */
+export async function notifyChannelMemberRemoved(
+  recipientProfileId: string,
+  actorProfileId: string,
+): Promise<void> {
+  if (recipientProfileId === actorProfileId) return;
+  try {
+    const supabase = createServiceRoleClient() as any;
+    await supabase.from('feed_notifications').insert({
+      recipient_id: recipientProfileId,
+      actor_id:     actorProfileId,
+      type:         'channel_removed',
+      post_id:      null,
+      comment_id:   null,
+    });
+  } catch (err) {
+    console.error('[notifyChannelMemberRemoved] failed (non-fatal):', err);
+  }
+}
+
+/** Notifies a user that a channel owner added them to a private channel. Fire-and-forget. */
+export async function notifyPrivateChannelMemberAdded(
+  recipientProfileId: string,
+  actorProfileId: string,
+): Promise<void> {
+  if (recipientProfileId === actorProfileId) return;
+  try {
+    const supabase = createServiceRoleClient() as any;
+    await supabase.from('feed_notifications').insert({
+      recipient_id: recipientProfileId,
+      actor_id:     actorProfileId,
+      type:         'private_channel_added',
+      post_id:      null,
+      comment_id:   null,
+    });
+  } catch (err) {
+    console.error('[notifyPrivateChannelMemberAdded] failed (non-fatal):', err);
+  }
+}
+
+/** Notifies a user that a channel owner removed them from a private channel. Fire-and-forget. */
+export async function notifyPrivateChannelMemberRemoved(
+  recipientProfileId: string,
+  actorProfileId: string,
+): Promise<void> {
+  if (recipientProfileId === actorProfileId) return;
+  try {
+    const supabase = createServiceRoleClient() as any;
+    await supabase.from('feed_notifications').insert({
+      recipient_id: recipientProfileId,
+      actor_id:     actorProfileId,
+      type:         'private_channel_removed',
+      post_id:      null,
+      comment_id:   null,
+    });
+  } catch (err) {
+    console.error('[notifyPrivateChannelMemberRemoved] failed (non-fatal):', err);
   }
 }
 

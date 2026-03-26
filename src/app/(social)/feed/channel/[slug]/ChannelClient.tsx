@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Hash, Lock, Globe, ArrowLeft } from 'lucide-react';
+import { Hash, Lock, Globe, ArrowLeft, Users } from 'lucide-react';
 import { useFeed } from '@/hooks/useFeed';
 import { usePostActions } from '@/hooks/usePostActions';
 import { useChannelActions, useChannelMembershipFlags } from '@/hooks/useChannels';
@@ -10,6 +10,7 @@ import FeedPostList from '@/components/feed/FeedPostList';
 import EditPostModal from '@/components/feed/EditPostModal';
 import InlineCreatePostCard from '@/components/feed/InlineCreatePostCard';
 import ChannelPublicRemovedCard from '@/components/feed/ChannelPublicRemovedCard';
+import ChannelMembersModal from '@/components/feed/ChannelMembersModal';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
 import type { FeedChannel, FeedPost, PaginatedResult, SocialProfile } from '@/types/social';
@@ -24,6 +25,7 @@ interface ChannelClientProps {
 export default function ChannelClient({ channel, initialFeed, userId, currentProfile }: ChannelClientProps) {
   const [createError, setCreateError] = useState('');
   const [editPost, setEditPost] = useState<FeedPost | null>(null);
+  const [membersOpen, setMembersOpen] = useState(false);
 
   const { subscription } = useSubscription({ userId });
   const { data: membership, isLoading: isMemberIsLoading } = useChannelMembershipFlags(channel.id);
@@ -88,31 +90,57 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
               ) : null}
             </div>
           </div>
-          {channel.is_public && channel.owner_id !== currentProfile?.id && !removedByOwner && (
-            isMemberLoading ? (
-              <div className="h-8 w-16 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse shrink-0" />
-            ) : isMember ? (
+          {/* Right side: member count + buttons */}
+          <div className="flex flex-col items-end gap-4 shrink-0 ml-4">
+            {/* Buttons */}
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                className="shrink-0 rounded-xl text-sm border-slate-300 dark:border-slate-600 text-red-600 hover:text-red-700 hover:border-red-300 dark:text-red-400 dark:hover:border-red-500 cursor-pointer"
-                disabled={leave.isPending}
-                onClick={() => leave.mutate(channel.id)}
+                className="flex cursor-pointer items-center gap-2 h-8 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-200 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 text-xs sm:text-sm font-medium transition-colors duration-200"
+                onClick={() => setMembersOpen(true)}
               >
-                Leave
+                See all members
               </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="shrink-0 rounded-xl text-sm border-slate-300 dark:border-slate-600 cursor-pointer"
-                disabled={join.isPending}
-                onClick={() => join.mutate(channel.id)}
-              >
-                Join
-              </Button>
-            )
-          )}
+              {channel.is_public && channel.owner_id !== currentProfile?.id && !removedByOwner && (
+                isMemberLoading ? (
+                  <div className="h-7 w-7 rounded-xl bg-slate-200/80 dark:bg-slate-700/60 animate-pulse" />
+                ) : isMember ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 rounded-xl px-3 border border-slate-300/80 dark:border-slate-600/70 bg-slate-100/90 dark:bg-slate-800/40 text-slate-600 dark:text-rose-300 hover:text-rose-500 dark:hover:text-rose-200 hover:border-rose-300 dark:hover:border-rose-400/60 hover:bg-rose-50 dark:hover:bg-rose-500/12 transition-all duration-200 disabled:opacity-50 cursor-pointer text-xs font-medium"
+                    disabled={leave.isPending}
+                    onClick={() => leave.mutate(channel.id)}
+                    aria-label="Leave channel"
+                    title="Leave"
+                  >
+                    Leave
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 rounded-xl px-4 text-xs border-slate-300 dark:border-slate-600 cursor-pointer"
+                    disabled={join.isPending}
+                    onClick={() => join.mutate(channel.id)}
+                  >
+                    Join
+                  </Button>
+                )
+              )}
+            </div>
+            {/* Member count */}
+            <div className="flex items-center gap-1.5">
+              <Users className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" aria-hidden />
+              <span className="text-2xl font-bold tabular-nums leading-none text-slate-900 dark:text-slate-100">
+                {channel.member_count ?? 0}
+              </span>
+              <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                {(channel.member_count ?? 0) === 1 ? 'member' : 'members'}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -154,6 +182,15 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
         onReport={(id, reason) => report.mutate({ postId: id, reason: reason.trim() })}
         emptyMessage="No posts in this channel yet"
         emptySubtext="Be the first to post here!"
+      />
+
+      <ChannelMembersModal
+        channelId={channel.id}
+        channelName={channel.name}
+        memberCount={channel.member_count ?? 0}
+        currentUserId={userId}
+        open={membersOpen}
+        onClose={() => setMembersOpen(false)}
       />
 
       {editPost && subscription && (

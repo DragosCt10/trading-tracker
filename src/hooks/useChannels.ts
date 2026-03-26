@@ -10,6 +10,7 @@ import {
   leaveChannel,
   getChannelMembershipFlags,
   getChannelMembersForOwner,
+  getChannelMembers,
   addChannelMemberByHandle,
   removeChannelMemberByUserId,
   getRemovedPublicChannelIds,
@@ -213,6 +214,23 @@ export function useChannelMembers(channelId: string, userId?: string) {
     getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
     enabled: !!channelId && !!userId,
     staleTime: Infinity,           // mutations invalidate explicitly; no refetch on re-open
+    gcTime: FEED_DATA.gcTime,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useChannelMembersList(channelId: string, enabled = true) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.channelMembersPublic(channelId),
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }) => {
+      const result = await getChannelMembers(channelId, pageParam ?? undefined);
+      if ('error' in result) throw new Error(result.error);
+      return result.data;
+    },
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor : undefined),
+    enabled: !!channelId && enabled,
+    staleTime: Infinity,
     gcTime: FEED_DATA.gcTime,
     refetchOnWindowFocus: false,
   });

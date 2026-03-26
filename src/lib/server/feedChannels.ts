@@ -6,7 +6,7 @@ import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { getCachedSubscription } from './subscription';
 import type { ChannelMember, FeedChannel, PaginatedResult } from '@/types/social';
-import { notifyChannelMemberAdded } from './feedNotifications';
+import { notifyChannelMemberAdded, notifyChannelMemberRemoved, notifyPrivateChannelMemberAdded, notifyPrivateChannelMemberRemoved } from './feedNotifications';
 import type { TierId } from '@/types/subscription';
 
 type ChannelResult<T> =
@@ -61,6 +61,7 @@ function mapChannelMemberRow(row: Record<string, unknown>): ChannelMember {
           username: rawProfile.username as string,
           avatar_url: (rawProfile.avatar_url as string | null) ?? null,
           tier: rawProfile.tier as TierId,
+          is_public: (rawProfile.is_public as boolean | null) ?? true,
         }
       : undefined,
   };
@@ -226,7 +227,12 @@ export async function getChannelBySlug(slug: string): Promise<FeedChannel | null
     }
   }
 
-  return channel;
+  const { count: memberCount } = await supabase
+    .from('channel_members')
+    .select('channel_id', { count: 'exact', head: true })
+    .eq('channel_id', channel.id);
+
+  return { ...channel, member_count: memberCount ?? 0 };
 }
 
 export async function isChannelMember(channelId: string): Promise<boolean> {
@@ -572,7 +578,7 @@ export async function getChannelMembersForOwner(
   const supabase = await createClient();
   let query = supabase
     .from('channel_members')
-    .select('channel_id, user_id, role, joined_at, profile:social_profiles!channel_members_user_id_fkey(id, display_name, username, avatar_url, tier)')
+    .select('channel_id, user_id, role, joined_at, profile:social_profiles!channel_members_user_id_fkey(id, display_name, username, avatar_url, tier, is_public)')
     .eq('channel_id', channelId)
     .order('joined_at', { ascending: false })
     .limit(limit + 1);
@@ -622,6 +628,69 @@ export async function getChannelMembersForOwner(
   return {
     data: {
       items,
+      nextCursor: rows.length > limit ? (pageRows[pageRows.length - 1]?.joined_at as string) : null,
+      hasMore: rows.length > limit,
+    },
+  };
+}
+
+/**
+ * Fetch channel members for any authenticated channel member (not owner-only).
+ * Private channels: caller must be a member. Public channels: auth only.
+ */
+export async function getChannelMembers(
+  channelId: string,
+  cursor?: string,
+  limit = 20
+): Promise<ChannelResult<PaginatedResult<ChannelMember>>> {
+  const session = await getCachedUserSession();
+  if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+
+  const profile = await getCachedSocialProfile(session.user.id);
+  if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
+
+  const supabase = await createClient();
+
+  // For private channels, verify the caller is a member
+  const { data: ch } = await supabase
+    .from('feed_channels')
+    .select('is_public')
+    .eq('id', channelId)
+    .maybeSingle();
+
+  if (!ch) return { error: 'Channel not found', code: 'NOT_FOUND' };
+
+  if (!(ch as { is_public: boolean }).is_public) {
+    const { count } = await supabase
+      .from('channel_members')
+      .select('channel_id', { count: 'exact', head: true })
+      .eq('channel_id', channelId)
+      .eq('user_id', profile.id);
+    if ((count ?? 0) === 0) return { error: 'Not a member of this channel', code: 'UNAUTHORIZED' };
+  }
+
+  let query = supabase
+    .from('channel_members')
+    .select('channel_id, user_id, role, joined_at, profile:social_profiles!channel_members_user_id_fkey(id, display_name, username, avatar_url, tier, is_public)')
+    .eq('channel_id', channelId)
+    .order('joined_at', { ascending: false })
+    .limit(limit + 1);
+
+  if (cursor) query = query.lt('joined_at', cursor);
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('[getChannelMembers] error:', error);
+    return { error: 'Failed to fetch channel members', code: 'DB_ERROR' };
+  }
+
+  const rows = (data ?? []) as Record<string, unknown>[];
+  const pageRows = rows.slice(0, limit);
+
+  return {
+    data: {
+      items: pageRows.map(mapChannelMemberRow),
       nextCursor: rows.length > limit ? (pageRows[pageRows.length - 1]?.joined_at as string) : null,
       hasMore: rows.length > limit,
     },
@@ -685,7 +754,7 @@ export async function addChannelMemberByHandle(
 
   const { data: createdMembership, error: membershipError } = await supabase
     .from('channel_members')
-    .select('channel_id, user_id, role, joined_at, profile:social_profiles!channel_members_user_id_fkey(id, display_name, username, avatar_url, tier)')
+    .select('channel_id, user_id, role, joined_at, profile:social_profiles!channel_members_user_id_fkey(id, display_name, username, avatar_url, tier, is_public)')
     .eq('channel_id', channelId)
     .eq('user_id', targetProfileId)
     .single();
@@ -695,7 +764,19 @@ export async function addChannelMemberByHandle(
     return { error: 'Failed to load added member', code: 'DB_ERROR' };
   }
 
-  void notifyChannelMemberAdded(targetProfileId, profile.id);
+  // Determine channel visibility to fire the correct notification type
+  const { data: chVisibility } = await (admin as any)
+    .from('feed_channels')
+    .select('is_public')
+    .eq('id', channelId)
+    .maybeSingle();
+  const isPublic = (chVisibility as { is_public?: boolean } | null)?.is_public;
+
+  if (isPublic) {
+    void notifyChannelMemberAdded(targetProfileId, profile.id);
+  } else {
+    void notifyPrivateChannelMemberAdded(targetProfileId, profile.id);
+  }
 
   return { data: mapChannelMemberRow(createdMembership as Record<string, unknown>) };
 }
@@ -746,6 +827,13 @@ export async function removeChannelMemberByUserId(
     if (upsertError) {
       console.error('[removeChannelMemberByUserId:removal-record]', upsertError);
     }
+  }
+
+  const isPublicRemove = (chMeta as { is_public?: boolean } | null)?.is_public;
+  if (isPublicRemove) {
+    void notifyChannelMemberRemoved(memberUserId, profile.id);
+  } else {
+    void notifyPrivateChannelMemberRemoved(memberUserId, profile.id);
   }
 
   return { data: { channel_id: channelId, user_id: memberUserId } };
