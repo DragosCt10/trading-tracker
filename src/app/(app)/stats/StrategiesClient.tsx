@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useStrategies } from '@/hooks/useStrategies';
 import { useStrategyClientContext } from '@/hooks/useStrategyClientContext';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -85,11 +85,39 @@ export function StrategiesClient({
   initialStrategies,
   initialOverview,
 }: StrategiesClientProps = {}) {
-  // queryClient must be obtained before the cache-seeding block below.
   const queryClient = useQueryClient();
-  // Tracks whether the one-time seed has already fired. A ref (not state)
-  // so the flag survives re-renders without causing another render cycle.
-  const hasSeededRef = useRef(false);
+
+  // Seed server-pre-fetched data into the cache BEFORE any other hooks run.
+  // This guarantees useStrategies and the overview query find data on first render
+  // (isFetching stays false, skeleton never shows).
+  //
+  // userId is read directly from the TanStack cache seeded by AppLayout's render
+  // body — guaranteed to be present before any child component renders.
+  // initialActiveAccount and initialMode come from props (always available).
+  //
+  // Why no useRef?  A ref set before setQueryData can be permanently set by
+  // React 19 concurrent rendering if the render is abandoned mid-block.
+  // Instead, the cache check (!getQueryData) is idempotent — safe to run on
+  // every render with no double-write risk.
+  //
+  // Why no activeAccount from hook? That resolves one render later via
+  // useActionBarSelection. Using initialActiveAccount (prop) is synchronous.
+  const cachedUserDetails = queryClient.getQueryData<{ user: { id: string } | null }>(queryKeys.userDetails());
+  const seedUserId = cachedUserDetails?.user?.id;
+  if (seedUserId && initialActiveAccount?.id) {
+    if (initialStrategies && initialStrategies.length > 0) {
+      const strategiesKey = queryKeys.strategies(seedUserId, initialActiveAccount.id);
+      if (!queryClient.getQueryData(strategiesKey)) {
+        queryClient.setQueryData(strategiesKey, initialStrategies);
+      }
+    }
+    if (initialOverview && Object.keys(initialOverview).length > 0 && initialMode) {
+      const overviewKey = queryKeys.strategiesOverview(seedUserId, initialActiveAccount.id, initialMode);
+      if (!queryClient.getQueryData(overviewKey)) {
+        queryClient.setQueryData(overviewKey, initialOverview);
+      }
+    }
+  }
 
   const {
     userId,
@@ -110,36 +138,6 @@ export function StrategiesClient({
       null,
     [accounts, selectedAccount]
   );
-
-  // One-shot cache seed: write server-pre-fetched data into the TanStack Query
-  // cache so the first render finds data immediately (isFetching stays false).
-  //
-  // Why a ref instead of just an account-ID guard?
-  //   useStrategies uses `enabled: !cached` — once any value is written into a
-  //   cache key it never auto-fetches that key again (staleTime: Infinity).
-  //   Without the ref, every re-render with a new activeAccount would re-evaluate
-  //   the ID guard, and on the render where the new account's key is empty the
-  //   guard would pass and write initialStrategies (the *original* account's
-  //   data) into the new account's key, permanently poisoning that cache.
-  //
-  // The ref fires exactly once per component lifetime. After the first
-  // successful seed, any account switch produces a clean (empty) cache key,
-  // and the normal query fetch path takes over.
-  if (!hasSeededRef.current && userId && activeAccount?.id && activeAccount.id === initialActiveAccount?.id) {
-    hasSeededRef.current = true;
-    if (initialStrategies && initialStrategies.length > 0) {
-      const strategiesKey = queryKeys.strategies(userId, activeAccount.id);
-      if (!queryClient.getQueryData(strategiesKey)) {
-        queryClient.setQueryData(strategiesKey, initialStrategies);
-      }
-    }
-    if (initialOverview && Object.keys(initialOverview).length > 0 && mode) {
-      const overviewKey = queryKeys.strategiesOverview(userId, activeAccount.id, mode);
-      if (!queryClient.getQueryData(overviewKey)) {
-        queryClient.setQueryData(overviewKey, initialOverview);
-      }
-    }
-  }
 
   const { strategies, strategiesLoading, refetchStrategies } = useStrategies({ userId, accountId: activeAccount?.id });
   const { isPro } = useSubscription({ userId: userId ?? undefined });
