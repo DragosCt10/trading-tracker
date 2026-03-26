@@ -27,6 +27,7 @@ import { DailyJournalSkeleton } from './DailyJournalSkeleton';
 import { OutcomeChips } from '@/components/trades/OutcomeChips';
 import { useSubscription } from '@/hooks/useSubscription';
 import { buildPreviewTrade } from '@/utils/previewTrades';
+import { SavedTag } from '@/types/saved-tag';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -39,7 +40,7 @@ interface DailyJournalClientProps {
   initialUserId: string;
   currencySymbol: string;
   accountBalance: number | null;
-  savedTags?: string[];
+  savedTags?: SavedTag[];
 }
 
 type DayGroup = {

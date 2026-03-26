@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 import { PRO_ONLY_EXTRA_CARD_KEYS, type ExtraCardKey } from '@/constants/extraCards';
 
 import { Trade } from '@/types/trade';
+import type { SavedTag } from '@/types/saved-tag';
 import type { AccountSettings } from '@/types/account-settings';
 import type { DashboardApiResponse } from '@/types/dashboard-rpc';
 import { useDashboardData } from '@/hooks/useDashboardData';
@@ -146,7 +147,7 @@ export type StrategyClientInitialProps = {
   /** Server-fetched dashboard stats (API shape) for initial hydration — avoids client /api/dashboard-stats call (audit 2.1). */
   initialDashboardStats?: DashboardApiResponse | null;
   /** Strategy's saved tag vocabulary for initial hydration. */
-  initialSavedTags?: string[];
+  initialSavedTags?: SavedTag[];
 };
 
 const defaultInitialRange = createInitialDateRange();

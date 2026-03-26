@@ -15,6 +15,7 @@ import {
 } from '@/components/dashboard/analytics/TradesCalendarCard';
 import TradeDetailsModal from '@/components/TradeDetailsModal';
 import { SectionHeading } from './SectionHeading';
+import { SavedTag } from '@/types/saved-tag';
 
 export type ExecutionFilter = 'all' | 'executed' | 'nonExecuted';
 
@@ -46,7 +47,7 @@ type StrategyOverviewAndCalendarSectionsProps = {
   selectionActiveAccountBalance?: number | null;
   getDaysInMonth: ReturnType<typeof getDaysInMonthForDate>;
   /** Strategy's saved tag vocabulary for autocomplete in trade details. */
-  savedTags?: string[];
+  savedTags?: SavedTag[];
 };
 
 export function StrategyOverviewAndCalendarSections({
