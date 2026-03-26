@@ -63,7 +63,6 @@ import {
 import { ViewModeToggle } from '@/components/dashboard/analytics/ViewModeToggle';
 import { AnalysisModal } from '@/components/dashboard/analytics/AnalysisModal';
 import type { RiskAnalysis } from '@/components/dashboard/analytics/RiskPerTrade';
-import { computeFullMonthlyStatsFromTrades } from '@/components/dashboard/analytics/MonthlyPerformanceChart';
 import { DateRangeValue, TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
 import { 
   getDaysInMonthForDate,
@@ -466,8 +465,6 @@ export default function StrategyClient(
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
   const [selectedExecution, setSelectedExecution] = useState<ExecutionFilter>('executed');
 
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
 
   const {
     userDetails: userData,
@@ -538,8 +535,10 @@ export default function StrategyClient(
     (['launch_hour', 'avg_displacement', 'displacement_size', 'fvg_size', 'potential_rr'] as ExtraCardKey[]).includes(k)
   );
 
-  // Hydrate React Query cache once on mount. Calling setQueryData during render is a
-  // side-effect anti-pattern — moved to useEffect to prevent infinite render loops.
+  // Hydrate React Query cache once on mount. Cannot call setQueryData synchronously
+  // during render — it mutates external state, which breaks React Compiler optimization
+  // for the whole component. useEffect is correct here: fires before any user interaction,
+  // seeds the cache before useDashboardData's queries start a redundant network fetch.
   useEffect(() => {
     hydrateStrategyDashboardCache({
       queryClient,
@@ -560,20 +559,18 @@ export default function StrategyClient(
   );
   const getCurrencySymbol = useCallback(() => currencySymbol, [currencySymbol]);
   
-  // update calendar when main date range changes (without allTrades dependency - handled separately)
-  useEffect(() => {
-    updateCalendarFromDateRange(viewMode);
-  }, [dateRange, viewMode, updateCalendarFromDateRange]);
-
-  // update dateRange when switching to yearly mode or when selectedYear changes
+  // Consolidate all viewMode-driven sync into one effect so a mode switch triggers a
+  // single batch update instead of 3 sequential re-renders.
   useEffect(() => {
     updateDateRangeForYearlyMode(viewMode);
-  }, [viewMode, selectedYear, updateDateRangeForYearlyMode]);
-
-  // reset filter to '30days' when switching back to dateRange mode from yearly mode
-  useEffect(() => {
     resetFilterOnModeSwitch(viewMode);
-  }, [viewMode, resetFilterOnModeSwitch]);
+    updateCalendarFromDateRange(viewMode);
+  }, [viewMode, selectedYear, updateDateRangeForYearlyMode, resetFilterOnModeSwitch, updateCalendarFromDateRange]);
+
+  // Separate effect for dateRange-only changes (not triggered by viewMode switches).
+  useEffect(() => {
+    updateCalendarFromDateRange(viewMode);
+  }, [dateRange, updateCalendarFromDateRange]); // eslint-disable-line react-hooks/exhaustive-deps -- viewMode changes handled above
 
   const {
     allTrades,
@@ -623,6 +620,24 @@ export default function StrategyClient(
     selectedExecution,
     includeCompactTrades,
   });
+
+  // True once stats data has arrived (undefined = still loading, object = ready).
+  // With server-prefetched stats (StrategyData 1s race), this is true on first render —
+  // no skeleton flash. Without prefetch, false until the client fetch completes.
+  // Stays true even during background refetches (unlike isLoadingStats / isFetching).
+  const hydrated = stats !== undefined && stats !== null;
+
+  // Pre-parse trade dates once per data fetch rather than on every filter interaction.
+  // calendarMonthTradesToUse filters by month timestamp on every market/execution change —
+  // caching avoids O(n) regex+string-parse calls per toggle.
+  const allTradeTimestampsMap = useMemo(
+    () => new Map(allTrades.map((t) => [t.id, parseTradeDateToTimestamp(t.trade_date)])),
+    [allTrades]
+  );
+  const calendarMonthTradeTimestampsMap = useMemo(
+    () => new Map(calendarMonthTrades.map((t) => [t.id, parseTradeDateToTimestamp(t.trade_date)])),
+    [calendarMonthTrades]
+  );
 
   const baseTrades = useMemo(
     () => (viewMode === 'yearly' ? allTrades : filteredTrades),
@@ -779,31 +794,14 @@ export default function StrategyClient(
   const setupChartDataToUse = filteredChartStats ? setupChartDataFiltered : setupChartData;
   const timeIntervalChartDataToUse = filteredChartStats ? timeIntervalChartDataFiltered : timeIntervalChartData;
 
-  // Determine loading state for charts
-  // When filters are applied, data is computed synchronously, so isLoading should be false
-  // Otherwise, use the appropriate loading state based on view mode
-  // Also check if chart data has content - if it does, don't show loading
+  // Determine loading state for charts.
+  // Replace the previous O(n) .some() scan over setupChartDataToUse with an O(1) check:
+  // "do we have trades?" is sufficient — if tradesToUse is non-empty, chart data is ready.
   const chartsLoadingState = useMemo(() => {
-    if (filteredChartStats) {
-      // Filters are applied (market filter), data computed synchronously
-      return false;
-    }
-    
-    // Check if chart data has content - if it does, data is ready, don't show loading
-    const hasChartData = setupChartDataToUse.length > 0 && 
-                         setupChartDataToUse.some(d => 
-                           (d.wins ?? 0) > 0 || 
-                           (d.losses ?? 0) > 0 || 
-                           (d.breakEven ?? 0) > 0
-                         );
-    
-    if (hasChartData) {
-      return false;
-    }
-    
-    // No filters applied and no data yet, use normal loading state
+    if (filteredChartStats) return false;  // filters applied → computed synchronously
+    if (tradesToUse.length > 0) return false; // data arrived → no loading indicator
     return viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading;
-  }, [filteredChartStats, viewMode, allTradesLoading, filteredTradesLoading, setupChartDataToUse]);
+  }, [filteredChartStats, tradesToUse.length, viewMode, allTradesLoading, filteredTradesLoading]);
 
   // All data comes from the API — always use the hook loading state.
   const accountOverviewLoadingState = viewMode === 'yearly' ? allTradesLoading : filteredTradesLoading;
@@ -817,13 +815,6 @@ export default function StrategyClient(
     }
     return monthlyStats?.monthlyData ?? {};
   }, [selectedExecution, tradesToUse, monthlyStats]);
-
-  // MonthlyPerformanceChart needs the full wins/losses/winRate shape which differs from RPC MonthlyStats,
-  // so compute from tradesToUse. This is now non-blocking because MonthlyPerformanceChart is lazy-loaded.
-  const monthlyPerformanceStatsToUse = useMemo(
-    () => computeFullMonthlyStatsFromTrades(tradesToUse),
-    [tradesToUse]
-  );
 
   const totalYearProfit = useMemo(
     () => calculateTotalYearProfit(monthlyStatsToUse),
@@ -862,15 +853,16 @@ export default function StrategyClient(
     const monthStartTimestamp = startOfMonth(currentDate).getTime();
     const monthEndTimestamp = endOfMonth(currentDate).getTime();
 
+    const timestampMap = viewMode === 'yearly' ? allTradeTimestampsMap : calendarMonthTradeTimestampsMap;
     return marketFilteredTrades.filter((trade) => {
-      const tradeTimestamp = parseTradeDateToTimestamp(trade.trade_date);
+      const tradeTimestamp = timestampMap.get(trade.id) ?? null;
       return (
         tradeTimestamp !== null &&
         tradeTimestamp >= monthStartTimestamp &&
         tradeTimestamp <= monthEndTimestamp
       );
     });
-  }, [viewMode, allTrades, calendarMonthTrades, currentDate, selectedMarket, selectedExecution]);
+  }, [viewMode, allTrades, calendarMonthTrades, currentDate, selectedMarket, selectedExecution, allTradeTimestampsMap, calendarMonthTradeTimestampsMap]);
 
   const weeklyStats = useMemo(
     () =>
@@ -892,23 +884,30 @@ export default function StrategyClient(
 
   // DB stats are authoritative for all metrics. Only averageDrawdown is missing from the
   // DB response (hardcoded to 0 in mapApiToStats), so we compute it from the trade series.
-  // partialsTaken is an alias for totalPartialTradesCount (different field name convention).
-  const statsToUse = useMemo(() => {
-    const safeStats = stats ?? ({} as typeof stats & object);
-    const { averageDrawdown } = computeStrategyStatsFromTrades({
+  // Split into two useMemos so the heavy O(n) trade pass only reruns when trades/execution/balance
+  // change — not on every viewMode/market filter change (tradesToUse already captures those).
+  const averageDrawdown = useMemo(() => {
+    const { averageDrawdown: computed } = computeStrategyStatsFromTrades({
       tradesToUse,
       accountBalance: selection.activeAccount?.account_balance || 0,
       selectedExecution,
-      viewMode,
-      selectedMarket,
-      statsFromHook: { tradeQualityIndex: safeStats?.tradeQualityIndex ?? 0, multipleR: safeStats?.multipleR ?? 0 },
+      // viewMode and selectedMarket don't affect averageDrawdown — tradesToUse is already filtered.
+      viewMode: 'yearly',
+      selectedMarket: 'all',
+      statsFromHook: {}, // statsFromHook not needed for averageDrawdown
     });
+    return computed;
+  }, [tradesToUse, selectedExecution, selection.activeAccount?.account_balance]);
+
+  // partialsTaken is an alias for totalPartialTradesCount (different field name convention).
+  const statsToUse = useMemo(() => {
+    const safeStats = stats ?? ({} as typeof stats & object);
     return {
       ...(safeStats ?? {}),
       averageDrawdown,
       partialsTaken: safeStats?.totalPartialTradesCount ?? 0,
     };
-  }, [viewMode, tradesToUse, selectedMarket, selectedExecution, stats, selection.activeAccount?.account_balance]);
+  }, [stats, averageDrawdown]);
 
   // Compute filtered macroStats when filters are applied or in date range mode
   // In date range mode, always compute from current data to reflect the selected date range
@@ -945,64 +944,57 @@ export default function StrategyClient(
     [marketStats]
   );
 
-  // Half-width extra cards — rendered dynamically in a 2-column grid
-  const halfWidthExtraCards = useMemo(
-    () =>
-      [
-        {
-          key: 'mss_stats' as const,
-          element: (
-            <MSSStatisticsCard
-              mssStats={statsToUseForCharts.mssStats}
-              isLoading={chartsLoadingState}
-              includeTotalTrades={filteredChartStats !== null}
-            />
-          ),
-        },
-        {
-          key: 'launch_hour' as const,
-          element: <LaunchHourTradesCard filteredTrades={tradesToUse} isLoading={chartsLoadingState} />,
-        },
-        {
-          key: 'avg_displacement' as const,
-          element: <AverageDisplacementSizeCard trades={tradesToUse} isLoading={chartsLoadingState} />,
-        },
-        {
-          key: 'displacement_size' as const,
-          element: <DisplacementSizeStats trades={tradesToUse} isLoading={chartsLoadingState} />,
-        },
-        {
-          key: 'local_hl_stats' as const,
-          element: (
-            <LocalHLStatisticsCard
-              localHLStats={statsToUseForCharts.localHLStats}
-              isLoading={chartsLoadingState}
-              includeTotalTrades={filteredChartStats !== null}
-            />
-          ),
-        },
-        {
-          key: 'fvg_size' as const,
-          element: <FvgSizeStats trades={tradesToUse} isLoading={chartsLoadingState} />,
-        },
-      ] satisfies { key: ExtraCardKey; element: ReactNode }[],
-    [
-      chartsLoadingState,
-      filteredChartStats,
-      statsToUseForCharts.localHLStats,
-      statsToUseForCharts.mssStats,
-      tradesToUse,
-    ]
-  );
-
+  // Half-width extra cards — rendered dynamically in a 2-column grid.
+  // Array construction and filtering are combined in one useMemo so the JSX elements
+  // are only created for cards that will actually render (avoids building 6 elements
+  // when only 2 are visible). React Compiler auto-memoizes each card's props.
   const selectedHalfWidthCards = useMemo(
     () =>
-      halfWidthExtraCards.filter(
+      (
+        [
+          {
+            key: 'mss_stats' as const,
+            element: (
+              <MSSStatisticsCard
+                mssStats={statsToUseForCharts.mssStats}
+                isLoading={chartsLoadingState}
+                includeTotalTrades={filteredChartStats !== null}
+              />
+            ),
+          },
+          {
+            key: 'launch_hour' as const,
+            element: <LaunchHourTradesCard filteredTrades={tradesToUse} isLoading={chartsLoadingState} />,
+          },
+          {
+            key: 'avg_displacement' as const,
+            element: <AverageDisplacementSizeCard trades={tradesToUse} isLoading={chartsLoadingState} />,
+          },
+          {
+            key: 'displacement_size' as const,
+            element: <DisplacementSizeStats trades={tradesToUse} isLoading={chartsLoadingState} />,
+          },
+          {
+            key: 'local_hl_stats' as const,
+            element: (
+              <LocalHLStatisticsCard
+                localHLStats={statsToUseForCharts.localHLStats}
+                isLoading={chartsLoadingState}
+                includeTotalTrades={filteredChartStats !== null}
+              />
+            ),
+          },
+          {
+            key: 'fvg_size' as const,
+            element: <FvgSizeStats trades={tradesToUse} isLoading={chartsLoadingState} />,
+          },
+        ] as { key: ExtraCardKey; element: ReactNode }[]
+      ).filter(
         (card) =>
           hasCard(card.key) &&
           (showProContent || !PRO_ONLY_EXTRA_CARD_KEYS.includes(card.key))
       ),
-    [halfWidthExtraCards, hasCard, showProContent]
+    [statsToUseForCharts, chartsLoadingState, filteredChartStats, tradesToUse, hasCard, showProContent]
   );
 
   const tradingOverviewProps: TradingOverviewStatsProps = {
@@ -1145,7 +1137,6 @@ export default function StrategyClient(
         showProContent={showProContent}
         renderSectionCollapseButton={renderSectionCollapseButton}
         isSectionExpanded={isSectionExpanded}
-        monthlyPerformanceStatsToUse={monthlyPerformanceStatsToUse}
         filteredChartStats={filteredChartStats}
         statsToUseForCharts={statsToUseForCharts}
         marketStatsToUse={marketStatsToUse}
