@@ -17,7 +17,7 @@ export type StrategyRow = Database['public']['Tables']['strategies']['Row'];
 /** Normalizes a raw strategy row's saved_tags from DB (handles string[] legacy rows). */
 function normalizeStrategy(row: Record<string, unknown>): Strategy {
   return {
-    ...(row as Strategy),
+    ...(row as unknown as Strategy),
     saved_tags: normalizeSavedTags(row.saved_tags),
   };
 }
