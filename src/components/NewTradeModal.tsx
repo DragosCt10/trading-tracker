@@ -248,7 +248,6 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       mode: params?.mode ?? selection.mode,
       accountId: params?.accountId ?? selection.activeAccount?.id,
       userId: params?.userId ?? userId,
-      refetchType: 'active',
     });
   }, [selection, userId, queryClient]);
 
