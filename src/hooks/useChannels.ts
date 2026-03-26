@@ -54,11 +54,14 @@ export function useRemovedPublicChannelIds(userId?: string) {
   });
 }
 
-export function useChannelMembershipFlags(channelId: string) {
+export function useChannelMembershipFlags(channelId: string, initialData?: ChannelMembershipFlags) {
   return useQuery({
     queryKey: queryKeys.channelMembership(channelId),
     queryFn: () => getChannelMembershipFlags(channelId),
     enabled: !!channelId,
+    initialData,
+    // eslint-disable-next-line react-hooks/purity
+    initialDataUpdatedAt: initialData ? Date.now() : undefined,
     ...FEED_DATA,
   });
 }

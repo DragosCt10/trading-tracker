@@ -480,14 +480,13 @@ export default function CommentSection({
 
   return (
     <div className="space-y-3">
-      {currentProfileId &&
-        (channelReadOnly ? (
-          <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
-            You cannot comment here until the channel owner adds you back to the channel.
-          </div>
-        ) : (
-          <CommentInput onSubmit={handleAdd} isSubmitting={add.isPending} />
-        ))}
+      {channelReadOnly && currentProfileId ? (
+        <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+          You cannot comment here until the channel owner adds you back to the channel.
+        </div>
+      ) : !channelReadOnly && (
+        <CommentInput onSubmit={handleAdd} isSubmitting={add.isPending} disabled={!currentProfileId} />
+      )}
 
       {comments.length === 0 && !query.isLoading ? (
         <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none px-4 py-6 text-center">

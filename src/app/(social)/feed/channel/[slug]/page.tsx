@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation';
 import { getCachedUserSession } from '@/lib/server/session';
 import { getCachedSocialProfile } from '@/lib/server/socialProfile';
-import { getChannelBySlug } from '@/lib/server/feedChannels';
+import { getChannelBySlug, getChannelMembershipFlags } from '@/lib/server/feedChannels';
 import { getChannelFeed } from '@/lib/server/feedPosts';
+import { resolveSubscription } from '@/lib/server/subscription';
 import ChannelClient from './ChannelClient';
 
 interface Props {
@@ -21,12 +22,18 @@ export default async function ChannelPage({ params }: Props) {
   ]);
   if (!channel) notFound();
 
-  const initialFeed = await getChannelFeed(channel.id, undefined, 20);
+  const [initialFeed, initialMembership, initialSubscription] = await Promise.all([
+    getChannelFeed(channel.id, undefined, 20),
+    getChannelMembershipFlags(channel.id),
+    resolveSubscription(session.user.id),
+  ]);
 
   return (
     <ChannelClient
       channel={channel}
       initialFeed={initialFeed}
+      initialMembership={initialMembership}
+      initialSubscription={initialSubscription}
       userId={session.user.id}
       currentProfile={profile}
     />

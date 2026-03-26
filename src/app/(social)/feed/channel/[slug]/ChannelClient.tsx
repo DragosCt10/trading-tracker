@@ -14,21 +14,25 @@ import ChannelMembersModal from '@/components/feed/ChannelMembersModal';
 import { Button } from '@/components/ui/button';
 import { useSubscription } from '@/hooks/useSubscription';
 import type { FeedChannel, FeedPost, PaginatedResult, SocialProfile } from '@/types/social';
+import type { ChannelMembershipFlags } from '@/lib/server/feedChannels';
+import type { ResolvedSubscription } from '@/types/subscription';
 
 interface ChannelClientProps {
   channel: FeedChannel;
   initialFeed: PaginatedResult<FeedPost>;
+  initialMembership?: ChannelMembershipFlags;
+  initialSubscription?: ResolvedSubscription;
   userId: string;
   currentProfile: SocialProfile | null;
 }
 
-export default function ChannelClient({ channel, initialFeed, userId, currentProfile }: ChannelClientProps) {
+export default function ChannelClient({ channel, initialFeed, initialMembership, initialSubscription, userId, currentProfile }: ChannelClientProps) {
   const [createError, setCreateError] = useState('');
   const [editPost, setEditPost] = useState<FeedPost | null>(null);
   const [membersOpen, setMembersOpen] = useState(false);
 
-  const { subscription } = useSubscription({ userId });
-  const { data: membership, isLoading: isMemberIsLoading } = useChannelMembershipFlags(channel.id);
+  const { subscription } = useSubscription({ userId, initialData: initialSubscription });
+  const { data: membership, isLoading: isMemberIsLoading } = useChannelMembershipFlags(channel.id, initialMembership);
   const isMember = membership?.isMember ?? false;
   const removedByOwner = membership?.removedByOwner ?? false;
   const isMemberLoading = isMemberIsLoading;
