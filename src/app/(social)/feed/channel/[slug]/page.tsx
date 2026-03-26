@@ -15,10 +15,11 @@ export default async function ChannelPage({ params }: Props) {
   const session = await getCachedUserSession();
   if (!session.user) notFound();
 
-  const channel = await getChannelBySlug(slug);
+  const [channel, profile] = await Promise.all([
+    getChannelBySlug(slug),
+    getCachedSocialProfile(session.user.id),
+  ]);
   if (!channel) notFound();
-
-  const profile = session.user ? await getCachedSocialProfile(session.user.id) : null;
 
   const initialFeed = await getChannelFeed(channel.id, undefined, 20);
 

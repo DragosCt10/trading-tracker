@@ -98,63 +98,16 @@ export async function getMyChannels(): Promise<FeedChannel[]> {
   if (!profile) return [];
 
   const supabase = await createClient();
-  const { data: ownedRows, error: ownedError } = await supabase
-    .from('feed_channels')
-    .select('*')
-    .eq('owner_id', profile.id)
-    .order('updated_at', { ascending: false });
-  if (ownedError) {
-    console.error('[getMyChannels:owned]', ownedError);
+  const { data, error } = await supabase.rpc('get_my_channels', { p_profile_id: profile.id });
+  if (error) {
+    console.error('[getMyChannels]', error);
     return [];
   }
 
-  const { data: memberships, error: membershipsError } = await supabase
-    .from('channel_members')
-    .select('channel_id')
-    .eq('user_id', profile.id);
-  if (membershipsError) {
-    console.error('[getMyChannels:memberships]', membershipsError);
-    return (ownedRows ?? []).map((r) => mapRow(r as Record<string, unknown>));
-  }
-
-  const memberChannelIds = (memberships ?? [])
-    .map((m: { channel_id: string }) => m.channel_id)
-    .filter((id) => id !== '');
-
-  let memberRows: Record<string, unknown>[] = [];
-  if (memberChannelIds.length > 0) {
-    const { data: rows, error: membersError } = await supabase
-      .from('feed_channels')
-      .select('*')
-      .in('id', memberChannelIds);
-    if (membersError) {
-      console.error('[getMyChannels:memberRows]', membersError);
-    } else {
-      memberRows = (rows ?? []) as Record<string, unknown>[];
-    }
-  }
-
-  const merged = [...((ownedRows ?? []) as Record<string, unknown>[]), ...memberRows];
-  const deduped = Array.from(
-    new Map(merged.map((row) => [row.id as string, row])).values()
-  );
-  deduped.sort(
-    (a, b) => new Date(b.updated_at as string).getTime() - new Date(a.updated_at as string).getTime()
-  );
-
-  const channelIds = deduped.map((r) => r.id as string);
-  const countMap: Record<string, number> = {};
-  if (channelIds.length > 0) {
-    const { data: memberCountRows } = await supabase
-      .from('channel_members')
-      .select('channel_id')
-      .in('channel_id', channelIds);
-    (memberCountRows ?? []).forEach((m: { channel_id: string }) => {
-      countMap[m.channel_id] = (countMap[m.channel_id] ?? 0) + 1;
-    });
-  }
-
-  return deduped.map((r) => ({ ...mapRow(r), member_count: countMap[r.id as string] ?? 0 }));
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    ...mapRow(r),
+    member_count: Number(r.member_count) ?? 0,
+  }));
 }
 
 export async function getPublicChannels(
@@ -178,13 +131,16 @@ export async function getPublicChannels(
   const channelIds = pageRows.map((r) => r.id as string);
   const countMap: Record<string, number> = {};
   if (channelIds.length > 0) {
-    const { data: memberCountRows } = await supabase
-      .from('channel_members')
-      .select('channel_id')
-      .in('channel_id', channelIds);
-    (memberCountRows ?? []).forEach((m: { channel_id: string }) => {
-      countMap[m.channel_id] = (countMap[m.channel_id] ?? 0) + 1;
-    });
+    const counts = await Promise.all(
+      channelIds.map((id) =>
+        supabase
+          .from('channel_members')
+          .select('channel_id', { count: 'exact', head: true })
+          .eq('channel_id', id)
+          .then(({ count }) => ({ id, count: count ?? 0 }))
+      )
+    );
+    counts.forEach(({ id, count }) => { countMap[id] = count; });
   }
 
   return {

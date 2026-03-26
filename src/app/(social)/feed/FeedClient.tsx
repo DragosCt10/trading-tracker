@@ -121,6 +121,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
       ? posts.filter((post) => post.author.user_id !== uid)
       : posts;
 
+  const handleAuthorClick = useCallback((username: string) => setPreviewUsername(username), []);
   const handleLike = useCallback((id: string) => like.mutate(id), [like]);
   const handleDelete = useCallback((id: string) => remove.mutate(id), [remove]);
   const handleEdit = useCallback((p: FeedPost) => setEditPost(p), []);
@@ -481,7 +482,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
               onDelete={handleDelete}
               onEdit={handleEdit}
               onReport={handleReport}
-              onAuthorClick={(username) => setPreviewUsername(username)}
+              onAuthorClick={handleAuthorClick}
               emptyMessage="No posts yet"
               emptySubtext={
                 activeTab === 'following'

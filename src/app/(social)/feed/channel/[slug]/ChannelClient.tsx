@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Hash, Lock, Globe, ArrowLeft, Users } from 'lucide-react';
 import { useFeed } from '@/hooks/useFeed';
@@ -43,6 +43,14 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
 
   const posts = data?.pages.flatMap((p) => p.items) ?? [];
   const currentProfileId = currentProfile?.id;
+
+  const handleLike = useCallback((id: string) => like.mutate(id), [like]);
+  const handleDelete = useCallback((id: string) => remove.mutate(id), [remove]);
+  const handleEdit = useCallback((p: FeedPost) => setEditPost(p), []);
+  const handleReport = useCallback(
+    (id: string, reason: string) => report.mutate({ postId: id, reason: reason.trim() }),
+    [report]
+  );
 
   async function handleCreate(input: { content: string; tradeId?: string; tradeMode?: 'live' | 'demo' | 'backtesting' }) {
     setCreateError('');
@@ -176,10 +184,10 @@ export default function ChannelClient({ channel, initialFeed, userId, currentPro
         currentUserId={userId}
         currentProfileId={currentProfileId}
         currentUserTier={subscription?.tier}
-        onLike={(id) => like.mutate(id)}
-        onDelete={(id) => remove.mutate(id)}
-        onEdit={(p) => setEditPost(p)}
-        onReport={(id, reason) => report.mutate({ postId: id, reason: reason.trim() })}
+        onLike={handleLike}
+        onDelete={handleDelete}
+        onEdit={handleEdit}
+        onReport={handleReport}
         emptyMessage="No posts in this channel yet"
         emptySubtext="Be the first to post here!"
       />

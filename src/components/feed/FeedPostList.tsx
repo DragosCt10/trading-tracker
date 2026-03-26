@@ -8,6 +8,7 @@ import PostCardSkeleton from './PostCardSkeleton';
 import CreatePostCardSkeleton from './CreatePostCardSkeleton';
 import { useTheme } from '@/hooks/useTheme';
 import { getAllFollowedProfileIds } from '@/lib/server/socialProfile';
+import { queryKeys } from '@/lib/queryKeys';
 import type { FeedPost } from '@/types/social';
 import type { TierId } from '@/types/subscription';
 import { FEED_CARD_SURFACE_CLASS } from './feedCardStyles';
@@ -64,10 +65,11 @@ export default function FeedPostList({
   const isLightMode = mounted && theme === 'light';
   const hasCustomScrollParent = !!customScrollParent;
   const { data: followedProfileIds = [], isLoading: isFollowingIdsLoading } = useQuery({
-    queryKey: ['followed-profile-ids-all', currentUserId],
+    queryKey: queryKeys.feed.followedProfileIds(currentUserId),
     queryFn: getAllFollowedProfileIds,
     enabled: !!currentUserId,
     staleTime: 5 * 60_000,
+    refetchOnMount: false,
   });
   const followedProfileIdSet = useMemo(() => new Set(followedProfileIds), [followedProfileIds]);
 

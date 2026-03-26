@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Pencil, Trash2, Check, X, CornerDownRight } from 'lucide-react';
 import CommentInput from './CommentInput';
@@ -410,7 +410,7 @@ export default function CommentSection({
   channelReadOnly = false,
 }: CommentSectionProps) {
   const { query, add, edit, remove } = useComments(postId, initialComments);
-  const comments = query.data?.pages.flatMap((p) => p.items) ?? [];
+  const comments = useMemo(() => query.data?.pages.flatMap((p) => p.items) ?? [], [query.data]);
   const sentinelRef = useInfiniteScrollSentinel(
     query.fetchNextPage,
     !!query.hasNextPage,
@@ -418,11 +418,21 @@ export default function CommentSection({
   );
 
   // Single shared timer for all CommentItem edit-window checks — avoids N intervals for N comments.
+  // Smart timeout: fires only when the nearest own-comment edit window expires; no timer when none exist.
   const [nowTs, setNowTs] = useState(() => Date.now());
   useEffect(() => {
-    const id = window.setInterval(() => setNowTs(Date.now()), 30_000);
-    return () => window.clearInterval(id);
-  }, []);
+    if (!currentProfileId) return;
+    const now = Date.now();
+    const allComments = comments.flatMap((c) => [c, ...(c.replies ?? [])]);
+    const editableUntilTimes = allComments
+      .filter((c) => c.author.id === currentProfileId)
+      .map((c) => new Date(c.created_at).getTime() + COMMENT_EDIT_WINDOW_MS)
+      .filter((until) => until > now);
+    if (editableUntilTimes.length === 0) return;
+    const nearest = Math.min(...editableUntilTimes);
+    const id = window.setTimeout(() => setNowTs(Date.now()), nearest - now + 50);
+    return () => window.clearTimeout(id);
+  }, [comments, currentProfileId]);
 
   const handleAdd = useCallback(async (content: string) => {
     const result = await add.mutateAsync({ content });

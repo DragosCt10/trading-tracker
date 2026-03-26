@@ -17,7 +17,7 @@ export function useNotificationUnreadCount(userId?: string, initialData?: number
     queryKey: queryKeys.feed.unreadCount(userId),
     queryFn: getUnreadCount,
     enabled: !!userId,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
     refetchOnMount: initialData !== undefined ? true : 'always',
     refetchOnWindowFocus: false,
     initialData,
@@ -69,10 +69,6 @@ export function useNotificationActions(userId?: string) {
       if (ctx?.prevCount !== undefined) qc.setQueryData(unreadKey, ctx.prevCount);
       if (ctx?.prevList !== undefined) qc.setQueryData(listKey, ctx.prevList);
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: unreadKey });
-      qc.invalidateQueries({ queryKey: listKey });
-    },
   });
 
   const markAll = useMutation({
@@ -99,10 +95,6 @@ export function useNotificationActions(userId?: string) {
     onError: (_err, _vars, ctx) => {
       if (ctx?.prevCount !== undefined) qc.setQueryData(unreadKey, ctx.prevCount);
       if (ctx?.prevList !== undefined) qc.setQueryData(listKey, ctx.prevList);
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: unreadKey });
-      qc.invalidateQueries({ queryKey: listKey });
     },
   });
 
