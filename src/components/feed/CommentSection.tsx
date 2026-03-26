@@ -330,6 +330,7 @@ function CommentWithReplies({
   nowTs: number;
 }) {
   const [threadOpen, setThreadOpen] = useState(false);
+  const [showReplyInput, setShowReplyInput] = useState(false);
   const [replying, setReplying] = useState(false);
   // Optimistic reply count so the label updates immediately after posting/deleting
   const [replyCountDelta, setReplyCountDelta] = useState(0);
@@ -363,7 +364,15 @@ function CommentWithReplies({
         onEdit={(id, content) => onEdit(id, content)}
         onDelete={(id) => onDelete(id)}
         onAuthorClick={onAuthorClick}
-        onReplyClick={repliesDisabled ? undefined : () => setThreadOpen((o) => !o)}
+        onReplyClick={repliesDisabled ? undefined : () => {
+        if (displayedCount > 0) {
+          setThreadOpen((o) => !o);
+          setShowReplyInput(false);
+        } else {
+          setThreadOpen(true);
+          setShowReplyInput(true);
+        }
+      }}
         replyCount={displayedCount}
         replyDisabled={repliesDisabled}
         nowTs={nowTs}
@@ -371,15 +380,7 @@ function CommentWithReplies({
 
       {threadOpen && !repliesDisabled && (
         <div className="ml-4 sm:ml-6 pl-3 sm:pl-4 border-l-2 border-slate-200/70 dark:border-slate-700/55 space-y-2">
-          <div className="pt-0.5 space-y-1.5">
-            {repliesQuery.isFetching && replies.length === 0 && <ReplySkeleton />}
-            <ReplyInput
-              placeholder={`Reply to @${comment.author.username}…`}
-              onSubmit={handleReplySubmit}
-              onCancel={() => setThreadOpen(false)}
-              isSubmitting={replying}
-            />
-          </div>
+          {repliesQuery.isFetching && replies.length === 0 && <ReplySkeleton />}
 
           {replies.map((reply) => (
             <CommentItem
@@ -393,6 +394,24 @@ function CommentWithReplies({
               nowTs={nowTs}
             />
           ))}
+
+          {showReplyInput ? (
+            <ReplyInput
+              placeholder={`Reply to @${comment.author.username}…`}
+              onSubmit={async (content) => { await handleReplySubmit(content); setShowReplyInput(false); }}
+              onCancel={() => setShowReplyInput(false)}
+              isSubmitting={replying}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowReplyInput(true)}
+              className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors cursor-pointer rounded-lg px-1.5 py-0.5 hover:bg-slate-100/80 dark:hover:bg-slate-800/50"
+            >
+              <CornerDownRight className="w-3 h-3 shrink-0" />
+              Reply
+            </button>
+          )}
         </div>
       )}
     </div>
