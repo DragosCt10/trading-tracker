@@ -71,9 +71,10 @@ import { invalidateAndRefetchTradeQueries as invalidateTradeQueries } from '@/li
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
-import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyFavourites, syncStrategyTags, renameStrategyTag, deleteStrategyTag } from '@/lib/server/strategies';
+import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyFavourites, syncStrategyTags, renameStrategyTag, deleteStrategyTag, updateTagColor } from '@/lib/server/strategies';
 import { TagInput } from '@/components/ui/TagInput';
 import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
+import type { SavedTag, TagColor } from '@/types/saved-tag';
 import { snapToHalfStep } from '@/utils/tradeFormHelpers';
 
 // FVG Size: preset list 0.5, 1, 1.5, 2, 2.5, 3 (0.5 steps). Custom (3+) for 3.5, 4, 4.5, ...
@@ -190,6 +191,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
   }), [selection.mode]);
 
   const [trade, setTrade] = useState<Trade>(initialTradeState);
+  const [pendingTagColors, setPendingTagColors] = useState<Record<string, TagColor>>({});
 
   const [showExtraScreens, setShowExtraScreens] = useState(false);
 
@@ -404,11 +406,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     const strategiesKey = queryKeys.strategies(userId, accountId);
     queryClient.setQueryData(
       strategiesKey,
-      (prev: { id: string; saved_tags?: string[] }[] | undefined) => {
+      (prev: { id: string; saved_tags?: SavedTag[] }[] | undefined) => {
         if (!prev) return prev;
         return prev.map((s) =>
           s.id === currentStrategy.id
-            ? { ...s, saved_tags: (s.saved_tags ?? []).map((t) => (t === oldName ? newName : t)).sort() }
+            ? { ...s, saved_tags: (s.saved_tags ?? []).map((t) => t.name === oldName ? { ...t, name: newName } : t).sort((a, b) => a.name.localeCompare(b.name)) }
             : s
         );
       }
@@ -422,11 +424,28 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
     const strategiesKey = queryKeys.strategies(userId, accountId);
     queryClient.setQueryData(
       strategiesKey,
-      (prev: { id: string; saved_tags?: string[] }[] | undefined) => {
+      (prev: { id: string; saved_tags?: SavedTag[] }[] | undefined) => {
         if (!prev) return prev;
         return prev.map((s) =>
           s.id === currentStrategy.id
-            ? { ...s, saved_tags: (s.saved_tags ?? []).filter((t) => t !== tag) }
+            ? { ...s, saved_tags: (s.saved_tags ?? []).filter((t) => t.name !== tag) }
+            : s
+        );
+      }
+    );
+  }, [userId, accountId, currentStrategy, queryClient]);
+
+  const handleUpdateTagColor = useCallback(async (tagName: string, color: TagColor) => {
+    if (!userId || !currentStrategy) return;
+    await updateTagColor(currentStrategy.id, userId, tagName, color);
+    const strategiesKey = queryKeys.strategies(userId, accountId);
+    queryClient.setQueryData(
+      strategiesKey,
+      (prev: { id: string; saved_tags?: SavedTag[] }[] | undefined) => {
+        if (!prev) return prev;
+        return prev.map((s) =>
+          s.id === currentStrategy.id
+            ? { ...s, saved_tags: (s.saved_tags ?? []).map((t) => t.name === tagName ? { ...t, color } : t) }
             : s
         );
       }
@@ -556,6 +575,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       const settingsSnapshot = settings;
       const userIdSnapshot = userId;
       const accountIdSnapshot = accountId;
+      const pendingTagColorsSnapshot = pendingTagColors;
 
       const notes = notesRef.current ? notesRef.current.value : currentTrade.notes;
 
@@ -591,6 +611,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       // Close immediately — refetch + sync run in background after modal closes
       setIsSubmitting(false);
       setTrade(initialTradeState);
+      setPendingTagColors({});
       if (onTradeCreated) onTradeCreated();
       onClose();
 
@@ -644,14 +665,14 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
           }
 
           const tradeTags = (tradeSnapshot.tags ?? []).map((t: string) => t.toLowerCase().trim()).filter(Boolean);
-          let updatedTags: string[] | undefined;
+          let updatedTags: SavedTag[] | undefined;
           if (tradeTags.length > 0 && userIdSnapshot && currentStrategySnapshot) {
-            const current = currentStrategySnapshot.saved_tags ?? [];
-            const merged = Array.from(new Set([...current, ...tradeTags])).sort();
-            if (merged.length !== current.length || merged.some((t, i) => t !== current[i])) {
-              updatedTags = merged;
-              savePromises.push(syncStrategyTags(currentStrategySnapshot.id, userIdSnapshot, tradeTags));
-            }
+            const tagsWithColors: SavedTag[] = tradeTags.map(name => ({
+              name,
+              color: pendingTagColorsSnapshot[name],
+            }));
+            updatedTags = tagsWithColors;
+            savePromises.push(syncStrategyTags(currentStrategySnapshot.id, userIdSnapshot, tagsWithColors));
           }
 
           await Promise.all(savePromises);
@@ -673,7 +694,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               queryClient.setQueryData(
                 strategiesKey,
                 (prev:
-                  | { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[]; saved_tags?: string[] }[]
+                  | { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[]; saved_tags?: SavedTag[] }[]
                   | undefined) => {
                   if (!prev) return prev;
                   return prev.map((s) =>
@@ -703,7 +724,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
       setError('Failed to create trade. Please try again.');
       setIsSubmitting(false);
     }
-  }, [hasCard, selection, userId, accountId, settings, currentStrategy, queryClient, invalidateAndRefetchTradeQueries, initialTradeState, onTradeCreated, onClose, setError]);
+  }, [hasCard, selection, userId, accountId, settings, currentStrategy, pendingTagColors, queryClient, invalidateAndRefetchTradeQueries, initialTradeState, onTradeCreated, onClose, setError]);
 
   if (!mounted || !isOpen) return null;
 
@@ -1078,9 +1099,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Tags</Label>
               <TagInput
                 tags={trade.tags ?? []}
-                savedTags={(currentStrategy?.saved_tags ?? []).sort()}
+                savedTags={[...(currentStrategy?.saved_tags ?? [])].sort((a, b) => a.name.localeCompare(b.name))}
                 onChange={(tags) => updateTrade('tags', tags)}
+                onCreateTag={({ name, color }) => setPendingTagColors(prev => ({ ...prev, [name]: color ?? 'slate' }))}
                 onRenameTag={currentStrategy ? handleRenameTag : undefined}
+                onUpdateColor={currentStrategy ? handleUpdateTagColor : undefined}
                 onDeleteTag={currentStrategy ? handleDeleteTag : undefined}
                 pinnedTags={currentStrategy?.saved_favourites?.tags}
                 onTogglePin={currentStrategy ? handleToggleFavourite('tags') : undefined}

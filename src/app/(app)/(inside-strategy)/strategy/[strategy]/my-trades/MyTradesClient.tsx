@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trade } from '@/types/trade';
+import type { SavedTag } from '@/types/saved-tag';
 import { useStrategyClientContext } from '@/hooks/useStrategyClientContext';
 import { useTradeFilters } from '@/hooks/useTradeFilters';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -51,7 +52,7 @@ interface MyTradesClientProps {
   initialMode: 'live' | 'backtesting' | 'demo';
   initialActiveAccount: AccountRow | null;
   initialStrategyId: string;
-  savedTags?: string[];
+  savedTags?: SavedTag[];
 }
 
 export default function MyTradesClient({
@@ -93,6 +94,12 @@ export default function MyTradesClient({
         .filter((s) => s.id !== initialStrategyId)
         .map((s) => ({ id: s.id, name: s.name })),
     [strategies, initialStrategyId]
+  );
+
+  // Derive live savedTags from TanStack Query cache (updates when tag colors change)
+  const liveSavedTags = useMemo(
+    () => strategies.find((s) => s.id === initialStrategyId)?.saved_tags ?? savedTags ?? [],
+    [strategies, initialStrategyId, savedTags]
   );
 
   // Strategy overview (same cache as Strategies list) — for "All trades" cumulative PnL to match StrategyCard
@@ -862,7 +869,7 @@ export default function MyTradesClient({
           cardViewMode={cardViewMode}
           onCardViewModeChange={setCardViewMode}
           suppressHeaderControls
-          savedTags={savedTags}
+          savedTags={liveSavedTags}
         />
       </div>
     </div>

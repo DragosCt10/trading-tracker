@@ -28,6 +28,8 @@ import { updateStrategyCustomStats } from '@/lib/server/strategies';
 import { CustomStatModal } from '@/components/CustomStatModal';
 import { CustomStatDetailView } from '@/components/CustomStatDetailView';
 import { CustomStatsCardsSkeleton } from './CustomStatsSkeleton';
+import type { SavedTag } from '@/types/saved-tag';
+import { resolveTagColorStyle } from '@/constants/tagColors';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
@@ -46,6 +48,7 @@ interface CustomStatCardItemProps {
   accountBalance: number | null;
   currencySymbol: string;
   mounted: boolean;
+  savedTags: SavedTag[];
   onEdit: (config: CustomStatConfig) => void;
   onDelete: (id: string) => void;
   onDetail: (id: string) => void;
@@ -60,6 +63,7 @@ const CustomStatCardItem = memo(function CustomStatCardItem({
   accountBalance,
   currencySymbol,
   mounted,
+  savedTags,
   onEdit,
   onDelete,
   onDetail,
@@ -70,9 +74,21 @@ const CustomStatCardItem = memo(function CustomStatCardItem({
   );
   const { winRate, winRateWithBE } = useMemo(() => calculateWinRates(cardTrades), [cardTrades]);
   const effectiveWinRate = beCalcEnabled ? winRateWithBE : winRate;
-  const filterPills = useMemo(() => buildFilterPills(config.filters), [config.filters]);
+  // Non-tag pills (plain style)
+  const filterPills = useMemo(() => buildFilterPills({ ...config.filters, tags: undefined }), [config.filters]);
+  // Tag pills rendered separately with saved colors
+  const tagPills = useMemo(
+    () => (config.filters.tags ?? []).map((name) => ({
+      name,
+      label: name.length > 20 ? name.slice(0, 19) + '…' : name,
+      style: resolveTagColorStyle(savedTags.find((t) => t.name === name)?.color),
+    })),
+    [config.filters.tags, savedTags]
+  );
+  const allPillCount = filterPills.length + tagPills.length;
   const visiblePills = filterPills.slice(0, 3);
-  const extraPillCount = filterPills.length - visiblePills.length;
+  const visibleTagPills = tagPills.slice(0, Math.max(0, 3 - visiblePills.length));
+  const extraPillCount = allPillCount - visiblePills.length - visibleTagPills.length;
   const chartData = useMemo(() => buildEquityPointsFromTrades(cardTrades), [cardTrades]);
   const totalPnL = useMemo(
     () => cardTrades.reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0),
@@ -165,7 +181,7 @@ const CustomStatCardItem = memo(function CustomStatCardItem({
           </div>
 
           {/* Filter pills */}
-          {filterPills.length > 0 && (
+          {(allPillCount > 0) && (
             <div className="flex flex-wrap items-center gap-1 mt-3">
               {visiblePills.map((pill) => (
                 <span
@@ -173,6 +189,16 @@ const CustomStatCardItem = memo(function CustomStatCardItem({
                   className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-200/70 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300"
                 >
                   {pill}
+                </span>
+              ))}
+              {visibleTagPills.map((tp) => (
+                <span
+                  key={tp.name}
+                  title={tp.name}
+                  className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full text-white"
+                  style={{ background: tp.style.gradient }}
+                >
+                  {tp.label}
                 </span>
               ))}
               {extraPillCount > 0 && (
@@ -256,7 +282,7 @@ interface CustomStatsClientProps {
   savedCustomStats: CustomStatConfig[];
   savedSetupTypes: string[];
   savedLiquidityTypes: string[];
-  savedTags: string[];
+  savedTags: SavedTag[];
   initialTrades: Trade[];
   initialActiveAccount: AccountRow | null;
   initialMode: 'live' | 'demo' | 'backtesting';
@@ -434,6 +460,7 @@ export default function CustomStatsClient({
           trades={detailTrades}
           currencySymbol={currencySymbol}
           accountBalance={accountBalance}
+          savedTags={savedTags}
           onBack={() => setDetailStatId(null)}
         />
       </TooltipProvider>
@@ -515,6 +542,7 @@ export default function CustomStatsClient({
                 accountBalance={accountBalance}
                 currencySymbol={currencySymbol}
                 mounted={mounted}
+                savedTags={savedTags}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onDetail={setDetailStatId}
@@ -551,7 +579,7 @@ export default function CustomStatsClient({
           extraCards={extraCards}
           setupOptions={savedSetupTypes}
           liquidityOptions={savedLiquidityTypes}
-          tagOptions={savedTags}
+          tagOptions={savedTags.map((t) => t.name)}
         />
 
 

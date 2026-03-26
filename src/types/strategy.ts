@@ -1,5 +1,6 @@
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { CustomStatConfig } from '@/types/customStats';
+import type { SavedTag } from '@/types/saved-tag';
 
 /** Favourite/pinned combobox items per kind. Max 10 per kind. */
 export type SavedFavouritesKind = 'setup' | 'liquidity' | 'market' | 'news' | 'tags';
@@ -21,6 +22,6 @@ export interface Strategy {
   saved_favourites?: SavedFavourites | null;
   /** User-defined custom stat filter combinations. */
   saved_custom_stats?: CustomStatConfig[] | null;
-  /** Strategy-level tag vocabulary (lowercase, trimmed). */
-  saved_tags: string[];
+  /** Strategy-level tag vocabulary with optional colors (lowercase, trimmed). */
+  saved_tags: SavedTag[];
 }

@@ -32,6 +32,8 @@ import { cn, formatPercent, roundToCents } from '@/lib/utils';
 import type { Trade } from '@/types/trade';
 import type { CustomStatConfig } from '@/types/customStats';
 import { buildFilterPills } from '@/utils/applyCustomStatFilter';
+import type { SavedTag } from '@/types/saved-tag';
+import { resolveTagColorStyle } from '@/constants/tagColors';
 
 type CardViewMode = 'grid-4' | 'grid-2' | 'split' | 'table';
 
@@ -40,6 +42,7 @@ interface CustomStatDetailViewProps {
   trades: Trade[];
   currencySymbol: string;
   accountBalance: number | null;
+  savedTags?: SavedTag[];
   onBack: () => void;
 }
 
@@ -48,6 +51,7 @@ export function CustomStatDetailView({
   trades,
   currencySymbol,
   accountBalance,
+  savedTags = [],
   onBack,
 }: CustomStatDetailViewProps) {
   const { beCalcEnabled } = useBECalc();
@@ -55,7 +59,15 @@ export function CustomStatDetailView({
   const [sortField, setSortField] = useState<'trade_date' | 'market' | 'outcome'>('trade_date');
   const [cardViewMode, setCardViewMode] = useState<CardViewMode>('grid-4');
 
-  const filterPills = useMemo(() => buildFilterPills(config.filters), [config.filters]);
+  const filterPills = useMemo(() => buildFilterPills({ ...config.filters, tags: undefined }), [config.filters]);
+  const tagPills = useMemo(
+    () => (config.filters.tags ?? []).map((name) => ({
+      name,
+      label: name.length > 20 ? name.slice(0, 19) + '…' : name,
+      style: resolveTagColorStyle(savedTags.find((t) => t.name === name)?.color),
+    })),
+    [config.filters.tags, savedTags]
+  );
 
   const netCumulativePnl = useMemo(
     () => trades.reduce((sum, trade) => sum + (trade.calculated_profit ?? 0), 0),
@@ -143,7 +155,7 @@ export function CustomStatDetailView({
                 {config.name}
               </h1>
             </div>
-            {filterPills.length > 0 ? (
+            {(filterPills.length > 0 || tagPills.length > 0) ? (
               <div className="flex flex-wrap gap-1 mt-2">
                 {filterPills.map((pill) => (
                   <span
@@ -151,6 +163,16 @@ export function CustomStatDetailView({
                     className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-200/70 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300"
                   >
                     {pill}
+                  </span>
+                ))}
+                {tagPills.map((tp) => (
+                  <span
+                    key={tp.name}
+                    title={tp.name}
+                    className="inline-block px-2 py-0.5 text-[10px] font-medium rounded-full text-white"
+                    style={{ background: tp.style.gradient }}
+                  >
+                    {tp.label}
                   </span>
                 ))}
               </div>
@@ -416,6 +438,7 @@ export function CustomStatDetailView({
           cardViewMode={cardViewMode}
           onCardViewModeChange={setCardViewMode}
           suppressHeaderControls
+          savedTags={savedTags}
         />
       </div>
     </div>

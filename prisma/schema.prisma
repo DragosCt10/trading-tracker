@@ -719,7 +719,7 @@ model strategies {
   account_id            String?                @db.Uuid
   saved_favourites      Json?                  @default("{}")
   saved_custom_stats    Json?                  @default("[]")
-  saved_tags            String[]               @default([])
+  saved_tags            Json                   @default("[]")
   backtesting_trades    backtesting_trades[]
   demo_trades           demo_trades[]
   live_trades           live_trades[]

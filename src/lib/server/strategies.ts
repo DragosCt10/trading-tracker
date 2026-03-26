@@ -7,10 +7,20 @@ import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import type { Database } from '@/types/supabase';
 import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
 import type { CustomStatConfig } from '@/types/customStats';
+import type { SavedTag, TagColor } from '@/types/saved-tag';
+import { normalizeSavedTags } from '@/types/saved-tag';
 import { EXTRA_CARDS } from '@/constants/extraCards';
 import { canAddStrategy } from './subscription';
 
 export type StrategyRow = Database['public']['Tables']['strategies']['Row'];
+
+/** Normalizes a raw strategy row's saved_tags from DB (handles string[] legacy rows). */
+function normalizeStrategy(row: Record<string, unknown>): Strategy {
+  return {
+    ...(row as Strategy),
+    saved_tags: normalizeSavedTags(row.saved_tags),
+  };
+}
 
 /**
  * Fetches a strategy by id using the service role client.
@@ -36,7 +46,7 @@ export async function getStrategyById(
     return null;
   }
 
-  return data as Strategy;
+  return normalizeStrategy(data as Record<string, unknown>);
 }
 
 /**
@@ -100,13 +110,13 @@ export async function ensureDefaultStrategy(userId: string, accountId: string): 
 
       if (reactivateError) {
         console.error('Error reactivating default strategy:', reactivateError);
-        return existing as Strategy;
+        return normalizeStrategy(existing as Record<string, unknown>);
       }
 
-      return reactivated as Strategy;
+      return normalizeStrategy(reactivated as Record<string, unknown>);
     }
 
-    return existing as Strategy;
+    return normalizeStrategy(existing as Record<string, unknown>);
   }
 
   // Create the default strategy on this demo account
@@ -128,7 +138,7 @@ export async function ensureDefaultStrategy(userId: string, accountId: string): 
     return null;
   }
 
-  return created as Strategy;
+  return normalizeStrategy(created as Record<string, unknown>);
 }
 
 /**
@@ -154,7 +164,7 @@ export async function getUserStrategies(userId: string, accountId: string): Prom
     return [];
   }
 
-  return (data ?? []) as Strategy[];
+  return (data ?? []).map(row => normalizeStrategy(row as Record<string, unknown>));
 }
 
 /**
@@ -187,7 +197,7 @@ export const getStrategyBySlug = cache(async (
     return null;
   }
 
-  return data as Strategy | null;
+  return data ? normalizeStrategy(data as Record<string, unknown>) : null;
 });
 
 /**
@@ -264,7 +274,7 @@ export async function createStrategy(
     return { data: null, error: { message: 'Failed to create strategy. Please try again.' } };
   }
 
-  return { data: data as Strategy, error: null };
+  return { data: normalizeStrategy(data as Record<string, unknown>), error: null };
 }
 
 /**
@@ -334,7 +344,7 @@ export async function updateStrategy(
     };
   }
 
-  return { data: data as Strategy, error: null };
+  return { data: normalizeStrategy(data as Record<string, unknown>), error: null };
 }
 
 /**
@@ -443,7 +453,7 @@ export async function getInactiveStrategies(userId: string): Promise<Strategy[]>
     return [];
   }
 
-  return (data ?? []) as Strategy[];
+  return (data ?? []).map(row => normalizeStrategy(row as Record<string, unknown>));
 }
 
 /**
@@ -625,13 +635,14 @@ export async function updateStrategyFavourites(
 }
 
 /**
- * Merges new tags into strategy.saved_tags (idempotent — skips already-present tags).
+ * Merges new tags (with optional colors) into strategy.saved_tags.
+ * Preserves existing colors; updates color if new tag provides one.
  * Called after a trade is saved to keep the strategy's tag vocabulary up to date.
  */
 export async function syncStrategyTags(
   strategyId: string,
   userId: string,
-  newTags: string[]
+  newTags: SavedTag[]
 ): Promise<void> {
   if (!newTags.length) return;
 
@@ -646,10 +657,17 @@ export async function syncStrategyTags(
     .eq('user_id', authorizedUserId)
     .single();
 
-  const current: string[] = (strategy?.saved_tags as string[]) ?? [];
-  const merged = Array.from(new Set([...current, ...newTags])).sort();
+  const current: SavedTag[] = normalizeSavedTags(strategy?.saved_tags);
 
-  if (merged.length === current.length && merged.every((t, i) => t === current[i])) return;
+  const mergedMap = new Map(current.map(t => [t.name, t]));
+  for (const tag of newTags) {
+    if (!mergedMap.has(tag.name)) {
+      mergedMap.set(tag.name, tag);
+    } else if (tag.color) {
+      mergedMap.set(tag.name, { ...mergedMap.get(tag.name)!, color: tag.color });
+    }
+  }
+  const merged = [...mergedMap.values()].sort((a, b) => a.name.localeCompare(b.name));
 
   const { error } = await supabase
     .from('strategies')
@@ -699,8 +717,10 @@ export async function renameStrategyTag(
     .eq('user_id', authorizedUserId)
     .single();
 
-  const currentTags: string[] = (strategy?.saved_tags as string[]) ?? [];
-  const updatedTags = currentTags.map(t => (t === oldName ? newName : t));
+  const current: SavedTag[] = normalizeSavedTags(strategy?.saved_tags);
+  const updatedTags = current.map(t =>
+    t.name === oldName ? { name: newName, color: t.color } : t
+  );
 
   const { error: updateError } = await supabase
     .from('strategies')
@@ -751,8 +771,8 @@ export async function deleteStrategyTag(
     .eq('user_id', authorizedUserId)
     .single();
 
-  const currentTags: string[] = (strategy?.saved_tags as string[]) ?? [];
-  const updatedTags = currentTags.filter(t => t !== tagName);
+  const current: SavedTag[] = normalizeSavedTags(strategy?.saved_tags);
+  const updatedTags = current.filter(t => t.name !== tagName);
 
   const { error: updateError } = await supabase
     .from('strategies')
@@ -766,6 +786,43 @@ export async function deleteStrategyTag(
   }
 
   return { error: null };
+}
+
+/**
+ * Updates the color of an existing tag in strategy.saved_tags without renaming it.
+ * Called when the user changes a tag's color via the edit flow in TagInput.
+ */
+export async function updateTagColor(
+  strategyId: string,
+  userId: string,
+  tagName: string,
+  color: TagColor | undefined
+): Promise<void> {
+  const authorizedUserId = await getAuthorizedUserId(userId);
+  if (!authorizedUserId) return;
+
+  const supabase = await createClient();
+  const { data: strategy } = await supabase
+    .from('strategies')
+    .select('saved_tags')
+    .eq('id', strategyId)
+    .eq('user_id', authorizedUserId)
+    .single();
+
+  const current: SavedTag[] = normalizeSavedTags(strategy?.saved_tags);
+  const updated = current.map(t =>
+    t.name === tagName ? { ...t, color } : t
+  );
+
+  const { error } = await supabase
+    .from('strategies')
+    .update({ saved_tags: updated, updated_at: new Date().toISOString() })
+    .eq('id', strategyId)
+    .eq('user_id', authorizedUserId);
+
+  if (error) {
+    console.error('Error updating tag color:', error);
+  }
 }
 
 /**
@@ -795,7 +852,7 @@ export async function reactivateStrategy(
 
   // Check if strategy is already active
   if (existing.is_active) {
-    return { data: existing as Strategy, error: null };
+    return { data: normalizeStrategy(existing as Record<string, unknown>), error: null };
   }
 
   // Reactivate the strategy
@@ -812,5 +869,5 @@ export async function reactivateStrategy(
     return { data: null, error: { message: error.message ?? 'Failed to reactivate strategy' } };
   }
 
-  return { data: reactivated as Strategy, error: null };
+  return { data: normalizeStrategy(reactivated as Record<string, unknown>), error: null };
 }

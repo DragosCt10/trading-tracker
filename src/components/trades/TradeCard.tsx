@@ -2,11 +2,13 @@
 
 import { useMemo, useState } from 'react';
 import type { Trade } from '@/types/trade';
+import type { SavedTag } from '@/types/saved-tag';
 import { cn } from '@/lib/utils';
 import { getIntervalForTime } from '@/constants/analytics';
 import { Card, CardContent } from '@/components/ui/card';
 import { Eye } from 'lucide-react';
 import { OutcomeChips } from '@/components/trades/OutcomeChips';
+import { resolveTagColorStyle } from '@/constants/tagColors';
 
 export type TradeCardProps = {
   trade: Trade;
@@ -15,6 +17,7 @@ export type TradeCardProps = {
   isSelected?: boolean;
   onSelect?: (t: Trade) => void;
   hideImage?: boolean;
+  savedTags?: SavedTag[];
 };
 
 export function TradeCard({
@@ -24,6 +27,7 @@ export function TradeCard({
   isSelected,
   onSelect,
   hideImage,
+  savedTags,
 }: TradeCardProps) {
   const screenItems = useMemo(
     () =>
@@ -232,15 +236,20 @@ export function TradeCard({
 
         {(trade.tags?.length ?? 0) > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
-            {(trade.tags ?? []).slice(0, 3).map((tag) => (
-              <span
-                key={tag}
-                title={tag}
-                className="inline-flex items-center bg-primary/10 text-primary rounded px-2 py-0.5 text-xs font-medium max-w-[120px]"
-              >
-                <span className="truncate">{tag.length > 20 ? tag.slice(0, 19) + '…' : tag}</span>
-              </span>
-            ))}
+            {(trade.tags ?? []).slice(0, 3).map((tag) => {
+              const savedTag = savedTags?.find(t => t.name === tag);
+              const style = resolveTagColorStyle(savedTag?.color);
+              return (
+                <span
+                  key={tag}
+                  title={tag}
+                  className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium max-w-[120px] text-white shadow-sm"
+                  style={{ background: style.gradient }}
+                >
+                  <span className="truncate">{tag.length > 20 ? tag.slice(0, 19) + '…' : tag}</span>
+                </span>
+              );
+            })}
             {(trade.tags?.length ?? 0) > 3 && (
               <span className="inline-flex items-center bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded px-2 py-0.5 text-xs font-medium">
                 +{(trade.tags?.length ?? 0) - 3}

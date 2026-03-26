@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Trade } from '@/types/trade';
+import type { SavedTag } from '@/types/saved-tag';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -51,7 +52,7 @@ export type TradeCardsViewProps = {
   /** Extra card keys for read-only mode (e.g. public share where no auth session exists). */
   extraCards?: string[];
   /** Strategy's saved tag vocabulary for autocomplete. */
-  savedTags?: string[];
+  savedTags?: SavedTag[];
   onTradeUpdated?: () => void | Promise<void>;
   emptyMessage?: string;
   initialViewMode?: CardViewMode;
@@ -441,6 +442,7 @@ export function TradeCardsView({
                         hideImage
                         isSelected={selectedTrade?.id === trade.id}
                         onSelect={(t) => setSelectedTrade(t)}
+                        savedTags={savedTags}
                       />
                     </div>
                   ))}
@@ -705,16 +707,16 @@ export function TradeCardsView({
                   </div>
                   <div className="relative px-6 py-5">
                     <div className="flex flex-wrap gap-2">
-                      {savedTags.sort().map((tag) => {
-                        const isSelected = pendingTagSelection.includes(tag);
-                        const label = tag.length > 20 ? tag.slice(0, 19) + '…' : tag;
+                      {savedTags.sort((a, b) => a.name.localeCompare(b.name)).map((savedTag) => {
+                        const isSelected = pendingTagSelection.includes(savedTag.name);
+                        const label = savedTag.name.length > 20 ? savedTag.name.slice(0, 19) + '…' : savedTag.name;
                         return (
                           <button
-                            key={tag}
+                            key={savedTag.name}
                             type="button"
-                            title={tag}
+                            title={savedTag.name}
                             onClick={() => setPendingTagSelection((prev) =>
-                              isSelected ? prev.filter((t) => t !== tag) : [...prev, tag]
+                              isSelected ? prev.filter((t) => t !== savedTag.name) : [...prev, savedTag.name]
                             )}
                             className={cn(
                               'px-3 py-1.5 rounded-lg border text-sm font-medium transition-all duration-200 cursor-pointer',
@@ -809,7 +811,7 @@ export function TradeCardsView({
             ) : (
               <>
                 {displayedTrades.map((trade) => (
-                  <TradeCard key={trade.id} trade={trade} onOpenModal={openModal} />
+                  <TradeCard key={trade.id} trade={trade} onOpenModal={openModal} savedTags={savedTags} />
                 ))}
 
                 {!externalPagination && hasMore && (

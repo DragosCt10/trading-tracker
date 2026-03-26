@@ -84,9 +84,11 @@ import { queryKeys } from '@/lib/queryKeys';
 import type { SavedNewsItem } from '@/types/account-settings';
 import { useSettings } from '@/hooks/useSettings';
 import { updateSavedNews, updateSavedMarkets } from '@/lib/server/settings';
-import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyFavourites, syncStrategyTags } from '@/lib/server/strategies';
+import { updateStrategySetupTypes, updateStrategyLiquidityTypes, updateStrategyFavourites, syncStrategyTags, updateTagColor } from '@/lib/server/strategies';
 import type { Strategy, SavedFavouritesKind } from '@/types/strategy';
 import { TagInput } from '@/components/ui/TagInput';
+import type { SavedTag, TagColor } from '@/types/saved-tag';
+import { resolveTagColorStyle } from '@/constants/tagColors';
 
 interface TradeDetailsPanelProps {
   trade: Trade | null;
@@ -101,7 +103,7 @@ interface TradeDetailsPanelProps {
   /** Extra card keys to show in read-only mode (e.g. from public share page where no auth session exists). */
   extraCards?: string[];
   /** Strategy's saved tag vocabulary for autocomplete. Pass [] for read-only contexts. */
-  savedTags?: string[];
+  savedTags?: SavedTag[];
 }
 
 export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inlineMode, readOnly = false, strategyName: strategyNameProp, extraCards: extraCardsProp, savedTags: savedTagsProp = [] }: TradeDetailsPanelProps) {
@@ -352,14 +354,14 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
           }
 
           const tradeTags = (editedTrade.tags ?? []).map((t: string) => t.toLowerCase().trim()).filter(Boolean);
-          let updatedTags: string[] | undefined;
+          let updatedTags: SavedTag[] | undefined;
           if (tradeTags.length > 0 && userId && currentStrategy) {
-            const current = currentStrategy.saved_tags ?? [];
-            const merged = Array.from(new Set([...current, ...tradeTags])).sort();
-            if (merged.length !== current.length || merged.some((t, i) => t !== current[i])) {
-              updatedTags = merged;
-              savePromises.push(syncStrategyTags(currentStrategy.id, userId, tradeTags));
-            }
+            const tagsWithColors: SavedTag[] = tradeTags.map(name => ({
+              name,
+              color: (currentStrategy.saved_tags ?? []).find(t => t.name === name)?.color,
+            }));
+            updatedTags = tagsWithColors;
+            savePromises.push(syncStrategyTags(currentStrategy.id, userId, tagsWithColors));
           }
 
           await Promise.all(savePromises);
@@ -373,7 +375,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             }));
             if (currentStrategy && (updatedSetups !== undefined || updatedLiquidity !== undefined || updatedTags !== undefined)) {
               const strategiesKey = queryKeys.strategies(userId, accountId);
-              queryClient.setQueryData(strategiesKey, (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[]; saved_tags?: string[] }[] | undefined) => {
+              queryClient.setQueryData(strategiesKey, (prev: { id: string; saved_setup_types?: string[]; saved_liquidity_types?: string[]; saved_tags?: SavedTag[] }[] | undefined) => {
                 if (!prev) return prev;
                 return prev.map((s) =>
                   s.id === currentStrategy.id
@@ -1303,6 +1305,43 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
                 </div>
               </div>
             )}
+
+            {/* Tags */}
+            {(effectiveIsEditing || (editedTrade?.tags ?? []).length > 0) && (
+              <div className="mt-5 pt-4 border-t border-slate-200/50 dark:border-slate-700/50 space-y-3">
+                <Label className="block text-xs font-semibold uppercase tracking-wider themed-heading-accent">Tags</Label>
+                {effectiveIsEditing ? (
+                  <TagInput
+                    tags={editedTrade?.tags ?? []}
+                    savedTags={[...((readOnly ? savedTagsProp : (currentStrategy?.saved_tags ?? savedTagsProp)) ?? [])].sort((a, b) => a.name.localeCompare(b.name))}
+                    onChange={(tags) => handleInputChange('tags', tags)}
+                    onUpdateColor={!readOnly && currentStrategy && userId ? async (tagName: string, color: TagColor) => {
+                      await updateTagColor(currentStrategy.id, userId, tagName, color);
+                    } : undefined}
+                    pinnedTags={currentStrategy?.saved_favourites?.tags}
+                    onTogglePin={!readOnly && currentStrategy ? handleToggleFavourite('tags') : undefined}
+                    placeholder="Add tag..."
+                  />
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {(editedTrade?.tags ?? []).map((tag) => {
+                      const vocab = (readOnly ? savedTagsProp : (currentStrategy?.saved_tags ?? savedTagsProp)) ?? [];
+                      const tagStyle = resolveTagColorStyle(vocab.find(t => t.name === tag)?.color);
+                      return (
+                        <span
+                          key={tag}
+                          title={tag}
+                          className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium backdrop-blur-sm max-w-[140px] text-white shadow-sm"
+                          style={{ background: tagStyle.gradient }}
+                        >
+                          <span className="truncate">{tag.length > 20 ? tag.slice(0, 19) + '…' : tag}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Trade Screenshots */}
@@ -1440,35 +1479,6 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
               </div>
             )}
           </div>
-          )}
-
-          {/* Tags Section */}
-          {(effectiveIsEditing || (editedTrade?.tags ?? []).length > 0) && (
-            <div className="space-y-2">
-              <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Tags</Label>
-              {effectiveIsEditing ? (
-                <TagInput
-                  tags={editedTrade?.tags ?? []}
-                  savedTags={((readOnly ? savedTagsProp : (currentStrategy?.saved_tags ?? savedTagsProp)) ?? []).sort()}
-                  onChange={(tags) => handleInputChange('tags', tags)}
-                  pinnedTags={currentStrategy?.saved_favourites?.tags}
-                  onTogglePin={!readOnly && currentStrategy ? handleToggleFavourite('tags') : undefined}
-                  placeholder="Add tag..."
-                />
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {(editedTrade?.tags ?? []).map((tag) => (
-                    <span
-                      key={tag}
-                      title={tag}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium bg-slate-100/50 dark:bg-slate-800/30 backdrop-blur-sm text-slate-500 dark:text-slate-500 border-slate-200/50 dark:border-slate-700/50 max-w-[140px]"
-                    >
-                      <span className="truncate">{tag.length > 20 ? tag.slice(0, 19) + '…' : tag}</span>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
           )}
 
           {/* Notes & Confidence Section */}
