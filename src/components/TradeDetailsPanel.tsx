@@ -174,6 +174,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       mode: selection.mode,
       accountId: selection.activeAccount?.id,
       userId,
+      refetchType: 'all',
     });
   }, [queryClient, trade?.strategy_id, selection.activeAccount?.id, selection.mode, userId]);
 
