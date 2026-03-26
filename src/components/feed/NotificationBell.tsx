@@ -98,7 +98,7 @@ export default function NotificationBell({ userId, initialUnreadCount }: Notific
                     className={`${rowClass} w-full text-left cursor-pointer`}
                     onClick={onRowActivate}
                   >
-                    <div className="w-7 h-7 rounded-full bg-sky-500/15 dark:bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                       <ShieldCheck className="w-3.5 h-3.5" aria-hidden />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -111,7 +111,7 @@ export default function NotificationBell({ userId, initialUnreadCount }: Notific
                       </p>
                     </div>
                     {!n.is_read && (
-                      <div className="w-2 h-2 rounded-full bg-sky-500 shrink-0 mt-1" />
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 mt-1" />
                     )}
                   </button>
                 );
