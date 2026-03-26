@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { useDarkMode } from '@/hooks/useDarkMode';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Archive, Pencil, ChartBar, Share2 } from 'lucide-react';
@@ -58,12 +57,8 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
   accountBalance,
 }) => {
   const router = useRouter();
-  const { isDark } = useDarkMode();
-  const [mounted, setMounted] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
-
-  useEffect(() => setMounted(true), []);
 
   // Derive chart data from the pre-computed equity curve
   const chartData = useMemo(() => {
@@ -82,12 +77,6 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
     if (!accountBalance) return 0;
     return (totalProfit / accountBalance) * 100;
   }, [totalProfit, accountBalance]);
-
-  // Calculate total account value (balance + profit)
-  const totalValue = useMemo(() => {
-    if (!accountBalance) return 0;
-    return accountBalance + totalProfit;
-  }, [accountBalance, totalProfit]);
 
   // Lazy-fetch full trades only when the share modal is opened.
   // This avoids fetching 30k trades on page load; share is an infrequent action.
@@ -119,18 +108,6 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
     router.push(`/strategy/${strategy.slug}`);
   };
 
-  if (!mounted) {
-    return (
-      <Card className={`relative overflow-hidden shadow-none backdrop-blur-sm ${
-        isDark
-          ? 'border-slate-600 bg-slate-800/30'
-          : 'border-slate-200/60 bg-slate-50/50'
-      }`}>
-        <div className="relative p-6 h-[320px]" aria-hidden />
-      </Card>
-    );
-  }
-
   const totalTrades = overviewStats?.totalTrades ?? 0;
   const winRate = overviewStats?.winRate ?? 0;
   const avgRR = overviewStats?.avgRR ?? 0;
@@ -140,11 +117,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
   const isChartReady = !isLoading;
 
   return (
-    <Card className={`relative overflow-hidden shadow-none backdrop-blur-sm ${
-      isDark
-        ? 'border-slate-600 bg-slate-800/30'
-        : 'border-slate-300/40 bg-slate-50/50'
-    }`}>
+    <Card className="relative overflow-hidden shadow-none backdrop-blur-sm border-slate-300/40 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30">
       <div className="relative p-6 flex flex-col h-full">
         {/* Strategy Name + Share button (top-right) */}
         <div className="flex items-start justify-between mb-2 gap-3">

@@ -8,14 +8,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TRADES_DATA } from '@/constants/queryConfig';
 import { queryKeys } from '@/lib/queryKeys';
 import { getStrategiesOverview, type StrategiesOverviewResult } from '@/lib/server/strategiesOverview';
+import type { AccountRow, AccountMode } from '@/lib/server/accounts';
+import type { Strategy } from '@/types/strategy';
 import { StrategyCard } from '@/components/dashboard/strategy/StrategyCard';
 import { AddStrategyCard } from '@/components/dashboard/strategy/AddStrategyCard';
 import { Card } from '@/components/ui/card';
 import { CreateStrategyModal } from '@/components/CreateStrategyModal';
 import { EditStrategyModal } from '@/components/EditStrategyModal';
 import { deleteStrategy, permanentlyDeleteStrategy, getInactiveStrategies, reactivateStrategy } from '@/lib/server/strategies';
-
-import { Strategy } from '@/types/strategy';
 import { Target, Archive, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,6 +44,17 @@ import { useSubscription } from '@/hooks/useSubscription';
 
 type SortByOption = 'default' | 'winRate' | 'totalRR' | 'totalTrades';
 
+interface StrategiesClientProps {
+  /** Pre-resolved server-side active account — eliminates client-side account resolution delay. */
+  initialActiveAccount?: AccountRow | null;
+  /** Pre-resolved server-side mode — passed to useStrategyClientContext. */
+  initialMode?: AccountMode;
+  /** Pre-fetched strategies — seeds the TanStack Query cache to skip the client fetch. */
+  initialStrategies?: Strategy[];
+  /** Pre-fetched overview stats — used as initialData for the overview query. */
+  initialOverview?: StrategiesOverviewResult;
+}
+
 const DEFAULT_DESCRIPTION =
   'Track your Stats Boards, each with its own metrics, and monitor your overall performance.';
 
@@ -68,17 +79,24 @@ function getStrategySortMetric(
   return overview.totalTrades;
 }
 
-export function StrategiesClient() {
+export function StrategiesClient({
+  initialActiveAccount,
+  initialMode,
+  initialStrategies,
+  initialOverview,
+}: StrategiesClientProps = {}) {
+  // queryClient must be obtained before the cache-seeding block below.
+  const queryClient = useQueryClient();
+
   const {
-    selection,
     userId,
     userLoading,
     mode,
     activeAccount: selectedAccount,
   } = useStrategyClientContext({
     initialUserId: '',
-    initialMode: 'live',
-    initialActiveAccount: null,
+    initialMode: initialMode ?? 'live',
+    initialActiveAccount: initialActiveAccount ?? null,
   });
   const { accounts, accountsLoading } = useAccounts({ userId, pendingMode: mode });
   const activeAccount = useMemo(
@@ -89,9 +107,32 @@ export function StrategiesClient() {
       null,
     [accounts, selectedAccount]
   );
+
+  // Seed strategies + overview caches synchronously from server-fetched data so
+  // useStrategies() and the overview useQuery both find data in cache and skip
+  // the client-side fetch. setQueryData (vs initialData on useQuery) is critical:
+  // it writes into the global cache before the query observer registers, which
+  // keeps isFetching=false on first mount. initialData still triggers a
+  // background refetch (isFetching=true briefly) even with initialDataUpdatedAt.
+  // AppLayout seeds ['userDetails'] + ['actionBar:selection'] in render body,
+  // so userId and activeAccount are both available on first render.
+  if (userId && activeAccount?.id) {
+    if (initialStrategies && initialStrategies.length > 0) {
+      const strategiesKey = queryKeys.strategies(userId, activeAccount.id);
+      if (!queryClient.getQueryData(strategiesKey)) {
+        queryClient.setQueryData(strategiesKey, initialStrategies);
+      }
+    }
+    if (initialOverview && Object.keys(initialOverview).length > 0 && mode) {
+      const overviewKey = queryKeys.strategiesOverview(userId, activeAccount.id, mode);
+      if (!queryClient.getQueryData(overviewKey)) {
+        queryClient.setQueryData(overviewKey, initialOverview);
+      }
+    }
+  }
+
   const { strategies, strategiesLoading, refetchStrategies } = useStrategies({ userId, accountId: activeAccount?.id });
   const { isPro } = useSubscription({ userId: userId ?? undefined });
-  const queryClient = useQueryClient();
   const [editingStrategy, setEditingStrategy] = useState<Strategy | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -121,7 +162,13 @@ export function StrategiesClient() {
       if (!activeAccount?.id) return {};
       return getStrategiesOverview(activeAccount.id, mode);
     },
-    enabled: !!userId && !!activeAccount?.id && !!mode && strategies.length > 0,
+    // Removed `strategies.length > 0` — that forced a sequential waterfall where
+    // overview could only start after strategies finished. Overview returns {}
+    // gracefully for empty strategy sets, so there's no need to gate on it.
+    // initialOverview is seeded into the cache via setQueryData above (same as
+    // strategies), so this query finds cached data on first mount and isFetching
+    // stays false — no skeleton flash on browser refresh.
+    enabled: !!userId && !!activeAccount?.id && !!mode,
     ...TRADES_DATA,
   });
 
@@ -548,41 +595,68 @@ export function StrategiesClient() {
       {/* Strategies Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {strategiesLoading ? (
-          // Skeleton loaders (3 cards)
+          // Skeleton loaders — anatomy mirrors StrategyCard exactly so there's no
+          // visual jump when real cards swap in.
           Array.from({ length: 3 }).map((_, i) => (
             <Card
               key={i}
-              className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm"
+              className="relative overflow-hidden border-slate-300/40 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm"
             >
               <div className="relative p-6 flex flex-col h-full">
-                {/* Strategy Name Skeleton */}
-                <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4 w-3/4 animate-pulse" />
-
-                {/* Graph Skeleton */}
-                <div className="h-32 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4 animate-pulse" />
-
-                {/* Metrics Skeleton */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="space-y-2">
-                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-16 animate-pulse" />
-                    <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-12 animate-pulse" />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-12 animate-pulse" />
-                    <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-16 animate-pulse" />
+                {/* Header: name + % badge + share button */}
+                <div className="flex items-start justify-between mb-2 gap-3">
+                  <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-lg w-3/4 animate-pulse" />
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="h-5 w-14 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse" />
+                    <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse" />
                   </div>
                 </div>
 
-                {/* Total Trades Skeleton */}
+                {/* Chart */}
+                <div className="h-32 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4 animate-pulse" />
+
+                {/* Metrics: Win rate (left) | Total RR / Avg RR / Profit (right) */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-col gap-1.5">
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-14 animate-pulse" />
+                    <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-10 animate-pulse" />
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5">
+                    <div className="flex items-baseline gap-2">
+                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-14 animate-pulse" />
+                      <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-10 animate-pulse" />
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-12 animate-pulse" />
+                      <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-10 animate-pulse" />
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-10 animate-pulse" />
+                      <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-20 animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total trades */}
                 <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-32 mb-4 animate-pulse" />
 
-                {/* Buttons Skeleton */}
-                <div className="flex items-center justify-between gap-2 mt-auto pt-4 border-t border-slate-200/60 dark:border-slate-700/50">
-                  <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded-xl flex-1 animate-pulse" />
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-20 bg-slate-200 dark:bg-slate-700 rounded-xl animate-pulse" />
-                    <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded-xl animate-pulse" />
+                {/* Extra stats cards section */}
+                <div className="mb-4">
+                  <div className="h-2.5 bg-slate-200 dark:bg-slate-700 rounded w-24 mb-1.5 animate-pulse" />
+                  <div className="flex flex-wrap gap-1">
+                    <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse" />
+                    <div className="h-5 w-28 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse" />
+                    <div className="h-5 w-20 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse" />
                   </div>
+                </div>
+
+                {/* Action buttons: Edit + Analytics | Delete */}
+                <div className="flex items-center justify-between gap-2 mt-auto pt-4 border-t border-slate-200/60 dark:border-slate-700/50">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-16 bg-slate-200 dark:bg-slate-700 rounded-xl animate-pulse" />
+                    <div className="h-8 w-24 bg-slate-200 dark:bg-slate-700 rounded-xl animate-pulse" />
+                  </div>
+                  <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded-xl animate-pulse" />
                 </div>
               </div>
             </Card>
