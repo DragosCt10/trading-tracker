@@ -7,7 +7,6 @@ interface InvalidateAndRefetchTradeQueriesArgs {
   mode: 'live' | 'demo' | 'backtesting';
   accountId?: string;
   userId?: string;
-  refetchType?: 'active' | 'all';
 }
 
 export async function invalidateAndRefetchTradeQueries({
@@ -16,7 +15,6 @@ export async function invalidateAndRefetchTradeQueries({
   mode,
   accountId,
   userId,
-  refetchType = 'all',
 }: InvalidateAndRefetchTradeQueriesArgs): Promise<void> {
   if (typeof window !== 'undefined') {
     sessionStorage.setItem('trade-data-invalidated', Date.now().toString());
@@ -27,6 +25,9 @@ export async function invalidateAndRefetchTradeQueries({
   );
   const affectedStrategyIdsArray = Array.from(affectedStrategyIds);
 
+  // invalidateQueries (default refetchType:'active') marks queries stale AND immediately
+  // refetches any that are currently observed by a mounted component. This is the primary
+  // mechanism for live dashboard updates (delete, edit, insert while on strategy page).
   await queryClient.invalidateQueries({
     predicate: (query) => {
       const key = query.queryKey;
@@ -61,6 +62,10 @@ export async function invalidateAndRefetchTradeQueries({
     ]);
   }
 
+  // Pre-warm inactive caches (queries with no active observers, e.g. user navigated away).
+  // Using type:'inactive' ensures active queries — already refetched by invalidateQueries
+  // above — are NOT triggered again. This prevents the double-skeleton flash where the card
+  // would show a spinner twice: once from the auto-refetch and once from this explicit call.
   await queryClient.refetchQueries({
     predicate: (query) => {
       const key = query.queryKey;
@@ -74,7 +79,7 @@ export async function invalidateAndRefetchTradeQueries({
       }
       return false;
     },
-    ...(refetchType === 'active' ? { type: 'active' as const } : {}),
+    type: 'inactive',
   });
 }
 
