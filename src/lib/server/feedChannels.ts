@@ -1,11 +1,12 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
-import { createServiceRoleClient } from '@/utils/supabase/service-role';
+import { createAdminClient } from './supabaseAdmin';
 import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { getCachedSubscription } from './subscription';
 import type { ChannelMember, FeedChannel, PaginatedResult } from '@/types/social';
+import { isValidCursor } from './feedHelpers';
 import { notifyChannelMemberAdded, notifyChannelMemberRemoved, notifyPrivateChannelMemberAdded, notifyPrivateChannelMemberRemoved } from './feedNotifications';
 import type { TierId } from '@/types/subscription';
 
@@ -19,17 +20,14 @@ const MAX_PRIVATE_CHANNELS_FOR_PRO = 5;
 async function getOwnedChannelCounts(supabase: Awaited<ReturnType<typeof createClient>>, ownerId: string) {
   const { data, error } = await supabase
     .from('feed_channels')
-    .select('id, is_public')
+    .select('is_public')
     .eq('owner_id', ownerId);
 
   if (error) return { error };
 
-  let publicCount = 0;
-  let privateCount = 0;
-  for (const row of data ?? []) {
-    if ((row as { is_public: boolean }).is_public) publicCount += 1;
-    else privateCount += 1;
-  }
+  const rows = (data ?? []) as { is_public: boolean }[];
+  const publicCount  = rows.filter((r) => r.is_public).length;
+  const privateCount = rows.length - publicCount;
 
   return { publicCount, privateCount };
 }
@@ -122,7 +120,7 @@ export async function getPublicChannels(
     .order('created_at', { ascending: false })
     .limit(limit + 1);
 
-  if (cursor) q = q.lt('created_at', cursor);
+  if (cursor && isValidCursor(cursor)) q = q.lt('created_at', cursor);
 
   const { data } = await q;
   const rows = (data ?? []) as Record<string, unknown>[];
@@ -131,16 +129,14 @@ export async function getPublicChannels(
   const channelIds = pageRows.map((r) => r.id as string);
   const countMap: Record<string, number> = {};
   if (channelIds.length > 0) {
-    const counts = await Promise.all(
-      channelIds.map((id) =>
-        supabase
-          .from('channel_members')
-          .select('channel_id', { count: 'exact', head: true })
-          .eq('channel_id', id)
-          .then(({ count }) => ({ id, count: count ?? 0 }))
-      )
-    );
-    counts.forEach(({ id, count }) => { countMap[id] = count; });
+    // Single query for all member counts — avoids N+1 (one query per channel).
+    const { data: memberRows } = await supabase
+      .from('channel_members')
+      .select('channel_id')
+      .in('channel_id', channelIds);
+    (memberRows ?? []).forEach(({ channel_id }) => {
+      countMap[channel_id] = (countMap[channel_id] ?? 0) + 1;
+    });
   }
 
   return {
@@ -539,7 +535,7 @@ export async function getChannelMembersForOwner(
     .order('joined_at', { ascending: false })
     .limit(limit + 1);
 
-  if (cursor) query = query.lt('joined_at', cursor);
+  if (cursor && isValidCursor(cursor)) query = query.lt('joined_at', cursor);
 
   const { data, error } = await query;
 
@@ -633,7 +629,7 @@ export async function getChannelMembers(
     .order('joined_at', { ascending: false })
     .limit(limit + 1);
 
-  if (cursor) query = query.lt('joined_at', cursor);
+  if (cursor && isValidCursor(cursor)) query = query.lt('joined_at', cursor);
 
   const { data, error } = await query;
 
@@ -689,9 +685,22 @@ export async function addChannelMemberByHandle(
   }
 
   const targetProfileId = (targetProfile as { id: string }).id;
-  const admin = createServiceRoleClient();
+  const admin = createAdminClient();
 
-  const { error: insertError } = await (admin as any)
+  // Re-verify ownership inline (with admin) before any privileged write.
+  // assertChannelOwner used the session client whose result is cached — this
+  // ensures we hold the lock right before the mutation.
+  const { data: chMeta, error: chMetaError } = await admin
+    .from('feed_channels')
+    .select('owner_id, is_public')
+    .eq('id', channelId)
+    .maybeSingle();
+
+  if (chMetaError || !chMeta || (chMeta as { owner_id: string }).owner_id !== profile.id) {
+    return { error: 'Channel not found or not owner', code: 'UNAUTHORIZED' };
+  }
+
+  const { error: insertError } = await admin
     .from('channel_members')
     .upsert(
       { channel_id: channelId, user_id: targetProfileId, role: targetProfileId === profile.id ? 'owner' : 'member' },
@@ -703,7 +712,7 @@ export async function addChannelMemberByHandle(
     return { error: 'Failed to add member', code: 'DB_ERROR' };
   }
 
-  await (admin as any)
+  await admin
     .from('channel_public_removed_members')
     .delete()
     .eq('channel_id', channelId)
@@ -721,13 +730,7 @@ export async function addChannelMemberByHandle(
     return { error: 'Failed to load added member', code: 'DB_ERROR' };
   }
 
-  // Determine channel visibility to fire the correct notification type
-  const { data: chVisibility } = await (admin as any)
-    .from('feed_channels')
-    .select('is_public')
-    .eq('id', channelId)
-    .maybeSingle();
-  const isPublic = (chVisibility as { is_public?: boolean } | null)?.is_public;
+  const isPublic = (chMeta as { is_public?: boolean }).is_public;
 
   if (isPublic) {
     void notifyChannelMemberAdded(targetProfileId, profile.id);
@@ -755,15 +758,20 @@ export async function removeChannelMemberByUserId(
     return { error: 'Owner cannot be removed from channel', code: 'CONFLICT' };
   }
 
-  const admin = createServiceRoleClient();
+  const admin = createAdminClient();
 
-  const { data: chMeta } = await (admin as any)
+  // Re-verify ownership inline (with admin) before any privileged write.
+  const { data: chMeta, error: chMetaError } = await admin
     .from('feed_channels')
-    .select('is_public')
+    .select('owner_id, is_public')
     .eq('id', channelId)
     .maybeSingle();
 
-  const { error } = await (admin as any)
+  if (chMetaError || !chMeta || (chMeta as { owner_id: string }).owner_id !== profile.id) {
+    return { error: 'Channel not found or not owner', code: 'UNAUTHORIZED' };
+  }
+
+  const { error } = await admin
     .from('channel_members')
     .delete()
     .eq('channel_id', channelId)
@@ -775,7 +783,7 @@ export async function removeChannelMemberByUserId(
   }
 
   if ((chMeta as { is_public?: boolean } | null)?.is_public) {
-    const { error: upsertError } = await (admin as any)
+    const { error: upsertError } = await admin
       .from('channel_public_removed_members')
       .upsert(
         { channel_id: channelId, user_id: memberUserId },

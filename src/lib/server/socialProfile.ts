@@ -3,6 +3,7 @@
 import { cache } from 'react';
 import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from './session';
+import { isValidCursor } from './feedHelpers';
 import { getCachedSubscription } from './subscription';
 import type { SocialProfile, PaginatedResult } from '@/types/social';
 import type { TierId } from '@/types/subscription';
@@ -94,19 +95,20 @@ async function getLiveFollowCounts(
 async function generateUniqueUsername(
   supabase: Awaited<ReturnType<typeof createClient>>
 ): Promise<string> {
-  const attempts = Array.from({ length: 8 }, () => {
+  const candidates = Array.from({ length: 8 }, () => {
     const sixDigits = Math.floor(100000 + Math.random() * 900000);
     return `trader${sixDigits}`;
   });
 
-  for (const candidate of attempts) {
-    const { count } = await supabase
-      .from('social_profiles')
-      .select('id', { count: 'exact', head: true })
-      .eq('username', candidate);
+  // Single query for all candidates instead of 8 sequential round-trips.
+  const { data } = await supabase
+    .from('social_profiles')
+    .select('username')
+    .in('username', candidates);
 
-    if ((count ?? 0) === 0) return candidate;
-  }
+  const taken = new Set((data ?? []).map((r: { username: string }) => r.username));
+  const available = candidates.find((c) => !taken.has(c));
+  if (available) return available;
 
   // Fallback: still follows trader + 6 digits format.
   const fallback = Math.floor(100000 + Math.random() * 900000);
@@ -322,7 +324,7 @@ export async function getFollowers(
     .order('created_at', { ascending: false })
     .limit(limit + 1);
 
-  if (cursor) query = query.lt('created_at', cursor);
+  if (cursor && isValidCursor(cursor)) query = query.lt('created_at', cursor);
 
   const { data } = await query;
   const rows = (data ?? []) as unknown as Array<{ follower: Record<string, unknown> }>;
@@ -348,7 +350,7 @@ export async function getFollowing(
     .order('created_at', { ascending: false })
     .limit(limit + 1);
 
-  if (cursor) query = query.lt('created_at', cursor);
+  if (cursor && isValidCursor(cursor)) query = query.lt('created_at', cursor);
 
   const { data } = await query;
   const rows = (data ?? []) as unknown as Array<{ following: Record<string, unknown> }>;
@@ -418,7 +420,8 @@ export async function getAllFollowedProfileIds(): Promise<string[]> {
   const { data, error } = await supabase
     .from('follows')
     .select('following_id')
-    .eq('follower_id', ownProfile.id);
+    .eq('follower_id', ownProfile.id)
+    .limit(500);
 
   if (error) {
     console.error('[getAllFollowedProfileIds] error:', error);

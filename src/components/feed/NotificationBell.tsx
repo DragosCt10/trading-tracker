@@ -39,6 +39,22 @@ function dotColor(type: string): string {
   return 'bg-rose-500';
 }
 
+const NOTIF_CONFIG: Record<string, {
+  Icon: React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>;
+  iconCls: string;
+  title: string;
+  body: string;
+}> = {
+  pro_3mo_discount:        { Icon: ShieldCheck, iconCls: 'bg-emerald-500/15 dark:bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400', title: 'PRO retention reward', body: 'Stay on PRO for 3 months and get 10% off your 4th month.' },
+  trade_milestone_10:      { Icon: Activity,    iconCls: 'bg-emerald-500/15 dark:bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400', title: 'Trade milestones',      body: 'Reach 100 trades for 5% off, 500 for additional 15%, and 1000 trades for 20%.' },
+  channel_added:           { Icon: UserPlus,    iconCls: 'bg-sky-500/15 dark:bg-sky-500/20 border-sky-500/30 text-sky-600 dark:text-sky-400',                    title: 'actor',                 body: 'added you to their channel.' },
+  channel_removed:         { Icon: UserMinus,   iconCls: 'bg-amber-500/15 dark:bg-amber-500/20 border-amber-500/30 text-amber-600 dark:text-amber-400',           title: 'actor',                 body: 'removed you from their channel.' },
+  private_channel_added:   { Icon: UserPlus,    iconCls: 'bg-violet-500/15 dark:bg-violet-500/20 border-violet-500/30 text-violet-600 dark:text-violet-400',      title: 'actor',                 body: 'added you to their private channel.' },
+  private_channel_removed: { Icon: UserMinus,   iconCls: 'bg-rose-500/15 dark:bg-rose-500/20 border-rose-500/30 text-rose-600 dark:text-rose-400',                title: 'actor',                 body: 'removed you from their private channel.' },
+  account_unban:           { Icon: ShieldCheck, iconCls: 'bg-emerald-500/15 dark:bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400', title: 'Moderation team',       body: 'restored your account access to the social feed.' },
+  account_ban:             { Icon: Ban,         iconCls: 'bg-rose-500/15 dark:bg-rose-500/20 border-rose-500/30 text-rose-600 dark:text-rose-400',                title: 'Moderation team',       body: 'suspended your account from the social feed.' },
+};
+
 export default function NotificationBell({ userId, initialUnreadCount }: NotificationBellProps) {
   const [open, setOpen]                    = useState(false);
   const [showConfirmAll, setShowConfirmAll] = useState(false);
@@ -146,142 +162,19 @@ export default function NotificationBell({ userId, initialUnreadCount }: Notific
                   setOpen(false);
                 };
 
-                if (n.type === 'pro_3mo_discount') {
+                const cfg = NOTIF_CONFIG[n.type];
+                if (cfg) {
+                  const { Icon, iconCls } = cfg;
+                  const displayTitle = cfg.title === 'actor' ? n.actor.display_name : cfg.title;
                   return (
                     <button key={n.id} type="button" className={`${rowClass} w-full text-left cursor-pointer`} onClick={onRowActivate}>
-                      <div className="w-7 h-7 rounded-full bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                        <ShieldCheck className="w-3.5 h-3.5" aria-hidden />
+                      <div className={`w-7 h-7 rounded-full border flex items-center justify-center shrink-0 ${iconCls}`}>
+                        <Icon className="w-3.5 h-3.5" aria-hidden />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug">
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">PRO retention reward</span>
-                          {' '}Stay on PRO for 3 months and get 10% off your 4th month.
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5" suppressHydrationWarning>{formatFeedDate(n.created_at)}</p>
-                      </div>
-                      {rightSlot}
-                    </button>
-                  );
-                }
-
-                if (n.type === 'trade_milestone_10') {
-                  return (
-                    <button key={n.id} type="button" className={`${rowClass} w-full text-left cursor-pointer`} onClick={onRowActivate}>
-                      <div className="w-7 h-7 rounded-full bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                        <Activity className="w-3.5 h-3.5" aria-hidden />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug">
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">Trade milestones</span>
-                          {' '}Reach 100 trades for 5% off, 500 for additional 15%, and 1000 trades for 20%.
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5" suppressHydrationWarning>{formatFeedDate(n.created_at)}</p>
-                      </div>
-                      {rightSlot}
-                    </button>
-                  );
-                }
-
-                if (n.type === 'channel_added') {
-                  return (
-                    <button key={n.id} type="button" className={`${rowClass} w-full text-left cursor-pointer`} onClick={onRowActivate}>
-                      <div className="w-7 h-7 rounded-full bg-sky-500/15 dark:bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
-                        <UserPlus className="w-3.5 h-3.5" aria-hidden />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug">
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">{n.actor.display_name}</span>
-                          {' '}added you to their channel.
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5" suppressHydrationWarning>{formatFeedDate(n.created_at)}</p>
-                      </div>
-                      {rightSlot}
-                    </button>
-                  );
-                }
-
-                if (n.type === 'channel_removed') {
-                  return (
-                    <button key={n.id} type="button" className={`${rowClass} w-full text-left cursor-pointer`} onClick={onRowActivate}>
-                      <div className="w-7 h-7 rounded-full bg-amber-500/15 dark:bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                        <UserMinus className="w-3.5 h-3.5" aria-hidden />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug">
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">{n.actor.display_name}</span>
-                          {' '}removed you from their channel.
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5" suppressHydrationWarning>{formatFeedDate(n.created_at)}</p>
-                      </div>
-                      {rightSlot}
-                    </button>
-                  );
-                }
-
-                if (n.type === 'private_channel_added') {
-                  return (
-                    <button key={n.id} type="button" className={`${rowClass} w-full text-left cursor-pointer`} onClick={onRowActivate}>
-                      <div className="w-7 h-7 rounded-full bg-violet-500/15 dark:bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-violet-600 dark:text-violet-400 shrink-0">
-                        <UserPlus className="w-3.5 h-3.5" aria-hidden />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug">
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">{n.actor.display_name}</span>
-                          {' '}added you to their private channel.
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5" suppressHydrationWarning>{formatFeedDate(n.created_at)}</p>
-                      </div>
-                      {rightSlot}
-                    </button>
-                  );
-                }
-
-                if (n.type === 'private_channel_removed') {
-                  return (
-                    <button key={n.id} type="button" className={`${rowClass} w-full text-left cursor-pointer`} onClick={onRowActivate}>
-                      <div className="w-7 h-7 rounded-full bg-rose-500/15 dark:bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
-                        <UserMinus className="w-3.5 h-3.5" aria-hidden />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug">
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">{n.actor.display_name}</span>
-                          {' '}removed you from their private channel.
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5" suppressHydrationWarning>{formatFeedDate(n.created_at)}</p>
-                      </div>
-                      {rightSlot}
-                    </button>
-                  );
-                }
-
-                if (n.type === 'account_unban') {
-                  return (
-                    <button key={n.id} type="button" className={`${rowClass} w-full text-left cursor-pointer`} onClick={onRowActivate}>
-                      <div className="w-7 h-7 rounded-full bg-emerald-500/15 dark:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
-                        <ShieldCheck className="w-3.5 h-3.5" aria-hidden />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug">
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">Moderation team</span>
-                          {' '}restored your account access to the social feed.
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5" suppressHydrationWarning>{formatFeedDate(n.created_at)}</p>
-                      </div>
-                      {rightSlot}
-                    </button>
-                  );
-                }
-
-                if (n.type === 'account_ban') {
-                  return (
-                    <button key={n.id} type="button" className={`${rowClass} w-full text-left cursor-pointer`} onClick={onRowActivate}>
-                      <div className="w-7 h-7 rounded-full bg-rose-500/15 dark:bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
-                        <Ban className="w-3.5 h-3.5" aria-hidden />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug">
-                          <span className="font-semibold text-slate-900 dark:text-slate-100">Moderation team</span>
-                          {' '}suspended your account from the social feed.
+                          <span className="font-semibold text-slate-900 dark:text-slate-100">{displayTitle}</span>
+                          {' '}{cfg.body}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5" suppressHydrationWarning>{formatFeedDate(n.created_at)}</p>
                       </div>

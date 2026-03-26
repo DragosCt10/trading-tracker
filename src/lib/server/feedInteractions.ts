@@ -5,7 +5,7 @@ import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { createNotification } from './feedNotifications';
 import { isPublicChannelReadOnlyForProfile } from './feedChannels';
-import { mapAuthorRow } from './feedHelpers';
+import { mapAuthorRow, isValidCursor } from './feedHelpers';
 import type { AuthorRow } from './feedHelpers';
 import type { FeedComment, PaginatedResult } from '@/types/social';
 
@@ -51,6 +51,7 @@ export async function likePost(
 
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
+  if (profile.is_banned) return { error: 'Account is banned', code: 'UNAUTHORIZED' };
 
   const supabase = await createClient();
 
@@ -103,7 +104,7 @@ export async function getComments(
     .order('created_at', { ascending: false })
     .limit(limit + 1);
 
-  if (cursor) query = query.lt('created_at', cursor);
+  if (cursor && isValidCursor(cursor)) query = query.lt('created_at', cursor);
 
   const { data, error } = await query;
   if (error) { console.error('[getComments]', error); return { items: [], nextCursor: null, hasMore: false }; }
@@ -157,14 +158,15 @@ export async function addComment(
 
   const supabase = await createClient();
 
-  // S2: Rate limit — max 50 comments per profile per 24h
-  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { count: recentCount } = await supabase
-    .from('feed_comments')
-    .select('id', { count: 'exact', head: true })
-    .eq('author_id', profile.id)
-    .gte('created_at', since24h);
-  if ((recentCount ?? 0) >= COMMENT_DAILY_LIMIT) {
+  // Rate limit — max 50 comments per profile per 24h.
+  // Uses check_rate_limit RPC which is atomic (INSERT … ON CONFLICT), so there
+  // is no TOCTOU race between the count check and the subsequent INSERT.
+  const { data: withinLimit } = await supabase.rpc('check_rate_limit', {
+    p_key:       `comment_rate:${profile.id}`,
+    p_limit:     COMMENT_DAILY_LIMIT,
+    p_window_ms: 24 * 60 * 60 * 1000,
+  });
+  if (!withinLimit) {
     return { error: `Comment limit reached (${COMMENT_DAILY_LIMIT}/24h). Try again later.`, code: 'LIMIT_EXCEEDED' };
   }
 

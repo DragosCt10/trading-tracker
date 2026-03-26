@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { useFeedSearch } from '@/hooks/useFeedSearch';
 import Link from 'next/link';
@@ -8,12 +8,19 @@ import type { FeedPost, SocialProfile } from '@/types/social';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 export default function SearchBar() {
-  const [query, setQuery]   = useState('');
-  const [type, setType]     = useState<'posts' | 'traders'>('posts');
-  const [open, setOpen] = useState(false);
+  const [query, setQuery]           = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [type, setType]             = useState<'posts' | 'traders'>('posts');
+  const [open, setOpen]             = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data, isFetching } = useFeedSearch(query, type);
+  // Debounce the search query to avoid firing a request on every keystroke.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(id);
+  }, [query]);
+
+  const { data, isFetching } = useFeedSearch(debouncedQuery, type);
 
   const clear = useCallback(() => {
     setQuery('');
@@ -23,7 +30,7 @@ export default function SearchBar() {
 
   return (
     <div className="relative z-[120] w-full max-w-sm">
-      <Popover open={open && query.length >= 2} onOpenChange={setOpen}>
+      <Popover open={open && debouncedQuery.length >= 2} onOpenChange={setOpen}>
         {/* Input */}
         <PopoverTrigger asChild>
           <div className="relative">
@@ -50,7 +57,7 @@ export default function SearchBar() {
         </PopoverTrigger>
 
         {/* Type tabs */}
-        {query.length >= 2 && (
+        {debouncedQuery.length >= 2 && (
           <PopoverContent
             align="start"
             sideOffset={8}

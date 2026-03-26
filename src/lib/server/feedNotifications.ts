@@ -1,9 +1,10 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
-import { createServiceRoleClient } from '@/utils/supabase/service-role';
+import { createAdminClient } from './supabaseAdmin';
 import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
+import { isValidCursor } from './feedHelpers';
 import { getAnonymousDisplayName } from '@/utils/displayName';
 import type { FeedNotification, NotificationType, PaginatedResult } from '@/types/social';
 
@@ -49,8 +50,10 @@ export async function getNotifications(
   const profile = await getCachedSocialProfile(session.user!.id);
   if (!profile) return { items: [], nextCursor: null, hasMore: false };
 
-  // Use service role so banned users can still read their own notifications.
-  const supabase = createServiceRoleClient() as any;
+  // Session client is sufficient: notifications_select_own RLS resolves through
+  // social_profiles, and profiles_select_own allows banned users to see their own
+  // profile row (PERMISSIVE OR logic), so the subquery still matches auth.uid().
+  const supabase = await createClient();
   let query = supabase
     .from('feed_notifications')
     .select(`
@@ -61,7 +64,7 @@ export async function getNotifications(
     .order('created_at', { ascending: false })
     .limit(limit + 1);
 
-  if (cursor) query = query.lt('created_at', cursor);
+  if (cursor && isValidCursor(cursor)) query = query.lt('created_at', cursor);
 
   const { data, error } = await query;
   if (error) { console.error('[getNotifications]', error); return { items: [], nextCursor: null, hasMore: false }; }
@@ -82,7 +85,7 @@ export async function getUnreadCount(): Promise<number> {
   if (!profile) return 0;
 
   // Use service role so banned users can still see their unread count.
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createAdminClient();
   const { count } = await supabase
     .from('feed_notifications')
     .select('id', { count: 'exact', head: true })
@@ -148,7 +151,7 @@ export async function deleteNotification(notificationId: string): Promise<void> 
   if (!profile) return;
 
   // Use service role to bypass RLS — recipient_id filter enforces ownership.
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from('feed_notifications')
     .delete()
@@ -166,7 +169,7 @@ export async function deleteAllReadNotifications(): Promise<void> {
   if (!profile) return;
 
   // Use service role to bypass RLS — recipient_id filter enforces ownership.
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from('feed_notifications')
     .delete()
@@ -184,7 +187,7 @@ export async function deleteAllNotifications(): Promise<void> {
   if (!profile) return;
 
   // Use service role to bypass RLS — recipient_id filter enforces ownership.
-  const supabase = createServiceRoleClient() as any;
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from('feed_notifications')
     .delete()
@@ -206,7 +209,7 @@ export async function ensureOfferNotification(
   try {
     // Use service role to bypass RLS — offer notifications are self-notifications
     // (actor_id = recipient_id) which session-scoped clients may block.
-    const supabase = createServiceRoleClient() as any;
+    const supabase = createAdminClient();
     const { count } = await supabase
       .from('feed_notifications')
       .select('id', { count: 'exact', head: true })
@@ -254,8 +257,8 @@ export async function notifyUserAccountUnbanned(recipientProfileId: string): Pro
   const session = await getCachedUserSession();
   if (!session.user) return;
 
-  const admin = createServiceRoleClient() as ReturnType<typeof createServiceRoleClient>;
-  const { data: actorRow } = await (admin as any)
+  const admin = createAdminClient();
+  const { data: actorRow } = await admin
     .from('social_profiles')
     .select('id')
     .eq('user_id', session.user.id)
@@ -265,7 +268,7 @@ export async function notifyUserAccountUnbanned(recipientProfileId: string): Pro
   if (actorRow.id === recipientProfileId) return;
 
   try {
-    await (admin as any).from('feed_notifications').insert({
+    await admin.from('feed_notifications').insert({
       recipient_id: recipientProfileId,
       actor_id:     actorRow.id,
       type:         'account_unban',
@@ -283,8 +286,8 @@ export async function notifyUserAccountBanned(recipientProfileId: string): Promi
   if (!session.user) return;
 
   // Look up the acting moderator's profile via service role so RLS never blocks the lookup.
-  const admin = createServiceRoleClient() as ReturnType<typeof createServiceRoleClient>;
-  const { data: actorRow } = await (admin as any)
+  const admin = createAdminClient();
+  const { data: actorRow } = await admin
     .from('social_profiles')
     .select('id')
     .eq('user_id', session.user.id)
@@ -295,7 +298,7 @@ export async function notifyUserAccountBanned(recipientProfileId: string): Promi
 
   // Use service role for the insert to bypass any RLS restrictions on feed_notifications.
   try {
-    await (admin as any).from('feed_notifications').insert({
+    await admin.from('feed_notifications').insert({
       recipient_id: recipientProfileId,
       actor_id:     actorRow.id,
       type:         'account_ban',
@@ -314,7 +317,7 @@ export async function notifyChannelMemberRemoved(
 ): Promise<void> {
   if (recipientProfileId === actorProfileId) return;
   try {
-    const supabase = createServiceRoleClient() as any;
+    const supabase = createAdminClient();
     await supabase.from('feed_notifications').insert({
       recipient_id: recipientProfileId,
       actor_id:     actorProfileId,
@@ -334,7 +337,7 @@ export async function notifyPrivateChannelMemberAdded(
 ): Promise<void> {
   if (recipientProfileId === actorProfileId) return;
   try {
-    const supabase = createServiceRoleClient() as any;
+    const supabase = createAdminClient();
     await supabase.from('feed_notifications').insert({
       recipient_id: recipientProfileId,
       actor_id:     actorProfileId,
@@ -354,7 +357,7 @@ export async function notifyPrivateChannelMemberRemoved(
 ): Promise<void> {
   if (recipientProfileId === actorProfileId) return;
   try {
-    const supabase = createServiceRoleClient() as any;
+    const supabase = createAdminClient();
     await supabase.from('feed_notifications').insert({
       recipient_id: recipientProfileId,
       actor_id:     actorProfileId,
@@ -375,7 +378,7 @@ export async function notifyChannelMemberAdded(
   if (recipientProfileId === actorProfileId) return;
 
   try {
-    const supabase = createServiceRoleClient() as any;
+    const supabase = createAdminClient();
     await supabase.from('feed_notifications').insert({
       recipient_id: recipientProfileId,
       actor_id:     actorProfileId,

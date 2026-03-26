@@ -157,7 +157,7 @@ export async function redeemChannelInvite(
   if (!profile) return { error: 'Profile not found', code: 'NOT_FOUND' };
 
   // Rate limit: 10 redemption attempts per user per minute
-  if (!checkRateLimit(`${profile.id}:invite`, 10, 60_000)) {
+  if (!await checkRateLimit(`${profile.id}:invite`, 10, 60_000)) {
     return { error: 'Too many redemption attempts. Please try again later.', code: 'DB_ERROR' };
   }
 

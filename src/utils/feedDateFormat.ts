@@ -13,7 +13,7 @@ export function formatFeedDate(dateStr: string): string {
   });
 }
 
-/** "Jan 5, 3:45 PM" — feed posts (includes time; UTC matches SSR/client) */
+/** "Jan 5, 3:45 PM" — feed posts and comments (includes time; UTC matches SSR/client) */
 export function formatFeedDateTime(dateStr: string): string {
   return new Date(dateStr).toLocaleString('en-US', {
     month: 'short',
@@ -24,16 +24,8 @@ export function formatFeedDateTime(dateStr: string): string {
   });
 }
 
-/** "Jan 5, 3:45 PM" — comment rows (includes time; UTC matches SSR/client) */
-export function formatFeedCommentDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: 'UTC',
-  });
-}
+/** Alias of {@link formatFeedDateTime} — kept for backwards compatibility. */
+export const formatFeedCommentDate = formatFeedDateTime;
 
 /** "Jan 5, 2025" — for trade entry dates (includes year) */
 export function formatTradeEntryDate(dateStr: string): string {

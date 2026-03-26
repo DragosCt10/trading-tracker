@@ -5,7 +5,7 @@ import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { getCachedSubscription } from './subscription';
 import { isPublicChannelReadOnlyForProfile } from './feedChannels';
-import { mapAuthorRow } from './feedHelpers';
+import { mapAuthorRow, isValidCursor } from './feedHelpers';
 import type { AuthorRow } from './feedHelpers';
 import type { FeedPost, TradeSnapshot, TradeSelectorItem, PaginatedResult } from '@/types/social';
 
@@ -69,7 +69,7 @@ function todayUtc(): Date {
 
 function buildFeedQuery(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  filter: 'public' | 'profile' | 'channel',
+  filter: 'profile' | 'channel',
   opts: {
     profileId?: string;
     channelId?: string;
@@ -98,9 +98,8 @@ function buildFeedQuery(
   } else if (filter === 'channel' && opts.channelId) {
     query = query.eq('channel_id', opts.channelId);
   }
-  // 'public' — no extra filter, all non-hidden posts
 
-  if (cursor) query = query.lt('created_at', cursor);
+  if (cursor && isValidCursor(cursor)) query = query.lt('created_at', cursor);
 
   return query;
 }
@@ -253,6 +252,18 @@ export async function getPostsByProfile(
   const session = await getCachedUserSession();
   const supabase = await createClient();
 
+  // Privacy guard: only expose posts if target profile is public or viewer is the owner.
+  const { data: targetProfile } = await supabase
+    .from('social_profiles')
+    .select('is_public, user_id')
+    .eq('id', profileId)
+    .single();
+  if (!targetProfile) return { items: [], nextCursor: null, hasMore: false };
+  const _tp = targetProfile as { is_public: boolean; user_id: string };
+  if (!_tp.is_public && session.user?.id !== _tp.user_id) {
+    return { items: [], nextCursor: null, hasMore: false };
+  }
+
   // getCachedSocialProfile uses React cache() — no extra DB round trip if already fetched.
   const ownProfile = session.user ? await getCachedSocialProfile(session.user.id) : null;
   const ownProfileId = ownProfile?.id ?? null;
@@ -278,10 +289,10 @@ export async function getWeeklyPostCount(knownProfileId?: string): Promise<{ use
   const session = await getCachedUserSession();
   if (!session.user) return { used: 0, resetDate: nextMondayUtc() };
 
+  const supabase = await createClient();
   // If the caller already has the profile (e.g. createPost), skip the extra lookup.
   let profileId = knownProfileId;
   if (!profileId) {
-    const supabase = await createClient();
     const { data: profile } = await supabase
       .from('social_profiles')
       .select('id')
@@ -290,8 +301,6 @@ export async function getWeeklyPostCount(knownProfileId?: string): Promise<{ use
     if (!profile) return { used: 0, resetDate: nextMondayUtc() };
     profileId = profile.id;
   }
-
-  const supabase = await createClient();
   const monday = currentWeekMondayUtc();
   const { count } = await supabase
     .from('feed_posts')

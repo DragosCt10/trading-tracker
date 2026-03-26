@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
 import { Hash, Plus, PlusCircle, Globe, Lock, UserPlus, Users, Settings2, Ban, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -15,12 +16,13 @@ import FeedPostList from '@/components/feed/FeedPostList';
 import InlineCreatePostCard from '@/components/feed/InlineCreatePostCard';
 import NewPostsBanner from '@/components/feed/NewPostsBanner';
 import { useNewPostsNotifier } from '@/hooks/useNewPostsNotifier';
-import EditPostModal from '@/components/feed/EditPostModal';
-import CreateChannelModal from '@/components/feed/CreateChannelModal';
-import ChannelInviteModal from '@/components/feed/ChannelInviteModal';
-import EditChannelModal from '@/components/feed/EditChannelModal';
 import SearchBar from '@/components/feed/SearchBar';
-import ProfilePreviewModal from '@/components/feed/ProfilePreviewModal';
+
+const EditPostModal      = dynamic(() => import('@/components/feed/EditPostModal'));
+const CreateChannelModal = dynamic(() => import('@/components/feed/CreateChannelModal'));
+const ChannelInviteModal = dynamic(() => import('@/components/feed/ChannelInviteModal'));
+const EditChannelModal   = dynamic(() => import('@/components/feed/EditChannelModal'));
+const ProfilePreviewModal = dynamic(() => import('@/components/feed/ProfilePreviewModal'));
 import { FEED_CARD_SURFACE_CLASS } from '@/components/feed/feedCardStyles';
 import { cn } from '@/lib/utils';
 import type { SocialProfile, FeedPost, FeedChannel, PaginatedResult } from '@/types/social';
@@ -149,12 +151,18 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
   }
 
   useEffect(() => {
+    let rafScheduled = false;
     const handleScroll = () => {
-      const currentY = window.scrollY;
-      const diff = currentY - lastScrollY.current;
-      if (diff > 6) setFeedChromeVisible(false);
-      else if (diff < -6) setFeedChromeVisible(true);
-      lastScrollY.current = currentY;
+      if (rafScheduled) return;
+      rafScheduled = true;
+      requestAnimationFrame(() => {
+        const currentY = window.scrollY;
+        const diff = currentY - lastScrollY.current;
+        if (diff > 6) setFeedChromeVisible(false);
+        else if (diff < -6) setFeedChromeVisible(true);
+        lastScrollY.current = currentY;
+        rafScheduled = false;
+      });
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);

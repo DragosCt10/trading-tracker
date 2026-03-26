@@ -1,5 +1,11 @@
 import type { TierId } from '@/types/subscription';
 
+// ─── Cursor validation ────────────────────────────────────────────────────────
+/** Returns true only for valid ISO-8601 date strings (cursor format). */
+export function isValidCursor(cursor: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}T/.test(cursor) && !isNaN(Date.parse(cursor));
+}
+
 // ─── Shared author mapping ────────────────────────────────────────────────────
 // Used by feedPosts.ts and feedInteractions.ts to avoid duplicating this logic.
 

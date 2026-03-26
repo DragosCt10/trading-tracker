@@ -17,7 +17,6 @@ export function useNotificationUnreadCount(userId?: string, initialData?: number
     queryKey: queryKeys.feed.unreadCount(userId),
     queryFn: getUnreadCount,
     enabled: !!userId,
-    refetchInterval: 60_000,
     refetchOnMount: initialData !== undefined ? true : 'always',
     refetchOnWindowFocus: false,
     initialData,
@@ -126,10 +125,6 @@ export function useNotificationActions(userId?: string) {
     onError: (_err, _id, ctx) => {
       if (ctx?.prevCount !== undefined) qc.setQueryData(unreadKey, ctx.prevCount);
       if (ctx?.prevList !== undefined) qc.setQueryData(listKey, ctx.prevList);
-    },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: unreadKey });
-      qc.invalidateQueries({ queryKey: listKey });
     },
   });
 

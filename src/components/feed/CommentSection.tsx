@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback, memo } from 'react';
 import Link from 'next/link';
 import { Pencil, Trash2, Check, X, CornerDownRight } from 'lucide-react';
 import CommentInput from './CommentInput';
@@ -310,7 +310,7 @@ function CommentItem({
 
 // ─── Comment + its replies ────────────────────────────────────────────────────
 
-function CommentWithReplies({
+const CommentWithReplies = memo(function CommentWithReplies({
   comment,
   currentProfileId,
   onEdit,
@@ -416,7 +416,7 @@ function CommentWithReplies({
       )}
     </div>
   );
-}
+});
 
 // ─── Comment section ──────────────────────────────────────────────────────────
 
