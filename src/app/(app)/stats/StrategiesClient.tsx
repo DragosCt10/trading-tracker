@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useStrategies } from '@/hooks/useStrategies';
 import { useStrategyClientContext } from '@/hooks/useStrategyClientContext';
 import { useAccounts } from '@/hooks/useAccounts';
@@ -87,6 +87,9 @@ export function StrategiesClient({
 }: StrategiesClientProps = {}) {
   // queryClient must be obtained before the cache-seeding block below.
   const queryClient = useQueryClient();
+  // Tracks whether the one-time seed has already fired. A ref (not state)
+  // so the flag survives re-renders without causing another render cycle.
+  const hasSeededRef = useRef(false);
 
   const {
     userId,
@@ -108,15 +111,22 @@ export function StrategiesClient({
     [accounts, selectedAccount]
   );
 
-  // Seed strategies + overview caches synchronously from server-fetched data so
-  // useStrategies() and the overview useQuery both find data in cache and skip
-  // the client-side fetch. setQueryData (vs initialData on useQuery) is critical:
-  // it writes into the global cache before the query observer registers, which
-  // keeps isFetching=false on first mount. initialData still triggers a
-  // background refetch (isFetching=true briefly) even with initialDataUpdatedAt.
-  // AppLayout seeds ['userDetails'] + ['actionBar:selection'] in render body,
-  // so userId and activeAccount are both available on first render.
-  if (userId && activeAccount?.id) {
+  // One-shot cache seed: write server-pre-fetched data into the TanStack Query
+  // cache so the first render finds data immediately (isFetching stays false).
+  //
+  // Why a ref instead of just an account-ID guard?
+  //   useStrategies uses `enabled: !cached` — once any value is written into a
+  //   cache key it never auto-fetches that key again (staleTime: Infinity).
+  //   Without the ref, every re-render with a new activeAccount would re-evaluate
+  //   the ID guard, and on the render where the new account's key is empty the
+  //   guard would pass and write initialStrategies (the *original* account's
+  //   data) into the new account's key, permanently poisoning that cache.
+  //
+  // The ref fires exactly once per component lifetime. After the first
+  // successful seed, any account switch produces a clean (empty) cache key,
+  // and the normal query fetch path takes over.
+  if (!hasSeededRef.current && userId && activeAccount?.id && activeAccount.id === initialActiveAccount?.id) {
+    hasSeededRef.current = true;
     if (initialStrategies && initialStrategies.length > 0) {
       const strategiesKey = queryKeys.strategies(userId, activeAccount.id);
       if (!queryClient.getQueryData(strategiesKey)) {
