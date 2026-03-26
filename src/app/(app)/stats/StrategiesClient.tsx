@@ -45,6 +45,8 @@ import { useSubscription } from '@/hooks/useSubscription';
 type SortByOption = 'default' | 'winRate' | 'totalRR' | 'totalTrades';
 
 interface StrategiesClientProps {
+  /** Server-resolved user ID — eliminates the useUserDetails round-trip on first render. */
+  initialUserId?: string;
   /** Pre-resolved server-side active account — eliminates client-side account resolution delay. */
   initialActiveAccount?: AccountRow | null;
   /** Pre-resolved server-side mode — passed to useStrategyClientContext. */
@@ -80,6 +82,7 @@ function getStrategySortMetric(
 }
 
 export function StrategiesClient({
+  initialUserId,
   initialActiveAccount,
   initialMode,
   initialStrategies,
@@ -88,31 +91,17 @@ export function StrategiesClient({
   const queryClient = useQueryClient();
 
   // Seed server-pre-fetched data into the cache BEFORE any other hooks run.
-  // This guarantees useStrategies and the overview query find data on first render
-  // (isFetching stays false, skeleton never shows).
-  //
-  // userId is read directly from the TanStack cache seeded by AppLayout's render
-  // body — guaranteed to be present before any child component renders.
-  // initialActiveAccount and initialMode come from props (always available).
-  //
-  // Why no useRef?  A ref set before setQueryData can be permanently set by
-  // React 19 concurrent rendering if the render is abandoned mid-block.
-  // Instead, the cache check (!getQueryData) is idempotent — safe to run on
-  // every render with no double-write risk.
-  //
-  // Why no activeAccount from hook? That resolves one render later via
-  // useActionBarSelection. Using initialActiveAccount (prop) is synchronous.
-  const cachedUserDetails = queryClient.getQueryData<{ user: { id: string } | null }>(queryKeys.userDetails());
-  const seedUserId = cachedUserDetails?.user?.id;
-  if (seedUserId && initialActiveAccount?.id) {
+  // initialUserId comes from page.tsx (server-resolved) — no hook timing dependency.
+  // The cache check (!getQueryData) is idempotent — safe on every render.
+  if (initialUserId && initialActiveAccount?.id) {
     if (initialStrategies && initialStrategies.length > 0) {
-      const strategiesKey = queryKeys.strategies(seedUserId, initialActiveAccount.id);
+      const strategiesKey = queryKeys.strategies(initialUserId, initialActiveAccount.id);
       if (!queryClient.getQueryData(strategiesKey)) {
         queryClient.setQueryData(strategiesKey, initialStrategies);
       }
     }
     if (initialOverview && Object.keys(initialOverview).length > 0 && initialMode) {
-      const overviewKey = queryKeys.strategiesOverview(seedUserId, initialActiveAccount.id, initialMode);
+      const overviewKey = queryKeys.strategiesOverview(initialUserId, initialActiveAccount.id, initialMode);
       if (!queryClient.getQueryData(overviewKey)) {
         queryClient.setQueryData(overviewKey, initialOverview);
       }
@@ -125,7 +114,7 @@ export function StrategiesClient({
     mode,
     activeAccount: selectedAccount,
   } = useStrategyClientContext({
-    initialUserId: '',
+    initialUserId: initialUserId ?? '',
     initialMode: initialMode ?? 'live',
     initialActiveAccount: initialActiveAccount ?? null,
   });
