@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import type { Trade } from '@/types/trade';
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { StrategySectionKey as FullWidthSectionKey } from '@/hooks/useStrategySectionVisibility';
@@ -23,7 +23,6 @@ type StrategyAdditionalAnalyticsSectionsProps = {
   showProContent: boolean;
   renderSectionCollapseButton: (key: FullWidthSectionKey) => ReactNode;
   isSectionExpanded: (key: FullWidthSectionKey) => boolean;
-  monthlyPerformanceStatsToUse: ReturnType<typeof computeFullMonthlyStatsFromTrades>;
   filteredChartStats: unknown;
   statsToUseForCharts: {
     marketStats: MarketStatisticsCardProps['marketStats'];
@@ -51,7 +50,6 @@ export function StrategyAdditionalAnalyticsSections({
   showProContent,
   renderSectionCollapseButton,
   isSectionExpanded,
-  monthlyPerformanceStatsToUse,
   filteredChartStats,
   statsToUseForCharts,
   marketStatsToUse,
@@ -67,6 +65,15 @@ export function StrategyAdditionalAnalyticsSections({
   hasCard,
   selectedHalfWidthCards,
 }: StrategyAdditionalAnalyticsSectionsProps) {
+  // Compute monthly performance stats only when the chart is visible.
+  // Moved here from StrategyClient to avoid O(n) trade iteration on every filter
+  // change when the section is collapsed. bodyVisible mirrors the chart's bodyVisible prop.
+  const isMonthlyChartVisible = !isPro || isSectionExpanded('monthlyPerformanceChart');
+  const monthlyPerformanceStatsToUse = useMemo(
+    () => isMonthlyChartVisible ? computeFullMonthlyStatsFromTrades(tradesToUse) : {},
+    [tradesToUse, isMonthlyChartVisible]
+  );
+
   return (
     <>
       <div className="my-8 mt-12">
