@@ -66,7 +66,7 @@ export default function NotificationBell({ userId, initialUnreadCount }: Notific
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 gap-1"
+              className="h-7 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 gap-1 cursor-pointer"
               onClick={() => markAll.mutate()}
               disabled={markAll.isPending}
             >
