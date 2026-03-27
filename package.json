@@ -16,6 +16,8 @@
     "db:migrate:create": "prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script",
     "db:types:test": "supabase gen types typescript --project-id vjzhqacouosiopedktat --schema public > src/types/supabase.ts",
     "db:types:prod": "supabase gen types typescript --project-id obgexglqwdzgvwzppwfx --schema public > src/types/supabase.ts",
+    "test": "vitest run tests/unit",
+    "test:watch": "vitest tests/unit",
     "bench": "vitest bench tests/benchmark --reporter=verbose --run",
     "bench:ci": "vitest bench tests/benchmark --reporter=json --outputFile=tests/benchmark/results/latest.json --run"
   },
