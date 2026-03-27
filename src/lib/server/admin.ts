@@ -140,6 +140,7 @@ export async function adminResolveSubscription(targetUserId: string): Promise<Re
       priceAmount: null,
       taxAmount: null,
       currency: null,
+      createdAt: null,
     };
   }
 
@@ -161,6 +162,7 @@ export async function adminResolveSubscription(targetUserId: string): Promise<Re
     priceAmount: row.price_amount ?? null,
     taxAmount: row.tax_amount ?? null,
     currency: row.currency ?? null,
+    createdAt: row.created_at ?? null,
   };
 }
 
