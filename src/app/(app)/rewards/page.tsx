@@ -3,7 +3,7 @@ import { getCachedUserSession } from '@/lib/server/session';
 import { getTotalExecutedTradeCount } from '@/lib/server/tradeStats';
 import { getFeatureFlags } from '@/lib/server/settings';
 import { resolveSubscription, createPortalUrl } from '@/lib/server/subscription';
-import { syncUserBadge } from '@/lib/server/feedNotifications';
+import { syncProLoyaltyNotification } from '@/lib/server/feedNotifications';
 import RewardsClient from './RewardsClient';
 
 export const dynamic = 'force-dynamic';
@@ -33,8 +33,8 @@ export default async function RewardsPage() {
       proSinceDate = subscription.createdAt;
       if (isPro) portalUrl = await createPortalUrl().catch(() => null);
     }
-    // Sync badge + fire 3-month PRO notification (non-blocking, runs after main data)
-    void syncUserBadge(user.id, proSinceDate);
+    // Fire 3-month PRO loyalty notification (non-blocking, runs after main data)
+    if (isPro) void syncProLoyaltyNotification(user.id, proSinceDate);
   } catch (err) {
     console.error('[RewardsPage] fetch error (non-fatal):', err);
   }

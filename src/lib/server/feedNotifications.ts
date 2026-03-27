@@ -328,24 +328,26 @@ export async function checkTradeMilestones(
 
     const existingFlags = (settingsRow?.feature_flags ?? {}) as Record<string, unknown>;
     const existingDiscounts = Array.isArray((existingFlags as { available_discounts?: unknown }).available_discounts)
-      ? (existingFlags as { available_discounts: { milestoneId: string; used: boolean }[] }).available_discounts
+      ? (existingFlags as { available_discounts: { milestoneId: string; discountPct: number; used: boolean; couponCode?: string; generatedAt?: string; achievedAt?: string }[] }).available_discounts
       : [];
 
     const availableDiscounts = crossedMilestones.map((m) => {
       const existing = existingDiscounts.find((d) => d.milestoneId === m.id);
       return {
+        ...existing,
         milestoneId: m.id,
         discountPct: m.discountPct,
         used: existing?.used ?? false,
       };
     });
 
+    const existingBadge = (existingFlags.trade_badge ?? {}) as { achievedAt?: string };
     const featureFlags = {
       ...existingFlags,
       trade_badge: {
         id: currentMilestone.id,
         totalTrades,
-        achievedAt: new Date().toISOString(),
+        achievedAt: existingBadge.achievedAt ?? new Date().toISOString(),
       },
       available_discounts: availableDiscounts,
     };
@@ -388,6 +390,34 @@ export async function syncUserBadge(userId: string, proSinceDate?: string | null
         void ensureOfferNotification(profileId, 'pro_loyalty_unlocked');
       }
     }
+  } catch {
+    // Non-fatal
+  }
+}
+
+/**
+ * Fires the pro_loyalty_unlocked notification once the user has been on PRO for ≥3 months.
+ * Does NOT call checkTradeMilestones — use this on the Rewards page instead of syncUserBadge
+ * to avoid triggering the couponCode wipe bug.
+ * Fire-and-forget — never throws.
+ */
+export async function syncProLoyaltyNotification(userId: string, proSinceDate?: string | null): Promise<void> {
+  if (!proSinceDate) return;
+  const start = new Date(proSinceDate);
+  const now = new Date();
+  const months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  if (months < 3) return;
+
+  try {
+    const supabase = createAdminClient();
+    const { data: profileRow } = await supabase
+      .from('social_profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (!profileRow) return;
+    const profileId = (profileRow as { id: string }).id;
+    await ensureOfferNotification(profileId, 'pro_loyalty_unlocked');
   } catch {
     // Non-fatal
   }
