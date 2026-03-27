@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Award, Check, ChevronRight, Copy, Lock, Loader2, Trophy, Gift, ShieldCheck } from 'lucide-react';
+import { Award, Check, ChevronRight, Copy, Lock, Loader2, Trophy, ShieldCheck } from 'lucide-react';
 import {
   TRADE_MILESTONES,
   getMilestoneForCount,
@@ -13,6 +13,7 @@ import {
 import { redeemMilestoneDiscount, redeemProRetentionDiscount } from '@/lib/server/rewards';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { monthsSince } from '@/utils/helpers/dateHelpers';
 
 interface RewardsClientProps {
   totalTrades: number;
@@ -32,12 +33,6 @@ interface DiscountEntry {
 interface ProRetentionDiscount {
   used: boolean;
   couponCode?: string;
-}
-
-function monthsSince(isoDate: string): number {
-  const start = new Date(isoDate);
-  const now = new Date();
-  return (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
 }
 
 export default function RewardsClient({ totalTrades, featureFlags, isPro, portalUrl, proSinceDate }: RewardsClientProps) {

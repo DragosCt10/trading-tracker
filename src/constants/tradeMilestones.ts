@@ -19,15 +19,6 @@ export interface TradeMilestone {
   badgeName: string;
   discountPct: number;
   notificationType: string; // matches DB enum value
-  colors: {
-    bg: string;       // Tailwind bg class
-    border: string;   // Tailwind border class
-    text: string;     // Tailwind text class
-    darkBg: string;
-    darkBorder: string;
-    darkText: string;
-    gradient?: string; // optional gradient for alpha_trader
-  };
 }
 
 export const TRADE_MILESTONES: TradeMilestone[] = [
@@ -38,14 +29,6 @@ export const TRADE_MILESTONES: TradeMilestone[] = [
     badgeName: 'Rookie Trader',
     discountPct: 5,
     notificationType: 'trade_milestone_100',
-    colors: {
-      bg: 'bg-amber-700/15',
-      border: 'border-amber-700/30',
-      text: 'text-amber-800',
-      darkBg: 'dark:bg-amber-600/15',
-      darkBorder: 'dark:border-amber-600/30',
-      darkText: 'dark:text-amber-400',
-    },
   },
   {
     id: 'skilled_trader',
@@ -54,14 +37,6 @@ export const TRADE_MILESTONES: TradeMilestone[] = [
     badgeName: 'Skilled Trader',
     discountPct: 10,
     notificationType: 'trade_milestone_200',
-    colors: {
-      bg: 'bg-slate-400/15',
-      border: 'border-slate-400/30',
-      text: 'text-slate-600',
-      darkBg: 'dark:bg-slate-400/15',
-      darkBorder: 'dark:border-slate-400/30',
-      darkText: 'dark:text-slate-300',
-    },
   },
   {
     id: 'expert_trader',
@@ -70,14 +45,6 @@ export const TRADE_MILESTONES: TradeMilestone[] = [
     badgeName: 'Expert Trader',
     discountPct: 15,
     notificationType: 'trade_milestone_500',
-    colors: {
-      bg: 'bg-yellow-500/15',
-      border: 'border-yellow-500/30',
-      text: 'text-yellow-700',
-      darkBg: 'dark:bg-yellow-500/15',
-      darkBorder: 'dark:border-yellow-500/30',
-      darkText: 'dark:text-yellow-400',
-    },
   },
   {
     id: 'master_trader',
@@ -86,14 +53,6 @@ export const TRADE_MILESTONES: TradeMilestone[] = [
     badgeName: 'Master Trader',
     discountPct: 20,
     notificationType: 'trade_milestone_750',
-    colors: {
-      bg: 'bg-violet-500/15',
-      border: 'border-violet-500/30',
-      text: 'text-violet-700',
-      darkBg: 'dark:bg-violet-500/15',
-      darkBorder: 'dark:border-violet-500/30',
-      darkText: 'dark:text-violet-400',
-    },
   },
   {
     id: 'alpha_trader',
@@ -102,15 +61,6 @@ export const TRADE_MILESTONES: TradeMilestone[] = [
     badgeName: 'Alpha Trader',
     discountPct: 25,
     notificationType: 'trade_milestone_1000',
-    colors: {
-      bg: 'bg-emerald-500/15',
-      border: 'border-emerald-500/30',
-      text: 'text-emerald-700',
-      darkBg: 'dark:bg-emerald-500/15',
-      darkBorder: 'dark:border-emerald-500/30',
-      darkText: 'dark:text-emerald-400',
-      gradient: 'bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400',
-    },
   },
 ];
 

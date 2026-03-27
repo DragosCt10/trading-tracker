@@ -186,5 +186,3 @@ export function useNotificationActions(userId?: string) {
   return { markOne, markAll, deleteOne, deleteAllRead, deleteAll };
 }
 
-/** @deprecated Use useNotificationActions instead */
-export const useMarkNotifications = useNotificationActions;

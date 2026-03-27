@@ -9,6 +9,7 @@ import { getUserActivityCount } from './feedActivity';
 import { getAnonymousDisplayName } from '@/utils/displayName';
 import { TRADE_MILESTONES, getMilestoneForCount } from '@/constants/tradeMilestones';
 import { getTotalExecutedTradeCount } from '@/lib/server/tradeStats';
+import { monthsSince } from '@/utils/helpers/dateHelpers';
 import type { FeedNotification, NotificationType, PaginatedResult } from '@/types/social';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -288,24 +289,26 @@ export async function checkTradeMilestones(
     const currentMilestone = getMilestoneForCount(totalTrades);
     if (!currentMilestone) return; // < 100 trades
 
-    // Insert notifications for all crossed milestones (idempotent)
-    for (const milestone of TRADE_MILESTONES) {
-      if (totalTrades < milestone.minTrades) break;
+    const crossedMilestones = TRADE_MILESTONES.filter((m) => totalTrades >= m.minTrades);
 
-      const { count } = await supabase
-        .from('feed_notifications')
-        .select('id', { count: 'exact', head: true })
-        .eq('recipient_id', profileId)
-        .eq('type', milestone.notificationType);
-      if ((count ?? 0) > 0) continue;
-
-      await supabase.from('feed_notifications').insert({
+    // Insert notifications for all crossed milestones (idempotent, single batch)
+    const { data: existingNotifs } = await supabase
+      .from('feed_notifications')
+      .select('type')
+      .eq('recipient_id', profileId)
+      .in('type', crossedMilestones.map((m) => m.notificationType));
+    const existingTypes = new Set((existingNotifs ?? []).map((r: { type: string }) => r.type));
+    const toInsert = crossedMilestones
+      .filter((m) => !existingTypes.has(m.notificationType))
+      .map((m) => ({
         recipient_id: profileId,
         actor_id:     profileId,
-        type:         milestone.notificationType,
+        type:         m.notificationType,
         post_id:      null,
         comment_id:   null,
-      });
+      }));
+    if (toInsert.length > 0) {
+      await supabase.from('feed_notifications').insert(toInsert);
     }
 
     // Update denormalized trade_badge to highest achieved milestone
@@ -317,7 +320,6 @@ export async function checkTradeMilestones(
     }
 
     // Update feature_flags with badge info + available discounts
-    const crossedMilestones = TRADE_MILESTONES.filter((m) => totalTrades >= m.minTrades);
 
     // Read existing feature_flags to preserve discount "used" state
     const { data: settingsRow } = await supabase
@@ -382,13 +384,8 @@ export async function syncUserBadge(userId: string, proSinceDate?: string | null
     await checkTradeMilestones(profileId, userId);
 
     // Fire pro_loyalty_unlocked notification once user has been on PRO for ≥3 months
-    if (proSinceDate) {
-      const start = new Date(proSinceDate);
-      const now = new Date();
-      const months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-      if (months >= 3) {
-        void ensureOfferNotification(profileId, 'pro_loyalty_unlocked');
-      }
+    if (proSinceDate && monthsSince(proSinceDate) >= 3) {
+      void ensureOfferNotification(profileId, 'pro_loyalty_unlocked');
     }
   } catch {
     // Non-fatal
@@ -403,10 +400,7 @@ export async function syncUserBadge(userId: string, proSinceDate?: string | null
  */
 export async function syncProLoyaltyNotification(userId: string, proSinceDate?: string | null): Promise<void> {
   if (!proSinceDate) return;
-  const start = new Date(proSinceDate);
-  const now = new Date();
-  const months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-  if (months < 3) return;
+  if (monthsSince(proSinceDate) < 3) return;
 
   try {
     const supabase = createAdminClient();

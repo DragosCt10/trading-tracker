@@ -3,22 +3,27 @@
 import { createAdminClient } from './supabaseAdmin';
 
 export async function getUserActivityCount(profileId: string): Promise<{ posts: number; comments: number; total: number }> {
-  const supabase = createAdminClient();
+  try {
+    const supabase = createAdminClient();
 
-  const [{ count: posts }, { count: comments }] = await Promise.all([
-    supabase
-      .from('feed_posts')
-      .select('id', { count: 'exact', head: true })
-      .eq('author_id', profileId)
-      .eq('is_hidden', false),
-    supabase
-      .from('feed_comments')
-      .select('id', { count: 'exact', head: true })
-      .eq('author_id', profileId)
-      .eq('is_hidden', false),
-  ]);
+    const [{ count: posts }, { count: comments }] = await Promise.all([
+      supabase
+        .from('feed_posts')
+        .select('id', { count: 'exact', head: true })
+        .eq('author_id', profileId)
+        .eq('is_hidden', false),
+      supabase
+        .from('feed_comments')
+        .select('id', { count: 'exact', head: true })
+        .eq('author_id', profileId)
+        .eq('is_hidden', false),
+    ]);
 
-  const p = posts ?? 0;
-  const c = comments ?? 0;
-  return { posts: p, comments: c, total: p + c };
+    const p = posts ?? 0;
+    const c = comments ?? 0;
+    return { posts: p, comments: c, total: p + c };
+  } catch (err) {
+    console.error('[getUserActivityCount] failed (non-fatal):', err);
+    return { posts: 0, comments: 0, total: 0 };
+  }
 }

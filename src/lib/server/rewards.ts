@@ -5,12 +5,8 @@ import { getFeatureFlags, updateFeatureFlags } from './settings';
 import { getPaymentProvider } from '@/lib/billing';
 import { getMilestoneById, type TradeMilestoneId } from '@/constants/tradeMilestones';
 import { resolveSubscription } from './subscription';
-
-function monthsSince(isoDate: string): number {
-  const start = new Date(isoDate);
-  const now = new Date();
-  return (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-}
+import { monthsSince } from '@/utils/helpers/dateHelpers';
+import { randomBytes } from 'crypto';
 
 type RedeemResult =
   | { couponCode: string }
@@ -44,7 +40,7 @@ export async function redeemMilestoneDiscount(
 
   // Generate a unique, human-readable coupon code: e.g. ROOKIE-A1B2C3D4
   const prefix = milestone.id.split('_')[0].toUpperCase(); // ROOKIE / SKILLED / EXPERT / MASTER / ALPHA
-  const suffix = Math.random().toString(36).slice(2, 10).toUpperCase();
+  const suffix = randomBytes(6).toString('hex').toUpperCase();
   const generatedCode = `${prefix}${suffix}`; // no hyphens — Polar requires alphanumeric only
 
   try {
@@ -88,7 +84,7 @@ export async function redeemProRetentionDiscount(): Promise<RedeemResult> {
   if (existing?.used) return { error: 'Discount already used', code: 'ALREADY_USED' };
   if (existing?.couponCode) return { couponCode: existing.couponCode };
 
-  const suffix = Math.random().toString(36).slice(2, 9).toUpperCase();
+  const suffix = randomBytes(6).toString('hex').toUpperCase();
   const generatedCode = `PROLOYALTY${suffix}`;
 
   try {
