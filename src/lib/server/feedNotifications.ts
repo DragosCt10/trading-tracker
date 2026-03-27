@@ -18,17 +18,21 @@ type NotifResult<T> =
 
 function mapNotifRow(row: Record<string, unknown>): FeedNotification {
   const actor = (row.actor ?? {}) as {
-    id: string; display_name: string; username: string; avatar_url: string | null; is_public: boolean;
+    id?: string; display_name?: string; username?: string; avatar_url?: string | null; is_public?: boolean;
   };
-  const isPublic = typeof actor.is_public === 'boolean' ? actor.is_public : true;
+  // When RLS blocks the actor profile (is_public=false), the join returns null
+  // and actor fields are undefined. Fall back to actor_id from the row itself.
+  const actorId = actor.id ?? (row.actor_id as string);
+  const hasActorData = !!actor.id;
+  const isPublic = hasActorData && actor.is_public === true;
   return {
     id:           row.id as string,
     recipient_id: row.recipient_id as string,
     actor: {
-      id:           actor.id,
-      display_name: isPublic ? actor.display_name : getAnonymousDisplayName(actor.id),
-      username:     actor.username,
-      avatar_url:   isPublic ? (actor.avatar_url ?? null) : null,
+      id:           actorId,
+      display_name: hasActorData && isPublic ? (actor.display_name ?? 'Unknown') : getAnonymousDisplayName(actorId),
+      username:     hasActorData && isPublic ? (actor.username ?? '') : '',
+      avatar_url:   hasActorData && isPublic ? (actor.avatar_url ?? null) : null,
     },
     type:       row.type as NotificationType,
     post_id:    (row.post_id as string | null) ?? null,
