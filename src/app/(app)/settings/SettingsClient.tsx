@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
-import { CreditCard, Loader2, Settings, User, Users } from 'lucide-react';
+import { Award, CreditCard, Loader2, Settings, User, Users } from 'lucide-react';
 import { BillingSettingsPanel } from '@/components/settings/BillingSettingsPanel';
 import ProfileSettingsPanel from '@/components/settings/ProfileSettingsPanel';
 import { Button } from '@/components/ui/button';
@@ -166,6 +166,12 @@ export default function SettingsClient({
               <Link href="/settings?tab=profile">
                 <Users className="h-4 w-4" />
                 Profile
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" className={navItemClass(false)}>
+              <Link href="/rewards">
+                <Award className="h-4 w-4" />
+                Rewards
               </Link>
             </Button>
           </div>

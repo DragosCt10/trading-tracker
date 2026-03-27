@@ -78,4 +78,6 @@ export interface IPaymentProvider {
   cancelSubscription(providerSubscriptionId: string): Promise<void>;
   /** Fetch the active subscription for a userId directly from the provider (bypasses webhook lag). */
   getActiveSubscriptionForUser(userId: string): Promise<ProviderSubscriptionData | null>;
+  /** Create a one-time percentage discount coupon code the user can apply themselves. */
+  createDiscountCode(params: { discountPct: number; discountLabel: string; code: string }): Promise<{ code: string }>;
 }

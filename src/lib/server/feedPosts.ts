@@ -6,7 +6,7 @@ import { getCachedSocialProfile } from './socialProfile';
 import { getCachedSubscription } from './subscription';
 import { isPublicChannelReadOnlyForProfile } from './feedChannels';
 import { checkPostMilestones } from './feedNotifications';
-import { mapAuthorRow, isValidCursor } from './feedHelpers';
+import { mapAuthorRow, isValidCursor, AUTHOR_SELECT_FIELDS } from './feedHelpers';
 import type { AuthorRow } from './feedHelpers';
 import type { FeedPost, TradeSnapshot, TradeSelectorItem, PaginatedResult } from '@/types/social';
 
@@ -86,9 +86,7 @@ function buildFeedQuery(
       id, author_id, content, post_type, channel_id,
       like_count, comment_count, is_hidden, created_at, updated_at,
       trade_snapshot,
-      author:author_id (
-        id, user_id, display_name, username, avatar_url, tier, is_public
-      )
+      author:author_id (${AUTHOR_SELECT_FIELDS})
     `)
     .eq('is_hidden', false)
     .order('created_at', { ascending: false })
@@ -186,7 +184,7 @@ export async function getPost(postId: string): Promise<FeedPost | null> {
       id, author_id, content, post_type, channel_id,
       like_count, comment_count, is_hidden, created_at, updated_at,
       trade_snapshot,
-      author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)
+      author:author_id (${AUTHOR_SELECT_FIELDS})
     `)
     .eq('id', postId)
     .eq('is_hidden', false)
@@ -519,7 +517,7 @@ export async function createPost(input: {
       trade_snapshot: tradeSnapshot,
       channel_id:     input.channelId ?? null,
     })
-    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)`)
+    .select(`*, author:author_id (${AUTHOR_SELECT_FIELDS})`)
     .single();
 
   if (error || !created) {
@@ -559,7 +557,7 @@ export async function updatePost(
     .update({ content, updated_at: new Date().toISOString() })
     .eq('id', postId)
     .eq('author_id', profile.id)
-    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)`)
+    .select(`*, author:author_id (${AUTHOR_SELECT_FIELDS})`)
     .single();
 
   if (error || !updated) {

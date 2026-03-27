@@ -35,6 +35,7 @@ function mapRow(row: Record<string, unknown>): SocialProfile {
     follower_count:  row.follower_count as number,
     following_count: row.following_count as number,
     tier:            (row.tier as TierId) ?? 'starter',
+    trade_badge:     (row.trade_badge as string | null) ?? null,
     created_at:      row.created_at as string,
     updated_at:      row.updated_at as string,
   };

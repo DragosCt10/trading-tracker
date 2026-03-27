@@ -1,5 +1,6 @@
 'use server';
 import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from './supabaseAdmin';
 import { getCachedUserSession } from '@/lib/server/session';
 import type { SavedNewsItem } from '@/types/account-settings';
 export interface SettingsRow {
@@ -103,4 +104,37 @@ export async function updateSavedMarkets(
   }
 
   return { error: null };
+}
+
+// ─── Feature Flags ──────────────────────────────────────────────────────────
+
+export async function getFeatureFlags(userId: string): Promise<Record<string, unknown>> {
+  if (!userId) return {};
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from('user_settings')
+    .select('feature_flags')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[getFeatureFlags] error:', error);
+    return {};
+  }
+
+  return (data?.feature_flags ?? {}) as Record<string, unknown>;
+}
+
+export async function updateFeatureFlags(
+  userId: string,
+  flags: Record<string, unknown>,
+): Promise<void> {
+  const supabase = createAdminClient();
+  await supabase
+    .from('user_settings')
+    .upsert(
+      { user_id: userId, feature_flags: flags },
+      { onConflict: 'user_id' },
+    );
 }

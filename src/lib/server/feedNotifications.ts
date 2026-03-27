@@ -7,6 +7,8 @@ import { getCachedSocialProfile } from './socialProfile';
 import { isValidCursor } from './feedHelpers';
 import { getUserActivityCount } from './feedActivity';
 import { getAnonymousDisplayName } from '@/utils/displayName';
+import { TRADE_MILESTONES, getMilestoneForCount } from '@/constants/tradeMilestones';
+import { getTotalExecutedTradeCount } from '@/lib/server/tradeStats';
 import type { FeedNotification, NotificationType, PaginatedResult } from '@/types/social';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -205,7 +207,7 @@ export async function deleteAllNotifications(): Promise<void> {
 // Called by other server actions (likePost, addComment, followUser).
 // Never throws — failures are logged and swallowed.
 
-const OFFER_TYPES: NotificationType[] = ['pro_3mo_discount', 'trade_milestone_10', 'post_milestone'];
+const OFFER_TYPES: NotificationType[] = ['pro_3mo_discount', 'pro_loyalty_unlocked', 'trade_milestone_10', 'post_milestone', 'trade_milestone_100', 'trade_milestone_200', 'trade_milestone_500', 'trade_milestone_750', 'trade_milestone_1000'];
 
 export async function checkPostMilestones(profileId: string): Promise<void> {
   try {
@@ -237,7 +239,7 @@ export async function checkPostMilestones(profileId: string): Promise<void> {
 
 export async function ensureOfferNotification(
   profileId: string,
-  type: 'pro_3mo_discount' | 'trade_milestone_10',
+  type: 'pro_3mo_discount' | 'pro_loyalty_unlocked' | 'trade_milestone_10',
 ): Promise<void> {
   try {
     // Use service role to bypass RLS — offer notifications are self-notifications
@@ -258,6 +260,136 @@ export async function ensureOfferNotification(
     });
   } catch (err) {
     console.error('[ensureOfferNotification] failed (non-fatal):', err);
+  }
+}
+
+/**
+ * Checks all trade milestones (100, 200, 500, 750, 1000) for a user.
+ * Idempotent — only inserts notifications for milestones not yet notified.
+ * Updates social_profiles.trade_badge with the highest achieved milestone.
+ * Fire-and-forget — never throws.
+ */
+export async function checkTradeMilestones(
+  profileId: string,
+  userId: string,
+): Promise<void> {
+  try {
+    const supabase = createAdminClient();
+
+    // Early return: if already at alpha_trader, no more milestones to earn
+    const { data: profile } = await supabase
+      .from('social_profiles')
+      .select('trade_badge')
+      .eq('id', profileId)
+      .maybeSingle();
+    if (profile?.trade_badge === 'alpha_trader') return;
+
+    const totalTrades = await getTotalExecutedTradeCount(userId);
+    const currentMilestone = getMilestoneForCount(totalTrades);
+    if (!currentMilestone) return; // < 100 trades
+
+    // Insert notifications for all crossed milestones (idempotent)
+    for (const milestone of TRADE_MILESTONES) {
+      if (totalTrades < milestone.minTrades) break;
+
+      const { count } = await supabase
+        .from('feed_notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('recipient_id', profileId)
+        .eq('type', milestone.notificationType);
+      if ((count ?? 0) > 0) continue;
+
+      await supabase.from('feed_notifications').insert({
+        recipient_id: profileId,
+        actor_id:     profileId,
+        type:         milestone.notificationType,
+        post_id:      null,
+        comment_id:   null,
+      });
+    }
+
+    // Update denormalized trade_badge to highest achieved milestone
+    if (profile?.trade_badge !== currentMilestone.id) {
+      await supabase
+        .from('social_profiles')
+        .update({ trade_badge: currentMilestone.id })
+        .eq('id', profileId);
+    }
+
+    // Update feature_flags with badge info + available discounts
+    const crossedMilestones = TRADE_MILESTONES.filter((m) => totalTrades >= m.minTrades);
+
+    // Read existing feature_flags to preserve discount "used" state
+    const { data: settingsRow } = await supabase
+      .from('user_settings')
+      .select('feature_flags')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const existingFlags = (settingsRow?.feature_flags ?? {}) as Record<string, unknown>;
+    const existingDiscounts = Array.isArray((existingFlags as { available_discounts?: unknown }).available_discounts)
+      ? (existingFlags as { available_discounts: { milestoneId: string; used: boolean }[] }).available_discounts
+      : [];
+
+    const availableDiscounts = crossedMilestones.map((m) => {
+      const existing = existingDiscounts.find((d) => d.milestoneId === m.id);
+      return {
+        milestoneId: m.id,
+        discountPct: m.discountPct,
+        used: existing?.used ?? false,
+      };
+    });
+
+    const featureFlags = {
+      ...existingFlags,
+      trade_badge: {
+        id: currentMilestone.id,
+        totalTrades,
+        achievedAt: new Date().toISOString(),
+      },
+      available_discounts: availableDiscounts,
+    };
+
+    await supabase
+      .from('user_settings')
+      .upsert(
+        { user_id: userId, feature_flags: featureFlags },
+        { onConflict: 'user_id' },
+      );
+  } catch (err) {
+    console.error('[checkTradeMilestones] failed (non-fatal):', err);
+  }
+}
+
+/**
+ * Looks up the social profile for a user, syncs trade_badge, and fires
+ * the pro_3mo_discount notification once the user has been on PRO for ≥3 months.
+ * Called on Rewards page load — idempotent, non-fatal.
+ */
+export async function syncUserBadge(userId: string, proSinceDate?: string | null): Promise<void> {
+  try {
+    const supabase = createAdminClient();
+    const { data: profileRow } = await supabase
+      .from('social_profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (!profileRow) return;
+    const profileId = (profileRow as { id: string }).id;
+
+    await checkTradeMilestones(profileId, userId);
+
+    // Fire pro_loyalty_unlocked notification once user has been on PRO for ≥3 months
+    if (proSinceDate) {
+      const start = new Date(proSinceDate);
+      const now = new Date();
+      const months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+      if (months >= 3) {
+        void ensureOfferNotification(profileId, 'pro_loyalty_unlocked');
+      }
+    }
+  } catch {
+    // Non-fatal
   }
 }
 

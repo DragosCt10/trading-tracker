@@ -156,6 +156,7 @@ export default function ChannelClient({ channel, initialFeed, initialMembership,
         </div>
       </div>
 
+      <div>
       {isMemberLoading ? (
         <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-4 space-y-3">
           <div className="h-4 w-3/4 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse" />
@@ -168,14 +169,16 @@ export default function ChannelClient({ channel, initialFeed, initialMembership,
       ) : removedByOwner && currentProfile ? (
         <ChannelPublicRemovedCard />
       ) : isMember && subscription && currentProfile && (
-        <InlineCreatePostCard
-          userId={userId}
-          profile={currentProfile}
-          subscription={subscription}
-          onSubmit={handleCreate}
-          isSubmitting={create.isPending}
-          submitError={createError}
-        />
+        <div className="mb-6">
+          <InlineCreatePostCard
+            userId={userId}
+            profile={currentProfile}
+            subscription={subscription}
+            onSubmit={handleCreate}
+            isSubmitting={create.isPending}
+            submitError={createError}
+          />
+        </div> 
       )}
 
       {/* Posts */}
@@ -195,6 +198,7 @@ export default function ChannelClient({ channel, initialFeed, initialMembership,
         emptyMessage="No posts in this channel yet"
         emptySubtext="Be the first to post here!"
       />
+      </div>
 
       <ChannelMembersModal
         channelId={channel.id}

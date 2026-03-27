@@ -76,7 +76,7 @@ export default function FeedPostList({
   if (isLoading) {
     const postSkeletons = Math.max(0, skeletonCount - (composerSkeletonFirst ? 1 : 0));
     return (
-      <div className="space-y-3">
+      <div>
         {composerSkeletonFirst && <CreatePostCardSkeleton />}
         {Array.from({ length: postSkeletons }).map((_, i) => (
           <PostCardSkeleton key={composerSkeletonFirst ? `post-${i}` : i} />
@@ -87,7 +87,7 @@ export default function FeedPostList({
 
   if (posts.length === 0) {
     return (
-      <div className={`${FEED_SURFACE_CLASS} p-10 text-center`}>
+      <div className={`${FEED_SURFACE_CLASS} p-10 text-center mt-6`}>
         <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{emptyMessage}</p>
         {emptySubtext && (
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-500">{emptySubtext}</p>
@@ -104,30 +104,28 @@ export default function FeedPostList({
       endReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
       style={hasCustomScrollParent ? { height: '100%' } : undefined}
       itemContent={(_, post) => (
-        <div className="mb-4">
-          <PostCard
-            key={post.id}
-            post={post}
-            currentUserId={currentUserId}
-            currentProfileId={currentProfileId}
-            currentUserTier={currentUserTier}
-            isLightMode={isLightMode}
-            mounted={mounted}
-            onLike={onLike}
-            onDelete={onDelete}
-            onEdit={onEdit}
-            onReport={onReport}
-            onAuthorClick={onAuthorClick}
-            showAuthorFollowButton
-            initialFollowing={followedProfileIdSet.has(post.author.id)}
-            isFollowStateLoading={isFollowingIdsLoading}
-          />
-        </div>
+        <PostCard
+          key={post.id}
+          post={post}
+          currentUserId={currentUserId}
+          currentProfileId={currentProfileId}
+          currentUserTier={currentUserTier}
+          isLightMode={isLightMode}
+          mounted={mounted}
+          onLike={onLike}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          onReport={onReport}
+          onAuthorClick={onAuthorClick}
+          showAuthorFollowButton
+          initialFollowing={followedProfileIdSet.has(post.author.id)}
+          isFollowStateLoading={isFollowingIdsLoading}
+        />
       )}
       components={{
         Footer: () =>
           isFetchingNextPage ? (
-            <div className="space-y-3 mt-3">
+            <div>
               <PostCardSkeleton />
               <PostCardSkeleton />
             </div>

@@ -5,6 +5,7 @@ import { Link2, Loader2, X, PlusCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import TierBadge from './TierBadge';
+import RewardsBadge from './RewardsBadge';
 import TradePreviewCard from './TradePreviewCard';
 import AttachTradeModal from './AttachTradeModal';
 import { useTheme } from '@/hooks/useTheme';
@@ -200,6 +201,7 @@ export default function InlineCreatePostCard({
                     />
                   )}
                   {mounted && <TierBadge tier={authorTier} isLightMode={isLightMode} />}
+                  {mounted && profile.trade_badge && <RewardsBadge milestoneId={profile.trade_badge} />}
                 </div>
 
                 <textarea

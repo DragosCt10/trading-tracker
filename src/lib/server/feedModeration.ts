@@ -3,7 +3,7 @@
 import { createAdminClient } from './supabaseAdmin';
 import { isAdmin } from './admin';
 import { notifyUserAccountBanned, notifyUserAccountUnbanned } from './feedNotifications';
-import { mapAuthorRow, isValidCursor } from './feedHelpers';
+import { mapAuthorRow, isValidCursor, AUTHOR_SELECT_FIELDS } from './feedHelpers';
 import type { AuthorRow } from './feedHelpers';
 import type { FeedPost, SocialProfile, PaginatedResult } from '@/types/social';
 
@@ -201,7 +201,7 @@ export async function getHiddenPosts(
   const supabase = createAdminClient();
   let q = supabase
     .from('feed_posts')
-    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)`)
+    .select(`*, author:author_id (${AUTHOR_SELECT_FIELDS})`)
     .eq('is_hidden', true)
     .order('created_at', { ascending: false })
     .limit(limit + 1);

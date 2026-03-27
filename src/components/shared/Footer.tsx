@@ -9,6 +9,7 @@ const footerLinks = {
     { label: "Pricing", href: "/pricing" },
     { label: "Features", href: "/#features" },
     { label: "Dashboard", href: "/" },
+    { label: "Rewards", href: "/rewards" },
   ],
   feed: [
     { label: "Posts", href: "/feed" },

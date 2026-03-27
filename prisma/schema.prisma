@@ -893,8 +893,14 @@ enum notification_type {
   private_channel_added
   private_channel_removed
   pro_3mo_discount
+  pro_loyalty_unlocked
   trade_milestone_10
   post_milestone
+  trade_milestone_100
+  trade_milestone_200
+  trade_milestone_500
+  trade_milestone_750
+  trade_milestone_1000
 
   @@schema("public")
 }
@@ -914,6 +920,8 @@ model social_profiles {
   following_count Int       @default(0)
   /// Denormalized from subscriptions. Updated by subscription server actions.
   tier            String    @default("starter") @db.VarChar(20)
+  /// Denormalized highest trade milestone badge (e.g. 'rookie_trader').
+  trade_badge     String?   @db.VarChar(30)
   created_at      DateTime  @default(now()) @db.Timestamptz(6)
   updated_at      DateTime  @default(now()) @db.Timestamptz(6)
 

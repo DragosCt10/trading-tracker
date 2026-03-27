@@ -1356,6 +1356,43 @@ html.dark[data-color-theme="violet"] {
   color: var(--tc-primary);
 }
 
+/* ---- Badge color palettes — fixed per milestone tier, light + dark ---- */
+:root {
+  /* Rookie — steel gray */
+  --badge-rookie-bg: linear-gradient(to bottom right, rgb(138 143 152 / 0.18), rgb(75 85 99 / 0.12));
+  --badge-rookie-border: rgb(138 143 152 / 0.4);
+  --badge-rookie-text: #4B5563;
+  /* Skilled — ice blue */
+  --badge-skilled-bg: linear-gradient(to bottom right, rgb(59 130 246 / 0.18), rgb(37 99 235 / 0.12));
+  --badge-skilled-border: rgb(59 130 246 / 0.4);
+  --badge-skilled-text: #1d4ed8;
+  /* Expert — copper */
+  --badge-expert-bg: linear-gradient(to bottom right, rgb(196 106 46 / 0.18), rgb(146 64 14 / 0.12));
+  --badge-expert-border: rgb(196 106 46 / 0.4);
+  --badge-expert-text: #92400E;
+  /* Master — royal purple */
+  --badge-master-bg: linear-gradient(to bottom right, rgb(168 85 247 / 0.18), rgb(124 58 237 / 0.12));
+  --badge-master-border: rgb(168 85 247 / 0.4);
+  --badge-master-text: #7e22ce;
+  /* Alpha — gold */
+  --badge-alpha-bg: linear-gradient(to bottom right, rgb(245 158 11 / 0.18), rgb(217 119 6 / 0.12));
+  --badge-alpha-border: rgb(245 158 11 / 0.4);
+  --badge-alpha-text: #b45309;
+}
+.dark {
+  --badge-rookie-bg: linear-gradient(to bottom right, rgb(138 143 152 / 0.22), rgb(75 85 99 / 0.16));
+  --badge-rookie-text: #B0B5C4;
+  --badge-skilled-bg: linear-gradient(to bottom right, rgb(59 130 246 / 0.22), rgb(37 99 235 / 0.16));
+  --badge-skilled-text: #60a5fa;
+  --badge-expert-bg: linear-gradient(to bottom right, rgb(196 106 46 / 0.22), rgb(146 64 14 / 0.16));
+  --badge-expert-text: #E0996B;
+  --badge-master-bg: linear-gradient(to bottom right, rgb(168 85 247 / 0.22), rgb(124 58 237 / 0.16));
+  --badge-master-text: #c084fc;
+  --badge-alpha-bg: linear-gradient(to bottom right, rgb(245 158 11 / 0.22), rgb(217 119 6 / 0.16));
+  --badge-alpha-text: #fbbf24;
+}
+
+
 /* ---- Import Trades drop zone (theme-aware on hover/drag; neutral default) ---- */
 .import-drop-zone {
   border-color: rgb(226 232 240); /* slate-200 */

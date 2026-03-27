@@ -151,6 +151,34 @@ export class PolarProvider implements IPaymentProvider {
     return { checkoutUrl: checkout.url };
   }
 
+  async createDiscountCode({
+    discountPct,
+    discountLabel,
+    code,
+  }: { discountPct: number; discountLabel: string; code: string }): Promise<{ code: string }> {
+    // Create a one-time percentage discount coupon via Polar API.
+    // Polar uses basis_points (1/100th of a percent): 5% = 500, 20% = 2000.
+    // 'code' must be provided — Polar does not auto-generate coupon codes.
+    const discountRes = await this.polarFetch('/v1/discounts/', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: discountLabel,
+        code,
+        type: 'percentage',
+        basis_points: discountPct * 100,
+        duration: 'once',
+        max_redemptions: 1,
+      }),
+    });
+
+    if (!discountRes.ok) {
+      const err = await discountRes.text().catch(() => 'unknown');
+      throw new Error(`Failed to create Polar discount: ${discountRes.status} ${err}`);
+    }
+
+    return { code };
+  }
+
   async createCustomerPortalSession({
     customerId,
     returnUrl,

@@ -1,12 +1,13 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from './supabaseAdmin';
 import { Trade } from '@/types/trade';
 import type { ParsedTrade } from '@/utils/tradeImportParser';
 import { getAccountsForMode } from '@/lib/server/accounts';
 import { getCachedUserSession } from '@/lib/server/session';
 import { calculateRRStats } from '@/utils/calculateRMultiple';
-import { ensureOfferNotification } from '@/lib/server/feedNotifications';
+import { ensureOfferNotification, checkTradeMilestones } from '@/lib/server/feedNotifications';
  
 /**
  * Normalizes trade_screens from DB. Falls back to legacy trade_link / liquidity_taken
@@ -428,6 +429,9 @@ async function triggerOfferNotifications(
     if ((count ?? 0) >= 10) {
       void ensureOfferNotification(profileId, 'trade_milestone_10');
     }
+
+    // Trade milestone badges (100, 200, 500, 750, 1000+)
+    void checkTradeMilestones(profileId, userId);
   } catch {
     // Fire-and-forget — never throw
   }

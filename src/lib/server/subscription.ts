@@ -21,6 +21,7 @@ const STARTER_SUBSCRIPTION: ResolvedSubscription = {
   priceAmount: null,
   taxAmount: null,
   currency: null,
+  createdAt: null,
 };
 
 function getAppUrl(): string {
@@ -61,6 +62,7 @@ async function _getSubscription(userId: string): Promise<ResolvedSubscription> {
 
 export const getCachedSubscription = cache(_getSubscription);
 
+
 export async function resolveSubscription(userId: string): Promise<ResolvedSubscription> {
   return getCachedSubscription(userId);
 }
@@ -94,6 +96,7 @@ function resolveFromRow(row: SubscriptionRow): ResolvedSubscription {
     priceAmount: row.price_amount ?? null,
     taxAmount: row.tax_amount ?? null,
     currency: row.currency ?? null,
+    createdAt: isActive ? (row.created_at ?? null) : null,
   };
 }
 

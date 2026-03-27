@@ -1,7 +1,7 @@
 import type { TierId } from './subscription';
 
 export type PostType = 'text' | 'trade_share';
-export type NotificationType = 'like' | 'comment' | 'follow' | 'account_ban' | 'account_unban' | 'channel_added' | 'channel_removed' | 'private_channel_added' | 'private_channel_removed' | 'pro_3mo_discount' | 'trade_milestone_10' | 'post_milestone';
+export type NotificationType = 'like' | 'comment' | 'follow' | 'account_ban' | 'account_unban' | 'channel_added' | 'channel_removed' | 'private_channel_added' | 'private_channel_removed' | 'pro_3mo_discount' | 'pro_loyalty_unlocked' | 'trade_milestone_10' | 'post_milestone' | 'trade_milestone_100' | 'trade_milestone_200' | 'trade_milestone_500' | 'trade_milestone_750' | 'trade_milestone_1000';
 export type ChannelMemberRole = 'owner' | 'moderator' | 'member';
 export type ReportStatus = 'pending' | 'reviewed' | 'dismissed';
 
@@ -38,6 +38,8 @@ export interface SocialProfile {
   following_count: number;
   /** Denormalized from subscriptions. */
   tier: TierId;
+  /** Denormalized highest trade milestone badge (e.g. 'rookie_trader'). */
+  trade_badge: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -46,7 +48,7 @@ export interface SocialProfile {
 
 export interface FeedPost {
   id: string;
-  author: Pick<SocialProfile, 'id' | 'user_id' | 'display_name' | 'username' | 'avatar_url' | 'tier' | 'is_public'>;
+  author: Pick<SocialProfile, 'id' | 'user_id' | 'display_name' | 'username' | 'avatar_url' | 'tier' | 'is_public' | 'trade_badge'>;
   content: string;
   post_type: PostType;
   trade_snapshot: TradeSnapshot | null;
@@ -65,7 +67,7 @@ export interface FeedPost {
 export interface FeedComment {
   id: string;
   post_id: string;
-  author: Pick<SocialProfile, 'id' | 'user_id' | 'display_name' | 'username' | 'avatar_url' | 'tier' | 'is_public'>;
+  author: Pick<SocialProfile, 'id' | 'user_id' | 'display_name' | 'username' | 'avatar_url' | 'tier' | 'is_public' | 'trade_badge'>;
   content: string;
   parent_id: string | null;
   is_hidden: boolean;
@@ -110,7 +112,7 @@ export interface ChannelMember {
   user_id: string;
   role: ChannelMemberRole;
   joined_at: string;
-  profile?: Pick<SocialProfile, 'id' | 'display_name' | 'username' | 'avatar_url' | 'tier' | 'is_public'>;
+  profile?: Pick<SocialProfile, 'id' | 'display_name' | 'username' | 'avatar_url' | 'tier' | 'is_public' | 'trade_badge'>;
 }
 
 // ─── ChannelInvite ───────────────────────────────────────────────────────────

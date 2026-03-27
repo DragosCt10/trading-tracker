@@ -6,7 +6,7 @@ import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { getCachedSubscription } from './subscription';
 import type { ChannelMember, FeedChannel, PaginatedResult } from '@/types/social';
-import { isValidCursor } from './feedHelpers';
+import { isValidCursor, PROFILE_SELECT_FIELDS } from './feedHelpers';
 import { notifyChannelMemberAdded, notifyChannelMemberRemoved, notifyPrivateChannelMemberAdded, notifyPrivateChannelMemberRemoved } from './feedNotifications';
 import type { TierId } from '@/types/subscription';
 
@@ -60,6 +60,7 @@ function mapChannelMemberRow(row: Record<string, unknown>): ChannelMember {
           avatar_url: (rawProfile.avatar_url as string | null) ?? null,
           tier: rawProfile.tier as TierId,
           is_public: (rawProfile.is_public as boolean | null) ?? true,
+          trade_badge: (rawProfile.trade_badge as string | null) ?? null,
         }
       : undefined,
   };
@@ -530,7 +531,7 @@ export async function getChannelMembersForOwner(
   const supabase = await createClient();
   let query = supabase
     .from('channel_members')
-    .select('channel_id, user_id, role, joined_at, profile:social_profiles!channel_members_user_id_fkey(id, display_name, username, avatar_url, tier, is_public)')
+    .select(`channel_id, user_id, role, joined_at, profile:social_profiles!channel_members_user_id_fkey(${PROFILE_SELECT_FIELDS})`)
     .eq('channel_id', channelId)
     .order('joined_at', { ascending: false })
     .limit(limit + 1);
@@ -567,6 +568,7 @@ export async function getChannelMembersForOwner(
         avatar_url:   profile.avatar_url ?? null,
         tier:         profile.tier,
         is_public:    profile.is_public ?? true,
+        trade_badge:  profile.trade_badge ?? null,
       },
     });
   }
@@ -624,7 +626,7 @@ export async function getChannelMembers(
 
   let query = supabase
     .from('channel_members')
-    .select('channel_id, user_id, role, joined_at, profile:social_profiles!channel_members_user_id_fkey(id, display_name, username, avatar_url, tier, is_public)')
+    .select(`channel_id, user_id, role, joined_at, profile:social_profiles!channel_members_user_id_fkey(${PROFILE_SELECT_FIELDS})`)
     .eq('channel_id', channelId)
     .order('joined_at', { ascending: false })
     .limit(limit + 1);
@@ -720,7 +722,7 @@ export async function addChannelMemberByHandle(
 
   const { data: createdMembership, error: membershipError } = await supabase
     .from('channel_members')
-    .select('channel_id, user_id, role, joined_at, profile:social_profiles!channel_members_user_id_fkey(id, display_name, username, avatar_url, tier, is_public)')
+    .select(`channel_id, user_id, role, joined_at, profile:social_profiles!channel_members_user_id_fkey(${PROFILE_SELECT_FIELDS})`)
     .eq('channel_id', channelId)
     .eq('user_id', targetProfileId)
     .single();

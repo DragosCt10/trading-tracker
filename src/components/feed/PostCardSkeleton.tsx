@@ -2,9 +2,9 @@ import { FEED_CARD_SKELETON_SURFACE_CLASS } from './feedCardStyles';
 
 export default function PostCardSkeleton() {
   return (
-    <div className={`${FEED_CARD_SKELETON_SURFACE_CLASS} p-5`}>
+    <div className={`${FEED_CARD_SKELETON_SURFACE_CLASS} p-5 mb-6`}>
       {/* Author header */}
-      <div className="mb-5 flex items-start gap-3">
+      <div className="mb-6 flex items-start gap-3">
         {/* Avatar */}
         <div className="w-9 h-9 rounded-full bg-slate-200/80 dark:bg-slate-700/60 shrink-0" />
         <div className="flex-1 min-w-0 space-y-1.5">

@@ -5,7 +5,7 @@ import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { createNotification, checkPostMilestones } from './feedNotifications';
 import { isPublicChannelReadOnlyForProfile } from './feedChannels';
-import { mapAuthorRow, isValidCursor } from './feedHelpers';
+import { mapAuthorRow, isValidCursor, AUTHOR_SELECT_FIELDS } from './feedHelpers';
 import type { AuthorRow } from './feedHelpers';
 import type { FeedComment, PaginatedResult } from '@/types/social';
 
@@ -96,7 +96,7 @@ export async function getComments(
     .from('feed_comments')
     .select(`
       id, post_id, author_id, content, parent_id, is_hidden, reply_count, created_at, updated_at,
-      author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)
+      author:author_id (${AUTHOR_SELECT_FIELDS})
     `)
     .eq('post_id', postId)
     .eq('is_hidden', false)
@@ -130,7 +130,7 @@ export async function getReplies(
     .from('feed_comments')
     .select(`
       *,
-      author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)
+      author:author_id (${AUTHOR_SELECT_FIELDS})
     `)
     .eq('parent_id', commentId)
     .eq('is_hidden', false)
@@ -212,7 +212,7 @@ export async function addComment(
       content:   content.trim(),
       parent_id: parentId ?? null,
     })
-    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)`)
+    .select(`*, author:author_id (${AUTHOR_SELECT_FIELDS})`)
     .single();
 
   if (error || !created) {
@@ -260,7 +260,7 @@ export async function editComment(
     .eq('id', commentId)
     .eq('author_id', profile.id)
     .gte('created_at', editWindowStartIso)
-    .select(`*, author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)`)
+    .select(`*, author:author_id (${AUTHOR_SELECT_FIELDS})`)
     .single();
 
   if (error || !updated) {

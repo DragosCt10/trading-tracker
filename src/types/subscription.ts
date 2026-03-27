@@ -99,4 +99,6 @@ export interface ResolvedSubscription {
   taxAmount: number | null;
   /** ISO currency code, lowercase (e.g. 'usd'). */
   currency: string | null;
+  /** ISO timestamp of when the subscription row was first created. Null for starter/fallback. */
+  createdAt: string | null;
 }

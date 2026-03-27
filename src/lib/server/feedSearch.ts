@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
-import { mapAuthorRow, isValidCursor } from './feedHelpers';
+import { mapAuthorRow, isValidCursor, AUTHOR_SELECT_FIELDS } from './feedHelpers';
 import type { AuthorRow } from './feedHelpers';
 import type { FeedPost, SocialProfile, PaginatedResult } from '@/types/social';
 
@@ -28,7 +28,7 @@ export async function searchPosts(
 
   let q = supabase
     .from('feed_posts')
-    .select(`id, content, post_type, like_count, comment_count, created_at, updated_at, author:author_id (id, user_id, display_name, username, avatar_url, tier, is_public)`)
+    .select(`id, content, post_type, like_count, comment_count, created_at, updated_at, author:author_id (${AUTHOR_SELECT_FIELDS})`)
     .eq('is_hidden', false)
     .textSearch('content', tsQuery, { type: 'websearch', config: 'english' })
     .order('created_at', { ascending: false })

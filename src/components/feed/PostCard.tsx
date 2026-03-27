@@ -4,6 +4,7 @@ import { memo, useState } from 'react';
 import Link from 'next/link';
 import { Heart, MessageCircle, MoreHorizontal, Pencil, Trash2, Flag, X } from 'lucide-react';
 import TierBadge from './TierBadge';
+import RewardsBadge from './RewardsBadge';
 import FollowButton from './FollowButton';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -117,7 +118,7 @@ function PostCardComponent({
   }
 
   return (
-    <article data-post-id={post.id} className={`${FEED_CARD_SURFACE_CLASS} p-5`}>
+    <article data-post-id={post.id} className={`${FEED_CARD_SURFACE_CLASS} p-5 mb-6`}>
       {/* Author header */}
       <div className="mb-5 flex items-start gap-3">
         <Link href={`/profile/${post.author.username}`} onClick={handleAuthorClick} className="shrink-0">
@@ -144,6 +145,9 @@ function PostCardComponent({
             )}
             {mounted && isPro && (
               <TierBadge tier={authorTier} isLightMode={isLightMode} />
+            )}
+            {mounted && post.author.trade_badge && (
+              <RewardsBadge milestoneId={post.author.trade_badge} />
             )}
           </div>
           <div className="flex items-center gap-1.5 mt-1">
