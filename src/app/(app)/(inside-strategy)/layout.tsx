@@ -3,7 +3,7 @@
 import { ReactNode, useState, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { PlusCircle, TrendingUp, BarChart3, NotebookPen, LayoutGrid } from 'lucide-react';
+import { PlusCircle, TrendingUp, BarChart3, NotebookPen, LayoutGrid, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { NewTradeModal } from '@/components/dynamicComponents';
@@ -16,6 +16,17 @@ interface InsideStrategyLayoutProps {
 export default function InsideStrategyLayout({ children }: InsideStrategyLayoutProps) {
   const pathname = usePathname();
   const [newTradeModalOpen, setNewTradeModalOpen] = useState(false);
+  const [isNavHidden, setIsNavHidden] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('sidebar-nav-hidden') === 'true';
+  });
+
+  const toggleNav = () => {
+    setIsNavHidden(prev => {
+      localStorage.setItem('sidebar-nav-hidden', String(!prev));
+      return !prev;
+    });
+  };
 
   // Extract strategy slug from routes: /strategy/[strategy] or /strategy/[strategy]/my-trades or /strategy/[strategy]/daily-journal
   const currentStrategySlug = useMemo(() => {
@@ -68,10 +79,36 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
     <BECalcProvider>
       {children}
 
-      {/* Floating Left Bar - Centered Middle */}
-      <div className="fixed left-0 top-1/2 -translate-y-1/2 z-40 hidden lg:block group">
-        <div className="relative rounded-r-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden transition-all duration-300 w-23 hover:w-52">
+      {/* Reveal strip — shown when nav is hidden */}
+      {isNavHidden && (
+        <button
+          onClick={toggleNav}
+          aria-label="Show navigation"
+          className="fixed left-0 top-1/2 -translate-y-1/2 z-40 hidden lg:flex items-center justify-center h-24 w-7 rounded-r-xl overflow-hidden bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl border border-l-0 border-slate-200/70 dark:border-slate-700/50 cursor-pointer group/reveal"
+        >
           <div className="themed-nav-overlay themed-nav-overlay--vertical pointer-events-none absolute inset-0" />
+          <ChevronRight className="relative z-10 h-4 w-4 text-slate-400 dark:text-slate-500 transition-transform duration-300 ease-in-out group-hover/reveal:translate-x-0.5 group-hover/reveal:scale-110 group-hover/reveal:text-slate-600 dark:group-hover/reveal:text-slate-300" />
+        </button>
+      )}
+
+      {/* Floating Left Bar - Centered Middle */}
+      {/* group/nav: hover zone for chevron. group/card is on the card div for label expansion. */}
+      <div className={cn(
+        'fixed left-0 top-1/2 -translate-y-1/2 z-40 hidden lg:block group/nav',
+        'transition-transform duration-300 ease-in-out',
+        isNavHidden && '-translate-x-full'
+      )}>
+        {/* group/card: hover zone for label expansion and card width. */}
+        <div className="relative group/card rounded-r-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 overflow-hidden transition-all duration-300 w-23 hover:w-52">
+          <div className="themed-nav-overlay themed-nav-overlay--vertical pointer-events-none absolute inset-0" />
+          {/* Hide chevron — inside card, right edge, vertically centered */}
+          <button
+            onClick={toggleNav}
+            aria-label="Hide navigation"
+            className="group/hide absolute right-0 top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover/card:opacity-100 transition-opacity duration-200 h-10 w-5 flex items-center justify-center rounded-l-lg text-slate-400 dark:text-slate-500 bg-slate-100/80 dark:bg-slate-800/60 border border-r-0 border-slate-200/70 dark:border-slate-700/50 cursor-pointer"
+          >
+            <ChevronLeft className="h-4 w-4 transition-transform duration-300 ease-in-out group-hover/hide:-translate-x-0.5 group-hover/hide:scale-110 group-hover/hide:text-slate-600 dark:group-hover/hide:text-slate-300" />
+          </button>
           <div className="relative flex flex-col gap-2 p-3">
             <Button
               variant="ghost"
@@ -81,7 +118,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
             >
               <Link href={analyticsUrl} className="block w-full h-full relative min-h-[40px]">
                 <BarChart3 className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
-                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Analytics</span>
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover/card:max-w-[140px] group-hover/card:opacity-100 transition-all duration-300 whitespace-nowrap">Analytics</span>
               </Link>
             </Button>
             <Button
@@ -92,7 +129,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
             >
               <Link href={dailyJournalUrl} className="block w-full h-full relative min-h-[40px]">
                 <NotebookPen className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
-                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Daily Journal</span>
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover/card:max-w-[140px] group-hover/card:opacity-100 transition-all duration-300 whitespace-nowrap">Daily Journal</span>
               </Link>
             </Button>
             <Button
@@ -108,7 +145,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
             >
               <Link href={customStatsUrl} className="block w-full h-full relative min-h-[40px]">
                 <LayoutGrid className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
-                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">Custom Stats</span>
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover/card:max-w-[140px] group-hover/card:opacity-100 transition-all duration-300 whitespace-nowrap">Custom Stats</span>
                 {isActive('/custom-stats') && (
                   <div className="absolute inset-0 -translate-x-full group-hover/customstats:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 )}
@@ -122,7 +159,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
             >
               <Link href={myTradesUrl} className="block w-full h-full relative min-h-[40px]">
                 <TrendingUp className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
-                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">My Trades</span>
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover/card:max-w-[140px] group-hover/card:opacity-100 transition-all duration-300 whitespace-nowrap">My Trades</span>
               </Link>
             </Button>
             <Button
@@ -133,9 +170,9 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
             >
               <div className="block w-full h-full relative min-h-[40px]">
                 <PlusCircle className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
-                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover:max-w-[140px] group-hover:opacity-100 transition-all duration-300 whitespace-nowrap text-white">New Trade</span>
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover/card:max-w-[140px] group-hover/card:opacity-100 transition-all duration-300 whitespace-nowrap text-white">New Trade</span>
               </div>
-              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+              <div className="absolute inset-0 -translate-x-full group-hover/newtrade:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
             </Button>
           </div>
         </div>
