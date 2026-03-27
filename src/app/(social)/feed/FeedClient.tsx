@@ -17,6 +17,7 @@ import InlineCreatePostCard from '@/components/feed/InlineCreatePostCard';
 import NewPostsBanner from '@/components/feed/NewPostsBanner';
 import { useNewPostsNotifier } from '@/hooks/useNewPostsNotifier';
 import SearchBar from '@/components/feed/SearchBar';
+import ActivityProgressCard from '@/components/feed/ActivityProgressCard';
 
 const EditPostModal      = dynamic(() => import('@/components/feed/EditPostModal'));
 const CreateChannelModal = dynamic(() => import('@/components/feed/CreateChannelModal'));
@@ -35,6 +36,7 @@ interface FeedClientProps {
   initialSubscription?: ResolvedSubscription | null;
   initialMyChannels?: FeedChannel[];
   initialFollowingFeedData?: PaginatedResult<FeedPost>;
+  initialActivityCount?: { posts: number; comments: number; total: number };
 }
 
 type FeedTab = 'public' | 'following' | 'channels';
@@ -66,7 +68,7 @@ function ChannelListSkeleton({ rows = 3, compact = false }: { rows?: number; com
   );
 }
 
-export default function FeedClient({ userId, initialProfile, initialFeedData, initialSubscription, initialMyChannels, initialFollowingFeedData }: FeedClientProps) {
+export default function FeedClient({ userId, initialProfile, initialFeedData, initialSubscription, initialMyChannels, initialFollowingFeedData, initialActivityCount }: FeedClientProps) {
   const uid = userId ?? undefined;
   const { subscription } = useSubscription({ userId: uid, initialData: initialSubscription ?? undefined });
   const [createError, setCreateError] = useState('');
@@ -371,6 +373,8 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
               )}
             </div>
 
+            {initialProfile && <ActivityProgressCard profileId={initialProfile.id} initialCount={initialActivityCount} />}
+
             {discoverChannels.length > 0 && (
               <div className={cn(FEED_SURFACE_CLASS, 'overflow-hidden')}>
                 <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/40">
@@ -582,6 +586,33 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
               )}
             </div>
           </div>
+
+          {initialProfile && <ActivityProgressCard profileId={initialProfile.id} initialCount={initialActivityCount} />}
+
+          {mounted && userId && initialProfile && subscription && (
+            <div
+              className={cn(
+                'transition-all duration-300 ease-in-out will-change-transform will-change-opacity',
+                !feedChromeVisible
+                  ? 'opacity-100 translate-y-0'
+                  : 'opacity-0 translate-y-2 scale-95 pointer-events-none'
+              )}
+            >
+              <Button
+                type="button"
+                onClick={handleQuickPost}
+                className="w-full h-12 cursor-pointer themed-btn-primary rounded-xl !text-white font-semibold text-base border-0 shadow-lg shadow-violet-500/30 relative overflow-hidden group"
+                aria-label="Scroll to top and start writing a post"
+                title="Post"
+              >
+                <span className="relative z-10 flex items-center gap-2.5 text-white">
+                  <PlusCircle className="w-5 h-5 text-white" />
+                  <span>Post</span>
+                </span>
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+              </Button>
+            </div>
+          )}
         </aside>
       </div>
 
@@ -632,32 +663,6 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
         onClose={() => setPreviewUsername(null)}
       />
 
-      {mounted && userId && initialProfile && subscription && activeTab !== 'channels' && (
-        <div
-          className={cn(
-            'hidden lg:flex justify-center fixed bottom-6 z-40 right-[max(1rem,calc((100vw-64rem)/2+0rem))] w-72',
-            'transition-all duration-300 ease-in-out will-change-transform will-change-opacity',
-            !feedChromeVisible
-              ? 'opacity-100 translate-y-0 scale-100 pointer-events-none'
-              : 'opacity-0 translate-y-2 scale-95 pointer-events-none'
-          )}
-        >
-          <Button
-            type="button"
-            onClick={handleQuickPost}
-            className="h-12 cursor-pointer px-8 themed-btn-primary rounded-xl !text-white font-semibold text-base border-0 shadow-lg shadow-violet-500/30 pointer-events-auto relative overflow-hidden group"
-            aria-label="Scroll to top and start writing a post"
-            title="Post"
-            tabIndex={!feedChromeVisible ? 0 : -1}
-          >
-            <span className="relative z-10 flex items-center gap-2.5 text-white">
-              <PlusCircle className="w-5 h-5 text-white" />
-              <span>Post</span>
-            </span>
-            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { ensureSocialProfile } from '@/lib/server/socialProfile';
 import { getPublicFeed, getTimeline } from '@/lib/server/feedPosts';
 import { resolveSubscription } from '@/lib/server/subscription';
 import { getMyChannels } from '@/lib/server/feedChannels';
+import { getUserActivityCount } from '@/lib/server/feedActivity';
 import FeedClient from './FeedClient';
 
 export const dynamic = 'force-dynamic';
@@ -24,6 +25,10 @@ export default async function FeedPage() {
     user ? getTimeline(undefined, 20) : null,
   ]);
 
+  const initialActivityCount = profile
+    ? await getUserActivityCount(profile.id)
+    : null;
+
   return (
     <FeedClient
       userId={user?.id ?? null}
@@ -32,6 +37,7 @@ export default async function FeedPage() {
       initialSubscription={initialSubscription}
       initialMyChannels={initialMyChannels ?? []}
       initialFollowingFeedData={initialFollowingFeedData ?? undefined}
+      initialActivityCount={initialActivityCount ?? undefined}
     />
   );
 }

@@ -1,7 +1,7 @@
 import type { TierId } from './subscription';
 
 export type PostType = 'text' | 'trade_share';
-export type NotificationType = 'like' | 'comment' | 'follow' | 'account_ban' | 'account_unban' | 'channel_added' | 'channel_removed' | 'private_channel_added' | 'private_channel_removed' | 'pro_3mo_discount' | 'trade_milestone_10';
+export type NotificationType = 'like' | 'comment' | 'follow' | 'account_ban' | 'account_unban' | 'channel_added' | 'channel_removed' | 'private_channel_added' | 'private_channel_removed' | 'pro_3mo_discount' | 'trade_milestone_10' | 'post_milestone';
 export type ChannelMemberRole = 'owner' | 'moderator' | 'member';
 export type ReportStatus = 'pending' | 'reviewed' | 'dismissed';
 

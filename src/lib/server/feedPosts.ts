@@ -5,6 +5,7 @@ import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { getCachedSubscription } from './subscription';
 import { isPublicChannelReadOnlyForProfile } from './feedChannels';
+import { checkPostMilestones } from './feedNotifications';
 import { mapAuthorRow, isValidCursor } from './feedHelpers';
 import type { AuthorRow } from './feedHelpers';
 import type { FeedPost, TradeSnapshot, TradeSelectorItem, PaginatedResult } from '@/types/social';
@@ -525,6 +526,8 @@ export async function createPost(input: {
     console.error('[createPost] error:', error);
     return { error: 'Failed to create post', code: 'DB_ERROR' };
   }
+
+  checkPostMilestones(profile.id).catch((e) => console.error('[createPost] milestone:', e));
 
   return { data: mapPostRow(created as Record<string, unknown>, false) };
 }

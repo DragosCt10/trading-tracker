@@ -5,6 +5,7 @@ import { createAdminClient } from './supabaseAdmin';
 import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
 import { isValidCursor } from './feedHelpers';
+import { getUserActivityCount } from './feedActivity';
 import { getAnonymousDisplayName } from '@/utils/displayName';
 import type { FeedNotification, NotificationType, PaginatedResult } from '@/types/social';
 
@@ -204,7 +205,35 @@ export async function deleteAllNotifications(): Promise<void> {
 // Called by other server actions (likePost, addComment, followUser).
 // Never throws — failures are logged and swallowed.
 
-const OFFER_TYPES: NotificationType[] = ['pro_3mo_discount', 'trade_milestone_10'];
+const OFFER_TYPES: NotificationType[] = ['pro_3mo_discount', 'trade_milestone_10', 'post_milestone'];
+
+export async function checkPostMilestones(profileId: string): Promise<void> {
+  try {
+    const supabase = createAdminClient();
+    const { count: existingCount } = await supabase
+      .from('feed_notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('recipient_id', profileId)
+      .eq('type', 'post_milestone');
+
+    const fired = existingCount ?? 0;
+    if (fired >= 3) return;
+
+    const { total } = await getUserActivityCount(profileId);
+    const milestones = [100, 200, 300];
+    if (total >= milestones[fired]) {
+      await supabase.from('feed_notifications').insert({
+        recipient_id: profileId,
+        actor_id:     profileId,
+        type:         'post_milestone',
+        post_id:      null,
+        comment_id:   null,
+      });
+    }
+  } catch (err) {
+    console.error('[checkPostMilestones] failed (non-fatal):', err);
+  }
+}
 
 export async function ensureOfferNotification(
   profileId: string,

@@ -48,7 +48,7 @@ export default async function SocialLayout({ children }: { children: ReactNode }
           </div>
         </div>
       </nav>
-      <div className="pt-20 flex-1">
+      <div className="pt-18 flex-1">
         {children}
       </div>
       <div className="w-full max-w-5xl mx-auto">

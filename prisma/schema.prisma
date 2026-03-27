@@ -894,6 +894,7 @@ enum notification_type {
   private_channel_removed
   pro_3mo_discount
   trade_milestone_10
+  post_milestone
 
   @@schema("public")
 }

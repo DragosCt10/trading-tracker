@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from './session';
 import { getCachedSocialProfile } from './socialProfile';
-import { createNotification } from './feedNotifications';
+import { createNotification, checkPostMilestones } from './feedNotifications';
 import { isPublicChannelReadOnlyForProfile } from './feedChannels';
 import { mapAuthorRow, isValidCursor } from './feedHelpers';
 import type { AuthorRow } from './feedHelpers';
@@ -231,6 +231,8 @@ export async function addComment(
       commentId: (created as { id: string }).id,
     }).catch((e) => console.error('[addComment] notification:', e));
   }
+
+  checkPostMilestones(profile.id).catch((e) => console.error('[addComment] milestone:', e));
 
   return { data: mapCommentRow(created as Record<string, unknown>) };
 }

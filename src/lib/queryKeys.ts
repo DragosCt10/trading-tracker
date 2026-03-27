@@ -147,6 +147,7 @@ export const queryKeys = {
     followers:     (profileId?: string)                => ['feed:followers',      profileId]      as const,
     following:     (profileId?: string)                => ['feed:following',      profileId]      as const,
     weeklyPostCount: ()                                => ['feed:weeklyPostCount']                as const,
+    activityProgress: (profileId?: string | null)      => ['feed:activityProgress', profileId]   as const,
     replies:       (commentId: string)                 => ['feed:replies',        commentId]      as const,
     followedProfileIds: (userId?: string)              => ['feed:followedProfileIds', userId]      as const,
   },
