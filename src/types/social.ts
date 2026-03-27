@@ -99,6 +99,7 @@ export interface FeedChannel {
   name: string;
   slug: string;
   description: string | null;
+  logo_url?: string | null;
   is_public: boolean;
   created_at: string;
   updated_at: string;

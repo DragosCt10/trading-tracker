@@ -80,8 +80,12 @@ export default function ChannelClient({ channel, initialFeed, initialMembership,
       <div className="space-y-2 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2.5 rounded-xl shadow-sm themed-header-icon-box shrink-0">
-              <Hash className="w-6 h-6" />
+            <div className="w-11 h-11 rounded-xl shadow-sm themed-header-icon-box shrink-0 flex items-center justify-center overflow-hidden">
+              {channel.logo_url ? (
+                <img src={channel.logo_url} alt={channel.name} className="w-full h-full object-cover" width="44" height="44" />
+              ) : (
+                <Hash className="w-6 h-6" />
+              )}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">

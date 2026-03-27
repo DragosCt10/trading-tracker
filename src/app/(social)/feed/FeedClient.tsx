@@ -285,8 +285,12 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                     return (
                       <div key={channel.id} className="flex items-center gap-3 px-4 py-3.5 hover:bg-slate-100/70 dark:hover:bg-slate-800/40 transition-colors">
                         <Link href={`/feed/channel/${channel.slug}`} className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/60">
-                            <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/60 overflow-hidden">
+                            {channel.logo_url ? (
+                              <img src={channel.logo_url} alt={channel.name} className="w-full h-full object-cover" width="32" height="32" loading="lazy" />
+                            ) : (
+                              <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate leading-5">{channel.name}</p>
@@ -387,8 +391,12 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                   {discoverChannels.map((channel) => (
                     <div key={channel.id} className="flex items-center gap-3 px-4 py-3.5 hover:bg-slate-100/70 dark:hover:bg-slate-800/40 transition-colors">
                       <Link href={`/feed/channel/${channel.slug}`} className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/60">
-                          <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/60 overflow-hidden">
+                          {channel.logo_url ? (
+                            <img src={channel.logo_url} alt={channel.name} className="w-full h-full object-cover" width="32" height="32" loading="lazy" />
+                          ) : (
+                            <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate leading-5">{channel.name}</p>
@@ -557,8 +565,12 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                     href={`/feed/channel/${channel.slug}`}
                     className="flex items-center gap-3 px-4 py-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-colors"
                   >
-                    <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/60">
-                      <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                    <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/60 overflow-hidden">
+                      {channel.logo_url ? (
+                        <img src={channel.logo_url} alt={channel.name} className="w-full h-full object-cover" width="28" height="28" loading="lazy" />
+                      ) : (
+                        <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-slate-800 dark:text-slate-200 truncate leading-5">{channel.name}</p>

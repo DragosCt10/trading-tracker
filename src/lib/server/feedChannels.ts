@@ -39,6 +39,7 @@ function mapRow(row: Record<string, unknown>): FeedChannel {
     name:        row.name as string,
     slug:        row.slug as string,
     description: (row.description as string | null) ?? null,
+    logo_url:    (row.logo_url as string | null) ?? null,
     is_public:   row.is_public as boolean,
     created_at:  row.created_at as string,
     updated_at:  row.updated_at as string,
@@ -298,6 +299,7 @@ export async function createChannel(input: {
   slug: string;
   description?: string;
   isPublic?: boolean;
+  logo_url?: string;
 }): Promise<ChannelResult<FeedChannel>> {
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
@@ -334,6 +336,7 @@ export async function createChannel(input: {
       name:        input.name.trim(),
       slug,
       description: input.description?.trim() ?? null,
+      logo_url:    input.logo_url ?? null,
       is_public:   input.isPublic ?? false,
     })
     .select('*')
@@ -359,7 +362,7 @@ export async function createChannel(input: {
 
 export async function updateChannel(
   channelId: string,
-  input: { name?: string; description?: string; isPublic?: boolean }
+  input: { name?: string; description?: string; isPublic?: boolean; logo_url?: string | null }
 ): Promise<ChannelResult<FeedChannel>> {
   const session = await getCachedUserSession();
   if (!session.user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
@@ -415,6 +418,7 @@ export async function updateChannel(
       ...(input.name        !== undefined && { name: input.name.trim() }),
       ...(input.description !== undefined && { description: input.description.trim() }),
       ...(input.isPublic    !== undefined && { is_public: input.isPublic }),
+      ...(input.logo_url    !== undefined && { logo_url: input.logo_url }),
       updated_at: new Date().toISOString(),
     })
     .eq('id', channelId)

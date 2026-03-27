@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useChannelActions, useChannelMemberActions, useChannelMembers } from '@/hooks/useChannels';
 import ChannelInviteModal from '@/components/feed/ChannelInviteModal';
+import { ChannelLogoPicker } from '@/components/feed/ChannelLogoPicker';
 import { getChannelInvites } from '@/lib/server/channelInvites';
 import { queryKeys } from '@/lib/queryKeys';
 import { FEED_DATA } from '@/constants/queryConfig';
@@ -49,6 +50,7 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
 
   const [name, setName] = useState(channel.name);
   const [isPublic, setIsPublic] = useState(channel.is_public);
+  const [logoUrl, setLogoUrl] = useState<string | null>(channel.logo_url ?? null);
   const [memberHandle, setMemberHandle] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [membersError, setMembersError] = useState<string | null>(null);
@@ -58,12 +60,13 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
   useEffect(() => {
     setName(channel.name);
     setIsPublic(channel.is_public);
+    setLogoUrl(channel.logo_url ?? null);
     setMemberHandle('');
     setFormError(null);
     setMembersError(null);
     setPendingRemoveId(null);
     setInviteModalOpen(false);
-  }, [channel.id, channel.is_public, channel.name, open]);
+  }, [channel.id, channel.is_public, channel.name, channel.logo_url, open]);
 
   const sortedMembers = useMemo(
     () =>
@@ -119,7 +122,7 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
     return () => observer.disconnect();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage, isLoadingMembers, mounted]);
 
-  const hasChanges = name.trim() !== channel.name || isPublic !== channel.is_public;
+  const hasChanges = name.trim() !== channel.name || isPublic !== channel.is_public || logoUrl !== (channel.logo_url ?? null);
 
   async function handleSave() {
     setFormError(null);
@@ -128,6 +131,7 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
       input: {
         name: name.trim(),
         isPublic,
+        logo_url: logoUrl,
       },
     });
 
@@ -197,6 +201,13 @@ export default function EditChannelModal({ channel, open, onClose, userId }: Edi
         </div>
 
         <div className="relative overflow-y-auto flex-1 px-6 py-5 space-y-5">
+          <div className="space-y-1.5">
+            <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Channel logo
+            </Label>
+            <ChannelLogoPicker currentUrl={logoUrl} onChange={setLogoUrl} />
+          </div>
+
           <div className="space-y-1.5">
             <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
               Channel name
