@@ -373,8 +373,6 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
               )}
             </div>
 
-            {initialProfile && <ActivityProgressCard profileId={initialProfile.id} initialCount={initialActivityCount} />}
-
             {discoverChannels.length > 0 && (
               <div className={cn(FEED_SURFACE_CLASS, 'overflow-hidden')}>
                 <div className="px-4 py-3 border-b border-slate-200/80 dark:border-slate-700/40">
