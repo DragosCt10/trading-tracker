@@ -84,7 +84,7 @@ export const TRADE_MILESTONES: TradeMilestone[] = [
     minTrades: 750,
     maxTrades: 999,
     badgeName: 'Master Trader',
-    discountPct: 15,
+    discountPct: 20,
     notificationType: 'trade_milestone_750',
     colors: {
       bg: 'bg-violet-500/15',
@@ -100,7 +100,7 @@ export const TRADE_MILESTONES: TradeMilestone[] = [
     minTrades: 1000,
     maxTrades: null,
     badgeName: 'Alpha Trader',
-    discountPct: 20,
+    discountPct: 25,
     notificationType: 'trade_milestone_1000',
     colors: {
       bg: 'bg-emerald-500/15',
