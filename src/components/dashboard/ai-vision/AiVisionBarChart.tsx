@@ -24,11 +24,11 @@ interface AiVisionBarChartProps {
   labelB: string;
 }
 
-// Two neutral, visually distinct fills — theme-agnostic
-const COLOR_A_LIGHT = '#94a3b8'; // slate-400
-const COLOR_B_LIGHT = '#475569'; // slate-600
-const COLOR_A_DARK  = '#cbd5e1'; // slate-300
-const COLOR_B_DARK  = '#64748b'; // slate-500
+// Neutral but distinct fills — cool gray (30d) vs warm gray (7d)
+const COLOR_A_LIGHT = '#8b9bb5'; // cool slate-blue gray
+const COLOR_B_LIGHT = '#5c6b7f'; // deeper steel
+const COLOR_A_DARK  = '#a3b8d0'; // light cool gray
+const COLOR_B_DARK  = '#5e7590'; // muted steel-blue
 
 function norm(metrics: PeriodMetrics, key: string, max: number, invert: boolean): number {
   const raw = metrics[key as keyof PeriodMetrics] as number;
