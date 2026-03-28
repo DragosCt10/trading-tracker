@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface CommentInputProps {
@@ -54,12 +54,7 @@ export default function CommentInput({ onSubmit, placeholder = 'Write a commentâ
                 <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
               ) : (
                 <>
-                  <span
-                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/35 bg-white/10"
-                    aria-hidden
-                  >
-                    <Plus className="h-3 w-3" strokeWidth={2.5} />
-                  </span>
+                  <PlusCircle className="w-4 h-4" />
                   <span>Comment</span>
                 </>
               )}
