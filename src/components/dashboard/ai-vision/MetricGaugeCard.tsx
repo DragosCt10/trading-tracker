@@ -284,7 +284,6 @@ export const MetricGaugeCard = React.memo(function MetricGaugeCard({
                   'flex flex-col items-center gap-0.5 rounded-lg px-2 py-1.5',
                   'border border-slate-200/60 dark:border-slate-700/40',
                   'bg-white/30 dark:bg-slate-800/20',
-                  i === 0 && 'border-slate-300/60 dark:border-slate-600/50 bg-white/40 dark:bg-slate-700/20',
                 )}
               >
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">

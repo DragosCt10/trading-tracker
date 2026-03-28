@@ -110,7 +110,7 @@ export function AiVisionBarChart({
     };
   });
 
-  const tickColor = isDark ? '#94a3b8' : '#64748b';
+  const tickColor = isDark ? '#cbd5e1' : '#64748b';
   const axisColor = isDark ? '#1e293b' : '#e2e8f0';
   const refColor  = isDark ? '#334155' : '#94a3b8';
 

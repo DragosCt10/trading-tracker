@@ -22,7 +22,7 @@ export const AI_VISION_METRICS: AiVisionMetric[] = [
   { key: 'profitFactor',     label: 'Profit F.',   fullLabel: 'Profit Factor',      max: 3,    invert: false, weight: 0.15 },
   { key: 'expectancy',       label: 'Expectancy',  fullLabel: 'Expectancy',         max: 1000, invert: false, weight: 0.15 },
   { key: 'consistencyScore', label: 'Consistency', fullLabel: 'Consistency Score',  max: 100,  invert: false, weight: 0.15 },
-  { key: 'maxDrawdown',      label: 'M Drawdown',    fullLabel: 'Max Drawdown',       max: 20,   invert: true,  weight: 0.10 },
+  { key: 'maxDrawdown',      label: 'Drawdown',    fullLabel: 'Max Drawdown',       max: 20,   invert: true,  weight: 0.10 },
   { key: 'recoveryFactor',   label: 'Recovery',    fullLabel: 'Recovery Factor',    max: 3,    invert: false, weight: 0.10 },
   { key: 'avgWinLossRatio',  label: 'W/L Ratio',   fullLabel: 'Avg Win/Loss Ratio', max: 3,    invert: false, weight: 0.10 },
   { key: 'tradeFrequency',   label: 'Frequency',   fullLabel: 'Trade Frequency',    max: 5,    invert: false, weight: 0.05 },

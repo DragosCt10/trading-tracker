@@ -207,12 +207,8 @@ export default function AiVisionClient({
     [allTrades],
   );
 
-  // ── Initial loading ───────────────────────────────────────────────────────
-  if (isInitialLoading) {
-    return <AiVisionSkeleton />;
-  }
-
   const allEmpty =
+    !isInitialLoading &&
     metricsA.tradeCount === 0 &&
     metricsB.tradeCount === 0 &&
     metricsC.tradeCount === 0;
@@ -290,7 +286,7 @@ export default function AiVisionClient({
           </div>
         </div>
 
-        {/* ── Score cards + Bar chart side by side ─────────────────────────── */}
+        {/* ── Score cards + Bar chart ──────────────────────────────────────── */}
         <section aria-label="AI Vision Scores">
           <SectionHeading
             title="Composite Health Score"
@@ -298,7 +294,9 @@ export default function AiVisionClient({
             containerClassName="mt-4"
           />
 
-          {allEmpty ? (
+          {isInitialLoading ? (
+            <AiVisionSkeleton />
+          ) : allEmpty ? (
             <>
               <div className="grid grid-cols-3 gap-4">
                 <AiVisionScoreCard
@@ -326,91 +324,90 @@ export default function AiVisionClient({
               </div>
             </>
           ) : (
-            <div className="flex flex-col">
-              {/* Score cards — 3-column row */}
-              <div className="grid grid-cols-3 gap-4">
-                <AiVisionScoreCard
-                  label={labelForKey(keyA)}
-                  score={scoreA}
-                  delta={metricsA.tradeCount > 0 && metricsB.tradeCount > 0 ? scoreA - scoreB : null}
-                  vsLabel={`vs ${keyB}`}
-                  hasNoTrades={metricsA.tradeCount === 0}
+            <>
+              <div className="flex flex-col">
+                {/* Score cards — 3-column row */}
+                <div className="grid grid-cols-3 gap-4">
+                  <AiVisionScoreCard
+                    label={labelForKey(keyA)}
+                    score={scoreA}
+                    delta={metricsA.tradeCount > 0 && metricsB.tradeCount > 0 ? scoreA - scoreB : null}
+                    vsLabel={`vs ${keyB}`}
+                    hasNoTrades={metricsA.tradeCount === 0}
+                  />
+                  <AiVisionScoreCard
+                    label={labelForKey(keyB)}
+                    score={scoreB}
+                    delta={metricsB.tradeCount > 0 && metricsC.tradeCount > 0 ? scoreB - scoreC : null}
+                    vsLabel={`vs ${keyC}`}
+                    hasNoTrades={metricsB.tradeCount === 0}
+                  />
+                  <AiVisionScoreCard
+                    label={labelForKey(keyC)}
+                    score={scoreC}
+                    delta={null}
+                    isBaseline
+                    hasNoTrades={metricsC.tradeCount === 0}
+                  />
+                </div>
+
+                {/* Bar chart */}
+                <SectionHeading
+                  title="Performance vs Baseline"
+                  description={`${labelForKey(keyA)} & ${labelForKey(keyB)} compared against ${labelForKey(keyC)}`}
+                  containerClassName="mt-14"
                 />
-                <AiVisionScoreCard
-                  label={labelForKey(keyB)}
-                  score={scoreB}
-                  delta={metricsB.tradeCount > 0 && metricsC.tradeCount > 0 ? scoreB - scoreC : null}
-                  vsLabel={`vs ${keyC}`}
-                  hasNoTrades={metricsB.tradeCount === 0}
-                />
-                <AiVisionScoreCard
-                  label={labelForKey(keyC)}
-                  score={scoreC}
-                  delta={null}
-                  isBaseline
-                  hasNoTrades={metricsC.tradeCount === 0}
+                <AiVisionBarChart
+                  metricsA={metricsA}
+                  metricsB={metricsB}
+                  metricsC={metricsC}
+                  labelA={labelForKey(keyA)}
+                  labelB={labelForKey(keyB)}
                 />
               </div>
 
-              {/* Charts — 50/50 side by side */}
-              <SectionHeading
-                title="Performance vs Baseline"
-                description={`${labelForKey(keyA)} & ${labelForKey(keyB)} compared against ${labelForKey(keyC)}`}
-                containerClassName="mt-14"
-              />
-              <AiVisionBarChart
-                metricsA={metricsA}
-                metricsB={metricsB}
-                metricsC={metricsC}
-                labelA={labelForKey(keyA)}
-                labelB={labelForKey(keyB)}
-              />
-            </div>
+              {/* ── Metric Gauge Cards ─────────────────────────────────────── */}
+              <section aria-label="Metric gauge cards">
+                <SectionHeading
+                  title="Metric Cards"
+                  description="Each metric as a gauge with trend line"
+                  containerClassName="mt-14"
+                />
+                <div className="flex flex-col gap-0 mt-3">
+                  {Array.from({ length: Math.ceil(METRIC_GAUGE_CONFIGS.length / 3) }, (_, rowIdx) => {
+                    const row = METRIC_GAUGE_CONFIGS.slice(rowIdx * 3, rowIdx * 3 + 3);
+                    const isLast = (rowIdx + 1) * 3 >= METRIC_GAUGE_CONFIGS.length;
+                    return (
+                      <div key={rowIdx}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {row.map((cfg) => (
+                            <MetricGaugeCard
+                              key={cfg.key}
+                              title={cfg.label}
+                              infoText={cfg.infoText}
+                              periods={[
+                                { label: labelForKey(keyA), value: metricsA[cfg.key] as number, hasNoTrades: metricsA.tradeCount === 0 },
+                                { label: labelForKey(keyB), value: metricsB[cfg.key] as number, hasNoTrades: metricsB.tradeCount === 0 },
+                                { label: labelForKey(keyC), value: metricsC[cfg.key] as number, hasNoTrades: metricsC.tradeCount === 0 },
+                              ]}
+                              formatValue={cfg.format}
+                              gaugeMax={cfg.gaugeMax}
+                              invertBetter={cfg.invertBetter}
+                              targetText={cfg.targetText}
+                              scaleLeft={cfg.scaleLeft}
+                              scaleRight={cfg.scaleRight}
+                            />
+                          ))}
+                        </div>
+                        {!isLast && <hr className="border-slate-200/50 dark:border-slate-700/40 my-10" />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            </>
           )}
         </section>
-
-        {/* ── Metric Gauge Cards ───────────────────────────────────────────── */}
-        {!allEmpty && (
-          <section aria-label="Metric gauge cards">
-            <SectionHeading
-              title="Metric Cards"
-              description="Each metric as a gauge with trend line"
-              containerClassName="mt-14"
-            />
-            <div className="flex flex-col gap-0 mt-3">
-              {Array.from({ length: Math.ceil(METRIC_GAUGE_CONFIGS.length / 3) }, (_, rowIdx) => {
-                const row = METRIC_GAUGE_CONFIGS.slice(rowIdx * 3, rowIdx * 3 + 3);
-                const isLast = (rowIdx + 1) * 3 >= METRIC_GAUGE_CONFIGS.length;
-                return (
-                  <div key={rowIdx}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {row.map((cfg) => (
-                        <MetricGaugeCard
-                          key={cfg.key}
-                          title={cfg.label}
-                          infoText={cfg.infoText}
-                          periods={[
-                            { label: labelForKey(keyA), value: metricsA[cfg.key] as number, hasNoTrades: metricsA.tradeCount === 0 },
-                            { label: labelForKey(keyB), value: metricsB[cfg.key] as number, hasNoTrades: metricsB.tradeCount === 0 },
-                            { label: labelForKey(keyC), value: metricsC[cfg.key] as number, hasNoTrades: metricsC.tradeCount === 0 },
-                          ]}
-                          formatValue={cfg.format}
-
-                          gaugeMax={cfg.gaugeMax}
-                          invertBetter={cfg.invertBetter}
-                          targetText={cfg.targetText}
-                          scaleLeft={cfg.scaleLeft}
-                          scaleRight={cfg.scaleRight}
-                        />
-                      ))}
-                    </div>
-                    {!isLast && <hr className="border-slate-200/50 dark:border-slate-700/40 my-10" />}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
 
       </div>
     </div>
