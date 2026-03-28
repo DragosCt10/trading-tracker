@@ -13,7 +13,7 @@ function clamp01(v: number): number {
  * Expectancy is floored at 0 so negative values don't subtract from the score.
  */
 function normalizeMetric(key: AiVisionMetric['key'], raw: number, max: number, invert: boolean): number {
-  const value = key === 'expectancy' ? Math.max(0, raw) : raw;
+  const value = (key === 'expectancy' || key === 'netPnlPct') ? Math.max(0, raw) : raw;
   const pct = clamp01(value / max);
   return invert ? 1 - pct : pct;
 }

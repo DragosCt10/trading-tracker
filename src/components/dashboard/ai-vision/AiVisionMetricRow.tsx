@@ -25,7 +25,7 @@ import type { PeriodValue } from './MetricGaugeCard';
 
 export interface TrendPoint {
   month: string;
-  value: number;
+  value: number | null;
 }
 
 interface AiVisionMetricRowProps {
@@ -172,7 +172,8 @@ export const AiVisionMetricRow = React.memo(function AiVisionMetricRow({
   const scaleRightLabel = scaleRight ?? formatValue(gaugeMax);
 
   // ── Trend average ────────────────────────────────────────────────────────────
-  const avg = trendData.length > 0 ? trendData.reduce((s, p) => s + p.value, 0) / trendData.length : undefined;
+  const validTrendPoints = trendData.filter((p) => p.value !== null);
+  const avg = validTrendPoints.length > 0 ? validTrendPoints.reduce((s, p) => s + (p.value ?? 0), 0) / validTrendPoints.length : undefined;
 
   // ── Info button ──────────────────────────────────────────────────────────────
   const infoButton = (
@@ -213,7 +214,7 @@ export const AiVisionMetricRow = React.memo(function AiVisionMetricRow({
           )}
         />
         <ReferenceLine x={0} stroke={refColor} strokeWidth={1.5} />
-        <Bar dataKey="delta" radius={[0, 5, 5, 0]} maxBarSize={24}>
+        <Bar dataKey="delta" radius={10} maxBarSize={18}>
           {barData.map((entry, i) => (
             <Cell key={i} fill={entry.hasNoTrades ? (isDark ? 'rgba(51,65,85,0.3)' : 'rgba(226,232,240,0.4)') : entry.delta >= 0 ? `url(#row-profit-${uid})` : `url(#row-loss-${uid})`} fillOpacity={0.9} />
           ))}
@@ -230,13 +231,13 @@ export const AiVisionMetricRow = React.memo(function AiVisionMetricRow({
       <LineChart data={trendData} margin={{ top: 4, right: 4, bottom: 4, left: 0 }}>
         <XAxis dataKey="month" tick={{ fill: tickColor, fontSize: 9 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
         <YAxis hide domain={['auto', 'auto']} />
-        <Tooltip cursor={{ stroke: colorAccent, strokeWidth: 1, strokeDasharray: '3 3' }} contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none' }} wrapperStyle={{ outline: 'none', zIndex: 1000 }}
+        <Tooltip contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none' }} wrapperStyle={{ outline: 'none', zIndex: 1000 }}
           content={(props) => (
             <TrendTooltip active={(props as unknown as { active?: boolean }).active} payload={(props as unknown as { payload?: Array<{ value?: number }> }).payload} label={props.label != null ? String(props.label) : undefined} formatValue={formatValue} isDark={isDark} />
           )}
         />
         {avg !== undefined && <ReferenceLine y={avg} stroke={isDark ? '#334155' : '#e2e8f0'} strokeWidth={1} strokeDasharray="4 3" />}
-        <Line type="monotone" dataKey="value" stroke={colorPrimary} strokeWidth={2} dot={false} activeDot={{ r: 4, fill: colorPrimary, stroke: gridColor, strokeWidth: 2 }} />
+        <Line type="monotone" dataKey="value" stroke={colorPrimary} strokeWidth={2} dot={false} connectNulls activeDot={false} />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -257,9 +258,9 @@ export const AiVisionMetricRow = React.memo(function AiVisionMetricRow({
             </div>
 
             {/* Gauge arc */}
-            <div className="relative h-48 px-8">
+            <div className="relative h-44 px-8">
               {showGaugeTooltip && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none animate-in fade-in duration-150">
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none animate-in fade-in duration-150">
                   <div className="relative overflow-hidden rounded-xl px-3 py-1.5 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/60 backdrop-blur-sm shadow-md">
                     {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-xl" />}
                     <div className="relative flex items-center gap-2">
@@ -278,7 +279,7 @@ export const AiVisionMetricRow = React.memo(function AiVisionMetricRow({
                       <stop offset="100%" stopColor={colorAccentEnd} />
                     </linearGradient>
                   </defs>
-                  <Pie data={gaugeData} cx="50%" cy="82%" startAngle={180} endAngle={0} innerRadius={62} outerRadius={100} paddingAngle={2} dataKey="value" cornerRadius={10}>
+                  <Pie data={gaugeData} cx="50%" cy="85%" startAngle={180} endAngle={0} innerRadius={56} outerRadius={88} paddingAngle={2} dataKey="value" cornerRadius={9}>
                     {gaugeData.map((_e, idx) => (
                       <Cell key={idx} fill={idx === 0 ? `url(#gauge-grad-${uid})` : isDark ? 'rgba(51,65,85,0.25)' : 'rgba(226,232,240,0.35)'} stroke="none" />
                     ))}
@@ -288,11 +289,11 @@ export const AiVisionMetricRow = React.memo(function AiVisionMetricRow({
                   )} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="absolute bottom-[68px] left-[10%] text-xs font-medium text-slate-400 dark:text-slate-500">{scaleLeft}</div>
-              <div className="absolute bottom-[68px] right-[10%] text-xs font-medium text-slate-400 dark:text-slate-500">{scaleRightLabel}</div>
+              <div className="absolute bottom-[58px] left-[10%] text-[10px] font-medium text-slate-400 dark:text-slate-500">{scaleLeft}</div>
+              <div className="absolute bottom-[58px] right-[10%] text-[10px] font-medium text-slate-400 dark:text-slate-500">{scaleRightLabel}</div>
               <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center whitespace-nowrap pb-0 translate-y-3">
-                <div className="text-3xl font-bold text-slate-800 dark:text-slate-100">{bestPeriod ? formatValue(bestPeriod.value) : '—'}</div>
-                <div className="text-xs text-slate-400 dark:text-slate-500 mt-1">{bestPeriod ? `Best · ${bestPeriod.label}` : targetText}</div>
+                <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{bestPeriod ? formatValue(bestPeriod.value) : '—'}</div>
+                <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{bestPeriod ? `Best · ${bestPeriod.label}` : targetText}</div>
               </div>
             </div>
 
@@ -302,7 +303,7 @@ export const AiVisionMetricRow = React.memo(function AiVisionMetricRow({
                 const prior = periods[i + 1];
                 return (
                   <div key={p.label} className="flex flex-col items-center gap-1.5 rounded-xl px-3 py-3 border border-slate-200/60 dark:border-slate-700/40 bg-white/30 dark:bg-slate-800/20">
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 text-center leading-tight">{p.label}</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 text-center leading-tight whitespace-nowrap">{shortLabel(p.label)}</span>
                     <div className="flex items-center gap-1.5">
                       {prior && <DeltaBadge current={p.value} prior={prior.value} invertBetter={invertBetter} hasNoCurrent={p.hasNoTrades} hasNoPrior={prior.hasNoTrades} />}
                       <span className={cn('text-base font-bold', p.hasNoTrades ? 'text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100')}>
@@ -318,7 +319,19 @@ export const AiVisionMetricRow = React.memo(function AiVisionMetricRow({
           {/* ── Right: bar chart on top, trendline below ─────────────────────── */}
           <div className="flex flex-col sm:flex-row lg:flex-col flex-1 min-w-0 divide-y sm:divide-y-0 sm:divide-x lg:divide-x-0 lg:divide-y divide-slate-200/50 dark:divide-slate-700/40">
             <div className="flex-1 px-6 pt-4 pb-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Performance vs Baseline</p>
+              <div className="flex items-center justify-between mb-2 gap-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 whitespace-nowrap">Performance vs Baseline</p>
+                  <span className="text-slate-300 dark:text-slate-600 text-[10px]">|</span>
+                  <span className="text-[10px] font-medium text-slate-500 dark:text-slate-500 whitespace-nowrap">{periods[0].label}</span>
+                  <span className="text-slate-300 dark:text-slate-600 text-[10px]">·</span>
+                  <span className="text-[10px] font-medium text-slate-500 dark:text-slate-500 whitespace-nowrap">{periods[1].label}</span>
+                </div>
+                <div className="flex items-center gap-3 text-[10px] font-medium text-slate-500 flex-shrink-0">
+                  <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />Above</span>
+                  <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-2 rounded-full bg-rose-400" />Below</span>
+                </div>
+              </div>
               <div className="h-[140px]">{barChart}</div>
             </div>
             <div className="flex-1 px-6 pt-4 pb-4">

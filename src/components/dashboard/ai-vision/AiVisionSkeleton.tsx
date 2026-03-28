@@ -11,7 +11,7 @@ export function AiVisionSkeleton() {
   return (
     <>
       {/* Score cards — 3 columns */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-6">
         {[0, 1, 2].map((i) => (
           <Card key={i} className={CARD_CLASS}>
             <CardContent className="p-6 space-y-4">

@@ -3,7 +3,7 @@
 import { ReactNode, useState, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { PlusCircle, TrendingUp, BarChart3, NotebookPen, LayoutGrid, ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
+import { PlusCircle, TrendingUp, BarChart3, NotebookPen, LayoutGrid, ChevronRight, ChevronLeft, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { NewTradeModal } from '@/components/dynamicComponents';
@@ -140,7 +140,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
             </Button>
             <Button variant="ghost" asChild size="sm" className={navButtonClass(isActive('/ai-vision'))}>
               <Link href={aiVisionUrl} className="block w-full h-full relative min-h-[40px]">
-                <Sparkles className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
+                <Bot className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover/card:max-w-[140px] group-hover/card:opacity-100 transition-all duration-300 whitespace-nowrap">AI Vision</span>
                 {isActive('/ai-vision') && <div className="absolute inset-0 -translate-x-full group-hover/navactive:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />}
               </Link>
