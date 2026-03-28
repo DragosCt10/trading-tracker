@@ -82,6 +82,7 @@ export default function ChannelClient({ channel, initialFeed, initialMembership,
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-11 h-11 rounded-xl shadow-sm themed-header-icon-box shrink-0 flex items-center justify-center overflow-hidden">
               {channel.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={channel.logo_url} alt={channel.name} className="w-full h-full object-cover" width="44" height="44" />
               ) : (
                 <Hash className="w-6 h-6" />

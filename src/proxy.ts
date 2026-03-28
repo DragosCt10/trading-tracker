@@ -52,7 +52,16 @@ export async function proxy(request: NextRequest) {
     const safePath = safeRedirectTo(pathname);
     // Only add redirectTo for non-root paths so we don't get /login?redirectTo=%2F
     if (safePath && safePath !== '/') redirectUrl.searchParams.set('redirectTo', safePath);
-    return applySecurityHeaders(NextResponse.redirect(redirectUrl));
+    // Stale auth cookies mean the session was revoked (or expired) — show the banner
+    const authCookies = request.cookies.getAll().filter(c => c.name.startsWith('sb-'));
+    if (authCookies.length > 0) redirectUrl.searchParams.set('reason', 'session_replaced');
+    const redirectResponse = NextResponse.redirect(redirectUrl);
+    // Clear stale auth cookies so the login page Supabase client starts fresh
+    // and doesn't loop back to the protected route via cached session data.
+    for (const cookie of authCookies) {
+      redirectResponse.cookies.delete(cookie.name);
+    }
+    return applySecurityHeaders(redirectResponse);
   }
 
   return applySecurityHeaders(response);

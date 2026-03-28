@@ -27,6 +27,7 @@ export function ChannelLogoPicker({ currentUrl, onChange }: ChannelLogoPickerPro
     <div className="flex items-center gap-3">
       <div className="relative w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center overflow-hidden shrink-0">
         {currentUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img src={currentUrl} alt="Channel logo preview" className="w-full h-full object-cover" />
         ) : (
           <Camera className="w-5 h-5 text-slate-400" />

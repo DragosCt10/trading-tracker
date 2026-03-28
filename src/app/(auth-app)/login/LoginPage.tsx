@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Palette } from 'lucide-react';
+import { Palette, LockKeyhole } from 'lucide-react';
 import { useLoading } from '@/context/LoadingContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useTheme } from '@/hooks/useTheme';
@@ -43,14 +43,18 @@ export default function LoginPage() {
   // Error forwarded from the OAuth callback (e.g. user cancelled, account conflict)
   const oauthError = searchParams.get('error');
   const redirectTo = safeRedirectPath(searchParams.get('redirectTo'));
+  const sessionReason = searchParams.get('reason');
 
   useEffect(() => {
-    // If user is already logged in, redirect to strategies or redirectTo
+    // Skip auto-redirect when the session was explicitly ended (revoked from another device).
+    // TanStack Query may still hold stale user data — redirecting on stale cache causes
+    // a loop: login → protected route → middleware kicks back to login → repeat.
+    if (sessionReason) return;
     if (userData?.user && userData?.session) {
       const to = safeRedirectPath(searchParams.get('redirectTo'));
       router.push(to ?? '/stats');
     }
-  }, [userData, router, searchParams]);
+  }, [userData, router, searchParams, sessionReason]);
 
   // Handle implicit-flow magic link: parse access_token/refresh_token from URL hash
   useEffect(() => {
@@ -64,11 +68,16 @@ export default function LoginPage() {
     setMagicLinkStatus('loading');
     const supabase = createClient();
     supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-      .then(({ error }) => {
+      .then(async ({ error }) => {
         if (error) {
           setMagicLinkStatus('error');
           setMagicLinkError(error.message);
         } else {
+          try {
+            await fetch('/api/auth/enforce-single-session', { method: 'POST' });
+          } catch {
+            // Non-critical — other sessions will expire at JWT expiry (~1h)
+          }
           window.location.href = '/stats';
         }
       });
@@ -175,6 +184,19 @@ export default function LoginPage() {
               </p>
             </div>
           </div>
+
+          {/* Session-ended banner (redirected from another page after revocation) */}
+          {sessionReason === 'session_replaced' && magicLinkStatus === 'idle' && (
+            <div className="mb-8 rounded-2xl border border-border bg-muted/50 backdrop-blur-sm p-5 text-center animate-in fade-in duration-500">
+              <div className="flex justify-center mb-3">
+                <div className="grid h-9 w-9 place-content-center rounded-xl border border-border bg-background/60">
+                  <LockKeyhole className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+              <p className="text-sm font-semibold text-foreground">Session ended</p>
+              <p className="mt-1 text-xs text-muted-foreground">Your session has ended. Please sign in again.</p>
+            </div>
+          )}
 
           {/* Magic link processing state */}
           {magicLinkStatus === 'loading' && (

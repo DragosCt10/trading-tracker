@@ -51,6 +51,7 @@ function MemberRow({ member, isLightMode, isSelf }: { member: ChannelMember; isL
         {isPrivate ? (
           <Lock className="w-4 h-4 text-slate-400 dark:text-slate-500" aria-hidden />
         ) : profile.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
         ) : (
           <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { ensureDefaultAccount } from '@/lib/server/accounts';
+import { revokeOtherSessions } from '@/lib/server/auth';
 import { safeRedirectTo } from '@/lib/safeRedirect';
 
 export async function GET(request: Request) {
@@ -24,6 +25,7 @@ export async function GET(request: Request) {
     const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!exchangeError) {
+      await revokeOtherSessions(supabase);
       await ensureDefaultAccount();
       const isLocal = process.env.NODE_ENV === 'development';
       const forwardedProto = request.headers.get('x-forwarded-proto');

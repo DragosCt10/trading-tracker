@@ -1,7 +1,17 @@
 'use server';
 
+import { type SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/utils/supabase/server';
 import { ensureDefaultAccount } from '@/lib/server/accounts';
+
+export async function revokeOtherSessions(supabase: SupabaseClient): Promise<void> {
+  try {
+    const { error } = await supabase.auth.signOut({ scope: 'others' });
+    if (error) console.error('[auth] revokeOtherSessions error:', error);
+  } catch (err) {
+    console.error('[auth] Failed to revoke other sessions:', err);
+  }
+}
 
 export type AuthResult = { error?: string };
 
@@ -20,6 +30,7 @@ export async function loginAction(
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) return { error: error.message };
+  await revokeOtherSessions(supabase);
   await ensureDefaultAccount();
   return {};
 }
@@ -90,6 +101,7 @@ export async function updatePasswordAction(
   const { error } = await supabase.auth.updateUser({ password });
 
   if (error) return { error: error.message };
+  await revokeOtherSessions(supabase);
   return {};
 }
 

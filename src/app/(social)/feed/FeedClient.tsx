@@ -287,6 +287,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                         <Link href={`/feed/channel/${channel.slug}`} className="flex items-center gap-3 flex-1 min-w-0">
                           <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/60 overflow-hidden">
                             {channel.logo_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
                               <img src={channel.logo_url} alt={channel.name} className="w-full h-full object-cover" width="32" height="32" loading="lazy" />
                             ) : (
                               <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
@@ -393,6 +394,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                       <Link href={`/feed/channel/${channel.slug}`} className="flex items-center gap-3 flex-1 min-w-0">
                         <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/60 overflow-hidden">
                           {channel.logo_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img src={channel.logo_url} alt={channel.name} className="w-full h-full object-cover" width="32" height="32" loading="lazy" />
                           ) : (
                             <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
@@ -567,6 +569,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
                   >
                     <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700/60 overflow-hidden">
                       {channel.logo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={channel.logo_url} alt={channel.name} className="w-full h-full object-cover" width="28" height="28" loading="lazy" />
                       ) : (
                         <Hash className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
