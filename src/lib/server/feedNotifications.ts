@@ -208,7 +208,7 @@ export async function deleteAllNotifications(): Promise<void> {
 // Called by other server actions (likePost, addComment, followUser).
 // Never throws — failures are logged and swallowed.
 
-const OFFER_TYPES: NotificationType[] = ['pro_3mo_discount', 'pro_loyalty_unlocked', 'trade_milestone_10', 'post_milestone', 'trade_milestone_100', 'trade_milestone_200', 'trade_milestone_500', 'trade_milestone_750', 'trade_milestone_1000'];
+const OFFER_TYPES: NotificationType[] = ['pro_3mo_discount', 'pro_loyalty_unlocked', 'trade_milestone_10', 'post_milestone', 'trade_milestone_100', 'trade_milestone_200', 'trade_milestone_500', 'trade_milestone_750', 'trade_milestone_1000', 'ai_vision_ready'];
 
 export async function checkPostMilestones(profileId: string): Promise<void> {
   try {
@@ -240,7 +240,7 @@ export async function checkPostMilestones(profileId: string): Promise<void> {
 
 export async function ensureOfferNotification(
   profileId: string,
-  type: 'pro_3mo_discount' | 'pro_loyalty_unlocked' | 'trade_milestone_10',
+  type: 'pro_3mo_discount' | 'pro_loyalty_unlocked' | 'trade_milestone_10' | 'ai_vision_ready',
 ): Promise<void> {
   try {
     // Use service role to bypass RLS — offer notifications are self-notifications

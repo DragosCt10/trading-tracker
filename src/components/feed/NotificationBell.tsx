@@ -39,6 +39,7 @@ function dotColor(type: string): string {
   if (type === 'trade_milestone_750') return 'bg-purple-500';         // master — royal purple
   if (type === 'trade_milestone_1000') return 'bg-amber-400';         // alpha — gold
   if (type === 'post_milestone') return 'bg-amber-500';
+  if (type === 'ai_vision_ready') return 'bg-indigo-500';
   if (type === 'channel_added') return 'bg-sky-500';
   if (type === 'channel_removed') return 'bg-amber-500';
   if (type === 'private_channel_added') return 'bg-violet-500';
@@ -66,6 +67,7 @@ const NOTIF_CONFIG: Record<string, {
   trade_milestone_500:     { Icon: Award,       iconCls: 'bg-orange-700/15 dark:bg-orange-700/20 border-orange-700/30 text-orange-800 dark:text-orange-300',       title: 'Expert Trader',         body: "500 trades! You've earned the Expert Trader badge and a 15% PRO discount." },
   trade_milestone_750:     { Icon: Award,       iconCls: 'bg-purple-500/15 dark:bg-purple-500/20 border-purple-500/30 text-purple-700 dark:text-purple-400',       title: 'Master Trader',         body: "750 trades! You've earned the Master Trader badge and a 20% PRO discount." },
   trade_milestone_1000:    { Icon: Award,       iconCls: 'bg-amber-400/15 dark:bg-amber-400/20 border-amber-400/30 text-amber-600 dark:text-amber-300',            title: 'Alpha Trader',          body: "1000+ trades! You've earned the legendary Alpha Trader badge and a 25% PRO discount." },
+  ai_vision_ready:         { Icon: Activity,    iconCls: 'bg-indigo-500/15 dark:bg-indigo-500/20 border-indigo-500/30 text-indigo-600 dark:text-indigo-400',       title: 'AI Vision',             body: 'Your AI model has collected enough data! Check your fresh insights on the AI Vision page.' },
 };
 
 export default function NotificationBell({ userId, initialUnreadCount }: NotificationBellProps) {

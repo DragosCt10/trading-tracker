@@ -93,7 +93,7 @@ export function getMilestoneById(id: string): TradeMilestone | undefined {
 
 /**
  * Returns inline CSS style for a badge using per-tier CSS variables defined in globals.css.
- * Maps: rookie→steel-gray, skilled→ice-blue, expert→copper, master→royal-purple, alpha→gold.
+ * Maps: rookie→copper, skilled→ice-blue, expert→emerald, master→royal-purple, alpha→gold.
  */
 export function getBadgeInlineStyle(milestoneId: string): { background: string; borderColor: string; color: string } {
   // id format: 'rookie_trader' → key 'rookie'; 'alpha_trader' → key 'alpha'

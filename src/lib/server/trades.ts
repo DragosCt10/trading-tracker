@@ -429,6 +429,9 @@ async function triggerOfferNotifications(
     if ((count ?? 0) >= 10) {
       void ensureOfferNotification(profileId, 'trade_milestone_10');
     }
+    if ((count ?? 0) >= 15) {
+      void ensureOfferNotification(profileId, 'ai_vision_ready');
+    }
 
     // Trade milestone badges (100, 200, 500, 750, 1000+)
     void checkTradeMilestones(profileId, userId);

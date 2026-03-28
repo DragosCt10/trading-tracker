@@ -37,6 +37,7 @@ interface FeedClientProps {
   initialMyChannels?: FeedChannel[];
   initialFollowingFeedData?: PaginatedResult<FeedPost>;
   initialActivityCount?: { posts: number; comments: number; total: number };
+  initialActivityDiscount?: { used: boolean; couponCode?: string } | null;
 }
 
 type FeedTab = 'public' | 'following' | 'channels';
@@ -68,7 +69,7 @@ function ChannelListSkeleton({ rows = 3, compact = false }: { rows?: number; com
   );
 }
 
-export default function FeedClient({ userId, initialProfile, initialFeedData, initialSubscription, initialMyChannels, initialFollowingFeedData, initialActivityCount }: FeedClientProps) {
+export default function FeedClient({ userId, initialProfile, initialFeedData, initialSubscription, initialMyChannels, initialFollowingFeedData, initialActivityCount, initialActivityDiscount }: FeedClientProps) {
   const uid = userId ?? undefined;
   const { subscription } = useSubscription({ userId: uid, initialData: initialSubscription ?? undefined });
   const [createError, setCreateError] = useState('');
@@ -600,7 +601,7 @@ export default function FeedClient({ userId, initialProfile, initialFeedData, in
             </div>
           </div>
 
-          {initialProfile && <ActivityProgressCard profileId={initialProfile.id} initialCount={initialActivityCount} />}
+          {initialProfile && <ActivityProgressCard profileId={initialProfile.id} initialCount={initialActivityCount} isPro={isPro} initialDiscount={initialActivityDiscount} />}
 
           {mounted && userId && initialProfile && subscription && (
             <div

@@ -68,6 +68,48 @@ export async function redeemMilestoneDiscount(
  * Server action: redeem the PRO loyalty reward (10% off after 3 months on PRO).
  * Idempotent — returns the same code if already generated.
  */
+/**
+ * Server action: redeem the activity rank-up discount (15% off at 300 posts & comments).
+ * Idempotent — returns the same code if already generated.
+ * Verifies the count server-side via feed_posts + feed_comments.
+ */
+export async function redeemActivityDiscount(profileId: string): Promise<RedeemResult> {
+  const { user } = await getCachedUserSession();
+  if (!user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };
+
+  // Verify count server-side
+  const { getUserActivityCount } = await import('./feedActivity');
+  const { total } = await getUserActivityCount(profileId);
+  if (total < 300) return { error: 'Not yet 300 posts & comments', code: 'NOT_EARNED' };
+
+  const flags = await getFeatureFlags(user.id);
+  const existing = flags.activity_rank_up_discount as { used: boolean; couponCode?: string } | undefined;
+  if (existing?.used) return { error: 'Discount already used', code: 'ALREADY_USED' };
+  if (existing?.couponCode) return { couponCode: existing.couponCode };
+
+  const suffix = randomBytes(6).toString('hex').toUpperCase();
+  const generatedCode = `RANKUP${suffix}`;
+
+  try {
+    const provider = getPaymentProvider();
+    const { code } = await provider.createDiscountCode({
+      discountPct: 15,
+      discountLabel: 'Rank Up reward — 15% off PRO',
+      code: generatedCode,
+    });
+
+    await updateFeatureFlags(user.id, {
+      ...flags,
+      activity_rank_up_discount: { used: false, couponCode: code, generatedAt: new Date().toISOString() },
+    });
+
+    return { couponCode: code };
+  } catch (err) {
+    console.error('[redeemActivityDiscount] provider error:', err);
+    return { error: 'Failed to generate discount code', code: 'PROVIDER_ERROR' };
+  }
+}
+
 export async function redeemProRetentionDiscount(): Promise<RedeemResult> {
   const { user } = await getCachedUserSession();
   if (!user) return { error: 'Not authenticated', code: 'UNAUTHORIZED' };

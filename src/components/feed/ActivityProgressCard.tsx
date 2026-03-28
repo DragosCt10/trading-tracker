@@ -1,13 +1,21 @@
 'use client';
 
-import { Trophy, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
+import { Trophy, CheckCircle2, Copy, Check, Loader2 } from 'lucide-react';
 import { FEED_CARD_SURFACE_CLASS } from './feedCardStyles';
 import { useActivityProgress } from '@/hooks/useActivityProgress';
+import { redeemActivityDiscount } from '@/lib/server/rewards';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const MILESTONES = [100, 200];
 const MILESTONE_LABELS = [100, 200, 300];
 const GOAL = 300;
+
+interface ActivityDiscount {
+  used: boolean;
+  couponCode?: string;
+}
 
 function ProgressSkeleton() {
   return (
@@ -25,17 +33,46 @@ function ProgressSkeleton() {
 export default function ActivityProgressCard({
   profileId,
   initialCount,
+  isPro,
+  initialDiscount,
 }: {
   profileId: string | null;
   initialCount?: { posts: number; comments: number; total: number };
+  isPro?: boolean;
+  initialDiscount?: ActivityDiscount | null;
 }) {
   const { total, isLoading } = useActivityProgress(profileId, initialCount);
+
+  const [discount, setDiscount] = useState<ActivityDiscount | null>(initialDiscount ?? null);
+  const [claiming, setClaiming] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   if (!profileId) return null;
   if (isLoading) return <ProgressSkeleton />;
 
   const pct = Math.min((total / GOAL) * 100, 100);
   const isDone = total >= GOAL;
+
+  async function handleClaim() {
+    if (!profileId) return;
+    setClaiming(true);
+    setClaimError(null);
+    const result = await redeemActivityDiscount(profileId);
+    if ('couponCode' in result) {
+      setDiscount({ used: false, couponCode: result.couponCode });
+    } else {
+      setClaimError(result.error);
+    }
+    setClaiming(false);
+  }
+
+  function handleCopy(code: string) {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   return (
     <div className={cn(FEED_CARD_SURFACE_CLASS, 'p-4')}>
@@ -52,9 +89,61 @@ export default function ActivityProgressCard({
       </div>
 
       {isDone ? (
-        <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
-          <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden />
-          <span className="font-medium">Discount earned! Check your notifications.</span>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden />
+            <span className="font-medium">15% PRO discount earned!</span>
+          </div>
+
+          {discount?.couponCode ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <code className="inline-flex items-center h-7 text-xs font-mono px-3 rounded-xl bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 select-all tracking-wider">
+                  {discount.couponCode}
+                </code>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs px-3 cursor-pointer rounded-xl gap-1.5 border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
+                  onClick={() => handleCopy(discount.couponCode!)}
+                >
+                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  {copied ? 'Copied!' : 'Copy'}
+                </Button>
+              </div>
+              {isPro ? (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  You&apos;re already PRO.{' '}
+                  <a href="/settings?tab=billing" className="underline underline-offset-2 hover:text-slate-700 dark:hover:text-slate-300">
+                    Go to billing settings →
+                  </a>
+                </p>
+              ) : (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Enter this code at checkout when upgrading to PRO.{' '}
+                  <a href="/settings?tab=billing" className="underline underline-offset-2 hover:text-slate-700 dark:hover:text-slate-300">
+                    Upgrade now →
+                  </a>
+                </p>
+              )}
+            </div>
+          ) : discount?.used ? (
+            <p className="text-xs text-slate-500 dark:text-slate-400">Discount already used.</p>
+          ) : (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs px-3 cursor-pointer rounded-xl gap-1.5 border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-800/70"
+                disabled={claiming}
+                onClick={handleClaim}
+              >
+                {claiming ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                Get coupon code
+              </Button>
+              {claimError && <p className="text-xs text-rose-500">{claimError}</p>}
+            </>
+          )}
         </div>
       ) : (
         <>
