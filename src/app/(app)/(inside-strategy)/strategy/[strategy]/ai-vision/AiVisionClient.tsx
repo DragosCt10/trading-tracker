@@ -2,14 +2,11 @@
 
 // src/app/(app)/(inside-strategy)/strategy/[strategy]/ai-vision/AiVisionClient.tsx
 import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import { AiVisionSkeleton } from '@/components/dashboard/ai-vision/AiVisionSkeleton';
 import { AiVisionLoadingOverlay } from '@/components/dashboard/ai-vision/AiVisionLoadingOverlay';
 import { AiVisionScoreCard } from '@/components/dashboard/ai-vision/AiVisionScoreCard';
 import { AiVisionBarChart } from '@/components/dashboard/ai-vision/AiVisionBarChart';
-import { PeriodMetricCard } from '@/components/dashboard/ai-vision/PeriodMetricCard';
-import { MetricTrendChart } from '@/components/dashboard/ai-vision/MetricTrendChart';
-import { MetricGaugeCard, type GaugeGradientStop } from '@/components/dashboard/ai-vision/MetricGaugeCard';
+import { MetricGaugeCard } from '@/components/dashboard/ai-vision/MetricGaugeCard';
 import {
   useAiVisionData,
   AI_VISION_ALL_PERIODS,
@@ -19,9 +16,7 @@ import {
 } from '@/hooks/useAiVisionData';
 import { calculatePeriodMetrics, type PeriodMetrics } from '@/utils/calculatePeriodMetrics';
 import { calculateAiVisionScore } from '@/utils/calculateAiVisionScore';
-import { calculateRollingMetrics } from '@/utils/calculateRollingMetrics';
 import { SectionHeading } from '../sections/SectionHeading';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
@@ -34,36 +29,12 @@ interface AiVisionClientProps {
   accountBalance: number;
 }
 
-// --- Metric definitions ---
-interface MetricDef {
-  key: keyof PeriodMetrics;
-  label: string;
-  format: (v: number) => string;
-  invertDelta?: boolean;
-}
-
-const METRICS: MetricDef[] = [
-  { key: 'winRate',          label: 'Win Rate',         format: (v) => `${v.toFixed(1)}%` },
-  { key: 'netPnlPct',        label: 'Net PnL %',        format: (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` },
-  { key: 'profitFactor',     label: 'Profit Factor',    format: (v) => v.toFixed(2) },
-  { key: 'expectancy',       label: 'Expectancy',       format: (v) => `$${v.toFixed(0)}` },
-  { key: 'maxDrawdown',      label: 'Max Drawdown',     format: (v) => `${v.toFixed(2)}%`, invertDelta: true },
-  { key: 'recoveryFactor',   label: 'Recovery Factor',  format: (v) => v.toFixed(2) },
-  { key: 'avgWinLossRatio',  label: 'Avg W/L Ratio',    format: (v) => v.toFixed(2) },
-  { key: 'tradeFrequency',   label: 'Trade Frequency',  format: (v) => `${v.toFixed(1)}/d` },
-  { key: 'longWinRate',      label: 'Long Win Rate',    format: (v) => `${v.toFixed(1)}%` },
-  { key: 'shortWinRate',     label: 'Short Win Rate',   format: (v) => `${v.toFixed(1)}%` },
-  { key: 'consistencyScore', label: 'Consistency',      format: (v) => `${v.toFixed(1)}%` },
-  { key: 'currentStreak',    label: 'Current Streak',   format: (v) => v >= 0 ? `+${v}W` : `${Math.abs(v)}L` },
-];
-
 // --- Gauge card configs ---
 interface MetricGaugeConfig {
   key: keyof PeriodMetrics;
   label: string;
   infoText: string;
   format: (v: number) => string;
-  gradientStops: GaugeGradientStop[];
   gaugeMax: number;
   invertBetter?: boolean;
   targetText: string;
@@ -71,13 +42,14 @@ interface MetricGaugeConfig {
   scaleRight?: string;
 }
 
+
 const METRIC_GAUGE_CONFIGS: MetricGaugeConfig[] = [
   {
     key: 'winRate',
     label: 'Win Rate',
     infoText: 'Percentage of trades that closed with a profit. 50%+ is generally acceptable.',
     format: (v) => `${v.toFixed(1)}%`,
-    gradientStops: [{ offset: '0%', stopColor: '#34d399' }, { offset: '100%', stopColor: '#059669' }],
+
     gaugeMax: 100, targetText: 'Target ≥ 50%', scaleLeft: '0%', scaleRight: '100%',
   },
   {
@@ -85,7 +57,7 @@ const METRIC_GAUGE_CONFIGS: MetricGaugeConfig[] = [
     label: 'Net PnL %',
     infoText: 'Net profit/loss as a percentage of account balance over the period.',
     format: (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`,
-    gradientStops: [{ offset: '0%', stopColor: '#60a5fa' }, { offset: '100%', stopColor: '#2563eb' }],
+
     gaugeMax: 10, targetText: 'Higher is better', scaleLeft: '0%', scaleRight: '+10%',
   },
   {
@@ -93,7 +65,7 @@ const METRIC_GAUGE_CONFIGS: MetricGaugeConfig[] = [
     label: 'Profit Factor',
     infoText: 'Gross profit divided by gross loss. Above 1.5 is considered good.',
     format: (v) => v.toFixed(2),
-    gradientStops: [{ offset: '0%', stopColor: '#a78bfa' }, { offset: '100%', stopColor: '#7c3aed' }],
+
     gaugeMax: 3, targetText: 'Target ≥ 1.5', scaleLeft: '0', scaleRight: '3',
   },
   {
@@ -101,7 +73,7 @@ const METRIC_GAUGE_CONFIGS: MetricGaugeConfig[] = [
     label: 'Expectancy',
     infoText: 'Average profit or loss per trade in dollars. Positive means the system is profitable.',
     format: (v) => `$${v.toFixed(0)}`,
-    gradientStops: [{ offset: '0%', stopColor: '#38bdf8' }, { offset: '100%', stopColor: '#0284c7' }],
+
     gaugeMax: 500, targetText: 'Higher is better', scaleLeft: '$0', scaleRight: '$500',
   },
   {
@@ -109,7 +81,7 @@ const METRIC_GAUGE_CONFIGS: MetricGaugeConfig[] = [
     label: 'Max Drawdown',
     infoText: 'Largest peak-to-trough decline. Lower is better — aim to keep below 10%.',
     format: (v) => `${v.toFixed(2)}%`,
-    gradientStops: [{ offset: '0%', stopColor: '#f87171' }, { offset: '100%', stopColor: '#dc2626' }],
+
     gaugeMax: 20, invertBetter: true, targetText: 'Target < 10%', scaleLeft: '0%', scaleRight: '20%',
   },
   {
@@ -117,7 +89,7 @@ const METRIC_GAUGE_CONFIGS: MetricGaugeConfig[] = [
     label: 'Recovery Factor',
     infoText: 'Net profit divided by max drawdown. Shows how well the system recovers from losses.',
     format: (v) => v.toFixed(2),
-    gradientStops: [{ offset: '0%', stopColor: '#c084fc' }, { offset: '100%', stopColor: '#9333ea' }],
+
     gaugeMax: 3, targetText: 'Target ≥ 1', scaleLeft: '0', scaleRight: '3',
   },
   {
@@ -125,7 +97,7 @@ const METRIC_GAUGE_CONFIGS: MetricGaugeConfig[] = [
     label: 'Avg W/L Ratio',
     infoText: 'Average winning trade size divided by average losing trade size.',
     format: (v) => v.toFixed(2),
-    gradientStops: [{ offset: '0%', stopColor: '#fb923c' }, { offset: '100%', stopColor: '#ea580c' }],
+
     gaugeMax: 3, targetText: 'Target ≥ 1.5', scaleLeft: '0', scaleRight: '3',
   },
   {
@@ -133,7 +105,7 @@ const METRIC_GAUGE_CONFIGS: MetricGaugeConfig[] = [
     label: 'Trade Frequency',
     infoText: 'Average number of trades per day over the period.',
     format: (v) => `${v.toFixed(1)}/d`,
-    gradientStops: [{ offset: '0%', stopColor: '#94a3b8' }, { offset: '100%', stopColor: '#475569' }],
+
     gaugeMax: 5, targetText: 'Trades per day', scaleLeft: '0', scaleRight: '5/d',
   },
   {
@@ -141,7 +113,7 @@ const METRIC_GAUGE_CONFIGS: MetricGaugeConfig[] = [
     label: 'Long Win Rate',
     infoText: 'Win rate for long (buy) trades only.',
     format: (v) => `${v.toFixed(1)}%`,
-    gradientStops: [{ offset: '0%', stopColor: '#34d399' }, { offset: '100%', stopColor: '#059669' }],
+
     gaugeMax: 100, targetText: 'Target ≥ 50%', scaleLeft: '0%', scaleRight: '100%',
   },
   {
@@ -149,7 +121,7 @@ const METRIC_GAUGE_CONFIGS: MetricGaugeConfig[] = [
     label: 'Short Win Rate',
     infoText: 'Win rate for short (sell) trades only.',
     format: (v) => `${v.toFixed(1)}%`,
-    gradientStops: [{ offset: '0%', stopColor: '#22d3ee' }, { offset: '100%', stopColor: '#0891b2' }],
+
     gaugeMax: 100, targetText: 'Target ≥ 50%', scaleLeft: '0%', scaleRight: '100%',
   },
   {
@@ -157,7 +129,7 @@ const METRIC_GAUGE_CONFIGS: MetricGaugeConfig[] = [
     label: 'Consistency',
     infoText: 'How consistently the strategy produces positive results across individual trading days.',
     format: (v) => `${v.toFixed(1)}%`,
-    gradientStops: [{ offset: '0%', stopColor: '#fbbf24' }, { offset: '100%', stopColor: '#d97706' }],
+
     gaugeMax: 100, targetText: 'Target ≥ 60%', scaleLeft: '0%', scaleRight: '100%',
   },
   {
@@ -165,7 +137,7 @@ const METRIC_GAUGE_CONFIGS: MetricGaugeConfig[] = [
     label: 'Current Streak',
     infoText: 'Current consecutive winning or losing streak. Positive = wins, negative = losses.',
     format: (v) => v >= 0 ? `+${v}W` : `${Math.abs(v)}L`,
-    gradientStops: [{ offset: '0%', stopColor: '#818cf8' }, { offset: '100%', stopColor: '#4f46e5' }],
+
     gaugeMax: 10, targetText: 'Win streak', scaleLeft: '0', scaleRight: '10W',
   },
 ];
@@ -190,9 +162,6 @@ export default function AiVisionClient({
   const [selectedMarket, setSelectedMarket] = useState('all');
   const [selectedExecution, setSelectedExecution] = useState<'all' | 'executed' | 'nonExecuted'>('executed');
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>('short');
-
-  // ── Trend line toggle state ───────────────────────────────────────────────
-  const [showTrendLines, setShowTrendLines] = useState(false);
 
   // ── Data queries ─────────────────────────────────────────────────────────
   const {
@@ -232,11 +201,6 @@ export default function AiVisionClient({
   const scoreA = useMemo(() => calculateAiVisionScore(metricsA), [metricsA]);
   const scoreB = useMemo(() => calculateAiVisionScore(metricsB), [metricsB]);
   const scoreC = useMemo(() => calculateAiVisionScore(metricsC), [metricsC]);
-
-  const rollingData = useMemo(
-    () => calculateRollingMetrics(allTrades, accountBalance),
-    [allTrades, accountBalance],
-  );
 
   const markets = useMemo(
     () => Array.from(new Set(allTrades.map((t) => t.market).filter(Boolean))),
@@ -411,110 +375,43 @@ export default function AiVisionClient({
             <SectionHeading
               title="Metric Cards"
               description="Each metric as a gauge with trend line"
-              containerClassName="mt-2"
+              containerClassName="mt-14"
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-3">
-              {METRIC_GAUGE_CONFIGS.map((cfg) => (
-                <MetricGaugeCard
-                  key={cfg.key}
-                  title={cfg.label}
-                  infoText={cfg.infoText}
-                  periods={[
-                    { label: labelForKey(keyA), value: metricsA[cfg.key] as number, hasNoTrades: metricsA.tradeCount === 0 },
-                    { label: labelForKey(keyB), value: metricsB[cfg.key] as number, hasNoTrades: metricsB.tradeCount === 0 },
-                    { label: labelForKey(keyC), value: metricsC[cfg.key] as number, hasNoTrades: metricsC.tradeCount === 0 },
-                  ]}
-                  rollingPoints={rollingData.points}
-                  metricKey={cfg.key}
-                  formatValue={cfg.format}
-                  gradientStops={cfg.gradientStops}
-                  gaugeMax={cfg.gaugeMax}
-                  invertBetter={cfg.invertBetter}
-                  targetText={cfg.targetText}
-                  scaleLeft={cfg.scaleLeft}
-                  scaleRight={cfg.scaleRight}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+            <div className="flex flex-col gap-0 mt-3">
+              {Array.from({ length: Math.ceil(METRIC_GAUGE_CONFIGS.length / 3) }, (_, rowIdx) => {
+                const row = METRIC_GAUGE_CONFIGS.slice(rowIdx * 3, rowIdx * 3 + 3);
+                const isLast = (rowIdx + 1) * 3 >= METRIC_GAUGE_CONFIGS.length;
+                return (
+                  <div key={rowIdx}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {row.map((cfg) => (
+                        <MetricGaugeCard
+                          key={cfg.key}
+                          title={cfg.label}
+                          infoText={cfg.infoText}
+                          periods={[
+                            { label: labelForKey(keyA), value: metricsA[cfg.key] as number, hasNoTrades: metricsA.tradeCount === 0 },
+                            { label: labelForKey(keyB), value: metricsB[cfg.key] as number, hasNoTrades: metricsB.tradeCount === 0 },
+                            { label: labelForKey(keyC), value: metricsC[cfg.key] as number, hasNoTrades: metricsC.tradeCount === 0 },
+                          ]}
+                          formatValue={cfg.format}
 
-        {/* ── Metric table ─────────────────────────────────────────────────── */}
-        {!allEmpty && (
-          <section aria-label="Period metric comparison">
-            <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr_1fr] gap-x-3 px-4 mb-2">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Metric</span>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">{keyA}</span>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">{keyB}</span>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">{keyC}</span>
-              <span />
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Trend</span>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              {METRICS.map((m) => (
-                <PeriodMetricCard
-                  key={m.key}
-                  metricKey={m.key}
-                  label={m.label}
-                  value7d={metricsA[m.key] as number}
-                  value30d={metricsB[m.key] as number}
-                  value90d={metricsC[m.key] as number}
-                  hasNoTrades7d={metricsA.tradeCount === 0}
-                  hasNoTrades30d={metricsB.tradeCount === 0}
-                  hasNoTrades90d={metricsC.tradeCount === 0}
-                  formatValue={m.format}
-                  invertDelta={m.invertDelta}
-                  rollingPoints={rollingData.points}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ── Trend lines toggle ───────────────────────────────────────────── */}
-        {!allEmpty && (
-          <section aria-label="Trend line charts">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-              onClick={() => setShowTrendLines((v) => !v)}
-            >
-              {showTrendLines ? (
-                <><ChevronUp className="h-3.5 w-3.5" />Hide trend lines</>
-              ) : (
-                <><ChevronDown className="h-3.5 w-3.5" />Show trend lines</>
-              )}
-            </Button>
-
-            {showTrendLines && (
-              <div className="mt-3">
-                {rollingData.skippedDueToSize ? (
-                  <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-4">
-                    Trend lines available for strategies with ≤5,000 trades.
-                  </p>
-                ) : rollingData.points.length < 2 ? (
-                  <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-4">
-                    Not enough trading history for trend lines. Keep trading!
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {METRICS.map((m) => (
-                      <MetricTrendChart
-                        key={m.key}
-                        label={m.label}
-                        metricKey={m.key}
-                        points={rollingData.points}
-                        formatValue={m.format}
-                      />
-                    ))}
+                          gaugeMax={cfg.gaugeMax}
+                          invertBetter={cfg.invertBetter}
+                          targetText={cfg.targetText}
+                          scaleLeft={cfg.scaleLeft}
+                          scaleRight={cfg.scaleRight}
+                        />
+                      ))}
+                    </div>
+                    {!isLast && <hr className="border-slate-200/50 dark:border-slate-700/40 my-10" />}
                   </div>
-                )}
-              </div>
-            )}
+                );
+              })}
+            </div>
           </section>
         )}
+
       </div>
     </div>
   );
