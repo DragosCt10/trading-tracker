@@ -4,11 +4,10 @@
 import {
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
-  Legend,
   ReferenceLine,
   ResponsiveContainer,
 } from 'recharts';
@@ -24,11 +23,9 @@ interface AiVisionBarChartProps {
   labelB: string;
 }
 
-// Neutral but distinct fills — cool gray (30d) vs warm gray (7d)
-const COLOR_A_LIGHT = '#8b9bb5'; // cool slate-blue gray
-const COLOR_B_LIGHT = '#5c6b7f'; // deeper steel
-const COLOR_A_DARK  = '#a3b8d0'; // light cool gray
-const COLOR_B_DARK  = '#5e7590'; // muted steel-blue
+// Gradient IDs matching AccountOverviewCard / ComposedBarWinRateChart
+const GRAD_PROFIT = 'aiBarProfitGrad';
+const GRAD_LOSS   = 'aiBarLossGrad';
 
 function norm(metrics: PeriodMetrics, key: string, max: number, invert: boolean): number {
   const raw = metrics[key as keyof PeriodMetrics] as number;
@@ -101,26 +98,37 @@ export function AiVisionBarChart({
 }: AiVisionBarChartProps) {
   const { isDark } = useDarkMode();
 
-  const colorA = isDark ? COLOR_A_DARK : COLOR_A_LIGHT;
-  const colorB = isDark ? COLOR_B_DARK : COLOR_B_LIGHT;
-
   // delta vs baseline (period C): positive = improvement, negative = decline
   const data = AI_VISION_METRICS.map(({ key, label, max, invert }) => {
     const c = norm(metricsC, key, max, invert);
+    const valA = parseFloat((norm(metricsA, key, max, invert) - c).toFixed(1));
+    const valB = parseFloat((norm(metricsB, key, max, invert) - c).toFixed(1));
     return {
       metric: label,
-      [labelA]: parseFloat((norm(metricsA, key, max, invert) - c).toFixed(1)),
-      [labelB]: parseFloat((norm(metricsB, key, max, invert) - c).toFixed(1)),
+      [labelA]: valA,
+      [labelB]: valB,
     };
   });
 
-  const gridColor = isDark ? 'rgba(148,163,184,0.08)' : 'rgba(100,116,139,0.10)';
   const tickColor = isDark ? '#94a3b8' : '#64748b';
   const axisColor = isDark ? '#1e293b' : '#e2e8f0';
   const refColor  = isDark ? '#334155' : '#94a3b8';
 
   return (
     <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-5 pt-4 pb-3">
+      <div className="flex items-center justify-end gap-4 pb-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-gradient-to-r from-[#0d9488] to-[#10b981]" />
+          Above baseline
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-gradient-to-r from-[#f43f5e] to-[#fda4af]" />
+          Below baseline
+        </span>
+        <span className="text-slate-300 dark:text-slate-600">|</span>
+        <span className="font-semibold text-slate-500 dark:text-slate-400">{labelA}</span>
+        <span className="font-semibold text-slate-500 dark:text-slate-400">{labelB}</span>
+      </div>
       <ResponsiveContainer width="100%" height={400}>
         <BarChart
           layout="vertical"
@@ -129,7 +137,18 @@ export function AiVisionBarChart({
           barCategoryGap="20%"
           barGap={4}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke={gridColor} horizontal={false} />
+          <defs>
+            <linearGradient id={GRAD_PROFIT} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#0d9488" stopOpacity={0.9} />
+              <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
+              <stop offset="100%" stopColor="#10b981" stopOpacity={1} />
+            </linearGradient>
+            <linearGradient id={GRAD_LOSS} x1="1" y1="0" x2="0" y2="0">
+              <stop offset="0%" stopColor="#fda4af" stopOpacity={0.9} />
+              <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
+              <stop offset="100%" stopColor="#f43f5e" stopOpacity={1} />
+            </linearGradient>
+          </defs>
 
           <XAxis
             type="number"
@@ -164,18 +183,18 @@ export function AiVisionBarChart({
             )}
           />
 
-          <Legend
-            iconSize={10}
-            iconType="square"
-            align="right"
-            verticalAlign="top"
-            wrapperStyle={{ fontSize: 11, paddingBottom: 12, color: tickColor }}
-          />
-
           <ReferenceLine x={0} stroke={refColor} strokeWidth={1.5} />
 
-          <Bar name={labelA} dataKey={labelA} fill={colorA} fillOpacity={0.90} radius={[0, 4, 4, 0]} maxBarSize={22} />
-          <Bar name={labelB} dataKey={labelB} fill={colorB} fillOpacity={0.90} radius={[0, 4, 4, 0]} maxBarSize={22} />
+          <Bar name={labelA} dataKey={labelA} fillOpacity={0.90} radius={[0, 4, 4, 0]} maxBarSize={22}>
+            {data.map((entry, i) => (
+              <Cell key={i} fill={(entry[labelA] as number) >= 0 ? `url(#${GRAD_PROFIT})` : `url(#${GRAD_LOSS})`} />
+            ))}
+          </Bar>
+          <Bar name={labelB} dataKey={labelB} fillOpacity={0.90} radius={[0, 4, 4, 0]} maxBarSize={22}>
+            {data.map((entry, i) => (
+              <Cell key={i} fill={(entry[labelB] as number) >= 0 ? `url(#${GRAD_PROFIT})` : `url(#${GRAD_LOSS})`} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>
