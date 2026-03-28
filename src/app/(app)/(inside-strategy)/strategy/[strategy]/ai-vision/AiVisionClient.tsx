@@ -2,21 +2,28 @@
 
 // src/app/(app)/(inside-strategy)/strategy/[strategy]/ai-vision/AiVisionClient.tsx
 import { useMemo, useState } from 'react';
-import { Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
-import { TradeFiltersBar } from '@/components/dashboard/analytics/TradeFiltersBar';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { AiVisionSkeleton } from '@/components/dashboard/ai-vision/AiVisionSkeleton';
 import { AiVisionLoadingOverlay } from '@/components/dashboard/ai-vision/AiVisionLoadingOverlay';
 import { AiVisionScoreCard } from '@/components/dashboard/ai-vision/AiVisionScoreCard';
-import { AiVisionRadarChart } from '@/components/dashboard/ai-vision/AiVisionRadarChart';
+import { AiVisionBarChart } from '@/components/dashboard/ai-vision/AiVisionBarChart';
 import { PeriodMetricCard } from '@/components/dashboard/ai-vision/PeriodMetricCard';
 import { MetricTrendChart } from '@/components/dashboard/ai-vision/MetricTrendChart';
-import { useAiVisionData, AI_VISION_DEFAULT_PERIODS } from '@/hooks/useAiVisionData';
-import { calculatePeriodMetrics, EMPTY_PERIOD_METRICS, type PeriodMetrics } from '@/utils/calculatePeriodMetrics';
+import { MetricGaugeCard, type GaugeGradientStop } from '@/components/dashboard/ai-vision/MetricGaugeCard';
+import {
+  useAiVisionData,
+  AI_VISION_ALL_PERIODS,
+  PERIOD_PRESETS,
+  type PeriodKey,
+  type PeriodPreset,
+} from '@/hooks/useAiVisionData';
+import { calculatePeriodMetrics, type PeriodMetrics } from '@/utils/calculatePeriodMetrics';
 import { calculateAiVisionScore } from '@/utils/calculateAiVisionScore';
 import { calculateRollingMetrics } from '@/utils/calculateRollingMetrics';
+import { SectionHeading } from '../sections/SectionHeading';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { buildPresetRange } from '@/utils/dateRangeHelpers';
 
 interface AiVisionClientProps {
   userId: string;
@@ -50,8 +57,125 @@ const METRICS: MetricDef[] = [
   { key: 'currentStreak',    label: 'Current Streak',   format: (v) => v >= 0 ? `+${v}W` : `${Math.abs(v)}L` },
 ];
 
-function periodDayCount(key: string): number {
-  return AI_VISION_DEFAULT_PERIODS.find((p) => p.key === key)?.days ?? 30;
+// --- Gauge card configs ---
+interface MetricGaugeConfig {
+  key: keyof PeriodMetrics;
+  label: string;
+  infoText: string;
+  format: (v: number) => string;
+  gradientStops: GaugeGradientStop[];
+  gaugeMax: number;
+  invertBetter?: boolean;
+  targetText: string;
+  scaleLeft?: string;
+  scaleRight?: string;
+}
+
+const METRIC_GAUGE_CONFIGS: MetricGaugeConfig[] = [
+  {
+    key: 'winRate',
+    label: 'Win Rate',
+    infoText: 'Percentage of trades that closed with a profit. 50%+ is generally acceptable.',
+    format: (v) => `${v.toFixed(1)}%`,
+    gradientStops: [{ offset: '0%', stopColor: '#34d399' }, { offset: '100%', stopColor: '#059669' }],
+    gaugeMax: 100, targetText: 'Target ≥ 50%', scaleLeft: '0%', scaleRight: '100%',
+  },
+  {
+    key: 'netPnlPct',
+    label: 'Net PnL %',
+    infoText: 'Net profit/loss as a percentage of account balance over the period.',
+    format: (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`,
+    gradientStops: [{ offset: '0%', stopColor: '#60a5fa' }, { offset: '100%', stopColor: '#2563eb' }],
+    gaugeMax: 10, targetText: 'Higher is better', scaleLeft: '0%', scaleRight: '+10%',
+  },
+  {
+    key: 'profitFactor',
+    label: 'Profit Factor',
+    infoText: 'Gross profit divided by gross loss. Above 1.5 is considered good.',
+    format: (v) => v.toFixed(2),
+    gradientStops: [{ offset: '0%', stopColor: '#a78bfa' }, { offset: '100%', stopColor: '#7c3aed' }],
+    gaugeMax: 3, targetText: 'Target ≥ 1.5', scaleLeft: '0', scaleRight: '3',
+  },
+  {
+    key: 'expectancy',
+    label: 'Expectancy',
+    infoText: 'Average profit or loss per trade in dollars. Positive means the system is profitable.',
+    format: (v) => `$${v.toFixed(0)}`,
+    gradientStops: [{ offset: '0%', stopColor: '#38bdf8' }, { offset: '100%', stopColor: '#0284c7' }],
+    gaugeMax: 500, targetText: 'Higher is better', scaleLeft: '$0', scaleRight: '$500',
+  },
+  {
+    key: 'maxDrawdown',
+    label: 'Max Drawdown',
+    infoText: 'Largest peak-to-trough decline. Lower is better — aim to keep below 10%.',
+    format: (v) => `${v.toFixed(2)}%`,
+    gradientStops: [{ offset: '0%', stopColor: '#f87171' }, { offset: '100%', stopColor: '#dc2626' }],
+    gaugeMax: 20, invertBetter: true, targetText: 'Target < 10%', scaleLeft: '0%', scaleRight: '20%',
+  },
+  {
+    key: 'recoveryFactor',
+    label: 'Recovery Factor',
+    infoText: 'Net profit divided by max drawdown. Shows how well the system recovers from losses.',
+    format: (v) => v.toFixed(2),
+    gradientStops: [{ offset: '0%', stopColor: '#c084fc' }, { offset: '100%', stopColor: '#9333ea' }],
+    gaugeMax: 3, targetText: 'Target ≥ 1', scaleLeft: '0', scaleRight: '3',
+  },
+  {
+    key: 'avgWinLossRatio',
+    label: 'Avg W/L Ratio',
+    infoText: 'Average winning trade size divided by average losing trade size.',
+    format: (v) => v.toFixed(2),
+    gradientStops: [{ offset: '0%', stopColor: '#fb923c' }, { offset: '100%', stopColor: '#ea580c' }],
+    gaugeMax: 3, targetText: 'Target ≥ 1.5', scaleLeft: '0', scaleRight: '3',
+  },
+  {
+    key: 'tradeFrequency',
+    label: 'Trade Frequency',
+    infoText: 'Average number of trades per day over the period.',
+    format: (v) => `${v.toFixed(1)}/d`,
+    gradientStops: [{ offset: '0%', stopColor: '#94a3b8' }, { offset: '100%', stopColor: '#475569' }],
+    gaugeMax: 5, targetText: 'Trades per day', scaleLeft: '0', scaleRight: '5/d',
+  },
+  {
+    key: 'longWinRate',
+    label: 'Long Win Rate',
+    infoText: 'Win rate for long (buy) trades only.',
+    format: (v) => `${v.toFixed(1)}%`,
+    gradientStops: [{ offset: '0%', stopColor: '#34d399' }, { offset: '100%', stopColor: '#059669' }],
+    gaugeMax: 100, targetText: 'Target ≥ 50%', scaleLeft: '0%', scaleRight: '100%',
+  },
+  {
+    key: 'shortWinRate',
+    label: 'Short Win Rate',
+    infoText: 'Win rate for short (sell) trades only.',
+    format: (v) => `${v.toFixed(1)}%`,
+    gradientStops: [{ offset: '0%', stopColor: '#22d3ee' }, { offset: '100%', stopColor: '#0891b2' }],
+    gaugeMax: 100, targetText: 'Target ≥ 50%', scaleLeft: '0%', scaleRight: '100%',
+  },
+  {
+    key: 'consistencyScore',
+    label: 'Consistency',
+    infoText: 'How consistently the strategy produces positive results across individual trading days.',
+    format: (v) => `${v.toFixed(1)}%`,
+    gradientStops: [{ offset: '0%', stopColor: '#fbbf24' }, { offset: '100%', stopColor: '#d97706' }],
+    gaugeMax: 100, targetText: 'Target ≥ 60%', scaleLeft: '0%', scaleRight: '100%',
+  },
+  {
+    key: 'currentStreak',
+    label: 'Current Streak',
+    infoText: 'Current consecutive winning or losing streak. Positive = wins, negative = losses.',
+    format: (v) => v >= 0 ? `+${v}W` : `${Math.abs(v)}L`,
+    gradientStops: [{ offset: '0%', stopColor: '#818cf8' }, { offset: '100%', stopColor: '#4f46e5' }],
+    gaugeMax: 10, targetText: 'Win streak', scaleLeft: '0', scaleRight: '10W',
+  },
+];
+
+function daysForKey(key: PeriodKey): number {
+  return AI_VISION_ALL_PERIODS.find((p) => p.key === key)?.days ?? 30;
+}
+
+function labelForKey(key: PeriodKey): string {
+  return AI_VISION_ALL_PERIODS.find((p) => p.key === key)?.label ?? key;
 }
 
 export default function AiVisionClient({
@@ -65,9 +189,7 @@ export default function AiVisionClient({
   // ── Filter state ─────────────────────────────────────────────────────────
   const [selectedMarket, setSelectedMarket] = useState('all');
   const [selectedExecution, setSelectedExecution] = useState<'all' | 'executed' | 'nonExecuted'>('executed');
-  // Date range state is tracked but doesn't affect the 3 fixed period windows
-  const [activeFilter, setActiveFilter] = useState<'year' | '15days' | '30days' | 'month' | 'all'>('year');
-  const [dateRange, setDateRange] = useState(buildPresetRange('year').dateRange);
+  const [periodPreset, setPeriodPreset] = useState<PeriodPreset>('short');
 
   // ── Trend line toggle state ───────────────────────────────────────────────
   const [showTrendLines, setShowTrendLines] = useState(false);
@@ -76,7 +198,6 @@ export default function AiVisionClient({
   const {
     periods,
     allTrades,
-    allTradesLoading,
     isInitialLoading,
     isRefetching,
   } = useAiVisionData({
@@ -88,30 +209,35 @@ export default function AiVisionClient({
     execution: selectedExecution,
   });
 
+  // ── Active preset keys ────────────────────────────────────────────────────
+  const [keyA, keyB, keyC] = PERIOD_PRESETS[periodPreset].keys;
+
   // ── Metric computation ───────────────────────────────────────────────────
-  const metrics7d = useMemo(
-    () => calculatePeriodMetrics(periods['7d'].trades, accountBalance, periodDayCount('7d')),
-    [periods, accountBalance],
+  const metricsA = useMemo(
+    () => calculatePeriodMetrics(periods[keyA].trades, accountBalance, daysForKey(keyA)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [periods[keyA].trades, accountBalance, keyA],
   );
-  const metrics30d = useMemo(
-    () => calculatePeriodMetrics(periods['30d'].trades, accountBalance, periodDayCount('30d')),
-    [periods, accountBalance],
+  const metricsB = useMemo(
+    () => calculatePeriodMetrics(periods[keyB].trades, accountBalance, daysForKey(keyB)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [periods[keyB].trades, accountBalance, keyB],
   );
-  const metrics90d = useMemo(
-    () => calculatePeriodMetrics(periods['90d'].trades, accountBalance, periodDayCount('90d')),
-    [periods, accountBalance],
+  const metricsC = useMemo(
+    () => calculatePeriodMetrics(periods[keyC].trades, accountBalance, daysForKey(keyC)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [periods[keyC].trades, accountBalance, keyC],
   );
 
-  const score7d  = useMemo(() => calculateAiVisionScore(metrics7d),  [metrics7d]);
-  const score30d = useMemo(() => calculateAiVisionScore(metrics30d), [metrics30d]);
-  const score90d = useMemo(() => calculateAiVisionScore(metrics90d), [metrics90d]);
+  const scoreA = useMemo(() => calculateAiVisionScore(metricsA), [metricsA]);
+  const scoreB = useMemo(() => calculateAiVisionScore(metricsB), [metricsB]);
+  const scoreC = useMemo(() => calculateAiVisionScore(metricsC), [metricsC]);
 
   const rollingData = useMemo(
     () => calculateRollingMetrics(allTrades, accountBalance),
     [allTrades, accountBalance],
   );
 
-  // Market list from all trades (populates dropdown once loaded)
   const markets = useMemo(
     () => Array.from(new Set(allTrades.map((t) => t.market).filter(Boolean))),
     [allTrades],
@@ -123,13 +249,12 @@ export default function AiVisionClient({
   }
 
   const allEmpty =
-    metrics7d.tradeCount === 0 &&
-    metrics30d.tradeCount === 0 &&
-    metrics90d.tradeCount === 0;
+    metricsA.tradeCount === 0 &&
+    metricsB.tradeCount === 0 &&
+    metricsC.tradeCount === 0;
 
   return (
     <div className="relative min-h-screen">
-      {/* Refetch overlay (filter change, not initial load) */}
       <AiVisionLoadingOverlay isVisible={isRefetching} />
 
       <div
@@ -139,91 +264,189 @@ export default function AiVisionClient({
         )}
       >
         {/* ── Header ─────────────────────────────────────────────────────── */}
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-indigo-500" />
-          <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+        <div className="mb-0">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
             AI Vision
           </h1>
-          <span className="text-sm text-slate-500 dark:text-slate-400">— {strategyName}</span>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
+            Performance insights and trend analysis for {strategyName}
+          </p>
         </div>
 
-        {/* ── Filter bar (market + execution — date range visible but unused for periods) ── */}
-        <TradeFiltersBar
-          variant="full"
-          dateRange={dateRange}
-          onDateRangeChange={setDateRange}
-          activeFilter={activeFilter}
-          onFilterChange={setActiveFilter}
-          isCustomRange={false}
-          selectedMarket={selectedMarket}
-          onSelectedMarketChange={setSelectedMarket}
-          markets={markets}
-          selectedExecution={selectedExecution}
-          onSelectedExecutionChange={setSelectedExecution}
-          showAllTradesOption
-        />
-
-        {/* Period column labels */}
-        <div className="grid grid-cols-3 gap-4 px-1">
-          {AI_VISION_DEFAULT_PERIODS.map((p) => (
-            <p key={p.key} className="text-center text-xs font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-              {p.label}
-            </p>
-          ))}
-        </div>
-
-        {/* ── AI Vision Score cards ────────────────────────────────────────── */}
-        <section aria-label="AI Vision Scores">
-          <div className="grid grid-cols-3 gap-4">
-            <AiVisionScoreCard
-              label="Last 7 days"
-              score={score7d}
-              delta={metrics7d.tradeCount > 0 && metrics30d.tradeCount > 0 ? score7d - score30d : null}
-              hasNoTrades={metrics7d.tradeCount === 0}
-            />
-            <AiVisionScoreCard
-              label="Last 30 days"
-              score={score30d}
-              delta={metrics30d.tradeCount > 0 && metrics90d.tradeCount > 0 ? score30d - score90d : null}
-              hasNoTrades={metrics30d.tradeCount === 0}
-            />
-            <AiVisionScoreCard
-              label="Last 90 days"
-              score={score90d}
-              delta={null}
-              isBaseline
-              hasNoTrades={metrics90d.tradeCount === 0}
-            />
+        {/* ── Filters row: period preset + market + execution ─────────────── */}
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Period preset toggle */}
+          <div className="flex items-center gap-1.5 rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 p-1">
+            {(Object.entries(PERIOD_PRESETS) as [PeriodPreset, typeof PERIOD_PRESETS[PeriodPreset]][]).map(([key, preset]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setPeriodPreset(key)}
+                className={cn(
+                  'rounded-lg px-3 py-1 text-xs font-semibold transition-all duration-200',
+                  periodPreset === key
+                    ? 'themed-btn-primary text-white border-0'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200',
+                )}
+              >
+                {preset.label}
+              </button>
+            ))}
           </div>
+
+          {/* Market filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">Market:</span>
+            <Select value={selectedMarket} onValueChange={setSelectedMarket}>
+              <SelectTrigger className="w-32 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none text-slate-900 dark:text-slate-50">
+                <SelectValue placeholder="All Markets" />
+              </SelectTrigger>
+              <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl text-slate-900 dark:text-slate-50">
+                <SelectItem value="all">All Markets</SelectItem>
+                {markets.map((market) => (
+                  <SelectItem key={market} value={market}>{market}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Execution filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">Execution:</span>
+            <Select value={selectedExecution} onValueChange={(v) => setSelectedExecution(v as 'all' | 'executed' | 'nonExecuted')}>
+              <SelectTrigger className="w-32 h-8 text-xs rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none text-slate-900 dark:text-slate-50">
+                <SelectValue placeholder="Executed" />
+              </SelectTrigger>
+              <SelectContent className="z-[100] rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/30 backdrop-blur-xl text-slate-900 dark:text-slate-50">
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="executed">Executed</SelectItem>
+                <SelectItem value="nonExecuted">Non Executed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* ── Score cards + Bar chart side by side ─────────────────────────── */}
+        <section aria-label="AI Vision Scores">
+          <SectionHeading
+            title="Composite Health Score"
+            description="Each period is compared to the next longer window (0–100)"
+            containerClassName="mt-4"
+          />
+
+          {allEmpty ? (
+            <>
+              <div className="grid grid-cols-3 gap-4">
+                <AiVisionScoreCard
+                  label={labelForKey(keyA)}
+                  score={scoreA}
+                  delta={null}
+                  hasNoTrades
+                />
+                <AiVisionScoreCard
+                  label={labelForKey(keyB)}
+                  score={scoreB}
+                  delta={null}
+                  hasNoTrades
+                />
+                <AiVisionScoreCard
+                  label={labelForKey(keyC)}
+                  score={scoreC}
+                  delta={null}
+                  isBaseline
+                  hasNoTrades
+                />
+              </div>
+              <div className="flex items-center justify-center py-16 text-slate-400 dark:text-slate-500 text-sm">
+                No trades found for this period. Start trading to see AI Vision insights.
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col">
+              {/* Score cards — 3-column row */}
+              <div className="grid grid-cols-3 gap-4">
+                <AiVisionScoreCard
+                  label={labelForKey(keyA)}
+                  score={scoreA}
+                  delta={metricsA.tradeCount > 0 && metricsB.tradeCount > 0 ? scoreA - scoreB : null}
+                  vsLabel={`vs ${keyB}`}
+                  hasNoTrades={metricsA.tradeCount === 0}
+                />
+                <AiVisionScoreCard
+                  label={labelForKey(keyB)}
+                  score={scoreB}
+                  delta={metricsB.tradeCount > 0 && metricsC.tradeCount > 0 ? scoreB - scoreC : null}
+                  vsLabel={`vs ${keyC}`}
+                  hasNoTrades={metricsB.tradeCount === 0}
+                />
+                <AiVisionScoreCard
+                  label={labelForKey(keyC)}
+                  score={scoreC}
+                  delta={null}
+                  isBaseline
+                  hasNoTrades={metricsC.tradeCount === 0}
+                />
+              </div>
+
+              {/* Chart — full width */}
+              <SectionHeading
+                title="Performance vs Baseline"
+                description={`${labelForKey(keyA)} & ${labelForKey(keyB)} compared against ${labelForKey(keyC)}`}
+                containerClassName="mt-14"
+              />
+              <AiVisionBarChart
+                metricsA={metricsA}
+                metricsB={metricsB}
+                metricsC={metricsC}
+                labelA={labelForKey(keyA)}
+                labelB={labelForKey(keyB)}
+              />
+            </div>
+          )}
         </section>
 
-        {/* ── All-empty state ──────────────────────────────────────────────── */}
-        {allEmpty && (
-          <div className="flex items-center justify-center py-16 text-slate-400 dark:text-slate-500 text-sm">
-            No trades found for this period. Start trading to see AI Vision insights.
-          </div>
-        )}
-
-        {/* ── Radar chart ─────────────────────────────────────────────────── */}
+        {/* ── Metric Gauge Cards ───────────────────────────────────────────── */}
         {!allEmpty && (
-          <section aria-label="Performance radar chart">
-            <AiVisionRadarChart
-              metrics7d={metrics7d}
-              metrics30d={metrics30d}
-              metrics90d={metrics90d}
+          <section aria-label="Metric gauge cards">
+            <SectionHeading
+              title="Metric Cards"
+              description="Each metric as a gauge with trend line"
+              containerClassName="mt-2"
             />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-3">
+              {METRIC_GAUGE_CONFIGS.map((cfg) => (
+                <MetricGaugeCard
+                  key={cfg.key}
+                  title={cfg.label}
+                  infoText={cfg.infoText}
+                  periods={[
+                    { label: labelForKey(keyA), value: metricsA[cfg.key] as number, hasNoTrades: metricsA.tradeCount === 0 },
+                    { label: labelForKey(keyB), value: metricsB[cfg.key] as number, hasNoTrades: metricsB.tradeCount === 0 },
+                    { label: labelForKey(keyC), value: metricsC[cfg.key] as number, hasNoTrades: metricsC.tradeCount === 0 },
+                  ]}
+                  rollingPoints={rollingData.points}
+                  metricKey={cfg.key}
+                  formatValue={cfg.format}
+                  gradientStops={cfg.gradientStops}
+                  gaugeMax={cfg.gaugeMax}
+                  invertBetter={cfg.invertBetter}
+                  targetText={cfg.targetText}
+                  scaleLeft={cfg.scaleLeft}
+                  scaleRight={cfg.scaleRight}
+                />
+              ))}
+            </div>
           </section>
         )}
 
         {/* ── Metric table ─────────────────────────────────────────────────── */}
         {!allEmpty && (
           <section aria-label="Period metric comparison">
-            {/* Column header row */}
             <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr_1fr] gap-x-3 px-4 mb-2">
               <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Metric</span>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">7d</span>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">30d</span>
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">90d</span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">{keyA}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">{keyB}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">{keyC}</span>
               <span />
               <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500">Trend</span>
             </div>
@@ -234,12 +457,12 @@ export default function AiVisionClient({
                   key={m.key}
                   metricKey={m.key}
                   label={m.label}
-                  value7d={metrics7d[m.key] as number}
-                  value30d={metrics30d[m.key] as number}
-                  value90d={metrics90d[m.key] as number}
-                  hasNoTrades7d={metrics7d.tradeCount === 0}
-                  hasNoTrades30d={metrics30d.tradeCount === 0}
-                  hasNoTrades90d={metrics90d.tradeCount === 0}
+                  value7d={metricsA[m.key] as number}
+                  value30d={metricsB[m.key] as number}
+                  value90d={metricsC[m.key] as number}
+                  hasNoTrades7d={metricsA.tradeCount === 0}
+                  hasNoTrades30d={metricsB.tradeCount === 0}
+                  hasNoTrades90d={metricsC.tradeCount === 0}
                   formatValue={m.format}
                   invertDelta={m.invertDelta}
                   rollingPoints={rollingData.points}

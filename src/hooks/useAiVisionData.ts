@@ -9,22 +9,34 @@ import { TRADES_DATA } from '@/constants/queryConfig';
 import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import type { Trade } from '@/types/trade';
 
-export const AI_VISION_DEFAULT_PERIODS = [
-  { key: '7d',  label: 'Last 7 days',  days: 7  },
-  { key: '30d', label: 'Last 30 days', days: 30 },
-  { key: '90d', label: 'Last 90 days', days: 90 },
+export const AI_VISION_ALL_PERIODS = [
+  { key: '7d',   label: 'Last 7 days',   days: 7   },
+  { key: '30d',  label: 'Last 30 days',  days: 30  },
+  { key: '90d',  label: 'Last 90 days',  days: 90  },
+  { key: '180d', label: 'Last 6 months', days: 180 },
+  { key: '365d', label: 'Last 1 year',   days: 365 },
 ] as const;
 
-export type PeriodKey = typeof AI_VISION_DEFAULT_PERIODS[number]['key'];
+/** Kept for backward compat — references the short-term preset keys */
+export const AI_VISION_DEFAULT_PERIODS = AI_VISION_ALL_PERIODS.filter(
+  (p) => p.key === '7d' || p.key === '30d' || p.key === '90d',
+);
+
+export type PeriodKey = typeof AI_VISION_ALL_PERIODS[number]['key'];
+
+export type PeriodPreset = 'short' | 'long';
+
+export const PERIOD_PRESETS: Record<PeriodPreset, { keys: [PeriodKey, PeriodKey, PeriodKey]; label: string }> = {
+  short: { keys: ['7d',  '30d',  '90d'],  label: 'Short term' },
+  long:  { keys: ['90d', '180d', '365d'], label: 'Long term'  },
+};
 
 interface UseAiVisionDataParams {
   userId: string | undefined;
   accountId: string | undefined;
   mode: string;
   strategyId: string | null | undefined;
-  /** Market filter from TradeFiltersBar ('all' = no filter) */
   market: string;
-  /** Execution filter from TradeFiltersBar */
   execution: 'all' | 'executed' | 'nonExecuted';
 }
 
@@ -42,9 +54,7 @@ export interface AiVisionData {
   allTradesLoading: boolean;
   allTradesFetching: boolean;
   allTradesError: boolean;
-  /** True if any of the 4 queries is loading for the first time */
   isInitialLoading: boolean;
-  /** True if any of the 4 queries is re-fetching (filter change) — use for overlay */
   isRefetching: boolean;
 }
 
@@ -72,18 +82,6 @@ function filterByMarketAndExecution(
   return result;
 }
 
-/**
- * Runs 4 parallel queries for the AI Vision page:
- *   - 3 period queries (7d / 30d / 90d) via `queryKeys.aiVision`
- *   - 1 all-time query via `queryKeys.trades.filtered` (reuses dashboard cache)
- *
- * Market and execution filters are applied client-side after fetching,
- * matching the existing dashboard pattern.
- *
- * Known limitation: getFilteredTrades caps at 2000 trades per query.
- * For backtesting strategies with >2000 trades in a 90d window, period
- * data may be incomplete. Acceptable for live/demo trading.
- */
 export function useAiVisionData({
   userId,
   accountId,
@@ -94,7 +92,6 @@ export function useAiVisionData({
 }: UseAiVisionDataParams): AiVisionData {
   const enabled = Boolean(userId && accountId && mode);
 
-  // ── Period queries ──────────────────────────────────────────────────────
   function usePeriodQuery(periodKey: PeriodKey, days: number): PeriodData {
     const { startDate, endDate } = buildPeriodDates(days);
 
@@ -122,13 +119,14 @@ export function useAiVisionData({
     return { trades, isLoading, isFetching, isError, refetch };
   }
 
-  const period7d  = usePeriodQuery('7d',  7);
-  const period30d = usePeriodQuery('30d', 30);
-  const period90d = usePeriodQuery('90d', 90);
+  // Always fetch all 5 windows — unused ones are cached and reused when switching presets
+  const period7d   = usePeriodQuery('7d',   7);
+  const period30d  = usePeriodQuery('30d',  30);
+  const period90d  = usePeriodQuery('90d',  90);
+  const period180d = usePeriodQuery('180d', 180);
+  const period365d = usePeriodQuery('365d', 365);
 
-  // ── All-time query (for trend lines) ──────────────────────────────────
-  // Uses queryKeys.trades.filtered with createAllTimeRange() — same key as
-  // useDashboardData so it reuses the TanStack cache when available.
+  // All-time query for trend lines
   const { startDate: allStart, endDate: allEnd } = createAllTimeRange();
   const {
     data: rawAllTrades = [],
@@ -155,23 +153,26 @@ export function useAiVisionData({
     ...TRADES_DATA,
   });
 
-  // Apply market + execution filter to allTrades for trend line charts
   const allTrades = filterByMarketAndExecution(rawAllTrades, market, execution);
 
   const isInitialLoading =
-    period7d.isLoading || period30d.isLoading || period90d.isLoading || allTradesLoading;
+    period7d.isLoading || period30d.isLoading || period90d.isLoading ||
+    period180d.isLoading || period365d.isLoading || allTradesLoading;
 
-  // isFetching && !isLoading = refetch on filter change (not initial load)
   const isRefetching =
-    (!period7d.isLoading  && period7d.isFetching)  ||
-    (!period30d.isLoading && period30d.isFetching) ||
-    (!period90d.isLoading && period90d.isFetching);
+    (!period7d.isLoading   && period7d.isFetching)   ||
+    (!period30d.isLoading  && period30d.isFetching)  ||
+    (!period90d.isLoading  && period90d.isFetching)  ||
+    (!period180d.isLoading && period180d.isFetching) ||
+    (!period365d.isLoading && period365d.isFetching);
 
   return {
     periods: {
-      '7d':  period7d,
-      '30d': period30d,
-      '90d': period90d,
+      '7d':   period7d,
+      '30d':  period30d,
+      '90d':  period90d,
+      '180d': period180d,
+      '365d': period365d,
     },
     allTrades,
     allTradesLoading,

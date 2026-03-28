@@ -199,7 +199,7 @@ export function CustomStatDetailView({
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
 
         {/* Net P&L */}
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
+        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
@@ -249,7 +249,7 @@ export function CustomStatDetailView({
         </Card>
 
         {/* Total Trades */}
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
+        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
@@ -275,7 +275,7 @@ export function CustomStatDetailView({
         </Card>
 
         {/* Win Rate */}
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
+        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
@@ -305,7 +305,7 @@ export function CustomStatDetailView({
         </Card>
 
         {/* Avg Drawdown */}
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
+        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">

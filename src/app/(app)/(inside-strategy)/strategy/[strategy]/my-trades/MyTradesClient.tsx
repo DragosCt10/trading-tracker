@@ -563,7 +563,7 @@ export default function MyTradesClient({
 
       {/* Summary row: P&L + equity chart + total trades + win rate + avg drawdown (tied to current filters) */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
+        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
@@ -617,7 +617,7 @@ export default function MyTradesClient({
             </div>
           </CardContent>
         </Card>
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
+        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
@@ -643,7 +643,7 @@ export default function MyTradesClient({
             </div>
           </CardContent>
         </Card>
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
+        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
@@ -675,7 +675,7 @@ export default function MyTradesClient({
             </div>
           </CardContent>
         </Card>
-        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/60 dark:bg-slate-800/40 shadow-lg shadow-slate-200/60 dark:shadow-none backdrop-blur-sm">
+        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
           <CardContent className="p-4 flex flex-col h-full">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="flex items-center gap-1.5">

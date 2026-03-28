@@ -52,7 +52,7 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
 
   if (showHideProToggle && !showProPreview) {
     return (
-      <div className="mb-4 flex flex-wrap items-center justify-end gap-3 rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 px-4 py-3">
+      <div className="mb-4 z-1 relative flex flex-wrap items-center justify-end gap-3 rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm px-4 py-3">
         <MonteCarloHideProToggle
           showProCards={showProPreview}
           onShowProCardsChange={setShowProPreview}
@@ -239,7 +239,7 @@ export const MonteCarloCard: React.FC<MonteCarloCardProps> = ({
   );
 
   const cardContent = (
-    <Card className="mb-4 relative flex w-full flex-col overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
+    <Card className="mb-4 z-1 relative flex w-full flex-col overflow-hidden rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
       {isLocked && (
         <div className="pointer-events-auto absolute right-3 top-3 z-30 flex max-w-[calc(100%-1.5rem)] flex-row-reverse flex-wrap items-center justify-end gap-2">
           <span className="flex shrink-0 items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">

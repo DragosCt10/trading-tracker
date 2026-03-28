@@ -1,106 +1,128 @@
 'use client';
 
 // src/components/dashboard/ai-vision/AiVisionScoreCard.tsx
-import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { GaugeChartCard, GradientStop } from '@/components/dashboard/analytics/GaugeChartCard';
+import { AI_VISION_METRICS } from '@/constants/aiVisionMetrics';
 
 interface AiVisionScoreCardProps {
   label: string;         // e.g. "Last 7 days"
   score: number;         // 0–100
   delta: number | null;  // pts vs prior period (null = N/A)
+  vsLabel?: string;      // e.g. "vs 30d" — shown in the delta badge
   isBaseline?: boolean;  // true for the 90d card (no delta arrow)
   hasNoTrades?: boolean;
 }
 
-function ScoreRing({ score }: { score: number }) {
-  const radius = 36;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
-
-  const color =
-    score >= 70 ? '#22c55e'  // green-500
-    : score >= 45 ? '#f59e0b' // amber-500
-    : '#ef4444';               // red-500
-
-  return (
-    <svg width="96" height="96" viewBox="0 0 96 96" aria-hidden="true">
-      <circle
-        cx="48" cy="48" r={radius}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="6"
-        className="text-slate-200 dark:text-slate-700"
-      />
-      <circle
-        cx="48" cy="48" r={radius}
-        fill="none"
-        stroke={color}
-        strokeWidth="6"
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        transform="rotate(-90 48 48)"
-        style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
-      />
-      <text
-        x="48" y="52"
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fontSize="18"
-        fontWeight="700"
-        fill={color}
-      >
-        {score}
-      </text>
-    </svg>
-  );
+function getGradientStops(score: number): GradientStop[] {
+  if (score >= 70) return [
+    { offset: '0%', stopColor: '#22c55e', stopOpacity: 1 },
+    { offset: '100%', stopColor: '#16a34a', stopOpacity: 0.9 },
+  ];
+  if (score >= 45) return [
+    { offset: '0%', stopColor: '#f59e0b', stopOpacity: 1 },
+    { offset: '100%', stopColor: '#d97706', stopOpacity: 0.9 },
+  ];
+  return [
+    { offset: '0%', stopColor: '#ef4444', stopOpacity: 1 },
+    { offset: '100%', stopColor: '#dc2626', stopOpacity: 0.9 },
+  ];
 }
+
+function getTextColor(score: number): string {
+  if (score >= 70) return 'text-green-600 dark:text-green-400';
+  if (score >= 45) return 'text-amber-600 dark:text-amber-400';
+  return 'text-rose-600 dark:text-rose-400';
+}
+
+function getHoverDotColor(score: number): string {
+  if (score >= 70) return 'bg-green-500 dark:bg-green-400 ring-green-200/50 dark:ring-green-500/30';
+  if (score >= 45) return 'bg-amber-500 dark:bg-amber-400 ring-amber-200/50 dark:ring-amber-500/30';
+  return 'bg-red-500 dark:bg-red-400 ring-red-200/50 dark:ring-red-500/30';
+}
+
+const infoContent = (
+  <div className="space-y-3">
+    <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+      How it&apos;s calculated
+    </div>
+    <div className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+      A single score from <span className="font-semibold text-slate-700 dark:text-slate-300">0 to 100</span> that
+      blends your key trading metrics into one clear picture of performance health.
+    </div>
+    <div className="space-y-1.5">
+      {AI_VISION_METRICS.map(({ key, fullLabel }) => (
+        <div key={key} className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+          <div className="h-1 w-1 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
+          {fullLabel}
+        </div>
+      ))}
+    </div>
+    <div className="flex gap-2 pt-1">
+      {[
+        { label: 'Poor', range: '< 45', color: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 border-rose-200/50 dark:border-rose-800/30' },
+        { label: 'Fair', range: '45–70', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border-amber-200/50 dark:border-amber-800/30' },
+        { label: 'Strong', range: '70+', color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 border-green-200/50 dark:border-green-800/30' },
+      ].map(({ label, range, color }) => (
+        <div key={label} className={`flex-1 rounded-lg border px-2 py-1.5 text-center ${color}`}>
+          <div className="text-[10px] font-semibold">{label}</div>
+          <div className="text-[10px] opacity-80">{range}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 export function AiVisionScoreCard({
   label,
   score,
   delta,
+  vsLabel,
   isBaseline = false,
   hasNoTrades = false,
 }: AiVisionScoreCardProps) {
   const showDelta = !isBaseline && delta !== null;
   const isPositive = delta !== null && delta > 0;
-  const isNegative = delta !== null && delta < 0;
+
+  const centerValue = (
+    <span className={getTextColor(score)}>{score}</span>
+  );
+
+  const targetText = (() => {
+    if (isBaseline) return '90d baseline';
+    if (showDelta && delta !== null) {
+      return `${isPositive ? '+' : ''}${delta} pts${vsLabel ? ` ${vsLabel}` : ''}`;
+    }
+    return 'Health score (0–100)';
+  })();
+
+  const hoverSubtextDelta = (() => {
+    if (isBaseline) return '90d reference period';
+    if (showDelta && delta !== null) {
+      const sign = isPositive ? '+' : '';
+      return `${sign}${delta} pts${vsLabel ? ` ${vsLabel}` : ''}`;
+    }
+    return `${score}% of maximum scale`;
+  })();
 
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm p-5 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-        {label}
-      </p>
-
-      {hasNoTrades ? (
-        <div className="flex h-24 items-center justify-center">
-          <p className="text-xs text-slate-400 dark:text-slate-500 text-center">No trades<br />this period</p>
-        </div>
-      ) : (
-        <ScoreRing score={score} />
-      )}
-
-      {showDelta && !hasNoTrades ? (
-        <div
-          className={cn(
-            'flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold',
-            isPositive && 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-            isNegative && 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-            !isPositive && !isNegative && 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400',
-          )}
-          aria-label={`${isPositive ? 'improved' : isNegative ? 'declined' : 'unchanged'} by ${Math.abs(delta!)} points`}
-        >
-          {isPositive && <TrendingUp className="h-3 w-3" />}
-          {isNegative && <TrendingDown className="h-3 w-3" />}
-          {!isPositive && !isNegative && <Minus className="h-3 w-3" />}
-          <span>
-            {isPositive ? '+' : ''}{delta} pts
-          </span>
-        </div>
-      ) : isBaseline && !hasNoTrades ? (
-        <span className="text-xs text-slate-400 dark:text-slate-500">baseline</span>
-      ) : null}
-    </div>
+    <GaugeChartCard
+      title={label}
+      description="Composite health score"
+      isPro={true}
+      isEmpty={hasNoTrades}
+      percentage={score}
+      dataName="Health Score"
+      gradientStops={getGradientStops(score)}
+      scaleLeft="0"
+      scaleRight="100"
+      centerValue={centerValue}
+      targetText={targetText}
+      hoverLabel={label}
+      hoverValue={String(score)}
+      hoverValueColor={getTextColor(score)}
+      hoverDotColor={getHoverDotColor(score)}
+      hoverSubtext={hoverSubtextDelta}
+      infoContent={infoContent}
+    />
   );
 }

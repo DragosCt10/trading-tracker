@@ -12,44 +12,43 @@ import {
 } from 'recharts';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import type { PeriodMetrics } from '@/utils/calculatePeriodMetrics';
+import { AI_VISION_METRICS } from '@/constants/aiVisionMetrics';
 
 interface AiVisionRadarChartProps {
-  metrics7d: PeriodMetrics;
-  metrics30d: PeriodMetrics;
-  metrics90d: PeriodMetrics;
+  metricsA: PeriodMetrics;
+  metricsB: PeriodMetrics;
+  metricsC: PeriodMetrics;
+  labelA: string;
+  labelB: string;
+  labelC: string;
 }
 
-const AXES = [
-  { key: 'winRate',          label: 'Win Rate',    max: 100  },
-  { key: 'profitFactor',     label: 'Prof. Factor', max: 3   },
-  { key: 'consistencyScore', label: 'Consistency', max: 100  },
-  { key: 'expectancy',       label: 'Expectancy',  max: 500  },
-  { key: 'recoveryFactor',   label: 'Recovery',    max: 3    },
-  { key: 'avgWinLossRatio',  label: 'W/L Ratio',   max: 3    },
-  { key: 'longWinRate',      label: 'Long WR',     max: 100  },
-  { key: 'shortWinRate',     label: 'Short WR',    max: 100  },
-] as const;
-
-type AxisKey = typeof AXES[number]['key'];
-
-function normalize(metrics: PeriodMetrics, key: AxisKey, max: number): number {
-  const raw = metrics[key] as number;
+function normalize(metrics: PeriodMetrics, key: string, max: number, invert: boolean): number {
+  const raw = metrics[key as keyof PeriodMetrics] as number;
   if (!isFinite(raw) || isNaN(raw)) return 0;
-  return Math.min(100, Math.max(0, (raw / max) * 100));
+  const pct = Math.min(1, Math.max(0, raw / max));
+  return (invert ? 1 - pct : pct) * 100;
 }
 
-function buildRadarData(m7d: PeriodMetrics, m30d: PeriodMetrics, m90d: PeriodMetrics) {
-  return AXES.map(({ key, label, max }) => ({
+function buildRadarData(mA: PeriodMetrics, mB: PeriodMetrics, mC: PeriodMetrics) {
+  return AI_VISION_METRICS.map(({ key, label, max, invert }) => ({
     subject: label,
-    '7d':  normalize(m7d,  key, max),
-    '30d': normalize(m30d, key, max),
-    '90d': normalize(m90d, key, max),
+    a: normalize(mA, key, max, invert),
+    b: normalize(mB, key, max, invert),
+    c: normalize(mC, key, max, invert),
   }));
 }
 
-export function AiVisionRadarChart({ metrics7d, metrics30d, metrics90d }: AiVisionRadarChartProps) {
+export function AiVisionRadarChart({
+  metricsA,
+  metricsB,
+  metricsC,
+  labelA,
+  labelB,
+  labelC,
+}: AiVisionRadarChartProps) {
   const isDark = useDarkMode();
-  const data = buildRadarData(metrics7d, metrics30d, metrics90d);
+  const data = buildRadarData(metricsA, metricsB, metricsC);
 
   const gridColor = isDark ? 'rgba(148,163,184,0.2)' : 'rgba(100,116,139,0.15)';
   const tickColor = isDark ? '#94a3b8' : '#64748b';
@@ -57,7 +56,7 @@ export function AiVisionRadarChart({ metrics7d, metrics30d, metrics90d }: AiVisi
   return (
     <div
       className="rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-white/60 dark:bg-slate-800/40 backdrop-blur-sm p-4 shadow-sm"
-      aria-label="AI Vision health radar chart comparing 7d, 30d, and 90d performance across 8 metrics"
+      aria-label="AI Vision health radar chart comparing performance across 8 metrics"
     >
       <h3 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
         Performance Health
@@ -67,8 +66,8 @@ export function AiVisionRadarChart({ metrics7d, metrics30d, metrics90d }: AiVisi
           <PolarGrid stroke={gridColor} />
           <PolarAngleAxis dataKey="subject" tick={{ fill: tickColor, fontSize: 11 }} />
           <Radar
-            name="Last 7d"
-            dataKey="7d"
+            name={labelA}
+            dataKey="a"
             stroke="#6366f1"
             fill="#6366f1"
             fillOpacity={0.15}
@@ -77,8 +76,8 @@ export function AiVisionRadarChart({ metrics7d, metrics30d, metrics90d }: AiVisi
             animationEasing="ease-out"
           />
           <Radar
-            name="Last 30d"
-            dataKey="30d"
+            name={labelB}
+            dataKey="b"
             stroke="#0ea5e9"
             fill="#0ea5e9"
             fillOpacity={0.12}
@@ -87,8 +86,8 @@ export function AiVisionRadarChart({ metrics7d, metrics30d, metrics90d }: AiVisi
             animationEasing="ease-out"
           />
           <Radar
-            name="Last 90d"
-            dataKey="90d"
+            name={labelC}
+            dataKey="c"
             stroke="#f59e0b"
             fill="#f59e0b"
             fillOpacity={0.10}
