@@ -3,7 +3,7 @@
 import { ReactNode, useState, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { PlusCircle, TrendingUp, BarChart3, NotebookPen, LayoutGrid, ChevronRight, ChevronLeft } from 'lucide-react';
+import { PlusCircle, TrendingUp, BarChart3, NotebookPen, LayoutGrid, ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { NewTradeModal } from '@/components/dynamicComponents';
@@ -51,6 +51,10 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
     return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}/custom-stats` : '/stats';
   }, [currentStrategySlug]);
 
+  const aiVisionUrl = useMemo(() => {
+    return currentStrategySlug ? `/strategy/${encodeURIComponent(currentStrategySlug)}/ai-vision` : '/stats';
+  }, [currentStrategySlug]);
+
   const isActive = (path: string) => {
     if (path === '/my-trades') {
       return pathname.includes('/my-trades') && (pathname.startsWith('/strategy') || pathname.startsWith('/analytics'));
@@ -63,6 +67,9 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
     }
     if (path === '/custom-stats') {
       return pathname.includes('/custom-stats') && (pathname.startsWith('/strategy') || pathname.startsWith('/analytics'));
+    }
+    if (path === '/ai-vision') {
+      return pathname.includes('/ai-vision') && (pathname.startsWith('/strategy') || pathname.startsWith('/analytics'));
     }
     return pathname === path;
   };
@@ -149,6 +156,17 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
                 {isActive('/custom-stats') && (
                   <div className="absolute inset-0 -translate-x-full group-hover/customstats:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
                 )}
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              asChild
+              size="sm"
+              className={cn(navButtonClass(isActive('/ai-vision')), 'w-full h-auto min-h-[64px] !p-0')}
+            >
+              <Link href={aiVisionUrl} className="block w-full h-full relative min-h-[40px]">
+                <Sparkles className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover/card:max-w-[140px] group-hover/card:opacity-100 transition-all duration-300 whitespace-nowrap">AI Vision</span>
               </Link>
             </Button>
             <Button

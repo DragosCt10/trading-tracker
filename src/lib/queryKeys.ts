@@ -123,6 +123,19 @@ export const queryKeys = {
     selectedExecution,
   ] as const,
 
+  /** AI Vision page — period queries (7d, 30d, 90d) keyed by period + filters. */
+  aiVision: (
+    periodKey: string,
+    mode: string,
+    accountId: string | undefined,
+    userId: string | undefined,
+    strategyId: string | null | undefined,
+    startDate: string,
+    endDate: string,
+    market: string,
+    execution: string,
+  ) => ['aiVision', periodKey, mode, accountId, userId, strategyId, startDate, endDate, market, execution] as const,
+
   /** Active subscription for a user (tier, features, limits). */
   subscription: (userId?: string) => ['subscription', userId] as const,
 
