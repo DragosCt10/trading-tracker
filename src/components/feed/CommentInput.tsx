@@ -27,7 +27,7 @@ export default function CommentInput({ onSubmit, placeholder = 'Write a commentâ
 
   return (
     <form onSubmit={handleSubmit} className="w-full">
-      <div className="relative rounded-xl border border-slate-200/80 dark:border-slate-700/60 bg-white/90 dark:bg-slate-800/50 shadow-sm shadow-slate-200/30 dark:shadow-none transition-colors duration-200 focus-within:border-slate-400 dark:focus-within:border-slate-500/80">
+      <div className="relative rounded-xl border border-slate-200/80 dark:border-slate-700/60 bg-white/90 dark:bg-slate-800/30 shadow-sm shadow-slate-200/30 dark:shadow-none transition-colors duration-200 focus-within:border-slate-400 dark:focus-within:border-slate-500/80">
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
