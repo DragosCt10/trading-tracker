@@ -66,7 +66,7 @@ export function calculatePeriodMetrics(
     return { ...EMPTY_PERIOD_METRICS, dayCount };
   }
 
-  const balance = accountBalance || 1; // guard against 0 balance (division safety)
+  const balance = accountBalance > 0 ? accountBalance : 0;
 
   // Win rate
   const { winRate } = calculateWinRates(trades);

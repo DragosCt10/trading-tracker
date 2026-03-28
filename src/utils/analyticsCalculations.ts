@@ -141,9 +141,7 @@ export function calculateAveragePnLPercentage(
     (sum, t) => sum + (t.calculated_profit || 0),
     0
   );
-  const balance = accountBalance || 1;
-
-  return balance > 0 ? (totalProfit / balance) * 100 : 0;
+  return accountBalance > 0 ? (totalProfit / accountBalance) * 100 : 0;
 }
 
 /**

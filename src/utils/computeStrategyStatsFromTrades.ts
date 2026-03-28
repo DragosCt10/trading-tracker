@@ -196,9 +196,8 @@ export function computeStrategyStatsFromTrades({
   const maxDrawdown = calculateMaxDrawdown(tradesForProfitCalculations, accountBalance);
   const averageDrawdown = calculateAverageDrawdown(tradesForProfitCalculations, accountBalance);
 
-  const balanceForPnL = accountBalance || 1;
   const averagePnLPercentage =
-    balanceForPnL > 0 ? (totalProfit / balanceForPnL) * 100 : 0;
+    accountBalance > 0 ? (totalProfit / accountBalance) * 100 : 0;
 
   const partialStatsFromTrades = calculatePartialTradesStats(tradesToUse);
   const totalPartials = partialStatsFromTrades.totalPartialTradesCount;

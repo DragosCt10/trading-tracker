@@ -75,17 +75,18 @@ export function calculateUpdatedBalance(
   return (accountBalance ?? 0) + totalYearProfit;
 }
 
-/** Normalized account balance for overview PnL % (avoids division by zero). */
+/** Normalized account balance for overview PnL % (returns 0 when balance is missing/zero). */
 export function getAccountBalanceForOverview(
   accountBalance: number | null | undefined
 ): number {
-  return accountBalance || 1;
+  return (accountBalance ?? 0) > 0 ? accountBalance! : 0;
 }
 
-/** PnL % for overview: (totalYearProfit / accountBalance) * 100. */
+/** PnL % for overview: (totalYearProfit / accountBalance) * 100. Returns 0 if balance is missing/zero. */
 export function calculatePnlPercentFromOverview(
   totalYearProfit: number,
   accountBalance: number | null | undefined
 ): number {
-  return (totalYearProfit / getAccountBalanceForOverview(accountBalance)) * 100;
+  const balance = getAccountBalanceForOverview(accountBalance);
+  return balance > 0 ? (totalYearProfit / balance) * 100 : 0;
 }

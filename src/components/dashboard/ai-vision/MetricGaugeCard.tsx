@@ -1,7 +1,7 @@
 'use client';
 
 // src/components/dashboard/ai-vision/MetricGaugeCard.tsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   PieChart,
   Pie,
@@ -14,7 +14,7 @@ import { Info, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
-import { COLOR_THEMES, DEFAULT_THEME_COLORS, type ColorThemeId } from '@/constants/colorThemes';
+import { useThemeColors } from '@/hooks/useThemeColors';
 
 export interface PeriodValue {
   label: string;
@@ -102,19 +102,7 @@ export const MetricGaugeCard = React.memo(function MetricGaugeCard({
   const tooltipActiveRef = useRef(false);
   const prevActiveRef    = useRef(false);
 
-  // Reactive theme colors: read from COLOR_THEMES on mount + whenever data-color-theme changes
-  const [themeColors, setThemeColors] = useState(DEFAULT_THEME_COLORS);
-  useEffect(() => {
-    const readColors = () => {
-      const id = document.documentElement.getAttribute('data-color-theme') as ColorThemeId | null;
-      setThemeColors(COLOR_THEMES.find(t => t.id === id)?.colors ?? DEFAULT_THEME_COLORS);
-    };
-    readColors();
-    const mo = new MutationObserver(readColors);
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-color-theme'] });
-    return () => mo.disconnect();
-  }, []);
-  const { primary: colorPrimary, accent: colorAccent, accentEnd: colorAccentEnd } = themeColors;
+  const { primary: colorPrimary, accent: colorAccent, accentEnd: colorAccentEnd } = useThemeColors();
 
   const uid        = React.useId().replace(/:/g, '');
   const gradientId = `mg-${uid}`;

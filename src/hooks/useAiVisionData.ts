@@ -1,6 +1,7 @@
 'use client';
 
 // src/hooks/useAiVisionData.ts
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { subDays, format, startOfDay } from 'date-fns';
 import { getFilteredTrades } from '@/lib/server/trades';
@@ -92,13 +93,13 @@ export function useAiVisionData({
 }: UseAiVisionDataParams): AiVisionData {
   const enabled = Boolean(userId && accountId && mode);
 
-  function usePeriodQuery(periodKey: PeriodKey, days: number): PeriodData {
+  function usePeriodQuery(periodKey: PeriodKey, days: number) {
     const { startDate, endDate } = buildPeriodDates(days);
 
     const { data: rawTrades = [], isLoading, isFetching, isError, refetch } = useQuery<Trade[]>({
       queryKey: queryKeys.aiVision(
         periodKey, mode, accountId, userId, strategyId,
-        startDate, endDate, market, execution,
+        startDate, endDate,
       ),
       queryFn: async () => {
         if (!userId || !accountId) return [];
@@ -115,16 +116,15 @@ export function useAiVisionData({
       ...TRADES_DATA,
     });
 
-    const trades = filterByMarketAndExecution(rawTrades, market, execution);
-    return { trades, isLoading, isFetching, isError, refetch };
+    return { rawTrades, isLoading, isFetching, isError, refetch };
   }
 
   // Always fetch all 5 windows — unused ones are cached and reused when switching presets
-  const period7d   = usePeriodQuery('7d',   7);
-  const period30d  = usePeriodQuery('30d',  30);
-  const period90d  = usePeriodQuery('90d',  90);
-  const period180d = usePeriodQuery('180d', 180);
-  const period365d = usePeriodQuery('365d', 365);
+  const q7d   = usePeriodQuery('7d',   7);
+  const q30d  = usePeriodQuery('30d',  30);
+  const q90d  = usePeriodQuery('90d',  90);
+  const q180d = usePeriodQuery('180d', 180);
+  const q365d = usePeriodQuery('365d', 365);
 
   // All-time query for trend lines
   const { startDate: allStart, endDate: allEnd } = createAllTimeRange();
@@ -153,26 +153,32 @@ export function useAiVisionData({
     ...TRADES_DATA,
   });
 
-  const allTrades = filterByMarketAndExecution(rawAllTrades, market, execution);
+  // Memoize client-side filtering — stable references survive filter toggles
+  const trades7d   = useMemo(() => filterByMarketAndExecution(q7d.rawTrades,   market, execution), [q7d.rawTrades,   market, execution]);
+  const trades30d  = useMemo(() => filterByMarketAndExecution(q30d.rawTrades,  market, execution), [q30d.rawTrades,  market, execution]);
+  const trades90d  = useMemo(() => filterByMarketAndExecution(q90d.rawTrades,  market, execution), [q90d.rawTrades,  market, execution]);
+  const trades180d = useMemo(() => filterByMarketAndExecution(q180d.rawTrades, market, execution), [q180d.rawTrades, market, execution]);
+  const trades365d = useMemo(() => filterByMarketAndExecution(q365d.rawTrades, market, execution), [q365d.rawTrades, market, execution]);
+  const allTrades  = useMemo(() => filterByMarketAndExecution(rawAllTrades,    market, execution), [rawAllTrades,    market, execution]);
 
   const isInitialLoading =
-    period7d.isLoading || period30d.isLoading || period90d.isLoading ||
-    period180d.isLoading || period365d.isLoading || allTradesLoading;
+    q7d.isLoading || q30d.isLoading || q90d.isLoading ||
+    q180d.isLoading || q365d.isLoading || allTradesLoading;
 
   const isRefetching =
-    (!period7d.isLoading   && period7d.isFetching)   ||
-    (!period30d.isLoading  && period30d.isFetching)  ||
-    (!period90d.isLoading  && period90d.isFetching)  ||
-    (!period180d.isLoading && period180d.isFetching) ||
-    (!period365d.isLoading && period365d.isFetching);
+    (!q7d.isLoading   && q7d.isFetching)   ||
+    (!q30d.isLoading  && q30d.isFetching)  ||
+    (!q90d.isLoading  && q90d.isFetching)  ||
+    (!q180d.isLoading && q180d.isFetching) ||
+    (!q365d.isLoading && q365d.isFetching);
 
   return {
     periods: {
-      '7d':   period7d,
-      '30d':  period30d,
-      '90d':  period90d,
-      '180d': period180d,
-      '365d': period365d,
+      '7d':   { trades: trades7d,   isLoading: q7d.isLoading,   isFetching: q7d.isFetching,   isError: q7d.isError,   refetch: q7d.refetch },
+      '30d':  { trades: trades30d,  isLoading: q30d.isLoading,  isFetching: q30d.isFetching,  isError: q30d.isError,  refetch: q30d.refetch },
+      '90d':  { trades: trades90d,  isLoading: q90d.isLoading,  isFetching: q90d.isFetching,  isError: q90d.isError,  refetch: q90d.refetch },
+      '180d': { trades: trades180d, isLoading: q180d.isLoading, isFetching: q180d.isFetching, isError: q180d.isError, refetch: q180d.refetch },
+      '365d': { trades: trades365d, isLoading: q365d.isLoading, isFetching: q365d.isFetching, isError: q365d.isError, refetch: q365d.refetch },
     },
     allTrades,
     allTradesLoading,

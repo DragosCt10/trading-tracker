@@ -1,6 +1,7 @@
 'use client';
 
 // src/components/dashboard/ai-vision/AiVisionBarChart.tsx
+import React, { useMemo } from 'react';
 import {
   BarChart,
   Bar,
@@ -34,8 +35,6 @@ function norm(metrics: PeriodMetrics, key: string, max: number, invert: boolean)
   return (invert ? 1 - pct : pct) * 100;
 }
 
-interface BarTooltipEntry { name: string; value: number; fill: string }
-
 function BarTooltip({
   active,
   payload,
@@ -43,7 +42,7 @@ function BarTooltip({
   isDark,
 }: {
   active?: boolean;
-  payload?: BarTooltipEntry[];
+  payload?: readonly any[];
   label?: string;
   isDark?: boolean;
 }) {
@@ -89,7 +88,7 @@ function BarTooltip({
   );
 }
 
-export function AiVisionBarChart({
+export const AiVisionBarChart = React.memo(function AiVisionBarChart({
   metricsA,
   metricsB,
   metricsC,
@@ -99,16 +98,19 @@ export function AiVisionBarChart({
   const { isDark } = useDarkMode();
 
   // delta vs baseline (period C): positive = improvement, negative = decline
-  const data = AI_VISION_METRICS.map(({ key, label, max, invert }) => {
-    const c = norm(metricsC, key, max, invert);
-    const valA = parseFloat((norm(metricsA, key, max, invert) - c).toFixed(1));
-    const valB = parseFloat((norm(metricsB, key, max, invert) - c).toFixed(1));
-    return {
-      metric: label,
-      [labelA]: valA,
-      [labelB]: valB,
-    };
-  });
+  const data = useMemo(
+    () => AI_VISION_METRICS.map(({ key, label, max, invert }) => {
+      const c = norm(metricsC, key, max, invert);
+      const valA = parseFloat((norm(metricsA, key, max, invert) - c).toFixed(1));
+      const valB = parseFloat((norm(metricsB, key, max, invert) - c).toFixed(1));
+      return {
+        metric: label,
+        [labelA]: valA,
+        [labelB]: valB,
+      };
+    }),
+    [metricsA, metricsB, metricsC, labelA, labelB],
+  );
 
   const tickColor = isDark ? '#cbd5e1' : '#64748b';
   const axisColor = isDark ? '#1e293b' : '#e2e8f0';
@@ -176,7 +178,7 @@ export function AiVisionBarChart({
             content={(props) => (
               <BarTooltip
                 active={props.active}
-                payload={props.payload as unknown as BarTooltipEntry[]}
+                payload={props.payload}
                 label={props.label != null ? String(props.label) : undefined}
                 isDark={isDark}
               />
@@ -199,4 +201,4 @@ export function AiVisionBarChart({
       </ResponsiveContainer>
     </div>
   );
-}
+});

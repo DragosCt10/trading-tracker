@@ -181,21 +181,23 @@ export default function AiVisionClient({
   // ── Active preset keys ────────────────────────────────────────────────────
   const [keyA, keyB, keyC] = PERIOD_PRESETS[periodPreset].keys;
 
+  // Destructure trades for stable useMemo deps (avoids eslint-disable for dynamic indexing)
+  const tradesA = periods[keyA].trades;
+  const tradesB = periods[keyB].trades;
+  const tradesC = periods[keyC].trades;
+
   // ── Metric computation ───────────────────────────────────────────────────
   const metricsA = useMemo(
-    () => calculatePeriodMetrics(periods[keyA].trades, accountBalance, daysForKey(keyA)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [periods[keyA].trades, accountBalance, keyA],
+    () => calculatePeriodMetrics(tradesA, accountBalance, daysForKey(keyA)),
+    [tradesA, accountBalance, keyA],
   );
   const metricsB = useMemo(
-    () => calculatePeriodMetrics(periods[keyB].trades, accountBalance, daysForKey(keyB)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [periods[keyB].trades, accountBalance, keyB],
+    () => calculatePeriodMetrics(tradesB, accountBalance, daysForKey(keyB)),
+    [tradesB, accountBalance, keyB],
   );
   const metricsC = useMemo(
-    () => calculatePeriodMetrics(periods[keyC].trades, accountBalance, daysForKey(keyC)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [periods[keyC].trades, accountBalance, keyC],
+    () => calculatePeriodMetrics(tradesC, accountBalance, daysForKey(keyC)),
+    [tradesC, accountBalance, keyC],
   );
 
   const scoreA = useMemo(() => calculateAiVisionScore(metricsA), [metricsA]);
