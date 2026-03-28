@@ -1,30 +1,20 @@
 'use client';
 
 // src/components/dashboard/ai-vision/MetricGaugeCard.tsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   PieChart,
   Pie,
   Cell,
   ResponsiveContainer,
   Tooltip,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Info, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useDarkMode } from '@/hooks/useDarkMode';
-import type { RollingPoint } from '@/utils/calculateRollingMetrics';
-import type { PeriodMetrics } from '@/utils/calculatePeriodMetrics';
-
-export interface GaugeGradientStop {
-  offset: string;
-  stopColor: string;
-}
+import { COLOR_THEMES, DEFAULT_THEME_COLORS, type ColorThemeId } from '@/constants/colorThemes';
 
 export interface PeriodValue {
   label: string;
@@ -36,10 +26,7 @@ export interface MetricGaugeCardProps {
   title: string;
   infoText: string;
   periods: [PeriodValue, PeriodValue, PeriodValue];
-  rollingPoints: RollingPoint[];
-  metricKey: keyof PeriodMetrics;
   formatValue: (v: number) => string;
-  gradientStops: GaugeGradientStop[];
   /** Raw value that maps to 100% arc fill */
   gaugeMax: number;
   /** Lower is better (e.g. maxDrawdown). Flips best-period logic and delta badge colors. */
@@ -102,10 +89,7 @@ export const MetricGaugeCard = React.memo(function MetricGaugeCard({
   title,
   infoText,
   periods,
-  rollingPoints,
-  metricKey,
   formatValue,
-  gradientStops,
   gaugeMax,
   invertBetter = false,
   targetText,
@@ -117,6 +101,20 @@ export const MetricGaugeCard = React.memo(function MetricGaugeCard({
   const [showTooltip, setShowTooltip] = useState(false);
   const tooltipActiveRef = useRef(false);
   const prevActiveRef    = useRef(false);
+
+  // Reactive theme colors: read from COLOR_THEMES on mount + whenever data-color-theme changes
+  const [themeColors, setThemeColors] = useState(DEFAULT_THEME_COLORS);
+  useEffect(() => {
+    const readColors = () => {
+      const id = document.documentElement.getAttribute('data-color-theme') as ColorThemeId | null;
+      setThemeColors(COLOR_THEMES.find(t => t.id === id)?.colors ?? DEFAULT_THEME_COLORS);
+    };
+    readColors();
+    const mo = new MutationObserver(readColors);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-color-theme'] });
+    return () => mo.disconnect();
+  }, []);
+  const { primary: colorPrimary, accent: colorAccent, accentEnd: colorAccentEnd } = themeColors;
 
   const uid        = React.useId().replace(/:/g, '');
   const gradientId = `mg-${uid}`;
@@ -137,18 +135,9 @@ export const MetricGaugeCard = React.memo(function MetricGaugeCard({
   const remaining  = 100 - percentage;
 
   const gaugeData = [
-    { name: title,      value: percentage },
+    { name: title,       value: percentage },
     { name: 'Remaining', value: remaining  },
   ];
-
-  // Trend data
-  const trendData = rollingPoints.map((p) => ({
-    date:  p.date,
-    value: p.metrics[metricKey] as number,
-  }));
-
-  const tickColor = isDark ? '#64748b' : '#94a3b8';
-  const lineColor = isDark ? '#94a3b8' : '#64748b';
 
   const scaleRightLabel = scaleRight ?? formatValue(gaugeMax);
 
@@ -160,7 +149,7 @@ export const MetricGaugeCard = React.memo(function MetricGaugeCard({
             {title}
           </CardTitle>
         </CardHeader>
-        <CardContent className="h-72" />
+        <CardContent className="h-48" />
       </Card>
     );
   }
@@ -209,9 +198,9 @@ export const MetricGaugeCard = React.memo(function MetricGaugeCard({
               <div className="relative overflow-hidden rounded-xl px-3 py-2 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/60 backdrop-blur-sm shadow-md">
                 {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-xl" />}
                 <div className="relative flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full shadow-sm ring-2" style={{ backgroundColor: gradientStops[0]?.stopColor, ringColor: gradientStops[0]?.stopColor + '40' }} />
+                  <div className="h-2 w-2 rounded-full shadow-sm ring-2" style={{ backgroundColor: colorPrimary }} />
                   <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                    {title}: <span className="font-bold" style={{ color: gradientStops[0]?.stopColor }}>{formatValue(primary.value)}</span>
+                    {title}: <span className="font-bold" style={{ color: colorPrimary }}>{bestPeriod ? formatValue(bestPeriod.value) : '—'}</span>
                   </span>
                 </div>
               </div>
@@ -222,9 +211,9 @@ export const MetricGaugeCard = React.memo(function MetricGaugeCard({
             <PieChart>
               <defs>
                 <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                  {gradientStops.map((s, i) => (
-                    <stop key={i} offset={s.offset} stopColor={s.stopColor} />
-                  ))}
+                  <stop offset="0%"   stopColor={colorPrimary}   />
+                  <stop offset="50%"  stopColor={colorAccent}    />
+                  <stop offset="100%" stopColor={colorAccentEnd} />
                 </linearGradient>
               </defs>
               <Pie
@@ -320,59 +309,6 @@ export const MetricGaugeCard = React.memo(function MetricGaugeCard({
               </div>
             );
           })}
-        </div>
-
-        {/* ── Trend line ───────────────────────────────────────────────────── */}
-        <div className="pt-3 border-t border-slate-200/50 dark:border-slate-700/40">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-2">
-            {title} over time
-          </p>
-          {trendData.length < 2 ? (
-            <div className="flex items-center justify-center h-16 text-[11px] text-slate-400 dark:text-slate-500">
-              Not enough data yet
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={90}>
-              <LineChart data={trendData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                <XAxis
-                  dataKey="date"
-                  tick={{ fill: tickColor, fontSize: 9 }}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(d: string) => d.slice(5)}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  tick={{ fill: tickColor, fontSize: 9 }}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v) => formatValue(v as number)}
-                  width={40}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: isDark ? '#1e293b' : '#fff',
-                    border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
-                    borderRadius: 8,
-                    fontSize: 11,
-                    color: isDark ? '#e2e8f0' : '#1e293b',
-                  }}
-                  formatter={(v) => [formatValue(v as number), title]}
-                  labelFormatter={(d) => String(d ?? '')}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke={lineColor}
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive
-                  animationDuration={500}
-                  animationEasing="ease-out"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
         </div>
       </CardContent>
     </Card>
