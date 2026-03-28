@@ -253,7 +253,7 @@ function PostCardComponent({
                 {isOwn && onEdit && authorTier !== 'starter' && (
                   <button
                     type="button"
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50"
                     onClick={() => { setMenuOpen(false); onEdit(post); }}
                   >
                     <Pencil className="w-3.5 h-3.5" /> Edit
@@ -262,7 +262,7 @@ function PostCardComponent({
                 {isOwn && onDelete && (
                   <button
                     type="button"
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-500/10"
+                    className="flex items-center gap-2 w-full px-3 py-2 text-sm text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-500/10"
                     onClick={() => { setMenuOpen(false); onDelete(post.id); }}
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Delete
