@@ -2,7 +2,13 @@
 import type { Trade } from '@/types/trade';
 import { calculateWinRates } from '@/utils/calculateWinRates';
 import { calculateMacroStats } from '@/utils/calculateMacroStats';
-import { calculateExpectancy } from '@/utils/analyticsCalculations';
+import {
+  calculateExpectancy,
+  calculateMaxDrawdown,
+  calculateAveragePnLPercentage,
+  calculateAvgWinLoss,
+  computeRecoveryFactorAndDrawdownCount,
+} from '@/utils/analyticsCalculations';
 import { calculateStreaksFromTrades } from '@/utils/calculateStreaks';
 import { calculateDirectionStats } from '@/utils/calculateCategoryStats';
 
@@ -69,32 +75,23 @@ export function calculatePeriodMetrics(
   const macro = calculateMacroStats(trades, balance);
   const { profitFactor, consistencyScore } = macro;
 
-  // Expectancy + avg win/loss ratio
-  const { expectancy, avgWin, avgLoss } = calculateExpectancy(trades);
-  const avgWinLossRatio = avgLoss > 0 ? avgWin / avgLoss : avgWin > 0 ? 999 : 0;
+  // Expectancy
+  const { expectancy } = calculateExpectancy(trades);
 
-  // Net PnL %: sum of calculated_profit / accountBalance * 100
-  const totalPnL = trades.reduce((sum, t) => sum + (t.calculated_profit ?? 0), 0);
-  const netPnlPct = (totalPnL / balance) * 100;
+  // Avg win/loss ratio
+  const { winLossRatio: avgWinLossRatio } = calculateAvgWinLoss(trades);
 
-  // Max Drawdown: peak-to-trough of cumulative PnL series
-  // Sort by date ascending, then walk the series
-  const sorted = [...trades].sort((a, b) => a.trade_date.localeCompare(b.trade_date));
-  let cumPnL = 0;
-  let peak = 0;
-  let maxDrawdownAbs = 0;
-  for (const t of sorted) {
-    cumPnL += t.calculated_profit ?? 0;
-    if (cumPnL > peak) peak = cumPnL;
-    const drawdown = peak - cumPnL;
-    if (drawdown > maxDrawdownAbs) maxDrawdownAbs = drawdown;
-  }
-  // Express as % of account balance
-  const maxDrawdown = (maxDrawdownAbs / balance) * 100;
+  // Net PnL %
+  const netPnlPct = calculateAveragePnLPercentage(trades, balance);
 
-  // Recovery Factor = totalPnL / maxDrawdownAbs (absolute, not %)
-  // Guard: if no drawdown, recovery factor is 0 (not meaningful to show infinity)
-  const recoveryFactor = maxDrawdownAbs > 0 ? totalPnL / maxDrawdownAbs : 0;
+  // Max Drawdown (equity curve, excludes BE trades)
+  const maxDrawdown = calculateMaxDrawdown(trades, balance);
+
+  // Recovery Factor
+  const { recoveryFactor } = computeRecoveryFactorAndDrawdownCount({
+    averagePnLPercentage: netPnlPct,
+    maxDrawdown,
+  });
 
   // Trade frequency
   const tradeFrequency = dayCount > 0 ? trades.length / dayCount : 0;
