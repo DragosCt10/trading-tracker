@@ -128,10 +128,11 @@ export const MetricGaugeCard = React.memo(function MetricGaugeCard({
     }, null);
 
   // Arc fill based on best period (matches center value)
-  const rawPct = bestPeriod
+  // Always show the raw proportion — invertBetter only affects best-period
+  // selection and delta badge colors, not the arc fill itself.
+  const percentage = bestPeriod
     ? Math.min(100, Math.max(0, (bestPeriod.value / gaugeMax) * 100))
     : 0;
-  const percentage = invertBetter ? 100 - rawPct : rawPct;
   const remaining  = 100 - percentage;
 
   const gaugeData = [
