@@ -1,3 +1,8 @@
+# backups
+*.dump
+*.sql.bak
+/db-backup/
+
 # dependencies
 /node_modules
 /.pnp
