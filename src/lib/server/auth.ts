@@ -93,8 +93,8 @@ export async function updatePasswordAction(
 ): Promise<AuthResult> {
   const password = formData.get('password') as string;
 
-  if (!password || password.length < 12) {
-    return { error: 'Password must be at least 12 characters' };
+  if (!password || password.length < 8) {
+    return { error: 'Password must be at least 8 characters' };
   }
 
   const supabase = await createClient();
