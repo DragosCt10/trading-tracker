@@ -2,11 +2,11 @@
 
 // src/app/(app)/(inside-strategy)/strategy/[strategy]/ai-vision/AiVisionClient.tsx
 import { useMemo, useState } from 'react';
+import { format } from 'date-fns';
 import { AiVisionSkeleton } from '@/components/dashboard/ai-vision/AiVisionSkeleton';
 import { AiVisionLoadingOverlay } from '@/components/dashboard/ai-vision/AiVisionLoadingOverlay';
 import { AiVisionScoreCard } from '@/components/dashboard/ai-vision/AiVisionScoreCard';
-import { AiVisionBarChart } from '@/components/dashboard/ai-vision/AiVisionBarChart';
-import { MetricGaugeCard } from '@/components/dashboard/ai-vision/MetricGaugeCard';
+import { AiVisionMetricRow, type TrendPoint } from '@/components/dashboard/ai-vision/AiVisionMetricRow';
 import {
   useAiVisionData,
   AI_VISION_ALL_PERIODS,
@@ -16,6 +16,8 @@ import {
 } from '@/hooks/useAiVisionData';
 import { calculatePeriodMetrics, type PeriodMetrics } from '@/utils/calculatePeriodMetrics';
 import { calculateAiVisionScore } from '@/utils/calculateAiVisionScore';
+import { detectTradingPatterns, detectMultiPeriodTrends, mergePatternsByPeriod } from '@/utils/detectTradingPatterns';
+import { AiVisionPatterns } from '@/components/dashboard/ai-vision/AiVisionPatterns';
 import { SectionHeading } from '../sections/SectionHeading';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -132,14 +134,6 @@ const METRIC_GAUGE_CONFIGS: MetricGaugeConfig[] = [
 
     gaugeMax: 100, targetText: 'Target ≥ 60%', scaleLeft: '0%', scaleRight: '100%',
   },
-  {
-    key: 'currentStreak',
-    label: 'Current Streak',
-    infoText: 'Current consecutive winning or losing streak. Positive = wins, negative = losses.',
-    format: (v) => v >= 0 ? `+${v}W` : `${Math.abs(v)}L`,
-
-    gaugeMax: 10, targetText: 'Win streak', scaleLeft: '0', scaleRight: '10W',
-  },
 ];
 
 function daysForKey(key: PeriodKey): number {
@@ -204,10 +198,68 @@ export default function AiVisionClient({
   const scoreB = useMemo(() => calculateAiVisionScore(metricsB), [metricsB]);
   const scoreC = useMemo(() => calculateAiVisionScore(metricsC), [metricsC]);
 
+  // Monthly trendline data per metric key, derived from allTrades
+  const trendByMetric = useMemo<Record<string, TrendPoint[]>>(() => {
+    if (allTrades.length === 0) return {};
+    const byMonth = new Map<string, typeof allTrades>();
+    for (const t of allTrades) {
+      const key = format(new Date(t.trade_date), 'MMM yy');
+      if (!byMonth.has(key)) byMonth.set(key, []);
+      byMonth.get(key)!.push(t);
+    }
+    // Sort months chronologically (oldest → newest)
+    const sortedMonths = Array.from(byMonth.entries()).sort(([a], [b]) => {
+      return new Date(`01 ${a}`).getTime() - new Date(`01 ${b}`).getTime();
+    });
+
+    // Fill in missing months between first and last with null
+    const filledMonths: Array<[string, typeof allTrades | null]> = [];
+    if (sortedMonths.length > 0) {
+      const start = new Date(`01 ${sortedMonths[0][0]}`);
+      const end = new Date(`01 ${sortedMonths[sortedMonths.length - 1][0]}`);
+      const cur = new Date(start);
+      while (cur <= end) {
+        const label = format(cur, 'MMM yy');
+        filledMonths.push([label, byMonth.get(label) ?? null]);
+        cur.setMonth(cur.getMonth() + 1);
+      }
+    }
+
+    const result: Record<string, TrendPoint[]> = {};
+    for (const cfg of METRIC_GAUGE_CONFIGS) {
+      result[cfg.key] = filledMonths.map(([month, trades]) => ({
+        month,
+        value: trades ? calculatePeriodMetrics(trades, accountBalance, 30)[cfg.key] as number : null,
+      }));
+    }
+    return result;
+  }, [allTrades, accountBalance]);
+
   const markets = useMemo(
     () => Array.from(new Set(allTrades.map((t) => t.market).filter(Boolean))),
     [allTrades],
   );
+
+  // ── Pattern detection (across all 3 periods + multi-period trends) ─────
+  const detectedPatterns = useMemo(() => {
+    const labelA = labelForKey(keyA);
+    const labelB = labelForKey(keyB);
+    const labelC = labelForKey(keyC);
+
+    const patternsA = detectTradingPatterns(tradesA, metricsA, accountBalance, metricsB);
+    const patternsB = detectTradingPatterns(tradesB, metricsB, accountBalance, metricsC);
+    const patternsC = detectTradingPatterns(tradesC, metricsC, accountBalance, null);
+    const trendPatterns = detectMultiPeriodTrends(metricsA, metricsB, metricsC, [labelA, labelB, labelC]);
+
+    const merged = mergePatternsByPeriod([
+      { patterns: patternsA, periodLabel: labelA },
+      { patterns: patternsB, periodLabel: labelB },
+      { patterns: patternsC, periodLabel: labelC },
+    ]);
+
+    // Add trend patterns (these are already unique, no merging needed)
+    return [...merged, ...trendPatterns].sort((a, b) => a.priority - b.priority);
+  }, [tradesA, tradesB, tradesC, metricsA, metricsB, metricsC, accountBalance, keyA, keyB, keyC]);
 
   const allEmpty =
     !isInitialLoading &&
@@ -221,7 +273,7 @@ export default function AiVisionClient({
 
       <div
         className={cn(
-          'flex flex-col gap-6 p-6 transition-all duration-300',
+          'flex flex-col gap-6 transition-all duration-300',
           isRefetching && 'blur-[2px] opacity-30 pointer-events-none',
         )}
       >
@@ -288,19 +340,24 @@ export default function AiVisionClient({
           </div>
         </div>
 
+        {/* ── AI Detected Patterns ─────────────────────────────────────────── */}
+        {!isInitialLoading && !allEmpty && (
+          <AiVisionPatterns patterns={detectedPatterns} />
+        )}
+
         {/* ── Score cards + Bar chart ──────────────────────────────────────── */}
         <section aria-label="AI Vision Scores">
           <SectionHeading
             title="Composite Health Score"
             description="Each period is compared to the next longer window (0–100)"
-            containerClassName="mt-4"
+            containerClassName="mt-10"
           />
 
           {isInitialLoading ? (
             <AiVisionSkeleton />
           ) : allEmpty ? (
             <>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-6">
                 <AiVisionScoreCard
                   label={labelForKey(keyA)}
                   score={scoreA}
@@ -329,7 +386,7 @@ export default function AiVisionClient({
             <>
               <div className="flex flex-col">
                 {/* Score cards — 3-column row */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-6">
                   <AiVisionScoreCard
                     label={labelForKey(keyA)}
                     score={scoreA}
@@ -353,60 +410,39 @@ export default function AiVisionClient({
                   />
                 </div>
 
-                {/* Bar chart */}
-                <SectionHeading
-                  title="Performance vs Baseline"
-                  description={`${labelForKey(keyA)} & ${labelForKey(keyB)} compared against ${labelForKey(keyC)}`}
-                  containerClassName="mt-14"
-                />
-                <AiVisionBarChart
-                  metricsA={metricsA}
-                  metricsB={metricsB}
-                  metricsC={metricsC}
-                  labelA={labelForKey(keyA)}
-                  labelB={labelForKey(keyB)}
-                />
               </div>
 
-              {/* ── Metric Gauge Cards ─────────────────────────────────────── */}
-              <section aria-label="Metric gauge cards">
+              {/* ── Metric Rows ────────────────────────────────────────────── */}
+              <section aria-label="Metric rows">
                 <SectionHeading
-                  title="Metric Cards"
-                  description="Each metric as a gauge with trend line"
+                  title="Performance Metrics"
+                  description={`Deep dive into each metric that contributes to the health score.`}
                   containerClassName="mt-14"
                 />
-                <div className="flex flex-col gap-0 mt-3">
-                  {Array.from({ length: Math.ceil(METRIC_GAUGE_CONFIGS.length / 3) }, (_, rowIdx) => {
-                    const row = METRIC_GAUGE_CONFIGS.slice(rowIdx * 3, rowIdx * 3 + 3);
-                    const isLast = (rowIdx + 1) * 3 >= METRIC_GAUGE_CONFIGS.length;
-                    return (
-                      <div key={rowIdx}>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {row.map((cfg) => (
-                            <MetricGaugeCard
-                              key={cfg.key}
-                              title={cfg.label}
-                              infoText={cfg.infoText}
-                              periods={[
-                                { label: labelForKey(keyA), value: metricsA[cfg.key] as number, hasNoTrades: metricsA.tradeCount === 0 },
-                                { label: labelForKey(keyB), value: metricsB[cfg.key] as number, hasNoTrades: metricsB.tradeCount === 0 },
-                                { label: labelForKey(keyC), value: metricsC[cfg.key] as number, hasNoTrades: metricsC.tradeCount === 0 },
-                              ]}
-                              formatValue={cfg.format}
-                              gaugeMax={cfg.gaugeMax}
-                              invertBetter={cfg.invertBetter}
-                              targetText={cfg.targetText}
-                              scaleLeft={cfg.scaleLeft}
-                              scaleRight={cfg.scaleRight}
-                            />
-                          ))}
-                        </div>
-                        {!isLast && <hr className="border-slate-200/50 dark:border-slate-700/40 my-10" />}
-                      </div>
-                    );
-                  })}
+                <div className="flex flex-col gap-6 mt-3">
+                  {METRIC_GAUGE_CONFIGS.map((cfg) => (
+                    <AiVisionMetricRow
+                      key={cfg.key}
+                      title={cfg.label}
+                      infoText={cfg.infoText}
+                      periods={[
+                        { label: labelForKey(keyA), value: metricsA[cfg.key] as number, hasNoTrades: metricsA.tradeCount === 0 },
+                        { label: labelForKey(keyB), value: metricsB[cfg.key] as number, hasNoTrades: metricsB.tradeCount === 0 },
+                        { label: labelForKey(keyC), value: metricsC[cfg.key] as number, hasNoTrades: metricsC.tradeCount === 0 },
+                      ]}
+                      trendData={trendByMetric[cfg.key] ?? []}
+                      formatValue={cfg.format}
+                      invertBetter={cfg.invertBetter}
+                      gaugeMax={cfg.gaugeMax}
+                      showGauge
+                      targetText={cfg.targetText}
+                      scaleLeft={cfg.scaleLeft}
+                      scaleRight={cfg.scaleRight}
+                    />
+                  ))}
                 </div>
               </section>
+
             </>
           )}
         </section>
