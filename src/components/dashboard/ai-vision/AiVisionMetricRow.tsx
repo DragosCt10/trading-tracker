@@ -247,9 +247,9 @@ export const AiVisionMetricRow = React.memo(function AiVisionMetricRow({
   if (showGauge) {
     return (
       <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
-        <div className="flex">
+        <div className="flex flex-col lg:flex-row">
           {/* ── Left: gauge + period pills ──────────────────────────────────── */}
-          <div className="flex flex-col w-[480px] flex-shrink-0 border-r border-slate-200/50 dark:border-slate-700/40">
+          <div className="flex flex-col lg:w-[420px] flex-shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200/50 dark:border-slate-700/40">
             {/* Header */}
             <div className="flex items-center justify-between px-7 pt-6 pb-0">
               <h3 className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">{title}</h3>
@@ -290,14 +290,14 @@ export const AiVisionMetricRow = React.memo(function AiVisionMetricRow({
               </ResponsiveContainer>
               <div className="absolute bottom-[68px] left-[10%] text-xs font-medium text-slate-400 dark:text-slate-500">{scaleLeft}</div>
               <div className="absolute bottom-[68px] right-[10%] text-xs font-medium text-slate-400 dark:text-slate-500">{scaleRightLabel}</div>
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center whitespace-nowrap pb-1">
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center whitespace-nowrap pb-0 translate-y-3">
                 <div className="text-3xl font-bold text-slate-800 dark:text-slate-100">{bestPeriod ? formatValue(bestPeriod.value) : '—'}</div>
                 <div className="text-xs text-slate-400 dark:text-slate-500 mt-1">{bestPeriod ? `Best · ${bestPeriod.label}` : targetText}</div>
               </div>
             </div>
 
             {/* Period pills */}
-            <div className="grid grid-cols-3 gap-3 px-7 mt-5 pb-6">
+            <div className="grid grid-cols-3 gap-3 px-7 mt-auto pb-6 pt-4">
               {periods.map((p, i) => {
                 const prior = periods[i + 1];
                 return (
@@ -316,14 +316,14 @@ export const AiVisionMetricRow = React.memo(function AiVisionMetricRow({
           </div>
 
           {/* ── Right: bar chart on top, trendline below ─────────────────────── */}
-          <div className="flex flex-col flex-1 min-w-0 divide-y divide-slate-200/50 dark:divide-slate-700/40">
+          <div className="flex flex-col sm:flex-row lg:flex-col flex-1 min-w-0 divide-y sm:divide-y-0 sm:divide-x lg:divide-x-0 lg:divide-y divide-slate-200/50 dark:divide-slate-700/40">
             <div className="flex-1 px-6 pt-4 pb-4">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Performance vs Baseline</p>
-              <div className="h-[calc(100%-22px)]">{barChart}</div>
+              <div className="h-[140px]">{barChart}</div>
             </div>
             <div className="flex-1 px-6 pt-4 pb-4">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Trend over time</p>
-              <div className="h-[calc(100%-22px)]">{trendChart}</div>
+              <div className="h-[140px]">{trendChart}</div>
             </div>
           </div>
         </div>
