@@ -206,7 +206,7 @@ export const AiVisionMetricRow = React.memo(function AiVisionMetricRow({
           </linearGradient>
         </defs>
         <XAxis type="number" domain={domain} tick={{ fill: tickColor, fontSize: 9 }} axisLine={false} tickLine={false} tickCount={5} tickFormatter={(v: number) => (v > 0 ? `+${v}` : `${v}`)} />
-        <YAxis type="category" dataKey="label" tick={{ fill: tickColor, fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} width={30} />
+        <YAxis type="category" dataKey="label" tick={{ fill: tickColor, fontSize: 12, fontWeight: 600 }} axisLine={false} tickLine={false} width={34} />
         <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none' }} wrapperStyle={{ outline: 'none', zIndex: 1000 }}
           content={(props) => (
             <ChartTooltip active={(props as unknown as { active?: boolean }).active} payload={(props as unknown as { payload?: Array<{ value?: number }> }).payload} label={props.label != null ? String(props.label) : undefined} isDark={isDark} />
@@ -242,79 +242,90 @@ export const AiVisionMetricRow = React.memo(function AiVisionMetricRow({
   );
 
   // ════════════════════════════════════════════════════════════════════════════
-  // GAUGE LAYOUT — large centered gauge + period pills + charts below
+  // GAUGE LAYOUT — gauge + pills left | stacked charts right
   // ════════════════════════════════════════════════════════════════════════════
   if (showGauge) {
     return (
       <div className="rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-7 pt-6 pb-0">
-          <h3 className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">{title}</h3>
-          {infoButton}
-        </div>
+        <div className="flex">
+          {/* ── Left: gauge + period pills ──────────────────────────────────── */}
+          <div className="flex flex-col w-[480px] flex-shrink-0 border-r border-slate-200/50 dark:border-slate-700/40">
+            {/* Header */}
+            <div className="flex items-center justify-between px-7 pt-6 pb-0">
+              <h3 className="text-xl font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">{title}</h3>
+              {infoButton}
+            </div>
 
-        {/* Large centered gauge */}
-        <div className="relative h-72 px-8">
-          {showGaugeTooltip && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none animate-in fade-in duration-150">
-              <div className="relative overflow-hidden rounded-xl px-3 py-1.5 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/60 backdrop-blur-sm shadow-md">
-                {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-xl" />}
-                <div className="relative flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: colorPrimary }} />
-                  <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">{bestPeriod ? formatValue(bestPeriod.value) : '—'}</span>
+            {/* Gauge arc */}
+            <div className="relative h-48 px-8">
+              {showGaugeTooltip && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none animate-in fade-in duration-150">
+                  <div className="relative overflow-hidden rounded-xl px-3 py-1.5 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/60 backdrop-blur-sm shadow-md">
+                    {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-xl" />}
+                    <div className="relative flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full" style={{ backgroundColor: colorPrimary }} />
+                      <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">{bestPeriod ? formatValue(bestPeriod.value) : '—'}</span>
+                    </div>
+                  </div>
                 </div>
+              )}
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <defs>
+                    <linearGradient id={`gauge-grad-${uid}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={colorPrimary} />
+                      <stop offset="50%" stopColor={colorAccent} />
+                      <stop offset="100%" stopColor={colorAccentEnd} />
+                    </linearGradient>
+                  </defs>
+                  <Pie data={gaugeData} cx="50%" cy="82%" startAngle={180} endAngle={0} innerRadius={62} outerRadius={100} paddingAngle={2} dataKey="value" cornerRadius={10}>
+                    {gaugeData.map((_e, idx) => (
+                      <Cell key={idx} fill={idx === 0 ? `url(#gauge-grad-${uid})` : isDark ? 'rgba(51,65,85,0.25)' : 'rgba(226,232,240,0.35)'} stroke="none" />
+                    ))}
+                  </Pie>
+                  <Tooltip content={(props: React.ComponentProps<typeof Tooltip>) => (
+                    <InternalGaugeTooltip active={(props as { active?: boolean }).active} payload={(props as { payload?: Array<{ payload?: { name?: string } }> }).payload} segmentName={title} tooltipActiveRef={tooltipActiveRef} prevActiveRef={prevActiveRef} setShowTooltip={setShowGaugeTooltip} />
+                  )} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute bottom-[68px] left-[10%] text-xs font-medium text-slate-400 dark:text-slate-500">{scaleLeft}</div>
+              <div className="absolute bottom-[68px] right-[10%] text-xs font-medium text-slate-400 dark:text-slate-500">{scaleRightLabel}</div>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center whitespace-nowrap pb-1">
+                <div className="text-3xl font-bold text-slate-800 dark:text-slate-100">{bestPeriod ? formatValue(bestPeriod.value) : '—'}</div>
+                <div className="text-xs text-slate-400 dark:text-slate-500 mt-1">{bestPeriod ? `Best · ${bestPeriod.label}` : targetText}</div>
               </div>
             </div>
-          )}
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <defs>
-                <linearGradient id={`gauge-grad-${uid}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={colorPrimary} />
-                  <stop offset="50%" stopColor={colorAccent} />
-                  <stop offset="100%" stopColor={colorAccentEnd} />
-                </linearGradient>
-              </defs>
-              <Pie data={gaugeData} cx="50%" cy="82%" startAngle={180} endAngle={0} innerRadius={100} outerRadius={158} paddingAngle={2} dataKey="value" cornerRadius={14}>
-                {gaugeData.map((_e, idx) => (
-                  <Cell key={idx} fill={idx === 0 ? `url(#gauge-grad-${uid})` : isDark ? 'rgba(51,65,85,0.25)' : 'rgba(226,232,240,0.35)'} stroke="none" />
-                ))}
-              </Pie>
-              <Tooltip content={(props: React.ComponentProps<typeof Tooltip>) => (
-                <InternalGaugeTooltip active={(props as { active?: boolean }).active} payload={(props as { payload?: Array<{ payload?: { name?: string } }> }).payload} segmentName={title} tooltipActiveRef={tooltipActiveRef} prevActiveRef={prevActiveRef} setShowTooltip={setShowGaugeTooltip} />
-              )} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="absolute bottom-[68px] left-[10%] text-xs font-medium text-slate-400 dark:text-slate-500">{scaleLeft}</div>
-          <div className="absolute bottom-[68px] right-[10%] text-xs font-medium text-slate-400 dark:text-slate-500">{scaleRightLabel}</div>
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center whitespace-nowrap pb-1">
-            <div className="text-5xl font-bold text-slate-800 dark:text-slate-100">{bestPeriod ? formatValue(bestPeriod.value) : '—'}</div>
-            <div className="text-sm text-slate-400 dark:text-slate-500 mt-1.5">{bestPeriod ? `Best · ${bestPeriod.label}` : targetText}</div>
+
+            {/* Period pills */}
+            <div className="grid grid-cols-3 gap-3 px-7 mt-5 pb-6">
+              {periods.map((p, i) => {
+                const prior = periods[i + 1];
+                return (
+                  <div key={p.label} className="flex flex-col items-center gap-1.5 rounded-xl px-3 py-3 border border-slate-200/60 dark:border-slate-700/40 bg-white/30 dark:bg-slate-800/20">
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 text-center leading-tight">{p.label}</span>
+                    <div className="flex items-center gap-1.5">
+                      {prior && <DeltaBadge current={p.value} prior={prior.value} invertBetter={invertBetter} hasNoCurrent={p.hasNoTrades} hasNoPrior={prior.hasNoTrades} />}
+                      <span className={cn('text-base font-bold', p.hasNoTrades ? 'text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100')}>
+                        {p.hasNoTrades ? '—' : formatValue(p.value)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        {/* Period pills */}
-        <div className="grid grid-cols-3 gap-3 px-7 mt-5">
-          {periods.map((p, i) => {
-            const prior = periods[i + 1];
-            return (
-              <div key={p.label} className="flex flex-col items-center gap-1.5 rounded-xl px-3 py-3 border border-slate-200/60 dark:border-slate-700/40 bg-white/30 dark:bg-slate-800/20">
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 text-center leading-tight">{p.label}</span>
-                <div className="flex items-center gap-1.5">
-                  {prior && <DeltaBadge current={p.value} prior={prior.value} invertBetter={invertBetter} hasNoCurrent={p.hasNoTrades} hasNoPrior={prior.hasNoTrades} />}
-                  <span className={cn('text-xl font-bold', p.hasNoTrades ? 'text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-100')}>
-                    {p.hasNoTrades ? '—' : formatValue(p.value)}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Diverging bar chart + trendline below */}
-        <div className="flex gap-0 mt-5 border-t border-slate-200/50 dark:border-slate-700/40 divide-x divide-slate-200/50 dark:divide-slate-700/40">
-          <div className="flex-1 px-6 py-4 h-[140px]">{barChart}</div>
-          <div className="flex-1 px-6 py-4 h-[140px]">{trendChart}</div>
+          {/* ── Right: bar chart on top, trendline below ─────────────────────── */}
+          <div className="flex flex-col flex-1 min-w-0 divide-y divide-slate-200/50 dark:divide-slate-700/40">
+            <div className="flex-1 px-6 pt-4 pb-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Performance vs Baseline</p>
+              <div className="h-[calc(100%-22px)]">{barChart}</div>
+            </div>
+            <div className="flex-1 px-6 pt-4 pb-4">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Trend over time</p>
+              <div className="h-[calc(100%-22px)]">{trendChart}</div>
+            </div>
+          </div>
         </div>
       </div>
     );
