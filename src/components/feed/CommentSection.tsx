@@ -53,7 +53,7 @@ function ReplyInput({
   }
 
   return (
-    <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none px-3 py-2.5 space-y-1.5">
+    <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-sm shadow-slate-200/40 dark:shadow-none px-3 py-2.5 space-y-1.5">
       <textarea
         ref={textareaRef}
         value={value}
@@ -94,7 +94,7 @@ function ReplyInput({
 function ReplySkeleton() {
   return (
     <div
-      className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none px-3 py-2.5 animate-pulse"
+      className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-sm shadow-slate-200/40 dark:shadow-none px-3 py-2.5 animate-pulse"
       aria-hidden
     >
       <div className="flex items-start gap-3">
@@ -177,7 +177,7 @@ function CommentItem({
   const isReply = variant === 'reply';
   const avatarSize = isReply ? 'w-7 h-7' : 'w-9 h-9';
   const shellClass =
-    'rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none ' +
+    'rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-sm shadow-slate-200/40 dark:shadow-none ' +
     (isReply ? 'px-3 py-2.5' : 'px-4 py-3');
 
   return (
@@ -479,9 +479,9 @@ export default function CommentSection({
   }, [add]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {channelReadOnly && currentProfileId ? (
-        <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+        <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-sm px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
           You cannot comment here until the channel owner adds you back to the channel.
         </div>
       ) : !channelReadOnly && (
@@ -489,7 +489,7 @@ export default function CommentSection({
       )}
 
       {comments.length === 0 && !query.isLoading ? (
-        <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/35 shadow-sm shadow-slate-200/40 dark:shadow-none px-4 py-6 text-center">
+        <div className="rounded-xl border border-slate-300/40 dark:border-slate-700/55 bg-slate-50/50 dark:bg-slate-800/30 shadow-sm shadow-slate-200/40 dark:shadow-none px-4 py-6 text-center">
           <p className="text-slate-500 dark:text-slate-400 text-sm">Be the first to comment</p>
         </div>
       ) : (
