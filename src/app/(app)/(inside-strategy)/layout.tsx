@@ -60,7 +60,7 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
       return pathname.includes('/my-trades') && (pathname.startsWith('/strategy') || pathname.startsWith('/analytics'));
     }
     if (path === '/analytics') {
-      return pathname.startsWith('/strategy') && !pathname.includes('/my-trades') && !pathname.includes('/daily-journal') && !pathname.includes('/custom-stats');
+      return pathname.startsWith('/strategy') && !pathname.includes('/my-trades') && !pathname.includes('/daily-journal') && !pathname.includes('/custom-stats') && !pathname.includes('/ai-vision');
     }
     if (path === '/daily-journal') {
       return pathname.includes('/daily-journal') && (pathname.startsWith('/strategy') || pathname.startsWith('/analytics'));
@@ -76,10 +76,10 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
 
   const navButtonClass = (active: boolean) =>
     cn(
-      'gap-2 rounded-xl border transition-all duration-200',
-      'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 hover:border-slate-300/70',
-      'dark:text-slate-200 dark:hover:text-slate-50 dark:hover:bg-slate-800/70 dark:hover:border-slate-700/70',
-      active && 'themed-nav-active'
+      'transition-all duration-300 relative overflow-hidden rounded-xl border w-full h-auto min-h-[64px] !p-0',
+      active
+        ? 'group/navactive cursor-pointer themed-btn-primary text-white font-semibold border-0 hover:text-white [&_svg]:text-white [&_span]:text-white'
+        : 'bg-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-100/80 hover:border-slate-300/70 dark:text-slate-200 dark:hover:text-slate-50 dark:hover:bg-slate-800/70 dark:hover:border-slate-700/70'
     );
 
   return (
@@ -117,67 +117,39 @@ export default function InsideStrategyLayout({ children }: InsideStrategyLayoutP
             <ChevronLeft className="h-4 w-4 transition-transform duration-300 ease-in-out group-hover/hide:-translate-x-0.5 group-hover/hide:scale-110 group-hover/hide:text-slate-600 dark:group-hover/hide:text-slate-300" />
           </button>
           <div className="relative flex flex-col gap-2 p-3">
-            <Button
-              variant="ghost"
-              asChild
-              size="sm"
-              className={cn(navButtonClass(isActive('/analytics')), 'w-full h-auto min-h-[64px] !p-0')}
-            >
+            <Button variant="ghost" asChild size="sm" className={navButtonClass(isActive('/analytics'))}>
               <Link href={analyticsUrl} className="block w-full h-full relative min-h-[40px]">
                 <BarChart3 className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover/card:max-w-[140px] group-hover/card:opacity-100 transition-all duration-300 whitespace-nowrap">Analytics</span>
+                {isActive('/analytics') && <div className="absolute inset-0 -translate-x-full group-hover/navactive:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />}
               </Link>
             </Button>
-            <Button
-              variant="ghost"
-              asChild
-              size="sm"
-              className={cn(navButtonClass(isActive('/daily-journal')), 'w-full h-auto min-h-[64px] !p-0')}
-            >
+            <Button variant="ghost" asChild size="sm" className={navButtonClass(isActive('/daily-journal'))}>
               <Link href={dailyJournalUrl} className="block w-full h-full relative min-h-[40px]">
                 <NotebookPen className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover/card:max-w-[140px] group-hover/card:opacity-100 transition-all duration-300 whitespace-nowrap">Daily Journal</span>
+                {isActive('/daily-journal') && <div className="absolute inset-0 -translate-x-full group-hover/navactive:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />}
               </Link>
             </Button>
-            <Button
-              variant="ghost"
-              asChild
-              size="sm"
-              className={cn(
-                'w-full h-auto min-h-[64px] !p-0',
-                isActive('/custom-stats')
-                  ? 'group/customstats cursor-pointer transition-all duration-300 relative overflow-hidden rounded-xl themed-btn-primary text-white font-semibold border-0 hover:text-white [&_svg]:text-white [&_span]:text-white'
-                  : navButtonClass(false)
-              )}
-            >
+            <Button variant="ghost" asChild size="sm" className={navButtonClass(isActive('/custom-stats'))}>
               <Link href={customStatsUrl} className="block w-full h-full relative min-h-[40px]">
                 <LayoutGrid className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover/card:max-w-[140px] group-hover/card:opacity-100 transition-all duration-300 whitespace-nowrap">Custom Stats</span>
-                {isActive('/custom-stats') && (
-                  <div className="absolute inset-0 -translate-x-full group-hover/customstats:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
-                )}
+                {isActive('/custom-stats') && <div className="absolute inset-0 -translate-x-full group-hover/navactive:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />}
               </Link>
             </Button>
-            <Button
-              variant="ghost"
-              asChild
-              size="sm"
-              className={cn(navButtonClass(isActive('/ai-vision')), 'w-full h-auto min-h-[64px] !p-0')}
-            >
+            <Button variant="ghost" asChild size="sm" className={navButtonClass(isActive('/ai-vision'))}>
               <Link href={aiVisionUrl} className="block w-full h-full relative min-h-[40px]">
                 <Sparkles className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover/card:max-w-[140px] group-hover/card:opacity-100 transition-all duration-300 whitespace-nowrap">AI Vision</span>
+                {isActive('/ai-vision') && <div className="absolute inset-0 -translate-x-full group-hover/navactive:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />}
               </Link>
             </Button>
-            <Button
-              variant="ghost"
-              asChild
-              size="sm"
-              className={cn(navButtonClass(isActive('/my-trades')), 'w-full h-auto min-h-[64px] !p-0')}
-            >
+            <Button variant="ghost" asChild size="sm" className={navButtonClass(isActive('/my-trades'))}>
               <Link href={myTradesUrl} className="block w-full h-full relative min-h-[40px]">
                 <TrendingUp className="!h-6 !w-6 flex-shrink-0 absolute left-5 top-1/2 -translate-y-1/2" />
                 <span className="absolute left-14 top-1/2 -translate-y-1/2 max-w-0 overflow-hidden opacity-0 group-hover/card:max-w-[140px] group-hover/card:opacity-100 transition-all duration-300 whitespace-nowrap">My Trades</span>
+                {isActive('/my-trades') && <div className="absolute inset-0 -translate-x-full group-hover/navactive:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />}
               </Link>
             </Button>
             <Button
