@@ -352,7 +352,7 @@ export default function AiVisionClient({
                 />
               </div>
 
-              {/* Chart — full width */}
+              {/* Charts — 50/50 side by side */}
               <SectionHeading
                 title="Performance vs Baseline"
                 description={`${labelForKey(keyA)} & ${labelForKey(keyB)} compared against ${labelForKey(keyC)}`}
