@@ -87,7 +87,7 @@ export default function FeedPostList({
 
   if (posts.length === 0) {
     return (
-      <div className={`${FEED_SURFACE_CLASS} p-10 text-center mt-6`}>
+      <div className={`${FEED_SURFACE_CLASS} p-10 text-center`}>
         <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{emptyMessage}</p>
         {emptySubtext && (
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-500">{emptySubtext}</p>
