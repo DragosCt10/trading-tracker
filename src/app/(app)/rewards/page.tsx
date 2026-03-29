@@ -8,7 +8,8 @@ import RewardsClient from './RewardsClient';
 
 export const dynamic = 'force-dynamic';
 
-export default async function RewardsPage() {
+export default async function RewardsPage({ searchParams }: { searchParams: Promise<{ from?: string }> }) {
+  const { from } = await searchParams;
   const { user } = await getCachedUserSession();
   if (!user) redirect('/login');
 
@@ -46,6 +47,7 @@ export default async function RewardsPage() {
       isPro={isPro}
       portalUrl={portalUrl}
       proSinceDate={proSinceDate}
+      showBackToSettings={from === 'settings'}
     />
   );
 }
