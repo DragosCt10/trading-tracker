@@ -6,202 +6,154 @@ import { ArrowRight } from 'lucide-react';
 export function LandingHero() {
   return (
     <section className="relative overflow-hidden">
-      {/* Futuristic perspective grid with radial fade */}
+      {/* Equity-curve waves — flowing from left to top-right corner */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <svg
           className="absolute inset-0 w-full h-full"
-          viewBox="0 0 1200 800"
+          viewBox="0 0 1400 800"
           preserveAspectRatio="xMidYMid slice"
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
-            {/* Radial fade mask */}
-            <radialGradient id="gridFade" cx="50%" cy="55%" rx="55%" ry="50%">
-              <stop offset="0%" stopColor="white" stopOpacity="1" />
-              <stop offset="60%" stopColor="white" stopOpacity="0.4" />
+            {/* Fade mask — waves visible left-to-right, fading at edges */}
+            <linearGradient id="waveFadeH" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="white" stopOpacity="0.3" />
+              <stop offset="15%" stopColor="white" stopOpacity="0.9" />
+              <stop offset="70%" stopColor="white" stopOpacity="0.7" />
               <stop offset="100%" stopColor="white" stopOpacity="0" />
-            </radialGradient>
-            <mask id="gridMask">
-              <rect width="1200" height="800" fill="url(#gridFade)" />
+            </linearGradient>
+            <linearGradient id="waveFadeV" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="white" stopOpacity="0" />
+              <stop offset="20%" stopColor="white" stopOpacity="0.8" />
+              <stop offset="80%" stopColor="white" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="white" stopOpacity="0.4" />
+            </linearGradient>
+            <mask id="waveMask">
+              <rect width="1400" height="800" fill="url(#waveFadeH)" />
+              <rect width="1400" height="800" fill="url(#waveFadeV)" style={{ mixBlendMode: 'multiply' }} />
             </mask>
-            {/* Glow filter for intersection dots */}
-            <filter id="dotGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="2" result="blur" />
+            {/* Glow filter for the bright wave */}
+            <filter id="waveGlow" x="-10%" y="-10%" width="120%" height="120%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
+            {/* Gradient along each wave path */}
+            <linearGradient id="waveGrad1" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="var(--tc-primary)" stopOpacity="0" />
+              <stop offset="20%" stopColor="var(--tc-primary)" stopOpacity="0.15" />
+              <stop offset="60%" stopColor="var(--tc-accent)" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="var(--tc-accent)" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="waveGrad2" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="var(--tc-primary)" stopOpacity="0" />
+              <stop offset="25%" stopColor="var(--tc-primary)" stopOpacity="0.3" />
+              <stop offset="65%" stopColor="var(--tc-accent)" stopOpacity="0.45" />
+              <stop offset="100%" stopColor="var(--tc-accent)" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="waveGrad3" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="var(--tc-primary)" stopOpacity="0" />
+              <stop offset="15%" stopColor="var(--tc-primary)" stopOpacity="0.08" />
+              <stop offset="55%" stopColor="var(--tc-accent)" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="var(--tc-accent)" stopOpacity="0" />
+            </linearGradient>
+            {/* Fill gradient for the area under the main wave */}
+            <linearGradient id="waveFill" x1="0" y1="0" x2="0.8" y2="0.3">
+              <stop offset="0%" stopColor="var(--tc-primary)" stopOpacity="0" />
+              <stop offset="30%" stopColor="var(--tc-primary)" stopOpacity="0.06" />
+              <stop offset="70%" stopColor="var(--tc-accent)" stopOpacity="0.1" />
+              <stop offset="100%" stopColor="var(--tc-accent)" stopOpacity="0" />
+            </linearGradient>
           </defs>
 
-          <g mask="url(#gridMask)">
-            {/* Perspective vertical lines — converging to vanishing point (600, 200) */}
-            {/* Static base layer */}
-            {[-500, -400, -300, -200, -100, 0, 100, 200, 300, 400, 500].map((offset) => (
-              <line
-                key={`v${offset}`}
-                x1={600 + offset * 0.15}
-                y1={200}
-                x2={600 + offset * 1.8}
-                y2={800}
-                stroke="var(--tc-primary)"
-                strokeOpacity="0.08"
-                strokeWidth="0.6"
-              />
-            ))}
-            {/* Animated trace layer — energy flowing down the vertical lines */}
-            {[-500, -400, -300, -200, -100, 0, 100, 200, 300, 400, 500].map((offset, i) => (
-              <line
-                key={`vt${offset}`}
-                x1={600 + offset * 0.15}
-                y1={200}
-                x2={600 + offset * 1.8}
-                y2={800}
-                stroke="var(--tc-primary)"
-                strokeOpacity="0.25"
-                strokeWidth="0.8"
-                className="grid-vline-trace"
-                style={{ animationDelay: `${Math.abs(i - 5) * 0.4}s` }}
-              />
-            ))}
+          <g mask="url(#waveMask)">
+            {/* Area fill under the primary equity curve */}
+            <path
+              d="M-50,700 C100,680 200,650 350,620 C500,590 550,540 650,480 C750,420 800,460 900,400 C1000,340 1050,280 1150,220 C1250,160 1300,100 1450,30 L1450,800 L-50,800 Z"
+              fill="url(#waveFill)"
+              className="equity-wave-fill"
+            />
 
-            {/* Horizontal lines — static base */}
-            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => {
-              const y = 200 + (i * i * 8.5);
-              const spread = i * 0.18;
-              return (
-                <line
-                  key={`h${i}`}
-                  x1={600 - 500 * spread}
-                  y1={y}
-                  x2={600 + 500 * spread}
-                  y2={y}
-                  stroke="var(--tc-primary)"
-                  strokeOpacity={0.05 + i * 0.01}
-                  strokeWidth="0.6"
-                />
-              );
-            })}
-            {/* Horizontal lines — animated flowing dashes */}
-            {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => {
-              const y = 200 + (i * i * 8.5);
-              const spread = i * 0.18;
-              return (
-                <line
-                  key={`hf${i}`}
-                  x1={600 - 500 * spread}
-                  y1={y}
-                  x2={600 + 500 * spread}
-                  y2={y}
-                  stroke="var(--tc-primary)"
-                  strokeOpacity={0.08 + i * 0.02}
-                  strokeWidth="0.8"
-                  className="grid-hline-flow"
-                  style={{ animationDelay: `${i * 0.15}s` }}
-                />
-              );
-            })}
-            {/* Horizontal pulse wave — a brighter line that sweeps outward from center */}
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => {
-              const y = 200 + (i * i * 8.5);
-              const spread = i * 0.18;
-              return (
-                <line
-                  key={`hp${i}`}
-                  x1={600 - 500 * spread}
-                  y1={y}
-                  x2={600 + 500 * spread}
-                  y2={y}
-                  stroke="var(--tc-primary)"
-                  strokeWidth="1"
-                  className="grid-pulse-wave"
-                  style={{ animationDelay: `${i * 0.5}s` }}
-                />
-              );
-            })}
+            {/* Wave 1 — outermost, subtle, lowest */}
+            <path
+              d="M-50,750 C100,730 250,710 400,680 C550,650 600,620 750,560 C900,500 950,520 1050,450 C1150,380 1200,320 1350,240 C1420,200 1440,160 1460,100"
+              fill="none"
+              stroke="url(#waveGrad3)"
+              strokeWidth="1"
+              className="equity-wave equity-wave-1"
+            />
 
-            {/* Glowing dots at key intersections — sequential ignition */}
-            {[
-              [600, 200], [500, 320], [700, 320],
-              [400, 420], [600, 420], [800, 420],
-              [300, 540], [500, 540], [700, 540], [900, 540],
-              [180, 680], [400, 680], [600, 680], [800, 680], [1020, 680],
-            ].map(([cx, cy], i) => (
-              <circle
-                key={`dot${i}`}
-                cx={cx}
-                cy={cy}
-                r="1.5"
-                fill="var(--tc-primary)"
-                fillOpacity="0.3"
-                filter="url(#dotGlow)"
-                className="grid-dot-ignite"
-                style={{ animationDelay: `${i * 0.2}s` }}
+            {/* Wave 2 — secondary equity curve, mid-layer */}
+            <path
+              d="M-50,720 C80,700 180,670 330,640 C480,610 540,570 660,510 C780,450 830,470 940,410 C1050,350 1100,290 1200,230 C1300,170 1350,120 1460,50"
+              fill="none"
+              stroke="url(#waveGrad3)"
+              strokeWidth="1.2"
+              className="equity-wave equity-wave-2"
+            />
+
+            {/* Wave 3 — primary equity curve (brightest) */}
+            <path
+              d="M-50,700 C100,680 200,650 350,620 C500,590 550,540 650,480 C750,420 800,460 900,400 C1000,340 1050,280 1150,220 C1250,160 1300,100 1450,30"
+              fill="none"
+              stroke="url(#waveGrad2)"
+              strokeWidth="1.8"
+              filter="url(#waveGlow)"
+              className="equity-wave equity-wave-3"
+            />
+
+            {/* Wave 4 — thinner accent line above primary */}
+            <path
+              d="M-50,680 C120,660 220,630 370,595 C520,560 570,510 680,450 C790,390 830,420 930,360 C1030,300 1080,240 1180,180 C1280,120 1330,70 1460,-10"
+              fill="none"
+              stroke="url(#waveGrad1)"
+              strokeWidth="0.8"
+              className="equity-wave equity-wave-4"
+            />
+
+            {/* Wave 5 — topmost whisper line */}
+            <path
+              d="M-50,660 C140,640 240,600 390,565 C540,530 590,480 710,420 C830,360 860,385 960,325 C1060,265 1110,205 1210,145 C1310,85 1360,40 1460,-30"
+              fill="none"
+              stroke="url(#waveGrad3)"
+              strokeWidth="0.5"
+              className="equity-wave equity-wave-5"
+            />
+
+            {/* Animated trace — bright point traveling along the primary curve */}
+            <circle r="3" fill="var(--tc-primary)" fillOpacity="0.8" filter="url(#waveGlow)">
+              <animateMotion
+                dur="6s"
+                repeatCount="indefinite"
+                path="M-50,700 C100,680 200,650 350,620 C500,590 550,540 650,480 C750,420 800,460 900,400 C1000,340 1050,280 1150,220 C1250,160 1300,100 1450,30"
               />
-            ))}
+            </circle>
+
+            {/* Secondary trace — dimmer, on wave 2 */}
+            <circle r="2" fill="var(--tc-accent)" fillOpacity="0.5" filter="url(#waveGlow)">
+              <animateMotion
+                dur="8s"
+                repeatCount="indefinite"
+                path="M-50,720 C80,700 180,670 330,640 C480,610 540,570 660,510 C780,450 830,470 940,410 C1050,350 1100,290 1200,230 C1300,170 1350,120 1460,50"
+              />
+            </circle>
           </g>
         </svg>
-
-        {/* Horizontal scan line across the grid */}
-        <div
-          className="absolute left-0 right-0 h-px header-scan-line"
-          style={{
-            top: '45%',
-            background: `linear-gradient(90deg, transparent 10%, color-mix(in oklch, var(--tc-primary) 30%, transparent) 50%, transparent 90%)`,
-          }}
-        />
       </div>
 
-      {/* Purple gradient glow — bottom-right corner */}
+      {/* Ambient glow along the wave path — bottom-right area */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-40 -right-40 h-[850px] w-[850px] rounded-full"
+        className="pointer-events-none absolute -bottom-20 right-[10%] h-[600px] w-[800px]"
         style={{
-          background: `radial-gradient(circle at center, var(--tc-primary) 0%, color-mix(in oklch, var(--tc-accent) 80%, transparent) 30%, transparent 65%)`,
-          opacity: 0.55,
-          filter: 'blur(80px)',
+          background: `radial-gradient(ellipse at 70% 80%, var(--tc-primary) 0%, color-mix(in oklch, var(--tc-accent) 60%, transparent) 25%, transparent 60%)`,
+          opacity: 0.3,
+          filter: 'blur(90px)',
+          transform: 'rotate(-15deg)',
         }}
       />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-20 -right-20 h-[500px] w-[500px] rounded-full"
-        style={{
-          background: `radial-gradient(circle at center, var(--tc-primary) 0%, color-mix(in oklch, var(--tc-accent) 50%, transparent) 40%, transparent 65%)`,
-          opacity: 0.4,
-          filter: 'blur(50px)',
-        }}
-      />
-
-      {/* Bottom-right corner border — only this corner, fading edges */}
-      <div aria-hidden className="pointer-events-none absolute bottom-0 right-0">
-        {/* Right edge fading upward */}
-        <div
-          className="absolute bottom-0 right-0 w-px"
-          style={{
-            height: '280px',
-            background: 'linear-gradient(to top, rgba(255,255,255,0.15), transparent)',
-          }}
-        />
-        {/* Bottom edge fading leftward */}
-        <div
-          className="absolute bottom-0 right-0 h-px"
-          style={{
-            width: '280px',
-            background: 'linear-gradient(to left, rgba(255,255,255,0.15), transparent)',
-          }}
-        />
-        {/* Rounded corner piece */}
-        <div
-          className="absolute bottom-0 right-0"
-          style={{
-            width: '32px',
-            height: '32px',
-            borderBottomRightRadius: '16px',
-            borderBottom: '1px solid rgba(255,255,255,0.15)',
-            borderRight: '1px solid rgba(255,255,255,0.15)',
-          }}
-        />
-      </div>
 
       <div className="relative mx-auto max-w-5xl px-4 pb-16 pt-12 sm:pt-16 lg:pt-20">
         {/* Content — left-aligned, right side empty for gradient */}
