@@ -8,6 +8,7 @@ export function LandingFeatures() {
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const elements = section.querySelectorAll('.scroll-reveal');
 
@@ -16,11 +17,14 @@ export function LandingFeatures() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add('scroll-reveal-visible');
-            observer.unobserve(entry.target);
+            entry.target.classList.remove('scroll-reveal-hidden');
+          } else {
+            entry.target.classList.remove('scroll-reveal-visible');
+            entry.target.classList.add('scroll-reveal-hidden');
           }
         });
       },
-      { threshold: 0.15, rootMargin: '0px 0px -60px 0px' },
+      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' },
     );
 
     elements.forEach((el) => observer.observe(el));
@@ -90,7 +94,7 @@ export function LandingFeatures() {
             <div
               key={i}
               className="scroll-reveal group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 min-h-[200px] backdrop-blur-sm transition-all duration-500 hover:border-white/[0.12] hover:bg-white/[0.04]"
-              style={{ '--reveal-delay': `${i * 100}ms` } as React.CSSProperties}
+              style={{ '--reveal-delay': `${200 + i * 200}ms` } as React.CSSProperties}
             >
               {/* Corner accent */}
               <div
