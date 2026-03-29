@@ -25,7 +25,14 @@ export async function GET(request: Request) {
     const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!exchangeError) {
-      await revokeOtherSessions(supabase);
+      // Only revoke other sessions for login flows (OAuth), not recovery flows.
+      // Password reset already revokes sessions in updatePasswordAction after
+      // the new password is saved — revoking here kills the user's active session
+      // before they even reach the update-password page.
+      const isRecovery = next.startsWith('/update-password');
+      if (!isRecovery) {
+        await revokeOtherSessions(supabase);
+      }
       await ensureDefaultAccount();
       const isLocal = process.env.NODE_ENV === 'development';
       const forwardedProto = request.headers.get('x-forwarded-proto');

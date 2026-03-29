@@ -9,6 +9,7 @@ import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { getTradesForNoteLinking } from '@/lib/server/trades';
 import type { TradeRef } from '@/types/note';
+import type { TradingMode } from '@/types/trade';
 import { AccountModePopover, type AccountModeSelection } from '@/components/shared/AccountModePopover';
 import { FileText, X, Link2, Loader2 } from 'lucide-react';
 import { MarkdownRenderer } from '@/components/dynamicComponents';
@@ -130,7 +131,7 @@ export default function NewNoteModal({ isOpen, onClose, onNoteCreated }: NewNote
     return () => observer.disconnect();
   }, [tradePickerSelection.accountId, hasNextPage]);
 
-  const isTradeSelected = (id: string, mode: string) =>
+  const isTradeSelected = (id: string, mode: TradingMode) =>
     note.trade_refs.some((r) => r.id === id && r.mode === mode);
   const toggleTradeRef = (id: string, mode: 'live' | 'backtesting' | 'demo') => {
     setNote((prev) => {

@@ -8,7 +8,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { Note, TradeRef } from '@/types/note';
 import type { Database } from '@/types/supabase';
-import type { Trade } from '@/types/trade';
+import type { Trade, TradingMode } from '@/types/trade';
 import { getFullTradesByRefs } from '@/lib/server/trades';
 import { getCachedUserSession } from '@/lib/server/session';
 
@@ -21,7 +21,7 @@ function mapSupabaseNoteToNote(
   note: NoteRow,
   strategy?: { id: string; name: string; slug: string } | null,
   strategies?: Array<{ id: string; name: string; slug: string }>,
-  trades?: Array<{ id: string; mode: string; trade_date: string; market: string; direction: string; trade_outcome: string; strategy_name?: string }>,
+  trades?: Array<{ id: string; mode: TradingMode; trade_date: string; market: string; direction: string; trade_outcome: string; strategy_name?: string }>,
   linkedTradesFull?: Trade[]
 ): Note {
   const row = note as any;
@@ -127,7 +127,7 @@ export async function getNotes(
     if (allRefs.length > 0) {
       const fullTrades = await getFullTradesByRefs(userId, allRefs);
       fullTrades.forEach((t) => {
-        const mode = t.mode as string;
+        const mode = t.mode;
         if (t.id) tradesByRef.set(`${t.id}:${mode}`, t);
       });
     }
@@ -217,13 +217,13 @@ export async function getNoteById(noteId: string, userId: string): Promise<Note 
   }
 
   // Resolve linked trades for display (same full-trade fetch as list; map to summary shape for modal)
-  let trades: Array<{ id: string; mode: string; trade_date: string; market: string; direction: string; trade_outcome: string; strategy_name?: string }> | undefined;
+  let trades: Array<{ id: string; mode: TradingMode; trade_date: string; market: string; direction: string; trade_outcome: string; strategy_name?: string }> | undefined;
   const refs = (data as any).trade_refs;
   if (Array.isArray(refs) && refs.length > 0) {
     const fullTrades = await getFullTradesByRefs(userId, refs);
     trades = fullTrades.map((t) => ({
       id: t.id ?? '',
-      mode: (t.mode ?? '') as string,
+      mode: t.mode ?? 'live',
       trade_date: t.trade_date,
       market: t.market,
       direction: t.direction,

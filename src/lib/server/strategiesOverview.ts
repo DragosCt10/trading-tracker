@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { getCachedUserSession } from '@/lib/server/session';
+import type { TradingMode } from '@/types/trade';
 
 /** One equity-curve data point returned by the RPC or cache. */
 export interface EquityCurvePoint {
@@ -37,7 +38,7 @@ export type StrategiesOverviewResult = Record<string, StrategyOverviewRow>;
  */
 export async function getStrategiesOverview(
   accountId: string,
-  mode: string,
+  mode: TradingMode,
 ): Promise<StrategiesOverviewResult> {
   const { user } = await getCachedUserSession();
   if (!user) throw new Error('Unauthorized');

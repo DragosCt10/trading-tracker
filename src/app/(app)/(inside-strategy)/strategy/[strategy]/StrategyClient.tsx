@@ -560,18 +560,22 @@ export default function StrategyClient(
   );
   const getCurrencySymbol = useCallback(() => currencySymbol, [currencySymbol]);
   
-  // Consolidate all viewMode-driven sync into one effect so a mode switch triggers a
-  // single batch update instead of 3 sequential re-renders.
+  // Handle viewMode switches and selectedYear changes for yearly mode.
+  // updateCalendarFromDateRange is intentionally NOT here — it's handled by the
+  // dateRange effect below. Having it in both effects caused an infinite loop:
+  // calendar nav sets selectedYear → this effect resets currentDate via
+  // updateCalendarFromDateRange → calendar nav fires again → loop (React #185/#310).
   useEffect(() => {
     updateDateRangeForYearlyMode(viewMode);
     resetFilterOnModeSwitch(viewMode);
-    updateCalendarFromDateRange(viewMode);
-  }, [viewMode, selectedYear, updateDateRangeForYearlyMode, resetFilterOnModeSwitch, updateCalendarFromDateRange]);
+  }, [viewMode, selectedYear, updateDateRangeForYearlyMode, resetFilterOnModeSwitch]);
 
-  // Separate effect for dateRange-only changes (not triggered by viewMode switches).
+  // Sync calendar when dateRange changes (filter switch, date picker, or mode switch).
+  // resetFilterOnModeSwitch (above) sets dateRange when switching to dateRange mode,
+  // which triggers this effect — so viewMode transitions are covered.
   useEffect(() => {
     updateCalendarFromDateRange(viewMode);
-  }, [dateRange, updateCalendarFromDateRange]); // eslint-disable-line react-hooks/exhaustive-deps -- viewMode changes handled above
+  }, [viewMode, dateRange, updateCalendarFromDateRange]);
 
   const {
     allTrades,

@@ -1,11 +1,12 @@
 import { createClient } from '@/utils/supabase/server';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import type { DashboardRpcResult } from '@/types/dashboard-rpc';
+import type { TradingMode } from '@/types/trade';
 
 export interface GetDashboardAggregatesParams {
   userId: string;
   accountId: string;
-  mode: string;
+  mode: TradingMode;
   startDate: string;
   endDate: string;
   strategyId?: string | null;

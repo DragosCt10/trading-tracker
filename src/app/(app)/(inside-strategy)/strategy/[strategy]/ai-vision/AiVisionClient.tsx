@@ -26,7 +26,7 @@ interface AiVisionClientProps {
   userId: string;
   strategyId: string | null;
   strategyName: string;
-  mode: string;
+  mode: 'live' | 'backtesting' | 'demo';
   accountId: string | undefined;
   accountBalance: number;
 }

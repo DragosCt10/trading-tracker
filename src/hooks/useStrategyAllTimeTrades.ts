@@ -2,13 +2,11 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { Trade } from '@/types/trade';
+import type { Trade, TradingMode } from '@/types/trade';
 import { queryKeys } from '@/lib/queryKeys';
 import { TRADES_DATA } from '@/constants/queryConfig';
 import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import { getFilteredTrades } from '@/lib/server/trades';
-
-type TradingMode = 'live' | 'demo' | 'backtesting';
 
 type UseStrategyAllTimeTradesParams = {
   userId?: string;

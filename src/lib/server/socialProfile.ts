@@ -300,11 +300,33 @@ export async function updateSocialProfile(data: {
     .update({ ...data, updated_at: new Date().toISOString() })
     .eq('user_id', session.user!.id)
     .select('*')
-    .single();
+    .maybeSingle();
 
-  if (error || !updated) {
+  if (error) {
     console.error('[updateSocialProfile] error:', error);
     return { error: 'Failed to update profile', code: 'DB_ERROR' };
+  }
+
+  if (!updated) {
+    // Profile doesn't exist yet — auto-create it, then retry the update.
+    const created = await ensureSocialProfile();
+    if (!created) {
+      return { error: 'Failed to create profile', code: 'DB_ERROR' };
+    }
+
+    const { data: retried, error: retryError } = await supabase
+      .from('social_profiles')
+      .update({ ...data, updated_at: new Date().toISOString() })
+      .eq('user_id', session.user!.id)
+      .select('*')
+      .maybeSingle();
+
+    if (retryError || !retried) {
+      console.error('[updateSocialProfile] retry error:', retryError);
+      return { error: 'Failed to update profile', code: 'DB_ERROR' };
+    }
+
+    return { data: mapRow(retried as Record<string, unknown>) };
   }
 
   return { data: mapRow(updated as Record<string, unknown>) };

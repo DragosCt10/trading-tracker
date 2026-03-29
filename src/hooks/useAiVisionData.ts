@@ -35,7 +35,7 @@ export const PERIOD_PRESETS: Record<PeriodPreset, { keys: [PeriodKey, PeriodKey,
 interface UseAiVisionDataParams {
   userId: string | undefined;
   accountId: string | undefined;
-  mode: string;
+  mode: 'live' | 'backtesting' | 'demo';
   strategyId: string | null | undefined;
   market: string;
   execution: 'all' | 'executed' | 'nonExecuted';

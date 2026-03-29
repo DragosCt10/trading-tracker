@@ -8,19 +8,21 @@ import type { AccountRow } from '@/lib/server/accounts';
 import { ChevronDown, Check, Loader2 } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { STATIC_DATA } from '@/constants/queryConfig';
+import type { TradingMode } from '@/types/trade';
 
-export type Mode = 'live' | 'backtesting' | 'demo';
+/** @deprecated Use `TradingMode` from `@/types/trade` directly. */
+export type Mode = TradingMode;
 
-const MODES: Mode[] = ['live', 'demo', 'backtesting'];
+const MODES: TradingMode[] = ['live', 'demo', 'backtesting'];
 
-const MODE_SECTION_LABEL: Record<Mode, string> = {
+const MODE_SECTION_LABEL: Record<TradingMode, string> = {
   live: 'LIVE',
   demo: 'DEMO',
   backtesting: 'BACKTESTING',
 };
 
 export interface AccountModeSelection {
-  mode: Mode;
+  mode: TradingMode;
   accountId: string | null;
   account?: AccountRow | null;
 }
@@ -62,9 +64,9 @@ export function AccountModePopover({
   });
 
   const accountsByMode = React.useMemo(() => {
-    const map: Record<Mode, AccountRow[]> = { live: [], demo: [], backtesting: [] };
+    const map: Record<TradingMode, AccountRow[]> = { live: [], demo: [], backtesting: [] };
     for (const a of allAccounts) {
-      if (a.mode in map) map[a.mode as Mode].push(a);
+      if (a.mode in map) map[a.mode as TradingMode].push(a);
     }
     return map;
   }, [allAccounts]);

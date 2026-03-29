@@ -14,7 +14,7 @@ import type {
   RiskAnalysis,
   MacroStats,
 } from '@/types/dashboard';
-import type { Trade } from '@/types/trade';
+import type { Trade, TradingMode } from '@/types/trade';
 import type { CompactTrade } from '@/types/dashboard-rpc';
 import type { StrategyStatsResult } from '@/utils/computeStrategyStatsFromTrades';
 import type { PartialTradesStats } from '@/utils/calculatePartialTradesStats';
@@ -100,7 +100,7 @@ export interface SharePageStats {
  * Fields absent from CompactTrade are filled with safe defaults since the
  * share page only renders analytics — not forms or full trade detail.
  */
-export function mapCompactTradesToTrade(compactTrades: CompactTrade[], mode: string): Trade[] {
+export function mapCompactTradesToTrade(compactTrades: CompactTrade[], mode: TradingMode): Trade[] {
   return compactTrades.map((ct) => ({
     id: ct.id,
     mode,
@@ -157,7 +157,7 @@ function buildDateRangeLabel(startDate: string, endDate: string): string {
 export function buildSharePageStatsFromCache(
   cachedStats: DashboardRpcResult,
   accountBalance: number,
-  shareMode: string,
+  shareMode: TradingMode,
   shareStartDate: string,
   shareEndDate: string,
 ): SharePageStats {

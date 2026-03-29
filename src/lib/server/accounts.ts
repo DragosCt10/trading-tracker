@@ -15,7 +15,9 @@ import {
 
 export type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
-export type AccountMode = 'live' | 'backtesting' | 'demo';
+import type { TradingMode } from '@/types/trade';
+
+export type AccountMode = TradingMode;
 
 /**
  * Gets the active account for a given mode.

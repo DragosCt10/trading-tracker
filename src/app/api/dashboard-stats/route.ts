@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server';
 import { getDashboardApiResponse } from '@/lib/server/dashboardApiResponse';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { buildStatsCacheKey, getStatsCache, setStatsCache } from '@/lib/statsCache';
+import type { TradingMode } from '@/types/trade';
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
@@ -34,10 +35,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required params' }, { status: 400 });
   }
 
-  const VALID_MODES = ['live', 'demo', 'backtesting'];
-  if (!VALID_MODES.includes(mode)) {
+  const VALID_MODES: TradingMode[] = ['live', 'demo', 'backtesting'];
+  if (!VALID_MODES.includes(mode as TradingMode)) {
     return NextResponse.json({ error: 'Invalid mode' }, { status: 400 });
   }
+  const validatedMode = mode as TradingMode;
 
   const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
   if (!DATE_RE.test(startDate) || !DATE_RE.test(endDate)) {
@@ -69,7 +71,7 @@ export async function GET(req: NextRequest) {
     userId: user.id,
     accountId,
     strategyId,
-    mode,
+    mode: validatedMode,
     startDate,
     endDate,
     execution,
@@ -91,7 +93,7 @@ export async function GET(req: NextRequest) {
   const response = await getDashboardApiResponse({
     userId: user.id,
     accountId,
-    mode,
+    mode: validatedMode,
     startDate,
     endDate,
     strategyId,

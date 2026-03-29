@@ -1,7 +1,7 @@
 'use server';
 
 import type { Database } from '@/types/supabase';
-import type { Trade } from '@/types/trade';
+import type { Trade, TradingMode } from '@/types/trade';
 import { createClient as createSupabaseServerClient } from '@/utils/supabase/server';
 import { createServiceRoleClient } from '@/utils/supabase/service-role';
 import { getCachedUserSession } from '@/lib/server/session';
@@ -11,7 +11,7 @@ import type { DashboardRpcResult } from '@/types/dashboard-rpc';
 export type StrategyShareRow =
   Database['public']['Tables']['strategy_shares']['Row'];
 
-type ShareMode = 'live' | 'backtesting' | 'demo';
+type ShareMode = TradingMode;
 
 /**
  * Normalizes trade_screens from DB. Falls back to legacy trade_link / liquidity_taken
