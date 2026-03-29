@@ -10,6 +10,7 @@ export type TradeMilestoneId =
   | 'skilled_trader'
   | 'expert_trader'
   | 'master_trader'
+  | 'elite_trader'
   | 'alpha_trader';
 
 export interface TradeMilestone {
@@ -55,12 +56,20 @@ export const TRADE_MILESTONES: TradeMilestone[] = [
     notificationType: 'trade_milestone_750',
   },
   {
-    id: 'alpha_trader',
+    id: 'elite_trader',
     minTrades: 1000,
-    maxTrades: null,
-    badgeName: 'Alpha Trader',
+    maxTrades: 4999,
+    badgeName: 'Elite Trader',
     discountPct: 25,
     notificationType: 'trade_milestone_1000',
+  },
+  {
+    id: 'alpha_trader',
+    minTrades: 5000,
+    maxTrades: null,
+    badgeName: 'Alpha Trader',
+    discountPct: 50,
+    notificationType: 'trade_milestone_5000',
   },
 ];
 
@@ -93,7 +102,7 @@ export function getMilestoneById(id: string): TradeMilestone | undefined {
 
 /**
  * Returns inline CSS style for a badge using per-tier CSS variables defined in globals.css.
- * Maps: rookie→copper, skilled→ice-blue, expert→emerald, master→royal-purple, alpha→gold.
+ * Maps: rookie→copper, skilled→ice-blue, expert→emerald, master→royal-purple, elite→burgundy, alpha→gold.
  */
 export function getBadgeInlineStyle(milestoneId: string): { background: string; borderColor: string; color: string } {
   // id format: 'rookie_trader' → key 'rookie'; 'alpha_trader' → key 'alpha'
