@@ -174,9 +174,52 @@ export function LandingHero() {
               <stop offset="70%" stopColor="var(--tc-accent)" stopOpacity="0.1" />
               <stop offset="100%" stopColor="var(--tc-accent)" stopOpacity="0" />
             </linearGradient>
+            {/* Trading bar vertical gradient — fades at both top and bottom */}
+            <linearGradient id="barGrad" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%" stopColor="var(--tc-primary)" stopOpacity="0" />
+              <stop offset="12%" stopColor="var(--tc-primary)" stopOpacity="0.18" />
+              <stop offset="45%" stopColor="var(--tc-accent)" stopOpacity="0.22" />
+              <stop offset="85%" stopColor="var(--tc-accent)" stopOpacity="0.08" />
+              <stop offset="100%" stopColor="var(--tc-accent)" stopOpacity="0" />
+            </linearGradient>
           </defs>
 
           <g mask="url(#waveMask)">
+            {/* ── Trading bars — positioned along the main equity curve ── */}
+            {[
+              { x: 480,  h: 215, d: 0.9 },
+              { x: 520,  h: 175, d: 0.95 },
+              { x: 560,  h: 225, d: 1.0 },
+              { x: 600,  h: 190, d: 1.05 },
+              { x: 640,  h: 255, d: 1.1 },
+              { x: 680,  h: 210, d: 1.15 },
+              { x: 720,  h: 285, d: 1.2 },
+              { x: 760,  h: 230, d: 1.25 },
+              { x: 800,  h: 300, d: 1.3 },
+              { x: 840,  h: 248, d: 1.35 },
+              { x: 880,  h: 330, d: 1.4 },
+              { x: 920,  h: 270, d: 1.42 },
+              { x: 960,  h: 365, d: 1.47 },
+              { x: 1000, h: 298, d: 1.52 },
+              { x: 1040, h: 400, d: 1.57 },
+              { x: 1080, h: 330, d: 1.62 },
+              { x: 1120, h: 445, d: 1.67 },
+              { x: 1160, h: 365, d: 1.72 },
+              { x: 1200, h: 490, d: 1.77 },
+            ].map(({ x, h, d }, i) => (
+              <rect
+                key={i}
+                x={x}
+                y={800 - h}
+                width={28}
+                height={h}
+                rx={2}
+                fill="url(#barGrad)"
+                className="trading-bar-svg"
+                style={{ animationDelay: `${d}s` }}
+              />
+            ))}
+
             <path
               d="M-50,700 C100,680 200,650 350,620 C500,590 550,540 650,480 C750,420 800,460 900,400 C1000,340 1050,280 1150,220 C1250,160 1300,100 1450,30 L1450,800 L-50,800 Z"
               fill="url(#waveFill)"
