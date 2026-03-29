@@ -165,15 +165,29 @@
   }
 }
 
-@keyframes trading-bar-pulse {
-  0%, 100% {
-    transform: scaleY(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scaleY(0.92);
-    opacity: 0.65;
-  }
+@keyframes trading-bar-live-1 {
+  0%, 100% { transform: scaleY(1); }
+  20%      { transform: scaleY(0.7); }
+  40%      { transform: scaleY(1.08); }
+  60%      { transform: scaleY(0.82); }
+  80%      { transform: scaleY(0.95); }
+}
+
+@keyframes trading-bar-live-2 {
+  0%, 100% { transform: scaleY(1); }
+  15%      { transform: scaleY(1.1); }
+  35%      { transform: scaleY(0.65); }
+  55%      { transform: scaleY(0.9); }
+  75%      { transform: scaleY(1.05); }
+  90%      { transform: scaleY(0.75); }
+}
+
+@keyframes trading-bar-live-3 {
+  0%, 100% { transform: scaleY(1); }
+  25%      { transform: scaleY(0.6); }
+  45%      { transform: scaleY(1.05); }
+  70%      { transform: scaleY(0.78); }
+  85%      { transform: scaleY(1.12); }
 }
 
 .trading-bar-svg {
@@ -183,13 +197,19 @@
   opacity: 0;
   animation:
     trading-bar-grow 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards,
-    trading-bar-pulse 5s ease-in-out 3.5s infinite;
+    trading-bar-live-1 6s ease-in-out 3.5s infinite;
 }
 
-.trading-bar-svg:nth-child(odd) {
+.trading-bar-svg:nth-child(3n+1) {
   animation:
     trading-bar-grow 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards,
-    trading-bar-pulse 4.5s ease-in-out 3.8s infinite;
+    trading-bar-live-2 5s ease-in-out 3.2s infinite;
+}
+
+.trading-bar-svg:nth-child(3n+2) {
+  animation:
+    trading-bar-grow 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+    trading-bar-live-3 7s ease-in-out 3.8s infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
