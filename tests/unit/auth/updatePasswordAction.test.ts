@@ -43,27 +43,27 @@ describe('updatePasswordAction', () => {
   it('returns {} on success and calls revokeOtherSessions', async () => {
     mockUpdateUser.mockResolvedValue({ error: null });
 
-    const result = await updatePasswordAction(null, makeFormData('supersecretpassword'));
+    const result = await updatePasswordAction(null, makeFormData('SuperSecret1!'));
 
     expect(result).toEqual({});
-    expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'supersecretpassword' });
+    expect(mockUpdateUser).toHaveBeenCalledWith({ password: 'SuperSecret1!' });
     expect(mockSignOut).toHaveBeenCalledWith({ scope: 'others' });
   });
 
-  it('returns error for password shorter than 12 characters and does NOT revoke', async () => {
+  it('returns error for weak password and does NOT revoke', async () => {
     const result = await updatePasswordAction(null, makeFormData('short'));
 
-    expect(result).toEqual({ error: 'Password must be at least 12 characters' });
+    expect(result).toEqual({ error: 'Password does not meet strength requirements' });
     expect(mockUpdateUser).not.toHaveBeenCalled();
     expect(mockSignOut).not.toHaveBeenCalled();
   });
 
-  it('returns error when updateUser fails and does NOT revoke', async () => {
+  it('returns sanitized error when updateUser fails and does NOT revoke', async () => {
     mockUpdateUser.mockResolvedValue({ error: { message: 'Auth error' } });
 
-    const result = await updatePasswordAction(null, makeFormData('supersecretpassword'));
+    const result = await updatePasswordAction(null, makeFormData('SuperSecret1!'));
 
-    expect(result).toEqual({ error: 'Auth error' });
+    expect(result).toEqual({ error: 'Something went wrong. Please try again.' });
     expect(mockSignOut).not.toHaveBeenCalled();
   });
 });

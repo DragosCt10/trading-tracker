@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Logo from '@/components/shared/Logo';
+import { PASSWORD_RULES, getPasswordStrength, isPasswordStrong, STRENGTH_LABELS, STRENGTH_COLORS } from '@/utils/passwordValidation';
 
 export default function SignupClient() {
   const [email, setEmail] = useState('');
@@ -27,6 +28,8 @@ export default function SignupClient() {
   const { setIsLoading } = useLoading();
   const { data: userData } = useUserDetails();
   const { theme, toggleTheme, mounted } = useTheme();
+  const strength = getPasswordStrength(password);
+  const allRulesPassed = isPasswordStrong(password);
 
   useEffect(() => {
     // If user is already logged in, redirect to strategies
@@ -188,6 +191,43 @@ export default function SignupClient() {
                     className="h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-300"
                   />
                 </div>
+
+                {/* Strength meter */}
+                {password.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex gap-1">
+                      {PASSWORD_RULES.map((_, i) => (
+                        <div
+                          key={i}
+                          className="h-1 flex-1 rounded-full transition-all duration-300"
+                          style={{ backgroundColor: i < strength ? STRENGTH_COLORS[strength] : 'var(--border)' }}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs font-medium" style={{ color: STRENGTH_COLORS[strength] }}>
+                      {STRENGTH_LABELS[strength]}
+                    </p>
+                  </div>
+                )}
+
+                {/* Requirements checklist */}
+                {password.length > 0 && (
+                  <ul className="space-y-1 mt-2">
+                    {PASSWORD_RULES.map((rule) => {
+                      const passed = rule.test(password);
+                      return (
+                        <li key={rule.label} className="flex items-center gap-2 text-xs">
+                          <span className={passed ? 'text-green-500' : 'text-muted-foreground'}>
+                            {passed ? '\u2713' : '\u25CB'}
+                          </span>
+                          <span className={passed ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}>
+                            {rule.label}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
             </div>
 
@@ -221,7 +261,7 @@ export default function SignupClient() {
               <Button
                 size="lg"
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !allRulesPassed}
                 className="relative w-full h-12 overflow-hidden font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 group border-0 disabled:opacity-60 cursor-pointer"
                 style={{
                   background: `linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))`,

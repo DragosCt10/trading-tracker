@@ -7,6 +7,7 @@ import { TradeDirectionLabel } from '@/components/trade/TradeDirectionChips';
 import type { TradeSnapshot } from '@/types/social';
 import { formatPercent } from '@/lib/utils';
 import { formatTradeEntryDate } from '@/utils/feedDateFormat';
+import { isSafeUrl } from '@/utils/isSafeUrl';
 
 interface TradePreviewCardProps {
   snapshot: TradeSnapshot;
@@ -61,7 +62,7 @@ export default function TradePreviewCard({ snapshot }: TradePreviewCardProps) {
       </div>
 
       {/* Screenshot carousel */}
-      {screens.length > 0 && (
+      {screens.length > 0 && isSafeUrl(screens[screenIndex].url) && (
         <div className="relative group h-52 overflow-hidden border-t border-slate-200/70 dark:border-slate-700/40">
           <a
             href={screens[screenIndex].url}

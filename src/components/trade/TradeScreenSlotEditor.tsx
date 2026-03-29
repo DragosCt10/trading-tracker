@@ -1,6 +1,7 @@
 'use client';
 
 import type { RefCallback } from 'react';
+import { isSafeUrl } from '@/utils/isSafeUrl';
 import { Input } from '@/components/ui/input';
 import {
   SCREEN_TIMEFRAME_OPTIONS,
@@ -125,7 +126,7 @@ export function TradeScreenSlotEditor({
           className={urlInputClassName}
           placeholder="https://..."
         />
-        {showOpenLink && currentUrl && (currentUrl.startsWith('http://') || currentUrl.startsWith('https://')) && (
+        {showOpenLink && currentUrl && isSafeUrl(currentUrl) && (
           <a
             href={currentUrl}
             target="_blank"

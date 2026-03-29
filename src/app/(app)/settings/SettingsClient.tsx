@@ -12,18 +12,7 @@ import { cn } from '@/lib/utils';
 import type { ResolvedSubscription } from '@/types/subscription';
 import type { SocialProfile } from '@/types/social';
 import { updateEmailAction, updatePasswordAction } from '@/lib/server/auth';
-
-const PASSWORD_RULES = [
-  { label: 'At least 8 characters', test: (password: string) => password.length >= 8 },
-  { label: 'Uppercase letter (A-Z)', test: (password: string) => /[A-Z]/.test(password) },
-  { label: 'Lowercase letter (a-z)', test: (password: string) => /[a-z]/.test(password) },
-  { label: 'Number (0-9)', test: (password: string) => /[0-9]/.test(password) },
-  { label: 'Special character (!@#$%...)', test: (password: string) => /[^A-Za-z0-9]/.test(password) },
-];
-
-function getStrength(password: string): number {
-  return PASSWORD_RULES.filter((rule) => rule.test(password)).length;
-}
+import { PASSWORD_RULES, getPasswordStrength } from '@/utils/passwordValidation';
 
 interface SettingsClientProps {
   initialTab: 'billing' | 'account' | 'profile';
@@ -57,7 +46,7 @@ export default function SettingsClient({
   const [passwordMessage, setPasswordMessage] = useState('');
   const [isPasswordPending, startPasswordTransition] = useTransition();
 
-  const passwordStrength = useMemo(() => getStrength(password), [password]);
+  const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
   const allRulesPassed = passwordStrength === PASSWORD_RULES.length;
   const passwordsMatch = password === confirmPassword;
 

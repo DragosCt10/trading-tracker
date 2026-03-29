@@ -8,7 +8,8 @@ import { getAccountsForMode } from '@/lib/server/accounts';
 import { getCachedUserSession } from '@/lib/server/session';
 import { calculateRRStats } from '@/utils/calculateRMultiple';
 import { ensureOfferNotification, checkTradeMilestones } from '@/lib/server/feedNotifications';
- 
+import { validateTradeFields } from '@/utils/validateTradeFields';
+
 /**
  * Normalizes trade_screens from DB. Falls back to legacy trade_link / liquidity_taken
  * columns for rows not yet migrated.
@@ -31,7 +32,7 @@ function normalizeTradeScreenTimeframes(raw: unknown): string[] {
 /**
  * Maps Supabase trade data to Trade type
  */
-function mapSupabaseTradeToTrade(trade: any, mode: string): Trade {
+function mapSupabaseTradeToTrade(trade: any, mode: 'live' | 'backtesting' | 'demo'): Trade {
   return {
     id: trade.id,
     user_id: trade.user_id,
@@ -97,7 +98,7 @@ export async function getFilteredTrades({
 }: {
   userId: string;
   accountId: string;
-  mode: string;
+  mode: 'live' | 'backtesting' | 'demo';
   startDate: string;
   endDate: string;
   /** When true, include trades where executed=false (e.g. for Trades page filter) */
@@ -210,6 +211,11 @@ export async function createTrade(params: {
   delete row.trade_link;
   delete row.liquidity_taken;
 
+  const fieldError = validateTradeFields(row);
+  if (fieldError) {
+    return { error: { message: fieldError } };
+  }
+
   const { error } = await supabase.from(tableName).insert([row] as any);
 
   if (error) {
@@ -241,6 +247,11 @@ export async function updateTrade(
   delete payload.trade_executed_at; // Omit if column not in DB schema
   delete payload.trade_link; // Superseded by trade_screens
   delete payload.liquidity_taken; // Superseded by trade_screens
+
+  const fieldError = validateTradeFields(payload);
+  if (fieldError) {
+    return { error: { message: fieldError } };
+  }
 
   const tableName = `${mode}_trades`;
   const { error } = await supabase
@@ -361,7 +372,7 @@ export async function importTrades(params: {
   let inserted = 0;
   const failed: Array<{ row: number; reason: string }> = [];
 
-  // Use trades as-is (no market validation or normalization)
+  // Validate and prepare rows for insertion
   const validRows: { index: number; row: Record<string, unknown> }[] = [];
   params.trades.forEach((trade, index) => {
     const row: Record<string, unknown> = {
@@ -373,6 +384,12 @@ export async function importTrades(params: {
     delete row.trade_executed_at; // Omit if column not in DB schema
     delete row.trade_link; // Superseded by trade_screens
     delete row.liquidity_taken; // Superseded by trade_screens
+
+    const fieldError = validateTradeFields(row);
+    if (fieldError) {
+      failed.push({ row: index + 1, reason: fieldError });
+      return;
+    }
     validRows.push({ index, row });
   });
 

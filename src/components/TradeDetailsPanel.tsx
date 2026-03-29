@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
+import { isSafeUrl } from '@/utils/isSafeUrl';
 import { SESSION_PALETTE } from '@/constants/sessionPalette';
 import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useParams } from 'next/navigation';
@@ -1357,7 +1358,7 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
             {!effectiveIsEditing ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[320px]">
                 {(editedTrade?.trade_screens ?? []).map((url, i) =>
-                  url ? (
+                  url && isSafeUrl(url) ? (
                     <div key={i} className="flex flex-col min-h-0">
                       <div className="flex items-center justify-between mb-2 block shrink-0">
                         <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">

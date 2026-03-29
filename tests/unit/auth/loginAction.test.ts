@@ -58,11 +58,11 @@ describe('loginAction', () => {
   });
 
   it('returns error on wrong password and does NOT call revokeOtherSessions', async () => {
-    mockSignInWithPassword.mockResolvedValue({ error: { message: 'Invalid credentials' } });
+    mockSignInWithPassword.mockResolvedValue({ error: { message: 'Invalid login credentials' } });
 
     const result = await loginAction(null, makeFormData('user@example.com', 'wrong'));
 
-    expect(result).toEqual({ error: 'Invalid credentials' });
+    expect(result).toEqual({ error: 'Invalid email or password' });
     expect(mockSignOut).not.toHaveBeenCalled();
     expect(ensureDefaultAccount).not.toHaveBeenCalled();
   });
@@ -79,5 +79,16 @@ describe('loginAction', () => {
 
     expect(result).toEqual({ error: 'Email and password are required' });
     expect(mockSignInWithPassword).not.toHaveBeenCalled();
+  });
+
+  it('trims whitespace from email before calling Supabase', async () => {
+    mockSignInWithPassword.mockResolvedValue({ error: null });
+
+    await loginAction(null, makeFormData('  user@example.com  ', 'secret'));
+
+    expect(mockSignInWithPassword).toHaveBeenCalledWith({
+      email: 'user@example.com',
+      password: 'secret',
+    });
   });
 });

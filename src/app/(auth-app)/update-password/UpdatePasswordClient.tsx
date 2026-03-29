@@ -15,21 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Logo from '@/components/shared/Logo';
-
-const PASSWORD_RULES = [
-  { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
-  { label: 'Uppercase letter (A–Z)', test: (p: string) => /[A-Z]/.test(p) },
-  { label: 'Lowercase letter (a–z)', test: (p: string) => /[a-z]/.test(p) },
-  { label: 'Number (0–9)', test: (p: string) => /[0-9]/.test(p) },
-  { label: 'Special character (!@#$%…)', test: (p: string) => /[^A-Za-z0-9]/.test(p) },
-];
-
-function getStrength(password: string): number {
-  return PASSWORD_RULES.filter((r) => r.test(password)).length;
-}
-
-const STRENGTH_LABELS = ['', 'Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
-const STRENGTH_COLORS = ['', '#ef4444', '#f97316', '#eab308', '#22c55e', '#16a34a'];
+import { PASSWORD_RULES, getPasswordStrength, STRENGTH_LABELS, STRENGTH_COLORS } from '@/utils/passwordValidation';
 
 export default function UpdatePasswordClient() {
   const [password, setPassword] = useState('');
@@ -57,7 +43,7 @@ export default function UpdatePasswordClient() {
     });
   }, []);
 
-  const strength = getStrength(password);
+  const strength = getPasswordStrength(password);
   const allRulesPassed = strength === PASSWORD_RULES.length;
   const passwordsMatch = password === confirmPassword;
   const canSubmit = sessionReady && !isLoading && allRulesPassed && passwordsMatch && confirmPassword.length > 0;
