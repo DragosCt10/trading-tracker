@@ -1,3 +1,5 @@
+import type { TradingMode } from '@/types/trade';
+
 /**
  * Centralised query-key factory.
  *
@@ -15,14 +17,14 @@ export const queryKeys = {
   settings: (userId?: string) =>
     ['settings', userId] as const,
 
-  accounts: (userId?: string, mode?: string) =>
+  accounts: (userId?: string, mode?: TradingMode) =>
     ['accounts:list', userId, mode] as const,
 
   strategies: (userId?: string, accountId?: string) =>
     ['strategies:list', userId, accountId] as const,
 
   /** Per-account strategy stats + equity curves (StrategyCard, My Trades cumulative PnL). Invalidate on trade mutations. */
-  strategiesOverview: (userId?: string, accountId?: string, mode?: string) =>
+  strategiesOverview: (userId?: string, accountId?: string, mode?: TradingMode) =>
     ['strategies-overview', userId, accountId, mode] as const,
 
   archivedStrategies: (userId?: string) =>
@@ -30,7 +32,7 @@ export const queryKeys = {
 
   trades: {
     all: (
-      mode: string,
+      mode: TradingMode,
       accountId: string | undefined,
       userId: string | undefined,
       year: number,
@@ -38,7 +40,7 @@ export const queryKeys = {
     ) => ['allTrades', mode, accountId, userId, year, strategyId] as const,
 
     filtered: (
-      mode: string,
+      mode: TradingMode,
       accountId: string | undefined,
       userId: string | undefined,
       viewMode: string,
@@ -48,7 +50,7 @@ export const queryKeys = {
     ) => ['filteredTrades', mode, accountId, userId, viewMode, startDate, endDate, strategyId] as const,
 
     nonExecuted: (
-      mode: string,
+      mode: TradingMode,
       accountId: string | undefined,
       userId: string | undefined,
       viewMode: string,
@@ -61,13 +63,13 @@ export const queryKeys = {
   allStrategyTrades: (
     userId: string | undefined,
     accountId: string | undefined,
-    mode: string
+    mode: TradingMode
   ) => ['all-strategy-trades', userId, accountId, mode, 'all-years'] as const,
 
   allStrategyStats: (
     userId: string | undefined,
     accountId: string | undefined,
-    mode: string,
+    mode: TradingMode,
     strategyIds: string
   ) => ['all-strategy-stats', userId, accountId, mode, strategyIds] as const,
 
@@ -78,7 +80,7 @@ export const queryKeys = {
     strategyId: string,
     userId: string,
     accountId: string,
-    mode: string
+    mode: TradingMode
   ) => ['strategy-shares', strategyId, userId, accountId, mode] as const,
 
   /**
@@ -87,7 +89,7 @@ export const queryKeys = {
    * selectedExecution is included so each execution mode is cached separately.
    */
   dashboardStats: (
-    mode: string,
+    mode: TradingMode,
     accountId: string | undefined,
     userId: string | undefined,
     strategyId: string | null | undefined,
@@ -108,7 +110,7 @@ export const queryKeys = {
    * the compact_trades array separately for the Web Worker.
    */
   compactTrades: (
-    mode: string,
+    mode: TradingMode,
     accountId: string | undefined,
     userId: string | undefined,
     strategyId: string | null | undefined,
@@ -126,7 +128,7 @@ export const queryKeys = {
   /** AI Vision page — period queries keyed by period + account context. Market/execution filtered client-side. */
   aiVision: (
     periodKey: string,
-    mode: string,
+    mode: TradingMode,
     accountId: string | undefined,
     userId: string | undefined,
     strategyId: string | null | undefined,
@@ -178,7 +180,7 @@ export const queryKeys = {
 
   /** Full Trade[] for a single calendar month (for calendar display). */
   calendarTrades: (
-    mode: string,
+    mode: TradingMode,
     accountId: string | undefined,
     userId: string | undefined,
     strategyId: string | null | undefined,

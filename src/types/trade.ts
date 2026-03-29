@@ -1,8 +1,10 @@
+export type TradingMode = 'live' | 'demo' | 'backtesting';
+
 export interface Trade {
   id?: string;
   user_id?: string;
   account_id?: string;  // UUID of the associated account
-  mode?: string;  // The trading mode (demo, live, backtesting)
+  mode?: TradingMode;
   trade_screens: string[];
   /** Optional timeframe label per screen slot (same index as trade_screens). */
   trade_screen_timeframes?: string[];

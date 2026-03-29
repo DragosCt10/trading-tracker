@@ -9,11 +9,12 @@
  */
 import { getDashboardAggregates } from '@/lib/server/dashboardAggregates';
 import type { DashboardApiResponse } from '@/types/dashboard-rpc';
+import type { TradingMode } from '@/types/trade';
 
 export interface GetDashboardApiResponseParams {
   userId: string;
   accountId: string;
-  mode: string;
+  mode: TradingMode;
   startDate: string;
   endDate: string;
   strategyId?: string | null;

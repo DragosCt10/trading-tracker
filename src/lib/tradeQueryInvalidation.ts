@@ -1,10 +1,11 @@
 import type { QueryClient } from '@tanstack/react-query';
+import type { TradingMode } from '@/types/trade';
 import { queryKeys } from '@/lib/queryKeys';
 
 interface InvalidateAndRefetchTradeQueriesArgs {
   queryClient: QueryClient;
   strategyIds: Array<string | null | undefined>;
-  mode: 'live' | 'demo' | 'backtesting';
+  mode: TradingMode;
   accountId?: string;
   userId?: string;
 }

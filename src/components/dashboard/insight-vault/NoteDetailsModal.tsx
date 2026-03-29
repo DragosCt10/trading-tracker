@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { Note } from '@/types/note';
+import type { TradingMode } from '@/types/trade';
 import { deleteNote, updateNote } from '@/lib/server/notes';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useUserDetails } from '@/hooks/useUserDetails';
@@ -153,7 +154,7 @@ export default function NoteDetailsModal({
     return () => observer.disconnect();
   }, [tradePickerSelection.accountId, hasNextPage]);
 
-  const isTradeSelected = (id: string, mode: string) =>
+  const isTradeSelected = (id: string, mode: TradingMode) =>
     (editedNote.trade_refs ?? []).some((r) => r.id === id && r.mode === mode);
   const toggleTradeRef = (id: string, mode: 'live' | 'backtesting' | 'demo') => {
     setEditedNote((prev) => {

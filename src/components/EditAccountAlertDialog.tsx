@@ -38,8 +38,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import type { TradingMode } from '@/types/trade';
 
-type Mode = 'live' | 'backtesting' | 'demo';
 type Currency = 'EUR' | 'USD' | 'GBP';
 
 export type AccountSettings = {
@@ -47,7 +47,7 @@ export type AccountSettings = {
   name: string;
   account_balance: number;
   currency: string;
-  mode: string;
+  mode: TradingMode;
   description: string | null;
 };
 
@@ -77,7 +77,7 @@ export function EditAccountAlertDialog({
   const [name, setName] = useState('');
   const [balance, setBalance] = useState('');
   const [currency, setCurrency] = useState<Currency>('EUR');
-  const [mode, setMode] = useState<Mode>('live');
+  const [mode, setMode] = useState<TradingMode>('live');
   const [description, setDescription] = useState('');
 
   // Helper: reset form from the current account
@@ -96,7 +96,7 @@ export function EditAccountAlertDialog({
       ['EUR', 'USD', 'GBP'].includes(currencyUpper) ? currencyUpper : 'EUR'
     );
 
-    const modeLower = (account.mode || 'live').toLowerCase() as Mode;
+    const modeLower = (account.mode || 'live').toLowerCase() as TradingMode;
     setMode(
       ['live', 'backtesting', 'demo'].includes(modeLower)
         ? modeLower
@@ -120,7 +120,7 @@ export function EditAccountAlertDialog({
   const { data: tradeCount } = useQuery({
     queryKey: ['accountTradeCount', account?.id, account?.mode],
     queryFn: () =>
-      getTradeCountForAccount(account!.id, (account!.mode || 'live') as Mode),
+      getTradeCountForAccount(account!.id, account!.mode || 'live'),
     enabled: open && !!account?.id && !!account?.mode,
   });
   const hasTrades = (tradeCount ?? 0) > 0;
@@ -380,7 +380,7 @@ export function EditAccountAlertDialog({
                 </Label>
                 <Select
                   value={mode}
-                  onValueChange={(val: Mode) => setMode(val)}
+                  onValueChange={(val: TradingMode) => setMode(val)}
                 >
                   <SelectTrigger className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 transition-all duration-300">
                     <SelectValue placeholder="Select mode" />

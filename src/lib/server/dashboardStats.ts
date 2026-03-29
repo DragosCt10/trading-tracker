@@ -2,7 +2,7 @@
 
 import { cache } from 'react';
 import { getFilteredTrades } from './trades';
-import { Trade } from '@/types/trade';
+import { type Trade, type TradingMode } from '@/types/trade';
 import { TIME_INTERVALS } from '@/constants/analytics';
 
 import { calculateMonthlyStats } from '@/utils/calculateMonthlyState';
@@ -166,7 +166,7 @@ export async function getDashboardStats({
 }: {
   userId: string;
   accountId: string;
-  mode: string;
+  mode: TradingMode;
   strategyId?: string | null;
   selectedYear: number;
   viewMode: 'yearly' | 'dateRange';
@@ -378,7 +378,7 @@ async function getCalendarTradesImpl({
 }: {
   userId: string;
   accountId: string;
-  mode: string;
+  mode: TradingMode;
   strategyId?: string | null;
   startDate: string;
   endDate: string;

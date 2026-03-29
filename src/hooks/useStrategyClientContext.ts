@@ -2,11 +2,11 @@
 
 import { useEffect } from 'react';
 import type { Database } from '@/types/supabase';
+import type { TradingMode } from '@/types/trade';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
-type TradingMode = 'live' | 'demo' | 'backtesting';
 
 type UseStrategyClientContextParams = {
   initialUserId: string;

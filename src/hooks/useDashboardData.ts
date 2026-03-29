@@ -10,7 +10,7 @@ import { TRADES_DATA, STATIC_DATA } from '@/constants/queryConfig';
 import { computeAllDashboardStats, CLIENT_COMPUTE_MAX_TRADES } from '@/utils/computeAllDashboardStats';
 import { createAllTimeRange } from '@/utils/dateRangeHelpers';
 import type { RpcReentryStat, RpcTrendStat } from '@/types/dashboard-rpc';
-import type { Trade } from '@/types/trade';
+import type { Trade, TradingMode } from '@/types/trade';
 import type { AccountSettings } from '@/types/account-settings';
 import type { DashboardApiResponse } from '@/types/dashboard-rpc';
 import type {
@@ -104,7 +104,7 @@ export function useDashboardData({
 }: {
   session: any;
   dateRange: { startDate: string; endDate: string };
-  mode: string;
+  mode: TradingMode;
   activeAccount: AccountSettings | null;
   contextLoading: boolean;
   isSessionLoading: boolean;

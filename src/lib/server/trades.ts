@@ -673,7 +673,7 @@ export async function getFullTradesByRefs(
   if (!user || user.id !== userId) throw new Error('Unauthorized');
 
   const supabase = await createClient();
-  const byMode = new Map<string, Array<{ id: string; mode: 'live' | 'backtesting' | 'demo' }>>();
+  const byMode = new Map<'live' | 'backtesting' | 'demo', Array<{ id: string; mode: 'live' | 'backtesting' | 'demo' }>>();
   for (const r of refs) {
     const key = r.mode;
     if (!byMode.has(key)) byMode.set(key, []);

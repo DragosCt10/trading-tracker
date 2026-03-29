@@ -36,8 +36,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import type { TradingMode } from '@/types/trade';
 
-type Mode = 'live' | 'backtesting' | 'demo';
 type Currency = 'EUR' | 'USD' | 'GBP';
 
 export type AccountSettings = {
@@ -46,7 +46,7 @@ export type AccountSettings = {
   name: string;
   account_balance: number;
   currency: string;
-  mode: string;
+  mode: TradingMode;
   description: string | null;
   is_active: boolean;
 };
@@ -80,7 +80,7 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
   const [name, setName] = useState('');
   const [balance, setBalance] = useState('');
   const [currency, setCurrency] = useState<Currency>('EUR');
-  const [mode, setMode] = useState<Mode>('live');
+  const [mode, setMode] = useState<TradingMode>('live');
   const [description, setDescription] = useState('');
 
   // Prevent hydration mismatch
@@ -150,11 +150,11 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
 
       const createdAccount = data as AccountSettings;
 
-      await setActiveAccount(createdAccount.mode as Mode, createdAccount.id);
+      await setActiveAccount(createdAccount.mode, createdAccount.id);
 
       // Sync ActionBar's in-memory selection to the newly created account
       queryClient.setQueryData(['actionBar:selection'], {
-        mode: createdAccount.mode as Mode,
+        mode: createdAccount.mode,
         activeAccount: createdAccount,
       });
 
@@ -302,7 +302,7 @@ export function CreateAccountAlertDialog({ onCreated, triggerClassName }: Create
                 </Label>
                 <Select
                   value={mode}
-                  onValueChange={(val: Mode) => setMode(val)}
+                  onValueChange={(val: TradingMode) => setMode(val)}
                 >
                   <SelectTrigger className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 transition-all duration-300">
                     <SelectValue placeholder="Select mode" />

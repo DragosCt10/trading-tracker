@@ -1,11 +1,11 @@
 'use client';
 
 import type { Database } from '@/types/supabase';
+import type { TradingMode } from '@/types/trade';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useStrategyClientContext } from '@/hooks/useStrategyClientContext';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
-type TradingMode = 'live' | 'demo' | 'backtesting';
 
 type UseStrategyDashboardContextParams = {
   initialUserId: string;

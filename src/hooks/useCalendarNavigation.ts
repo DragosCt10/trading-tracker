@@ -225,18 +225,21 @@ export function useCalendarNavigation({
   useEffect(() => {
     if (viewMode === 'dateRange' && !statsLoading) {
       const filterKey = `${viewMode}-${dateRange.startDate}-${dateRange.endDate}-${selectedMarket}-${selectedExecution}`;
-      const startDateObj = new Date(dateRange.startDate);
       const endDateObj = new Date(dateRange.endDate);
-      const startYear = startDateObj.getFullYear();
-      const startMonth = startDateObj.getMonth();
 
       const currentMonthKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
       const currentMonthHasTrades = monthsWithTradesDateRange.has(currentMonthKey);
       const filtersChanged = lastFilterKeyRef.current !== filterKey;
 
       if (filtersChanged || !currentMonthHasTrades) {
-        let targetYear = startYear;
-        let targetMonth = startMonth;
+        // When no trades exist, default to endDate (today) instead of startDate.
+        // For "All Trades" filter, startDate is 2000-01-01 — falling back to year 2000
+        // would set selectedYear to a far-past value, causing a conflict with
+        // updateCalendarFromDateRange (which resets to endDate's year) → infinite loop.
+        const fallbackYear = endDateObj.getFullYear();
+        const fallbackMonth = endDateObj.getMonth();
+        let targetYear = fallbackYear;
+        let targetMonth = fallbackMonth;
 
         if (monthsWithTradesDateRange.size > 0) {
           let earliestDate = endDateObj;

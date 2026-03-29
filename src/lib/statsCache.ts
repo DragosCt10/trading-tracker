@@ -8,6 +8,7 @@
  * Key includes userId so there is zero risk of cross-user data leakage.
  * Max 200 entries prevents unbounded memory growth on long-lived instances.
  */
+import type { TradingMode } from '@/types/trade';
 
 import type { DashboardApiResponse } from '@/types/dashboard-rpc';
 
@@ -25,7 +26,7 @@ export function buildStatsCacheKey(params: {
   userId:               string;
   accountId:            string;
   strategyId:           string | null;
-  mode:                 string;
+  mode:                 TradingMode;
   startDate:            string;
   endDate:              string;
   execution:            string;

@@ -11,7 +11,8 @@ import { useUserDetails } from '@/hooks/useUserDetails';
 import { STATIC_DATA } from '@/constants/queryConfig';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { AccountModePopover, type Mode } from '@/components/shared/AccountModePopover';
+import { AccountModePopover } from '@/components/shared/AccountModePopover';
+import type { TradingMode } from '@/types/trade';
 import { EditAccountAlertDialog } from '../EditAccountAlertDialog';
 import { CreateAccountAlertDialog } from '../CreateAccountModal';
 import { setLastAccountPreference } from '@/utils/lastAccountCookie';
@@ -23,13 +24,13 @@ import { queryKeys } from '@/lib/queryKeys';
 import type { Strategy } from '@/types/strategy';
 import { Plus } from 'lucide-react';
 
-const MODE_LABELS: Record<Mode, string> = {
+const MODE_LABELS: Record<TradingMode, string> = {
   live: 'Live',
   demo: 'Demo',
   backtesting: 'Backtesting',
 };
 
-const MODE_BADGE: Record<Mode, string> = {
+const MODE_BADGE: Record<TradingMode, string> = {
   live: 'themed-badge-live',
   demo: 'themed-badge-demo',
   backtesting: 'themed-badge-backtesting',
@@ -38,7 +39,7 @@ const MODE_BADGE: Record<Mode, string> = {
 /** Optional server-fetched initial data. When provided, hydrates TanStack cache so hooks use it without client fetch. */
 export interface ActionBarInitialData {
   userDetails: { user: { id: string } | null; session: unknown } | null;
-  mode: Mode;
+  mode: TradingMode;
   activeAccount: AccountRow | null;
   accountsForMode: AccountRow[];
   /** All accounts (all modes). When provided, avoids getAllAccountsForUser client fetch (audit 2.6). */
@@ -102,9 +103,9 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
 
   // Group accounts by mode for the dropdown sections
   const accountsByMode = React.useMemo(() => {
-    const map: Record<Mode, AccountRow[]> = { live: [], demo: [], backtesting: [] };
+    const map: Record<TradingMode, AccountRow[]> = { live: [], demo: [], backtesting: [] };
     for (const a of allAccounts) {
-      if (a.mode in map) map[a.mode as Mode].push(a);
+      if (a.mode in map) map[a.mode as TradingMode].push(a);
     }
     return map;
   }, [allAccounts]);
@@ -121,7 +122,7 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
 
   // ---------- Apply helper (persist active account and invalidate trade queries)
   const applyWith = useCallback(
-    async (mode: Mode, accountId: string | null) => {
+    async (mode: TradingMode, accountId: string | null) => {
       if (!userId) return;
       setApplying(true);
       try {
@@ -155,7 +156,7 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
   );
 
   const handleAccountModeChange = useCallback(
-    (sel: { mode: Mode; accountId: string | null; account?: AccountRow | null }) => {
+    (sel: { mode: TradingMode; accountId: string | null; account?: AccountRow | null }) => {
       if (!sel.accountId) return;
       if (sel.accountId === activeAccount?.id && sel.mode === activeMode) return;
       applyWith(sel.mode, sel.accountId);
@@ -170,9 +171,9 @@ export default function ActionBar({ initialData, showAddButton = true }: ActionB
     if (selection.activeAccount) return;
     if (accountsLoading) return;
 
-    const fallbackOrder: Mode[] = ['live', 'demo', 'backtesting'];
+    const fallbackOrder: TradingMode[] = ['live', 'demo', 'backtesting'];
     let pick: AccountRow | undefined;
-    let pickedMode: Mode = 'live';
+    let pickedMode: TradingMode = 'live';
 
     for (const mode of fallbackOrder) {
       const accounts = accountsByMode[mode];

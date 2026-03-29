@@ -1,14 +1,13 @@
 import { getAccountsForMode } from '@/lib/server/accounts';
 import type { AccountRow } from '@/lib/server/accounts';
+import type { TradingMode } from '@/types/trade';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { STATIC_DATA } from '@/constants/queryConfig';
 import { queryKeys } from '@/lib/queryKeys';
 
-type Mode = 'live' | 'backtesting' | 'demo';
-
 interface UseAccountsOptions {
   userId?: string;
-  pendingMode?: Mode;
+  pendingMode?: TradingMode;
 }
 
 export function useAccounts({ userId, pendingMode }: UseAccountsOptions) {

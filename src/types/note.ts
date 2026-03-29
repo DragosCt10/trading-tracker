@@ -1,7 +1,7 @@
-import type { Trade } from '@/types/trade';
+import type { Trade, TradingMode } from '@/types/trade';
 
 /** Reference to a trade: id is the trade UUID, mode is the table (live/demo/backtesting) */
-export type TradeRef = { id: string; mode: 'live' | 'backtesting' | 'demo' };
+export type TradeRef = { id: string; mode: TradingMode };
 
 export interface Note {
   id: string;
@@ -30,7 +30,7 @@ export interface Note {
   /** Resolved trade summaries when note has trade_refs (for display in NoteDetailsModal etc.) */
   trades?: Array<{
     id: string;
-    mode: string;
+    mode: TradingMode;
     trade_date: string;
     market: string;
     direction: string;
