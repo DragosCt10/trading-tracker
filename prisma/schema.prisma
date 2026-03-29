@@ -901,6 +901,7 @@ enum notification_type {
   trade_milestone_500
   trade_milestone_750
   trade_milestone_1000
+  trade_milestone_5000
   ai_vision_ready
 
   @@schema("public")

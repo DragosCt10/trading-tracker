@@ -1562,6 +1562,10 @@ body:has(.landing-page-override) > .fixed {
   --badge-master-bg: linear-gradient(to bottom right, rgb(168 85 247 / 0.18), rgb(124 58 237 / 0.12));
   --badge-master-border: rgb(168 85 247 / 0.4);
   --badge-master-text: #7e22ce;
+  /* Elite — burgundy */
+  --badge-elite-bg: linear-gradient(to bottom right, rgb(128 0 32 / 0.18), rgb(100 10 30 / 0.12));
+  --badge-elite-border: rgb(128 0 32 / 0.4);
+  --badge-elite-text: #800020;
   /* Alpha — gold */
   --badge-alpha-bg: linear-gradient(to bottom right, rgb(245 158 11 / 0.18), rgb(217 119 6 / 0.12));
   --badge-alpha-border: rgb(245 158 11 / 0.4);
@@ -1576,6 +1580,8 @@ body:has(.landing-page-override) > .fixed {
   --badge-expert-text: #34d399;
   --badge-master-bg: linear-gradient(to bottom right, rgb(168 85 247 / 0.22), rgb(124 58 237 / 0.16));
   --badge-master-text: #c084fc;
+  --badge-elite-bg: linear-gradient(to bottom right, rgb(128 0 32 / 0.22), rgb(100 10 30 / 0.16));
+  --badge-elite-text: #e8a0b0;
   --badge-alpha-bg: linear-gradient(to bottom right, rgb(245 158 11 / 0.22), rgb(217 119 6 / 0.16));
   --badge-alpha-text: #fbbf24;
 }

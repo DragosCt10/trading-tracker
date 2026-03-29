@@ -37,7 +37,8 @@ function dotColor(type: string): string {
   if (type === 'trade_milestone_200') return 'bg-blue-500';           // skilled — ice blue
   if (type === 'trade_milestone_500') return 'bg-orange-700';         // expert — copper
   if (type === 'trade_milestone_750') return 'bg-purple-500';         // master — royal purple
-  if (type === 'trade_milestone_1000') return 'bg-amber-400';         // alpha — gold
+  if (type === 'trade_milestone_1000') return 'bg-rose-900';           // elite — burgundy
+  if (type === 'trade_milestone_5000') return 'bg-amber-400';         // alpha — gold
   if (type === 'post_milestone') return 'bg-amber-500';
   if (type === 'ai_vision_ready') return 'bg-indigo-500';
   if (type === 'channel_added') return 'bg-sky-500';
@@ -54,7 +55,7 @@ const NOTIF_CONFIG: Record<string, {
 }> = {
   pro_3mo_discount:        { Icon: ShieldCheck, iconCls: 'bg-emerald-500/15 dark:bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400', title: 'PRO retention reward', body: 'Stay on PRO for 3 months and get 10% off your 4th month.' },
   pro_loyalty_unlocked:    { Icon: ShieldCheck, iconCls: 'bg-emerald-500/15 dark:bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400', title: 'PRO Loyalty Reward unlocked!', body: "You've been on PRO for 3 months — claim your 10% discount on the Rewards page." },
-  trade_milestone_10:      { Icon: Activity,    iconCls: 'bg-emerald-500/15 dark:bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400', title: 'Trade milestones',      body: 'Reach 100 trades for 5% off, 200 for 10%, 500 for 15%, 750 for 20%, and 1000 trades for 25%.' },
+  trade_milestone_10:      { Icon: Activity,    iconCls: 'bg-emerald-500/15 dark:bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400', title: 'Trade milestones',      body: 'Reach 100 trades for 5% off, 200 for 10%, 500 for 15%, 750 for 20%, 1000 for 25%, and 5000 trades for 50%!' },
   channel_added:           { Icon: UserPlus,    iconCls: 'bg-sky-500/15 dark:bg-sky-500/20 border-sky-500/30 text-sky-600 dark:text-sky-400',                    title: 'actor',                 body: 'added you to their channel.' },
   channel_removed:         { Icon: UserMinus,   iconCls: 'bg-amber-500/15 dark:bg-amber-500/20 border-amber-500/30 text-amber-600 dark:text-amber-400',           title: 'actor',                 body: 'removed you from their channel.' },
   private_channel_added:   { Icon: UserPlus,    iconCls: 'bg-violet-500/15 dark:bg-violet-500/20 border-violet-500/30 text-violet-600 dark:text-violet-400',      title: 'actor',                 body: 'added you to their private channel.' },
@@ -66,7 +67,8 @@ const NOTIF_CONFIG: Record<string, {
   trade_milestone_200:     { Icon: Award,       iconCls: 'bg-blue-500/15 dark:bg-blue-500/20 border-blue-500/30 text-blue-700 dark:text-blue-400',                 title: 'Skilled Trader',        body: "200 trades reached! You've earned the Skilled Trader badge and a 10% PRO discount." },
   trade_milestone_500:     { Icon: Award,       iconCls: 'bg-orange-700/15 dark:bg-orange-700/20 border-orange-700/30 text-orange-800 dark:text-orange-300',       title: 'Expert Trader',         body: "500 trades! You've earned the Expert Trader badge and a 15% PRO discount." },
   trade_milestone_750:     { Icon: Award,       iconCls: 'bg-purple-500/15 dark:bg-purple-500/20 border-purple-500/30 text-purple-700 dark:text-purple-400',       title: 'Master Trader',         body: "750 trades! You've earned the Master Trader badge and a 20% PRO discount." },
-  trade_milestone_1000:    { Icon: Award,       iconCls: 'bg-amber-400/15 dark:bg-amber-400/20 border-amber-400/30 text-amber-600 dark:text-amber-300',            title: 'Alpha Trader',          body: "1000+ trades! You've earned the legendary Alpha Trader badge and a 25% PRO discount." },
+  trade_milestone_1000:    { Icon: Award,       iconCls: 'bg-rose-900/15 dark:bg-rose-900/20 border-rose-900/30 text-rose-900 dark:text-rose-300',                title: 'Elite Trader',          body: "1000 trades! You've earned the Elite Trader badge and a 25% PRO discount." },
+  trade_milestone_5000:    { Icon: Award,       iconCls: 'bg-amber-400/15 dark:bg-amber-400/20 border-amber-400/30 text-amber-600 dark:text-amber-300',            title: 'Alpha Trader',          body: "5000+ trades! You've earned the legendary Alpha Trader badge and a 50% PRO discount." },
   ai_vision_ready:         { Icon: Activity,    iconCls: 'bg-indigo-500/15 dark:bg-indigo-500/20 border-indigo-500/30 text-indigo-600 dark:text-indigo-400',       title: 'AI Vision',             body: 'Your AI model has collected enough data! Check your fresh insights on the AI Vision page.' },
 };
 
