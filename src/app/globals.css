@@ -121,6 +121,34 @@
   opacity: 0;
 }
 
+/* ── Header entrance animation ── */
+
+@keyframes header-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.header-entrance {
+  opacity: 0;
+  animation: header-fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.header-entrance-delay-1 { animation-delay: 0.1s; }
+.header-entrance-delay-2 { animation-delay: 0.25s; }
+.header-entrance-delay-3 { animation-delay: 0.4s; }
+.header-entrance-delay-4 { animation-delay: 0.55s; }
+.header-entrance-delay-5 { animation-delay: 0.7s; }
+.header-entrance-delay-6 { animation-delay: 0.85s; }
+.header-entrance-delay-7 { animation-delay: 1.0s; }
+
 /* ── Futuristic Landing Header Animations ── */
 
 @keyframes header-scan-line {
@@ -251,6 +279,10 @@
   }
   .equity-wave-fill {
     opacity: 1;
+  }
+  .header-entrance {
+    opacity: 1;
+    animation: none;
   }
   .futuristic-nav-link::after {
     transition: none;

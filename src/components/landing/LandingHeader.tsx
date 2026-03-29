@@ -108,14 +108,14 @@ export function LandingHeader() {
           {/* Logo with breathing glow */}
           <Link
             href="/"
-            className="flex-shrink-0 header-logo-breathe"
+            className="flex-shrink-0 header-entrance header-entrance-delay-1"
             aria-label="AlphaStats Home"
           >
-            <Logo className="w-[38px] h-[38px]" />
+            <Logo className="w-[38px] h-[38px] header-logo-breathe" />
           </Link>
 
           {/* ── Desktop: HUD-style nav pill ── */}
-          <div className="hidden lg:flex items-center gap-[30px] rounded-full hud-brackets px-10 py-2 border border-slate-300/20 dark:border-white/[0.08] bg-white/40 dark:bg-white/[0.03] backdrop-blur-md">
+          <div className="hidden lg:flex items-center gap-[30px] rounded-full hud-brackets px-10 py-2 border border-slate-300/20 dark:border-white/[0.08] bg-white/40 dark:bg-white/[0.03] backdrop-blur-md header-entrance header-entrance-delay-2">
             {NAV_LINKS.map((link, i) => (
               <a
                 key={link.href}
@@ -130,7 +130,7 @@ export function LandingHeader() {
           </div>
 
           {/* ── Desktop: CTA area ── */}
-          <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
+          <div className="hidden lg:flex items-center gap-3 flex-shrink-0 header-entrance header-entrance-delay-3">
             {/* Theme toggle with glow ring on hover */}
             <button
               type="button"
@@ -141,32 +141,23 @@ export function LandingHeader() {
               {themeIcon}
             </button>
 
-            {/* CTA — Animated border glow */}
-            <div className="futuristic-cta-glow rounded-xl p-[1px]">
-              <Link
-                href="/login"
-                className="relative flex items-center justify-center overflow-hidden rounded-[11px] px-5 py-1 text-[13px] font-light tracking-wider uppercase text-white whitespace-nowrap transition-all duration-300 hover:shadow-[0_0_20px_color-mix(in_oklch,var(--tc-primary)_40%,transparent)]"
-                style={{
-                  background: `linear-gradient(135deg, color-mix(in oklch, var(--tc-primary) 60%, transparent), color-mix(in oklch, var(--tc-accent) 60%, transparent))`,
-                }}
-              >
-                {/* Inner highlight */}
-                <span
-                  aria-hidden
-                  className="absolute inset-0 rounded-[11px] shadow-[inset_0px_1px_0px_rgba(255,255,255,0.15)] pointer-events-none"
-                />
-                {/* Glow overlay on hover */}
-                <span
-                  aria-hidden
-                  className="absolute inset-0 rounded-[11px] bg-white/0 hover:bg-white/5 transition-colors duration-300 pointer-events-none"
-                />
-                <span className="relative leading-[28px]">Login</span>
-              </Link>
-            </div>
+            {/* CTA — Login button matching LoginPage gradient */}
+            <Link
+              href="/login"
+              className="relative overflow-hidden flex items-center justify-center gap-1.5 px-5 py-1.5 rounded-xl text-[13px] font-semibold text-white whitespace-nowrap shadow-lg hover:shadow-xl transition-all duration-300 group border-0"
+              style={{
+                background: `linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))`,
+                boxShadow: '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
+              }}
+            >
+              <span className="relative z-10 leading-[22px]">Login</span>
+              {/* Shimmer sweep on hover */}
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
+            </Link>
           </div>
 
           {/* ── Mobile: theme toggle + hamburger ── */}
-          <div className="lg:hidden flex items-center gap-2 flex-shrink-0">
+          <div className="lg:hidden flex items-center gap-2 flex-shrink-0 header-entrance header-entrance-delay-3">
             <button
               type="button"
               onClick={toggleTheme}
@@ -227,22 +218,18 @@ export function LandingHeader() {
 
                 <Separator className="my-4 bg-slate-200/50 dark:bg-white/[0.06]" />
 
-                <div className="futuristic-cta-glow rounded-xl p-[1px]">
-                  <Link
-                    href="/login"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="relative flex items-center justify-center overflow-hidden rounded-[11px] px-4 py-2 text-[13px] font-light tracking-wider uppercase text-white w-full"
-                    style={{
-                      background: `linear-gradient(135deg, color-mix(in oklch, var(--tc-primary) 60%, transparent), color-mix(in oklch, var(--tc-accent) 60%, transparent))`,
-                    }}
-                  >
-                    <span
-                      aria-hidden
-                      className="absolute inset-0 rounded-[11px] shadow-[inset_0px_1px_0px_rgba(255,255,255,0.15)] pointer-events-none"
-                    />
-                    <span className="relative leading-[26px]">Login</span>
-                  </Link>
-                </div>
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="relative overflow-hidden flex items-center justify-center w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 group border-0"
+                  style={{
+                    background: `linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))`,
+                    boxShadow: '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
+                  }}
+                >
+                  <span className="relative z-10">Login</span>
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
+                </Link>
               </SheetContent>
             </Sheet>
           </div>

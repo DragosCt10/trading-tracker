@@ -163,7 +163,10 @@ export function LandingHero() {
         {/* Content — left-aligned, right side empty for gradient */}
         <div className="max-w-xl">
           {/* Badge pill */}
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-slate-300/30 dark:border-white/[0.15] bg-white/80 dark:bg-black px-3.5 py-1.5">
+          <div
+            className="mb-8 inline-flex items-center gap-2 rounded-full border border-slate-300/30 dark:border-white/[0.15] bg-white/80 dark:bg-black px-3.5 py-1.5 header-entrance"
+            style={{ animationDelay: '0.5s' }}
+          >
             <span
               className="flex h-[18px] items-center justify-center rounded-full px-2.5 text-[10px] font-bold text-black"
               style={{ backgroundColor: 'var(--tc-primary)' }}
@@ -180,8 +183,9 @@ export function LandingHero() {
 
           {/* Heading */}
           <h1
-            className="bg-clip-text text-transparent text-5xl sm:text-6xl lg:text-[72px] xl:text-[82px] font-medium leading-[1.02] tracking-[-0.05em]"
+            className="bg-clip-text text-transparent text-5xl sm:text-6xl lg:text-[72px] xl:text-[82px] font-medium leading-[1.02] tracking-[-0.05em] header-entrance"
             style={{
+              animationDelay: '0.9s',
               backgroundImage:
                 'linear-gradient(to bottom, var(--foreground) 54%, var(--tc-accent))',
             }}
@@ -192,12 +196,18 @@ export function LandingHero() {
           </h1>
 
           {/* Subtitle */}
-          <p className="mt-6 max-w-[544px] text-base sm:text-lg lg:text-xl leading-[1.55] text-slate-500 dark:text-white/60 tracking-[-0.002em]">
+          <p
+            className="mt-6 max-w-[544px] text-base sm:text-lg lg:text-xl leading-[1.55] text-slate-500 dark:text-white/60 tracking-[-0.002em] header-entrance"
+            style={{ animationDelay: '1.3s' }}
+          >
             Track expectancy, Sharpe ratio, and drawdown — with smart analytics that help you refine your strategy.
           </p>
 
           {/* CTA */}
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div
+            className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center header-entrance"
+            style={{ animationDelay: '1.7s' }}
+          >
             <div className="rounded-xl border border-slate-300/40 dark:border-white/[0.15] p-1.5">
               <Link
                 href="/login"

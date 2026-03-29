@@ -31,6 +31,9 @@ export function ParticleBackground() {
     const container = containerRef.current;
     if (!container) return;
 
+    // Stagger delays: sparse fast stars first, then dense slow ones
+    const fadeDelays = [0.2, 0.8, 1.4];
+
     LAYERS.forEach((layer, i) => {
       const el = document.createElement('div');
       el.style.cssText = `
@@ -42,8 +45,11 @@ export function ParticleBackground() {
         border-radius:50%;
         background:transparent;
         will-change:transform;
+        opacity:0;
         box-shadow:${generateBoxShadow(layer.count, layer.spread, layer.alpha)};
-        animation:particle-drift-${i} ${layer.duration}s ease-in-out infinite alternate;
+        animation:
+          particle-drift-${i} ${layer.duration}s ease-in-out infinite alternate,
+          particle-fade-in 1.2s cubic-bezier(0.16,1,0.3,1) ${fadeDelays[i]}s forwards;
       `;
       container.appendChild(el);
     });
@@ -73,6 +79,13 @@ export function ParticleBackground() {
         @keyframes particle-drift-2 {
           from { transform: translate(0, 0) }
           to   { transform: translate(${LAYERS[2].dx}px, ${LAYERS[2].dy}px) }
+        }
+        @keyframes particle-fade-in {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          [style*="particle-fade-in"] { animation: none !important; opacity: 1 !important; }
         }
       `}</style>
     </div>
