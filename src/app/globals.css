@@ -292,6 +292,64 @@
   }
 }
 
+/* ── Smooth scroll behavior ── */
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ── Hero parallax scroll effect ── */
+
+[data-parallax-speed] {
+  will-change: transform, opacity;
+  transition: none;
+}
+
+/* ── Scroll-triggered reveal animations ── */
+
+@keyframes scroll-reveal-up {
+  0% {
+    opacity: 0;
+    transform: translateY(32px);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  filter: blur(6px);
+  will-change: opacity, transform, filter;
+}
+
+.scroll-reveal-visible {
+  animation: scroll-reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+/* Respect prefers-reduced-motion for scroll reveals */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  .scroll-reveal-visible {
+    animation: none;
+  }
+}
+
 /* Prevent the date range picker from overflowing the viewport */
 .date-range-popup {
   right: 1rem !important;
@@ -1369,7 +1427,7 @@ body:has(.landing-page-override) {
 :is(.dark) body:has(.landing-page-override) {
   background: #0d0a12;
 }
-body:has(.landing-page-override) > .fixed {
+body:has(.landing-page-override) > .fixed.z-0 {
   /* Hide the global orbs on the landing page */
   display: none;
 }

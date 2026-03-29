@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
 import Logo from '@/components/shared/Logo';
+import { ThemePickerModal } from '@/components/shared/ThemePickerModal';
 
 const NAV_LINKS = [
   { label: 'Features', href: '#features' },
@@ -25,6 +26,7 @@ const NAV_LINKS = [
 export function LandingHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
   const { theme, toggleTheme, mounted } = useTheme();
 
   useEffect(() => {
@@ -104,7 +106,7 @@ export function LandingHeader() {
         )}
 
         {/* ── Main content ── */}
-        <div className="mx-auto flex max-w-5xl items-center justify-center gap-12 px-4 py-3 sm:gap-16 lg:gap-[74px]">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           {/* Logo with breathing glow */}
           <Link
             href="/"
@@ -131,7 +133,17 @@ export function LandingHeader() {
 
           {/* ── Desktop: CTA area ── */}
           <div className="hidden lg:flex items-center gap-3 flex-shrink-0 header-entrance header-entrance-delay-3">
-            {/* Theme toggle with glow ring on hover */}
+            {/* Color theme picker */}
+            <button
+              type="button"
+              onClick={() => setThemePickerOpen(true)}
+              className="cursor-pointer h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-300 group hover:shadow-[0_0_12px_color-mix(in_oklch,var(--tc-primary)_30%,transparent)]"
+              aria-label="Color theme"
+            >
+              <Palette className="h-4 w-4" style={{ color: 'var(--tc-primary)' }} />
+            </button>
+
+            {/* Dark/light toggle */}
             <button
               type="button"
               onClick={toggleTheme}
@@ -158,6 +170,14 @@ export function LandingHeader() {
 
           {/* ── Mobile: theme toggle + hamburger ── */}
           <div className="lg:hidden flex items-center gap-2 flex-shrink-0 header-entrance header-entrance-delay-3">
+            <button
+              type="button"
+              onClick={() => setThemePickerOpen(true)}
+              className="cursor-pointer h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors group"
+              aria-label="Color theme"
+            >
+              <Palette className="h-4 w-4" style={{ color: 'var(--tc-primary)' }} />
+            </button>
             <button
               type="button"
               onClick={toggleTheme}
@@ -235,6 +255,7 @@ export function LandingHeader() {
           </div>
         </div>
       </nav>
+      <ThemePickerModal open={themePickerOpen} onClose={() => setThemePickerOpen(false)} />
     </header>
   );
 }
