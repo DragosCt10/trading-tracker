@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Award, Check, ChevronRight, Copy, Lock, Loader2, Trophy, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowLeft, Award, Check, ChevronRight, Copy, Lock, Loader2, Trophy, ShieldCheck } from 'lucide-react';
 import {
   TRADE_MILESTONES,
   getMilestoneForCount,
@@ -21,6 +22,7 @@ interface RewardsClientProps {
   isPro: boolean;
   portalUrl: string | null;
   proSinceDate: string | null;
+  showBackToSettings?: boolean;
 }
 
 interface DiscountEntry {
@@ -35,7 +37,7 @@ interface ProRetentionDiscount {
   couponCode?: string;
 }
 
-export default function RewardsClient({ totalTrades, featureFlags, isPro, portalUrl, proSinceDate }: RewardsClientProps) {
+export default function RewardsClient({ totalTrades, featureFlags, isPro, portalUrl, proSinceDate, showBackToSettings }: RewardsClientProps) {
   const currentMilestone = getMilestoneForCount(totalTrades);
   const nextMilestone = getNextMilestone(totalTrades);
   const [discounts, setDiscounts] = useState<DiscountEntry[]>(
@@ -106,6 +108,17 @@ export default function RewardsClient({ totalTrades, featureFlags, isPro, portal
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-0">
+      {/* Back to Settings */}
+      {showBackToSettings && (
+        <Link
+          href="/settings"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors mb-4"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Settings
+        </Link>
+      )}
+
       {/* Header */}
       <div className="space-y-2 mb-8">
         <div className="flex items-center gap-3">
