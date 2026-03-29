@@ -363,7 +363,7 @@ export function LandingHero() {
                 {i > 0 && <span className="text-white/10 text-xs">·</span>}
                 <span className="text-xs text-white/40 font-medium">{label}</span>
                 <span
-                  className="text-sm font-semibold"
+                  className="text-lg font-bold"
                   style={{ color: 'var(--tc-primary)' }}
                 >
                   {value}

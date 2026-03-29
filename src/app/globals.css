@@ -376,10 +376,8 @@
 }
 
 /* ── Smooth scroll behavior ── */
-
-html {
-  scroll-behavior: smooth;
-}
+/* Handled via data-scroll-behavior="smooth" on <html> — see layout.tsx.
+   Next.js auto-disables smooth scrolling during route transitions. */
 
 @media (prefers-reduced-motion: reduce) {
   html {
