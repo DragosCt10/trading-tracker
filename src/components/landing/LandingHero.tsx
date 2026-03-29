@@ -2,10 +2,14 @@
 
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { ParticleBackground } from './ParticleBackground';
 
 export function LandingHero() {
   return (
     <section className="relative overflow-hidden">
+      {/* Animated particle background */}
+      <ParticleBackground />
+
       {/* Equity-curve waves — flowing from left to top-right corner */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <svg
