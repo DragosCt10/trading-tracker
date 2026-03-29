@@ -23,7 +23,7 @@ export function LandingHero() {
       els.forEach((el) => {
         const speed = parseFloat(el.dataset.parallaxSpeed || '0');
         const y = -(scrollY * speed);
-        const opacity = Math.max(1 - progress * 1.8 * speed, 0);
+        const opacity = Math.max(1 - progress * 1.8 * Math.abs(speed), 0);
         el.style.transform = `translateY(${y}px)`;
         el.style.opacity = String(opacity);
       });
@@ -65,7 +65,7 @@ export function LandingHero() {
       <ParticleBackground />
 
       {/* Equity-curve waves */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden" data-parallax-speed="-0.25">
         <svg
           className="absolute inset-0 w-full h-full"
           viewBox="0 0 1400 800"
