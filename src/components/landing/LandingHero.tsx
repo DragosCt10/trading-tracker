@@ -155,7 +155,7 @@ export function LandingHero() {
         }}
       />
 
-      <div className="relative mx-auto max-w-5xl px-4 pb-16 pt-12 sm:pt-16 lg:pt-20">
+      <div className="relative mx-auto max-w-5xl px-4 pb-30 pt-12 sm:pt-16 lg:pt-20">
         {/* Content — left-aligned, right side empty for gradient */}
         <div className="max-w-xl">
           {/* Badge pill */}
@@ -205,26 +205,16 @@ export function LandingHero() {
             </div>
           </div>
         </div>
-
-        {/* Logo bar */}
-        <div className="mt-16 flex flex-col items-center gap-6 sm:flex-row sm:gap-8 lg:mt-20">
-          <span className="whitespace-nowrap text-sm text-slate-400 dark:text-white/30">
-            Trusted by active traders:
-          </span>
-          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-10 text-slate-300 dark:text-white/20">
-            {['Forex', 'Indices', 'Crypto', 'Commodities', 'Futures'].map(
-              (market) => (
-                <span
-                  key={market}
-                  className="text-sm font-semibold tracking-wider uppercase"
-                >
-                  {market}
-                </span>
-              ),
-            )}
-          </div>
-        </div>
       </div>
+
+      {/* Bottom fade to next section */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute bottom-0 left-0 right-0 h-20"
+        style={{
+          background: 'linear-gradient(to bottom, transparent 0%, rgba(13,10,18,0.4) 40%, rgba(13,10,18,0.8) 70%, #0d0a12 100%)',
+        }}
+      />
     </section>
   );
 }
