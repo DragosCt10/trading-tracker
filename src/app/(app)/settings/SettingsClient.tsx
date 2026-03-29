@@ -158,7 +158,7 @@ export default function SettingsClient({
               </Link>
             </Button>
             <Button asChild variant="ghost" className={navItemClass(false)}>
-              <Link href="/rewards">
+              <Link href="/rewards?from=settings">
                 <Award className="h-4 w-4" />
                 Rewards
               </Link>
