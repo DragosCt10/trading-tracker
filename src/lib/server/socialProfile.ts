@@ -300,11 +300,15 @@ export async function updateSocialProfile(data: {
     .update({ ...data, updated_at: new Date().toISOString() })
     .eq('user_id', session.user!.id)
     .select('*')
-    .single();
+    .maybeSingle();
 
-  if (error || !updated) {
+  if (error) {
     console.error('[updateSocialProfile] error:', error);
     return { error: 'Failed to update profile', code: 'DB_ERROR' };
+  }
+
+  if (!updated) {
+    return { error: 'Profile not found — create one first', code: 'NOT_FOUND' };
   }
 
   return { data: mapRow(updated as Record<string, unknown>) };
