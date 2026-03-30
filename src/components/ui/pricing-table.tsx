@@ -9,6 +9,36 @@ function PricingTable({ className, ...props }: React.ComponentProps<'table'>) {
 			data-slot="table-container"
 			className="relative w-full overflow-x-auto"
 		>
+			<style>{`
+				[data-slot="table-body"] tr {
+					position: relative;
+				}
+				/* Horizontal faded row border */
+				[data-slot="table-body"] tr::after {
+					content: '';
+					position: absolute;
+					bottom: 0;
+					left: 0;
+					right: 0;
+					height: 1px;
+					background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 15%, rgba(255,255,255,0.1) 85%, transparent 100%);
+					pointer-events: none;
+				}
+				/* Vertical faded column divider */
+				[data-slot="table-body"] td {
+					position: relative;
+				}
+				[data-slot="table-body"] td::before {
+					content: '';
+					position: absolute;
+					left: 0;
+					top: 0;
+					bottom: 0;
+					width: 1px;
+					background: linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.1) 15%, rgba(255,255,255,0.1) 85%, transparent 100%);
+					pointer-events: none;
+				}
+			`}</style>
 			<table className={cn('w-full text-sm', className)} {...props} />
 		</div>
 	);
@@ -25,7 +55,7 @@ function PricingTableBody({
 	return (
 		<tbody
 			data-slot="table-body"
-			className={cn('[&_tr]:divide-x [&_tr]:border-b', className)}
+			className={cn('', className)}
 			{...props}
 		/>
 	);
