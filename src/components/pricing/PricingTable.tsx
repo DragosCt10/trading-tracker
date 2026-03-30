@@ -45,7 +45,7 @@ function PricingTable({ className, ...props }: React.ComponentProps<'table'>) {
 					background: linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.1) 15%, rgba(255,255,255,0.1) 85%, transparent 100%);
 				}
 			`}</style>
-			<table className={cn('w-full text-sm', className)} {...props} />
+			<table className={cn('w-full table-fixed text-sm', className)} {...props} />
 		</div>
 	);
 }
