@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Palette, LockKeyhole } from 'lucide-react';
+import { Palette, LockKeyhole, CheckCircle2 } from 'lucide-react';
 import { useLoading } from '@/context/LoadingContext';
 import { useUserDetails } from '@/hooks/useUserDetails';
 import { useTheme } from '@/hooks/useTheme';
@@ -44,6 +44,7 @@ export default function LoginPage() {
   const oauthError = searchParams.get('error');
   const redirectTo = safeRedirectPath(searchParams.get('redirectTo'));
   const sessionReason = searchParams.get('reason');
+  const checkoutSuccess = searchParams.get('checkout') === 'success';
 
   useEffect(() => {
     // Skip auto-redirect when the session was explicitly ended (revoked from another device).
@@ -184,6 +185,19 @@ export default function LoginPage() {
               </p>
             </div>
           </div>
+
+          {/* Checkout success banner (anonymous purchase via Polar) */}
+          {checkoutSuccess && magicLinkStatus === 'idle' && (
+            <div className="mb-8 rounded-2xl border border-[var(--tc-primary)]/20 bg-[var(--tc-primary)]/5 backdrop-blur-sm p-5 text-center animate-in fade-in duration-500">
+              <div className="flex justify-center mb-3">
+                <div className="grid h-9 w-9 place-content-center rounded-xl border border-[var(--tc-primary)]/20 bg-[var(--tc-primary)]/10">
+                  <CheckCircle2 className="h-4 w-4 text-[var(--tc-primary)]" />
+                </div>
+              </div>
+              <p className="text-sm font-semibold text-foreground">Payment received!</p>
+              <p className="mt-1 text-xs text-muted-foreground">Check your email for a magic link to sign in and activate your Pro plan.</p>
+            </div>
+          )}
 
           {/* Session-ended banner (redirected from another page after revocation) */}
           {sessionReason === 'session_replaced' && magicLinkStatus === 'idle' && (
