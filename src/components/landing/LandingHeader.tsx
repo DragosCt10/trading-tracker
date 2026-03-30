@@ -19,7 +19,7 @@ import { ThemePickerModal } from '@/components/shared/ThemePickerModal';
 
 const NAV_LINKS = [
   { label: 'Features', href: '#features' },
-  { label: 'Pricing', href: '#pricing' },
+  { label: 'Pricing', href: '/pricing' },
   { label: 'Testimonials', href: '#testimonials' },
 ] as const;
 
@@ -38,6 +38,11 @@ export function LandingHeader() {
 
   const handleNavClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+      if (!href.startsWith('#')) {
+        // Full path — let normal navigation proceed
+        setMobileMenuOpen(false);
+        return;
+      }
       e.preventDefault();
       const target = document.querySelector(href);
       if (target) {
