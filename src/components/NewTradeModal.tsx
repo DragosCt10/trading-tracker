@@ -721,7 +721,11 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         }
       })();
     } catch (err: any) {
-      setError('Failed to create trade. Please try again.');
+      console.error('Trade creation failed:', err);
+      const msg = err?.message && err.message !== 'undefined'
+        ? err.message
+        : 'Failed to create trade. Please try again.';
+      setError(msg);
       setIsSubmitting(false);
     }
   }, [hasCard, selection, userId, accountId, settings, currentStrategy, pendingTagColors, queryClient, invalidateAndRefetchTradeQueries, initialTradeState, onTradeCreated, onClose, setError]);
