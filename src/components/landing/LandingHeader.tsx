@@ -78,23 +78,12 @@ export function LandingHeader() {
             : 'bg-transparent',
         )}
       >
-        {/* ── Animated gradient bottom border (scan line effect) ── */}
+        {/* ── Animated scan line (login page gradient) ── */}
         <div className="absolute bottom-0 left-0 right-0 h-px overflow-hidden">
-          {/* Static base line */}
           <div
-            className={cn(
-              'absolute inset-0 transition-opacity duration-500',
-              scrolled ? 'opacity-100' : 'opacity-30',
-            )}
+            className="header-scan-line absolute inset-0 opacity-50"
             style={{
-              background: `linear-gradient(90deg, transparent, color-mix(in oklch, var(--tc-primary) 30%, transparent), transparent)`,
-            }}
-          />
-          {/* Moving scan highlight */}
-          <div
-            className="header-scan-line absolute inset-0"
-            style={{
-              background: `linear-gradient(90deg, transparent 20%, var(--tc-primary) 50%, transparent 80%)`,
+              background: `linear-gradient(90deg, transparent 35%, var(--tc-primary) 50%, transparent 65%)`,
             }}
           />
         </div>
@@ -122,7 +111,7 @@ export function LandingHeader() {
           </Link>
 
           {/* ── Desktop: HUD-style nav pill ── */}
-          <div className="hidden lg:flex items-center gap-[30px] rounded-full hud-brackets px-10 py-2 border border-slate-300/20 dark:border-white/[0.08] bg-white/40 dark:bg-white/[0.03] backdrop-blur-md header-entrance header-entrance-delay-2">
+          <div className="hidden lg:flex items-center gap-[30px] rounded-full hud-brackets px-10 py-2 border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm header-entrance header-entrance-delay-2">
             {NAV_LINKS.map((link, i) => (
               <a
                 key={link.href}

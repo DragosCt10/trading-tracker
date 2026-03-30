@@ -1,12 +1,18 @@
 'use client';
 
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Zap, BarChart3 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowRight, Zap, BarChart3, Loader2 } from 'lucide-react';
 import { PricingHeroBackground } from '@/components/pricing/PricingHeroBackground';
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { Footer } from '@/components/shared/Footer';
 import { Button } from '@/components/ui/button';
 import { useParallax } from '@/hooks/useParallax';
+import { cn } from '@/lib/utils';
+import { createCheckoutUrl } from '@/lib/server/subscription';
+import { TIER_DEFINITIONS } from '@/constants/tiers';
+import type { BillingPeriod } from '@/types/subscription';
 import {
   type FeatureItem,
   PricingTable,
@@ -37,8 +43,33 @@ const FEATURES: FeatureItem[] = [
   { label: 'Priority support', values: [false, true] },
 ];
 
+const proDef = TIER_DEFINITIONS.pro;
+const MONTHLY_PRICE = proDef.pricing.monthly?.usd ?? 19;
+const ANNUAL_PRICE = proDef.pricing.annual?.usd ?? 182;
+const SAVINGS_PCT = proDef.pricing.annual?.savingsPct ?? 20;
+const ANNUAL_MONTHLY_EQUIV = Math.floor(ANNUAL_PRICE / 12);
+
 export function PricingPageClient() {
   const sectionRef = useParallax();
+  const router = useRouter();
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('annual');
+  const [isCheckoutPending, startCheckoutTransition] = useTransition();
+
+  const isAnnual = billingPeriod === 'annual';
+  const proPrice = isAnnual ? `$${ANNUAL_MONTHLY_EQUIV}/mo` : `$${MONTHLY_PRICE}/mo`;
+  const proCompareAt = isAnnual ? `$${MONTHLY_PRICE}/mo` : undefined;
+  const proBillingNote = isAnnual ? `$${ANNUAL_PRICE} billed annually` : undefined;
+
+  function handleCheckout() {
+    startCheckoutTransition(async () => {
+      try {
+        const url = await createCheckoutUrl(billingPeriod);
+        router.push(url);
+      } catch {
+        router.push('/signup');
+      }
+    });
+  }
 
   return (
     <div className="landing-page-override w-full">
@@ -69,6 +100,34 @@ export function PricingPageClient() {
           <p data-parallax-speed="0.25" className="text-muted-foreground mt-4 max-w-2xl text-pretty">
             Start free. Upgrade when your trading demands deeper insights, more strategies, and full control.
           </p>
+
+          {/* Billing period toggle */}
+          <div className="mt-8 flex items-center gap-1 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none p-1 backdrop-blur-sm">
+            {(['annual', 'monthly'] as BillingPeriod[]).map((period) => (
+              <button
+                key={period}
+                onClick={() => setBillingPeriod(period)}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 cursor-pointer',
+                  billingPeriod === period
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-white/60 hover:text-white/90'
+                )}
+              >
+                {period === 'annual' ? 'Annual' : 'Monthly'}
+                {period === 'annual' && (
+                  <span className={cn(
+                    'rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-colors',
+                    billingPeriod === 'annual'
+                      ? 'bg-emerald-500/20 text-emerald-600'
+                      : 'bg-emerald-500/15 text-emerald-400'
+                  )}>
+                    Save {SAVINGS_PCT}%
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Pricing table */}
@@ -81,11 +140,14 @@ export function PricingPageClient() {
                   <PricingTablePlan
                     name="Starter"
                     badge="Free forever"
-                    price="$0"
+                    badgeClassName="border-slate-300/50 dark:border-slate-600/50 text-slate-500 dark:text-slate-400"
+                    price="Free"
+                    description="One strategy, core stats, CSV import."
                     icon={Zap}
                   >
-                    <Link href="/signup">
-                      <Button variant="outline" className="w-full rounded-lg" size="lg">
+                    <p className="text-xs -mt-1 mb-3 text-muted-foreground">No credit card required</p>
+                    <Link href="/login">
+                      <Button variant="outline" className="w-full rounded-lg cursor-pointer" size="lg">
                         Get started
                       </Button>
                     </Link>
@@ -94,28 +156,44 @@ export function PricingPageClient() {
                 <th className="p-1">
                   <PricingTablePlan
                     name="Pro"
-                    badge="Most popular"
-                    price="$19"
-                    compareAt="$24"
+                    badge="Recommended"
+                    badgeClassName="border-[var(--tc-primary)]/30 bg-[var(--tc-primary)]/10 text-[var(--tc-primary)]"
+                    price={proPrice}
+                    compareAt={proCompareAt}
+                    description="Everything unlimited, full analytics."
                     icon={BarChart3}
                     className="after:pointer-events-none after:absolute after:-inset-0.5 after:rounded-[inherit] after:to-transparent after:blur-[2px]"
                     style={{
                       '--tw-after-bg': `linear-gradient(to bottom, color-mix(in oklch, var(--tc-primary) 15%, transparent), transparent)`,
                     } as React.CSSProperties}
                   >
-                    <Link href="/signup">
-                      <Button
-                        className="w-full rounded-lg text-white"
-                        size="lg"
-                        style={{
-                          background: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent))',
-                          borderColor: 'color-mix(in oklch, var(--tc-primary) 60%, transparent)',
-                        }}
-                      >
-                        Start free trial
-                        <ArrowRight className="ml-1 h-4 w-4" />
-                      </Button>
-                    </Link>
+                    <p className={cn('text-xs -mt-1 mb-3', proBillingNote ? 'text-muted-foreground' : 'invisible')}>
+                      {proBillingNote || '\u00A0'}
+                    </p>
+                    <Button
+                      onClick={handleCheckout}
+                      disabled={isCheckoutPending}
+                      className="relative cursor-pointer overflow-hidden w-full rounded-lg text-white font-semibold disabled:opacity-60 border-0 shadow-lg hover:shadow-xl transition-all duration-300 group"
+                      size="lg"
+                      style={{
+                        background: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))',
+                        boxShadow: '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
+                      }}
+                    >
+                      <span className="relative z-10 flex items-center justify-center gap-1">
+                        {isCheckoutPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            Buy now
+                            <ArrowRight className="ml-1 h-4 w-4" />
+                          </>
+                        )}
+                      </span>
+                      {!isCheckoutPending && (
+                        <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
+                      )}
+                    </Button>
                   </PricingTablePlan>
                 </th>
               </PricingTableRow>

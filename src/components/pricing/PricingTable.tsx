@@ -105,7 +105,9 @@ function PricingTableHead({ className, ...props }: React.ComponentProps<'th'>) {
 
 function PricingTablePlan({
 	name,
+	description,
 	badge,
+	badgeClassName,
 	price,
 	compareAt,
 	icon: Icon,
@@ -116,7 +118,7 @@ function PricingTablePlan({
 	return (
 		<div
 			className={cn(
-				'bg-background supports-[backdrop-filter]:bg-background/40 relative h-full overflow-hidden rounded-lg border p-3 font-normal backdrop-blur-xs',
+				'relative h-full overflow-hidden rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-3 font-normal',
 				className,
 			)}
 			{...props}
@@ -128,11 +130,18 @@ function PricingTablePlan({
 				<h3 className="text-muted-foreground font-mono text-sm">{name}</h3>
 				<Badge
 					variant="secondary"
-					className="ml-auto rounded-full border px-2 py-0.5 text-[10px] font-normal"
+					className={cn(
+						'ml-auto rounded-full border bg-transparent px-2 py-0.5 text-[10px] font-normal pointer-events-none',
+						badgeClassName,
+					)}
 				>
 					{badge}
 				</Badge>
 			</div>
+
+			{description && (
+				<p className="mt-2 text-xs text-left text-muted-foreground leading-relaxed">{description}</p>
+			)}
 
 			<div className="mt-4 flex items-baseline gap-2">
 				<span className="text-3xl font-bold">{price}</span>
@@ -149,8 +158,10 @@ function PricingTablePlan({
 
 type PricingPlanType = {
 	name: string;
+	description?: string;
 	icon: LucideIcon;
 	badge: string;
+	badgeClassName?: string;
 	price: string;
 	compareAt?: string;
 };

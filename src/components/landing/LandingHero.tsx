@@ -272,7 +272,7 @@ export function LandingHero() {
 
           {/* Badge */}
           <div className="mb-8 header-entrance" data-parallax-speed="0.45" style={{ animationDelay: '0.5s' }}>
-            <div className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 backdrop-blur-sm">
+            <div className="inline-flex items-center gap-2.5 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none px-4 py-1.5 backdrop-blur-sm">
               <span
                 className="h-1.5 w-1.5 rounded-full animate-pulse flex-shrink-0"
                 style={{ backgroundColor: 'var(--tc-primary)' }}

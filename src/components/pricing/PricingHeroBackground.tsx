@@ -113,9 +113,9 @@ export function PricingHeroBackground() {
           className="absolute inset-0"
           style={{
             backgroundImage: [
-              `radial-gradient(80% 55% at 50% 35%, color-mix(in oklch, var(--tc-primary) 35%, transparent) 0%, color-mix(in oklch, var(--tc-accent) 25%, transparent) 25%, color-mix(in oklch, var(--tc-primary) 10%, rgba(13,10,18,0.4)) 45%, rgba(13,10,18,0.85) 65%, #0d0a12 85%)`,
-              `radial-gradient(70% 50% at 12% 0%, color-mix(in oklch, var(--tc-primary) 40%, transparent) 0%, color-mix(in oklch, var(--tc-accent) 20%, transparent) 30%, transparent 60%)`,
-              `radial-gradient(60% 45% at 88% 20%, color-mix(in oklch, var(--tc-accent) 25%, transparent) 0%, transparent 55%)`,
+              `radial-gradient(80% 55% at 50% 60%, color-mix(in oklch, var(--tc-primary) 35%, transparent) 0%, color-mix(in oklch, var(--tc-accent) 25%, transparent) 25%, color-mix(in oklch, var(--tc-primary) 10%, rgba(13,10,18,0.4)) 45%, rgba(13,10,18,0.85) 65%, #0d0a12 85%)`,
+              `radial-gradient(70% 50% at 12% 30%, color-mix(in oklch, var(--tc-primary) 40%, transparent) 0%, color-mix(in oklch, var(--tc-accent) 20%, transparent) 30%, transparent 60%)`,
+              `radial-gradient(60% 45% at 88% 45%, color-mix(in oklch, var(--tc-accent) 25%, transparent) 0%, transparent 55%)`,
               `linear-gradient(to bottom, rgba(13,10,18,0.3), transparent 40%)`,
             ].join(','),
             backgroundColor: '#0d0a12',
@@ -126,17 +126,17 @@ export function PricingHeroBackground() {
         <div
           className="absolute inset-0"
           style={{
-            background: 'radial-gradient(140% 120% at 50% 0%, transparent 55%, rgba(13,10,18,0.9))',
+            background: 'radial-gradient(140% 120% at 50% 30%, transparent 55%, rgba(13,10,18,0.9))',
           }}
         />
 
         {/* ── Top radial shade (from hero-1) ── */}
-        <div
+        {/* <div
           className="absolute inset-0 -top-14 hidden lg:block"
           style={{
             background: 'radial-gradient(35% 80% at 49% 0%, rgba(255,255,255,0.06), transparent)',
           }}
-        />
+        /> */}
 
         {/* ── Structural grid: bold outer borders at max-w-6xl edges ── */}
         <div className="pointer-events-none absolute inset-0 mx-auto hidden w-full max-w-6xl lg:block">
@@ -180,7 +180,7 @@ export function PricingHeroBackground() {
 
         {/* ── Central glow — breathing animation ── */}
         <div
-          className="pricing-glow-anim pointer-events-none absolute left-1/2 top-[50%] h-52 w-64 -translate-x-1/2 rounded-full sm:h-56 sm:w-80"
+          className="pricing-glow-anim pointer-events-none absolute left-1/2 top-[78%] h-52 w-64 -translate-x-1/2 rounded-full sm:h-56 sm:w-80"
           style={{
             background: `radial-gradient(ellipse, color-mix(in oklch, var(--tc-primary) 50%, transparent) 0%, color-mix(in oklch, var(--tc-accent) 30%, transparent) 40%, transparent 70%)`,
             filter: 'blur(60px)',
