@@ -271,7 +271,7 @@ export function LandingHero() {
         <div className="max-w-xl">
 
           {/* Badge */}
-          <div className="mb-8 header-entrance" data-parallax-speed="0.45" style={{ animationDelay: '0.5s' }}>
+          <div className="mb-8" data-parallax-speed="0.45">
             <div className="inline-flex items-center gap-2.5 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none px-4 py-1.5 backdrop-blur-sm">
               <span
                 className="h-1.5 w-1.5 rounded-full animate-pulse flex-shrink-0"
@@ -285,10 +285,9 @@ export function LandingHero() {
 
           {/* Heading */}
           <h1
-            className="bg-clip-text text-transparent text-4xl sm:text-5xl lg:text-[54px] xl:text-[62px] font-medium leading-[1.08] tracking-[-0.04em] header-entrance"
+            className="bg-clip-text text-transparent text-4xl sm:text-5xl lg:text-[54px] xl:text-[62px] font-medium leading-[1.08] tracking-[-0.04em]"
             data-parallax-speed="0.35"
             style={{
-              animationDelay: '0.9s',
               backgroundImage: 'linear-gradient(to bottom, var(--foreground) 54%, var(--tc-accent))',
             }}
           >
@@ -299,9 +298,8 @@ export function LandingHero() {
 
           {/* Divider with stats */}
           <div
-            className="mt-8 flex items-center gap-6 header-entrance"
+            className="mt-8 flex items-center gap-6"
             data-parallax-speed="0.28"
-            style={{ animationDelay: '1.1s' }}
           >
             <div className="h-px flex-1 max-w-[40px]" style={{ background: 'color-mix(in oklch, var(--tc-primary) 40%, transparent)' }} />
             {[
@@ -324,18 +322,16 @@ export function LandingHero() {
 
           {/* Subtitle */}
           <p
-            className="mt-6 max-w-[480px] text-base sm:text-lg leading-[1.6] text-muted-foreground header-entrance"
+            className="mt-6 max-w-[480px] text-base sm:text-lg leading-[1.6] text-muted-foreground"
             data-parallax-speed="0.2"
-            style={{ animationDelay: '1.3s' }}
           >
             Go beyond basic stats. Get deep, actionable insights into your performance — and trade with confidence.
           </p>
 
           {/* CTA */}
           <div
-            className="mt-10 flex items-center gap-4 header-entrance"
+            className="mt-10 flex items-center gap-4"
             data-parallax-speed="0.12"
-            style={{ animationDelay: '1.7s' }}
           >
             <Link
               href="/login"

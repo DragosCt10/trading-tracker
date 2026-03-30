@@ -34,7 +34,7 @@ export function LandingFeatures() {
 
       <div className="relative mx-auto max-w-6xl px-4 py-24 sm:py-32">
         {/* Section header */}
-        <div className="scroll-reveal scroll-reveal-once text-center max-w-2xl mx-auto mb-16">
+        <div className="text-center max-w-2xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 backdrop-blur-sm mb-6">
             <span
               className="h-1.5 w-1.5 rounded-full flex-shrink-0"
