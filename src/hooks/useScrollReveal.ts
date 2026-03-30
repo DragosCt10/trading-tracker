@@ -6,7 +6,7 @@ import { useEffect, useRef } from 'react';
  * Attaches an IntersectionObserver to `.scroll-reveal` children of the
  * returned ref. When a child enters the viewport it receives the
  * `scroll-reveal-visible` class which triggers the CSS animation in
- * globals.css.
+ * globals.css. Once revealed, elements stay visible.
  */
 export function useScrollReveal<T extends HTMLElement = HTMLElement>() {
   const ref = useRef<T>(null);
@@ -20,7 +20,8 @@ export function useScrollReveal<T extends HTMLElement = HTMLElement>() {
         for (const entry of entries) {
           if (entry.isIntersecting) {
             entry.target.classList.add('scroll-reveal-visible');
-            observer.unobserve(entry.target);
+          } else {
+            entry.target.classList.remove('scroll-reveal-visible');
           }
         }
       },
