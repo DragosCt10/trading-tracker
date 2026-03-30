@@ -42,7 +42,7 @@ export function PricingPageClient() {
       <LandingHeader />
 
       {/* Hero section with gradient dome + grid + pillars */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-clip">
         <PricingHeroBackground />
 
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pt-16 sm:pt-24 pb-10 text-center">
