@@ -5,7 +5,7 @@ import { LandingPricing } from '@/components/landing/LandingPricing';
 
 export default function Home() {
   return (
-    <div className="landing-page-override w-full pt-16 sm:pt-[68px]">
+    <div className="landing-page-override w-full">
       <LandingHeader />
 
       <LandingHero />

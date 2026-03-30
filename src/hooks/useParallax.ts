@@ -11,6 +11,17 @@ import { useEffect, useRef, useCallback } from 'react';
 export function useParallax(entranceDelay = 0) {
   const sectionRef = useRef<HTMLElement>(null);
   const rafRef = useRef<number>(0);
+  const layoutRef = useRef({ top: 0, height: 0 });
+
+  const measure = useCallback(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const rect = section.getBoundingClientRect();
+    layoutRef.current = {
+      top: rect.top + window.scrollY,
+      height: section.offsetHeight,
+    };
+  }, []);
 
   const onScroll = useCallback(() => {
     cancelAnimationFrame(rafRef.current);
@@ -18,12 +29,9 @@ export function useParallax(entranceDelay = 0) {
       const section = sectionRef.current;
       if (!section) return;
 
-      const scrollY = window.scrollY;
-      const rect = section.getBoundingClientRect();
-      const sectionTop = scrollY + rect.top;
-      const sectionH = section.offsetHeight;
-      const relativeScroll = Math.max(scrollY - sectionTop, 0);
-      const progress = Math.min(relativeScroll / sectionH, 1);
+      const { top, height } = layoutRef.current;
+      const relativeScroll = Math.max(window.scrollY - top, 0);
+      const progress = Math.min(relativeScroll / height, 1);
 
       const els = section.querySelectorAll<HTMLElement>('[data-parallax-speed]');
       els.forEach((el) => {
@@ -53,16 +61,19 @@ export function useParallax(entranceDelay = 0) {
         });
       }
 
+      measure();
       onScroll();
       window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', measure, { passive: true });
     }, entranceDelay);
 
     return () => {
       clearTimeout(timer);
       window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', measure);
       cancelAnimationFrame(rafRef.current);
     };
-  }, [onScroll, entranceDelay]);
+  }, [onScroll, measure, entranceDelay]);
 
   return sectionRef;
 }
