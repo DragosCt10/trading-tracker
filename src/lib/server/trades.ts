@@ -9,6 +9,7 @@ import { getCachedUserSession } from '@/lib/server/session';
 import { calculateRRStats } from '@/utils/calculateRMultiple';
 import { ensureOfferNotification, checkTradeMilestones } from '@/lib/server/feedNotifications';
 import { validateTradeFields } from '@/utils/validateTradeFields';
+import { getRemainingTrades } from '@/lib/server/subscription';
 
 /**
  * Normalizes trade_screens from DB. Falls back to legacy trade_link / liquidity_taken
@@ -197,6 +198,11 @@ export async function createTrade(params: {
     return { error: { message: 'Account not found or access denied' } };
   }
 
+  const remaining = await getRemainingTrades(user.id, params.mode);
+  if (remaining === 0) {
+    return { error: { message: 'TRADE_LIMIT_REACHED' } };
+  }
+
   const tableName = `${params.mode}_trades`;
   const row: Record<string, unknown> = {
     ...params.trade,
@@ -366,6 +372,18 @@ export async function importTrades(params: {
     throw new Error('Account not found or access denied');
   }
 
+  // Check monthly trade limit and cap import to remaining capacity
+  const remaining = await getRemainingTrades(user.id, params.mode);
+  if (remaining === 0) {
+    return {
+      inserted: 0,
+      failed: params.trades.map((_, i) => ({
+        row: i + 1,
+        reason: 'Monthly trade limit reached. Upgrade to PRO for unlimited trades.',
+      })),
+    };
+  }
+
   const supabase = await createClient();
   const tableName = `${params.mode}_trades`;
   const CHUNK_SIZE = 100;
@@ -392,6 +410,14 @@ export async function importTrades(params: {
     }
     validRows.push({ index, row });
   });
+
+  // Cap to remaining monthly capacity (if limited)
+  if (remaining !== null && validRows.length > remaining) {
+    const excess = validRows.splice(remaining);
+    excess.forEach((v) => {
+      failed.push({ row: v.index + 1, reason: 'Monthly trade limit reached. Upgrade to PRO for unlimited trades.' });
+    });
+  }
 
   // Batch insert in chunks
   for (let i = 0; i < validRows.length; i += CHUNK_SIZE) {

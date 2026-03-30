@@ -27,6 +27,7 @@ import {
 const FEATURES: FeatureItem[] = [
   { label: 'Stats Board', values: ['1', 'Unlimited'] },
   { label: 'Accounts', values: ['1', 'Unlimited'] },
+  { label: 'Trades', values: ['50 / month', 'Unlimited'] },
   { label: 'Trading modes', values: ['Demo only', 'Demo, Live & Backtesting'] },
   { label: 'Core Statistics', values: ['Basic', 'Full suite'] },
   { label: 'Trade Performance Analysis', values: ['Basic', 'Full suite'] },

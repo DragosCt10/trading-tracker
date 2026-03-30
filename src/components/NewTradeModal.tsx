@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useProgressDialog } from '@/hooks/useProgressDialog';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { createTrade } from '@/lib/server/trades';
 import { Trade } from '@/types/trade';
@@ -721,7 +722,7 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
         }
       })();
     } catch (err: any) {
-      setError('Failed to create trade. Please try again.');
+      setError(err?.message ?? 'Failed to create trade. Please try again.');
       setIsSubmitting(false);
     }
   }, [hasCard, selection, userId, accountId, settings, currentStrategy, pendingTagColors, queryClient, invalidateAndRefetchTradeQueries, initialTradeState, onTradeCreated, onClose, setError]);
@@ -1210,7 +1211,17 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
               <Alert variant="destructive" className="mb-2 bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800 backdrop-blur-sm">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>
+                  {error === 'TRADE_LIMIT_REACHED' ? (
+                    <>
+                      You&apos;ve reached the 50 trades/month limit on the Starter plan.{' '}
+                      <Link href="/settings?tab=billing" className="underline font-medium hover:text-rose-800 dark:hover:text-rose-200">
+                        Upgrade to PRO
+                      </Link>{' '}
+                      for unlimited trades.
+                    </>
+                  ) : error}
+                </AlertDescription>
               </Alert>
             )}
 

@@ -392,3 +392,29 @@ export async function canAddAccount(userId: string, currentCount: number): Promi
   if (max === null) return true;
   return currentCount < max;
 }
+
+/**
+ * Returns how many trades the user can still add this calendar month.
+ * null = unlimited.
+ */
+export async function getRemainingTrades(
+  userId: string,
+  mode: 'live' | 'backtesting' | 'demo'
+): Promise<number | null> {
+  const sub = await getCachedSubscription(userId);
+  const max = sub.definition.limits.maxMonthlyTrades;
+  if (max === null) return null;
+
+  const supabase = await createClient();
+  const startOfMonth = new Date();
+  startOfMonth.setUTCDate(1);
+  startOfMonth.setUTCHours(0, 0, 0, 0);
+
+  const { count } = await supabase
+    .from(`${mode}_trades`)
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .gte('created_at', startOfMonth.toISOString());
+
+  return Math.max(0, max - (count ?? 0));
+}

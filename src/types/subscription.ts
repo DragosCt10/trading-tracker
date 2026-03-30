@@ -18,6 +18,8 @@ export interface TierLimits {
   maxPostsPerDay: number | null;
   /** 280 for starter, 1000 for pro. */
   maxPostContentLength: number;
+  /** null = unlimited. 50 for starter. */
+  maxMonthlyTrades: number | null;
 }
 
 export interface TierFeatureFlags {

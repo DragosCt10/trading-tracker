@@ -25,6 +25,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       maxPostsPerWeek: null,
       maxPostsPerDay: 50,
       maxPostContentLength: 280,
+      maxMonthlyTrades: 50,
     },
     features: {
       dailyJournal: false,
@@ -72,6 +73,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       maxPostsPerWeek: null,
       maxPostsPerDay: 50,
       maxPostContentLength: 1000,
+      maxMonthlyTrades: null,
     },
     features: {
       dailyJournal: true,
@@ -108,6 +110,7 @@ export const TIER_DEFINITIONS: Record<TierId, TierDefinition> = {
       maxPostsPerWeek: null,
       maxPostsPerDay: 50,
       maxPostContentLength: 1000,
+      maxMonthlyTrades: null,
     },
     features: {
       dailyJournal: true,

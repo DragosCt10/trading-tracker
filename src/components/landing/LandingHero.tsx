@@ -307,7 +307,7 @@ export function LandingHero() {
             {[
               { label: 'Traders',               value: '1,200+' },
               { label: 'Trades tracked',        value: '4.2M+'  },
-              { label: 'Strategies tested', value: '3,800+' },
+              { label: 'Stats Board', value: '3,800+' },
             ].map(({ label, value }, i) => (
               <div key={label} className="flex items-baseline gap-1.5">
                 {i > 0 && <span className="text-white/10 text-xs">·</span>}
