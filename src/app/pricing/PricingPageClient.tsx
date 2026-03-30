@@ -41,14 +41,14 @@ export function PricingPageClient() {
   const sectionRef = useParallax();
 
   return (
-    <div className="landing-page-override w-full pt-16 sm:pt-[68px]">
+    <div className="landing-page-override w-full">
       <LandingHeader />
 
       {/* Hero section with gradient dome + grid + pillars */}
       <section ref={sectionRef} className="relative overflow-clip">
         <PricingHeroBackground />
 
-        <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pt-16 sm:pt-24 pb-10 text-center">
+        <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pt-30 sm:pt-40 pb-10 text-center">
           {/* Heading */}
           <h1
             data-parallax-speed="0.35"
