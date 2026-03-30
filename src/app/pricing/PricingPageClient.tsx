@@ -10,7 +10,7 @@ import { Footer } from '@/components/shared/Footer';
 import { Button } from '@/components/ui/button';
 import { useParallax } from '@/hooks/useParallax';
 import { cn } from '@/lib/utils';
-import { createCheckoutUrl } from '@/lib/server/subscription';
+import { createPublicCheckoutUrl } from '@/lib/server/subscription';
 import { TIER_DEFINITIONS } from '@/constants/tiers';
 import type { BillingPeriod } from '@/types/subscription';
 import {
@@ -28,7 +28,7 @@ const FEATURES: FeatureItem[] = [
   { label: 'Stats Board', values: ['1', 'Unlimited'] },
   { label: 'Accounts', values: ['1', 'Unlimited'] },
   { label: 'Trading modes', values: ['Demo only', 'Demo, Live & Backtesting'] },
-  { label: 'CSV import', values: [true, true] },
+  { label: 'Overview & Monthly highlights', values: [true, true] },
   { label: 'Core statistics', values: ['Basic', 'Full suite'] },
   { label: 'Daily journal', values: [false, true] },
   { label: 'Equity curve chart', values: [false, true] },
@@ -63,7 +63,7 @@ export function PricingPageClient() {
   function handleCheckout() {
     startCheckoutTransition(async () => {
       try {
-        const url = await createCheckoutUrl(billingPeriod);
+        const url = await createPublicCheckoutUrl(billingPeriod);
         router.push(url);
       } catch {
         router.push('/signup');
