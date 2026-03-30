@@ -476,7 +476,12 @@
   .pnl-badge-glow { animation: none; }
 }
 
-/* Landing preview cards — hide the archive button column */
+/* Landing preview cards — disable clicks on buttons but keep them visible */
+.landing-preview-cards button,
+.landing-preview-cards a {
+  cursor: default !important;
+}
+/* Hide the archive/delete button */
 .landing-preview-cards .flex.items-center.justify-between.mt-auto > div:last-child {
   display: none !important;
 }
