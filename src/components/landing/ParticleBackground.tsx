@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { generateBoxShadow } from '@/utils/generateBoxShadow';
 
 /**
  * CSS-only starfield. Three layers of box-shadow dots drift slowly via
@@ -14,15 +15,6 @@ const LAYERS = [
   { count: 80, spread: 1.2, alpha: 0.7, duration: 25, dx: -100, dy: -50 },
 ] as const;
 
-function generateBoxShadow(count: number, spread: number, alpha: number): string {
-  const shadows: string[] = [];
-  for (let i = 0; i < count; i++) {
-    const x = Math.round(Math.random() * 2560);
-    const y = Math.round(Math.random() * 2560);
-    shadows.push(`${x}px ${y}px 0 ${spread}px rgba(255,255,255,${alpha})`);
-  }
-  return shadows.join(',');
-}
 
 export function ParticleBackground() {
   const containerRef = useRef<HTMLDivElement>(null);
