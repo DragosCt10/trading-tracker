@@ -135,8 +135,8 @@ export function PricingPageClient() {
           <PricingTable className="mx-auto my-5 w-full">
             <PricingTableHeader>
               <PricingTableRow>
-                <th className="w-[100px] sm:w-auto" />
-                <th className="p-0.5 sm:p-1">
+                <th className="w-[30%]" />
+                <th className="w-[35%] p-0.5 sm:p-1">
                   <PricingTablePlan
                     name="Starter"
                     badge="Free forever"
@@ -153,7 +153,7 @@ export function PricingPageClient() {
                     </Link>
                   </PricingTablePlan>
                 </th>
-                <th className="p-0.5 sm:p-1">
+                <th className="w-[35%] p-0.5 sm:p-1">
                   <PricingTablePlan
                     name="Pro"
                     badge="Recommended"
