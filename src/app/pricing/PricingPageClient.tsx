@@ -30,18 +30,19 @@ const FEATURES: FeatureItem[] = [
   { label: 'Trading modes', values: ['Demo only', 'Demo, Live & Backtesting'] },
   { label: 'Core Statistics', values: ['Basic', 'Full suite'] },
   { label: 'Trade Performance Analysis', values: ['Basic', 'Full suite'] },
-  { label: 'Extra Trade Performance Cards', values: ['3', 'All'] },
-  { label: 'Social feed', values: ['Basic', 'Full (attach trades, edit, channels)'] },
-  { label: 'Custom Stats Builder', values: [false, true] },
+  { label: 'Social Trading Feed', values: ['Basic', 'Full (attach trades, edit, channels)'] },
+  { label: 'Extra Trade Performance Cards', values: ['Basic', 'Full suite'] },
   { label: 'Public Stats Sharing', values: [true, true] },
   { label: 'Equity Curve Chart', values: [true, true] },
   { label: 'Trades Calendar', values: [true, true] },
-  { label: 'Psychological Factors', values: [false, true] },
+  { label: 'Custom Stats Builder', values: [false, true] },
+  { label: 'AI Vision', values: [false, true] },
   { label: 'Future Equity', values: [false, true] },
+  { label: 'Psychological Factors', values: [false, true] },
   { label: 'Consistency & Drawdown', values: [false, true] },
   { label: 'Performance Ratios', values: [false, true] },
   { label: 'Daily Journal', values: [false, true] },
-  { label: 'AI Vision', values: [false, true] },
+  { label: 'Export Trades', values: [false, true] },
   { label: 'Priority Support', values: [false, true] },
 ];
 
@@ -100,11 +101,11 @@ export function PricingPageClient() {
           </h1>
 
           <p data-parallax-speed="0.25" className="text-muted-foreground mt-4 max-w-2xl text-pretty">
-            Start free. Upgrade when your trading demands deeper insights, more strategies, and full control.
+            Start free. Upgrade when your trading demands deeper insights, <br></br> more stats board, and full control.
           </p>
 
           {/* Billing period toggle */}
-          <div className="mt-8 flex items-center gap-1 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none p-1 backdrop-blur-sm">
+          <div className="mt-8 flex items-center gap-1 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none p-1 backdrop-blur-sm">
             {(['annual', 'monthly'] as BillingPeriod[]).map((period) => (
               <button
                 key={period}

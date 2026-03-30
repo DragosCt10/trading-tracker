@@ -106,7 +106,7 @@ export function LandingHeader() {
           </Link>
 
           {/* ── Desktop: HUD-style nav pill ── */}
-          <div className="hidden lg:flex items-center gap-[30px] rounded-full hud-brackets px-10 py-2 border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm header-entrance header-entrance-delay-2">
+          <div className="hidden lg:flex items-center gap-[30px] rounded-full hud-brackets px-10 py-2 border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm header-entrance header-entrance-delay-2">
             {NAV_LINKS.map((link, i) => (
               <a
                 key={link.href}
