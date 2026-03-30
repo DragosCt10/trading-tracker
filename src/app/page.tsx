@@ -1,7 +1,7 @@
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { LandingHero } from '@/components/landing/LandingHero';
 import { LandingFeatures } from '@/components/landing/LandingFeatures';
-import { LandingPricing } from '@/components/landing/LandingPricing';
+import { LandingPricing } from '@/components/pricing/LandingPricing';
 
 export default function Home() {
   return (

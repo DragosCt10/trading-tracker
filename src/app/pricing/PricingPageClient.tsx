@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowRight, Zap, BarChart3 } from 'lucide-react';
-import { PricingHeroBackground } from '@/components/landing/PricingHeroBackground';
+import { PricingHeroBackground } from '@/components/pricing/PricingHeroBackground';
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { Footer } from '@/components/shared/Footer';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import {
   PricingTableRow,
   PricingTableCell,
   PricingTablePlan,
-} from '@/components/ui/pricing-table';
+} from '@/components/pricing/PricingTable';
 
 const FEATURES: FeatureItem[] = [
   { label: 'Strategies', values: ['1', 'Unlimited'] },

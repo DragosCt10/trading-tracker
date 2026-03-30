@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { CheckIcon, type LucideIcon, MinusIcon } from 'lucide-react';
-import { Badge } from './badge';
+import { Badge } from '@/components/ui/badge';
 
 function PricingTable({ className, ...props }: React.ComponentProps<'table'>) {
 	return (
