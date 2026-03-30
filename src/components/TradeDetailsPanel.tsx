@@ -302,7 +302,9 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       const { error: updateError } = await updateTrade(editedTrade.id, tradingMode, updateData);
 
       if (updateError) {
-        setError('Failed to update trade. Please try again.');
+        setError(updateError.message === 'RATE_LIMIT_EXCEEDED'
+          ? 'Too many requests. Please wait a moment and try again.'
+          : 'Failed to update trade. Please try again.');
         setIsSaving(false);
         return;
       }
@@ -426,7 +428,9 @@ export default function TradeDetailsPanel({ trade, onClose, onTradeUpdated, inli
       const { error: deleteError } = await deleteTrade(trade.id, tradingMode);
 
       if (deleteError) {
-        setError('Failed to delete trade. Please try again.');
+        setError(deleteError.message === 'RATE_LIMIT_EXCEEDED'
+          ? 'Too many requests. Please wait a moment and try again.'
+          : 'Failed to delete trade. Please try again.');
         setIsDeleting(false);
         return;
       }

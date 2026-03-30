@@ -1220,6 +1220,8 @@ export default function NewTradeModal({ isOpen, onClose, onTradeCreated }: NewTr
                       </Link>{' '}
                       for unlimited trades.
                     </>
+                  ) : error === 'RATE_LIMIT_EXCEEDED' ? (
+                    'Too many requests. Please wait a moment and try again.'
                   ) : error}
                 </AlertDescription>
               </Alert>

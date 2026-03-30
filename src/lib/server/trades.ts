@@ -10,6 +10,14 @@ import { calculateRRStats } from '@/utils/calculateRMultiple';
 import { ensureOfferNotification, checkTradeMilestones } from '@/lib/server/feedNotifications';
 import { validateTradeFields } from '@/utils/validateTradeFields';
 import { getRemainingTrades } from '@/lib/server/subscription';
+import { checkRateLimit } from '@/lib/rateLimit';
+
+/** Per-minute rate limits for individual trade mutations (bot abuse protection). */
+const TRADE_RATE_LIMITS = {
+  create: { limit: 60, windowMs: 60_000 },
+  update: { limit: 60, windowMs: 60_000 },
+  delete: { limit: 30, windowMs: 60_000 },
+} as const;
 
 /**
  * Normalizes trade_screens from DB. Falls back to legacy trade_link / liquidity_taken
@@ -198,6 +206,11 @@ export async function createTrade(params: {
     return { error: { message: 'Account not found or access denied' } };
   }
 
+  // Rate limit: 60 single-trade inserts per minute per user/mode (bot abuse protection)
+  if (!await checkRateLimit(`trade:create:${params.mode}:${user.id}`, TRADE_RATE_LIMITS.create.limit, TRADE_RATE_LIMITS.create.windowMs)) {
+    return { error: { message: 'RATE_LIMIT_EXCEEDED' } };
+  }
+
   const remaining = await getRemainingTrades(user.id, params.mode);
   if (remaining === 0) {
     return { error: { message: 'TRADE_LIMIT_REACHED' } };
@@ -247,6 +260,11 @@ export async function updateTrade(
   const { user } = await getCachedUserSession();
   if (!user) return { error: { message: 'Unauthorized' } };
 
+  // Rate limit: 60 single-trade updates per minute per user/mode
+  if (!await checkRateLimit(`trade:update:${mode}:${user.id}`, TRADE_RATE_LIMITS.update.limit, TRADE_RATE_LIMITS.update.windowMs)) {
+    return { error: { message: 'RATE_LIMIT_EXCEEDED' } };
+  }
+
   const supabase = await createClient();
   const payload = { ...updateData } as Record<string, unknown>;
   delete payload.rr_hit_1_4; // Column removed from DB
@@ -282,6 +300,11 @@ export async function deleteTrade(
 ): Promise<{ error: { message: string } | null }> {
   const { user } = await getCachedUserSession();
   if (!user) return { error: { message: 'Unauthorized' } };
+
+  // Rate limit: 30 single-trade deletes per minute per user/mode
+  if (!await checkRateLimit(`trade:delete:${mode}:${user.id}`, TRADE_RATE_LIMITS.delete.limit, TRADE_RATE_LIMITS.delete.windowMs)) {
+    return { error: { message: 'RATE_LIMIT_EXCEEDED' } };
+  }
 
   const supabase = await createClient();
   const tableName = `${mode}_trades`;
