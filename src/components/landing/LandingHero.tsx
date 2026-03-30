@@ -1,63 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { ParticleBackground } from './ParticleBackground';
+import { useParallax } from '@/hooks/useParallax';
 
 export function LandingHero() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const rafRef = useRef<number>(0);
-
-  const onScroll = useCallback(() => {
-    cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(() => {
-      const section = sectionRef.current;
-      if (!section) return;
-
-      const scrollY = window.scrollY;
-      const sectionH = section.offsetHeight;
-      const progress = Math.min(scrollY / sectionH, 1);
-
-      const els = section.querySelectorAll<HTMLElement>('[data-parallax-speed]');
-      els.forEach((el) => {
-        const speed = parseFloat(el.dataset.parallaxSpeed || '0');
-        const y = -(scrollY * speed);
-        const opacity = Math.max(1 - progress * 1.8 * Math.abs(speed), 0);
-        el.style.transform = `translateY(${y}px)`;
-        el.style.opacity = String(opacity);
-      });
-    });
-  }, []);
-
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    // Wait for entrance animations to finish before enabling parallax,
-    // then strip the animation so inline transform/opacity take effect.
-    const timer = setTimeout(() => {
-      const section = sectionRef.current;
-      if (!section) return;
-
-      const els = section.querySelectorAll<HTMLElement>('[data-parallax-speed]');
-      els.forEach((el) => {
-        el.style.animation = 'none';
-        el.style.opacity = '1';
-        el.style.transform = 'translateY(0)';
-        el.style.filter = 'blur(0)';
-      });
-
-      // Apply immediately for current scroll position
-      onScroll();
-      window.addEventListener('scroll', onScroll, { passive: true });
-    }, 2200); // after longest entrance delay (1.7s) + animation duration (0.7s)
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('scroll', onScroll);
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, [onScroll]);
+  // 2200ms delay: wait for entrance animations (1.7s delay + 0.7s duration)
+  const sectionRef = useParallax(2200);
 
   return (
     <section ref={sectionRef} className="relative overflow-hidden">

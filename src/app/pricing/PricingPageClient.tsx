@@ -6,6 +6,7 @@ import { PricingHeroBackground } from '@/components/landing/PricingHeroBackgroun
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { Footer } from '@/components/shared/Footer';
 import { Button } from '@/components/ui/button';
+import { useParallax } from '@/hooks/useParallax';
 import {
   type FeatureItem,
   PricingTable,
@@ -37,17 +38,22 @@ const FEATURES: FeatureItem[] = [
 ];
 
 export function PricingPageClient() {
+  const sectionRef = useParallax();
+
   return (
     <div className="landing-page-override w-full pt-16 sm:pt-[68px]">
       <LandingHeader />
 
       {/* Hero section with gradient dome + grid + pillars */}
-      <section className="relative overflow-clip">
+      <section ref={sectionRef} className="relative overflow-clip">
         <PricingHeroBackground />
 
         <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 pt-16 sm:pt-24 pb-10 text-center">
           {/* Heading */}
-          <h1 className="text-3xl leading-[1.08] font-medium tracking-[-0.04em] text-balance sm:text-5xl">
+          <h1
+            data-parallax-speed="0.35"
+            className="text-3xl leading-[1.08] font-medium tracking-[-0.04em] text-balance sm:text-5xl"
+          >
             Simple pricing,{' '}
             <br className="sm:hidden" />
             <span
@@ -60,7 +66,7 @@ export function PricingPageClient() {
             </span>
           </h1>
 
-          <p className="text-muted-foreground mt-4 max-w-2xl text-pretty">
+          <p data-parallax-speed="0.25" className="text-muted-foreground mt-4 max-w-2xl text-pretty">
             Start free. Upgrade when your trading demands deeper insights, more strategies, and full control.
           </p>
         </div>
