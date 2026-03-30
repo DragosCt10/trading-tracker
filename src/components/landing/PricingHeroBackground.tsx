@@ -10,9 +10,9 @@ import { useEffect, useRef } from 'react';
  */
 
 const LAYERS = [
-  { count: 180, spread: 0.5, alpha: 0.25, duration: 50, dx: -80, dy: -60 },
-  { count: 80,  spread: 0.8, alpha: 0.45, duration: 35, dx: -60, dy: -100 },
-  { count: 30,  spread: 1.2, alpha: 0.65, duration: 25, dx: -100, dy: -50 },
+  { count: 320, spread: 0.5, alpha: 0.25, duration: 50, dx: -80, dy: -60 },
+  { count: 140, spread: 0.8, alpha: 0.45, duration: 35, dx: -60, dy: -100 },
+  { count: 55,  spread: 1.2, alpha: 0.65, duration: 25, dx: -100, dy: -50 },
 ] as const;
 
 function generateBoxShadow(count: number, spread: number, alpha: number): string {
