@@ -30,9 +30,16 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  var theme = localStorage.getItem('theme');
-                  var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  var isDark = theme ? theme === 'dark' : systemDark;
+                  var path = window.location.pathname;
+                  var isAlwaysDark = path === '/' || path === '/pricing';
+                  var isDark;
+                  if (isAlwaysDark) {
+                    isDark = true;
+                  } else {
+                    var theme = localStorage.getItem('theme');
+                    var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    isDark = theme ? theme === 'dark' : systemDark;
+                  }
                   if (isDark) {
                     document.documentElement.classList.add('dark');
                     document.documentElement.style.backgroundColor = '#0d0a12';

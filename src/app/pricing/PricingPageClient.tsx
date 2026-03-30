@@ -25,7 +25,7 @@ import {
 } from '@/components/pricing/PricingTable';
 
 const FEATURES: FeatureItem[] = [
-  { label: 'Strategies', values: ['1', 'Unlimited'] },
+  { label: 'Stats Board', values: ['1', 'Unlimited'] },
   { label: 'Accounts', values: ['1', 'Unlimited'] },
   { label: 'Trading modes', values: ['Demo only', 'Demo, Live & Backtesting'] },
   { label: 'CSV import', values: [true, true] },
@@ -108,10 +108,10 @@ export function PricingPageClient() {
                 key={period}
                 onClick={() => setBillingPeriod(period)}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 cursor-pointer',
+                  'flex items-center gap-1 sm:gap-1.5 rounded-full px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer',
                   billingPeriod === period
                     ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-white/60 hover:text-white/90'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-white/60 dark:hover:text-white/90'
                 )}
               >
                 {period === 'annual' ? 'Annual' : 'Monthly'}
@@ -131,29 +131,29 @@ export function PricingPageClient() {
         </div>
 
         {/* Pricing table */}
-        <div className="relative mx-auto max-w-5xl px-4 pb-20">
+        <div className="relative mx-auto max-w-5xl px-2 sm:px-4 pb-12 sm:pb-20">
           <PricingTable className="mx-auto my-5 w-full">
             <PricingTableHeader>
               <PricingTableRow>
-                <th />
-                <th className="p-1">
+                <th className="w-[100px] sm:w-auto" />
+                <th className="p-0.5 sm:p-1">
                   <PricingTablePlan
                     name="Starter"
                     badge="Free forever"
                     badgeClassName="border-slate-300/50 dark:border-slate-600/50 text-slate-500 dark:text-slate-400"
                     price="Free"
-                    description="One strategy, core stats, CSV import."
+                    description="Get started at no cost."
                     icon={Zap}
                   >
-                    <p className="text-xs -mt-1 mb-3 text-muted-foreground">No credit card required</p>
+                    <p className="text-[10px] sm:text-xs -mt-1 mb-2 sm:mb-3 text-muted-foreground">No credit card required</p>
                     <Link href="/login">
-                      <Button variant="outline" className="w-full rounded-lg cursor-pointer" size="lg">
+                      <Button variant="outline" className="w-full rounded-lg cursor-pointer text-xs sm:text-sm" size="sm">
                         Get started
                       </Button>
                     </Link>
                   </PricingTablePlan>
                 </th>
-                <th className="p-1">
+                <th className="p-0.5 sm:p-1">
                   <PricingTablePlan
                     name="Pro"
                     badge="Recommended"
@@ -167,14 +167,14 @@ export function PricingPageClient() {
                       '--tw-after-bg': `linear-gradient(to bottom, color-mix(in oklch, var(--tc-primary) 15%, transparent), transparent)`,
                     } as React.CSSProperties}
                   >
-                    <p className={cn('text-xs -mt-1 mb-3', proBillingNote ? 'text-muted-foreground' : 'invisible')}>
+                    <p className={cn('text-[10px] sm:text-xs -mt-1 mb-2 sm:mb-3', proBillingNote ? 'text-muted-foreground' : 'invisible')}>
                       {proBillingNote || '\u00A0'}
                     </p>
                     <Button
                       onClick={handleCheckout}
                       disabled={isCheckoutPending}
-                      className="relative cursor-pointer overflow-hidden w-full rounded-lg text-white font-semibold disabled:opacity-60 border-0 shadow-lg hover:shadow-xl transition-all duration-300 group"
-                      size="lg"
+                      className="relative cursor-pointer overflow-hidden w-full rounded-lg text-white text-xs sm:text-sm font-semibold disabled:opacity-60 border-0 shadow-lg hover:shadow-xl transition-all duration-300 group"
+                      size="sm"
                       style={{
                         background: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))',
                         boxShadow: '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
@@ -211,8 +211,10 @@ export function PricingPageClient() {
           </PricingTable>
         </div>
 
+        <div className="relative [&>footer]:bg-transparent [&>footer]:border-0 [&>footer]:mt-0">
+          <Footer />
+        </div>
       </section>
-      <Footer />
     </div>
   );
 }

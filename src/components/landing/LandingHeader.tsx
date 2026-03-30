@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Menu, X, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,16 @@ export function LandingHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
-  const { theme, toggleTheme, mounted } = useTheme();
+  useTheme();
+
+  // Landing and pricing pages are always dark — force regardless of stored preference
+  useLayoutEffect(() => {
+    document.documentElement.classList.add('dark');
+    document.documentElement.dataset.forceDark = 'true';
+    return () => {
+      delete document.documentElement.dataset.forceDark;
+    };
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -53,20 +62,6 @@ export function LandingHeader() {
     [],
   );
 
-  /* --- Theme toggle icon (shared between desktop & mobile) --- */
-  const themeIcon = !mounted ? (
-    <svg className="h-4 w-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
-      <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-    </svg>
-  ) : theme === 'dark' ? (
-    <svg className="h-4 w-4 text-amber-400 transition-transform duration-500 group-hover:rotate-180" fill="currentColor" viewBox="0 0 20 20">
-      <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fillRule="evenodd" clipRule="evenodd" />
-    </svg>
-  ) : (
-    <svg className="h-4 w-4 text-slate-500 transition-transform duration-500 group-hover:rotate-180" fill="currentColor" viewBox="0 0 20 20">
-      <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
-    </svg>
-  );
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
@@ -137,16 +132,6 @@ export function LandingHeader() {
               <Palette className="h-4 w-4" style={{ color: 'var(--tc-primary)' }} />
             </button>
 
-            {/* Dark/light toggle */}
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="cursor-pointer h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-300 group hover:shadow-[0_0_12px_color-mix(in_oklch,var(--tc-primary)_30%,transparent)]"
-              aria-label="Toggle theme"
-            >
-              {themeIcon}
-            </button>
-
             {/* CTA — Login button matching LoginPage gradient */}
             <Link
               href="/login"
@@ -171,14 +156,6 @@ export function LandingHeader() {
               aria-label="Color theme"
             >
               <Palette className="h-4 w-4" style={{ color: 'var(--tc-primary)' }} />
-            </button>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="cursor-pointer h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors group"
-              aria-label="Toggle theme"
-            >
-              {themeIcon}
             </button>
 
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>

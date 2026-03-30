@@ -21,8 +21,11 @@ function PricingTable({ className, ...props }: React.ComponentProps<'table'>) {
 					left: 0;
 					right: 0;
 					height: 1px;
-					background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 15%, rgba(255,255,255,0.1) 85%, transparent 100%);
+					background: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 15%, rgba(0,0,0,0.08) 85%, transparent 100%);
 					pointer-events: none;
+				}
+				:is(.dark) [data-slot="table-body"] tr::after {
+					background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 15%, rgba(255,255,255,0.1) 85%, transparent 100%);
 				}
 				/* Vertical faded column divider */
 				[data-slot="table-body"] td {
@@ -35,8 +38,11 @@ function PricingTable({ className, ...props }: React.ComponentProps<'table'>) {
 					top: 0;
 					bottom: 0;
 					width: 1px;
-					background: linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.1) 15%, rgba(255,255,255,0.1) 85%, transparent 100%);
+					background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.08) 15%, rgba(0,0,0,0.08) 85%, transparent 100%);
 					pointer-events: none;
+				}
+				:is(.dark) [data-slot="table-body"] td::before {
+					background: linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.1) 15%, rgba(255,255,255,0.1) 85%, transparent 100%);
 				}
 			`}</style>
 			<table className={cn('w-full text-sm', className)} {...props} />
@@ -73,7 +79,7 @@ function PricingTableCell({
 	return (
 		<td
 			data-slot="table-cell"
-			className={cn('p-4 align-middle whitespace-nowrap', className)}
+			className={cn('p-2 sm:p-4 align-middle text-xs sm:text-sm', className)}
 			{...props}
 		>
 			{children === true ? (
@@ -95,7 +101,7 @@ function PricingTableHead({ className, ...props }: React.ComponentProps<'th'>) {
 		<th
 			data-slot="table-head"
 			className={cn(
-				'p-2 text-left align-middle font-medium whitespace-nowrap',
+				'p-2 text-left align-middle font-medium text-xs sm:text-sm',
 				className,
 			)}
 			{...props}
@@ -118,20 +124,20 @@ function PricingTablePlan({
 	return (
 		<div
 			className={cn(
-				'relative h-full overflow-hidden rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-3 font-normal',
+				'relative h-full overflow-hidden rounded-xl sm:rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 via-white/30 to-slate-50/50 dark:from-slate-800/30 dark:via-slate-900/20 dark:to-slate-800/30 shadow-lg shadow-slate-200/50 dark:shadow-none backdrop-blur-sm p-2 sm:p-3 font-normal',
 				className,
 			)}
 			{...props}
 		>
-			<div className="flex items-center gap-2">
-				<div className="flex items-center justify-center rounded-full border p-1.5">
+			<div className="flex items-center gap-1.5 sm:gap-2">
+				<div className="flex items-center justify-center rounded-full border p-1 sm:p-1.5">
 					{Icon && <Icon className="h-3 w-3" />}
 				</div>
-				<h3 className="text-muted-foreground font-mono text-sm">{name}</h3>
+				<h3 className="text-muted-foreground font-mono text-xs sm:text-sm">{name}</h3>
 				<Badge
 					variant="secondary"
 					className={cn(
-						'ml-auto rounded-full border bg-transparent px-2 py-0.5 text-[10px] font-normal pointer-events-none',
+						'ml-auto rounded-full border bg-transparent px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-normal pointer-events-none',
 						badgeClassName,
 					)}
 				>
@@ -140,18 +146,18 @@ function PricingTablePlan({
 			</div>
 
 			{description && (
-				<p className="mt-2 text-xs text-left text-muted-foreground leading-relaxed">{description}</p>
+				<p className="mt-1.5 sm:mt-2 text-[11px] sm:text-xs text-left text-muted-foreground leading-relaxed">{description}</p>
 			)}
 
-			<div className="mt-4 flex items-baseline gap-2">
-				<span className="text-3xl font-bold">{price}</span>
+			<div className="mt-3 sm:mt-4 flex items-baseline gap-1.5 sm:gap-2">
+				<span className="text-2xl sm:text-3xl font-bold">{price}</span>
 				{compareAt && (
-					<span className="text-muted-foreground text-sm line-through">
+					<span className="text-muted-foreground text-xs sm:text-sm line-through">
 						{compareAt}
 					</span>
 				)}
 			</div>
-			<div className="relative z-10 mt-4">{children}</div>
+			<div className="relative z-10 mt-3 sm:mt-4">{children}</div>
 		</div>
 	);
 }

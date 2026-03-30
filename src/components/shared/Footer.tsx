@@ -57,7 +57,7 @@ function FooterSection({
 }) {
   return (
     <div className="space-y-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-white">
         {title}
       </h3>
       <ul className="space-y-2">
@@ -80,7 +80,7 @@ export function Footer() {
         "border-t border-slate-200 dark:border-slate-700/80"
       )}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl">
         <div className="py-10 sm:py-12">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8 lg:gap-12">
             {/* Brand - left */}
@@ -109,7 +109,7 @@ export function Footer() {
 
           {/* Bottom bar - copyright centered */}
           <div className="mt-10 pt-6 flex justify-center border-t border-slate-200/70 dark:border-slate-700/70">
-            <p className="text-sm text-slate-400 dark:text-slate-500">
+            <p className="text-sm text-slate-400 dark:text-slate-300">
               © {YEAR} AlphaStats. All rights reserved.
             </p>
           </div>

@@ -26,6 +26,8 @@ export function useTheme() {
   // Apply theme to document (only update if theme actually changed)
   useEffect(() => {
     if (!mounted) return;
+    // Skip theme management when a page forces dark mode (e.g. landing, pricing)
+    if (document.documentElement.dataset.forceDark === 'true') return;
     const isDark = document.documentElement.classList.contains('dark');
     if (theme === 'dark' && !isDark) {
       document.documentElement.classList.add('dark');
