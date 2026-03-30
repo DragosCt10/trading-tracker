@@ -431,6 +431,56 @@
   }
 }
 
+/* ── Stats Board preview card animations ── */
+
+@keyframes sparkline-draw {
+  0% { stroke-dashoffset: 500; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes card-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes pnl-glow {
+  0%, 100% { box-shadow: 0 0 4px color-mix(in oklch, var(--tc-primary) 20%, transparent); }
+  50% { box-shadow: 0 0 14px color-mix(in oklch, var(--tc-primary) 50%, transparent); }
+}
+
+/* Float only starts after reveal finishes — both animations must coexist */
+.scroll-reveal-visible.stats-card-float {
+  animation:
+    scroll-reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+    card-float 5s ease-in-out 1s infinite;
+}
+
+.sparkline-path {
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+}
+
+.scroll-reveal-visible .sparkline-path {
+  animation: sparkline-draw 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.pnl-badge-glow {
+  animation: pnl-glow 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal-visible.stats-card-float { animation: none; }
+  .sparkline-path { stroke-dashoffset: 0; }
+  .scroll-reveal-visible .sparkline-path { animation: none; stroke-dashoffset: 0; }
+  .pnl-badge-glow { animation: none; }
+}
+
+/* Landing preview cards — hide the archive button column */
+.landing-preview-cards .flex.items-center.justify-between.mt-auto > div:last-child {
+  display: none !important;
+}
+
 /* Prevent the date range picker from overflowing the viewport */
 .date-range-popup {
   right: 1rem !important;
@@ -1502,15 +1552,17 @@ html.dark[data-color-theme="violet"] {
 .landing-page-override {
   position: relative;
 }
-body:has(.landing-page-override) {
-  background: #ffffff;
+body:has(.landing-page-override),
+body.app-gradient:has(.landing-page-override) {
+  background: #ffffff !important;
 }
-:is(.dark) body:has(.landing-page-override) {
-  background: #0d0a12;
+:is(.dark) body:has(.landing-page-override),
+:is(.dark) body.app-gradient:has(.landing-page-override) {
+  background: #0d0a12 !important;
 }
 body:has(.landing-page-override) > .fixed.z-0 {
   /* Hide the global orbs on the landing page */
-  display: none;
+  display: none !important;
 }
 
 /* Modal background — theme-specific stronger gradient (stable modal look). Uses --modal-grad-* per theme. */

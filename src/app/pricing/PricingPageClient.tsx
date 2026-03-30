@@ -94,7 +94,7 @@ export function PricingPageClient() {
             <span
               className="bg-clip-text text-transparent"
               style={{
-                backgroundImage: 'linear-gradient(to bottom, var(--foreground) 54%, var(--tc-accent))',
+                backgroundImage: 'linear-gradient(to bottom, var(--foreground) 0%, var(--tc-accent) 100%)',
               }}
             >
               serious analytics.

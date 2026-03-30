@@ -267,7 +267,7 @@ export function LandingHero() {
         }}
       />
 
-      <div className="relative mx-auto max-w-5xl px-4 pb-30 pt-30 lg:pt-40">
+      <div className="relative mx-auto max-w-6xl px-4 pb-30 pt-30 lg:pt-40">
         <div className="max-w-xl">
 
           {/* Badge */}

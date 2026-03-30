@@ -95,7 +95,7 @@ export function LandingHeader() {
         )}
 
         {/* ── Main content ── */}
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           {/* Logo with breathing glow */}
           <Link
             href="/"

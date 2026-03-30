@@ -1,36 +1,9 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 export function LandingFeatures() {
-  const sectionRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    const elements = section.querySelectorAll('.scroll-reveal');
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('scroll-reveal-visible');
-            entry.target.classList.remove('scroll-reveal-hidden');
-          } else {
-            entry.target.classList.remove('scroll-reveal-visible');
-            entry.target.classList.add('scroll-reveal-hidden');
-          }
-        });
-      },
-      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' },
-    );
-
-    elements.forEach((el) => observer.observe(el));
-
-    return () => observer.disconnect();
-  }, []);
+  const sectionRef = useScrollReveal<HTMLElement>();
 
   return (
     <section
@@ -59,7 +32,7 @@ export function LandingFeatures() {
         }}
       />
 
-      <div className="relative mx-auto max-w-5xl px-4 py-24 sm:py-32">
+      <div className="relative mx-auto max-w-6xl px-4 py-24 sm:py-32">
         {/* Section header */}
         <div className="scroll-reveal text-center max-w-2xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 backdrop-blur-sm mb-6">

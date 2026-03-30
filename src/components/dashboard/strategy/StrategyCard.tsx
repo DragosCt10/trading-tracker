@@ -117,7 +117,7 @@ export const StrategyCard: React.FC<StrategyCardProps> = ({
   const isChartReady = !isLoading;
 
   return (
-    <Card className="relative overflow-hidden shadow-none backdrop-blur-sm border-slate-300/40 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30">
+    <Card className="rounded-xl border text-card-foreground mb-4 z-1 relative border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm">
       <div className="relative p-6 flex flex-col h-full">
         {/* Strategy Name + Share button (top-right) */}
         <div className="flex items-start justify-between mb-2 gap-3">
