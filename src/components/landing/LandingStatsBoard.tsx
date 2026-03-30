@@ -166,13 +166,13 @@ export function LandingStatsBoard() {
 
       <div className="relative z-[2] mx-auto max-w-6xl px-4 py-24 sm:py-32">
         {/* Section header */}
-        <div className="scroll-reveal text-center max-w-2xl mx-auto mb-16">
+        <div className="scroll-reveal scroll-reveal-once text-center max-w-2xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none px-4 py-1.5 backdrop-blur-sm mb-6">
             <span
               className="h-1.5 w-1.5 rounded-full flex-shrink-0"
               style={{ backgroundColor: 'var(--tc-accent)' }}
             />
-            <span className="text-sm text-white/50">Stats Board</span>
+            <span className="text-sm text-muted-foreground">Stats Board</span>
           </div>
 
           <h2
@@ -187,7 +187,7 @@ export function LandingStatsBoard() {
             at a glance.
           </h2>
 
-          <p className="mt-5 text-base text-white/40 leading-relaxed max-w-md mx-auto">
+          <p className="mt-5 text-base text-muted-foreground leading-relaxed max-w-md mx-auto">
             Each strategy card tracks your win rate, risk-reward, equity curve,
             and P&amp;L in real time. Know exactly where you stand.
           </p>
@@ -195,7 +195,7 @@ export function LandingStatsBoard() {
 
         {/* Real StrategyCard previews */}
         <div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 landing-preview-cards"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 landing-preview-cards"
           onClickCapture={(e) => { e.stopPropagation(); e.preventDefault(); }}
         >
           {MOCK_STRATEGIES.map((strategy, i) => (

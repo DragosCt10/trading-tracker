@@ -277,7 +277,7 @@ export function LandingHero() {
                 className="h-1.5 w-1.5 rounded-full animate-pulse flex-shrink-0"
                 style={{ backgroundColor: 'var(--tc-primary)' }}
               />
-              <span className="text-sm text-white/50">
+              <span className="text-sm text-muted-foreground">
                 Your trading, fully measured
               </span>
             </div>
@@ -310,8 +310,8 @@ export function LandingHero() {
               { label: 'Stats Board', value: '3,800+' },
             ].map(({ label, value }, i) => (
               <div key={label} className="flex items-baseline gap-1.5">
-                {i > 0 && <span className="text-white/10 text-xs">·</span>}
-                <span className="text-xs text-white/40 font-medium">{label}</span>
+                {i > 0 && <span className="text-muted-foreground text-xs">·</span>}
+                <span className="text-xs text-muted-foreground font-medium">{label}</span>
                 <span
                   className="text-lg font-bold"
                   style={{ color: 'var(--tc-primary)' }}
@@ -324,7 +324,7 @@ export function LandingHero() {
 
           {/* Subtitle */}
           <p
-            className="mt-6 max-w-[480px] text-base sm:text-lg leading-[1.6] text-white/45 header-entrance"
+            className="mt-6 max-w-[480px] text-base sm:text-lg leading-[1.6] text-muted-foreground header-entrance"
             data-parallax-speed="0.2"
             style={{ animationDelay: '1.3s' }}
           >
@@ -354,7 +354,7 @@ export function LandingHero() {
 
             <a
               href="#features"
-              className="text-sm text-white/30 hover:text-white/60 transition-colors duration-200"
+              className="text-sm text-muted-foreground hover:text-white transition-colors duration-200"
             >
               See features
             </a>

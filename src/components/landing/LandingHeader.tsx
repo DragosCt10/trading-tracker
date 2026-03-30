@@ -112,7 +112,7 @@ export function LandingHeader() {
                 key={link.href}
                 href={link.href}
                 onClick={(e) => handleNavClick(e, link.href)}
-                className="futuristic-nav-link text-[13px] font-light tracking-wider uppercase text-slate-500 dark:text-white/50 hover:text-slate-900 dark:hover:text-white whitespace-nowrap"
+                className="futuristic-nav-link text-[13px] font-light tracking-wider uppercase text-muted-foreground hover:text-slate-900 dark:hover:text-white whitespace-nowrap"
                 style={{ animationDelay: `${i * 100}ms` }}
               >
                 {link.label}
@@ -126,7 +126,7 @@ export function LandingHeader() {
             <button
               type="button"
               onClick={() => setThemePickerOpen(true)}
-              className="cursor-pointer h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-300 group hover:shadow-[0_0_12px_color-mix(in_oklch,var(--tc-primary)_30%,transparent)]"
+              className="cursor-pointer h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-slate-900 dark:hover:text-white transition-all duration-300 group hover:shadow-[0_0_12px_color-mix(in_oklch,var(--tc-primary)_30%,transparent)]"
               aria-label="Color theme"
             >
               <Palette className="h-4 w-4" style={{ color: 'var(--tc-primary)' }} />
