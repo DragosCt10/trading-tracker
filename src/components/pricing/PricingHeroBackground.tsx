@@ -90,7 +90,7 @@ export function PricingHeroBackground() {
           </div>
 
           {/* ── Structural grid: inner content borders ── */}
-          <div className="pointer-events-none absolute inset-0 mx-auto w-full max-w-6xl">
+          <div className="pointer-events-none absolute inset-0 mx-auto hidden w-full max-w-6xl sm:block">
             <div
               className="absolute inset-y-0 left-4 w-px md:left-8"
               style={{ background: `linear-gradient(to bottom, transparent, var(--pricing-grid-medium) 30%, var(--pricing-grid-medium))` }}
