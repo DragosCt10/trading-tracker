@@ -136,13 +136,77 @@ export function PricingPageClient() {
           </div>
         </div>
 
-        {/* Pricing table */}
+        {/* Pricing cards + table */}
         <div className="relative mx-auto max-w-5xl px-2 sm:px-4 pb-12 sm:pb-20">
+
+          {/* Mobile: stacked full-width cards */}
+          <div className="flex flex-col gap-3 my-5 sm:hidden">
+            <PricingTablePlan
+              name="Starter"
+              badge="Free forever"
+              badgeClassName="border-slate-300/50 dark:border-slate-600/50 text-slate-500 dark:text-slate-400"
+              price="Free"
+              description="Get started at no cost."
+              icon={Zap}
+            >
+              <p className="text-[10px] -mt-1 mb-2 text-muted-foreground">No credit card required</p>
+              <Link href="/login">
+                <Button variant="outline" className="w-full rounded-lg cursor-pointer text-xs" size="sm">
+                  Get started
+                </Button>
+              </Link>
+            </PricingTablePlan>
+
+            <PricingTablePlan
+              name="Pro"
+              badge="Recommended"
+              badgeClassName="border-[var(--tc-primary)]/30 bg-[var(--tc-primary)]/10 text-[var(--tc-primary)]"
+              price={proPrice}
+              compareAt={proCompareAt}
+              description="Everything unlimited, full analytics."
+              icon={BarChart3}
+              className="after:pointer-events-none after:absolute after:-inset-0.5 after:rounded-[inherit] after:to-transparent after:blur-[2px]"
+              style={{
+                '--tw-after-bg': `linear-gradient(to bottom, color-mix(in oklch, var(--tc-primary) 15%, transparent), transparent)`,
+              } as React.CSSProperties}
+            >
+              <p className={cn('text-[10px] -mt-1 mb-2', proBillingNote ? 'text-muted-foreground' : 'invisible')}>
+                {proBillingNote || '\u00A0'}
+              </p>
+              <Button
+                onClick={handleCheckout}
+                disabled={isCheckoutPending}
+                className="relative cursor-pointer overflow-hidden w-full rounded-lg text-white text-xs font-semibold disabled:opacity-60 border-0 shadow-lg hover:shadow-xl transition-all duration-300 group"
+                size="sm"
+                style={{
+                  background: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))',
+                  boxShadow: '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
+                }}
+              >
+                <span className="relative z-10 flex items-center justify-center gap-1">
+                  {isCheckoutPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      Buy now
+                      <ArrowRight className="ml-1 h-4 w-4" />
+                    </>
+                  )}
+                </span>
+                {!isCheckoutPending && (
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
+                )}
+              </Button>
+            </PricingTablePlan>
+          </div>
+
+          {/* Feature comparison table */}
           <PricingTable className="mx-auto my-5 w-full">
             <PricingTableHeader>
-              <PricingTableRow>
+              {/* Desktop: full plan cards in header */}
+              <PricingTableRow className="hidden sm:table-row">
                 <th className="w-[30%]" />
-                <th className="w-[35%] p-0.5 sm:p-1">
+                <th className="w-[35%] p-1">
                   <PricingTablePlan
                     name="Starter"
                     badge="Free forever"
@@ -151,15 +215,15 @@ export function PricingPageClient() {
                     description="Get started at no cost."
                     icon={Zap}
                   >
-                    <p className="text-[10px] sm:text-xs -mt-1 mb-2 sm:mb-3 text-muted-foreground">No credit card required</p>
+                    <p className="text-xs -mt-1 mb-3 text-muted-foreground">No credit card required</p>
                     <Link href="/login">
-                      <Button variant="outline" className="w-full rounded-lg cursor-pointer text-xs sm:text-sm" size="sm">
+                      <Button variant="outline" className="w-full rounded-lg cursor-pointer text-sm" size="sm">
                         Get started
                       </Button>
                     </Link>
                   </PricingTablePlan>
                 </th>
-                <th className="w-[35%] p-0.5 sm:p-1">
+                <th className="w-[35%] p-1">
                   <PricingTablePlan
                     name="Pro"
                     badge="Recommended"
@@ -173,13 +237,13 @@ export function PricingPageClient() {
                       '--tw-after-bg': `linear-gradient(to bottom, color-mix(in oklch, var(--tc-primary) 15%, transparent), transparent)`,
                     } as React.CSSProperties}
                   >
-                    <p className={cn('text-[10px] sm:text-xs -mt-1 mb-2 sm:mb-3', proBillingNote ? 'text-muted-foreground' : 'invisible')}>
+                    <p className={cn('text-xs -mt-1 mb-3', proBillingNote ? 'text-muted-foreground' : 'invisible')}>
                       {proBillingNote || '\u00A0'}
                     </p>
                     <Button
                       onClick={handleCheckout}
                       disabled={isCheckoutPending}
-                      className="relative cursor-pointer overflow-hidden w-full rounded-lg text-white text-xs sm:text-sm font-semibold disabled:opacity-60 border-0 shadow-lg hover:shadow-xl transition-all duration-300 group"
+                      className="relative cursor-pointer overflow-hidden w-full rounded-lg text-white text-sm font-semibold disabled:opacity-60 border-0 shadow-lg hover:shadow-xl transition-all duration-300 group"
                       size="sm"
                       style={{
                         background: 'linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))',
@@ -202,6 +266,12 @@ export function PricingPageClient() {
                     </Button>
                   </PricingTablePlan>
                 </th>
+              </PricingTableRow>
+              {/* Mobile: simple column labels */}
+              <PricingTableRow className="sm:hidden">
+                <th className="p-2 text-left text-xs font-medium text-muted-foreground">Feature</th>
+                <th className="p-2 text-left text-xs font-medium">Starter</th>
+                <th className="p-2 text-left text-xs font-medium">Pro</th>
               </PricingTableRow>
             </PricingTableHeader>
             <PricingTableBody>
