@@ -99,10 +99,13 @@ export function LandingHeader() {
           {/* Logo with breathing glow */}
           <Link
             href="/"
-            className="flex-shrink-0 header-entrance header-entrance-delay-1"
+            className="flex items-center gap-2.5 flex-shrink-0 header-entrance header-entrance-delay-1"
             aria-label="AlphaStats Home"
           >
             <Logo className="w-[38px] h-[38px] header-logo-breathe" />
+            <span className="text-[15px] font-semibold tracking-widest text-slate-900 dark:text-white">
+              AlphaStats
+            </span>
           </Link>
 
           {/* ── Desktop: HUD-style nav pill ── */}
