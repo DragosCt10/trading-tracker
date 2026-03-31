@@ -120,14 +120,14 @@ export function LandingModes() {
         }}
       />
 
-      {/* Ambient glow */}
+      {/* Ambient glow — right side */}
       <div
         aria-hidden
-        className="pointer-events-none absolute top-[20%] right-[10%] h-[500px] w-[600px]"
+        className="pointer-events-none absolute top-[15%] right-[-5%] h-[600px] w-[600px]"
         style={{
           background:
-            'radial-gradient(ellipse, color-mix(in oklch, var(--tc-primary) 6%, transparent) 0%, transparent 70%)',
-          filter: 'blur(80px)',
+            'radial-gradient(ellipse, color-mix(in oklch, var(--tc-primary) 10%, transparent) 0%, transparent 70%)',
+          filter: 'blur(100px)',
         }}
       />
 
@@ -137,14 +137,14 @@ export function LandingModes() {
           <div>
             {/* Badge */}
             <div
-              className="scroll-reveal inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 backdrop-blur-sm mb-6"
+              className="scroll-reveal inline-flex items-center gap-2 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none px-4 py-1.5 backdrop-blur-sm mb-6"
               style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
             >
               <span
                 className="h-1.5 w-1.5 rounded-full flex-shrink-0"
                 style={{ backgroundColor: 'var(--tc-accent)' }}
               />
-              <span className="text-sm text-white/50">Account Modes</span>
+              <span className="text-sm text-muted-foreground">Account Modes</span>
             </div>
 
             {/* Heading */}
@@ -163,7 +163,7 @@ export function LandingModes() {
 
             {/* Description */}
             <p
-              className="scroll-reveal mt-5 text-base text-white/40 leading-relaxed max-w-md"
+              className="scroll-reveal mt-5 text-base text-muted-foreground leading-relaxed max-w-md"
               style={{ '--reveal-delay': '200ms' } as React.CSSProperties}
             >
               Organize your trades across dedicated environments.
@@ -208,7 +208,7 @@ export function LandingModes() {
                       >
                         {m.label}
                       </span>
-                      <p className="mt-0.5 text-sm text-white/40 leading-relaxed">
+                      <p className="mt-0.5 text-sm text-muted-foreground leading-relaxed">
                         {m.description}
                       </p>
                     </div>
@@ -223,19 +223,9 @@ export function LandingModes() {
             className="scroll-reveal relative"
             style={{ '--reveal-delay': '200ms' } as React.CSSProperties}
           >
-            {/* Glow behind card — color follows active mode */}
-            <div
-              aria-hidden
-              className="absolute -inset-6 rounded-3xl blur-3xl transition-colors duration-700"
-              style={{
-                backgroundColor: mode.color,
-                opacity: 0.08,
-              }}
-            />
-
             {/* Mock ActionBar — separate card above, centered */}
             <div className="relative mb-3 flex justify-center">
-              <div className="inline-flex rounded-2xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 backdrop-blur-sm">
+              <div className="inline-flex rounded-2xl border border-slate-700/50 bg-slate-800/30 px-3 py-2 backdrop-blur-sm shadow-md">
                 <div className="flex items-center gap-1.5 sm:gap-2">
                   {/* Mode badge — colored per mode (green/amber/blue) */}
                   <div
@@ -297,7 +287,7 @@ export function LandingModes() {
             </div>
 
             {/* Card */}
-            <div className="relative rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 backdrop-blur-sm overflow-hidden">
+            <div className="relative rounded-2xl border border-slate-700/50 bg-slate-800/30 p-6 backdrop-blur-sm shadow-md overflow-hidden">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeIndex}
