@@ -6,8 +6,7 @@ import { ParticleBackground } from './ParticleBackground';
 import { useParallax } from '@/hooks/useParallax';
 
 export function LandingHero() {
-  // 2200ms delay: wait for entrance animations (1.7s delay + 0.7s duration)
-  const sectionRef = useParallax(2200);
+  const sectionRef = useParallax(0);
 
   return (
     <section ref={sectionRef} className="relative overflow-hidden">
@@ -15,7 +14,7 @@ export function LandingHero() {
       {/* <ParticleBackground /> */}
 
       {/* Equity-curve waves */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden" data-parallax-speed="-0.25">
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden" data-parallax-speed="-0.15">
         <svg
           className="absolute inset-0 w-full h-full"
           viewBox="0 0 1400 800"
@@ -188,7 +187,6 @@ export function LandingHero() {
             <path
               d="M-50,700 C100,680 200,650 350,620 C500,590 550,540 650,480 C750,420 800,460 900,400 C1000,340 1050,280 1150,220 C1250,160 1300,100 1450,30"
               fill="none" stroke="url(#waveGrad2)" strokeWidth="1.8"
-              filter="url(#waveGlow)"
               className="equity-wave equity-wave-3"
             />
             <path
@@ -202,52 +200,37 @@ export function LandingHero() {
               className="equity-wave equity-wave-5"
             />
             {/* ── Comet 1 — primary, main equity line ── */}
-            <g>
-              <animateMotion
-                dur="6s" repeatCount="indefinite"
-                path="M-50,700 C100,680 200,650 350,620 C500,590 550,540 650,480 C750,420 800,460 900,400 C1000,340 1050,280 1150,220 C1250,160 1300,100 1450,30"
-                rotate="auto"
-              />
+            <g className="comet-1">
               {/* Outer tail */}
-              <polygon points="-18,-2.5 -18,2.5 0,0" fill="url(#cometTail1)" filter="url(#tailGlow)" />
+              <polygon points="-18,-2.5 -18,2.5 0,0" fill="url(#cometTail1)" />
               {/* Inner tail */}
               <polygon points="-12,-0.8 -12,0.8 0,0" fill="url(#cometTail1Core)" />
               {/* Head glow */}
-              <circle r="8" fill="url(#headGlow1)" filter="url(#cometGlow)" />
+              <circle r="8" fill="url(#headGlow1)" />
               {/* Bright core */}
               <circle r="2" fill="white" fillOpacity="1" />
             </g>
 
             {/* ── Comet 2 — accent, second equity line ── */}
-            <g>
-              <animateMotion
-                dur="8s" repeatCount="indefinite"
-                path="M-50,720 C80,700 180,670 330,640 C480,610 540,570 660,510 C780,450 830,470 940,410 C1050,350 1100,290 1200,230 C1300,170 1350,120 1460,50"
-                rotate="auto"
-              />
+            <g className="comet-2">
               {/* Outer tail */}
-              <polygon points="-14,-2 -14,2 0,0" fill="url(#cometTail2)" filter="url(#tailGlow)" />
+              <polygon points="-14,-2 -14,2 0,0" fill="url(#cometTail2)" />
               {/* Inner tail */}
               <polygon points="-10,-0.6 -10,0.6 0,0" fill="url(#cometTail2Core)" />
               {/* Head glow */}
-              <circle r="6" fill="url(#headGlow2)" filter="url(#cometGlow)" />
+              <circle r="6" fill="url(#headGlow2)" />
               {/* Bright core */}
               <circle r="1.5" fill="white" fillOpacity="0.95" />
             </g>
 
             {/* ── Comet 3 — smallest, wave-4 path ── */}
-            <g>
-              <animateMotion
-                dur="10s" repeatCount="indefinite"
-                path="M-50,680 C120,660 220,630 370,595 C520,560 570,510 680,450 C790,390 830,420 930,360 C1030,300 1080,240 1180,180 C1280,120 1330,70 1460,-10"
-                rotate="auto"
-              />
+            <g className="comet-3">
               {/* Outer tail */}
-              <polygon points="-11,-1.5 -11,1.5 0,0" fill="url(#cometTail1)" filter="url(#tailGlow)" />
+              <polygon points="-11,-1.5 -11,1.5 0,0" fill="url(#cometTail1)" />
               {/* Inner tail */}
               <polygon points="-7,-0.5 -7,0.5 0,0" fill="url(#cometTail1Core)" />
               {/* Head glow */}
-              <circle r="5" fill="url(#headGlow1)" filter="url(#cometGlow)" />
+              <circle r="5" fill="url(#headGlow1)" />
               {/* Bright core */}
               <circle r="1.2" fill="white" fillOpacity="0.9" />
             </g>
@@ -273,6 +256,7 @@ export function LandingHero() {
           opacity: 0.3,
           filter: 'blur(90px)',
           transform: 'rotate(-15deg)',
+          willChange: 'transform',
         }}
       />
 
@@ -280,7 +264,7 @@ export function LandingHero() {
         <div className="max-w-xl">
 
           {/* Badge */}
-          <div className="mb-8" data-parallax-speed="0.45">
+          <div className="mb-8" data-parallax-speed="0.6">
             <div className="inline-flex items-center gap-2.5 rounded-full border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none px-4 py-1.5 backdrop-blur-sm">
               <span
                 className="h-1.5 w-1.5 rounded-full animate-pulse flex-shrink-0"
@@ -295,7 +279,7 @@ export function LandingHero() {
           {/* Heading */}
           <h1
             className="bg-clip-text text-transparent text-4xl sm:text-5xl lg:text-[54px] xl:text-[62px] font-medium leading-[1.08] tracking-[-0.04em]"
-            data-parallax-speed="0.35"
+            data-parallax-speed="0.48"
             style={{
               backgroundImage: 'linear-gradient(to bottom, var(--foreground) 54%, var(--tc-accent))',
             }}
@@ -308,7 +292,7 @@ export function LandingHero() {
           {/* Divider with stats */}
           <div
             className="mt-8 flex items-center gap-6"
-            data-parallax-speed="0.28"
+            data-parallax-speed="0.36"
           >
             <div className="h-px flex-1 max-w-[40px]" style={{ background: 'color-mix(in oklch, var(--tc-primary) 40%, transparent)' }} />
             {[
@@ -332,7 +316,7 @@ export function LandingHero() {
           {/* Subtitle */}
           <p
             className="mt-6 max-w-[480px] text-base sm:text-lg leading-[1.6] text-muted-foreground"
-            data-parallax-speed="0.2"
+            data-parallax-speed="0.26"
           >
             Go beyond basic stats. Get deep, actionable insights into your performance — and trade with confidence.
           </p>
@@ -340,7 +324,7 @@ export function LandingHero() {
           {/* CTA */}
           <div
             className="mt-10 flex items-center gap-4"
-            data-parallax-speed="0.12"
+            data-parallax-speed="0.16"
           >
             <Link
               href="/login"

@@ -102,7 +102,7 @@ export function LandingHeader() {
             className="flex items-center gap-2.5 flex-shrink-0 header-entrance header-entrance-delay-1"
             aria-label="AlphaStats Home"
           >
-            <Logo className="w-[38px] h-[38px] header-logo-breathe" />
+            <Logo className="w-[38px] h-[38px] header-logo" />
             <span className="text-[15px] font-semibold tracking-widest text-slate-900 dark:text-white">
               AlphaStats
             </span>
@@ -182,7 +182,7 @@ export function LandingHeader() {
               >
                 <SheetHeader>
                   <SheetTitle className="flex items-center gap-2 text-slate-900 dark:text-slate-50">
-                    <Logo className="w-6 h-6 header-logo-breathe" />
+                    <Logo className="w-6 h-6 header-logo" />
                     <span className="font-light tracking-wider">AlphaStats</span>
                   </SheetTitle>
                 </SheetHeader>

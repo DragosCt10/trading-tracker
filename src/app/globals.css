@@ -89,29 +89,6 @@
 
 /* ── Equity-Curve Wave Animations ── */
 
-@keyframes equity-wave-drift-1 {
-  0%   { transform: translateY(0)    translateX(0); }
-  25%  { transform: translateY(-5px) translateX(2px); }
-  50%  { transform: translateY(-9px) translateX(0); }
-  75%  { transform: translateY(-4px) translateX(-2px); }
-  100% { transform: translateY(0)    translateX(0); }
-}
-
-@keyframes equity-wave-drift-2 {
-  0%   { transform: translateY(0)    translateX(0); }
-  30%  { transform: translateY(-7px) translateX(-1.5px); }
-  60%  { transform: translateY(-3px) translateX(1.5px); }
-  100% { transform: translateY(0)    translateX(0); }
-}
-
-@keyframes equity-wave-drift-3 {
-  0%   { transform: translateY(0)    translateX(0); }
-  20%  { transform: translateY(-4px) translateX(1px); }
-  50%  { transform: translateY(-10px) translateX(-1px); }
-  80%  { transform: translateY(-3px) translateX(2px); }
-  100% { transform: translateY(0)    translateX(0); }
-}
-
 @keyframes equity-wave-draw {
   0% { stroke-dashoffset: 2400; }
   100% { stroke-dashoffset: 0; }
@@ -129,23 +106,23 @@
 }
 
 .equity-wave-1 {
-  animation: equity-wave-draw 2.5s ease-out 0.6s forwards, equity-wave-drift-1 7s ease-in-out 3.1s infinite;
+  animation: equity-wave-draw 2.5s ease-out 0.6s forwards;
 }
 .equity-wave-2 {
-  animation: equity-wave-draw 2.5s ease-out 0.3s forwards, equity-wave-drift-2 8s ease-in-out 2.8s infinite;
+  animation: equity-wave-draw 2.5s ease-out 0.3s forwards;
 }
 .equity-wave-3 {
-  animation: equity-wave-draw 2.5s ease-out 0s forwards, equity-wave-drift-3 6s ease-in-out 2.5s infinite;
+  animation: equity-wave-draw 2.5s ease-out 0s forwards;
 }
 .equity-wave-4 {
-  animation: equity-wave-draw 2.5s ease-out 0.5s forwards, equity-wave-drift-1 9s ease-in-out 3s infinite;
+  animation: equity-wave-draw 2.5s ease-out 0.5s forwards;
 }
 .equity-wave-5 {
-  animation: equity-wave-draw 2.5s ease-out 0.8s forwards, equity-wave-drift-2 7.5s ease-in-out 3.3s infinite;
+  animation: equity-wave-draw 2.5s ease-out 0.8s forwards;
 }
 
 .equity-wave-fill {
-  animation: equity-fill-drift 3.5s ease-out forwards, equity-wave-drift-3 8s ease-in-out 3.5s infinite;
+  animation: equity-fill-drift 3.5s ease-out forwards;
   opacity: 0;
 }
 
@@ -165,15 +142,9 @@
   }
 }
 
-@keyframes trading-bar-pulse {
-  0%, 100% {
-    transform: scaleY(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scaleY(0.88);
-    opacity: 0.7;
-  }
+@keyframes bar-breathe {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
 }
 
 .trading-bar-svg {
@@ -181,9 +152,16 @@
   transform-origin: center bottom;
   transform: scaleY(0);
   opacity: 0;
+  animation: trading-bar-grow 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Subtle opacity pulse on 3 representative bars (GPU-composited, cheap) */
+.trading-bar-svg:nth-child(8),
+.trading-bar-svg:nth-child(13),
+.trading-bar-svg:nth-child(17) {
   animation:
     trading-bar-grow 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards,
-    trading-bar-pulse 5s ease-in-out 3s infinite;
+    bar-breathe 4s ease-in-out 3s infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -191,6 +169,46 @@
     animation: none;
     transform: scaleY(1);
     opacity: 1;
+  }
+  .trading-bar-svg:nth-child(8),
+  .trading-bar-svg:nth-child(13),
+  .trading-bar-svg:nth-child(17) {
+    animation: none;
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* ── Comet path animations (CSS offset-path replaces SVG animateMotion — GPU composited) ── */
+
+@keyframes comet-travel {
+  from { offset-distance: 0%; }
+  to   { offset-distance: 100%; }
+}
+
+.comet-1 {
+  offset-path: path('M-50,700 C100,680 200,650 350,620 C500,590 550,540 650,480 C750,420 800,460 900,400 C1000,340 1050,280 1150,220 C1250,160 1300,100 1450,30');
+  offset-rotate: auto;
+  will-change: offset-distance;
+  animation: comet-travel 6s linear infinite;
+}
+.comet-2 {
+  offset-path: path('M-50,720 C80,700 180,670 330,640 C480,610 540,570 660,510 C780,450 830,470 940,410 C1050,350 1100,290 1200,230 C1300,170 1350,120 1460,50');
+  offset-rotate: auto;
+  will-change: offset-distance;
+  animation: comet-travel 8s linear infinite;
+}
+.comet-3 {
+  offset-path: path('M-50,680 C120,660 220,630 370,595 C520,560 570,510 680,450 C790,390 830,420 930,360 C1030,300 1080,240 1180,180 C1280,120 1330,70 1460,-10');
+  offset-rotate: auto;
+  will-change: offset-distance;
+  animation: comet-travel 10s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comet-1, .comet-2, .comet-3 {
+    animation: none;
+    opacity: 0;
   }
 }
 
