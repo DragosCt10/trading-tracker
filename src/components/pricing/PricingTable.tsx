@@ -6,46 +6,51 @@ import { Badge } from '@/components/ui/badge';
 function PricingTable({ className, ...props }: React.ComponentProps<'table'>) {
 	return (
 		<div
-			data-slot="table-container"
-			className="relative w-full overflow-x-auto"
+			data-slot="table-wrapper"
+			className="rounded-xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden sm:rounded-none sm:border-0 sm:bg-transparent sm:dark:bg-transparent sm:shadow-none sm:dark:shadow-none sm:backdrop-blur-none sm:overflow-visible"
 		>
-			<style>{`
-				[data-slot="table-body"] tr {
-					position: relative;
-				}
-				/* Horizontal faded row border */
-				[data-slot="table-body"] tr::after {
-					content: '';
-					position: absolute;
-					bottom: 0;
-					left: 0;
-					right: 0;
-					height: 1px;
-					background: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 15%, rgba(0,0,0,0.08) 85%, transparent 100%);
-					pointer-events: none;
-				}
-				:is(.dark) [data-slot="table-body"] tr::after {
-					background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.1) 15%, rgba(255,255,255,0.1) 85%, transparent 100%);
-				}
-				/* Vertical faded column divider */
-				[data-slot="table-body"] td {
-					position: relative;
-				}
-				[data-slot="table-body"] td::before {
-					content: '';
-					position: absolute;
-					left: 0;
-					top: 0;
-					bottom: 0;
-					width: 1px;
-					background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.08) 15%, rgba(0,0,0,0.08) 85%, transparent 100%);
-					pointer-events: none;
-				}
-				:is(.dark) [data-slot="table-body"] td::before {
-					background: linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.1) 15%, rgba(255,255,255,0.1) 85%, transparent 100%);
-				}
-			`}</style>
-			<table className={cn('w-full table-fixed text-sm', className)} {...props} />
+			<div
+				data-slot="table-container"
+				className="relative w-full overflow-x-auto"
+			>
+				<style>{`
+					[data-slot="table-body"] tr {
+						position: relative;
+					}
+					/* Horizontal faded row border */
+					[data-slot="table-body"] tr::after {
+						content: '';
+						position: absolute;
+						bottom: 0;
+						left: 0;
+						right: 0;
+						height: 1px;
+						background: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 15%, rgba(0,0,0,0.08) 85%, transparent 100%);
+						pointer-events: none;
+					}
+					:is(.dark) [data-slot="table-body"] tr::after {
+						background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.08) 15%, rgba(255,255,255,0.08) 85%, transparent 100%);
+					}
+					/* Vertical faded column divider */
+					[data-slot="table-body"] td {
+						position: relative;
+					}
+					[data-slot="table-body"] td::before {
+						content: '';
+						position: absolute;
+						left: 0;
+						top: 0;
+						bottom: 0;
+						width: 1px;
+						background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.08) 15%, rgba(0,0,0,0.08) 85%, transparent 100%);
+						pointer-events: none;
+					}
+					:is(.dark) [data-slot="table-body"] td::before {
+						background: linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.08) 15%, rgba(255,255,255,0.08) 85%, transparent 100%);
+					}
+				`}</style>
+				<table className={cn('w-full sm:table-fixed text-sm min-w-[540px]', className)} {...props} />
+			</div>
 		</div>
 	);
 }
@@ -67,8 +72,8 @@ function PricingTableBody({
 	);
 }
 
-function PricingTableRow({ ...props }: React.ComponentProps<'tr'>) {
-	return <tr data-slot="table-row" {...props} />;
+function PricingTableRow({ className, ...props }: React.ComponentProps<'tr'>) {
+	return <tr data-slot="table-row" className={className} {...props} />;
 }
 
 function PricingTableCell({
