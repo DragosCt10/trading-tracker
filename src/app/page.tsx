@@ -5,6 +5,18 @@ import { LandingFeatures } from '@/components/landing/LandingFeatures';
 import { LandingPricing } from '@/components/pricing/LandingPricing';
 
 export default function Home() {
+  if (process.env.NEXT_PUBLIC_UNDER_CONSTRUCTION === 'true') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white">
+        <div className="text-center space-y-4">
+          <div className="text-6xl font-bold tracking-tight">🚧</div>
+          <h1 className="text-4xl font-bold tracking-tight">Under Construction</h1>
+          <p className="text-zinc-400 text-lg">We&apos;re working on something great. Check back soon.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="landing-page-override w-full">
       <LandingHeader />
