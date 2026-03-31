@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Zap, BarChart3, Loader2 } from 'lucide-react';
+import { ArrowRight, Zap, BarChart3, Loader2, Lock, Info } from 'lucide-react';
 import { PricingHeroBackground } from '@/components/pricing/PricingHeroBackground';
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { Footer } from '@/components/shared/Footer';
@@ -13,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { createPublicCheckoutUrl } from '@/lib/server/subscription';
 import { TIER_DEFINITIONS } from '@/constants/tiers';
 import type { BillingPeriod } from '@/types/subscription';
+import { PricingFAQ } from '@/components/pricing/PricingFAQ';
 import {
   type FeatureItem,
   PricingTable,
@@ -213,7 +215,38 @@ export function PricingPageClient() {
               ))}
             </PricingTableBody>
           </PricingTable>
+
+          {/* Secured payment info */}
+          <div className="mx-auto mt-2 flex max-w-xl flex-col items-center gap-5 text-center">
+            <p className="flex items-center gap-1 text-sm font-medium text-foreground/80">
+              <Lock className="h-3.5 w-3.5" />
+              Secured Payment by <span className="underline m-0 font-semibold">Polar</span> with:
+            </p>
+
+            {/* Payment method icons */}
+            <div className="flex items-center justify-center gap-3">
+              <span className="flex h-8 items-center rounded-md bg-white px-2.5 shadow-sm ring-1 ring-black/10">
+                <Image src="/icons/payments/visa.svg" alt="Visa" width={61} height={20} className="h-3 w-auto" />
+              </span>
+              <span className="flex h-8 items-center rounded-md bg-white px-2.5 shadow-sm ring-1 ring-black/10">
+                <Image src="/icons/payments/mastercard.svg" alt="Mastercard" width={66} height={40} className="h-4.5 w-auto" />
+              </span>
+              <span className="flex h-8 items-center rounded-md bg-white px-1.5 shadow-sm ring-1 ring-black/10">
+                <Image src="/icons/payments/applepay.svg" alt="Apple Pay" width={120} height={80} className="h-8 w-auto" />
+              </span>
+              <span className="flex h-8 items-center rounded-md bg-white px-2.5 shadow-sm ring-1 ring-black/10">
+                <Image src="/icons/payments/googlepay.svg" alt="Google Pay" width={80} height={38} className="h-4.5 w-auto" />
+              </span>
+            </div>
+
+            <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+              <Info className="h-3.5 w-3.5 shrink-0" />
+              If you are a Registered Company inside the European Union you will be able to add your VAT ID after you press &quot;Buy Now&quot;
+            </p>
+          </div>
         </div>
+
+        <PricingFAQ className="mt-4 sm:mt-8" />
 
         <div className="relative [&>footer]:bg-transparent [&>footer]:border-0 [&>footer]:mt-0">
           <Footer />

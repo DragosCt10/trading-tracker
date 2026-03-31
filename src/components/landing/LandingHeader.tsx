@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useLayoutEffect, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Menu, X, Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ const NAV_LINKS = [
 ] as const;
 
 export function LandingHeader() {
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
@@ -38,12 +40,21 @@ export function LandingHeader() {
     };
   }, []);
 
+  // Permanent scroll listener — lives for the full component lifetime.
+  // Using [] means it is never torn down/re-added on client navigation.
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Re-sync scroll state on every pathname change (covers browser back/forward).
+  // RAF defers the read so browser scroll-restoration has time to complete.
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setScrolled(window.scrollY > 20));
+    return () => cancelAnimationFrame(raf);
+  }, [pathname]);
 
   const handleNavClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
