@@ -2,275 +2,315 @@
 
 import * as React from 'react';
 import clsx from 'clsx';
-import { useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/utils/supabase/client';
-import { useAccounts } from '@/hooks/useAccounts';
-import { useCallback, useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { setActiveAccount, getAllAccountsForUser } from '@/lib/server/accounts';
+import type { AccountRow } from '@/lib/server/accounts';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { useActionBarSelection } from '@/hooks/useActionBarSelection';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { STATIC_DATA } from '@/constants/queryConfig';
 
-// shadcn/ui
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/select';
+import { usePathname, useRouter } from 'next/navigation';
+import { AccountModePopover } from '@/components/shared/AccountModePopover';
+import type { TradingMode } from '@/types/trade';
 import { EditAccountAlertDialog } from '../EditAccountAlertDialog';
+import { CreateAccountAlertDialog } from '../CreateAccountModal';
+import { setLastAccountPreference } from '@/utils/lastAccountCookie';
+import { StrategySelectPopover } from '@/components/shared/StrategySelectPopover';
+import { CreateStrategyModal } from '@/components/CreateStrategyModal';
+import { useStrategies } from '@/hooks/useStrategies';
+import { useSubscription } from '@/hooks/useSubscription';
+import { queryKeys } from '@/lib/queryKeys';
+import type { Strategy } from '@/types/strategy';
+import { Plus } from 'lucide-react';
 
-type Mode = 'live' | 'backtesting' | 'demo';
+const MODE_LABELS: Record<TradingMode, string> = {
+  live: 'Live',
+  demo: 'Demo',
+  backtesting: 'Backtesting',
+};
 
-export default function ActionBar() {
+const MODE_BADGE: Record<TradingMode, string> = {
+  live: 'themed-badge-live',
+  demo: 'themed-badge-demo',
+  backtesting: 'themed-badge-backtesting',
+};
+
+/** Optional server-fetched initial data. When provided, hydrates TanStack cache so hooks use it without client fetch. */
+export interface ActionBarInitialData {
+  userDetails: { user: { id: string } | null; session: unknown } | null;
+  mode: TradingMode;
+  activeAccount: AccountRow | null;
+  accountsForMode: AccountRow[];
+  /** All accounts (all modes). When provided, avoids getAllAccountsForUser client fetch (audit 2.6). */
+  allAccounts?: AccountRow[];
+}
+
+interface ActionBarProps {
+  initialData?: ActionBarInitialData | null;
+  /** When false, hide the Add account button (e.g. when it is shown in the mobile lateral menu). Default true. */
+  showAddButton?: boolean;
+}
+
+export default function ActionBar({ initialData, showAddButton = true }: ActionBarProps) {
   const queryClient = useQueryClient();
-  const supabase = createClient();
-  const { data: userId } = useUserDetails();
+  const router = useRouter();
+  const hydratedRef = useRef(false);
+
+  // Hydrate TanStack cache from server-fetched initial data (before paint)
+  useLayoutEffect(() => {
+    if (!initialData || hydratedRef.current) return;
+    const { userDetails, mode, activeAccount, accountsForMode, allAccounts: initialAll } = initialData;
+    const uid = userDetails?.user?.id;
+    if (uid) {
+      queryClient.setQueryData(['userDetails'], userDetails);
+      queryClient.setQueryData(['actionBar:selection'], { mode, activeAccount });
+      queryClient.setQueryData(['accounts:list', uid, mode], accountsForMode);
+      if (initialAll != null) {
+        queryClient.setQueryData(['accounts:all', uid], initialAll);
+      }
+      hydratedRef.current = true;
+    }
+  }, [initialData, queryClient]);
+
+  const { data: userDetails } = useUserDetails();
   const { selection, setSelection } = useActionBarSelection();
-
-  // seed local UI from the cached value
-  const [activeMode, setActiveMode] = React.useState<Mode>(selection.mode);
-  const [pendingMode, setPendingMode] = React.useState<Mode>(selection.mode);
-  const [pendingAccountId, setPendingAccountId] = React.useState<string | null>(
-    selection.activeAccount?.id ?? null
-  );
   const [applying, setApplying] = React.useState(false);
+  const [isCreateStrategyOpen, setIsCreateStrategyOpen] = React.useState(false);
+  const autoAppliedRef = useRef(false);
 
-  // Use accounts for the pending mode and user (so you see what would hypothetically be available if you apply)
+  const userId = userDetails?.user?.id;
+
+  // One query for all accounts across all modes — powers the grouped dropdown.
+  // initialData from layout/server avoids getAllAccountsForUser client fetch on first load (audit 2.6).
   const {
-    accounts,
-    accountsLoading,
-    refetchAccounts
-  } = useAccounts({ userId: userId?.user?.id, pendingMode });
+    data: allAccounts = [],
+    isFetching: accountsLoading,
+    refetch: refetchAccounts,
+  } = useQuery<AccountRow[]>({
+    queryKey: ['accounts:all', userId],
+    enabled: !!userId,
+    initialData: initialData?.allAccounts,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    ...STATIC_DATA,
+    queryFn: async () => {
+      if (!userId) return [];
+      return getAllAccountsForUser(userId);
+    },
+  });
 
-  const pendingAccount = accounts.find(a => a.id === pendingAccountId) ?? null;
-
-  // keep in sync if another part of the app changes the selection
-  React.useEffect(() => {
-    setActiveMode(selection.mode);
-    setPendingMode(selection.mode);
-    setPendingAccountId(selection.activeAccount?.id ?? null);
-  }, [selection.mode, selection.activeAccount?.id]);
-
-  // ensure the account select stays valid & preselects cached active
-  React.useEffect(() => {
-    if (pendingAccountId && !accounts.some(a => a.id === pendingAccountId)) {
-      setPendingAccountId(null);
-      return;
+  // Group accounts by mode for the dropdown sections
+  const accountsByMode = React.useMemo(() => {
+    const map: Record<TradingMode, AccountRow[]> = { live: [], demo: [], backtesting: [] };
+    for (const a of allAccounts) {
+      if (a.mode in map) map[a.mode as TradingMode].push(a);
     }
-    if (!pendingAccountId) {
-      const cachedActive = accounts.find(a => a.is_active);
-      if (cachedActive) setPendingAccountId(cachedActive.id);
-    }
-  }, [accounts, pendingAccountId]);
+    return map;
+  }, [allAccounts]);
 
-  // ---------- 1) param-based apply helper (used by button + auto init)
-  const applyWith = React.useCallback(
-    async (mode: Mode, accountId: string | null) => {
-      if (!userId?.user?.id) return;
+  const activeMode = selection.mode;
+  const activeAccount = selection.activeAccount;
+
+  // Resolve account display name from current user's list; fall back to activeAccount.name so
+  // the trigger doesn't show the placeholder when we already know the account object.
+  const accountDisplayName =
+    activeAccount
+      ? allAccounts.find((a) => a.id === activeAccount.id)?.name ?? activeAccount.name
+      : null;
+
+  // ---------- Apply helper (persist active account and invalidate trade queries)
+  const applyWith = useCallback(
+    async (mode: TradingMode, accountId: string | null) => {
+      if (!userId) return;
       setApplying(true);
       try {
-        await supabase
-          .from('account_settings')
-          .update({ is_active: false } as never)
-          .eq('user_id', userId.user.id)
-          .eq('mode', mode);
+        const { data: activeAccountObj, error } = await setActiveAccount(mode, accountId);
+        if (error) {
+          console.error('setActiveAccount failed:', error.message);
+          return;
+        }
+        const resolved =
+          activeAccountObj ??
+          (accountId ? allAccounts.find((a) => a.id === accountId) ?? null : null);
+        setSelection({ mode, activeAccount: resolved });
 
-        let activeAccountObj: any = null;
-
-        if (accountId) {
-          await supabase
-            .from('account_settings')
-            .update({ is_active: true } as never)
-            .eq('id', accountId)
-            .eq('user_id', userId.user.id);
-
-          activeAccountObj = accounts.find(a => a.id === accountId) ?? null;
+        // Persist mode + index (no ids) so refresh restores same account
+        if (resolved) {
+          const listForMode = allAccounts.filter((a) => a.mode === mode);
+          const index = listForMode.findIndex((a) => a.id === resolved.id);
+          if (index >= 0) setLastAccountPreference(mode, index);
         }
 
-        // publish committed selection into the cache
-        setSelection({ mode, activeAccount: activeAccountObj });
-        setActiveMode(mode);
-
-        // refresh queries
-        const keysToNukeStartsWith = [
-          'allTrades', 'filteredTrades',
-          'nonExecutedTrades', 'nonExecutedTotalTradesCount',
-        ];
-        queryClient.removeQueries({
-          predicate: q => keysToNukeStartsWith.includes((q.queryKey?.[0] as string) ?? ''),
+        const keysToInvalidate = ['allTrades', 'filteredTrades', 'nonExecutedTrades', 'strategies-overview'];
+        queryClient.invalidateQueries({
+          predicate: (q) => keysToInvalidate.includes((q.queryKey?.[0] as string) ?? ''),
         });
-        queryClient.refetchQueries({
-          predicate: q => keysToNukeStartsWith.includes((q.queryKey?.[0] as string) ?? ''),
-          type: 'active',
-        });
-
-        refetchAccounts?.();
+        refetchAccounts();
       } finally {
         setApplying(false);
       }
     },
-    [userId, supabase, accounts, queryClient, refetchAccounts, setSelection]
+    [userId, allAccounts, queryClient, refetchAccounts, setSelection]
   );
 
-  // existing button handler just delegates to helper
-  const onApply = useCallback(
-    () => applyWith(pendingMode, pendingAccountId),
-    [applyWith, pendingMode, pendingAccountId]
+  const handleAccountModeChange = useCallback(
+    (sel: { mode: TradingMode; accountId: string | null; account?: AccountRow | null }) => {
+      if (!sel.accountId) return;
+      if (sel.accountId === activeAccount?.id && sel.mode === activeMode) return;
+      applyWith(sel.mode, sel.accountId);
+    },
+    [activeAccount?.id, activeMode, applyWith]
   );
 
-  // ---------- 2) AUTO-APPLY ON FIRST MOUNT (Live + active-or-first subaccount)
-  const autoAppliedRef = useRef(false);
+  // ---------- Auto-apply first available account on mount (live → demo → backtesting)
   useEffect(() => {
     if (autoAppliedRef.current) return;
-    if (!userId?.user?.id) return;
-
-    // only auto-apply if nothing chosen yet
+    if (!userId) return;
     if (selection.activeAccount) return;
-
-    // we only auto-apply Live on first mount
-    if (pendingMode !== 'live') return;
-
     if (accountsLoading) return;
 
-    // prefer an already-active one in DB; otherwise first (sorted by created_at in your hook)
-    const pick = accounts.find(a => a.is_active) ?? accounts[0];
+    const fallbackOrder: TradingMode[] = ['live', 'demo', 'backtesting'];
+    let pick: AccountRow | undefined;
+    let pickedMode: TradingMode = 'live';
+
+    for (const mode of fallbackOrder) {
+      const accounts = accountsByMode[mode];
+      const found = accounts.find((a) => a.is_active) ?? accounts[0];
+      if (found) {
+        pick = found;
+        pickedMode = mode;
+        break;
+      }
+    }
+
     if (!pick) return;
 
     autoAppliedRef.current = true;
+    applyWith(pickedMode, pick.id);
+  }, [userId, accountsLoading, accountsByMode, applyWith, selection.activeAccount]);
 
-    // ensure local pending state reflects what we’re applying
-    setPendingAccountId(pick.id);
-    applyWith('live', pick.id);
-  }, [
-    userId, accountsLoading, accounts,
-    applyWith, selection.activeAccount, pendingMode,
-  ]);
+  // Detect strategy page synchronously (no flash — no useEffect needed)
+  const pathname = usePathname();
+  const strategySlug = pathname?.match(/\/strategy\/([^/]+)/)?.[1] ?? null;
+  const isStrategyPage = !!strategySlug;
 
-  const noAccounts = accounts.length === 0;
+  // Only fetch strategies when on a strategy page
+  const { strategies, strategiesLoading } = useStrategies({
+    userId: isStrategyPage ? userId : undefined,
+    accountId: isStrategyPage ? (activeAccount?.id ?? undefined) : undefined,
+  });
 
-  // Determine if apply button should be disabled due to already-active selection
-  const isAlreadyActive =
-    activeMode === pendingMode &&
-    (selection.activeAccount?.id ?? null) === (pendingAccountId ?? null);
-
-  // badge color mapping (shadcn Badge + utility classes)
-  const badgeClass =
-    activeMode === 'live'
-      ? 'bg-emerald-100 hover:bg-emerald-100 text-emerald-500'
-      : activeMode === 'backtesting'
-      ? 'bg-violet-100 hover:bg-violet-100 text-violet-500'
-      : activeMode === 'demo'
-      ? 'bg-sky-100 hover:bg-sky-100 text-sky-500'
-      : '';
+  const strategyOptions = strategies.map((s) => ({ id: s.id, name: s.name, slug: s.slug }));
+  const accountId = activeAccount?.id ?? null;
 
   return (
-    <div className="flex items-center justify-end w-full">
-      <div className="flex flex-col gap-2 w-full items-stretch sm:flex-row sm:items-center sm:justify-end sm:gap-2">
-        {/* Current mode badge */}
-        <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
-          <Badge
-            title={`Current mode: ${activeMode ?? '—'}`}
-            className={clsx(
-              'px-2.5 py-1 text-xs shadow-none',
-              badgeClass
-            )}
-          >
-            <span className="leading-none">
-              {activeMode ? activeMode[0].toUpperCase() + activeMode.slice(1) : '—'}
-            </span>
-          </Badge>
-        </div>
+    <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 min-w-0">
+      {/* Mode badge — left of account/strategy selector */}
+      <div
+        title={`Current mode: ${activeMode}`}
+        className={clsx(
+          'flex items-center justify-center h-8 rounded-xl border px-2 sm:px-4 pointer-events-none shrink-0',
+          'text-xs sm:text-sm font-medium',
+          MODE_BADGE[activeMode]
+        )}
+      >
+        <span className="leading-none">{MODE_LABELS[activeMode]}</span>
+      </div>
 
-        {/* Mode select (pending) */}
-        <div className="flex-1 sm:flex-initial">
-          <Select
-            value={pendingMode}
-            onValueChange={(val: Mode) => setPendingMode(val)}
-          >
-            <SelectTrigger className="text-sm h-8 shadow-none min-w-[130px] w-full sm:w-[130px] md:w-[160px]">
-              <SelectValue placeholder="Select mode" />
-            </SelectTrigger>
-            <SelectContent className="text-sm min-w-[140px] md:min-w-[160px]">
-              <SelectItem value="live" className="text-sm">Live</SelectItem>
-              <SelectItem value="backtesting" className="text-sm">Backtesting</SelectItem>
-              <SelectItem value="demo" className="text-sm">Demo</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {isStrategyPage ? (
+        /* Strategy page: show strategy switcher + add strategy button */
+        <>
+          {strategiesLoading || strategyOptions.length === 0 ? (
+            /* Skeleton while strategies are loading */
+            <div className="h-8 w-36 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
+          ) : (
+            <StrategySelectPopover
+              strategies={strategyOptions}
+              currentSlug={strategySlug ?? ''}
+            />
+          )}
 
-        {/* Divider (hidden on mobile) */}
-        <div className="hidden md:flex">
-          <Separator orientation="vertical" className="mx-1 h-5" />
-        </div>
-
-        {/* Subaccount select */}
-        <div className="flex-1 sm:flex-initial">
-          <Select
-            value={pendingAccountId ?? undefined}
-            onValueChange={(val) => setPendingAccountId(val ?? null)}
-            disabled={accountsLoading || noAccounts}
-          >
-            <SelectTrigger className="text-sm h-8 shadow-none min-w-[170px] w-full sm:w-[170px] md:w-[200px]">
-              <SelectValue placeholder={noAccounts ? 'No subaccounts' : 'Choose subaccount…'} />
-            </SelectTrigger>
-            <SelectContent className="text-sm min-w-[170px] md:min-w-[200px]">
-              {!noAccounts ? (
-                accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id} className="text-sm">
-                    {a.name}
-                  </SelectItem>
-                ))
+          {showAddButton && (
+            <>
+              {strategiesLoading || strategyOptions.length === 0 ? (
+                <div className="h-8 w-8 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
               ) : (
-                <div className="px-2 py-1.5 text-sm text-muted-foreground">No subaccounts</div>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateStrategyOpen(true)}
+                  aria-label="Add strategy"
+                  className="flex items-center justify-center h-8 w-8 rounded-xl themed-btn-primary text-white font-semibold border-0 overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 cursor-pointer relative"
+                >
+                  <span className="relative z-10 flex items-center justify-center">
+                    <Plus className="h-4 w-4" />
+                  </span>
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                </button>
               )}
-            </SelectContent>
-          </Select>
-        </div>
+              <CreateStrategyModal
+                accountId={accountId ?? undefined}
+                open={isCreateStrategyOpen}
+                onOpenChange={setIsCreateStrategyOpen}
+                onCreated={(newStrategy) => {
+                  setIsCreateStrategyOpen(false);
+                  // Immediately update the cache with the new strategy — no network round-trip,
+                  // no race condition between refetch and router.push.
+                  const key = queryKeys.strategies(userId, accountId ?? undefined);
+                  const cached = queryClient.getQueryData<Strategy[]>(key) ?? [];
+                  if (!cached.some((s) => s.id === newStrategy.id)) {
+                    queryClient.setQueryData(key, [...cached, newStrategy]);
+                  }
+                  router.push(`/strategy/${newStrategy.slug}`);
+                }}
+              />
+            </>
+          )}
+        </>
+      ) : (
+        /* Normal pages: account selector + edit/add */
+        <>
+          <AccountModePopover
+            userId={userId}
+            value={{
+              mode: activeMode,
+              accountId: activeAccount?.id ?? null,
+              account: activeAccount,
+            }}
+            onChange={handleAccountModeChange}
+            placeholder="Select account"
+            disabled={applying}
+            variant="default"
+            loading={applying}
+            triggerLabel={applying ? 'Applying…' : (accountDisplayName ?? undefined)}
+          />
 
-        {/* Edit and Apply buttons (stack on mobile, inline on sm+) */}
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-2 sm:mt-0">
           <EditAccountAlertDialog
             account={
-              pendingAccount
+              activeAccount
                 ? {
-                    id: pendingAccount.id,
-                    name: pendingAccount.name,
-                    account_balance: pendingAccount.account_balance,
-                    currency: pendingAccount.currency,
-                    mode: pendingAccount.mode,
-                    description: pendingAccount.description,
+                    id: activeAccount.id,
+                    name: activeAccount.name,
+                    account_balance: activeAccount.account_balance,
+                    currency: activeAccount.currency,
+                    mode: activeAccount.mode,
+                    description: activeAccount.description,
                   }
                 : null
             }
-            onUpdated={async () => {
-              // force the accounts list to refresh so the Select shows the new name
-              await refetchAccounts?.();
-            }}
+            isDeletable={activeAccount?.mode !== 'demo' || accountsByMode.demo.length > 1}
+            onUpdated={async () => { refetchAccounts(); }}
+            onDeleted={async () => { refetchAccounts(); }}
           />
-          <Button
-            type="button"
-            size="sm"
-            className="w-full sm:w-auto"
-            onClick={onApply}
-            disabled={
-              applying ||
-              (!pendingAccountId && !noAccounts) ||
-              isAlreadyActive
-            }
-          >
-            {applying && (
-              <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" className="opacity-25" />
-                <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z" />
-              </svg>
-            )}
-            Apply
-          </Button>
-        </div>
-      </div>
+
+          {showAddButton && (
+            <CreateAccountAlertDialog
+              onCreated={async () => { refetchAccounts(); }}
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }

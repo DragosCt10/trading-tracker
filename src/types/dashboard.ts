@@ -35,8 +35,8 @@ export interface BaseStats {
   losses: number;
   winRate: number;
   winRateWithBE: number;
-  beWins: number;
-  beLosses: number;
+  /** Break-even trades (wins, losses, breakEven). */
+  breakEven: number;
 }
 
 export interface LiquidityStats extends BaseStats {
@@ -45,6 +45,10 @@ export interface LiquidityStats extends BaseStats {
 
 export interface SetupStats extends BaseStats {
   setup: string;
+}
+
+export interface SessionStats extends BaseStats {
+  session: string;
 }
 
 export interface DirectionStats extends BaseStats {
@@ -58,8 +62,6 @@ export interface MarketStats extends BaseStats {
   market: string;
   profit: number;
   pnlPercentage: number;
-  nonBeWins: number;
-  nonBeLosses: number;
   profitTaken: boolean;
 }
 
@@ -73,6 +75,13 @@ export interface TradeTypeStats extends BaseStats {
 
 export interface NewsStats extends BaseStats {
   news: string;
+}
+
+/** Stats per news event name (e.g. CPI, NFP) with wins, losses, BE and intensity. */
+export interface NewsNameStats extends BaseStats {
+  newsName: string;
+  /** Average intensity 1–3 (Low/Medium/High) for this news event. */
+  averageIntensity: number | null;
 }
 
 export interface MssStats extends BaseStats {
@@ -89,9 +98,15 @@ export interface LocalHLStats {
     wins: number;
     losses: number;
     winRate: number;
-    winsWithBE: number;
-    lossesWithBE: number;
+    breakEven: number;
     winRateWithBE: number;
+    total: number;
+    /** BE breakdown from be_final_result: wins among break-even trades */
+    beWins?: number;
+    /** BE breakdown from be_final_result: losses among break-even trades */
+    beLosses?: number;
+    /** Win rate among BE trades (when be_final_result is set) */
+    beWinRate?: number;
   }
 }
 
@@ -99,8 +114,7 @@ export interface IntervalStats {
   label: string;
   wins: number;
   losses: number;
-  beWins: number;
-  beLosses: number;
+  breakEven: number;
   winRate: number;
   winRateWithBE: number;
 }
@@ -116,11 +130,8 @@ export interface RiskStats {
   winrateWithBE: number;
 }
 
-export interface RiskAnalysis {
-  risk03: RiskStats;
-  risk05: RiskStats;
-  risk07: RiskStats;
-}
+/** Key is e.g. risk025, risk03, risk1. Record allows any number of risk levels. */
+export type RiskAnalysis = Record<string, RiskStats>;
 
 export interface Stats {
   totalTrades: number;
@@ -131,6 +142,7 @@ export interface Stats {
   averageProfit: number;
   intervalStats: Record<string, IntervalStats>;
   maxDrawdown: number;
+  averageDrawdown: number;
   averagePnLPercentage: number;
   evaluationStats: EvaluationStats[];
   winRateWithBE: number;
@@ -142,12 +154,10 @@ export interface Stats {
   averageDaysBetweenTrades: number;
   partialWinningTrades: number;
   partialLosingTrades: number;
-  beWinPartialTrades: number;
-  beLosingPartialTrades: number;
-  partialWinRate: number;
-  partialWinRateWithBE: number;
+  partialBETrades: number;
   totalPartialTradesCount: number;
   totalPartialsBECount: number;
   tradeQualityIndex: number;
   multipleR: number;
+  drawdownCount: number;
   }

@@ -1,5 +1,29 @@
-import { DayStats, DirectionStats, IntervalStats, LiquidityStats, LocalHLStats, MarketStats, MssStats, NewsStats, SLSizeStats, TradeTypeStats } from '@/types/dashboard';
+import { DayStats, DirectionStats, IntervalStats, LiquidityStats, LocalHLStats, MarketStats, MssStats, NewsStats, NewsNameStats, SLSizeStats, TradeTypeStats } from '@/types/dashboard';
 import { Trade } from '@/types/trade';
+
+/** Fast weekday name from a YYYY-MM-DD string — avoids Intl/toLocaleDateString per trade. */
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+function getWeekdayName(tradeDate: string | null | undefined, fallback?: string | null): string {
+  if (tradeDate && tradeDate.length >= 10) {
+    const y = +tradeDate.slice(0, 4);
+    const m = +tradeDate.slice(5, 7);
+    const d = +tradeDate.slice(8, 10);
+    if (y && m && d) return WEEKDAY_NAMES[new Date(y, m - 1, d).getDay()] ?? '';
+  }
+  return fallback || '';
+}
+
+/**
+ * Single source of truth for "liquidated" (local H/L = true).
+ * Handles boolean, string, number, or null from API/DB so both calculateLocalHLStats
+ * and computeStatsFromTrades (and any other consumer) categorize the same way.
+ */
+export function isLocalHighLowLiquidated(value: unknown): boolean {
+  if (value === true) return true;
+  if (value === false || value === null || value === undefined) return false;
+  const s = String(value).toLowerCase();
+  return s === 'true' || s === '1';
+}
 
 /**
  * Generic group statistics for trades.
@@ -17,10 +41,8 @@ export interface GroupStats {
   winRate: number;
   /** Win rate including BE trades (%). */
   winRateWithBE: number;
-  /** Of wins, how many were BE. */
-  beWins: number;
-  /** Of losses, how many were BE. */
-  beLosses: number;
+  /** Break-even trades (one bucket: wins, losses, breakEven). */
+  breakEven: number;
   /** Trade type. */
   tradeType: string;
 }
@@ -57,30 +79,26 @@ function isTimeInInterval(time: string, start: string, end: string): boolean {
 
 /**
  * Build stats for a single labeled group of trades.
+ * Simple model: wins (non-BE), losses (non-BE), breakEven (all BE trades).
  */
 function processGroup(label: string, trades: Trade[]): GroupStats {
-  const total = trades.length;
+  let wins = 0;
+  let losses = 0;
+  let breakEven = 0;
 
-  // Raw counts
-  const wins      = trades.filter(t => t.trade_outcome === 'Win').length;
-  const losses    = trades.filter(t => t.trade_outcome === 'Lose').length;
-  const beWins    = trades.filter(t => t.trade_outcome === 'Win'  && t.break_even).length;
-  const beLosses  = trades.filter(t => t.trade_outcome === 'Lose' && t.break_even).length;
+  for (const t of trades) {
+    if (t.break_even) {
+      breakEven++;
+      continue;
+    }
+    if (t.trade_outcome === 'Win') wins++;
+    else if (t.trade_outcome === 'Lose') losses++;
+  }
 
-  // Non-BE counts for ex-BE win rate
-  const nonBEWins   = wins - beWins;
-  const nonBELosses = losses - beLosses;
-  const denomExBE   = nonBEWins + nonBELosses;
-  const winRate     = denomExBE > 0
-    ? (nonBEWins / denomExBE) * 100
-    : 0;
-
-  // Include BE trades in denominator for win rate with BE
-  const beCount       = beWins + beLosses;
-  const denomWithBE   = nonBEWins + nonBELosses + beCount;
-  const winRateWithBE = denomWithBE > 0
-    ? (nonBEWins / denomWithBE) * 100
-    : 0;
+  const total = wins + losses + breakEven;
+  const denomWinRate = wins + losses;
+  const winRate = denomWinRate > 0 ? (wins / denomWinRate) * 100 : 0;
+  const winRateWithBE = total > 0 ? (wins / total) * 100 : 0;
 
   return {
     type: label,
@@ -89,14 +107,14 @@ function processGroup(label: string, trades: Trade[]): GroupStats {
     losses,
     winRate,
     winRateWithBE,
-    beWins,
-    beLosses,
+    breakEven,
     tradeType: label,
   };
 }
 
 /**
  * Generic grouping by a string key extractor.
+ * Processes all trades passed (tradesToUse already handles filtering).
  */
 export function calculateGroupedStats(
   trades: Trade[],
@@ -124,30 +142,22 @@ export function calculateIntervalStats(
   return intervals.map(({ label, start, end }) => {
     // pull out the trades in this bucket
     const bucket = trades.filter(t =>
-      isTimeInInterval(normalizeTimeToHHMM(t.trade_time), start, end)
+      isTimeInInterval(normalizeTimeToHHMM(t.trade_time ?? '00:00'), start, end)
     );
 
-    // now compute your GroupStats kind of logic in-line
-    const wins      = bucket.filter(t => t.trade_outcome === 'Win').length;
-    const losses    = bucket.filter(t => t.trade_outcome === 'Lose').length;
-    const beWins    = bucket.filter(t => t.trade_outcome === 'Win'  && t.break_even).length;
-    const beLosses  = bucket.filter(t => t.trade_outcome === 'Lose' && t.break_even).length;
-
-    const nonBEWins   = wins  - beWins;
-    const nonBELosses = losses - beLosses;
-    const beCount     = beWins + beLosses;
-    const denomExBE   = nonBEWins + nonBELosses;
-    const denomWithBE = nonBEWins + nonBELosses + beCount;
-
-    const winRate       = denomExBE   > 0 ? (nonBEWins   / denomExBE  ) * 100 : 0;
-    const winRateWithBE = denomWithBE > 0 ? (nonBEWins   / denomWithBE) * 100 : 0;
+    const breakEven = bucket.filter(t => t.break_even).length;
+    const wins      = bucket.filter(t => !t.break_even && t.trade_outcome === 'Win').length;
+    const losses    = bucket.filter(t => !t.break_even && t.trade_outcome === 'Lose').length;
+    const total     = wins + losses + breakEven;
+    const denom     = wins + losses;
+    const winRate       = denom > 0 ? (wins / denom) * 100 : 0;
+    const winRateWithBE = total > 0 ? (wins / total) * 100 : 0;
 
     return {
       label,
       wins,
       losses,
-      beWins,
-      beLosses,
+      breakEven,
       winRate,
       winRateWithBE
     };
@@ -177,21 +187,69 @@ export function calculateSLSizeStats(trades: Trade[]): SLSizeStats[] {
 }
 
 /**
- * Convenience wrappers for all your category stats:
+ * Canonical liquidity keys for grouping (aligned with LiquidityStatisticsCard display labels).
+ * All variants (long name, short name, different casing) map to one key so they merge in the chart.
+ */
+const CANONICAL_LIQUIDITY: Record<string, string> = {
+  'local liquidity': 'Local Liq.',
+  'local liq.': 'Local Liq.',
+  'local liq': 'Local Liq.',
+  'major liquidity': 'Major Liq.',
+  'major liq.': 'Major Liq.',
+  'major liq': 'Major Liq.',
+  'low liquidity': 'Low Liq.',
+  'low liq.': 'Low Liq.',
+  'low liq': 'Low Liq.',
+  'lod': 'LOD',
+  'hod': 'HOD',
+  'unknown': 'Unknown',
+};
+
+/**
+ * Returns a canonical key for liquidity so "Local Liquidity", "Local Liq.", "local liq." etc.
+ * all group together. Known options use the short label; custom values use lowercase so
+ * "Thin Market" and "thin market" merge into one bucket. Display name stays the most frequent raw.
+ */
+function getCanonicalLiquidityKey(value: string | null | undefined): string {
+  const s = (value ?? '').trim();
+  if (!s) return 'Unknown';
+  const lower = s.toLowerCase();
+  return CANONICAL_LIQUIDITY[lower] ?? lower;
+}
+
+/**
+ * Convenience wrappers for all your category stats.
+ * Liquidity is grouped by canonical key so long/short/casing variants (e.g. "Local Liquidity"
+ * and "Local Liq.") merge into one bucket. Display name is the most frequently used raw value.
  */
 export function calculateLiquidityStats(trades: Trade[]): LiquidityStats[] {
   if (trades.length === 0) return [];
-  return calculateGroupedStats(trades, t => t.liquidity || 'Unknown')
-    .map(g => ({
-      liquidity:   g.type,
-      total:       g.total,
-      wins:        g.wins,
-      losses:      g.losses,
-      winRate:     g.winRate,
-      winRateWithBE: g.winRateWithBE,
-      beWins:      g.beWins,
-      beLosses:    g.beLosses
-    }));
+  const groups: Record<string, { displayCounts: Record<string, number>; trades: Trade[] }> = {};
+  for (const t of trades) {
+    const raw = (t.liquidity ?? '').trim() || 'Unknown';
+    const key = getCanonicalLiquidityKey(t.liquidity);
+    if (!groups[key]) {
+      groups[key] = { displayCounts: {}, trades: [] };
+    }
+    groups[key].displayCounts[raw] = (groups[key].displayCounts[raw] ?? 0) + 1;
+    groups[key].trades.push(t);
+  }
+  return Object.entries(groups)
+    .map(([, { displayCounts, trades: ts }]) => {
+      const displayName =
+        Object.entries(displayCounts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? 'Unknown';
+      const g = processGroup(displayName, ts);
+      return {
+        liquidity: g.type,
+        total: g.total,
+        wins: g.wins,
+        losses: g.losses,
+        winRate: g.winRate,
+        winRateWithBE: g.winRateWithBE,
+        breakEven: g.breakEven,
+      };
+    })
+    .sort((a, b) => (b.total ?? 0) - (a.total ?? 0));
 }
 
 export function calculateSetupStats(trades: Trade[]) {
@@ -204,8 +262,7 @@ export function calculateSetupStats(trades: Trade[]) {
       losses:      g.losses,
       winRate:     g.winRate,
       winRateWithBE: g.winRateWithBE,
-      beWins:      g.beWins,
-      beLosses:    g.beLosses
+      breakEven:   g.breakEven
     }));
 }
 export function calculateDirectionStats(trades: Trade[]): DirectionStats[] {
@@ -218,35 +275,68 @@ export function calculateDirectionStats(trades: Trade[]): DirectionStats[] {
       losses:      g.losses,
       winRate:     g.winRate,
       winRateWithBE: g.winRateWithBE,
-      beWins:      g.beWins,
-      beLosses:    g.beLosses
+      breakEven:   g.breakEven,
     }));
 }
+/** English keys for Local H/L stats (liquidated / not liquidated) */
+export const LOCAL_HL_KEYS = {
+  liquidated: 'liquidated',
+  notLiquidated: 'notLiquidated',
+} as const;
+
 export function calculateLocalHLStats(trades: Trade[]): LocalHLStats {
   const ZERO: LocalHLStats = {
-    lichidat:   { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0 },
-    nelichidat: { wins: 0, losses: 0, winRate: 0, winsWithBE: 0, lossesWithBE: 0, winRateWithBE: 0 },
+    liquidated:   { wins: 0, losses: 0, winRate: 0, breakEven: 0, winRateWithBE: 0, total: 0 },
+    notLiquidated: { wins: 0, losses: 0, winRate: 0, breakEven: 0, winRateWithBE: 0, total: 0 },
   };
 
   // ← if no trades at all, immediately return the zero‐stats
   if (trades.length === 0) return ZERO;
 
+  // Group ALL trades (including non-executed) - processGroup will handle counting correctly
+  // Use isLocalHighLowLiquidated so we match computeStatsFromTrades (boolean/string/number from API)
   const groups = calculateGroupedStats(
     trades,
-    t => (t.local_high_low ? 'lichidat' : 'nelichidat')
+    t => (isLocalHighLowLiquidated(t.local_high_low) ? LOCAL_HL_KEYS.liquidated : LOCAL_HL_KEYS.notLiquidated)
   );
 
-  return groups.reduce<LocalHLStats>((acc, g) => {
+  const result = groups.reduce<LocalHLStats>((acc, g) => {
     acc[g.type] = {
       wins:           g.wins,
       losses:         g.losses,
       winRate:        g.winRate,
-      winsWithBE:     g.beWins,
-      lossesWithBE:   g.beLosses,
+      breakEven:      g.breakEven,
       winRateWithBE:  g.winRateWithBE,
+      total:          g.total,
     };
     return acc;
   }, { ...ZERO });
+
+  // BE breakdown from be_final_result per category (for tooltip: wins, losses, win rate among BE trades)
+  trades.forEach((t) => {
+    const key = isLocalHighLowLiquidated(t.local_high_low) ? LOCAL_HL_KEYS.liquidated : LOCAL_HL_KEYS.notLiquidated;
+    if (!t.break_even) return;
+    const bucket = result[key];
+    if (!bucket) return;
+    const beFinal = t.be_final_result == null ? null : String(t.be_final_result).trim();
+    if (beFinal === 'Win') {
+      bucket.beWins = (bucket.beWins ?? 0) + 1;
+    } else if (beFinal === 'Lose') {
+      bucket.beLosses = (bucket.beLosses ?? 0) + 1;
+    }
+  });
+  (['liquidated', 'notLiquidated'] as const).forEach((key) => {
+    const bucket = result[key];
+    if (!bucket) return;
+    const beWins = bucket.beWins ?? 0;
+    const beLosses = bucket.beLosses ?? 0;
+    const beTotal = beWins + beLosses;
+    if (beTotal > 0) {
+      bucket.beWinRate = (beWins / beTotal) * 100;
+    }
+  });
+
+  return result;
 }
 export function calculateMssStats(trades: Trade[]): MssStats[] {
   if (trades.length === 0) return [];
@@ -258,8 +348,7 @@ export function calculateMssStats(trades: Trade[]): MssStats[] {
       losses: g.losses,
       winRate: g.winRate,
       winRateWithBE: g.winRateWithBE,
-      beWins: g.beWins,
-      beLosses: g.beLosses
+      breakEven: g.breakEven
     }));
 }
 export function calculateNewsStats(trades: Trade[]): NewsStats[] {
@@ -275,14 +364,88 @@ export function calculateNewsStats(trades: Trade[]): NewsStats[] {
       losses: g.losses,
       winRate: g.winRate,
       winRateWithBE: g.winRateWithBE,
-      beWins: g.beWins,
-      beLosses: g.beLosses
+      breakEven: g.breakEven
     }));
+}
+
+/** Label for the bucket of trades marked news but without a named event. Export for UI filter. */
+export const NEWS_NO_EVENT_LABEL = 'News (no event)';
+
+/**
+ * Stats per news event name (only trades with news_related and news_name).
+ * Includes wins, losses, breakEven and average intensity (1–3).
+ * When includeUnnamed is true, appends one bucket for trades marked news but without a named event.
+ */
+export function calculateNewsNameStats(
+  trades: Trade[],
+  options?: { includeUnnamed?: boolean }
+): NewsNameStats[] {
+  const includeUnnamed = options?.includeUnnamed === true;
+
+  const newsTradesNamed = trades.filter(
+    t => t.news_related && t.news_name != null && String(t.news_name).trim() !== ''
+  );
+  const unnamedTrades = includeUnnamed
+    ? trades.filter(
+        t => t.news_related && (t.news_name == null || String(t.news_name).trim() === '')
+      )
+    : [];
+
+  const groups: Record<string, Trade[]> = {};
+  newsTradesNamed.forEach(t => {
+    const name = String(t.news_name).trim();
+    if (!groups[name]) groups[name] = [];
+    groups[name].push(t);
+  });
+
+  const namedResults: NewsNameStats[] = Object.entries(groups).map(([newsName, ts]) => {
+    const g = processGroup(newsName, ts);
+    const intensityValues = ts
+      .map(t => t.news_intensity != null ? Number(t.news_intensity) : null)
+      .filter((v): v is number => v !== null && v >= 1 && v <= 3);
+    const averageIntensity =
+      intensityValues.length > 0
+        ? intensityValues.reduce((a, b) => a + b, 0) / intensityValues.length
+        : null;
+
+    return {
+      newsName,
+      total: g.total,
+      wins: g.wins,
+      losses: g.losses,
+      winRate: g.winRate,
+      winRateWithBE: g.winRateWithBE,
+      breakEven: g.breakEven,
+      averageIntensity: averageIntensity != null ? Math.round(averageIntensity * 10) / 10 : null,
+    };
+  });
+
+  const unnamedEntry: NewsNameStats[] =
+    unnamedTrades.length > 0
+      ? (() => {
+          const g = processGroup(NEWS_NO_EVENT_LABEL, unnamedTrades);
+          return [
+            {
+              newsName: NEWS_NO_EVENT_LABEL,
+              total: g.total,
+              wins: g.wins,
+              losses: g.losses,
+              winRate: g.winRate,
+              winRateWithBE: g.winRateWithBE,
+              breakEven: g.breakEven,
+              averageIntensity: null,
+            },
+          ];
+        })()
+      : [];
+
+  const combined = [...namedResults, ...unnamedEntry];
+  return combined.sort((a, b) => b.total - a.total);
 }
 
 export function calculateDayStats(trades: Trade[]): DayStats[] {
   if (trades.length === 0) return [];
-  return calculateGroupedStats(trades, t => t.day_of_week || 'Unknown')
+  return calculateGroupedStats(trades, t => getWeekdayName(t.trade_date, t.day_of_week) || 'Unknown')
     .map(g => ({
       day: g.type,
       total: g.total,
@@ -290,43 +453,42 @@ export function calculateDayStats(trades: Trade[]): DayStats[] {
       losses: g.losses,
       winRate: g.winRate,
       winRateWithBE: g.winRateWithBE,
-      beWins: g.beWins,
-      beLosses: g.beLosses
+      breakEven: g.breakEven
     }));
 }
-export function calculateMarketStats(trades: Trade[], accountBalance: number): MarketStats[] {  
+export function calculateMarketStats(trades: Trade[], accountBalance: number): MarketStats[] {
   if (trades.length === 0) return [];
-  return calculateGroupedStats(trades, t => t.market || 'Unknown')
-    .map(g => {
-      const marketTrades = trades.filter(t => (t.market || 'Unknown') === g.type);
 
-      // Use stored absolute P/L per trade (calculated_profit); ignore non-numeric entries
-      const profit = marketTrades.reduce((sum, trade) => {
-        const value = typeof trade.calculated_profit === 'number' ? trade.calculated_profit : 0;
-        return sum + value;
-      }, 0);
+  // Single pass: group + accumulate wins/losses/BE/profit simultaneously.
+  // Avoids the previous O(n×M) pattern of grouping then re-filtering per market.
+  type Acc = { wins: number; losses: number; breakEven: number; profit: number };
+  const groups: Record<string, Acc> = {};
 
-      const pnlPercentage = accountBalance > 0 ? (profit / accountBalance) * 100 : 0;
-      return {
-        market: g.type,
-        total: g.total,
-        wins: g.wins,
-        losses: g.losses,
-        winRate: g.winRate,
-        winRateWithBE: g.winRateWithBE,
-        beWins: g.beWins,
-        beLosses: g.beLosses,
-        nonBeWins: g.wins - g.beWins,
-        nonBeLosses: g.losses - g.beLosses,
-        profit,
-        pnlPercentage,
-        profitTaken: true
-      };
-    });
+  for (const t of trades) {
+    const key = t.market || 'Unknown';
+    let g = groups[key];
+    if (!g) { g = { wins: 0, losses: 0, breakEven: 0, profit: 0 }; groups[key] = g; }
+    g.profit += typeof t.calculated_profit === 'number' ? t.calculated_profit : 0;
+    if (t.break_even) g.breakEven++;
+    else if (t.trade_outcome === 'Win') g.wins++;
+    else if (t.trade_outcome === 'Lose') g.losses++;
+  }
+
+  return Object.entries(groups)
+    .map(([market, g]) => {
+      const total  = g.wins + g.losses + g.breakEven;
+      const denom  = g.wins + g.losses;
+      const winRate       = denom  > 0 ? (g.wins / denom)  * 100 : 0;
+      const winRateWithBE = total  > 0 ? (g.wins / total)  * 100 : 0;
+      const pnlPercentage = accountBalance > 0 ? (g.profit / accountBalance) * 100 : 0;
+      return { market, total, wins: g.wins, losses: g.losses, winRate, winRateWithBE, breakEven: g.breakEven, profit: g.profit, pnlPercentage, profitTaken: true };
+    })
+    .sort((a, b) => b.total - a.total);
 }
 
 /**
  * Trade type stats: re-entry and break-even separate.
+ * Processes all trades passed (tradesToUse already handles filtering).
  */
 export function calculateReentryStats(trades: Trade[]): TradeTypeStats[] {
   if (trades.length === 0) return [];
@@ -343,5 +505,27 @@ export function calculateBreakEvenStats(trades: Trade[]): TradeTypeStats[] {
   return [group];
 }
 
+/** Trend stats: only trades with trend set; groups by Trend-following / Counter-trend / Consolidation. */
+export function calculateTrendStats(trades: Trade[]): TradeTypeStats[] {
+  if (trades.length === 0) return [];
+  const TREND_VALUES = ['Trend-following', 'Counter-trend', 'Consolidation'] as const;
+  const result: TradeTypeStats[] = [];
+  for (const trendValue of TREND_VALUES) {
+    const subset = trades.filter(t => (t.trend ?? '').trim() === trendValue);
+    if (subset.length > 0) {
+      const g = processGroup(trendValue, subset);
+      result.push({
+        tradeType: g.type,
+        total: g.total,
+        wins: g.wins,
+        losses: g.losses,
+        winRate: g.winRate,
+        winRateWithBE: g.winRateWithBE,
+        breakEven: g.breakEven,
+      });
+    }
+  }
+  return result.sort((a, b) => b.total - a.total);
+}
 
 

@@ -69,6 +69,479 @@
   }
 }
 
+/* Bounce pulse animation for loading indicator - sleek and smooth */
+@keyframes bounce-pulse {
+  0%, 100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scaleY(0.25);
+    opacity: 0.7;
+  }
+}
+
+.animate-bounce-pulse {
+  animation: bounce-pulse 0.9s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  transform-origin: bottom;
+  will-change: transform;
+}
+
+/* ── Equity-Curve Wave Animations ── */
+
+@keyframes equity-wave-draw {
+  0% { stroke-dashoffset: 2400; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes equity-fill-drift {
+  0%   { transform: translateY(0); opacity: 0; }
+  40%  { opacity: 1; }
+  50%  { transform: translateY(-6px); }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.equity-wave {
+  stroke-dasharray: 2400;
+}
+
+.equity-wave-fill {
+  animation: equity-fill-drift 3.5s ease-out forwards;
+  opacity: 0;
+}
+
+/* ── One-time wave sway (runs once after draw completes, then static) ── */
+@keyframes equity-wave-sway {
+  0%   { transform: translateY(0); }
+  30%  { transform: translateY(-8px); }
+  65%  { transform: translateY(4px); }
+  100% { transform: translateY(-3px); }
+}
+
+.equity-wave-1 {
+  will-change: transform;
+  animation:
+    equity-wave-draw 2.5s ease-out 0.6s forwards,
+    equity-wave-sway 5s ease-in-out 3.2s forwards;
+}
+.equity-wave-2 {
+  will-change: transform;
+  animation:
+    equity-wave-draw 2.5s ease-out 0.3s forwards,
+    equity-wave-sway 5s ease-in-out 2.9s forwards;
+}
+.equity-wave-3 {
+  will-change: transform;
+  animation:
+    equity-wave-draw 2.5s ease-out 0s forwards,
+    equity-wave-sway 5s ease-in-out 2.6s forwards;
+}
+.equity-wave-4 {
+  will-change: transform;
+  animation:
+    equity-wave-draw 2.5s ease-out 0.5s forwards,
+    equity-wave-sway 5s ease-in-out 3.1s forwards;
+}
+.equity-wave-5 {
+  will-change: transform;
+  animation:
+    equity-wave-draw 2.5s ease-out 0.8s forwards,
+    equity-wave-sway 5s ease-in-out 3.4s forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .equity-wave-1,
+  .equity-wave-2,
+  .equity-wave-3,
+  .equity-wave-4,
+  .equity-wave-5 {
+    animation: equity-wave-draw 2.5s ease-out var(--delay, 0s) forwards;
+  }
+}
+
+/* ── Trading bar grow + pulse animation (SVG rects) ── */
+
+@keyframes trading-bar-grow {
+  0% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bar-breathe {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+.trading-bar-svg {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  transform: scaleY(0);
+  opacity: 0;
+  animation: trading-bar-grow 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Subtle opacity pulse on 3 representative bars (GPU-composited, cheap) */
+.trading-bar-svg:nth-child(8),
+.trading-bar-svg:nth-child(13),
+.trading-bar-svg:nth-child(17) {
+  animation:
+    trading-bar-grow 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+    bar-breathe 4s ease-in-out 3s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trading-bar-svg {
+    animation: none;
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  .trading-bar-svg:nth-child(8),
+  .trading-bar-svg:nth-child(13),
+  .trading-bar-svg:nth-child(17) {
+    animation: none;
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* ── Comet path animations (CSS offset-path replaces SVG animateMotion — GPU composited) ── */
+
+@keyframes comet-travel {
+  from { offset-distance: 0%; }
+  to   { offset-distance: 100%; }
+}
+
+.comet-1 {
+  offset-path: path('M-50,700 C100,680 200,650 350,620 C500,590 550,540 650,480 C750,420 800,460 900,400 C1000,340 1050,280 1150,220 C1250,160 1300,100 1450,30');
+  offset-rotate: auto;
+  will-change: offset-distance;
+  animation: comet-travel 6s linear infinite;
+}
+.comet-2 {
+  offset-path: path('M-50,720 C80,700 180,670 330,640 C480,610 540,570 660,510 C780,450 830,470 940,410 C1050,350 1100,290 1200,230 C1300,170 1350,120 1460,50');
+  offset-rotate: auto;
+  will-change: offset-distance;
+  animation: comet-travel 8s linear infinite;
+}
+.comet-3 {
+  offset-path: path('M-50,680 C120,660 220,630 370,595 C520,560 570,510 680,450 C790,390 830,420 930,360 C1030,300 1080,240 1180,180 C1280,120 1330,70 1460,-10');
+  offset-rotate: auto;
+  will-change: offset-distance;
+  animation: comet-travel 10s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comet-1, .comet-2, .comet-3 {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* ── Header entrance animation ── */
+
+@keyframes header-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.header-entrance {
+  opacity: 0;
+  animation: header-fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.header-entrance-delay-1 { animation-delay: 0.1s; }
+.header-entrance-delay-2 { animation-delay: 0.25s; }
+.header-entrance-delay-3 { animation-delay: 0.4s; }
+.header-entrance-delay-4 { animation-delay: 0.55s; }
+.header-entrance-delay-5 { animation-delay: 0.7s; }
+.header-entrance-delay-6 { animation-delay: 0.85s; }
+.header-entrance-delay-7 { animation-delay: 1.0s; }
+
+/* ── Futuristic Landing Header Animations ── */
+
+@keyframes header-scan-line {
+  0% { transform: translateX(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
+@keyframes header-glow-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes header-border-flow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes header-logo-breathe {
+  0%, 100% { filter: drop-shadow(0 0 4px color-mix(in oklch, var(--tc-primary) 40%, transparent)); }
+  50% { filter: drop-shadow(0 0 12px color-mix(in oklch, var(--tc-primary) 70%, transparent)); }
+}
+
+.header-scan-line {
+  animation: header-scan-line 4s ease-in-out infinite;
+}
+
+.header-glow-pulse {
+  animation: header-glow-pulse 3s ease-in-out infinite;
+}
+
+.header-border-flow {
+  background-size: 200% 100%;
+  animation: header-border-flow 3s linear infinite;
+}
+
+.header-logo-breathe {
+  animation: header-logo-breathe 4s ease-in-out infinite;
+}
+
+/* Futuristic nav link glow hover */
+.futuristic-nav-link {
+  position: relative;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+.futuristic-nav-link:hover {
+  text-shadow: 0 0 8px color-mix(in oklch, var(--tc-primary) 60%, transparent),
+               0 0 20px color-mix(in oklch, var(--tc-primary) 30%, transparent);
+}
+.futuristic-nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  width: 0;
+  height: 1px;
+  background: var(--tc-primary);
+  box-shadow: 0 0 6px var(--tc-primary);
+  transition: width 0.3s ease, left 0.3s ease;
+}
+.futuristic-nav-link:hover::after {
+  width: 100%;
+  left: 0;
+}
+
+/* Futuristic CTA glow button */
+.futuristic-cta-glow {
+  position: relative;
+  overflow: visible;
+}
+.futuristic-cta-glow::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(90deg, transparent, var(--tc-primary), var(--tc-accent), transparent);
+  background-size: 200% 100%;
+  animation: header-border-flow 3s linear infinite;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+}
+
+/* HUD corner brackets for nav pill */
+.hud-brackets {
+  position: relative;
+}
+.hud-brackets::before,
+.hud-brackets::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+.hud-brackets::before {
+  top: -1px;
+  left: -1px;
+  border-top: 1px solid var(--tc-primary);
+  border-left: 1px solid var(--tc-primary);
+}
+.hud-brackets::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 1px solid var(--tc-primary);
+  border-right: 1px solid var(--tc-primary);
+}
+.hud-brackets:hover::before,
+.hud-brackets:hover::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-scan-line,
+  .header-glow-pulse,
+  .header-border-flow,
+  .header-logo-breathe,
+  .equity-wave,
+  .equity-wave-1,
+  .equity-wave-2,
+  .equity-wave-3,
+  .equity-wave-4,
+  .equity-wave-5,
+  .equity-wave-fill {
+    animation: none;
+  }
+  .equity-wave,
+  .equity-wave-1,
+  .equity-wave-2,
+  .equity-wave-3,
+  .equity-wave-4,
+  .equity-wave-5 {
+    stroke-dashoffset: 0;
+  }
+  .equity-wave-fill {
+    opacity: 1;
+  }
+  .header-entrance {
+    opacity: 1;
+    animation: none;
+  }
+  .futuristic-nav-link::after {
+    transition: none;
+  }
+  .futuristic-cta-glow::before {
+    animation: none;
+  }
+}
+
+/* ── Smooth scroll behavior ── */
+/* Handled via data-scroll-behavior="smooth" on <html> — see layout.tsx.
+   Next.js auto-disables smooth scrolling during route transitions. */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ── Hero parallax scroll effect ── */
+
+[data-parallax-speed] {
+  will-change: transform, opacity;
+  transition: none;
+}
+
+/* ── Scroll-triggered reveal animations ── */
+
+@keyframes scroll-reveal-up {
+  0% {
+    opacity: 0;
+    transform: translateY(32px);
+    filter: blur(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  filter: blur(6px);
+  will-change: opacity, transform, filter;
+}
+
+.scroll-reveal-visible {
+  animation: scroll-reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+/* Respect prefers-reduced-motion for scroll reveals */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  .scroll-reveal-visible {
+    animation: none;
+  }
+}
+
+/* ── Stats Board preview card animations ── */
+
+@keyframes sparkline-draw {
+  0% { stroke-dashoffset: 500; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes card-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes pnl-glow {
+  0%, 100% { box-shadow: 0 0 4px color-mix(in oklch, var(--tc-primary) 20%, transparent); }
+  50% { box-shadow: 0 0 14px color-mix(in oklch, var(--tc-primary) 50%, transparent); }
+}
+
+/* Float only starts after reveal finishes — both animations must coexist */
+.scroll-reveal-visible.stats-card-float {
+  animation:
+    scroll-reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+    card-float 5s ease-in-out 1s infinite;
+}
+
+.sparkline-path {
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+}
+
+.scroll-reveal-visible .sparkline-path {
+  animation: sparkline-draw 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.pnl-badge-glow {
+  animation: pnl-glow 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal-visible.stats-card-float { animation: none; }
+  .sparkline-path { stroke-dashoffset: 0; }
+  .scroll-reveal-visible .sparkline-path { animation: none; stroke-dashoffset: 0; }
+  .pnl-badge-glow { animation: none; }
+}
+
+/* Landing preview cards — disable clicks on buttons but keep them visible */
+.landing-preview-cards button,
+.landing-preview-cards a {
+  cursor: default !important;
+}
+/* Hide the archive/delete button */
+.landing-preview-cards .flex.items-center.justify-between.mt-auto > div:last-child {
+  display: none !important;
+}
+
+/* Landing preview cards — rounded corners */
+.landing-preview-cards > div {
+  border-radius: 0.75rem;
+}
+
 /* Prevent the date range picker from overflowing the viewport */
 .date-range-popup {
   right: 1rem !important;
@@ -95,17 +568,119 @@
 
 .rdrDateDisplayWrapper {
   background: transparent !important;
+  padding: 0 0.5rem !important; /* add vertical and horizontal spacing */
+}
+
+.rdrMonthAndYearWrapper {
+  padding-top:0 !important
+}
+
+.rdrCalendarWrapper {
+  background: transparent !important;
+}
+
+.rdrDateDisplay {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.rdrWeekDays .rdrWeekDay {
+  color: #64748b !important; /* slate-500 */
 }
 
 .rdrDateDisplayItem {
-  color: #64748b; /* slate-500 */
+  border-radius: 0.5rem !important; /* rounded-lg */
+  border: 1px solid rgba(148, 163, 184, 0.5) !important; /* slate-400/50 */
+  background-color: transparent !important;
+  padding: 0.5rem 1rem !important; /* increased padding for more space */
+  font-weight: 500 !important;
+  font-size: 0.875rem !important; /* text-sm */
+  transition: all 0.2s !important;
+  box-shadow: none !important;
+  color: var(--tc-primary) !important;
+  margin: 0 0.5rem !important; /* add horizontal spacing between date inputs */
 }
+
+.rdrDays {
+  font-size: 0.875rem !important; /* text-sm */
+}
+
+.rdrDateDisplayItem:hover {
+  background-color: transparent !important;
+  color: var(--tc-text) !important;
+}
+
 .rdrDateDisplayItemActive {
-  border-color: #64748b !important; /* slate-500 */
+  border-color: var(--tc-primary) !important;
+  background-color: transparent !important;
+  color: var(--tc-text) !important;
+  box-shadow: none !important;
+}
+
+.rdrDateDisplayItem input,
+.rdrDateDisplayItemActive input {
+  /* slate-800 */
+  color: #1e293b !important;
+}
+
+.rdrMonthAndYearPickers select {
+  background-color: transparent !important;
 }
 
 .rdrMonthAndYearPickers select:hover {
-  background-color: #f1f5f9 !important; /* slate-100 */
+  background-color: transparent !important;
+}
+
+/* Make dropdown arrows dark in light mode */
+.rdrMonthAndYearPickers select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23475569' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.5rem center !important;
+  background-size: 12px !important;
+  padding-right: 1.5rem !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+}
+
+/* Force selected range and dates to use theme (override library background: currentColor) */
+.rdrInRange,
+.rdrStartEdge,
+.rdrEndEdge,
+.rdrSelected {
+  background: var(--tc-primary) !important;
+  background-color: var(--tc-primary) !important;
+  color: #ffffff !important;
+}
+.rdrDayInRange,
+.rdrDayStartRange .rdrDayStartEdge,
+.rdrDayEndRange .rdrDayEndEdge,
+.rdrDayInRange .rdrInRange,
+.rdrDayStartRange .rdrInRange,
+.rdrDayEndRange .rdrInRange,
+.rdrDaySelected .rdrSelected,
+.rdrDayStartRange .rdrSelected,
+.rdrDayEndRange .rdrSelected {
+  background-color: var(--tc-primary) !important;
+  color: #ffffff !important;
+}
+.rdrDayInRange .rdrDayNumber span,
+.rdrDayStartRange .rdrDayNumber span,
+.rdrDayEndRange .rdrDayNumber span,
+.rdrDaySelected .rdrDayNumber span {
+  color: #ffffff !important;
+}
+
+.rdrDayDisabled {
+  background-color: transparent !important; /* slate-400/10 - subtle gray background for light mode */
+  color: #94a3b8 !important; /* slate-400 - muted text color */
+  cursor: not-allowed !important;
+}
+
+.rdrDayDisabled .rdrDayNumber,
+.rdrDayDisabled .rdrDayNumber span {
+  color: #94a3b8 !important; /* slate-400 - muted text color */
+  opacity: 0.7 !important;
 }
 
 .rdrDayDisabled .rdrInRange,
@@ -115,8 +690,156 @@
 .rdrDayDisabled .rdrDayStartPreview,
 .rdrDayDisabled .rdrDayInPreview,
 .rdrDayDisabled .rdrDayEndPreview {
-  opacity: 0.5;
+  opacity: 0.3 !important;
   filter: none !important;
+  background-color: rgba(148, 163, 184, 0.1) !important; /* subtle background */
+}
+
+/* Dark mode styles for disabled days */
+.dark .rdrDayDisabled {
+  background-color: transparent !important; /* slate-700/30 - darker background for dark mode */
+  color: #64748b !important; /* slate-500 - muted text color for dark mode */
+}
+
+.dark .rdrDayDisabled .rdrDayNumber,
+.dark .rdrDayDisabled .rdrDayNumber span {
+  color: #64748b !important; /* slate-500 - muted text color */
+  opacity: 0.5 !important;
+}
+
+.dark .rdrDayDisabled .rdrInRange,
+.dark .rdrDayDisabled .rdrStartEdge,
+.dark .rdrDayDisabled .rdrEndEdge,
+.dark .rdrDayDisabled .rdrSelected,
+.dark .rdrDayDisabled .rdrDayStartPreview,
+.dark .rdrDayDisabled .rdrDayInPreview,
+.dark .rdrDayDisabled .rdrDayEndPreview {
+  opacity: 0.3 !important;
+  filter: none !important;
+  background-color: rgba(51, 65, 85, 0.3) !important; /* darker background for dark mode */
+}
+
+/* Dark mode styles for date range picker */
+.dark .rdrDateDisplayItem input,
+.dark .rdrDateDisplayItemActive input {
+  color: #e2e8f0 !important; /* slate-200 - light text for dark background */
+}
+
+.dark .rdrDateDisplayItem {
+  color: #cbd5e1 !important; /* slate-300 - better contrast */
+  border-color: rgba(148, 163, 184, 0.3) !important; /* lighter border */
+}
+
+.dark .rdrDateDisplayItem:hover {
+  color: var(--tc-text-dark) !important;
+  border-color: var(--tc-border) !important;
+}
+
+.dark .rdrDateDisplayItemActive {
+  color: var(--tc-text-dark) !important;
+  border-color: var(--tc-primary) !important;
+}
+
+.dark .rdrWeekDays .rdrWeekDay {
+  color: #cbd5e1 !important; /* slate-300 - better contrast for week day headers */
+}
+
+.dark .rdrMonthAndYearPickers select {
+  color: #e2e8f0 !important; /* slate-200 - light text for month/year */
+  background-color: transparent !important;
+}
+
+.dark .rdrMonthAndYearPickers select:hover {
+  background-color: transparent !important;
+}
+
+/* Make dropdown arrows white in dark mode */
+.dark .rdrMonthAndYearPickers select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.5rem center !important;
+  background-size: 12px !important;
+  padding-right: 1.5rem !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+}
+
+.dark .rdrDay {
+  color: #ffffff !important; /* white text for unselected dates */
+}
+
+.dark .rdrDay .rdrDayNumber,
+.dark .rdrDay .rdrDayNumber span {
+  color: #ffffff !important; /* white text for all day numbers */
+}
+
+.dark .rdrDay:not(.rdrDayPassive):not(.rdrDaySelected):not(.rdrDayInRange) .rdrDayNumber span {
+  color: #ffffff !important; /* ensure unselected dates are white */
+  opacity: 1 !important; /* full opacity for current month dates */
+}
+
+.dark .rdrDay.rdrDayPassive {
+  color: #ffffff !important; /* white text for dates outside current month */
+  opacity: 0.4 !important; /* reduced opacity for past month days */
+}
+
+.dark .rdrDay.rdrDayPassive .rdrDayNumber,
+.dark .rdrDay.rdrDayPassive .rdrDayNumber span {
+  color: #ffffff !important; /* white text for passive days */
+  opacity: 0.4 !important; /* reduced opacity for past month days */
+}
+
+.dark .rdrDay.rdrDaySelected .rdrDayNumber span {
+  color: #ffffff !important; /* white text on selected dates */
+}
+
+.dark .rdrDay.rdrDayInRange .rdrDayNumber span {
+  color: #ffffff !important; /* white text in range */
+}
+
+.dark .rdrDay.rdrDayStartRange .rdrDayNumber span,
+.dark .rdrDay.rdrDayEndRange .rdrDayNumber span {
+  color: #ffffff !important; /* white text on start/end dates */
+}
+
+/* Dark mode styles for navigation arrows - only background, preserve arrow structure */
+.dark .rdrNextPrevButton {
+  background-color: rgba(51, 65, 85, 0.5) !important;
+}
+
+.dark .rdrNextPrevButton:hover {
+  background-color: rgba(71, 85, 105, 0.7) !important;
+}
+
+/* Make arrow icons white - react-date-range uses border triangles */
+/* Target navigation buttons container and style arrows based on position */
+.dark .rdrMonthAndYearPickers {
+  /* Container styles if needed */
+}
+
+/* First button (previous/left arrow) - right border creates left-pointing triangle */
+.dark .rdrMonthAndYearPickers button:first-of-type i,
+.dark .rdrNextPrevButton:first-of-type i {
+  border-left-color: transparent !important;
+  border-right-color: #ffffff !important;
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+}
+
+/* Last button (next/right arrow) - left border creates right-pointing triangle */
+.dark .rdrMonthAndYearPickers button:last-of-type i,
+.dark .rdrNextPrevButton:last-of-type i {
+  border-left-color: #ffffff !important;
+  border-right-color: transparent !important;
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+}
+
+/* Fallback: ensure all arrow icons have transparent top/bottom */
+.dark .rdrNextPrevButton i {
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
 }
 
 @theme inline {
@@ -198,4 +921,976 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ============================================================
+ * Color Theme System — CSS Custom Properties
+ * Each theme sets gradient variables + UI accent variables.
+ * Applied via data-color-theme attribute on <html>.
+ * Works in both light and dark modes.
+ * ============================================================ */
+
+/* Default (no theme selected) — soft equilibrium: purple-50/violet-50 at 60%/50% */
+:root {
+  --grad-from: #ffffff;
+  --grad-via: rgb(250 245 255 / 0.6);   /* Tailwind purple-50 #faf5ff at 60% — soft, no dominance */
+  --grad-to: rgb(245 243 255 / 0.5);    /* Tailwind violet-50 #f5f3ff at 50% */
+  /* Modal: stronger gradient (previous stable look) — purple-100/80, violet-100/70 */
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(243 232 255 / 0.8);   /* Tailwind purple-100 #f3e8ff at 80% */
+  --modal-grad-to: rgb(237 233 254 / 0.7);    /* Tailwind violet-100 #ede9fe at 70% */
+  --orb-1: rgb(168 85 247 / 0.08);      /* purple-500 #a855f7 */
+  --orb-2: rgb(139 92 246 / 0.08);      /* violet-500 #8b5cf6 */
+  --tc-primary: #a855f7;                 /* Tailwind purple-500 */
+  --tc-accent: #8b5cf6;                  /* Tailwind violet-500 */
+  --tc-accent-end: #c026d3;              /* Tailwind fuchsia-600 — 3-stop gradient end */
+  --tc-subtle: rgb(168 85 247 / 0.05);
+  --tc-border: rgb(168 85 247 / 0.3);
+  --tc-text: #7e22ce;                    /* Tailwind purple-700 */
+  --tc-text-dark: #c084fc;               /* Tailwind purple-400 */
+  /* Sidebar overlay gradient — from-X/5 via-transparent to-Y/5 */
+  --sidebar-overlay-from: rgb(168 85 247 / 0.05);   /* purple-500/5 */
+  --sidebar-overlay-to: rgb(217 70 239 / 0.05);     /* fuchsia-500/5 */
+}
+
+/* Light mode background */
+html {
+  background-color: #ffffff !important;
+  background-image: linear-gradient(
+    to bottom right,
+    var(--grad-from) 0%,
+    var(--grad-via) 50%,
+    var(--grad-to) 100%
+  ) !important;
+}
+
+html.dark {
+  --grad-from: #0d0a12;
+  --grad-via: #120d16;
+  --grad-to: #0f0a14;
+  --modal-grad-from: #0d0a12;
+  --modal-grad-via: #120d16;
+  --modal-grad-to: #0f0a14;
+  --orb-1: rgb(168 85 247 / 0.10);
+  --orb-2: rgb(139 92 246 / 0.10);
+  --tc-text: #c084fc;
+  background-color: #0d0a12 !important;
+  background-image: linear-gradient(
+    to bottom right,
+    var(--grad-from) 0%,
+    var(--grad-via) 50%,
+    var(--grad-to) 100%
+  ) !important;
+}
+
+/* === Palette 1: Midnight Blue + Electric Cyan — Tailwind sky/cyan (soft equilibrium like purple) === */
+html[data-color-theme="cyan"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(240 249 255 / 0.6);   /* Tailwind sky-50 #f0f9ff at 60% — soft, no dominance */
+  --grad-to: rgb(224 242 254 / 0.5);     /* Tailwind sky-100 #e0f2fe at 50% */
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(240 249 255 / 0.8);   /* sky-50 at 80% — modal: equilibrated like purple */
+  --modal-grad-to: rgb(224 242 254 / 0.7);     /* sky-100 at 70% */
+  --orb-1: rgb(6 182 212 / 0.08);        /* cyan-500 #06b6d4 */
+  --orb-2: rgb(14 165 233 / 0.08);       /* sky-500 #0ea5e9 */
+  --tc-primary: #06b6d4;                 /* Tailwind cyan-500 */
+  --tc-accent: #0ea5e9;                   /* Tailwind sky-500 */
+  --tc-accent-end: #0891b2;               /* Tailwind cyan-600 — 3-stop gradient end */
+  --tc-subtle: rgb(6 182 212 / 0.05);
+  --tc-border: rgb(6 182 212 / 0.3);
+  --tc-text: #0e7490;                    /* Tailwind cyan-700 */
+  --tc-text-dark: #22d3ee;                /* Tailwind cyan-400 */
+  --sidebar-overlay-from: rgb(6 182 212 / 0.05);    /* cyan-500/5 */
+  --sidebar-overlay-to: rgb(14 165 233 / 0.05);     /* sky-500/5 */
+}
+html.dark[data-color-theme="cyan"] {
+  --grad-from: #0d0a12;
+  --grad-via: #120d16;
+  --grad-to: #0f0a14;
+  --modal-grad-from: #0d0a12;
+  --modal-grad-via: #120d16;
+  --modal-grad-to: #0f0a14;
+  --orb-1: rgb(6 182 212 / 0.10);
+  --orb-2: rgb(14 165 233 / 0.10);
+  --tc-subtle: rgb(6 182 212 / 0.10);
+  --tc-border: rgb(6 182 212 / 0.25);
+  --tc-text: #22d3ee;
+}
+
+/* === Palette 2: Deep Navy + Royal Purple (soft equilibrium like other themes) === */
+html[data-color-theme="purple"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(250 245 255 / 0.6);   /* Tailwind purple-50 #faf5ff at 60% — soft, no dominance */
+  --grad-to: rgb(245 243 255 / 0.5);    /* Tailwind violet-50 #f5f3ff at 50% */
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(243 232 255 / 0.8);   /* purple-100 at 80% — modal: stable look */
+  --modal-grad-to: rgb(237 233 254 / 0.7);    /* violet-100 at 70% */
+  --orb-1: rgb(168 85 247 / 0.08);      /* purple-500 #a855f7 */
+  --orb-2: rgb(124 58 237 / 0.08);      /* violet-600 #7c3aed */
+  --tc-primary: #a855f7;                 /* Tailwind purple-500 */
+  --tc-accent: #7c3aed;                  /* Tailwind violet-600 */
+  --tc-accent-end: #c026d3;              /* Tailwind fuchsia-600 — 3-stop gradient end */
+  --tc-subtle: rgb(168 85 247 / 0.05);
+  --tc-border: rgb(168 85 247 / 0.3);
+  --tc-text: #7e22ce;
+  --tc-text-dark: #c084fc;
+  --sidebar-overlay-from: rgb(168 85 247 / 0.05);   /* purple-500/5 */
+  --sidebar-overlay-to: rgb(124 58 237 / 0.05);     /* violet-600/5 */
+}
+html.dark[data-color-theme="purple"] {
+  --grad-from: #0d0a12;
+  --grad-via: #120d16;
+  --grad-to: #0f0a14;
+  --modal-grad-from: #0d0a12;
+  --modal-grad-via: #120d16;
+  --modal-grad-to: #0f0a14;
+  --orb-1: rgb(168 85 247 / 0.10);
+  --orb-2: rgb(124 58 237 / 0.10);
+  --tc-subtle: rgb(168 85 247 / 0.10);
+  --tc-border: rgb(168 85 247 / 0.25);
+  --tc-text: #c084fc;
+}
+
+/* === Palette 3: Charcoal + Emerald — Tailwind emerald (soft equilibrium like purple) === */
+html[data-color-theme="emerald"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(236 253 245 / 0.6);    /* Tailwind emerald-50 #ecfdf5 at 60% — soft, no dominance */
+  --grad-to: rgb(209 250 229 / 0.5);     /* Tailwind emerald-100 #d1fae5 at 50% */
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(236 253 245 / 0.8);    /* emerald-50 at 80% — modal: equilibrated like purple */
+  --modal-grad-to: rgb(209 250 229 / 0.7);     /* emerald-100 at 70% */
+  --orb-1: rgb(16 185 129 / 0.08);       /* emerald-500 #10b981 */
+  --orb-2: rgb(5 150 105 / 0.08);        /* emerald-600 #059669 */
+  --tc-primary: #10b981;                 /* Tailwind emerald-500 */
+  --tc-accent: #059669;                   /* Tailwind emerald-600 */
+  --tc-accent-end: #047857;              /* Tailwind emerald-700 — 3-stop gradient end */
+  --tc-subtle: rgb(16 185 129 / 0.05);
+  --tc-border: rgb(16 185 129 / 0.3);
+  --tc-text: #047857;                    /* Tailwind emerald-700 */
+  --tc-text-dark: #34d399;               /* Tailwind emerald-400 */
+  --sidebar-overlay-from: rgb(16 185 129 / 0.05);  /* emerald-500/5 */
+  --sidebar-overlay-to: rgb(5 150 105 / 0.05);      /* emerald-600/5 */
+}
+html.dark[data-color-theme="emerald"] {
+  --grad-from: #0d0a12;
+  --grad-via: #120d16;
+  --grad-to: #0f0a14;
+  --modal-grad-from: #0d0a12;
+  --modal-grad-via: #120d16;
+  --modal-grad-to: #0f0a14;
+  --orb-1: rgb(16 185 129 / 0.10);
+  --orb-2: rgb(5 150 105 / 0.10);
+  --tc-subtle: rgb(16 185 129 / 0.10);
+  --tc-border: rgb(16 185 129 / 0.25);
+  --tc-text: #34d399;
+}
+
+/* === Palette 4: Black + Gold Premium — Tailwind amber (soft equilibrium like purple) === */
+html[data-color-theme="gold"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 251 235 / 0.6);    /* Tailwind amber-50 #fffbeb at 60% — soft, no dominance */
+  --grad-to: rgb(254 243 199 / 0.5);     /* Tailwind amber-100 #fef3c7 at 50% */
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 251 235 / 0.8);    /* amber-50 at 80% — modal: equilibrated like purple */
+  --modal-grad-to: rgb(254 243 199 / 0.7);     /* amber-100 at 70% */
+  --orb-1: rgb(245 158 11 / 0.08);       /* amber-500 #f59e0b */
+  --orb-2: rgb(217 119 6 / 0.08);        /* amber-600 #d97706 */
+  --tc-primary: #f59e0b;                 /* Tailwind amber-500 */
+  --tc-accent: #d97706;                   /* Tailwind amber-600 */
+  --tc-accent-end: #b45309;              /* Tailwind amber-700 — 3-stop gradient end */
+  --tc-subtle: rgb(245 158 11 / 0.05);
+  --tc-border: rgb(245 158 11 / 0.3);
+  --tc-text: #b45309;                    /* Tailwind amber-700 */
+  --tc-text-dark: #fbbf24;               /* Tailwind amber-400 */
+  --sidebar-overlay-from: rgb(245 158 11 / 0.05);  /* amber-500/5 */
+  --sidebar-overlay-to: rgb(217 119 6 / 0.05);      /* amber-600/5 */
+}
+html.dark[data-color-theme="gold"] {
+  --grad-from: #0d0a12;
+  --grad-via: #120d16;
+  --grad-to: #0f0a14;
+  --modal-grad-from: #0d0a12;
+  --modal-grad-via: #120d16;
+  --modal-grad-to: #0f0a14;
+  --orb-1: rgb(245 158 11 / 0.10);
+  --orb-2: rgb(217 119 6 / 0.10);
+  --tc-subtle: rgb(245 158 11 / 0.10);
+  --tc-border: rgb(245 158 11 / 0.25);
+  --tc-text: #fbbf24;
+}
+
+/* === Palette 5: Graphite + Ice Blue — Tailwind blue (soft equilibrium like purple) === */
+html[data-color-theme="ice"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(239 246 255 / 0.6);    /* Tailwind blue-50 #eff6ff at 60% — soft, no dominance */
+  --grad-to: rgb(219 234 254 / 0.5);     /* Tailwind blue-100 #dbeafe at 50% */
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(239 246 255 / 0.8);    /* blue-50 at 80% — modal: equilibrated like purple */
+  --modal-grad-to: rgb(219 234 254 / 0.7);     /* blue-100 at 70% */
+  --orb-1: rgb(59 130 246 / 0.08);       /* blue-500 #3b82f6 */
+  --orb-2: rgb(37 99 235 / 0.08);        /* blue-600 #2563eb */
+  --tc-primary: #3b82f6;                 /* Tailwind blue-500 */
+  --tc-accent: #2563eb;                   /* Tailwind blue-600 */
+  --tc-accent-end: #1d4ed8;              /* Tailwind blue-700 — 3-stop gradient end */
+  --tc-subtle: rgb(59 130 246 / 0.05);
+  --tc-border: rgb(59 130 246 / 0.3);
+  --tc-text: #1d4ed8;                    /* Tailwind blue-700 */
+  --tc-text-dark: #60a5fa;               /* Tailwind blue-400 */
+  --sidebar-overlay-from: rgb(59 130 246 / 0.05);  /* blue-500/5 */
+  --sidebar-overlay-to: rgb(37 99 235 / 0.05);      /* blue-600/5 */
+}
+html.dark[data-color-theme="ice"] {
+  --grad-from: #0d0a12;
+  --grad-via: #120d16;
+  --grad-to: #0f0a14;
+  --modal-grad-from: #0d0a12;
+  --modal-grad-via: #120d16;
+  --modal-grad-to: #0f0a14;
+  --orb-1: rgb(59 130 246 / 0.10);
+  --orb-2: rgb(37 99 235 / 0.10);
+  --tc-subtle: rgb(59 130 246 / 0.10);
+  --tc-border: rgb(59 130 246 / 0.25);
+  --tc-text: #60a5fa;
+}
+
+/* === Palette 6: Crimson Red === */
+html[data-color-theme="crimson"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 245 245 / 0.6);
+  --grad-to: rgb(255 240 240 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 235 235 / 0.8);
+  --modal-grad-to: rgb(255 225 225 / 0.7);
+  --orb-1: rgb(255 59 59 / 0.08);
+  --orb-2: rgb(153 27 27 / 0.08);
+  --tc-primary: #FF3B3B;
+  --tc-accent: #991B1B;
+  --tc-accent-end: #660000;
+  --tc-subtle: rgb(255 59 59 / 0.05);
+  --tc-border: rgb(255 59 59 / 0.3);
+  --tc-text: #991B1B;
+  --tc-text-dark: #FF6B6B;
+  --sidebar-overlay-from: rgb(255 59 59 / 0.05);
+  --sidebar-overlay-to: rgb(153 27 27 / 0.05);
+}
+html.dark[data-color-theme="crimson"] {
+  --grad-from: #0B0B0B;
+  --grad-via: #1a0a0a;
+  --grad-to: #0f0707;
+  --modal-grad-from: #0B0B0B;
+  --modal-grad-via: #1a0a0a;
+  --modal-grad-to: #0f0707;
+  --orb-1: rgb(255 59 59 / 0.10);
+  --orb-2: rgb(153 27 27 / 0.10);
+  --tc-subtle: rgb(255 59 59 / 0.10);
+  --tc-border: rgb(255 59 59 / 0.25);
+  --tc-text: #FF6B6B;
+}
+
+/* === Palette 7: Neon Pink === */
+html[data-color-theme="neon-pink"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 240 255 / 0.6);
+  --grad-to: rgb(255 235 255 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 225 255 / 0.8);
+  --modal-grad-to: rgb(255 210 255 / 0.7);
+  --orb-1: rgb(255 43 214 / 0.08);
+  --orb-2: rgb(192 38 211 / 0.08);
+  --tc-primary: #FF2BD6;
+  --tc-accent: #C026D3;
+  --tc-accent-end: #A00BA5;
+  --tc-subtle: rgb(255 43 214 / 0.05);
+  --tc-border: rgb(255 43 214 / 0.3);
+  --tc-text: #C026D3;
+  --tc-text-dark: #FF6BE9;
+  --sidebar-overlay-from: rgb(255 43 214 / 0.05);
+  --sidebar-overlay-to: rgb(192 38 211 / 0.05);
+}
+html.dark[data-color-theme="neon-pink"] {
+  --grad-from: #140F2A;
+  --grad-via: #1f1530;
+  --grad-to: #1a1228;
+  --modal-grad-from: #140F2A;
+  --modal-grad-via: #1f1530;
+  --modal-grad-to: #1a1228;
+  --orb-1: rgb(255 43 214 / 0.10);
+  --orb-2: rgb(192 38 211 / 0.10);
+  --tc-subtle: rgb(255 43 214 / 0.10);
+  --tc-border: rgb(255 43 214 / 0.25);
+  --tc-text: #FF6BE9;
+}
+
+/* === Palette 8: Steel Gray === */
+html[data-color-theme="steel-gray"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(245 248 250 / 0.6);
+  --grad-to: rgb(240 245 248 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(240 245 248 / 0.8);
+  --modal-grad-to: rgb(235 240 245 / 0.7);
+  --orb-1: rgb(138 143 152 / 0.08);
+  --orb-2: rgb(75 85 99 / 0.08);
+  --tc-primary: #8A8F98;
+  --tc-accent: #4B5563;
+  --tc-accent-end: #2a3547;
+  --tc-subtle: rgb(138 143 152 / 0.05);
+  --tc-border: rgb(138 143 152 / 0.3);
+  --tc-text: #4B5563;
+  --tc-text-dark: #B0B5C4;
+  --sidebar-overlay-from: rgb(138 143 152 / 0.05);
+  --sidebar-overlay-to: rgb(75 85 99 / 0.05);
+}
+html.dark[data-color-theme="steel-gray"] {
+  --grad-from: #111827;
+  --grad-via: #1f2937;
+  --grad-to: #1a202c;
+  --modal-grad-from: #111827;
+  --modal-grad-via: #1f2937;
+  --modal-grad-to: #1a202c;
+  --orb-1: rgb(138 143 152 / 0.10);
+  --orb-2: rgb(75 85 99 / 0.10);
+  --tc-subtle: rgb(138 143 152 / 0.10);
+  --tc-border: rgb(138 143 152 / 0.25);
+  --tc-text: #B0B5C4;
+}
+
+/* === Palette 9: Sunset Orange === */
+html[data-color-theme="sunset"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 245 235 / 0.6);
+  --grad-to: rgb(255 240 220 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 240 220 / 0.8);
+  --modal-grad-to: rgb(255 230 200 / 0.7);
+  --orb-1: rgb(255 122 24 / 0.08);
+  --orb-2: rgb(194 65 12 / 0.08);
+  --tc-primary: #FF7A18;
+  --tc-accent: #C2410C;
+  --tc-accent-end: #8B2500;
+  --tc-subtle: rgb(255 122 24 / 0.05);
+  --tc-border: rgb(255 122 24 / 0.3);
+  --tc-text: #C2410C;
+  --tc-text-dark: #FFB347;
+  --sidebar-overlay-from: rgb(255 122 24 / 0.05);
+  --sidebar-overlay-to: rgb(194 65 12 / 0.05);
+}
+html.dark[data-color-theme="sunset"] {
+  --grad-from: #121212;
+  --grad-via: #1e1e1e;
+  --grad-to: #1a1a1a;
+  --modal-grad-from: #121212;
+  --modal-grad-via: #1e1e1e;
+  --modal-grad-to: #1a1a1a;
+  --orb-1: rgb(255 122 24 / 0.10);
+  --orb-2: rgb(194 65 12 / 0.10);
+  --tc-subtle: rgb(255 122 24 / 0.10);
+  --tc-border: rgb(255 122 24 / 0.25);
+  --tc-text: #FFB347;
+}
+
+/* === Palette 10: Solar Yellow === */
+html[data-color-theme="solar"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 250 230 / 0.6);
+  --grad-to: rgb(255 245 210 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 245 200 / 0.8);
+  --modal-grad-to: rgb(255 240 180 / 0.7);
+  --orb-1: rgb(255 212 0 / 0.08);
+  --orb-2: rgb(250 204 21 / 0.08);
+  --tc-primary: #FFD400;
+  --tc-accent: #FACC15;
+  --tc-accent-end: #DCAF2A;
+  --tc-subtle: rgb(255 212 0 / 0.05);
+  --tc-border: rgb(255 212 0 / 0.3);
+  --tc-text: #DCAF2A;
+  --tc-text-dark: #FFE066;
+  --sidebar-overlay-from: rgb(255 212 0 / 0.05);
+  --sidebar-overlay-to: rgb(250 204 21 / 0.05);
+}
+html.dark[data-color-theme="solar"] {
+  --grad-from: #0A0A0A;
+  --grad-via: #151515;
+  --grad-to: #0f0f0f;
+  --modal-grad-from: #0A0A0A;
+  --modal-grad-via: #151515;
+  --modal-grad-to: #0f0f0f;
+  --orb-1: rgb(255 212 0 / 0.10);
+  --orb-2: rgb(250 204 21 / 0.10);
+  --tc-subtle: rgb(255 212 0 / 0.10);
+  --tc-border: rgb(255 212 0 / 0.25);
+  --tc-text: #FFE066;
+}
+
+/* === Palette 11: Indigo Night === */
+html[data-color-theme="indigo"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(240 245 255 / 0.6);
+  --grad-to: rgb(230 240 255 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(235 240 255 / 0.8);
+  --modal-grad-to: rgb(225 235 255 / 0.7);
+  --orb-1: rgb(99 102 241 / 0.08);
+  --orb-2: rgb(55 48 163 / 0.08);
+  --tc-primary: #6366F1;
+  --tc-accent: #3730A3;
+  --tc-accent-end: #1f1a60;
+  --tc-subtle: rgb(99 102 241 / 0.05);
+  --tc-border: rgb(99 102 241 / 0.3);
+  --tc-text: #3730A3;
+  --tc-text-dark: #9CA3FF;
+  --sidebar-overlay-from: rgb(99 102 241 / 0.05);
+  --sidebar-overlay-to: rgb(55 48 163 / 0.05);
+}
+html.dark[data-color-theme="indigo"] {
+  --grad-from: #0B1020;
+  --grad-via: #151a35;
+  --grad-to: #0f1428;
+  --modal-grad-from: #0B1020;
+  --modal-grad-via: #151a35;
+  --modal-grad-to: #0f1428;
+  --orb-1: rgb(99 102 241 / 0.10);
+  --orb-2: rgb(55 48 163 / 0.10);
+  --tc-subtle: rgb(99 102 241 / 0.10);
+  --tc-border: rgb(99 102 241 / 0.25);
+  --tc-text: #9CA3FF;
+}
+
+/* === Palette 12: Ocean Teal === */
+html[data-color-theme="teal"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(240 250 248 / 0.6);
+  --grad-to: rgb(225 245 240 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(225 245 240 / 0.8);
+  --modal-grad-to: rgb(210 240 235 / 0.7);
+  --orb-1: rgb(20 184 166 / 0.08);
+  --orb-2: rgb(15 118 110 / 0.08);
+  --tc-primary: #14B8A6;
+  --tc-accent: #0F766E;
+  --tc-accent-end: #004D47;
+  --tc-subtle: rgb(20 184 166 / 0.05);
+  --tc-border: rgb(20 184 166 / 0.3);
+  --tc-text: #0F766E;
+  --tc-text-dark: #5EE7D9;
+  --sidebar-overlay-from: rgb(20 184 166 / 0.05);
+  --sidebar-overlay-to: rgb(15 118 110 / 0.05);
+}
+html.dark[data-color-theme="teal"] {
+  --grad-from: #0A1A24;
+  --grad-via: #112630;
+  --grad-to: #0d1f28;
+  --modal-grad-from: #0A1A24;
+  --modal-grad-via: #112630;
+  --modal-grad-to: #0d1f28;
+  --orb-1: rgb(20 184 166 / 0.10);
+  --orb-2: rgb(15 118 110 / 0.10);
+  --tc-subtle: rgb(20 184 166 / 0.10);
+  --tc-border: rgb(20 184 166 / 0.25);
+  --tc-text: #5EE7D9;
+}
+
+/* === Palette 13: Silver Tech === */
+html[data-color-theme="silver"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(248 250 252 / 0.6);
+  --grad-to: rgb(245 248 250 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(245 248 250 / 0.8);
+  --modal-grad-to: rgb(240 245 248 / 0.7);
+  --orb-1: rgb(192 198 207 / 0.08);
+  --orb-2: rgb(107 114 128 / 0.08);
+  --tc-primary: #C0C6CF;
+  --tc-accent: #6B7280;
+  --tc-accent-end: #3f4652;
+  --tc-subtle: rgb(192 198 207 / 0.05);
+  --tc-border: rgb(192 198 207 / 0.3);
+  --tc-text: #6B7280;
+  --tc-text-dark: #D4DADF;
+  --sidebar-overlay-from: rgb(192 198 207 / 0.05);
+  --sidebar-overlay-to: rgb(107 114 128 / 0.05);
+}
+html.dark[data-color-theme="silver"] {
+  --grad-from: #0D0D0D;
+  --grad-via: #1a1a1a;
+  --grad-to: #121212;
+  --modal-grad-from: #0D0D0D;
+  --modal-grad-via: #1a1a1a;
+  --modal-grad-to: #121212;
+  --orb-1: rgb(192 198 207 / 0.10);
+  --orb-2: rgb(107 114 128 / 0.10);
+  --tc-subtle: rgb(192 198 207 / 0.10);
+  --tc-border: rgb(192 198 207 / 0.25);
+  --tc-text: #D4DADF;
+}
+
+/* === Palette 14: Burgundy Elite === */
+html[data-color-theme="burgundy"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 242 245 / 0.6);
+  --grad-to: rgb(255 235 240 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 225 235 / 0.8);
+  --modal-grad-to: rgb(255 210 225 / 0.7);
+  --orb-1: rgb(159 18 57 / 0.08);
+  --orb-2: rgb(76 5 25 / 0.08);
+  --tc-primary: #9F1239;
+  --tc-accent: #4C0519;
+  --tc-accent-end: #1a0208;
+  --tc-subtle: rgb(159 18 57 / 0.05);
+  --tc-border: rgb(159 18 57 / 0.3);
+  --tc-text: #4C0519;
+  --tc-text-dark: #D94B6F;
+  --sidebar-overlay-from: rgb(159 18 57 / 0.05);
+  --sidebar-overlay-to: rgb(76 5 25 / 0.05);
+}
+html.dark[data-color-theme="burgundy"] {
+  --grad-from: #0B0B0B;
+  --grad-via: #1a0a0f;
+  --grad-to: #0f0709;
+  --modal-grad-from: #0B0B0B;
+  --modal-grad-via: #1a0a0f;
+  --modal-grad-to: #0f0709;
+  --orb-1: rgb(159 18 57 / 0.10);
+  --orb-2: rgb(76 5 25 / 0.10);
+  --tc-subtle: rgb(159 18 57 / 0.10);
+  --tc-border: rgb(159 18 57 / 0.25);
+  --tc-text: #D94B6F;
+}
+
+/* === Palette 15: Copper Pro === */
+html[data-color-theme="copper"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 245 240 / 0.6);
+  --grad-to: rgb(255 240 230 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 235 220 / 0.8);
+  --modal-grad-to: rgb(255 230 210 / 0.7);
+  --orb-1: rgb(196 106 46 / 0.08);
+  --orb-2: rgb(146 64 14 / 0.08);
+  --tc-primary: #C46A2E;
+  --tc-accent: #92400E;
+  --tc-accent-end: #5a2305;
+  --tc-subtle: rgb(196 106 46 / 0.05);
+  --tc-border: rgb(196 106 46 / 0.3);
+  --tc-text: #92400E;
+  --tc-text-dark: #E0996B;
+  --sidebar-overlay-from: rgb(196 106 46 / 0.05);
+  --sidebar-overlay-to: rgb(146 64 14 / 0.05);
+}
+html.dark[data-color-theme="copper"] {
+  --grad-from: #0C0C0C;
+  --grad-via: #1a0f08;
+  --grad-to: #0f0a06;
+  --modal-grad-from: #0C0C0C;
+  --modal-grad-via: #1a0f08;
+  --modal-grad-to: #0f0a06;
+  --orb-1: rgb(196 106 46 / 0.10);
+  --orb-2: rgb(146 64 14 / 0.10);
+  --tc-subtle: rgb(196 106 46 / 0.10);
+  --tc-border: rgb(196 106 46 / 0.25);
+  --tc-text: #E0996B;
+}
+
+/* === Palette 16: Ruby Red === */
+html[data-color-theme="ruby"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 242 245 / 0.6);
+  --grad-to: rgb(255 235 240 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 225 235 / 0.8);
+  --modal-grad-to: rgb(255 210 225 / 0.7);
+  --orb-1: rgb(225 29 72 / 0.08);
+  --orb-2: rgb(159 18 57 / 0.08);
+  --tc-primary: #E11D48;
+  --tc-accent: #9F1239;
+  --tc-accent-end: #660018;
+  --tc-subtle: rgb(225 29 72 / 0.05);
+  --tc-border: rgb(225 29 72 / 0.3);
+  --tc-text: #9F1239;
+  --tc-text-dark: #FF5B7F;
+  --sidebar-overlay-from: rgb(225 29 72 / 0.05);
+  --sidebar-overlay-to: rgb(159 18 57 / 0.05);
+}
+html.dark[data-color-theme="ruby"] {
+  --grad-from: #0A0A0A;
+  --grad-via: #1a0a0f;
+  --grad-to: #0f0709;
+  --modal-grad-from: #0A0A0A;
+  --modal-grad-via: #1a0a0f;
+  --modal-grad-to: #0f0709;
+  --orb-1: rgb(225 29 72 / 0.10);
+  --orb-2: rgb(159 18 57 / 0.10);
+  --tc-subtle: rgb(225 29 72 / 0.10);
+  --tc-border: rgb(225 29 72 / 0.25);
+  --tc-text: #FF5B7F;
+}
+
+/* === Palette 17: Rose Pink === */
+html[data-color-theme="rose"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(255 245 250 / 0.6);
+  --grad-to: rgb(255 240 250 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(255 235 245 / 0.8);
+  --modal-grad-to: rgb(255 225 240 / 0.7);
+  --orb-1: rgb(244 114 182 / 0.08);
+  --orb-2: rgb(190 24 93 / 0.08);
+  --tc-primary: #F472B6;
+  --tc-accent: #BE185D;
+  --tc-accent-end: #831843;
+  --tc-subtle: rgb(244 114 182 / 0.05);
+  --tc-border: rgb(244 114 182 / 0.3);
+  --tc-text: #BE185D;
+  --tc-text-dark: #F99FCC;
+  --sidebar-overlay-from: rgb(244 114 182 / 0.05);
+  --sidebar-overlay-to: rgb(190 24 93 / 0.05);
+}
+html.dark[data-color-theme="rose"] {
+  --grad-from: #140C1F;
+  --grad-via: #1f1530;
+  --grad-to: #1a1228;
+  --modal-grad-from: #140C1F;
+  --modal-grad-via: #1f1530;
+  --modal-grad-to: #1a1228;
+  --orb-1: rgb(244 114 182 / 0.10);
+  --orb-2: rgb(190 24 93 / 0.10);
+  --tc-subtle: rgb(244 114 182 / 0.10);
+  --tc-border: rgb(244 114 182 / 0.25);
+  --tc-text: #F99FCC;
+}
+
+/* === Palette 18: Violet Pulse === */
+html[data-color-theme="violet"] {
+  --grad-from: #ffffff;
+  --grad-via: rgb(245 240 255 / 0.6);
+  --grad-to: rgb(240 235 255 / 0.5);
+  --modal-grad-from: #ffffff;
+  --modal-grad-via: rgb(240 230 255 / 0.8);
+  --modal-grad-to: rgb(235 220 255 / 0.7);
+  --orb-1: rgb(139 92 246 / 0.08);
+  --orb-2: rgb(91 33 182 / 0.08);
+  --tc-primary: #8B5CF6;
+  --tc-accent: #5B21B6;
+  --tc-accent-end: #38086d;
+  --tc-subtle: rgb(139 92 246 / 0.05);
+  --tc-border: rgb(139 92 246 / 0.3);
+  --tc-text: #5B21B6;
+  --tc-text-dark: #D8B4FE;
+  --sidebar-overlay-from: rgb(139 92 246 / 0.05);
+  --sidebar-overlay-to: rgb(91 33 182 / 0.05);
+}
+html.dark[data-color-theme="violet"] {
+  --grad-from: #0E0B20;
+  --grad-via: #1a1535;
+  --grad-to: #13102a;
+  --modal-grad-from: #0E0B20;
+  --modal-grad-via: #1a1535;
+  --modal-grad-to: #13102a;
+  --orb-1: rgb(139 92 246 / 0.10);
+  --orb-2: rgb(91 33 182 / 0.10);
+  --tc-subtle: rgb(139 92 246 / 0.10);
+  --tc-border: rgb(139 92 246 / 0.25);
+  --tc-text: #D8B4FE;
+}
+
+/* ============================================================
+ * Theme utility classes
+ * ============================================================ */
+
+/* Body gradient — Tailwind-style: to bottom right with explicit 0%, 50%, 100% stops */
+.app-gradient {
+  background: linear-gradient(
+    to bottom right,
+    var(--grad-from) 0%,
+    var(--grad-via) 50%,
+    var(--grad-to) 100%
+  );
+}
+
+/* Landing page: neutralize body gradient so grid + right-side glow shine through */
+.landing-page-override {
+  position: relative;
+}
+body:has(.landing-page-override),
+body.app-gradient:has(.landing-page-override) {
+  background: #ffffff !important;
+}
+:is(.dark) body:has(.landing-page-override),
+:is(.dark) body.app-gradient:has(.landing-page-override) {
+  background: #0d0a12 !important;
+}
+body:has(.landing-page-override) > .fixed.z-0 {
+  /* Hide the global orbs on the landing page */
+  display: none !important;
+}
+
+/* Modal background — theme-specific stronger gradient (stable modal look). Uses --modal-grad-* per theme. */
+.modal-bg-gradient {
+  background: linear-gradient(
+    to bottom right,
+    var(--modal-grad-from, var(--grad-from)) 0%,
+    var(--modal-grad-via, var(--grad-via)) 50%,
+    var(--modal-grad-to, var(--grad-to)) 100%
+  );
+}
+
+/* Gradient orbs */
+.orb-bg-1 { background-color: var(--orb-1); }
+.orb-bg-2 { background-color: var(--orb-2); }
+
+/* Top accent line (e.g. modal) — gradient uses theme primary */
+.themed-accent-line {
+  background: linear-gradient(to right, transparent, var(--tc-primary), transparent);
+  opacity: 0.6;
+}
+
+/* Modal header icon box (e.g. Add New Trade plus icon) — theme-aware. Also used for active Confidence/Mind state scale buttons. */
+.themed-header-icon-box {
+  background: linear-gradient(to bottom right, color-mix(in srgb, var(--tc-primary) 10%, transparent), color-mix(in srgb, var(--tc-accent) 10%, transparent));
+  border: 1px solid var(--tc-border);
+  color: var(--tc-primary);
+}
+.dark .themed-header-icon-box {
+  background: linear-gradient(to bottom right, color-mix(in srgb, var(--tc-primary) 20%, transparent), color-mix(in srgb, var(--tc-accent) 20%, transparent));
+}
+.themed-header-icon-box svg {
+  color: var(--tc-primary);
+}
+
+/* Active rating pill (Confidence / Mind state 1–5) — thin border/ring only, same as notes textarea focus, no bg */
+.themed-rating-active {
+  background-color: transparent !important;
+  background: none !important;
+  border-width: 1px !important;
+  border-color: var(--tc-primary) !important;
+  color: var(--tc-text) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--tc-primary) 20%, transparent) !important;
+}
+.dark .themed-rating-active {
+  background-color: transparent !important;
+  background: none !important;
+  border-width: 1px !important;
+  color: var(--tc-text-dark) !important;
+  border-color: var(--tc-primary) !important;
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--tc-primary) 20%, transparent) !important;
+}
+
+/* Active nav item — overrides hardcoded purple Tailwind classes */
+.themed-nav-active {
+  background-color: var(--tc-subtle) !important;
+  border-color: var(--tc-border) !important;
+  color: var(--tc-text) !important;
+}
+.dark .themed-nav-active {
+  color: var(--tc-text-dark) !important;
+  background-color: var(--tc-subtle) !important;
+  border-color: var(--tc-border) !important;
+}
+.themed-nav-active:hover {
+  background-color: color-mix(in oklch, var(--tc-primary) 15%, transparent) !important;
+  border-color: color-mix(in oklch, var(--tc-primary) 40%, transparent) !important;
+}
+
+/* Sidebar bar gradient overlay — from-X/5 via-transparent to-Y/5 per theme (see --sidebar-overlay-from/to) */
+.themed-sidebar-overlay {
+  background: linear-gradient(to bottom, var(--sidebar-overlay-from), transparent, var(--sidebar-overlay-to));
+}
+
+/* ---- Themed primary button (3-stop gradient: primary → accent → accent-end, theme-aware) ---- */
+.themed-btn-primary {
+  background-image: linear-gradient(
+    to right,
+    var(--tc-primary),
+    var(--tc-accent),
+    var(--tc-accent-end)
+  ) !important;
+  box-shadow:
+    0 4px 6px -1px color-mix(in oklch, var(--tc-primary) 30%, transparent),
+    0 2px 4px -2px color-mix(in oklch, var(--tc-primary) 20%, transparent) !important;
+  transition: filter 0.2s ease;
+}
+.themed-btn-primary:not(:disabled):hover {
+  filter: brightness(0.88);
+}
+
+/* ---- Themed input / select focus ring ---- */
+.themed-focus:focus,
+.themed-focus:focus-visible {
+  border-color: var(--tc-primary) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--tc-primary) 20%, transparent) !important;
+}
+
+/* Same border/ring as themed-focus — for selected trade card in side view */
+.themed-selected-card {
+  border-color: var(--tc-primary) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--tc-primary) 20%, transparent) !important;
+}
+
+/* ---- Themed mode badges (live, demo, backtesting) ---- */
+.themed-badge-live {
+  background-color: var(--tc-subtle) !important;
+  color: var(--tc-text) !important;
+  border-color: var(--tc-border) !important;
+}
+.dark .themed-badge-live {
+  color: var(--tc-text-dark) !important;
+  background-color: var(--tc-subtle) !important;
+  border-color: var(--tc-border) !important;
+}
+
+.themed-badge-demo {
+  background-color: var(--tc-subtle) !important;
+  color: var(--tc-text) !important;
+  border-color: var(--tc-border) !important;
+}
+.dark .themed-badge-demo {
+  color: var(--tc-text-dark) !important;
+  background-color: var(--tc-subtle) !important;
+  border-color: var(--tc-border) !important;
+}
+
+.themed-badge-backtesting {
+  background-color: var(--tc-subtle) !important;
+  color: var(--tc-text) !important;
+  border-color: var(--tc-border) !important;
+}
+.dark .themed-badge-backtesting {
+  color: var(--tc-text-dark) !important;
+  background-color: var(--tc-subtle) !important;
+  border-color: var(--tc-border) !important;
+}
+
+/* ---- Themed nav gradient overlay ---- */
+.themed-nav-overlay {
+  background: linear-gradient(to right, var(--orb-1), transparent, var(--orb-2));
+}
+/* Vertical variant — only for inside-strategy sidebar */
+.themed-nav-overlay--vertical {
+  background: linear-gradient(to bottom, var(--orb-1), transparent, var(--orb-2));
+}
+/* Diagonal variant — top-left to bottom-right, used for tooltip cards */
+.themed-nav-overlay--diagonal {
+  background: linear-gradient(to bottom right, var(--orb-1), transparent, var(--orb-2));
+}
+
+/* ---- Themed toggle (ViewModeToggle active state) ---- */
+.themed-toggle-active {
+  background-image: linear-gradient(to right, var(--tc-primary), var(--tc-accent)) !important;
+  box-shadow: 0 4px 6px -1px color-mix(in oklch, var(--tc-primary) 40%, transparent) !important;
+}
+
+/* ---- Themed icon button (navbar palette / theme toggle) ---- */
+.themed-icon-btn {
+  background-color: var(--tc-subtle) !important;
+  border: 1px solid var(--tc-border) !important;
+  color: var(--tc-text) !important;
+}
+.dark .themed-icon-btn {
+  color: var(--tc-text-dark) !important;
+}
+.themed-icon-btn:hover {
+  background-color: color-mix(in oklch, var(--tc-primary) 15%, transparent) !important;
+  border-color: color-mix(in oklch, var(--tc-primary) 40%, transparent) !important;
+}
+.dark .themed-icon-btn:hover {
+  color: var(--tc-text-dark) !important;
+}
+
+/* ---- Themed checkbox (checked state uses theme primary/accent) ---- */
+.themed-checkbox[data-state="checked"] {
+  background: linear-gradient(to right, var(--tc-primary), var(--tc-accent)) !important;
+  border-color: var(--tc-primary) !important;
+}
+.themed-checkbox:hover {
+  border-color: color-mix(in oklch, var(--tc-primary) 50%, transparent) !important;
+}
+
+/* ---- Themed section heading (e.g. Execution, Context, Performance) ---- */
+.themed-heading-accent {
+  color: var(--tc-text) !important;
+}
+.dark .themed-heading-accent {
+  color: var(--tc-text-dark) !important;
+}
+
+/* ---- Themed hover border (e.g. image placeholder containers) ---- */
+.themed-hover-border:hover {
+  border-color: var(--tc-primary) !important;
+}
+
+/* ---- Theme primary text (links, accents in Import Trades drop zone) ---- */
+.text-tc-primary {
+  color: var(--tc-primary);
+}
+
+/* ---- Badge color palettes — fixed per milestone tier, light + dark ---- */
+:root {
+  /* Rookie — copper */
+  --badge-rookie-bg: linear-gradient(to bottom right, rgb(196 106 46 / 0.18), rgb(146 64 14 / 0.12));
+  --badge-rookie-border: rgb(196 106 46 / 0.4);
+  --badge-rookie-text: #92400E;
+  /* Skilled — ice blue */
+  --badge-skilled-bg: linear-gradient(to bottom right, rgb(59 130 246 / 0.18), rgb(37 99 235 / 0.12));
+  --badge-skilled-border: rgb(59 130 246 / 0.4);
+  --badge-skilled-text: #1d4ed8;
+  /* Expert — emerald */
+  --badge-expert-bg: linear-gradient(to bottom right, rgb(16 185 129 / 0.18), rgb(5 150 105 / 0.12));
+  --badge-expert-border: rgb(16 185 129 / 0.4);
+  --badge-expert-text: #047857;
+  /* Master — royal purple */
+  --badge-master-bg: linear-gradient(to bottom right, rgb(168 85 247 / 0.18), rgb(124 58 237 / 0.12));
+  --badge-master-border: rgb(168 85 247 / 0.4);
+  --badge-master-text: #7e22ce;
+  /* Elite — burgundy */
+  --badge-elite-bg: linear-gradient(to bottom right, rgb(128 0 32 / 0.18), rgb(100 10 30 / 0.12));
+  --badge-elite-border: rgb(128 0 32 / 0.4);
+  --badge-elite-text: #800020;
+  /* Alpha — gold */
+  --badge-alpha-bg: linear-gradient(to bottom right, rgb(245 158 11 / 0.18), rgb(217 119 6 / 0.12));
+  --badge-alpha-border: rgb(245 158 11 / 0.4);
+  --badge-alpha-text: #b45309;
+}
+.dark {
+  --badge-rookie-bg: linear-gradient(to bottom right, rgb(196 106 46 / 0.22), rgb(146 64 14 / 0.16));
+  --badge-rookie-text: #E0996B;
+  --badge-skilled-bg: linear-gradient(to bottom right, rgb(59 130 246 / 0.22), rgb(37 99 235 / 0.16));
+  --badge-skilled-text: #60a5fa;
+  --badge-expert-bg: linear-gradient(to bottom right, rgb(16 185 129 / 0.22), rgb(5 150 105 / 0.16));
+  --badge-expert-text: #34d399;
+  --badge-master-bg: linear-gradient(to bottom right, rgb(168 85 247 / 0.22), rgb(124 58 237 / 0.16));
+  --badge-master-text: #c084fc;
+  --badge-elite-bg: linear-gradient(to bottom right, rgb(128 0 32 / 0.22), rgb(100 10 30 / 0.16));
+  --badge-elite-text: #e8a0b0;
+  --badge-alpha-bg: linear-gradient(to bottom right, rgb(245 158 11 / 0.22), rgb(217 119 6 / 0.16));
+  --badge-alpha-text: #fbbf24;
+}
+
+
+/* ---- Import Trades drop zone (theme-aware on hover/drag; neutral default) ---- */
+.import-drop-zone {
+  border-color: rgb(226 232 240); /* slate-200 */
+  background-color: rgb(248 250 252 / 0.5); /* slate-50/50 */
+}
+.dark .import-drop-zone {
+  border-color: rgb(51 65 85); /* slate-700 */
+  background-color: rgb(30 41 59 / 0.2); /* slate-800/20 */
+}
+.import-drop-zone:hover {
+  border-color: color-mix(in oklch, var(--tc-primary) 65%, transparent);
+  background-color: color-mix(in oklch, var(--tc-primary) 12%, transparent);
+}
+.dark .import-drop-zone:hover {
+  background-color: color-mix(in oklch, var(--tc-primary) 16%, transparent);
+}
+.import-drop-zone[data-dragging="true"] {
+  border-color: var(--tc-primary);
+  background-color: color-mix(in oklch, var(--tc-primary) 18%, transparent);
+}
+.dark .import-drop-zone[data-dragging="true"] {
+  background-color: color-mix(in oklch, var(--tc-primary) 20%, transparent);
 }

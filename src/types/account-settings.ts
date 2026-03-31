@@ -1,3 +1,21 @@
+import { AVAILABLE_CURRENCIES, TRADING_MODES } from '@/constants/accountSettings';
+
+export { AVAILABLE_CURRENCIES, TRADING_MODES };
+
+export type Currency = typeof AVAILABLE_CURRENCIES[number] | string; // support custom/unknown future currencies
+export type TradingMode = typeof TRADING_MODES[number] | string; // string fallback for DB/new/unlisted values
+
+export interface SavedNewsItem {
+  /** Stable UUID assigned at first save */
+  id: string;
+  /** Canonical (first/normalised) name for this news event */
+  name: string;
+  /** Impact rating: 1 = Low, 2 = Medium, 3 = High */
+  intensity: number;
+  /** Alternative spellings / names fuzzily merged into this entry */
+  aliases?: string[];
+}
+
 export interface AccountSettings {
   id: string;                         // uuid
   user_id: string;                    // uuid
@@ -9,27 +27,6 @@ export interface AccountSettings {
   mode: TradingMode;                  // max 50 chars
   is_active: boolean;
   description: string | null;
+  /** Per-account news event library for autocomplete */
+  saved_news?: SavedNewsItem[];
 }
-
-export const AVAILABLE_CURRENCIES = [
-  'USD',
-  'EUR',
-  'GBP',
-  'JPY',
-  'AUD',
-  'CAD',
-  'CHF',
-  'CNY',
-  'HKD',
-  'NZD'
-] as const;
-
-export type Currency = typeof AVAILABLE_CURRENCIES[number] | string; // support custom/unknown future currencies
-
-export const TRADING_MODES = [
-  'live',
-  'demo',
-  'backtesting',
-] as const;
-
-export type TradingMode = typeof TRADING_MODES[number] | string; // string fallback for DB/new/unlisted values

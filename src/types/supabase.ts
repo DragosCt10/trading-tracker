@@ -33,6 +33,28 @@ export interface Database {
           mode: 'live' | 'backtesting' | 'demo';
         };
         Update: Partial<Database['public']['Tables']['account_settings']['Row']>;
+        Relationships: never[];
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // user_settings (saved filters, feature flags)
+      user_settings: {
+        Row: {
+          user_id: string;
+          saved_news: Json;
+          saved_markets: Json;
+          feature_flags: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          saved_news?: Json;
+          saved_markets?: Json;
+          feature_flags?: Json;
+        };
+        Update: Partial<Omit<Database['public']['Tables']['user_settings']['Row'], 'user_id'>>;
+        Relationships: never[];
       };
 
       // ─────────────────────────────────────────────────────────────
@@ -43,8 +65,8 @@ export interface Database {
           id: string;
           user_id: string;
           account_id: string | null;
-          trade_link: string | null;
-          liquidity_taken: string | null;
+          trade_screens: string[] | null;
+          trade_screen_timeframes: string[] | null;
           trade_time: string; // time
           trade_date: string; // date
           day_of_week: string;
@@ -52,8 +74,9 @@ export interface Database {
           setup_type: string;
           liquidity: string;
           sl_size: number; // numeric(10,2)
-          direction: 'Long' | 'Short';
-          trade_outcome: 'Win' | 'Lose';
+          direction: string; // 'Long' | 'Short';
+          trade_outcome: string; // 'Win' | 'Lose';
+          session: string | null; // 'Sydney' | 'Tokyo' | 'London' | 'New York'
           break_even: boolean | null;
           reentry: boolean | null;
           news_related: boolean | null;
@@ -70,10 +93,18 @@ export interface Database {
           pnl_percentage: number | null;
           quarter: string | null;
           evaluation: string | null;
-          rr_hit_1_4: boolean | null;
           partials_taken: boolean | null;
           executed: boolean | null;
           launch_hour: boolean | null;
+          strategy_id: string | null; // Added
+          fvg_size: number | null; // e.g. 1, 1.5, 2, 2.5
+          trend: string | null;
+          confidence_at_entry: number | null; // 1–5 confidence at entry
+          mind_state_at_entry: number | null; // 1–5 mind state at entry
+          be_final_result: string | null; // When trade_outcome is BE: 'Win' | 'Lose' | null
+          trade_executed_at: string | null; // UTC ISO for session bucketing (NY/UK/Asia)
+          news_name: string | null;
+          news_intensity: number | null; // 1 | 2 | 3
         };
         Insert: Partial<Database['public']['Tables']['live_trades']['Row']> & {
           user_id: string;
@@ -84,10 +115,11 @@ export interface Database {
           setup_type: string;
           liquidity: string;
           sl_size: number;
-          direction: 'Long' | 'Short';
-          trade_outcome: 'Win' | 'Lose';
+          direction: string; // 'Long' | 'Short';
+          trade_outcome: string; // 'Win' | 'Lose';
         };
         Update: Partial<Database['public']['Tables']['live_trades']['Row']>;
+        Relationships: never[];
       };
 
       backtesting_trades: {
@@ -95,8 +127,8 @@ export interface Database {
           id: string;
           user_id: string;
           account_id: string | null;
-          trade_link: string | null;
-          liquidity_taken: string | null;
+          trade_screens: string[] | null;
+          trade_screen_timeframes: string[] | null;
           trade_time: string; // time
           trade_date: string; // date
           day_of_week: string;
@@ -104,8 +136,9 @@ export interface Database {
           setup_type: string;
           liquidity: string;
           sl_size: number; // numeric(10,2)
-          direction: 'Long' | 'Short';
-          trade_outcome: 'Win' | 'Lose';
+          direction: string; // 'Long' | 'Short';
+          trade_outcome: string; // 'Win' | 'Lose';
+          session: string | null; // 'Sydney' | 'Tokyo' | 'London' | 'New York'
           break_even: boolean | null;
           reentry: boolean | null;
           news_related: boolean | null;
@@ -122,10 +155,18 @@ export interface Database {
           pnl_percentage: number | null;
           quarter: string | null;
           evaluation: string | null;
-          rr_hit_1_4: boolean | null;
           partials_taken: boolean | null;
           executed: boolean | null;
           launch_hour: boolean | null;
+          strategy_id: string | null; // Added
+          fvg_size: number | null; // e.g. 1, 1.5, 2, 2.5
+          trend: string | null;
+          confidence_at_entry: number | null; // 1–5 confidence at entry
+          mind_state_at_entry: number | null; // 1–5 mind state at entry
+          be_final_result: string | null; // When trade_outcome is BE: 'Win' | 'Lose' | null
+          trade_executed_at: string | null; // UTC ISO for session bucketing (NY/UK/Asia)
+          news_name: string | null;
+          news_intensity: number | null; // 1 | 2 | 3
         };
         Insert: Partial<Database['public']['Tables']['backtesting_trades']['Row']> & {
           user_id: string;
@@ -136,10 +177,11 @@ export interface Database {
           setup_type: string;
           liquidity: string;
           sl_size: number;
-          direction: 'Long' | 'Short';
-          trade_outcome: 'Win' | 'Lose';
+          direction: string; // 'Long' | 'Short';
+          trade_outcome: string; // 'Win' | 'Lose';
         };
         Update: Partial<Database['public']['Tables']['backtesting_trades']['Row']>;
+        Relationships: never[];
       };
 
       demo_trades: {
@@ -147,8 +189,8 @@ export interface Database {
           id: string;
           user_id: string;
           account_id: string | null;
-          trade_link: string | null;
-          liquidity_taken: string | null;
+          trade_screens: string[] | null;
+          trade_screen_timeframes: string[] | null;
           trade_time: string; // time
           trade_date: string; // date
           day_of_week: string;
@@ -156,8 +198,9 @@ export interface Database {
           setup_type: string;
           liquidity: string;
           sl_size: number; // numeric(10,2)
-          direction: 'Long' | 'Short';
-          trade_outcome: 'Win' | 'Lose';
+          direction: string; // 'Long' | 'Short';
+          trade_outcome: string; // 'Win' | 'Lose';
+          session: string | null; // 'Sydney' | 'Tokyo' | 'London' | 'New York'
           break_even: boolean | null;
           reentry: boolean | null;
           news_related: boolean | null;
@@ -174,10 +217,18 @@ export interface Database {
           pnl_percentage: number | null;
           quarter: string | null;
           evaluation: string | null;
-          rr_hit_1_4: boolean | null;
           partials_taken: boolean | null;
           executed: boolean | null;
           launch_hour: boolean | null;
+          strategy_id: string | null; // Added
+          fvg_size: number | null; // e.g. 1, 1.5, 2, 2.5
+          trend: string | null;
+          confidence_at_entry: number | null; // 1–5 confidence at entry
+          mind_state_at_entry: number | null; // 1–5 mind state at entry
+          be_final_result: string | null; // When trade_outcome is BE: 'Win' | 'Lose' | null
+          trade_executed_at: string | null; // UTC ISO for session bucketing (NY/UK/Asia)
+          news_name: string | null;
+          news_intensity: number | null; // 1 | 2 | 3
         };
         Insert: Partial<Database['public']['Tables']['demo_trades']['Row']> & {
           user_id: string;
@@ -188,13 +239,222 @@ export interface Database {
           setup_type: string;
           liquidity: string;
           sl_size: number;
-          direction: 'Long' | 'Short';
-          trade_outcome: 'Win' | 'Lose';
+          direction: string; // 'Long' | 'Short';
+          trade_outcome: string; // 'Win' | 'Lose';
         };
         Update: Partial<Database['public']['Tables']['demo_trades']['Row']>;
+        Relationships: never[];
       };
 
-      // If backtesting/demo have extra/different columns, copy and adjust.
+      // ─────────────────────────────────────────────────────────────
+      // Duplicated: strategies table (identical structure)
+      strategies: {
+        Row: {
+          id: string;
+          user_id: string;
+          account_id: string;
+          name: string;
+          slug: string;
+          created_at: string;
+          updated_at: string;
+          is_active: boolean;
+          extra_cards: string[];
+          saved_setup_types: string[];
+          saved_liquidity_types: string[];
+          /** Pinned/favourite items per combobox kind (setup, liquidity, market, news). Max 10 per kind. */
+          saved_favourites: Record<string, string[]> | null;
+        };
+        Insert: {
+          user_id: string;
+          account_id: string;
+          name: string;
+          slug: string;
+          is_active?: boolean;
+          extra_cards?: string[];
+          saved_setup_types?: string[];
+          saved_liquidity_types?: string[];
+          saved_favourites?: Record<string, string[]> | null;
+        };
+        Update: Partial<{
+          id: string;
+          user_id: string;
+          account_id: string;
+          name: string;
+          slug: string;
+          created_at: string;
+          updated_at: string;
+          is_active: boolean;
+          extra_cards: string[];
+          saved_setup_types: string[];
+          saved_liquidity_types: string[];
+          saved_favourites: Record<string, string[]> | null;
+        }>;
+        Relationships: never[];
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // Phase 3: pre-computed per-strategy stats (updated via DB triggers)
+      strategy_stats_cache: {
+        Row: {
+          user_id:      string;
+          account_id:   string;
+          mode:         'live' | 'demo' | 'backtesting';
+          strategy_id:  string;
+          total_trades: number;
+          win_rate:     number;
+          avg_rr:       number;
+          total_rr:     number;
+          total_profit: number;
+          equity_curve: Json; // EquityCurvePoint[] stored as JSONB
+          updated_at:   string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: never[];
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // Public share links for strategy analytics
+      strategy_shares: {
+        Row: {
+          id: string;
+          share_token: string;
+          strategy_id: string;
+          account_id: string;
+          mode: 'live' | 'backtesting' | 'demo';
+          start_date: string; // date
+          end_date: string; // date
+          created_by: string;
+          created_at: string;
+          active: boolean;
+        };
+        Insert: Partial<Database['public']['Tables']['strategy_shares']['Row']> & {
+          strategy_id: string;
+          account_id: string;
+          mode: 'live' | 'backtesting' | 'demo';
+          start_date: string;
+          end_date: string;
+          created_by: string;
+        };
+        Update: Partial<Database['public']['Tables']['strategy_shares']['Row']>;
+        Relationships: never[];
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // Cache of precomputed analytics for a share link (one row per share)
+      share_stats_cache: {
+        Row: {
+          share_id: string;
+          stats: Record<string, unknown>;
+          updated_at: string;
+        };
+        Insert: {
+          share_id: string;
+          stats: Record<string, unknown>;
+          updated_at?: string;
+        };
+        Update: Partial<{
+          share_id: string;
+          stats: Record<string, unknown>;
+          updated_at: string;
+        }>;
+        Relationships: never[];
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // Subscription tiers
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          tier: 'starter' | 'pro' | 'elite';
+          status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'admin_granted' | 'refunded';
+          billing_period: 'monthly' | 'annual' | null;
+          provider: 'polar' | 'stripe' | 'paddle' | 'admin';
+          provider_subscription_id: string | null;
+          provider_customer_id: string | null;
+          current_period_start: string | null;
+          current_period_end: string | null;
+          cancel_at_period_end: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          tier?: 'starter' | 'pro' | 'elite';
+          status?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'admin_granted' | 'refunded';
+          billing_period?: 'monthly' | 'annual' | null;
+          provider?: 'polar' | 'stripe' | 'paddle' | 'admin';
+          provider_subscription_id?: string | null;
+          provider_customer_id?: string | null;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+        };
+        Update: Partial<{
+          id: string; user_id: string; tier: 'starter' | 'pro' | 'elite';
+          status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'admin_granted' | 'refunded';
+          billing_period: 'monthly' | 'annual' | null; provider: 'polar' | 'stripe' | 'paddle' | 'admin';
+          provider_subscription_id: string | null; provider_customer_id: string | null;
+          current_period_start: string | null; current_period_end: string | null;
+          cancel_at_period_end: boolean; created_at: string; updated_at: string;
+        }>;
+        Relationships: never[];
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // Super admin roles
+      admin_roles: {
+        Row: {
+          user_id: string;
+          role: 'super_admin';
+          granted_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          role?: 'super_admin';
+          granted_by?: string | null;
+        };
+        Update: Record<string, never>;
+        Relationships: never[];
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // Notes table
+      notes: {
+        Row: {
+          id: string;
+          user_id: string;
+          strategy_id: string | null;
+          title: string;
+          content: string;
+          created_at: string;
+          updated_at: string;
+          is_pinned: boolean | null;
+          tags: string[] | null;
+        };
+        Insert: {
+          user_id: string;
+          strategy_id?: string | null;
+          title: string;
+          content: string;
+          is_pinned?: boolean | null;
+          tags?: string[] | null;
+        };
+        Update: Partial<{
+          id: string;
+          user_id: string;
+          strategy_id: string | null;
+          title: string;
+          content: string;
+          created_at: string;
+          updated_at: string;
+          is_pinned: boolean | null;
+          tags: string[] | null;
+        }>;
+        Relationships: never[];
+      };
     };
     Views: {
       [_ in never]: never;

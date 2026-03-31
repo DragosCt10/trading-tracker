@@ -1,21 +1,10 @@
 // src/utils/calculateMacroStats.ts
 import { Trade } from '@/types/trade';
 import { MacroStats } from '@/types/dashboard';
-import { calculateTradeQualityIndex } from './calculateTradeQualityIndex';
+import { calculateTradeQualityIndex } from '@/utils/analyticsCalculations';
 import { calculateRRStats } from './calculateRMultiple';
-
-/** Simple sample‐based Sharpe ratio. */
-function calcSharpe(returns: number[]): number {
-  const n = returns.length;
-  if (n < 2) return 0;
-  const mean = returns.reduce((a, b) => a + b, 0) / n;
-  const variance =
-    returns
-      .map(r => (r - mean) ** 2)
-      .reduce((a, b) => a + b, 0) /
-    (n - 1);
-  return variance > 0 ? mean / Math.sqrt(variance) : 0;
-}
+import { calcSharpe } from '@/utils/helpers/mathHelpers';
+import { DEFAULT_RISK_PCT, DEFAULT_RR } from '@/constants/tradingDefaults';
 
 /**
  * Calculate profitFactor, consistency (excl-BE & incl-BE), Sharpe, and TQI.
@@ -33,9 +22,9 @@ export function calculateMacroStats(
 
   for (const t of trades) {
     const day = t.trade_date.slice(0, 10);
-    const pct = t.risk_per_trade ?? 0.5;
+    const pct = t.risk_per_trade ?? DEFAULT_RISK_PCT;
     const riskAmt = accountBalance * (pct / 100);
-    const rr = t.risk_reward_ratio ?? 2;
+    const rr = t.risk_reward_ratio ?? DEFAULT_RR;
 
     // — profitFactor (only non‐BE or BE with partials)
     const isRealTrade = !t.break_even || (t.break_even && t.partials_taken);

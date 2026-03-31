@@ -1,5 +1,35 @@
-import { redirect } from 'next/navigation';
+import { LandingHeader } from '@/components/landing/LandingHeader';
+import { LandingHero } from '@/components/landing/LandingHero';
+import { LandingStatsBoard } from '@/components/landing/LandingStatsBoard';
+import { LandingFeatures } from '@/components/landing/LandingFeatures';
+import { LandingPricing } from '@/components/pricing/LandingPricing';
 
 export default function Home() {
-  redirect('/dashboard');
+  if (process.env.NEXT_PUBLIC_UNDER_CONSTRUCTION === 'true') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-black text-white">
+        <div className="text-center space-y-4">
+          <div className="text-6xl font-bold tracking-tight">🚧</div>
+          <h1 className="text-4xl font-bold tracking-tight">Under Construction</h1>
+          <p className="text-zinc-400 text-lg">We&apos;re working on something great. Check back soon.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="landing-page-override w-full">
+      <LandingHeader />
+
+      <LandingHero />
+
+      <LandingStatsBoard />
+
+      <LandingFeatures />
+
+      {/* <div id="pricing" className="scroll-mt-20 mx-auto max-w-6xl px-4 pb-10">
+        <LandingPricing />
+      </div> */}
+    </div>
+  );
 } 

@@ -1,65 +1,42 @@
 import { Trade } from '@/types/trade';
 
-interface PartialTradesStats {
+export interface PartialTradesStats {
   partialWinningTrades: number;
   partialLosingTrades: number;
-  beWinPartialTrades: number;
-  beLosingPartialTrades: number;
-  partialWinRate: number; // without BE
-  partialWinRateWithBE: number; // with BE
+  /** Partial trades with outcome BE (break-even). */
+  partialBETrades: number;
   totalPartialTradesCount: number;
+  /** Same as partialBETrades (for backward compatibility). */
   totalPartialsBECount: number;
 }
 
 export function calculatePartialTradesStats(trades: Trade[]): PartialTradesStats {
   let partialWinningTrades = 0;
   let partialLosingTrades = 0;
-  let beWinPartialTrades = 0;
-  let beLosingPartialTrades = 0;
-
-  // For winrate calculations
-  let totalWithoutBE = 0;
-  let totalWithBE = 0;
-  let winsWithoutBE = 0;
-  let winsWithBE = 0;
+  let partialBETrades = 0;
 
   for (const trade of trades) {
     if (!trade.partials_taken) continue;
 
     if (trade.break_even) {
-      totalWithBE++;
-      if (trade.trade_outcome === 'Win') {
-        beWinPartialTrades++;
-        winsWithBE++;
-      } else {
-        beLosingPartialTrades++;
-      }
+      partialBETrades++;
     } else {
-      totalWithBE++;
-      totalWithoutBE++;
       if (trade.trade_outcome === 'Win') {
         partialWinningTrades++;
-        winsWithoutBE++;
-        winsWithBE++;
-      } else {
+      } else if (trade.trade_outcome === 'Lose') {
         partialLosingTrades++;
       }
     }
   }
 
-  const partialWinRate = totalWithoutBE > 0 ? (winsWithoutBE / totalWithoutBE) * 100 : 0;
-  const partialWinRateWithBE = totalWithBE > 0 ? (winsWithBE / totalWithBE) * 100 : 0;
-  const totalPartialTradesCount = partialWinningTrades + partialLosingTrades + beWinPartialTrades + beLosingPartialTrades;
-  const totalPartialsBECount = beWinPartialTrades + beLosingPartialTrades;
+  const totalPartialTradesCount =
+    partialWinningTrades + partialLosingTrades + partialBETrades;
 
   return {
     partialWinningTrades,
     partialLosingTrades,
-    beWinPartialTrades,
-    beLosingPartialTrades,
-    partialWinRate,
-    partialWinRateWithBE,
+    partialBETrades,
     totalPartialTradesCount,
-    totalPartialsBECount
+    totalPartialsBECount: partialBETrades,
   };
 }

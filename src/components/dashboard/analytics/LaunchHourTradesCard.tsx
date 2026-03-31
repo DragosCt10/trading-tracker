@@ -1,0 +1,310 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { Trade } from '@/types/trade';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from '@/components/ui/card';
+import { BouncePulse } from '@/components/ui/bounce-pulse';
+import { cn, formatPercent } from '@/lib/utils';
+import { useDarkMode } from '@/hooks/useDarkMode';
+
+export interface LaunchHourTradesCardProps {
+  filteredTrades: Trade[];
+  isLoading?: boolean;
+}
+
+/**
+ * Calculate launch hour trades statistics from trades array
+ * @param trades - Array of trades to compute stats from
+ * @returns Object containing launch hour trade statistics
+ */
+function CustomTooltip({ active, payload, isDark, totalForChart,
+}: { active?: boolean; payload?: readonly any[]; isDark?: boolean; totalForChart: number }) {
+  if (!active || !payload || payload.length === 0) return null;
+
+  const data = payload[0].payload;
+  const colorMap: Record<string, { text: string; dot: string }> = {
+    emerald: {
+      text: 'text-emerald-600 dark:text-emerald-400',
+      dot: 'bg-emerald-500 dark:bg-emerald-400 ring-emerald-200/50 dark:ring-emerald-500/30',
+    },
+    rose: {
+      text: 'text-rose-600 dark:text-rose-400',
+      dot: 'bg-rose-500 dark:bg-rose-400 ring-rose-200/50 dark:ring-rose-500/30',
+    },
+    slate: {
+      text: 'text-slate-600 dark:text-slate-300',
+      dot: 'bg-slate-500 dark:bg-slate-400 ring-slate-200/50 dark:ring-slate-500/30',
+    },
+  };
+  const colors = colorMap[data.color] || colorMap.emerald;
+  const percentage = totalForChart > 0 ? (data.value / totalForChart) * 100 : 0;
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-sm shadow-md shadow-slate-200/50 dark:shadow-none p-3 text-slate-900 dark:text-slate-100">
+      {isDark && <div className="themed-nav-overlay themed-nav-overlay--diagonal pointer-events-none absolute inset-0 rounded-2xl" />}
+      <div className="relative flex flex-col">
+        <div className="flex items-center gap-2">
+          <div className={cn('h-2 w-2 rounded-full shadow-sm ring-2', colors.dot)} />
+          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {data.name}: <span className={cn('font-bold', colors.text)}>{data.value}</span>
+          </div>
+        </div>
+        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 ml-4 font-medium">
+          {percentage.toFixed(1)}% of total
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function calculateLaunchHourStats(trades: Trade[]) {
+  const launchHourTrades = trades.filter((t) => t.launch_hour);
+  const totalLaunchHour = launchHourTrades.length;
+
+  const breakEven = launchHourTrades.filter((t) => t.break_even).length;
+  const wins = launchHourTrades.filter(
+    (t) => t.trade_outcome === 'Win' && !t.break_even,
+  ).length;
+  const losses = launchHourTrades.filter(
+    (t) => t.trade_outcome === 'Lose' && !t.break_even,
+  ).length;
+
+  const tradesWithoutBE = wins + losses;
+  const winRate =
+    tradesWithoutBE > 0 ? (wins / tradesWithoutBE) * 100 : 0;
+
+  const totalWithBE = wins + losses + breakEven;
+  const winRateWithBE =
+    totalWithBE > 0 ? (wins / totalWithBE) * 100 : 0;
+
+  return {
+    totalLaunchHour,
+    wins,
+    losses,
+    breakEven,
+    winRate,
+    winRateWithBE,
+  };
+}
+
+export const LaunchHourTradesCard: React.FC<LaunchHourTradesCardProps> = React.memo(
+  function LaunchHourTradesCard({ filteredTrades, isLoading: externalLoading }) {
+    const { mounted, isDark } = useDarkMode();
+    const [isLoading, setIsLoading] = useState(true);
+
+
+    useEffect(() => {
+      if (mounted) {
+        if (externalLoading !== undefined) {
+          if (externalLoading) {
+            const timer = setTimeout(() => setIsLoading(true), 0);
+            return () => clearTimeout(timer);
+          } else {
+            const timer = setTimeout(() => {
+              setIsLoading(false);
+            }, 600);
+            return () => clearTimeout(timer);
+          }
+        } else {
+          const timer = setTimeout(() => {
+            setIsLoading(false);
+          }, 1000);
+          return () => clearTimeout(timer);
+        }
+      }
+    }, [mounted, externalLoading]);
+
+    const stats = calculateLaunchHourStats(filteredTrades);
+    const {
+      totalLaunchHour,
+      wins,
+      losses,
+      breakEven,
+    } = stats;
+
+    // Prepare pie chart data (Wins, Losses, Break Even - one BE bucket)
+    const totalForChart = wins + losses + breakEven;
+    const pieData = [
+      { name: 'Wins', value: wins, color: 'emerald', percentage: totalForChart > 0 ? (wins / totalForChart) * 100 : 0 },
+      { name: 'Losses', value: losses, color: 'rose', percentage: totalForChart > 0 ? (losses / totalForChart) * 100 : 0 },
+      { name: 'Break Even', value: breakEven, color: 'slate', percentage: totalForChart > 0 ? (breakEven / totalForChart) * 100 : 0 },
+    ].filter((item) => item.value > 0); // Only show segments with values
+
+
+    if (!mounted || isLoading) {
+      return (
+        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[420px] flex flex-col">
+          <CardHeader className="pb-2 flex-shrink-0">
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+              Lunch Hour Trades
+            </CardTitle>
+            <CardDescription className="text-base text-slate-500 dark:text-slate-400">
+              Trades that were executed during the lunch hour
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 flex justify-center items-center">
+            <BouncePulse size="md" />
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (totalLaunchHour === 0) {
+      return (
+        <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[420px] flex flex-col">
+          <CardHeader className="pb-2 flex-shrink-0">
+            <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+              Lunch Hour Trades
+            </CardTitle>
+            <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
+              Trades that were executed during the lunch hour
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 flex flex-col items-center justify-center">
+            <div className="flex flex-col justify-center items-center w-full h-full">
+              <div className="text-base font-medium text-slate-600 dark:text-slate-300 text-center mb-1">
+                No lunch hour trades found
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs">
+                No lunch hour trades in this period.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <Card className="relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm h-[420px] flex flex-col">
+        <CardHeader className="pb-2 flex-shrink-0">
+          <CardTitle className="text-lg font-semibold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-1">
+            Lunch Hour Trades
+          </CardTitle>
+          <CardDescription className="text-base text-slate-500 dark:text-slate-400 mb-3">
+            Trades that were executed during the lunch hour
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col items-center justify-center relative pt-2 pb-4">
+          {/* Pie chart section - takes upper portion */}
+          <div className="flex-1 w-full flex items-center justify-center min-h-0 relative">
+            <div className="w-full h-full max-h-[200px] relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <defs>
+                    {/* Wins gradient - emerald */}
+                    <linearGradient id="launchHourWins" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+                      <stop offset="50%" stopColor="#14b8a6" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#0d9488" stopOpacity={0.9} />
+                    </linearGradient>
+                    {/* Losses gradient - rose */}
+                    <linearGradient id="launchHourLosses" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={1} />
+                      <stop offset="50%" stopColor="#fb7185" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#fda4af" stopOpacity={0.9} />
+                    </linearGradient>
+                    {/* Break Even gradient - slate */}
+                    <linearGradient id="launchHourBE" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#64748b" stopOpacity={1} />
+                      <stop offset="50%" stopColor="#475569" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#334155" stopOpacity={0.9} />
+                    </linearGradient>
+                  </defs>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={65}
+                    outerRadius={85}
+                    paddingAngle={5}
+                    cornerRadius={5}
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => {
+                      const gradientId = 
+                        entry.color === 'emerald' ? 'launchHourWins' :
+                        entry.color === 'rose' ? 'launchHourLosses' :
+                        'launchHourBE';
+                      return (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={`url(#${gradientId})`}
+                          stroke="none"
+                        />
+                      );
+                    })}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ background: 'transparent', border: 'none', padding: 0, boxShadow: 'none', minWidth: '160px' }}
+                    wrapperStyle={{
+                      outline: 'none',
+                      zIndex: 1000,
+                    }}
+                    cursor={{ fill: 'transparent', radius: 8 }}
+                    content={(props) => <CustomTooltip {...props} isDark={isDark} totalForChart={totalForChart} />}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              {/* Center content - positioned in the middle of the pie chart */}
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none z-10">
+                <div className={`font-bold text-slate-900 dark:text-slate-100 ${
+                  totalLaunchHour >= 1000 ? 'text-2xl' : 
+                  totalLaunchHour >= 100 ? 'text-2xl' : 
+                  'text-3xl'
+                }`}>
+                  {totalLaunchHour}
+                </div>
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1.5">
+                  Total Trades
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Wins / Losses / BE - same as ReentryTradesChartCard */}
+          <div className="w-full px-4 pt-4 mt-2">
+            <div className="flex items-center justify-center gap-8 w-fit mx-auto">
+              <div className="flex flex-col items-center">
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                  Wins
+                </div>
+                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                  {wins}
+                </div>
+              </div>
+              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+              <div className="flex flex-col items-center">
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                  Losses
+                </div>
+                <div className="text-lg font-bold text-rose-600 dark:text-rose-400">
+                  {losses}
+                </div>
+              </div>
+              <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+              <div className="flex flex-col items-center">
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                  BE
+                </div>
+                <div className="text-lg font-bold text-slate-600 dark:text-slate-300">
+                  {breakEven}
+                  {totalForChart > 0 && (
+                    <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-1">
+                      ({formatPercent((breakEven / totalForChart) * 100)}%)
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+);

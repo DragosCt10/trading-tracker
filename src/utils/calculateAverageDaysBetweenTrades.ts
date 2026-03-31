@@ -1,10 +1,12 @@
 export const calculateAverageDaysBetweenTrades = (trades: any[]) => {
   if (!trades || trades.length < 2) return 0;
   
-  // Sort trades by date
-  const sortedTrades = [...trades].sort((a, b) => 
-    new Date(a.trade_date).getTime() - new Date(b.trade_date).getTime()
-  );
+  // Sort trades by date. ISO YYYY-MM-DD strings sort lexicographically — no Date() needed.
+  const sortedTrades = [...trades].sort((a, b) => {
+    const da = (a.trade_date ?? '') as string;
+    const db = (b.trade_date ?? '') as string;
+    return da < db ? -1 : da > db ? 1 : 0;
+  });
 
   let totalDays = 0;
   for (let i = 1; i < sortedTrades.length; i++) {

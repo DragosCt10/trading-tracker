@@ -1,10 +1,17 @@
 'use client';
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useProgressDialog } from '@/hooks/useProgressDialog';
 import { useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/utils/supabase/client';
+import { createAccount, setActiveAccount } from '@/lib/server/accounts';
 import { useUserDetails } from '@/hooks/useUserDetails';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useQuery } from '@tanstack/react-query';
+import { getAllAccountsForUser } from '@/lib/server/accounts';
+import { queryKeys } from '@/lib/queryKeys';
+import { STATIC_DATA } from '@/constants/queryConfig';
+import { Loader2, UserPlus } from 'lucide-react';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -26,11 +33,11 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogCancel,
-  AlertDialogAction,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
+import type { TradingMode } from '@/types/trade';
 
-type Mode = 'live' | 'backtesting' | 'demo';
 type Currency = 'EUR' | 'USD' | 'GBP';
 
 export type AccountSettings = {
@@ -39,47 +46,48 @@ export type AccountSettings = {
   name: string;
   account_balance: number;
   currency: string;
-  mode: string;
+  mode: TradingMode;
   description: string | null;
   is_active: boolean;
 };
 
 interface CreateAccountAlertDialogProps {
   onCreated?: (created: AccountSettings) => void;
+  /** Optional extra class for the trigger button (e.g. w-full justify-start for lateral menu). */
+  triggerClassName?: string;
 }
 
-// toast
-function SuccessAlert({ message, onClose }: { message: string; onClose: () => void }) {
-  React.useEffect(() => {
-    const timer = setTimeout(onClose, 2500);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <div className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-none flex items-center gap-2">
-      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
-      <span className="text-green-800 font-normal">{message}</span>
-    </div>
-  );
-}
-
-export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialogProps) {
-  const supabase = createClient();
+export function CreateAccountAlertDialog({ onCreated, triggerClassName }: CreateAccountAlertDialogProps) {
   const queryClient = useQueryClient();
   const { data: userId } = useUserDetails();
+  const { isPro, subscription } = useSubscription({ userId: userId?.user?.id });
+
+  const { data: allAccounts } = useQuery({
+    queryKey: queryKeys.accounts(userId?.user?.id, 'all' as never),
+    queryFn: () => getAllAccountsForUser(userId!.user!.id),
+    enabled: !!userId?.user?.id && !isPro,
+    ...STATIC_DATA,
+  });
+
+  const maxAccounts = subscription?.definition.limits.maxAccounts ?? null;
+  const isAtAccountLimit = !isPro && maxAccounts !== null && (allAccounts?.length ?? 0) >= maxAccounts;
 
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const { error, setError } = useProgressDialog();
 
   const [name, setName] = useState('');
   const [balance, setBalance] = useState('');
   const [currency, setCurrency] = useState<Currency>('EUR');
-  const [mode, setMode] = useState<Mode>('live');
+  const [mode, setMode] = useState<TradingMode>('live');
   const [description, setDescription] = useState('');
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const isNameValid = name.trim().length > 0;
   const isBalanceValid =
@@ -118,184 +126,258 @@ export function CreateAccountAlertDialog({ onCreated }: CreateAccountAlertDialog
     }
 
     setSubmitting(true);
+
     try {
-      const { data, error: insertError } = await supabase
-        .from('account_settings')
-        .insert({
-          user_id: userId.user.id,
-          name,
-          account_balance: parsedBalance,
-          currency,
-          mode,
-          description: description || null,
-          is_active: false,
-        } as never)
-        .select('*')
-        .single(); // get created row
+      const { data, error: insertError } = await createAccount({
+        name: name.trim(),
+        account_balance: parsedBalance,
+        currency,
+        mode,
+        description: description.trim() || null,
+      });
 
       if (insertError) {
-        setError(insertError.message ?? 'Failed to create account.');
+        setError(insertError.message ?? 'Failed to create account. Please try again.');
+        setSubmitting(false);
+        return;
+      }
+
+      if (!data) {
+        setError('Failed to create account. Please try again.');
+        setSubmitting(false);
         return;
       }
 
       const createdAccount = data as AccountSettings;
 
-      // let parent know
+      await setActiveAccount(createdAccount.mode, createdAccount.id);
+
+      // Sync ActionBar's in-memory selection to the newly created account
+      queryClient.setQueryData(['actionBar:selection'], {
+        mode: createdAccount.mode,
+        activeAccount: createdAccount,
+      });
+
       onCreated?.(createdAccount);
 
-      // fallback: mark anything related stale
-      await queryClient.invalidateQueries();
-
+      // Close immediately — don't block on background refetches
       resetForm();
       setOpen(false);
-      setSuccess('Account created successfully!');
-    } finally {
+      setSubmitting(false);
+
+      // Refresh account-list queries in the background (new account must appear in dropdowns)
+      queryClient.invalidateQueries({
+        predicate: (q) => {
+          const key = q.queryKey?.[0] as string;
+          return key === 'accounts' || key === 'accounts:all' || key === 'accounts:list';
+        },
+      });
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to create account. Please check your data and try again.');
       setSubmitting(false);
     }
   };
 
+  if (!mounted) return null;
+
   return (
     <>
-      {success && <SuccessAlert message={success} onClose={() => setSuccess(null)} />}
-
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogTrigger asChild>
-          <Button type="button" size="sm" className="cursor-pointer w-full lg:w-auto">
-            New Account
+          <Button
+            type="button"
+            size="sm"
+            className={cn(
+              'themed-btn-primary cursor-pointer w-auto shrink-0 h-8 relative overflow-hidden rounded-xl text-white font-semibold border-0 px-2.5 group [&_svg]:text-white',
+              triggerClassName
+            )}
+          >
+            <span className="relative z-10 flex items-center justify-center gap-1.5 text-xs">
+              <UserPlus className="h-3.5 w-3.5" />
+              <span>Add</span>
+            </span>
+            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
           </Button>
         </AlertDialogTrigger>
 
-        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Create a new account</AlertDialogTitle>
-            <AlertDialogDescription>
-              Set up a new trading account. You can change these settings later.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+        <AlertDialogContent className="max-w-md fade-content data-[state=open]:fade-content data-[state=closed]:fade-content border border-slate-200/70 dark:border-slate-800/70 modal-bg-gradient text-slate-900 dark:text-slate-50 backdrop-blur-xl shadow-xl shadow-slate-900/20 dark:shadow-black/60 !rounded-2xl px-6 py-5">
+          {/* Gradient orbs background */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
+            <div
+              className="orb-bg-1 absolute -top-40 -left-32 w-[420px] h-[420px] rounded-full blur-3xl"
+            />
+            <div
+              className="orb-bg-2 absolute -bottom-40 -right-32 w-[420px] h-[420px] rounded-full blur-3xl"
+            />
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="account-name">Account name</Label>
-              <Input
-                id="account-name"
-                placeholder="My account"
-                className="shadow-none"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
+          {/* Noise texture overlay */}
+          <div
+            className="absolute inset-0 opacity-[0.015] dark:opacity-[0.02] mix-blend-overlay pointer-events-none rounded-2xl"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'repeat',
+            }}
+          />
 
-            <div className="grid grid-cols-2 gap-3">
+          {/* Top accent line */}
+          <div className="absolute -top-px left-0 right-0 h-0.5 opacity-60" style={{ background: 'linear-gradient(to right, transparent, var(--tc-primary), transparent)' }} />
+
+          <div className="relative">
+            <AlertDialogHeader className="space-y-1.5 mb-4">
+              <AlertDialogTitle className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                <div className="p-2 rounded-lg" style={{ background: 'var(--tc-subtle)', border: '1px solid var(--tc-border)' }}>
+                  <UserPlus className="h-5 w-5" style={{ color: 'var(--tc-primary)' }} />
+                </div>
+                <span>Create a new account</span>
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400">
+                Configure a trading account used to track your performance. You can adjust these
+                settings at any time.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <form onSubmit={handleSubmit} className="space-y-4 mt-2">
               <div className="space-y-1.5">
-                <Label htmlFor="account-balance">Balance</Label>
+                <Label
+                  htmlFor="account-name"
+                  className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                >
+                  Account name
+                </Label>
                 <Input
-                  id="account-balance"
-                  type="number"
-                  className="shadow-none"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  value={balance}
-                  onChange={(e) => setBalance(e.target.value)}
+                  id="account-name"
+                  placeholder="My account"
+                  className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   required
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="account-balance"
+                    className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                  >
+                    Balance
+                  </Label>
+                  <Input
+                    id="account-balance"
+                    type="number"
+                    className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300 text-slate-900 dark:text-slate-100"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={balance}
+                    onChange={(e) => setBalance(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Currency
+                  </Label>
+                  <Select
+                    value={currency}
+                    onValueChange={(val: Currency) => setCurrency(val)}
+                  >
+                    <SelectTrigger className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                      <SelectValue placeholder="Select currency" />
+                    </SelectTrigger>
+                    <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="GBP">GBP</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="space-y-1.5">
-                <Label>Currency</Label>
+                <Label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Mode
+                </Label>
                 <Select
-                  value={currency}
-                  onValueChange={(val: Currency) => setCurrency(val)}
+                  value={mode}
+                  onValueChange={(val: TradingMode) => setMode(val)}
                 >
-                  <SelectTrigger className="shadow-none">
-                    <SelectValue placeholder="Select currency" />
+                  <SelectTrigger className="themed-focus h-12 bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 transition-all duration-300">
+                    <SelectValue placeholder="Select mode" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
+                  <SelectContent className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50">
+                    <SelectItem value="live">Live</SelectItem>
+                    <SelectItem value="backtesting">Backtesting</SelectItem>
+                    <SelectItem value="demo">Demo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <Label>Mode</Label>
-              <Select
-                value={mode}
-                onValueChange={(val: Mode) => setMode(val)}
-              >
-                <SelectTrigger className="shadow-none">
-                  <SelectValue placeholder="Select mode" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="live">Live</SelectItem>
-                  <SelectItem value="backtesting">Backtesting</SelectItem>
-                  <SelectItem value="demo">Demo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="account-description"
+                  className="block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                >
+                  Description
+                </Label>
+                <Textarea
+                  className="themed-focus min-h-[80px] bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-all duration-300"
+                  id="account-description"
+                  placeholder="Optional notes about this account…"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                />
+                <p className="text-[10px] text-slate-500 dark:text-slate-500">
+                  For example: broker, strategy name, leverage details, or timeframe.
+                </p>
+              </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="account-description">Description</Label>
-              <Textarea
-                className="shadow-none"
-                id="account-description"
-                placeholder="Optional notes about this account…"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-              />
-            </div>
+              {error && (
+                <div className="rounded-lg bg-red-500/10 backdrop-blur-sm p-3 border border-red-500/20">
+                  <p className="text-xs text-red-500 dark:text-red-300 font-medium">
+                    {error}
+                  </p>
+                </div>
+              )}
 
-            {error && (
-              <p className="text-sm text-destructive mt-1">
-                {error}
-              </p>
-            )}
+              {isAtAccountLimit && (
+                <div className="rounded-lg bg-amber-500/10 backdrop-blur-sm p-3 border border-amber-500/20">
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">Account limit reached</p>
+                  <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5">
+                    Starter plan includes 1 account.{' '}
+                    <a href="/settings?tab=billing" className="underline font-medium hover:text-amber-700 dark:hover:text-amber-300">Upgrade to PRO</a>{' '}
+                    for unlimited accounts.
+                  </p>
+                </div>
+              )}
 
-            <AlertDialogFooter className="mt-4">
-              <AlertDialogCancel
-                type="button"
-                onClick={resetForm}
-                className="cursor-pointer"
-              >
-                Cancel
-              </AlertDialogCancel>
+              <AlertDialogFooter className="mt-4 flex items-center justify-between">
+                <AlertDialogCancel
+                  type="button"
+                  onClick={resetForm}
+                  className="cursor-pointer rounded-xl border border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80 dark:border-slate-700/80 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-slate-50 dark:hover:border-slate-600/80 px-4 py-2 text-sm font-medium transition-colors duration-200"
+                >
+                  Cancel
+                </AlertDialogCancel>
 
-              {/* Just a submit button – form + handleSubmit control closing */}
-              <Button
-                type="submit"
-                disabled={!canSubmit}
-                className="cursor-pointer"
-              >
-                {submitting && (
-                  <svg
-                    className="mr-2 h-4 w-4 animate-spin"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                      className="opacity-25"
-                    />
-                    <path
-                      className="opacity-90"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"
-                    />
-                  </svg>
-                )}
-                Create Account
-              </Button>
-            </AlertDialogFooter>
-          </form>
+                {/* Just a submit button – form + handleSubmit control closing */}
+                <Button
+                  type="submit"
+                  disabled={!canSubmit || isAtAccountLimit}
+                  className="themed-btn-primary cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 disabled:opacity-60"
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
+                    {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {submitting ? 'Creating account' : 'Create Account'}
+                  </span>
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+                </Button>
+              </AlertDialogFooter>
+            </form>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </>

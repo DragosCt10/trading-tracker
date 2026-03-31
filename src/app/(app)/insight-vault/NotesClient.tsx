@@ -1,0 +1,340 @@
+'use client';
+
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { Note } from '@/types/note';
+import { useActionBarSelection } from '@/hooks/useActionBarSelection';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Plus, Lightbulb, Loader2 } from 'lucide-react';
+import NoteDetailsModal from '@/components/dashboard/insight-vault/NoteDetailsModal';
+import NewNoteModal from '@/components/dashboard/insight-vault/NewNoteModal';
+import { NoteCard } from '@/components/dashboard/insight-vault/NoteCard';
+import { getNotes } from '@/lib/server/notes';
+import { getTradesForNoteLinking, type GetTradesForNoteLinkingResult } from '@/lib/server/trades';
+import { useStrategies } from '@/hooks/useStrategies';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+
+const ITEMS_PER_LOAD = 12;
+
+interface NotesClientProps {
+  initialUserId: string;
+}
+
+export default function NotesClient({
+  initialUserId,
+}: NotesClientProps) {
+  const queryClient = useQueryClient();
+  const { selection } = useActionBarSelection();
+  const accountId = selection.activeAccount?.id;
+  const userId = initialUserId;
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isNewNoteModalOpen, setIsNewNoteModalOpen] = useState(false);
+  const [selectedStrategy, setSelectedStrategy] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_LOAD);
+  const [mounted, setMounted] = useState(false);
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  const { strategies } = useStrategies({ userId, accountId });
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Prefetch first page of trades-for-linking so "Link trades" picker opens instantly (same key as modals when no strategy filter)
+  useEffect(() => {
+    const accountId = selection.activeAccount?.id ?? null;
+    if (!userId || !accountId || !selection.mode) return;
+    const mode = selection.mode as 'live' | 'backtesting' | 'demo';
+    const strategyIds: string[] | undefined = undefined;
+    queryClient.prefetchInfiniteQuery({
+      queryKey: ['tradesForNoteLinking', userId, mode, accountId, []],
+      queryFn: ({ pageParam }) =>
+        getTradesForNoteLinking(userId, mode, {
+          accountId,
+          strategyIds,
+          offset: pageParam as number,
+        }),
+      initialPageParam: 0,
+      getNextPageParam: (lastPage: GetTradesForNoteLinkingResult) => lastPage.nextOffset,
+      staleTime: 60 * 1000,
+    });
+  }, [userId, selection.mode, selection.activeAccount?.id, queryClient]);
+
+  // Fetch notes with React Query
+  const {
+    data: notes,
+    isLoading: notesLoading,
+    isFetching: notesFetching,
+  } = useQuery<Note[]>({
+    queryKey: ['notes', userId, selectedStrategy],
+    queryFn: async () => {
+      if (!userId) return [];
+      return getNotes(userId, {
+        strategyId: selectedStrategy === 'all' ? undefined : selectedStrategy === 'none' ? null : selectedStrategy,
+      });
+    },
+    enabled: !!userId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
+  });
+
+  const notesList = useMemo(() => notes ?? [], [notes]);
+
+  // Filter by search query (client-side)
+  const filteredNotes = useMemo(() => {
+    if (!searchQuery.trim()) return notesList;
+    const query = searchQuery.toLowerCase();
+    return notesList.filter(
+      (note) =>
+        note.title.toLowerCase().includes(query) ||
+        note.content.toLowerCase().includes(query)
+    );
+  }, [notesList, searchQuery]);
+
+  // Reset displayed count when filters change
+  useEffect(() => {
+    const timer = setTimeout(() => setDisplayedCount(ITEMS_PER_LOAD), 0);
+    return () => clearTimeout(timer);
+  }, [selectedStrategy, searchQuery]);
+
+  // Get displayed notes (for infinite scroll)
+  const displayedNotes = useMemo(() => {
+    return filteredNotes.slice(0, displayedCount);
+  }, [filteredNotes, displayedCount]);
+
+  const hasMore = displayedCount < filteredNotes.length;
+
+  // Refs so the observer callback always reads the latest values without needing to be recreated
+  const hasMoreRef = useRef(hasMore);
+  const notesLoadingRef = useRef(notesLoading);
+  const notesFetchingRef = useRef(notesFetching);
+  const filteredLengthRef = useRef(filteredNotes.length);
+  useLayoutEffect(() => {
+    hasMoreRef.current = hasMore;
+    notesLoadingRef.current = notesLoading;
+    notesFetchingRef.current = notesFetching;
+    filteredLengthRef.current = filteredNotes.length;
+  });
+
+  // Intersection Observer for infinite scroll — set up once after mount, never recreated
+  useEffect(() => {
+    if (!mounted) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreRef.current && !notesLoadingRef.current && !notesFetchingRef.current) {
+          setDisplayedCount((prev) => Math.min(prev + ITEMS_PER_LOAD, filteredLengthRef.current));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) observer.observe(currentTarget);
+    return () => observer.disconnect();
+  }, [mounted]);
+
+  const openModal = (note: Note) => {
+    setSelectedNote(note);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setSelectedNote(null);
+    setIsModalOpen(false);
+  };
+  const invalidateNotesForUser = () => {
+    queryClient.invalidateQueries({ queryKey: ['notes', userId] });
+  };
+
+  const handleNoteCreated = () => {
+    setIsNewNoteModalOpen(false);
+    invalidateNotesForUser();
+  };
+
+  const handleNoteUpdated = () => {
+    setIsModalOpen(false);
+    invalidateNotesForUser();
+  };
+
+  const handleNoteDeleted = () => {
+    setIsModalOpen(false);
+    invalidateNotesForUser();
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl shadow-sm themed-header-icon-box">
+              <Lightbulb className="w-6 h-6" style={{ color: 'var(--tc-primary)' }} />
+            </div>
+            <h1 className="text-3xl font-bold bg-gradient-to-br from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+              Insight Vault
+            </h1>
+          </div>
+          <Button
+            onClick={() => setIsNewNoteModalOpen(true)}
+            className="cursor-pointer relative overflow-hidden rounded-xl text-white font-semibold px-4 py-2 group border-0 themed-btn-primary shadow-md"
+          >
+            <span className="relative z-10 flex items-center justify-center gap-2 text-sm">
+              <Plus className="h-4 w-4" />
+              <span>New Insight</span>
+            </span>
+            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700" />
+          </Button>
+        </div>
+        <p className="text-sm text-slate-600 dark:text-slate-400 ml-[52px]">
+          Your vault of trading insights and knowledge. Store, organize, and unlock your strategic wisdom.
+        </p>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <Input
+            placeholder="Search insights..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="max-w-md h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300"
+          />
+        </div>
+        <div className="w-full sm:w-48">
+          <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
+            <SelectTrigger className="themed-focus h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 text-slate-900 dark:text-slate-50 transition-all duration-300">
+              <SelectValue placeholder="Filter by strategy" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Insights</SelectItem>
+              <SelectItem value="none">No Strategy</SelectItem>
+              {strategies.map((strategy) => (
+                <SelectItem key={strategy.id} value={strategy.id}>
+                  {strategy.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Notes Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {!mounted || notesLoading ? (
+          // Skeleton loader - matches NoteCard structure exactly
+          <>
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Card
+                key={`skeleton-${index}`}
+                className="relative overflow-hidden border-slate-200/60 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/30 shadow-none backdrop-blur-sm"
+              >
+                <CardContent className="p-6 flex flex-col h-full">
+                  {/* Title section - matches NoteCard title + pin structure */}
+                  <div className="flex items-start justify-between mb-4">
+                    <Skeleton className="h-6 w-full flex-1 pr-2" />
+                    {/* Optional pin icon skeleton - randomly show some */}
+                    {index % 3 === 0 && (
+                      <Skeleton className="h-4 w-4 flex-shrink-0 rounded" />
+                    )}
+                  </div>
+                  
+                  {/* Preview text section - matches NoteCard preview (line-clamp-3) */}
+                  <div className="mb-4 flex-1 space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </div>
+                  
+                  {/* Strategy and date section - matches NoteCard structure */}
+                  <div className="space-y-2 mb-4">
+                    {/* Strategy label + badges */}
+                    <div className="flex items-start gap-2 flex-wrap">
+                      <Skeleton className="h-3 w-16 mt-0.5" />
+                      <div className="flex flex-wrap gap-1.5">
+                        <Skeleton className="h-5 w-20 rounded-full" />
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </div>
+                    </div>
+                    {/* Date */}
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  
+                  {/* View Details button - matches NoteCard button with arrow */}
+                  <div className="inline-flex items-center mt-auto gap-1">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-4 rounded" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : displayedNotes.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <Lightbulb className="h-12 w-12 mx-auto mb-3 opacity-50" style={{ color: 'var(--tc-primary)' }} />
+            <p className="text-slate-500 dark:text-slate-400">
+              {searchQuery ? 'No insights found matching your search.' : 'Your vault is empty. Create your first insight!'}
+            </p>
+          </div>
+        ) : (
+          <>
+            {displayedNotes.map((note) => (
+              <NoteCard
+                key={note.id}
+                note={note}
+                onClick={() => openModal(note)}
+                userId={userId}
+              />
+            ))}
+            
+            {/* Infinite scroll trigger */}
+            {hasMore && (
+              <div ref={observerTarget} className="col-span-full flex justify-center py-4">
+                {notesFetching ? (
+                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Loading more notes...</span>
+                  </div>
+                ) : (
+                  <div className="h-4" /> // Spacer for intersection observer
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Note Details Modal */}
+      {selectedNote && (
+        <NoteDetailsModal
+          note={selectedNote}
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          onNoteUpdated={handleNoteUpdated}
+          onNoteDeleted={handleNoteDeleted}
+        />
+      )}
+
+      {/* New Note Modal */}
+      <NewNoteModal
+        isOpen={isNewNoteModalOpen}
+        onClose={() => setIsNewNoteModalOpen(false)}
+        onNoteCreated={handleNoteCreated}
+      />
+    </div>
+  );
+}

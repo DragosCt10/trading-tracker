@@ -3,14 +3,13 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Database } from '@/types/supabase';
+import type { TradingMode } from '@/types/trade';
 import { useCallback } from 'react';
-
-type Mode = 'live' | 'backtesting' | 'demo';
 
 type AccountRow = Database['public']['Tables']['account_settings']['Row'];
 
 type Selection = {
-  mode: Mode;
+  mode: TradingMode;
   activeAccount: AccountRow | null;
   description?: string;
   name?: string;
@@ -36,9 +35,9 @@ export function useActionBarSelection() {
   }, [queryClient]);
 
   return {
-    selection: data!,      // { mode, activeAccount }
-    setSelection,          // writer
-    key: KEY,              // (optional) exported key
-    actionBarloading: isLoading,    // loading state
+    selection: data!,
+    setSelection,
+    key: KEY,
+    actionBarloading: isLoading,
   };
 }

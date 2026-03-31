@@ -1,29 +1,70 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/utils/supabase/middleware';
-import { createClient } from '@/utils/supabase/server';
+import { safeRedirectTo } from '@/lib/safeRedirect';
+
+/** Paths that do not require an authenticated user (auth pages). */
+const AUTH_PATHS = ['/login', '/signup', '/reset-password', '/update-password', '/api/auth'];
+
+/** Public, read-only paths that should never force login (e.g. shared analytics). */
+const PUBLIC_PATHS = ['/', '/share', '/pricing'];
+
+function isAuthPath(pathname: string): boolean {
+  return AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+/** Apply security headers to a response. */
+function applySecurityHeaders(response: NextResponse): NextResponse {
+  const headers = new Headers(response.headers);
+  headers.set('X-Frame-Options', 'DENY');
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()');
+  return new NextResponse(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
 
 export async function proxy(request: NextRequest) {
-  // Update the session first
-  const response = await updateSession(request);
-  
-  // Check if the request is for the protected route
-  const url = new URL(request.url);
-  if (url.pathname === '/trades/new') {
-    // Create a Supabase client
-    const supabase = await createClient();
-    
-    // Get the session
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    // If no session, redirect to login
-    if (!session) {
-      const redirectUrl = new URL('/login', request.url);
-      redirectUrl.searchParams.set('redirectTo', url.pathname);
-      return NextResponse.redirect(redirectUrl);
-    }
+  const { pathname } = new URL(request.url);
+
+  if (isAuthPath(pathname) || isPublicPath(pathname)) {
+    const { response } = await updateSession(request);
+    // updateSession may redirect to /login if it doesn't recognize this auth path —
+    // override that redirect so the route handler always runs for auth/public pages.
+    const finalResponse =
+      response.status >= 300 && response.status < 400
+        ? NextResponse.next({ request })
+        : response;
+    return applySecurityHeaders(finalResponse);
   }
-  
-  return response;
+
+  // Protected pages: use the user already fetched by updateSession — no second getUser() call.
+  const { response, user } = await updateSession(request);
+
+  if (!user) {
+    const redirectUrl = new URL('/login', request.url);
+    const safePath = safeRedirectTo(pathname);
+    // Only add redirectTo for non-root paths so we don't get /login?redirectTo=%2F
+    if (safePath && safePath !== '/') redirectUrl.searchParams.set('redirectTo', safePath);
+    // Stale auth cookies mean the session was revoked (or expired) — show the banner
+    const authCookies = request.cookies.getAll().filter(c => c.name.startsWith('sb-'));
+    if (authCookies.length > 0) redirectUrl.searchParams.set('reason', 'session_replaced');
+    const redirectResponse = NextResponse.redirect(redirectUrl);
+    // Clear stale auth cookies so the login page Supabase client starts fresh
+    // and doesn't loop back to the protected route via cached session data.
+    for (const cookie of authCookies) {
+      redirectResponse.cookies.delete(cookie.name);
+    }
+    return applySecurityHeaders(redirectResponse);
+  }
+
+  return applySecurityHeaders(response);
 }
 
 export const config = {
@@ -35,7 +76,8 @@ export const config = {
      * - favicon.ico (favicon file)
      * - update-password (password update page)
      * - reset-password (password reset page)
+     * - api (API routes do their own auth; avoids duplicate Supabase auth calls)
      */
-    '/((?!_next/static|_next/image|favicon.ico|update-password|signup|reset-password|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|update-password|signup|reset-password|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
-}; 
+};
