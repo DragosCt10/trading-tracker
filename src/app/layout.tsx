@@ -13,6 +13,13 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'AlphaStats',
   description: 'Built for traders, by traders. Track performance and journal your trades.',
+  icons: {
+    icon: [
+      { url: '/icon-light.png', type: 'image/png', media: '(prefers-color-scheme: light)' },
+      { url: '/icon-dark.png', type: 'image/png', media: '(prefers-color-scheme: dark)' },
+    ],
+    apple: '/apple-icon.png',
+  },
 };
 
 export default function RootLayout({
