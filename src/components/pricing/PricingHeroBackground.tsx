@@ -1,94 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { generateBoxShadow } from '@/utils/generateBoxShadow';
-
-
 /**
- * Pricing page background adapted from the Web3 hero pattern.
- * Uses luminous gradient dome, hero-1 structural vertical border grid,
- * and a CSS box-shadow particle field in the header zone (same technique
- * as the landing page ParticleBackground).
- *
+ * Pricing page background.
+ * Uses luminous gradient dome and hero-1 structural vertical border grid.
  * Supports both light and dark modes via CSS custom properties.
  */
-
-const LAYERS = [
-  { count: 320, spread: 0.5, alpha: 0.25, duration: 50, dx: -80, dy: -60 },
-  { count: 140, spread: 0.8, alpha: 0.45, duration: 35, dx: -60, dy: -100 },
-  { count: 55,  spread: 1.2, alpha: 0.65, duration: 25, dx: -100, dy: -50 },
-] as const;
-
-
-function PricingParticles() {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const fadeDelays = [0.2, 0.8, 1.4];
-
-    LAYERS.forEach((layer, i) => {
-      const el = document.createElement('div');
-      el.style.cssText = `
-        position:absolute;
-        top:0;
-        left:0;
-        width:1px;
-        height:1px;
-        border-radius:50%;
-        background:transparent;
-        will-change:transform;
-        opacity:0;
-        box-shadow:${generateBoxShadow(layer.count, layer.spread, layer.alpha)};
-        animation:
-          pricing-drift-${i} ${layer.duration}s ease-in-out infinite alternate,
-          pricing-fade-in 1.2s cubic-bezier(0.16,1,0.3,1) ${fadeDelays[i]}s forwards;
-      `;
-      container.appendChild(el);
-    });
-  }, []);
-
-  return (
-    <div
-      ref={containerRef}
-      aria-hidden
-      style={{
-        position: 'absolute',
-        insetInline: 0,
-        top: 0,
-        height: '32%',
-        overflow: 'hidden',
-        zIndex: 1,
-        maskImage: 'linear-gradient(to bottom, white 20%, transparent 100%)',
-        WebkitMaskImage: 'linear-gradient(to bottom, white 20%, transparent 100%)',
-      }}
-    >
-      <style>{`
-        @keyframes pricing-drift-0 {
-          from { transform: translate(0, 0) }
-          to   { transform: translate(${LAYERS[0].dx}px, ${LAYERS[0].dy}px) }
-        }
-        @keyframes pricing-drift-1 {
-          from { transform: translate(0, 0) }
-          to   { transform: translate(${LAYERS[1].dx}px, ${LAYERS[1].dy}px) }
-        }
-        @keyframes pricing-drift-2 {
-          from { transform: translate(0, 0) }
-          to   { transform: translate(${LAYERS[2].dx}px, ${LAYERS[2].dy}px) }
-        }
-        @keyframes pricing-fade-in {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          [style*="pricing-fade-in"] { animation: none !important; opacity: 1 !important; }
-        }
-      `}</style>
-    </div>
-  );
-}
 
 export function PricingHeroBackground() {
   return (
@@ -127,9 +43,8 @@ export function PricingHeroBackground() {
 
         <div className="pricing-bg-root absolute inset-0">
 
-          {/* ── Particles + gradient dome ── */}
+          {/* ── Gradient dome ── */}
           <div className="absolute inset-0">
-            <PricingParticles />
 
             {/* Luminous gradient dome */}
             <div
