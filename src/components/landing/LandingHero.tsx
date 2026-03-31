@@ -255,6 +255,15 @@ export function LandingHero() {
         </svg>
       </div>
 
+      {/* Light — top-left corner */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+        style={{
+          background: 'radial-gradient(22% 80% at 15% 0%, color-mix(in oklch, var(--tc-primary) 12%, transparent), transparent)',
+        }}
+      />
+
       {/* Ambient glow — bottom-right */}
       <div
         aria-hidden
