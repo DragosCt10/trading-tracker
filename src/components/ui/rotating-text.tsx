@@ -29,9 +29,9 @@ const animations: Record<
     exit: { opacity: 0 },
   },
   blur: {
-    initial: { opacity: 0, filter: "blur(12px)" },
+    initial: { opacity: 0, filter: "blur(6px)" },
     animate: { opacity: 1, filter: "blur(0px)" },
-    exit: { opacity: 0, filter: "blur(12px)" },
+    exit: { opacity: 0, filter: "blur(6px)" },
   },
   flip: {
     initial: { rotateX: 90, opacity: 0 },
@@ -90,8 +90,8 @@ export function RotatingText({
           animate={animate}
           exit={exit}
           transition={{
-            duration: 0.5,
-            ease: [0.32, 0.72, 0, 1],
+            duration: 0.8,
+            ease: [0.25, 0.46, 0.45, 0.94],
           }}
         >
           {words[index]}
