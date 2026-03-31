@@ -537,14 +537,9 @@
   display: none !important;
 }
 
-/* Landing preview cards — hover lift + glow */
+/* Landing preview cards — rounded corners */
 .landing-preview-cards > div {
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
   border-radius: 0.75rem;
-}
-.landing-preview-cards > div:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 30px -6px color-mix(in oklch, var(--tc-primary) 25%, transparent);
 }
 
 /* Prevent the date range picker from overflowing the viewport */
