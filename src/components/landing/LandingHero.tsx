@@ -12,7 +12,7 @@ export function LandingHero() {
   return (
     <section ref={sectionRef} className="relative overflow-hidden">
       {/* Animated particle background */}
-      <ParticleBackground />
+      {/* <ParticleBackground /> */}
 
       {/* Equity-curve waves */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden" data-parallax-speed="-0.25">
