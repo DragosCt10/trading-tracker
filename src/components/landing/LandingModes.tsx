@@ -120,16 +120,11 @@ export function LandingModes() {
         }}
       />
 
-      {/* Ambient glow — right side */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute top-[15%] right-[-5%] h-[600px] w-[600px]"
-        style={{
-          background:
-            'radial-gradient(ellipse, color-mix(in oklch, var(--tc-primary) 10%, transparent) 0%, transparent 70%)',
-          filter: 'blur(100px)',
-        }}
-      />
+      {/* Theme orbs — mirrored right-to-left diagonal */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
+        <div className="absolute top-[20%] right-1/4 w-[500px] h-[500px] orb-bg-1 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] orb-bg-2 rounded-full blur-3xl" />
+      </div>
 
       <div className="relative z-[2] mx-auto max-w-6xl px-4 py-24 sm:py-32">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
