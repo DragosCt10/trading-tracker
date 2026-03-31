@@ -47,6 +47,11 @@ export function useParallax(entranceDelay = 0) {
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+    // Measure immediately so scroll calculations are always correct,
+    // even if the user scrolls before entrance animations finish.
+    measure();
+    window.addEventListener('resize', measure, { passive: true });
+
     const timer = setTimeout(() => {
       const section = sectionRef.current;
       if (!section) return;
@@ -61,10 +66,9 @@ export function useParallax(entranceDelay = 0) {
         });
       }
 
-      measure();
+      measure(); // Re-measure after animations settle
       onScroll();
       window.addEventListener('scroll', onScroll, { passive: true });
-      window.addEventListener('resize', measure, { passive: true });
     }, entranceDelay);
 
     return () => {
