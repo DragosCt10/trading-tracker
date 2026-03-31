@@ -6,7 +6,7 @@ import { safeRedirectTo } from '@/lib/safeRedirect';
 const AUTH_PATHS = ['/login', '/signup', '/reset-password', '/update-password', '/api/auth'];
 
 /** Public, read-only paths that should never force login (e.g. shared analytics). */
-const PUBLIC_PATHS = ['/', '/share', '/pricing'];
+const PUBLIC_PATHS = ['/', '/share', '/pricing', '/terms-of-service', '/privacy-policy', '/refund-policy'];
 
 function isAuthPath(pathname: string): boolean {
   return AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

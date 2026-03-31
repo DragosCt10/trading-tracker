@@ -26,6 +26,16 @@ const footerLinks = {
   ],
 };
 
+const LINKABLE_HREFS = new Set([
+  "/pricing",
+  "/#features",
+  "/privacy-policy",
+  "/terms-of-service",
+  "/refund-policy",
+  "/feed",
+  "/feed/rules",
+]);
+
 function FooterLink({
   href,
   children,
@@ -35,16 +45,21 @@ function FooterLink({
   children: React.ReactNode;
   className?: string;
 }) {
-  // Render as plain text styled as a link, but not actually a link
+  const linkClasses = cn(
+    "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors text-sm",
+    className
+  );
+
+  if (LINKABLE_HREFS.has(href)) {
+    return (
+      <Link href={href} className={linkClasses}>
+        {children}
+      </Link>
+    );
+  }
+
   return (
-    <span
-      className={cn(
-        "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors text-sm cursor-default",
-        className
-      )}
-    >
-      {children}
-    </span>
+    <span className={cn(linkClasses, "cursor-default")}>{children}</span>
   );
 }
 
