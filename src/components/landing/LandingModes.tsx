@@ -294,16 +294,16 @@ export function LandingModes() {
                   {/* Balance row */}
                   <div className="flex items-end justify-between">
                     <div>
-                      <p className="text-xs text-white/30 uppercase tracking-wider">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">
                         Balance
                       </p>
-                      <p className="mt-1 text-2xl font-bold text-white tracking-tight">
+                      <p className="mt-1 text-2xl font-bold text-foreground tracking-tight">
                         {MODE_CARD_DATA[activeIndex].balance}
-                        <span className="text-base text-white/30">{MODE_CARD_DATA[activeIndex].balanceCents}</span>
+                        <span className="text-base text-muted-foreground">{MODE_CARD_DATA[activeIndex].balanceCents}</span>
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-white/30 uppercase tracking-wider">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">
                         Today
                       </p>
                       <p className={`mt-1 text-sm font-semibold ${MODE_CARD_DATA[activeIndex].todayPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -313,7 +313,7 @@ export function LandingModes() {
                   </div>
 
                   {/* Divider */}
-                  <div className="mt-5 h-px bg-white/[0.06]" />
+                  <div className="mt-5 h-px bg-border/30" />
 
                   {/* Trade list */}
                   <div className="mt-4 space-y-3">
@@ -323,14 +323,14 @@ export function LandingModes() {
                         className="flex items-center justify-between"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.05] text-xs font-bold text-white/50">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted/30 text-xs font-bold text-muted-foreground">
                             {trade.symbol}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-white">
+                            <p className="text-sm font-medium text-foreground">
                               {trade.name}
                             </p>
-                            <p className="text-xs text-white/35">
+                            <p className="text-xs text-muted-foreground">
                               {trade.direction} &middot; {trade.rr} RR
                             </p>
                           </div>
@@ -345,23 +345,23 @@ export function LandingModes() {
                   </div>
 
                   {/* Bottom stat bar */}
-                  <div className="mt-5 flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/[0.04] px-4 py-3">
+                  <div className="mt-5 flex items-center justify-between rounded-xl bg-muted/10 border border-border/20 px-4 py-3">
                     <div className="text-center">
-                      <p className="text-[11px] text-white/30 uppercase tracking-wider">
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wider">
                         Win Rate
                       </p>
-                      <p className="mt-0.5 text-sm font-bold text-white">{MODE_CARD_DATA[activeIndex].winRate}</p>
+                      <p className="mt-0.5 text-sm font-bold text-foreground">{MODE_CARD_DATA[activeIndex].winRate}</p>
                     </div>
-                    <div className="h-6 w-px bg-white/[0.06]" />
+                    <div className="h-6 w-px bg-border/30" />
                     <div className="text-center">
-                      <p className="text-[11px] text-white/30 uppercase tracking-wider">
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wider">
                         Avg RR
                       </p>
-                      <p className="mt-0.5 text-sm font-bold text-white">{MODE_CARD_DATA[activeIndex].avgRR}</p>
+                      <p className="mt-0.5 text-sm font-bold text-foreground">{MODE_CARD_DATA[activeIndex].avgRR}</p>
                     </div>
-                    <div className="h-6 w-px bg-white/[0.06]" />
+                    <div className="h-6 w-px bg-border/30" />
                     <div className="text-center">
-                      <p className="text-[11px] text-white/30 uppercase tracking-wider">
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wider">
                         P&L
                       </p>
                       <p className={`mt-0.5 text-sm font-bold ${MODE_CARD_DATA[activeIndex].pnlPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
