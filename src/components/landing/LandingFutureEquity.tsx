@@ -47,23 +47,23 @@ const MOCK_TRADES = [
 const FEATURE_PILLS = [
   {
     icon: Shuffle,
-    title: '500 Monte Carlo Paths',
-    description: 'Random sequences sampled from your real trade history to model outcome variance.',
+    title: '500 Simulated Paths',
+    description: 'Your past trades, reshuffled into hundreds of possible futures.',
   },
   {
     icon: BarChart3,
-    title: 'Percentile Bands',
-    description: 'See the spread from 10th to 90th percentile at every future trade step.',
+    title: 'Probability Bands',
+    description: 'Visualise the full range of outcomes — from best to worst case.',
   },
   {
     icon: ToggleLeft,
-    title: 'R-Multiple & Dollar View',
-    description: 'Toggle between risk-unit and dollar P&L perspectives with one click.',
+    title: 'Dual Perspectives',
+    description: 'Switch between risk-unit and dollar views in one tap.',
   },
   {
     icon: TrendingUp,
-    title: '25 to 1,000 Trades',
-    description: 'Project your equity curve forward from 25 to 1,000 future trades.',
+    title: 'Up to 1,000 Trades Ahead',
+    description: 'Project your edge forward and see how far it can take you.',
   },
 ];
 
@@ -74,22 +74,22 @@ const TOOLTIP_STEPS = [
     left: '12%',
     label: 'Trade #5',
     color: 'var(--tc-primary, #8b5cf6)',
-    title: 'Upper bands',
-    desc: 'Purple area = top 25% of simulations. Your best realistic scenarios.',
+    title: 'Upside potential',
+    desc: 'Purple zone — your most favourable projected outcomes.',
   },
   {
     left: '42%',
     label: 'Trade #20',
     color: 'var(--tc-primary, #8b5cf6)',
-    title: 'Median line',
-    desc: 'Half of all 500 paths finished above this line, half below.',
+    title: 'Expected path',
+    desc: 'The median line — the most likely trajectory for your equity.',
   },
   {
     left: '78%',
     label: 'Trade #40',
     color: '#f43f5e',
-    title: 'Lower bands',
-    desc: 'Red area = bottom 25% of simulations. Worst realistic scenarios.',
+    title: 'Downside range',
+    desc: 'Red zone — preparing you for less favourable stretches.',
   },
 ];
 
@@ -221,8 +221,8 @@ export function LandingFutureEquity() {
           className="scroll-reveal mt-5 text-base text-muted-foreground leading-relaxed max-w-lg"
           style={{ '--reveal-delay': '200ms' } as React.CSSProperties}
         >
-          Monte Carlo simulation runs 500 random sequences from your real trades
-          to project where your equity could land — from worst to best case.
+          Your past trades, reshuffled into hundreds of possible futures.
+          See where your edge could take you — and how to prepare for every path.
         </p>
 
         {/* ── Perspective card preview + floating tooltips ── */}
