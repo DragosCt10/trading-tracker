@@ -2,7 +2,7 @@ import { LandingHeader } from '@/components/landing/LandingHeader';
 import { LandingHero } from '@/components/landing/LandingHero';
 import { LandingStatsBoard } from '@/components/landing/LandingStatsBoard';
 import { LandingModes } from '@/components/landing/LandingModes';
-import { LandingFeatures } from '@/components/landing/LandingFeatures';
+import { LandingFutureEquity } from '@/components/landing/LandingFutureEquity';
 import { LandingDailyJournal } from '@/components/landing/LandingDailyJournal';
 import { LandingCustomStats } from '@/components/landing/LandingCustomStats';
 import { LandingPricing } from '@/components/pricing/LandingPricing';
@@ -34,7 +34,7 @@ export default function Home() {
 
       <LandingCustomStats />
 
-      <LandingFeatures />
+      <LandingFutureEquity />
 
       {/* <div id="pricing" className="scroll-mt-20 mx-auto max-w-6xl px-4 pb-10">
         <LandingPricing />
