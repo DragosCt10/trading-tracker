@@ -295,7 +295,7 @@ export function LandingDailyJournal() {
   const sectionRef = useScrollReveal<HTMLElement>();
   const cardRef = useRef<HTMLDivElement>(null);
   const comparisonRef = useRef<HTMLDivElement>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const expandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -304,34 +304,7 @@ export function LandingDailyJournal() {
     setIsExpanded((prev) => !prev);
   }, []);
 
-  /* Auto-expand on enter, collapse on leave — repeatable */
-  useEffect(() => {
-    const card = cardRef.current;
-    if (!card) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          expandTimerRef.current = setTimeout(() => {
-            setIsExpanded(true);
-          }, 500);
-        } else {
-          if (expandTimerRef.current) {
-            clearTimeout(expandTimerRef.current);
-            expandTimerRef.current = null;
-          }
-          setIsExpanded(false);
-        }
-      },
-      { threshold: 0.3 },
-    );
-
-    observer.observe(card);
-    return () => {
-      observer.disconnect();
-      if (expandTimerRef.current) clearTimeout(expandTimerRef.current);
-    };
-  }, []);
+  /* Auto-expand/collapse removed — card starts expanded */
 
   /* ── Slider drag handling ── */
 
