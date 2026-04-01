@@ -134,11 +134,6 @@ const STEPS = [
   },
 ] as const;
 
-const blurTransition = {
-  duration: 0.35,
-  ease: [0.25, 0.46, 0.45, 0.94],
-} as const;
-
 /* ── Step 1: Modal mockup using real CustomStatModal components ── */
 
 const noop = () => {};
@@ -581,19 +576,20 @@ function CardMockup() {
 /* ── Step 3: Detail dashboard mockup ── */
 
 /* Mock trades for real dashboard components in Step 3 */
-const MOCK_DASHBOARD_TRADES: Trade[] = [
-  { id: 'm1', trade_date: '2026-01-06', trade_time: '09:30', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 420, risk_reward: 2.5, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm2', trade_date: '2026-01-07', trade_time: '10:15', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 380, risk_reward: 2.0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm3', trade_date: '2026-01-08', trade_time: '09:45', market: 'DAX', direction: 'Long', trade_outcome: 'Lose', calculated_profit: -150, risk_reward: 0, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-  { id: 'm4', trade_date: '2026-01-09', trade_time: '10:00', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 580, risk_reward: 3.2, risk_percentage: 0.5, executed: true, break_even: false, strategy_id: '', user_id: '', created_at: '', updated_at: '' },
-] as unknown as Trade[];
+function placeholderSvg(label: string) {
+  return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Crect fill='%231e293b' width='640' height='360'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='24' font-weight='600' fill='%2364748b'%3E${encodeURIComponent(label)}%3C/text%3E%3C/svg%3E`;
+}
 
-type DashboardViewMode = 'grid-4' | 'grid-2' | 'split' | 'table';
+const MOCK_DASHBOARD_TRADES: Trade[] = [
+  { id: 'm1', trade_date: '2026-01-06', trade_time: '09:30', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 420, risk_reward: 2.5, risk_percentage: 0.5, executed: true, break_even: false, trade_screens: [placeholderSvg('Image 1'), placeholderSvg('Image 2')], trade_screen_timeframes: ['4H', '1H'], strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm2', trade_date: '2026-01-07', trade_time: '10:15', market: 'DAX', direction: 'Long', trade_outcome: 'Lose', calculated_profit: -150, risk_reward: 0, risk_percentage: 0.5, executed: true, break_even: false, trade_screens: [placeholderSvg('Image 1'), placeholderSvg('Image 2'), placeholderSvg('Image 3'), placeholderSvg('Image 4')], trade_screen_timeframes: ['15m', '5m', '1H', '4H'], strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm3', trade_date: '2026-01-08', trade_time: '09:45', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 580, risk_reward: 3.2, risk_percentage: 0.5, executed: true, break_even: false, trade_screens: [placeholderSvg('Image 1'), placeholderSvg('Image 2'), placeholderSvg('Image 3')], trade_screen_timeframes: ['1H', '15m', '5m'], strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+  { id: 'm4', trade_date: '2026-01-09', trade_time: '10:00', market: 'DAX', direction: 'Long', trade_outcome: 'Win', calculated_profit: 300, risk_reward: 1.8, risk_percentage: 0.5, executed: true, break_even: false, trade_screens: [placeholderSvg('Image 1'), placeholderSvg('Image 2')], trade_screen_timeframes: ['4H', '15m'], strategy_id: '', user_id: '', created_at: '', updated_at: '' },
+] as unknown as Trade[];
 
 const DASHBOARD_CARD_CLASS = 'relative overflow-hidden border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm';
 
 function DashboardMockup() {
-  const [viewMode, setViewMode] = useState<DashboardViewMode>('grid-4');
   const netPnl = MOCK_DASHBOARD_TRADES.reduce((s, t) => s + (t.calculated_profit ?? 0), 0);
   const pnlPct = (netPnl / 50000) * 100;
   const wins = MOCK_DASHBOARD_TRADES.filter((t) => t.trade_outcome === 'Win').length;
@@ -742,60 +738,29 @@ function DashboardMockup() {
               </div>
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-300 whitespace-nowrap">View:</span>
               <div className="inline-flex h-8 items-center rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-none p-0.5">
-                {([
-                  { key: 'grid-2' as const, icon: Columns2, label: '2 cards per row' },
-                  { key: 'grid-4' as const, icon: LayoutGrid, label: '4 cards per row' },
-                  { key: 'split' as const, icon: PanelLeft, label: 'Split view' },
-                ] as const).map(({ key, icon: Icon, label }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setViewMode(key)}
-                    className={cn(
-                      'rounded-lg h-6 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
-                      viewMode === key
-                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                    )}
-                    aria-label={label}
-                    aria-pressed={viewMode === key}
-                  >
-                    <Icon className="h-4 w-4" />
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setViewMode('table')}
-                  className={cn(
-                    'rounded-lg h-6 px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer',
-                    viewMode === 'table'
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
-                  )}
-                  aria-label="Table view"
-                  aria-pressed={viewMode === 'table'}
-                >
+                <span className="rounded-lg h-6 px-2.5 py-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  <Columns2 className="h-4 w-4" />
+                </span>
+                <span className="rounded-lg h-6 px-2.5 py-1 text-xs font-medium bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm">
+                  <LayoutGrid className="h-4 w-4" />
+                </span>
+                <span className="rounded-lg h-6 px-2.5 py-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  <PanelLeft className="h-4 w-4" />
+                </span>
+                <span className="rounded-lg h-6 px-2.5 py-1 text-xs font-medium text-slate-500 dark:text-slate-400">
                   Table
-                </button>
+                </span>
               </div>
             </div>
           </div>
 
           {/* Trade cards grid */}
-          <div className={cn(
-            'grid gap-4',
-            viewMode === 'grid-4' && 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4',
-            viewMode === 'grid-2' && 'grid-cols-1 sm:grid-cols-2',
-            viewMode === 'split' && 'grid-cols-1 sm:grid-cols-2',
-            viewMode === 'table' && 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4',
-          )}>
+          <div className="grid gap-4 items-stretch [&>*]:h-full grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
             {MOCK_DASHBOARD_TRADES.map((trade) => (
               <TradeCard
                 key={trade.id}
                 trade={trade}
                 onOpenModal={noop}
-                hideDetailsLink
-                hideImage
               />
             ))}
           </div>
@@ -888,10 +853,10 @@ export function LandingCustomStats() {
                 type="button"
                 onClick={() => handleStepClick(i)}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 cursor-pointer',
+                  'flex items-center justify-center gap-2 w-[7.5rem] h-10 rounded-full text-sm font-medium transition-all duration-300 cursor-pointer border',
                   activeStep === i
                     ? 'themed-header-icon-box shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
                 )}
               >
                 <span
@@ -921,7 +886,7 @@ export function LandingCustomStats() {
               initial={{ opacity: 0, filter: 'blur(6px)' }}
               animate={{ opacity: 1, filter: 'blur(0px)' }}
               exit={{ opacity: 0, filter: 'blur(6px)' }}
-              transition={blurTransition}
+              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
               {activeStep < 2 ? (
                 /* Steps 1 & 2: two-column layout */
@@ -995,32 +960,28 @@ export function LandingCustomStats() {
               ) : (
                 /* Step 3: full-width dashboard */
                 <div>
-                  {/* Centered text above */}
-                  <div className="text-center mb-8">
-                    <div className="inline-flex items-center gap-2 mb-4">
-                      <span
-                        className="flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold"
-                        style={{
-                          backgroundColor: 'color-mix(in oklch, var(--tc-primary) 20%, transparent)',
-                          color: 'var(--tc-primary)',
-                        }}
-                      >
-                        3
-                      </span>
-                      <span className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
-                        Step 3
-                      </span>
+                  {/* Header row: title+description left, feature pills right */}
+                  <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6">
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0"
+                          style={{
+                            backgroundColor: 'color-mix(in oklch, var(--tc-primary) 20%, transparent)',
+                            color: 'var(--tc-primary)',
+                          }}
+                        >
+                          3
+                        </span>
+                        <h3 className="text-2xl sm:text-3xl font-semibold text-slate-100 tracking-tight">
+                          {step.title}
+                        </h3>
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-md pl-10">
+                        Full analytics dashboard scoped to your custom filter combination.
+                      </p>
                     </div>
-
-                    <h3 className="text-2xl sm:text-3xl font-semibold text-slate-100 tracking-tight">
-                      {step.title}
-                    </h3>
-                    <p className="mt-3 text-base text-muted-foreground leading-relaxed max-w-lg mx-auto">
-                      {step.description}
-                    </p>
-
-                    {/* Feature pills */}
-                    <div className="flex flex-wrap justify-center gap-4 mt-6">
+                    <div className="flex flex-wrap gap-3 shrink-0 lg:mt-1">
                       {step.features.map((f) => {
                         const Icon = f.icon;
                         return (
