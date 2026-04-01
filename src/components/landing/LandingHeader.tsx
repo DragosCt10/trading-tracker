@@ -3,7 +3,8 @@
 import { useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Menu, X, Palette } from 'lucide-react';
+import { Menu, X, Palette, LayoutDashboard } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -29,7 +30,20 @@ export function LandingHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [themePickerOpen, setThemePickerOpen] = useState(false);
+  const [authState, setAuthState] = useState<'loading' | 'logged-in' | 'logged-out'>('loading');
+  const isLoggedIn = authState === 'logged-in';
   useTheme();
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data }) => {
+      setAuthState(data.session?.user ? 'logged-in' : 'logged-out');
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthState(session?.user ? 'logged-in' : 'logged-out');
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Landing and pricing pages are always dark — force regardless of stored preference
   useLayoutEffect(() => {
@@ -146,19 +160,24 @@ export function LandingHeader() {
               <Palette className="h-4 w-4" style={{ color: 'var(--tc-primary)' }} />
             </button>
 
-            {/* CTA — Login button matching LoginPage gradient */}
-            <Link
-              href="/login"
-              className="relative overflow-hidden flex items-center justify-center gap-1.5 px-5 py-1.5 rounded-xl text-[13px] font-semibold text-white whitespace-nowrap shadow-lg hover:shadow-xl transition-all duration-300 group border-0"
-              style={{
-                background: `linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))`,
-                boxShadow: '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
-              }}
-            >
-              <span className="relative z-10 leading-[22px]">Login</span>
-              {/* Shimmer sweep on hover */}
-              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
-            </Link>
+            {/* CTA — Login or Dashboard button */}
+            {authState === 'loading' ? (
+              <div className="w-[88px] h-[34px] rounded-xl bg-slate-200/20 dark:bg-white/10 animate-pulse" />
+            ) : (
+              <Link
+                href={isLoggedIn ? '/stats' : '/login'}
+                className="relative overflow-hidden flex items-center justify-center gap-1.5 px-5 py-1.5 rounded-xl text-[13px] font-semibold text-white whitespace-nowrap shadow-lg hover:shadow-xl transition-all duration-300 group border-0"
+                style={{
+                  background: `linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))`,
+                  boxShadow: '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
+                }}
+              >
+                {isLoggedIn && <LayoutDashboard className="relative z-10 h-3.5 w-3.5" />}
+                <span className="relative z-10 leading-[22px]">{isLoggedIn ? 'Dashboard' : 'Login'}</span>
+                {/* Shimmer sweep on hover */}
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
+              </Link>
+            )}
           </div>
 
           {/* ── Mobile: theme toggle + hamburger ── */}
@@ -223,18 +242,23 @@ export function LandingHeader() {
 
                 <Separator className="my-4 bg-slate-200/50 dark:bg-white/[0.06]" />
 
-                <Link
-                  href="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="relative overflow-hidden flex items-center justify-center w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 group border-0"
-                  style={{
-                    background: `linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))`,
-                    boxShadow: '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
-                  }}
-                >
-                  <span className="relative z-10">Login</span>
-                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
-                </Link>
+                {authState === 'loading' ? (
+                  <div className="w-full h-[42px] rounded-xl bg-slate-200/20 dark:bg-white/10 animate-pulse" />
+                ) : (
+                  <Link
+                    href={isLoggedIn ? '/stats' : '/login'}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="relative overflow-hidden flex items-center justify-center gap-1.5 w-full px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-300 group border-0"
+                    style={{
+                      background: `linear-gradient(to right, var(--tc-primary), var(--tc-accent), var(--tc-accent-end))`,
+                      boxShadow: '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
+                    }}
+                  >
+                    {isLoggedIn && <LayoutDashboard className="relative z-10 h-3.5 w-3.5" />}
+                    <span className="relative z-10">{isLoggedIn ? 'Dashboard' : 'Login'}</span>
+                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
+                  </Link>
+                )}
               </SheetContent>
             </Sheet>
           </div>
