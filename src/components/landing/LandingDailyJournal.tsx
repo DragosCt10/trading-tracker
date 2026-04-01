@@ -13,9 +13,9 @@ import type { EquityPoint } from '@/components/dashboard/analytics/EquityCurveCh
 /* ── Mock data ── */
 
 const MOCK_TRADES = [
-  { symbol: 'NQ', name: 'NAS100', time: '10:00 – 11:30', direction: 'Long' as const, rr: '2.5', pnl: '+$580', pnlPositive: true, outcome: 'Win' as const, risk: '0.50%', screen: 'https://www.tradingview.com/x/jQunmvqG/' },
-  { symbol: 'ES', name: 'SP500', time: '11:45 – 12:30', direction: 'Short' as const, rr: '1.8', pnl: '-$260', pnlPositive: false, outcome: 'Lose' as const, risk: '0.50%', screen: 'https://www.tradingview.com/x/ljnfQy4G/' },
-  { symbol: 'GC', name: 'XAUUSD', time: '14:00 – 15:15', direction: 'Long' as const, rr: '3.2', pnl: '+$1,100', pnlPositive: true, outcome: 'Win' as const, risk: '0.35%', screen: 'https://www.tradingview.com/x/h87FdCLo/' },
+  { symbol: 'NQ', name: 'NAS100', time: '10:00 – 11:59', direction: 'Long' as const, rr: '2.5', pnl: '+$580', pnlPositive: true, outcome: 'Win' as const, risk: '0.50%', screen: 'https://www.tradingview.com/x/jQunmvqG/' },
+  { symbol: 'ES', name: 'SP500', time: '12:00 – 13:59', direction: 'Short' as const, rr: '1.8', pnl: '-$260', pnlPositive: false, outcome: 'Lose' as const, risk: '0.50%', screen: 'https://www.tradingview.com/x/ljnfQy4G/' },
+  { symbol: 'GC', name: 'XAUUSD', time: '14:00 – 15:59', direction: 'Long' as const, rr: '3.2', pnl: '+$1,100', pnlPositive: true, outcome: 'Win' as const, risk: '0.35%', screen: 'https://www.tradingview.com/x/h87FdCLo/' },
 ];
 
 const MOCK_STATS = [
@@ -186,7 +186,7 @@ function DailyJournalCardContent({
                   <td className="px-3 py-3 whitespace-nowrap">
                     <div
                       className={cn(
-                        'relative w-[140px] h-[75px] rounded-lg border overflow-hidden',
+                        'relative w-[140px] h-[75px] rounded-lg overflow-hidden',
                         isDark ? 'border-slate-600/30 bg-slate-700/30' : 'border-slate-200 bg-slate-100',
                       )}
                     >
