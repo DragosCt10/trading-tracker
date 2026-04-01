@@ -28,18 +28,18 @@ import { cn } from '@/lib/utils';
 import type { ExtraCardKey } from '@/constants/extraCards';
 import type { CustomStatConfig, CustomStatFilter } from '@/types/customStats';
 
-const MSS_OPTIONS = ['Normal', 'Aggressive', 'Wick', 'Internal'];
-const SESSION_OPTIONS = ['Sydney', 'Tokyo', 'London', 'New York'];
-const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
-const TREND_OPTIONS = ['Trend-following', 'Counter-trend', 'Consolidation'];
-const FVG_SIZE_OPTIONS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
-const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4'];
+export const MSS_OPTIONS = ['Normal', 'Aggressive', 'Wick', 'Internal'];
+export const SESSION_OPTIONS = ['Sydney', 'Tokyo', 'London', 'New York'];
+export const EVALUATION_OPTIONS = ['A+', 'A', 'B', 'C'];
+export const TREND_OPTIONS = ['Trend-following', 'Counter-trend', 'Consolidation'];
+export const FVG_SIZE_OPTIONS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
+export const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+export const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4'];
 
-const INPUT_CLASS =
+export const INPUT_CLASS =
   'h-12 rounded-2xl border border-slate-200/70 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 backdrop-blur-xl shadow-lg shadow-slate-900/5 dark:shadow-black/40 themed-focus text-slate-900 dark:text-slate-50 transition-all duration-300';
 
-const LABEL_CLASS = 'block text-sm font-semibold text-slate-700 dark:text-slate-300';
+export const LABEL_CLASS = 'block text-sm font-semibold text-slate-700 dark:text-slate-300';
 
 // ─── Chip toggle group ──────────────────────────────────────────────────────
 
@@ -49,7 +49,7 @@ interface ChipGroupProps {
   onChange: (value: string | boolean | number | undefined) => void;
 }
 
-function ChipGroup({ options, value, onChange }: ChipGroupProps) {
+export function ChipGroup({ options, value, onChange }: ChipGroupProps) {
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((opt) => {
@@ -109,7 +109,7 @@ function SelectAny({
 
 // ─── Form section row ───────────────────────────────────────────────────────
 
-function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+export function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
       <Label className={LABEL_CLASS}>{label}</Label>
