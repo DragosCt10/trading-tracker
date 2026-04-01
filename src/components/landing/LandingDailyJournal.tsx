@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { ChevronRight, CalendarDays, BarChart3, TableProperties, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronRight, CalendarDays, BarChart3, TableProperties, ArrowUp, ArrowDown, MoveHorizontal } from 'lucide-react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -19,14 +19,14 @@ const MOCK_TRADES = [
 ];
 
 const MOCK_STATS = [
-  { label: 'Total Trades', value: '3', color: 'text-slate-900 dark:text-slate-100' },
-  { label: 'Wins', value: '2', color: 'text-emerald-500' },
-  { label: 'Losses', value: '1', color: 'text-rose-500' },
-  { label: 'BE', value: '0', color: 'text-slate-600 dark:text-slate-300' },
-  { label: 'P&L %', value: '1.78%', color: 'text-slate-900 dark:text-slate-100' },
-  { label: 'Winrate', value: '67%', color: 'text-slate-900 dark:text-slate-100' },
-  { label: 'Profit Factor', value: '2.53', color: 'text-slate-900 dark:text-slate-100' },
-  { label: 'Consistency', value: '67%', color: 'text-slate-900 dark:text-slate-100' },
+  { label: 'Total Trades', value: '3', lightColor: 'text-slate-900', darkColor: 'text-slate-100' },
+  { label: 'Wins', value: '2', lightColor: 'text-emerald-600', darkColor: 'text-emerald-500' },
+  { label: 'Losses', value: '1', lightColor: 'text-rose-600', darkColor: 'text-rose-500' },
+  { label: 'BE', value: '0', lightColor: 'text-slate-600', darkColor: 'text-slate-300' },
+  { label: 'P&L %', value: '1.78%', lightColor: 'text-slate-900', darkColor: 'text-slate-100' },
+  { label: 'Winrate', value: '67%', lightColor: 'text-slate-900', darkColor: 'text-slate-100' },
+  { label: 'Profit Factor', value: '2.53', lightColor: 'text-slate-900', darkColor: 'text-slate-100' },
+  { label: 'Consistency', value: '67%', lightColor: 'text-slate-900', darkColor: 'text-slate-100' },
 ];
 
 const FEATURES = [
@@ -43,12 +43,261 @@ const MOCK_EQUITY_DATA: EquityPoint[] = [
   { date: '2026-02-12T15:15:00', profit: 1420 },
 ];
 
+/* ── Theme-aware card content ── */
+
+function DailyJournalCardContent({
+  theme,
+  isExpanded,
+  onToggle,
+}: {
+  theme: 'light' | 'dark';
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  const isDark = theme === 'dark';
+
+  return (
+    <div
+      className={cn(
+        'rounded-2xl border text-card-foreground backdrop-blur-sm overflow-hidden',
+        isDark
+          ? 'border-slate-700/50 bg-slate-800/30 shadow-none'
+          : 'border-slate-300/40 bg-[#f5f5f7] shadow-md shadow-slate-200/50',
+      )}
+    >
+      {/* Card header — date + toggle */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+        className={cn(
+          'w-full flex items-center justify-between px-5 py-4 text-left transition-colors cursor-pointer',
+          isDark ? 'hover:bg-slate-800/60' : 'hover:bg-slate-100/60',
+        )}
+      >
+        <div className="flex items-center gap-3">
+          <ChevronRight
+            className={cn(
+              'h-4 w-4 transition-transform duration-200',
+              isDark ? 'text-slate-400' : 'text-slate-500',
+              isExpanded ? 'rotate-90' : 'rotate-0',
+            )}
+          />
+          <div className="gap-1 flex flex-col">
+            <p className={cn('text-base font-semibold', isDark ? 'text-slate-100' : 'text-slate-900')}>
+              Thu, Feb 12, 2026
+            </p>
+            <p className={cn('text-sm', isDark ? 'text-slate-400' : 'text-slate-500')}>
+              3 trades &bull; P&L:{' '}
+              <span className="text-emerald-500">
+                <strong>$1,420</strong>
+              </span>
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggle();
+          }}
+          className={cn(
+            'h-8 rounded-xl px-3 text-xs cursor-pointer transition-colors duration-200 font-medium border',
+            isDark
+              ? 'border-slate-700/80 bg-slate-900/40 text-slate-200 hover:bg-slate-800/70 hover:text-slate-50 hover:border-slate-600/80'
+              : 'border-slate-200/80 bg-slate-100/60 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300/80',
+          )}
+        >
+          {isExpanded ? 'Collapse' : 'Expand'}
+        </button>
+      </div>
+
+      {/* Equity curve + header stats */}
+      <div className="px-5 py-4">
+        <div className="flex flex-col gap-10 md:flex-row md:items-center">
+          {/* Equity curve */}
+          <div className="md:w-1/3 h-32 flex items-center">
+            <EquityCurveChart
+              data={MOCK_EQUITY_DATA}
+              currencySymbol="$"
+              hasTrades={true}
+              variant="card"
+              hideAxisLabels
+            />
+          </div>
+
+          {/* Stats grid */}
+          <div className="flex-1 md:flex md:items-center">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-20 gap-y-6 text-xs sm:text-sm w-full">
+              {MOCK_STATS.map((stat) => (
+                <div key={stat.label}>
+                  <p className={cn('text-[11px] uppercase tracking-wide', isDark ? 'text-slate-400' : 'text-slate-500')}>
+                    {stat.label}
+                  </p>
+                  <p className={cn('text-base font-semibold', isDark ? stat.darkColor : stat.lightColor)}>
+                    {stat.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Collapsible trade table */}
+      <div
+        className={cn(
+          'border-t px-5 overflow-hidden transition-all duration-500 ease-in-out',
+          isDark ? 'border-slate-700/60' : 'border-slate-200/70',
+          isExpanded ? 'max-h-[1200px] py-4 opacity-100' : 'max-h-0 py-0 opacity-0',
+        )}
+      >
+        <div className="relative overflow-x-auto">
+          <table className={cn('min-w-full divide-y', isDark ? 'divide-slate-700/30' : 'divide-slate-200/30')}>
+            <thead className={cn('bg-transparent border-b', isDark ? 'border-slate-700/70' : 'border-slate-200/70')}>
+              <tr>
+                {['Screens', 'Time', 'Market', 'P&L', 'Direction', 'RR', 'Outcome', 'Risk', 'Notes', 'Actions'].map((col) => (
+                  <th
+                    key={col}
+                    className={cn(
+                      'px-3 py-3 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wider',
+                      isDark ? 'text-slate-400' : 'text-slate-600',
+                    )}
+                  >
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className={cn('divide-y', isDark ? 'divide-slate-700/30' : 'divide-slate-200/30')}>
+              {MOCK_TRADES.map((trade) => (
+                <tr
+                  key={trade.symbol}
+                  className={cn('transition-colors', isDark ? 'hover:bg-slate-800/40' : 'hover:bg-slate-50/80')}
+                >
+                  {/* Screens */}
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <div
+                      className={cn(
+                        'relative w-[140px] h-[75px] rounded-lg border overflow-hidden',
+                        isDark ? 'border-slate-600/30 bg-slate-700/30' : 'border-slate-200 bg-slate-100',
+                      )}
+                    >
+                      <Image
+                        src={trade.screen}
+                        alt={`${trade.name} chart`}
+                        className="w-full h-full object-cover"
+                        width={140}
+                        height={75}
+                        unoptimized
+                      />
+                      <span
+                        className={cn(
+                          'absolute top-1.5 right-1.5 text-[9px] font-medium backdrop-blur-sm rounded px-1.5 py-0.5',
+                          isDark ? 'text-slate-300 bg-slate-800/80' : 'text-slate-600 bg-white/80',
+                        )}
+                      >
+                        1/2
+                      </span>
+                    </div>
+                  </td>
+                  {/* Time */}
+                  <td className={cn('px-3 py-3 text-sm whitespace-nowrap', isDark ? 'text-slate-300' : 'text-slate-700')}>
+                    {trade.time}
+                  </td>
+                  {/* Market */}
+                  <td className={cn('px-3 py-3 text-sm font-medium whitespace-nowrap', isDark ? 'text-slate-100' : 'text-slate-900')}>
+                    {trade.name}
+                  </td>
+                  {/* P&L */}
+                  <td
+                    className={cn(
+                      'px-3 py-3 text-sm font-semibold whitespace-nowrap',
+                      trade.pnlPositive
+                        ? 'text-emerald-500 font-semibold'
+                        : 'text-rose-500 font-semibold',
+                    )}
+                  >
+                    {trade.pnl}
+                  </td>
+                  {/* Direction */}
+                  <td className={cn('px-3 py-3 text-sm whitespace-nowrap', isDark ? 'text-slate-300' : 'text-slate-700')}>
+                    <span className="inline-flex items-center gap-1">
+                      {trade.direction === 'Long' ? (
+                        <ArrowUp className={cn('h-3 w-3', isDark ? 'text-emerald-400' : 'text-emerald-500')} />
+                      ) : (
+                        <ArrowDown className={cn('h-3 w-3', isDark ? 'text-rose-400' : 'text-rose-500')} />
+                      )}
+                      {trade.direction}
+                    </span>
+                  </td>
+                  {/* RR */}
+                  <td className={cn('px-3 py-3 text-sm whitespace-nowrap', isDark ? 'text-slate-300' : 'text-slate-700')}>
+                    {trade.rr} <span className={cn('text-[10px]', isDark ? 'text-slate-500' : 'text-slate-400')}>R</span>
+                  </td>
+                  {/* Outcome */}
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <Badge
+                      className={cn(
+                        'shadow-none border-none outline-none ring-0 text-white',
+                        trade.outcome === 'Win' ? 'bg-emerald-500' : 'bg-rose-500',
+                      )}
+                    >
+                      {trade.outcome}
+                    </Badge>
+                  </td>
+                  {/* Risk */}
+                  <td className={cn('px-3 py-3 text-sm whitespace-nowrap', isDark ? 'text-slate-400' : 'text-slate-500')}>
+                    {trade.risk}
+                  </td>
+                  {/* Notes */}
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <span
+                      className={cn(
+                        'text-sm underline underline-offset-2 cursor-default',
+                        isDark ? 'text-slate-300 decoration-slate-600' : 'text-slate-700 decoration-slate-300',
+                      )}
+                    >
+                      View Notes
+                    </span>
+                  </td>
+                  {/* Actions */}
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <span
+                      className={cn(
+                        'text-sm underline underline-offset-2 cursor-default',
+                        isDark ? 'text-slate-300 decoration-slate-600' : 'text-slate-700 decoration-slate-300',
+                      )}
+                    >
+                      Trade Details
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Main component ── */
 
 export function LandingDailyJournal() {
   const sectionRef = useScrollReveal<HTMLElement>();
   const cardRef = useRef<HTMLDivElement>(null);
+  const comparisonRef = useRef<HTMLDivElement>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [sliderPosition, setSliderPosition] = useState(50);
+  const [isDragging, setIsDragging] = useState(false);
   const expandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toggleExpand = useCallback(() => {
@@ -82,6 +331,46 @@ export function LandingDailyJournal() {
       observer.disconnect();
       if (expandTimerRef.current) clearTimeout(expandTimerRef.current);
     };
+  }, []);
+
+  /* ── Slider drag handling ── */
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMove = (e: PointerEvent) => {
+      e.preventDefault();
+      if (!comparisonRef.current) return;
+      const rect = comparisonRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      setSliderPosition(Math.max(5, Math.min(95, (x / rect.width) * 100)));
+    };
+
+    const handleUp = () => setIsDragging(false);
+
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleUp);
+
+    return () => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+    };
+  }, [isDragging]);
+
+  const handleSliderKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setSliderPosition((p) => Math.max(5, p - 2));
+    }
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      setSliderPosition((p) => Math.min(95, p + 2));
+    }
   }, []);
 
 
@@ -172,183 +461,71 @@ export function LandingDailyJournal() {
           </div>
         </div>
 
-        {/* ── Bottom: Full-width mock daily card ── */}
+        {/* ── Bottom: Theme comparison slider ── */}
         <div
           ref={cardRef}
           className="scroll-reveal"
           style={{ '--reveal-delay': '400ms' } as React.CSSProperties}
         >
-          <div className="relative rounded-2xl border border-slate-300/40 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/30 shadow-md shadow-slate-200/50 dark:shadow-none backdrop-blur-sm overflow-hidden">
-            {/* Card header — date + toggle */}
+          {/* Subtle theme labels */}
+          <div className="flex justify-between mb-3 px-1">
+            <span className="text-xs font-medium tracking-wider uppercase text-slate-400/70">Light</span>
+            <span className="text-xs font-medium tracking-wider uppercase text-slate-400/70">Dark</span>
+          </div>
+
+          {/* Comparison container */}
+          <div
+            ref={comparisonRef}
+            className="relative rounded-2xl overflow-hidden"
+          >
+            {/* Dark version — full width (bottom layer) */}
+            <DailyJournalCardContent theme="dark" isExpanded={isExpanded} onToggle={toggleExpand} />
+
+            {/* Light version — clipped to left portion (top layer) */}
             <div
-              role="button"
-              tabIndex={0}
-              onClick={toggleExpand}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  toggleExpand();
-                }
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                clipPath: `inset(0 ${100 - sliderPosition}% 0 0)`,
+                willChange: isDragging ? 'clip-path' : 'auto',
               }}
-              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-800/60 transition-colors cursor-pointer"
             >
-              <div className="flex items-center gap-3">
-                <ChevronRight
-                  className={cn(
-                    'h-4 w-4 text-slate-400 transition-transform duration-200',
-                    isExpanded ? 'rotate-90' : 'rotate-0',
-                  )}
-                />
-                <div className="gap-1 flex flex-col">
-                  <p className="text-base font-semibold text-slate-100">
-                    Thu, Feb 12, 2026
-                  </p>
-                  <p className="text-sm text-slate-400">
-                    3 trades &bull; P&L:{' '}
-                    <span className="text-emerald-500">
-                      <strong>$1,420</strong>
-                    </span>
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  toggleExpand();
-                }}
-                className="h-8 rounded-xl px-3 text-xs cursor-pointer transition-colors duration-200 border border-slate-700/80 bg-slate-900/40 text-slate-200 hover:bg-slate-800/70 hover:text-slate-50 hover:border-slate-600/80 font-medium"
-              >
-                {isExpanded ? 'Collapse' : 'Expand'}
-              </button>
+              <DailyJournalCardContent theme="light" isExpanded={isExpanded} onToggle={toggleExpand} />
             </div>
 
-            {/* Equity curve + header stats — always visible (outside collapse) */}
-            <div className="px-5 py-4">
-              <div className="flex flex-col gap-10 md:flex-row md:items-center">
-                {/* Equity curve — real EquityCurveChart, 1/3 width like real card */}
-                <div className="md:w-1/3 h-32 flex items-center">
-                  <EquityCurveChart
-                    data={MOCK_EQUITY_DATA}
-                    currencySymbol="$"
-                    hasTrades={true}
-                    variant="card"
-                    hideAxisLabels
-                  />
-                </div>
-
-                {/* Stats grid — 2 rows of 4, matching real DailyJournalClient */}
-                <div className="flex-1 md:flex md:items-center">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-20 gap-y-6 text-xs sm:text-sm w-full">
-                    {MOCK_STATS.map((stat) => (
-                      <div key={stat.label}>
-                        <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                          {stat.label}
-                        </p>
-                        <p className={cn('text-base font-semibold', stat.color)}>
-                          {stat.value}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Collapsible trade table */}
+            {/* ── Divider line + draggable handle ── */}
             <div
-              className={cn(
-                'border-t border-slate-700/60 px-5 overflow-hidden transition-all duration-500 ease-in-out',
-                isExpanded ? 'max-h-[1200px] py-4 opacity-100' : 'max-h-0 py-0 opacity-0',
-              )}
+              className="absolute top-0 bottom-0 z-20 pointer-events-none"
+              style={{ left: `${sliderPosition}%` }}
             >
-              <div className="relative overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-700/30">
-                  <thead className="bg-transparent border-b border-slate-700/70">
-                    <tr>
-                      {['Screens', 'Time', 'Market', 'P&L', 'Direction', 'RR', 'Outcome', 'Risk', 'Notes', 'Actions'].map((col) => (
-                        <th
-                          key={col}
-                          className="px-3 py-3 text-left text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider"
-                        >
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-700/20">
-                    {MOCK_TRADES.map((trade) => (
-                      <tr key={trade.symbol} className="hover:bg-slate-800/40 transition-colors">
-                        {/* Screens — trade chart screenshot */}
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <div className="relative w-[140px] h-[75px] rounded-lg border border-slate-300/40 dark:border-slate-600/30 bg-slate-100 dark:bg-slate-700/30 overflow-hidden">
-                            <Image
-                              src={trade.screen}
-                              alt={`${trade.name} chart`}
-                              className="w-full h-full object-cover"
-                              width={140}
-                              height={75}
-                              unoptimized
-                            />
-                            <span className="absolute top-1.5 right-1.5 text-[9px] font-medium text-slate-300 bg-slate-800/80 backdrop-blur-sm rounded px-1.5 py-0.5">
-                              1/2
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-3 py-3 text-sm text-slate-300 whitespace-nowrap">
-                          {trade.time}
-                        </td>
-                        <td className="px-3 py-3 text-sm font-medium text-slate-100 whitespace-nowrap">
-                          {trade.name}
-                        </td>
-                        <td className={cn('px-3 py-3 text-sm font-semibold whitespace-nowrap', trade.pnlPositive ? 'text-emerald-400' : 'text-rose-400')}>
-                          {trade.pnl}
-                        </td>
-                        <td className="px-3 py-3 text-sm text-slate-300 whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1">
-                            {trade.direction === 'Long' ? (
-                              <ArrowUp className="h-3 w-3 text-emerald-400" />
-                            ) : (
-                              <ArrowDown className="h-3 w-3 text-rose-400" />
-                            )}
-                            {trade.direction}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-sm text-slate-300 whitespace-nowrap">
-                          {trade.rr} <span className="text-xs text-slate-500">R</span>
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <Badge
-                            className={cn(
-                              'shadow-none border-none outline-none ring-0 text-white',
-                              trade.outcome === 'Win'
-                                ? 'bg-emerald-500 dark:bg-emerald-500'
-                                : 'bg-rose-500 dark:bg-rose-500',
-                            )}
-                          >
-                            {trade.outcome}
-                          </Badge>
-                        </td>
-                        <td className="px-3 py-3 text-sm text-slate-400 whitespace-nowrap">
-                          {trade.risk}
-                        </td>
-                        {/* Notes */}
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <span className="text-sm text-slate-300 underline underline-offset-2 decoration-slate-600 cursor-default">
-                            View Notes
-                          </span>
-                        </td>
-                        {/* Actions */}
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <span className="text-sm text-slate-300 underline underline-offset-2 decoration-slate-600 cursor-default">
-                            Trade Details
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              {/* Vertical line */}
+              <div
+                className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-0.5"
+                style={{ backgroundColor: 'var(--tc-primary)' }}
+              />
+
+              {/* Glow effect on line */}
+              <div
+                className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-4 opacity-20 blur-sm"
+                style={{ backgroundColor: 'var(--tc-primary)' }}
+              />
+
+              {/* Draggable circle handle */}
+              <div
+                role="slider"
+                tabIndex={0}
+                aria-label="Drag to compare light and dark themes"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(sliderPosition)}
+                className="pointer-events-auto absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 rounded-full flex items-center justify-center cursor-col-resize touch-none shadow-lg border-2 border-white/30 transition-transform duration-150 hover:scale-110 focus-visible:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                style={{
+                  backgroundColor: 'var(--tc-primary)',
+                  boxShadow: '0 0 24px color-mix(in oklch, var(--tc-primary) 50%, transparent), 0 4px 12px rgba(0,0,0,0.3)',
+                }}
+                onPointerDown={handlePointerDown}
+                onKeyDown={handleSliderKeyDown}
+              >
+                <MoveHorizontal className="w-4 h-4 text-white" />
               </div>
             </div>
           </div>
