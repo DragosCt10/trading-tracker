@@ -3,7 +3,7 @@
 import { useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Menu, X, Palette, LayoutDashboard } from 'lucide-react';
+import { Menu, X, Palette, LayoutDashboard, LogIn } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
@@ -172,7 +172,7 @@ export function LandingHeader() {
                   boxShadow: '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
                 }}
               >
-                {isLoggedIn && <LayoutDashboard className="relative z-10 h-3.5 w-3.5" />}
+                {isLoggedIn ? <LayoutDashboard className="relative z-10 h-3.5 w-3.5" /> : <LogIn className="relative z-10 h-3.5 w-3.5" />}
                 <span className="relative z-10 leading-[22px]">{isLoggedIn ? 'Dashboard' : 'Login'}</span>
                 {/* Shimmer sweep on hover */}
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
@@ -254,7 +254,7 @@ export function LandingHeader() {
                       boxShadow: '0 10px 15px -3px color-mix(in oklab, var(--tc-primary) 30%, transparent), 0 4px 6px -4px color-mix(in oklab, var(--tc-primary) 20%, transparent)',
                     }}
                   >
-                    {isLoggedIn && <LayoutDashboard className="relative z-10 h-3.5 w-3.5" />}
+                    {isLoggedIn ? <LayoutDashboard className="relative z-10 h-3.5 w-3.5" /> : <LogIn className="relative z-10 h-3.5 w-3.5" />}
                     <span className="relative z-10">{isLoggedIn ? 'Dashboard' : 'Login'}</span>
                     <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
                   </Link>
