@@ -25,8 +25,11 @@ import { SummaryHalfGauge } from '@/components/dashboard/analytics/SummaryHalfGa
 import { TradeCardsView } from '@/components/trades/TradeCardsView';
 import { BouncePulse } from '@/components/ui/bounce-pulse';
 import { calculateWinRates } from '@/utils/calculateWinRates';
-import { calculateAverageDrawdown } from '@/utils/analyticsCalculations';
+import { calculateAverageDrawdown, calculateMaxDrawdown, calculateAveragePnLPercentage, computeRecoveryFactorAndDrawdownCount } from '@/utils/analyticsCalculations';
 import { useBECalc } from '@/contexts/BECalcContext';
+import { AvgWinLossCard } from '@/components/dashboard/analytics/AvgWinLossCard';
+import { ExpectancyCard } from '@/components/dashboard/analytics/ExpectancyCard';
+import { RecoveryFactorChart } from '@/components/dashboard/analytics/RecoveryFactorChart';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { cn, formatPercent, roundToCents } from '@/lib/utils';
 import type { Trade } from '@/types/trade';
@@ -116,6 +119,12 @@ export function CustomStatDetailView({
     const capped = Math.max(0, Math.min(averageDrawdown, 20));
     return (capped / 20) * 100;
   }, [averageDrawdown]);
+
+  const recoveryFactor = useMemo(() => {
+    const pnlPct = calculateAveragePnLPercentage(trades, accountBalance);
+    const maxDD = calculateMaxDrawdown(trades, accountBalance ?? 0);
+    return computeRecoveryFactorAndDrawdownCount({ averagePnLPercentage: pnlPct, maxDrawdown: maxDD }).recoveryFactor;
+  }, [trades, accountBalance]);
 
   const sortedTrades = useMemo(() => {
     const list = [...trades];
@@ -334,6 +343,13 @@ export function CustomStatDetailView({
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Second row: Avg Win/Loss, Expectancy, Recovery Factor */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
+        <AvgWinLossCard trades={trades} currencySymbol={currencySymbol} isPro />
+        <ExpectancyCard trades={trades} currencySymbol={currencySymbol} isPro />
+        <RecoveryFactorChart recoveryFactor={recoveryFactor} isPro />
       </div>
 
       {/* Trade cards section */}
