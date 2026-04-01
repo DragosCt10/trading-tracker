@@ -297,9 +297,9 @@ export function LandingFutureEquity() {
             </div>
           </div>
 
-          {/* Floating tooltips — OUTSIDE perspective, rendered flat to pop out in 3D */}
+          {/* Floating tooltips — OUTSIDE perspective, hidden on mobile to prevent overflow */}
           <div
-            className="pointer-events-none absolute"
+            className="pointer-events-none absolute hidden md:block"
             style={{ top: '18%', bottom: '22%', left: '6%', right: '6%' }}
           >
             {/* Cursor line */}
